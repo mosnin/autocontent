@@ -124,6 +124,7 @@ class Job(BaseModel):
     audio: AudioTrack | None = None
     rendered: RenderedVideo | None = None
     scheduled_for: datetime | None = None
+    provider_post_id: str | None = None
     error: str | None = None
 
 

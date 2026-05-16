@@ -98,6 +98,9 @@ function JobRow({ job }: { job: Job }) {
       {job.scheduled_for && (
         <div style={{ marginTop: 6, color: "#666", fontSize: 13 }}>
           Scheduled for {new Date(job.scheduled_for).toLocaleString()}
+          {job.provider_post_id && (
+            <span style={{ marginLeft: 8 }}>· post id <code>{job.provider_post_id}</code></span>
+          )}
         </div>
       )}
     </li>

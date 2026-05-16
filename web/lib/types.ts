@@ -58,6 +58,7 @@ export interface Job {
   status: JobStatus;
   created_at: string;
   scheduled_for: string | null;
+  provider_post_id: string | null;
   error: string | null;
   rendered?: { path: string; duration_sec: number } | null;
   script?: { idea: { hook: string; topic: string } } | null;

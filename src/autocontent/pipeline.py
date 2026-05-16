@@ -200,7 +200,7 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     job.status = JobStatus.scheduling
     await _persist(job)
     when = _next_posting_slot(niche)
-    await scheduler.schedule_post(
+    post_id = await scheduler.schedule_post(
         video_path=final,
         caption=idea.hook,
         hashtags=niche.hashtags,
@@ -210,6 +210,7 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
         user_id=user_id,
     )
     job.scheduled_for = when
+    job.provider_post_id = post_id
     job.status = JobStatus.done
     await _persist(job)
     return job
