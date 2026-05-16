@@ -69,6 +69,16 @@ export interface TodaySpend {
   total_usd: string;
 }
 
+export interface AyrshareConnectStatus {
+  connected: boolean;
+  profile_key: string | null;
+}
+
+export interface AyrshareConnectResponse {
+  profile_key: string;
+  login_url: string;
+}
+
 export const PLATFORMS: Platform[] = ["tiktok", "reels", "shorts"];
 export const QUALITIES: ImageQuality[] = ["low", "medium", "high"];
 export const RESOLUTIONS: VideoResolution[] = ["480p", "720p"];

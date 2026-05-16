@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { api } from "./api";
-import type { Job, Niche, Platform } from "./types";
+import type { AyrshareConnectResponse, Job, Niche, Platform } from "./types";
 
 interface NicheCreatePayload {
   title: string;
@@ -84,4 +84,14 @@ export async function retryJobAction(formData: FormData): Promise<void> {
   if (!job_id) throw new Error("job_id required");
   await api<Job>(`/api/v1/jobs/${job_id}/retry`, { method: "POST" });
   revalidatePath("/queue");
+}
+
+export async function connectAyrshareAction(): Promise<void> {
+  // Creates (or reuses) the user's Ayrshare profile and bounces them to
+  // the hosted OAuth chooser so they can link TikTok / IG / YouTube.
+  const res = await api<AyrshareConnectResponse>("/api/v1/connect/ayrshare", {
+    method: "POST",
+  });
+  revalidatePath("/connect");
+  redirect(res.login_url);
 }

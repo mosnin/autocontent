@@ -17,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SignedIn>
                 <a href="/dashboard">Dashboard</a>
                 <a href="/queue">Queue</a>
+                <a href="/connect">Connect socials</a>
                 <UserButton />
               </SignedIn>
               <SignedOut>

@@ -6,6 +6,18 @@ import { PLATFORMS, QUALITIES, RESOLUTIONS } from "../../lib/types";
 export default function Onboarding() {
   return (
     <section style={{ maxWidth: 720 }}>
+      <div
+        style={{
+          padding: "10px 12px",
+          marginBottom: 16,
+          background: "#fff8e1",
+          border: "1px solid #f5d77c",
+          borderRadius: 6,
+          fontSize: 14,
+        }}
+      >
+        Schedule posts require Ayrshare connected. <a href="/connect">Connect now</a>.
+      </div>
       <h1>Add a niche</h1>
       <p style={{ color: "#666" }}>
         Every field is required. The pipeline uses these to drive ideation,
