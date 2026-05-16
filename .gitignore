@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+.env.local
+dist/
+build/
+
+# Local artifacts
+outputs/
+artifacts/
+*.mp4
+*.wav
+*.mp3
+*.png
+*.jpg
+
+# Tooling
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.DS_Store
