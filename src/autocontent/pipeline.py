@@ -54,7 +54,8 @@ async def _generate_scene_assets(
         spend=spend,
     )
     await grok_imagine.animate(
-        keyframe, scene.motion_prompt, clip, duration_sec=scene.duration_sec
+        keyframe, scene.motion_prompt, clip,
+        duration_sec=scene.duration_sec, spend=spend,
     )
     return Clip(
         scene_index=scene.index,
