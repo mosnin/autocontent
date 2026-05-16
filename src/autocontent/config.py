@@ -26,5 +26,9 @@ class Settings(BaseSettings):
     artifacts_dir: str = "/artifacts"
     assets_dir: str = "/assets"
 
+    # Maximum number of scene-asset tasks running concurrently.
+    # Lower values reduce peak spend rate and provider rate-limit exposure.
+    scene_fanout_limit: int = 4
+
 
 settings = Settings()

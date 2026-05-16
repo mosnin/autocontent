@@ -19,6 +19,10 @@ GPT_IMAGE_1_USD_PER_IMAGE: dict[str, Decimal] = {
 # gpt-4o-mini-tts: $0.015 per minute of generated audio.
 GPT_4O_MINI_TTS_USD_PER_MINUTE = Decimal("0.015")
 
+# Pre-flight estimate: $0.015 per 1000 input characters (conservative upper
+# bound used before the actual audio duration is known).
+GPT_4O_MINI_TTS_USD_PER_1K_CHARS = Decimal("0.015")
+
 # whisper-1: $0.006 per minute of input audio (billed per second, rounded up).
 WHISPER_1_USD_PER_MINUTE = Decimal("0.006")
 
@@ -32,6 +36,17 @@ def image_cost(quality: str, n_images: int = 1) -> Decimal:
 
 def tts_cost(seconds: float) -> Decimal:
     return (GPT_4O_MINI_TTS_USD_PER_MINUTE * Decimal(str(seconds)) / Decimal(60)).quantize(
+        Decimal("0.0001")
+    )
+
+
+def tts_cost_estimated(char_count: int) -> Decimal:
+    """Conservative pre-flight cost estimate for TTS based on input length.
+
+    Uses $0.015 per 1000 characters as a proxy before output duration is
+    known. Rounded up to nearest $0.0001.
+    """
+    return (GPT_4O_MINI_TTS_USD_PER_1K_CHARS * Decimal(char_count) / Decimal(1000)).quantize(
         Decimal("0.0001")
     )
 

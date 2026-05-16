@@ -13,7 +13,7 @@ from openai import AsyncOpenAI
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from ..config import settings
-from .openai_pricing import tts_cost
+from .openai_pricing import tts_cost, tts_cost_estimated
 from .spend_context import SpendContext
 
 PROVIDER = "openai"
@@ -54,6 +54,8 @@ async def synthesize(
     style_directions: str | None = None,
     spend: SpendContext | None = None,
 ) -> Path:
+    if spend is not None:
+        await spend.ensure_can_spend(tts_cost_estimated(len(text)))
     client = _get_client()
     out_path.parent.mkdir(parents=True, exist_ok=True)
 

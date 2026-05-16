@@ -104,3 +104,60 @@ async def test_records_entry_before_raising():
                       units=Decimal(5), cost_usd=Decimal("0.25"))
     assert len(rec.entries) == 1
     assert rec.entries[0].cost_usd == Decimal("0.25")
+
+
+# ---------------------------------------------------------------------------
+# ensure_can_spend pre-flight tests
+# ---------------------------------------------------------------------------
+
+def _make_preflight_ctx(*, cap_usd, today_value: Decimal | None = None) -> tuple[SpendContext, dict]:
+    """Build a ctx for preflight tests; tracks DB call count."""
+    call_count = {"n": 0}
+
+    async def today(*, user_id: str, niche_id: UUID) -> Decimal:
+        call_count["n"] += 1
+        if today_value is None:
+            raise AssertionError("today_spend should not be called")
+        return today_value
+
+    ctx = SpendContext(
+        user_id="user_test",
+        niche_id=UUID("00000000-0000-0000-0000-000000000002"),
+        job_id=uuid4(),
+        record=_Recorder(),
+        cap_usd=cap_usd,
+        today_spend=today,
+    )
+    return ctx, call_count
+
+
+async def test_pre_flight_blocks_oversized_call():
+    """$0.50 already spent + $0.60 estimated exceeds $1.00 cap."""
+    ctx, _ = _make_preflight_ctx(cap_usd=Decimal("1.00"), today_value=Decimal("0.50"))
+    with pytest.raises(SpendCapExceeded):
+        await ctx.ensure_can_spend(Decimal("0.60"))
+    assert ctx.abort_event.is_set()
+
+
+async def test_pre_flight_allows_under_cap():
+    """$0.50 already spent + $0.40 estimated is within $1.00 cap."""
+    ctx, _ = _make_preflight_ctx(cap_usd=Decimal("1.00"), today_value=Decimal("0.50"))
+    await ctx.ensure_can_spend(Decimal("0.40"))  # must not raise
+    assert not ctx.abort_event.is_set()
+
+
+async def test_pre_flight_no_cap_is_noop():
+    """cap_usd=None means ensure_can_spend is a no-op — no DB call, no raise."""
+    ctx, call_count = _make_preflight_ctx(cap_usd=None, today_value=None)
+    await ctx.ensure_can_spend(Decimal("1000"))  # must not raise
+    assert call_count["n"] == 0
+    assert not ctx.abort_event.is_set()
+
+
+async def test_abort_event_short_circuits():
+    """Once abort_event is set, ensure_can_spend raises without hitting the DB."""
+    ctx, call_count = _make_preflight_ctx(cap_usd=Decimal("1.00"), today_value=None)
+    ctx.abort_event.set()
+    with pytest.raises(SpendCapExceeded):
+        await ctx.ensure_can_spend(Decimal("0.01"))
+    assert call_count["n"] == 0
