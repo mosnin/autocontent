@@ -25,6 +25,7 @@ def fake_spend() -> tuple[SpendContext, FakeRecorder]:
         niche_id=UUID("00000000-0000-0000-0000-000000000001"),
         job_id=uuid4(),
         record=rec,
+        cap_usd=None,
     )
     return ctx, rec
 
