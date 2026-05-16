@@ -114,6 +114,11 @@ async def _fail_with(job: Job, error: str) -> Job:
     job.status = JobStatus.failed
     job.error = error
     await _persist(job)
+    try:
+        import sentry_sdk
+        sentry_sdk.capture_exception()
+    except Exception:  # sentry not installed or not initialised — never block the pipeline
+        pass
     return job
 
 
@@ -187,7 +192,12 @@ async def _run_job_inner(
             job.clips = list(await asyncio.gather(
                 *[_bounded(s) for s in script.scenes]
             ))
-        except spend_repo.SpendCapExceeded:
+        except spend_repo.SpendCapExceeded as _exc:
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_exception(_exc)
+            except Exception:
+                pass
             return await _fail_with(job, "spend_cap_exceeded during fan-out")
     with _stage(JobStatus.animating.value):
         job.status = JobStatus.animating
@@ -209,6 +219,11 @@ async def _run_job_inner(
                 spend=spend,
             )
         except spend_repo.SpendCapExceeded as e:
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_exception(e)
+            except Exception:
+                pass
             return await _fail_with(job, str(e))
 
     # 5. Music
@@ -240,6 +255,11 @@ async def _run_job_inner(
         try:
             words = await openai_whisper.transcribe_word_level(vo_path, spend=spend)
         except spend_repo.SpendCapExceeded as e:
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_exception(e)
+            except Exception:
+                pass
             return await _fail_with(job, str(e))
         ass_path = root / "captions" / "subs.ass"
         subtitle.words_to_ass(words, ass_path)

@@ -9,8 +9,9 @@ right tags without threading the context through every function. Per-
 record extras like `stage`, `provider`, `sku`, `latency_ms`, `cost_usd`
 are passed through `extra=...` on the log call.
 
-Stdlib only — no structlog, no Sentry. Configure once at import time of
-`pipeline`; idempotent so re-importing in tests doesn't double-log.
+Sentry is initialised inside `configure()` when `AUTOCONTENT_SENTRY_DSN`
+is set. The `LoggingIntegration` captures WARNING+ to Sentry breadcrumbs
+and ERROR+ as Sentry events. All initialisation is idempotent.
 """
 from __future__ import annotations
 
@@ -54,22 +55,47 @@ class JsonFormatter(logging.Formatter):
 
 
 _configured = False
+_sentry_inited = False
 
 
 def configure(level: int = logging.INFO) -> None:
-    """Install the JSON handler on the root logger. Idempotent."""
-    global _configured
-    if _configured:
-        return
-    root = logging.getLogger()
-    # Drop any existing handlers (test harnesses, basicConfig calls).
-    for h in list(root.handlers):
-        root.removeHandler(h)
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JsonFormatter())
-    root.addHandler(handler)
-    root.setLevel(level)
-    _configured = True
+    """Install the JSON handler on the root logger and (optionally) init Sentry.
+
+    Fully idempotent: safe to call multiple times, from modal_app and FastAPI
+    startup alike. Sentry is only initialised once even across repeated calls.
+    """
+    global _configured, _sentry_inited
+
+    if not _configured:
+        root = logging.getLogger()
+        # Drop any existing handlers (test harnesses, basicConfig calls).
+        for h in list(root.handlers):
+            root.removeHandler(h)
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(JsonFormatter())
+        root.addHandler(handler)
+        root.setLevel(level)
+        _configured = True
+
+    if not _sentry_inited:
+        from .config import settings  # deferred to avoid circular import at module load
+
+        if settings.sentry_dsn:
+            import sentry_sdk
+            from sentry_sdk.integrations.logging import LoggingIntegration
+
+            sentry_sdk.init(
+                dsn=settings.sentry_dsn,
+                environment=settings.sentry_environment,
+                traces_sample_rate=settings.sentry_traces_sample_rate,
+                integrations=[
+                    LoggingIntegration(
+                        level=logging.INFO,       # breadcrumb threshold
+                        event_level=logging.ERROR,  # event threshold
+                    )
+                ],
+            )
+        _sentry_inited = True
 
 
 def get_logger(name: str) -> logging.Logger:

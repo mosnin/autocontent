@@ -91,3 +91,22 @@ async def get(job_id: UUID, *, user_id: str) -> Job | None:
         job_id, user_id,
     )
     return Job.model_validate(json.loads(row["payload"])) if row else None
+
+
+async def get_by_provider_post_id(provider_post_id: str) -> Job | None:
+    """Look up a Job by its Ayrshare post id.
+
+    No user_id scope — webhooks arrive without a user token; the
+    provider_post_id is the sole identifier. Returns None if the job has
+    been deleted or never existed (caller should log + 200, not 404).
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        select payload from jobs
+         where payload->>'provider_post_id' = $1
+         limit 1
+        """,
+        provider_post_id,
+    )
+    return Job.model_validate(json.loads(row["payload"])) if row else None

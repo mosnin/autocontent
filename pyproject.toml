@@ -17,6 +17,7 @@ dependencies = [
     "uvicorn>=0.30",
     "pyjwt[crypto]>=2.9",
     "mcp[cli]>=1.2",
+    "sentry-sdk[fastapi]>=2.0",
 ]
 
 [project.scripts]

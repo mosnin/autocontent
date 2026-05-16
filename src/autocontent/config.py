@@ -30,5 +30,13 @@ class Settings(BaseSettings):
     # Lower values reduce peak spend rate and provider rate-limit exposure.
     scene_fanout_limit: int = 4
 
+    # Sentry error reporting. Set sentry_dsn to enable; leave empty to disable.
+    sentry_dsn: str = ""
+    sentry_environment: str = "production"
+    sentry_traces_sample_rate: float = 0.0
+
+    # Ayrshare webhook HMAC secret. Must be set to accept webhook deliveries.
+    ayrshare_webhook_secret: str = ""
+
 
 settings = Settings()

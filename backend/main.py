@@ -6,8 +6,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from autocontent.config import settings
+from autocontent.logging import configure as _configure_logging
 
-from .routes import connect, jobs, niches, spend, tokens, users
+from .routes import connect, jobs, niches, spend, tokens, users, webhooks
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,8 @@ def _parse_origins(raw: str) -> list[str]:
 
 
 def create_app() -> FastAPI:
+    _configure_logging()
+
     app = FastAPI(title="autocontent api", version="0.1.0")
 
     origins = _parse_origins(settings.web_origin)
@@ -45,6 +48,7 @@ def create_app() -> FastAPI:
     app.include_router(spend.router, prefix="/api/v1/spend", tags=["spend"])
     app.include_router(connect.router, prefix="/api/v1/connect", tags=["connect"])
     app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
+    app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
 
     @app.get("/healthz")
     async def healthz() -> dict:
