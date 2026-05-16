@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from autocontent.config import settings
 
-from .routes import connect, jobs, niches, spend, users
+from .routes import connect, jobs, niches, spend, tokens, users
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ def create_app() -> FastAPI:
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
     app.include_router(spend.router, prefix="/api/v1/spend", tags=["spend"])
     app.include_router(connect.router, prefix="/api/v1/connect", tags=["connect"])
+    app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
 
     @app.get("/healthz")
     async def healthz() -> dict:

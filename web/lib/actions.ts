@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { api } from "./api";
-import type { AyrshareConnectResponse, Job, Niche, Platform } from "./types";
+import type {
+  AyrshareConnectResponse,
+  Job,
+  Niche,
+  Platform,
+  TokenCreateResponse,
+} from "./types";
 
 export interface ActionState {
   ok: boolean;
@@ -137,6 +143,50 @@ export async function archiveNicheAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function createTokenAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return { ok: false, error: "name required" };
+  const expRaw = String(formData.get("expires_in_days") || "").trim();
+  const body: Record<string, unknown> = { name };
+  if (expRaw) {
+    const n = Number(expRaw);
+    if (!Number.isFinite(n) || n <= 0) return { ok: false, error: "expires_in_days must be > 0" };
+    body.expires_in_days = n;
+  }
+  let plaintext: string;
+  try {
+    const res = await api<TokenCreateResponse>("/api/v1/tokens", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    plaintext = res.token;
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/settings/tokens");
+  // The plaintext is shown exactly once via the query param. We could
+  // use cookies but they leak via cache; the URL is fine for a short hop.
+  redirect(`/settings/tokens?just_created=${encodeURIComponent(plaintext)}`);
+}
+
+export async function revokeTokenAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const token_id = String(formData.get("token_id"));
+  if (!token_id) return { ok: false, error: "token_id required" };
+  try {
+    await api(`/api/v1/tokens/${token_id}`, { method: "DELETE" });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/settings/tokens");
   return { ok: true };
 }
 

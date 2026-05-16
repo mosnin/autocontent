@@ -136,3 +136,52 @@ class SpendEntry(BaseModel):
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
     cost_usd: Decimal
+
+
+class PersonalAccessToken(BaseModel):
+    """Public-safe view of a PAT row. Never contains the hash."""
+
+    id: UUID
+    user_id: str
+    name: str
+    prefix: str
+    last_used_at: datetime | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: datetime | None = None
+
+
+class NicheCreatePayload(BaseModel):
+    """Body shape for POST /api/v1/niches. Used by the SDK / CLI / MCP server."""
+
+    title: str
+    description: str
+    target_audience: str
+    hashtags: list[str] = Field(default_factory=list)
+    visual_style: str
+    voice: str
+    target_duration_sec: int
+    scene_count: int
+    posting_windows: list[PostingWindow]
+    platforms: list[Literal["tiktok", "reels", "shorts"]]
+    daily_spend_cap_usd: Decimal
+    image_quality: Literal["low", "medium", "high"] = "medium"
+    video_resolution: Literal["480p", "720p"] = "480p"
+    scene_max_duration_sec: int = 5
+    tts_style_directions: str | None = None
+
+
+class TodaySpend(BaseModel):
+    """Mirrors backend.routes.spend.TodaySpend so SDK callers have one shape."""
+
+    by_niche: dict[str, Decimal]
+    total_usd: Decimal
+
+
+class AyrshareConnectResponse(BaseModel):
+    profile_key: str
+    login_url: str
+
+
+class AyrshareConnectStatus(BaseModel):
+    connected: bool
+    profile_key: str | None = None
