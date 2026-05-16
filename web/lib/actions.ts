@@ -88,6 +88,59 @@ export async function createNicheAction(
   redirect("/dashboard");
 }
 
+export async function updateNicheAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const niche_id = String(formData.get("niche_id") || "").trim();
+  if (!niche_id) return { ok: false, error: "niche_id required" };
+
+  const platforms = (formData.getAll("platforms") as string[]) as Platform[];
+  if (platforms.length === 0) {
+    return { ok: false, error: "pick at least one platform" };
+  }
+
+  const postingHour = Number(formData.get("posting_hour"));
+  const postingMinute = Number(formData.get("posting_minute"));
+  const tz = String(formData.get("tz") || "America/Los_Angeles");
+  const ttsStyleRaw = String(formData.get("tts_style_directions") || "").trim();
+
+  // Send the full payload (all fields optional on the backend), keeps
+  // semantics symmetric with createNicheAction.
+  const payload: NicheCreatePayload = {
+    title: String(formData.get("title") || "").trim(),
+    description: String(formData.get("description") || "").trim(),
+    target_audience: String(formData.get("target_audience") || "").trim(),
+    hashtags: splitCsv(String(formData.get("hashtags") || "")),
+    visual_style: String(formData.get("visual_style") || "").trim(),
+    voice: String(formData.get("voice") || "onyx"),
+    target_duration_sec: Number(formData.get("target_duration_sec") || 60),
+    scene_count: Number(formData.get("scene_count") || 6),
+    posting_windows: [{ hour: postingHour, minute: postingMinute, tz }],
+    platforms,
+    daily_spend_cap_usd: String(formData.get("daily_spend_cap_usd") || "5.00"),
+    image_quality:
+      (formData.get("image_quality") as "low" | "medium" | "high") || "medium",
+    video_resolution:
+      (formData.get("video_resolution") as "480p" | "720p") || "480p",
+    scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
+    tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
+  };
+
+  try {
+    await api<Niche>(`/api/v1/niches/${niche_id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath(`/niches/${niche_id}/edit`);
+  redirect("/dashboard");
+}
+
 export async function enqueueJobAction(
   _prev: ActionState,
   formData: FormData,

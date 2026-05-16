@@ -1,9 +1,8 @@
-// Shared action-state types and the empty default.
-//
-// Lives outside of `web/lib/actions.ts` on purpose: Next.js 15 enforces
-// that everything exported from a `"use server"` module must be an async
-// function. Exporting a const or a non-function type from `actions.ts`
-// breaks the RSC bundler during static prerender (`/connect`, `/_not-found`).
+// Plain-object companion to `web/lib/actions.ts`. The actions file is
+// marked `"use server"`, which restricts its exports to async
+// functions only (Next 15.5+ enforces this). Anything that isn't a
+// server action — type aliases, the empty-state sentinel —
+// lives here.
 
 export interface ActionState {
   ok: boolean;

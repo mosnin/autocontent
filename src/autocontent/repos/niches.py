@@ -74,6 +74,65 @@ async def get(niche_id: UUID, *, user_id: str) -> Niche | None:
     return _row_to_niche(row) if row else None
 
 
+async def update(
+    niche_id: UUID,
+    *,
+    user_id: str,
+    **fields,
+) -> Niche | None:
+    """Partial UPDATE on a single niche row.
+
+    Accepts the same fields as :func:`create` but every one is
+    optional; unspecified keys are left alone. ``posting_windows`` is
+    re-serialized to JSONB on the way in. Returns the refreshed row
+    or ``None`` if the niche isn't owned by ``user_id``.
+    """
+    if not fields:
+        return await get(niche_id, user_id=user_id)
+
+    # Map python attribute -> column name (1:1 today, kept explicit so
+    # the columns we accept here are obvious at a glance).
+    allowed = {
+        "title", "description", "target_audience", "hashtags",
+        "visual_style", "voice", "target_duration_sec", "scene_count",
+        "posting_windows", "platforms", "daily_spend_cap_usd",
+        "image_quality", "video_resolution", "scene_max_duration_sec",
+        "tts_style_directions",
+    }
+
+    sets: list[str] = []
+    values: list = []
+    i = 1
+    for key, val in fields.items():
+        if key not in allowed:
+            continue
+        if val is None and key not in {"tts_style_directions"}:
+            # Treat None on non-nullable columns as "don't touch".
+            continue
+        if key == "posting_windows":
+            sets.append(f"posting_windows = ${i}::jsonb")
+            values.append(json.dumps([w.model_dump() for w in val]))
+        else:
+            sets.append(f"{key} = ${i}")
+            values.append(val)
+        i += 1
+
+    if not sets:
+        return await get(niche_id, user_id=user_id)
+
+    values.append(niche_id)
+    values.append(user_id)
+    sql = (
+        "update niches set "
+        + ", ".join(sets)
+        + f" where id = ${i} and user_id = ${i + 1}"
+        + " returning *"
+    )
+    pool = await get_pool()
+    row = await pool.fetchrow(sql, *values)
+    return _row_to_niche(row) if row else None
+
+
 async def archive(niche_id: UUID, *, user_id: str) -> None:
     pool = await get_pool()
     await pool.execute(

@@ -1,0 +1,308 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import useSWR from "swr";
+import { toast } from "sonner";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Inbox,
+  Link2,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  Plus,
+  Trash2,
+} from "lucide-react";
+
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useRunConfirm } from "@/components/run-confirm-dialog";
+import { archiveNicheAction } from "@/lib/actions";
+import { clientFetch } from "@/lib/client-fetcher";
+import { formatUsd } from "@/lib/format";
+import type { Niche, Platform, TodaySpend } from "@/lib/types";
+
+interface InitialData {
+  niches: Niche[];
+  spend: TodaySpend;
+  ayrshareConnected: boolean | null;
+}
+
+const POLL_MS = 5000;
+
+const PLATFORM_LABEL: Record<Platform, string> = {
+  tiktok: "TikTok",
+  reels: "Reels",
+  shorts: "Shorts",
+};
+
+export function DashboardClient({ initial }: { initial: InitialData }) {
+  const { data: niches, error: nichesError } = useSWR<Niche[]>(
+    "/api/v1/niches",
+    clientFetch,
+    { refreshInterval: POLL_MS, fallbackData: initial.niches },
+  );
+  const { data: spend, error: spendError } = useSWR<TodaySpend>(
+    "/api/v1/spend/today",
+    clientFetch,
+    { refreshInterval: POLL_MS, fallbackData: initial.spend },
+  );
+
+  // Probe Ayrshare status only when the parent told us the route exists
+  // (initial.ayrshareConnected !== null).
+  const { data: ayrshare } = useSWR<{ connected: boolean }>(
+    initial.ayrshareConnected === null ? null : "/api/v1/connect/ayrshare/status",
+    clientFetch,
+    {
+      refreshInterval: POLL_MS,
+      fallbackData:
+        initial.ayrshareConnected === null
+          ? undefined
+          : { connected: initial.ayrshareConnected },
+      shouldRetryOnError: false,
+    },
+  );
+
+  const nichesList = niches ?? [];
+  const spendData = spend ?? { by_niche: {}, total_usd: "0" };
+  const showAyrshareBanner =
+    ayrshare !== undefined && ayrshare.connected === false;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Niches</h1>
+          <p className="text-sm text-muted-foreground">
+            Each niche is its own self-driving pipeline.
+          </p>
+        </div>
+        <Button asChild>
+          <Link href="/onboarding">
+            <Plus className="h-4 w-4" />
+            New niche
+          </Link>
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardDescription>Today&apos;s total spend</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-semibold tracking-tight">
+            {formatUsd(spendData.total_usd)}
+          </div>
+        </CardContent>
+      </Card>
+
+      {showAyrshareBanner && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
+              <div>
+                <div className="font-medium">Ayrshare not connected</div>
+                <div className="text-sm text-muted-foreground">
+                  Pipeline runs will succeed locally, but posts won&apos;t ship
+                  until you link a socials profile.
+                </div>
+              </div>
+            </div>
+            <Button asChild variant="outline">
+              <Link href="/connect">
+                <Link2 className="h-4 w-4" />
+                Connect socials
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {(nichesError || spendError) && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="pt-6 text-sm text-destructive">
+            Live updates paused:{" "}
+            {(nichesError ?? spendError)?.message ?? "fetch failed"}
+          </CardContent>
+        </Card>
+      )}
+
+      {nichesList.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {nichesList.map((n) => (
+            <NicheCard
+              key={n.id}
+              niche={n}
+              spentToday={spendData.by_niche[n.id] ?? "0"}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+        <div className="rounded-full bg-muted p-3">
+          <Inbox className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-semibold">No niches yet</h3>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Create one to start the pipeline. You can have as many as you want;
+          each runs under its own daily spend cap.
+        </p>
+        <Button asChild>
+          <Link href="/onboarding">
+            <Plus className="h-4 w-4" />
+            Create your first niche
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NicheCard({ niche, spentToday }: { niche: Niche; spentToday: string }) {
+  const { openRunConfirm } = useRunConfirm();
+  const cap = Number(niche.daily_spend_cap_usd);
+  const spent = Number(spentToday);
+  const pct = cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
+  const tooltipText = `${formatUsd(spent)} of ${formatUsd(cap)} used today`;
+
+  async function onArchive() {
+    if (!confirm(`Archive niche "${niche.title}"? This will stop new posts.`)) {
+      return;
+    }
+    const fd = new FormData();
+    fd.set("niche_id", niche.id);
+    const res = await archiveNicheAction({ ok: false }, fd);
+    if (res.ok) toast.success(`Archived ${niche.title}`);
+    else toast.error(res.error ?? "Archive failed");
+  }
+
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-2">
+          <CardTitle className="text-lg font-semibold">{niche.title}</CardTitle>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="-mr-2 h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/niches/${niche.id}/edit`}>
+                  <Pencil /> Edit
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  void onArchive();
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 /> Archive
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <CardDescription className="line-clamp-2">
+          {niche.description}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex-1 space-y-4 pb-3">
+        <div className="text-xs text-muted-foreground">
+          <span className="font-medium">For:</span> {niche.target_audience}
+        </div>
+
+        {niche.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {niche.hashtags.slice(0, 6).map((tag) => (
+              <Badge key={tag} variant="secondary" className="font-normal">
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          <span>image: {niche.image_quality}</span>
+          <span>video: {niche.video_resolution}</span>
+          <span>scenes: {niche.scene_count}</span>
+          <span>
+            {niche.target_duration_sec}s · {niche.scene_max_duration_sec}s/scene
+          </span>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-baseline justify-between text-xs">
+            <span className="text-muted-foreground">Today</span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="font-mono tabular-nums">
+                  {formatUsd(spent)} / {formatUsd(cap)}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{tooltipText}</TooltipContent>
+            </Tooltip>
+          </div>
+          <Progress value={pct} />
+        </div>
+      </CardContent>
+
+      <CardFooter className="flex flex-wrap gap-2 pt-0">
+        {niche.platforms.map((p) => (
+          <Button
+            key={p}
+            size="sm"
+            variant="outline"
+            onClick={() => openRunConfirm({ nicheId: niche.id, platform: p })}
+          >
+            <Play className="h-3.5 w-3.5" />
+            {PLATFORM_LABEL[p]}
+          </Button>
+        ))}
+        <Button asChild size="sm" variant="ghost" className="ml-auto">
+          <Link href={`/niches/${niche.id}/edit`}>
+            Edit
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+}
