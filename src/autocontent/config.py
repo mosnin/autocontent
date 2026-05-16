@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     # If empty/unset we fall back to "*" with credentials disabled.
     web_origin: str = ""
 
+    # When set, slowapi uses this Redis URL for distributed rate-limit storage.
+    # Leave empty to fall back to in-process memory (fine for single-instance).
+    rate_limit_redis_url: str = ""
+
     # Modal volume mount points.
     artifacts_dir: str = "/artifacts"
     assets_dir: str = "/assets"

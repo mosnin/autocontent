@@ -10,13 +10,14 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from autocontent.models import PersonalAccessToken
 from autocontent.repos import tokens as tokens_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
 
@@ -32,12 +33,16 @@ class TokenCreateResponse(BaseModel):
 
 
 @router.get("", response_model=list[PersonalAccessToken])
-async def list_tokens(ctx: AuthCtx = CurrentUser) -> list[PersonalAccessToken]:
+@limiter.limit("30/minute")
+async def list_tokens(request: Request, ctx: AuthCtx = CurrentUser) -> list[PersonalAccessToken]:
     return await tokens_repo.list_for_user(ctx.user_id)
 
 
 @router.post("", response_model=TokenCreateResponse, status_code=status.HTTP_201_CREATED)
-async def create_token(body: TokenCreate, ctx: AuthCtx = CurrentUser) -> TokenCreateResponse:
+@limiter.limit("5/minute")
+async def create_token(
+    request: Request, body: TokenCreate, ctx: AuthCtx = CurrentUser
+) -> TokenCreateResponse:
     expires_at = tokens_repo.compute_expires_at(body.expires_in_days)
     info, plaintext = await tokens_repo.create(
         user_id=ctx.user_id, name=body.name, expires_at=expires_at
