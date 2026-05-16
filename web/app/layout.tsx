@@ -1,5 +1,16 @@
 import type { Metadata } from "next";
-import { ClerkProvider, SignedIn, SignedOut, UserButton, SignInButton } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
+import {
+  ColorSchemeScript,
+  MantineProvider,
+  mantineHtmlProps,
+} from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+
+import "./globals.css";
+
+import { Shell } from "./AppShell";
+import { theme } from "./theme";
 
 export const metadata: Metadata = {
   title: "autocontent",
@@ -9,24 +20,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" {...mantineHtmlProps}>
+        <head>
+          <ColorSchemeScript defaultColorScheme="auto" />
+        </head>
         <body>
-          <header style={{ display: "flex", justifyContent: "space-between", padding: 16 }}>
-            <a href="/"><strong>autocontent</strong></a>
-            <nav style={{ display: "flex", gap: 16, alignItems: "center" }}>
-              <SignedIn>
-                <a href="/dashboard">Dashboard</a>
-                <a href="/queue">Queue</a>
-                <a href="/connect">Connect socials</a>
-                <a href="/settings/tokens">Settings</a>
-                <UserButton />
-              </SignedIn>
-              <SignedOut>
-                <SignInButton />
-              </SignedOut>
-            </nav>
-          </header>
-          <main style={{ padding: 16 }}>{children}</main>
+          <MantineProvider theme={theme} defaultColorScheme="auto">
+            <Notifications position="top-right" />
+            <Shell>{children}</Shell>
+          </MantineProvider>
         </body>
       </html>
     </ClerkProvider>

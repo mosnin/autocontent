@@ -1,18 +1,46 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import useSWR from "swr";
+import {
+  Stack,
+  Group,
+  Title,
+  Text,
+  Button,
+  Alert,
+  Card,
+  Badge,
+  Progress,
+  Tooltip,
+  Menu,
+  ActionIcon,
+  SimpleGrid,
+  ThemeIcon,
+  Center,
+  Box,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import {
+  IconPlus,
+  IconDotsVertical,
+  IconArchive,
+  IconEdit,
+  IconAlertTriangle,
+  IconPlayerPlay,
+  IconSparkles,
+} from "@tabler/icons-react";
 
 import {
   archiveNicheAction,
-  enqueueJobAction,
   EMPTY_STATE,
-  type ActionState,
 } from "../../lib/actions";
 import { clientFetch } from "../../lib/client-fetcher";
 import { formatUsd } from "../../lib/format";
-import type { Niche, TodaySpend } from "../../lib/types";
+import type { Niche, Platform, TodaySpend } from "../../lib/types";
+import { RunConfirmModal } from "./RunConfirmModal";
 
 interface InitialData {
   niches: Niche[];
@@ -23,6 +51,9 @@ interface InitialData {
 const POLL_MS = 5000;
 
 export function DashboardClient({ initial }: { initial: InitialData }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const { data: niches, error: nichesError } = useSWR<Niche[]>(
     "/api/v1/niches",
     clientFetch,
@@ -33,8 +64,6 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     clientFetch,
     { refreshInterval: POLL_MS, fallbackData: initial.spend },
   );
-
-  // Ayrshare status: poll only if the route exists; if it 404s, stop.
   const { data: ayrshare } = useSWR<{ connected: boolean }>(
     initial.ayrshareConnected === null ? null : "/api/v1/connect/ayrshare/status",
     clientFetch,
@@ -50,223 +79,275 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
   const nichesList = niches ?? [];
   const spendData = spend ?? { by_niche: {}, total_usd: "0" };
-
-  const showNoNichesBanner = nichesList.length === 0;
   const showAyrshareBanner =
     ayrshare !== undefined && ayrshare.connected === false;
 
-  return (
-    <section>
-      <header style={headerStyle}>
-        <h1>Niches</h1>
-        <a href="/onboarding" style={addLink}>
-          + Add niche
-        </a>
-      </header>
+  // Modal state. Shared so the spotlight "Enqueue {niche}" action can
+  // open it via the ?run=<niche_id> query param.
+  const [modalNiche, setModalNiche] = useState<Niche | null>(null);
+  const [modalPlatform, setModalPlatform] = useState<Platform | null>(null);
 
-      {(showNoNichesBanner || showAyrshareBanner) && (
-        <div style={bannerStyle}>
-          {showNoNichesBanner && (
-            <div>
-              No niches yet. <a href="/onboarding">Create your first one</a>.
-            </div>
-          )}
-          {showAyrshareBanner && (
-            <div>
-              Your Ayrshare profile isn&apos;t connected — posts won&apos;t actually
-              ship until you finish that setup.
-            </div>
-          )}
-        </div>
+  useEffect(() => {
+    const runId = searchParams.get("run");
+    if (!runId) return;
+    const target = nichesList.find((n) => n.id === runId);
+    if (target && target.platforms.length > 0) {
+      setModalNiche(target);
+      setModalPlatform(target.platforms[0]);
+      // Clear the query param without reloading
+      router.replace("/dashboard", { scroll: false });
+    }
+  }, [searchParams, nichesList, router]);
+
+  const openRunModal = (n: Niche, p: Platform) => {
+    setModalNiche(n);
+    setModalPlatform(p);
+  };
+
+  const closeRunModal = () => {
+    setModalNiche(null);
+    setModalPlatform(null);
+  };
+
+  return (
+    <Stack gap="md" py="md">
+      <Group justify="space-between" wrap="wrap">
+        <Title order={2}>Niches</Title>
+        <Group gap="md">
+          <Text c="dimmed" size="sm">
+            Today's spend:{" "}
+            <Text component="span" fw={700} c="indigo">
+              {formatUsd(spendData.total_usd)}
+            </Text>
+          </Text>
+          <Button
+            component={Link}
+            href="/onboarding"
+            leftSection={<IconPlus size={16} />}
+            color="indigo"
+          >
+            Add niche
+          </Button>
+        </Group>
+      </Group>
+
+      {showAyrshareBanner && (
+        <Alert
+          color="yellow"
+          variant="light"
+          icon={<IconAlertTriangle size={18} />}
+          title="Ayrshare not connected"
+        >
+          Your Ayrshare profile isn't connected — generated posts won't ship
+          until you finish that setup.{" "}
+          <Anchor href="/connect">Connect now</Anchor>.
+        </Alert>
       )}
 
       {(nichesError || spendError) && (
-        <div style={errorBannerStyle}>
-          Live updates paused: {(nichesError ?? spendError)?.message ?? "fetch failed"}
-        </div>
+        <Alert color="red" variant="light" title="Live updates paused">
+          {(nichesError ?? spendError)?.message ?? "fetch failed"}
+        </Alert>
       )}
 
-      <div style={{ margin: "12px 0", color: "#666" }}>
-        Today&apos;s total spend: <strong>{formatUsd(spendData.total_usd)}</strong>
-      </div>
-
-      {nichesList.length > 0 && (
-        <ul style={{ display: "flex", flexDirection: "column", gap: 12, padding: 0 }}>
+      {nichesList.length === 0 ? (
+        <EmptyNiches />
+      ) : (
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
           {nichesList.map((n) => (
             <NicheCard
               key={n.id}
               niche={n}
               spentToday={spendData.by_niche[n.id] ?? "0"}
+              onRun={openRunModal}
             />
           ))}
-        </ul>
+        </SimpleGrid>
       )}
-    </section>
+
+      <RunConfirmModal
+        opened={modalNiche !== null}
+        onClose={closeRunModal}
+        niche={modalNiche}
+        platform={modalPlatform}
+        spentToday={
+          modalNiche ? spendData.by_niche[modalNiche.id] ?? "0" : "0"
+        }
+      />
+    </Stack>
   );
 }
 
-function NicheCard({ niche, spentToday }: { niche: Niche; spentToday: string }) {
+// Local Anchor wrapper so we don't need to import the full one.
+function Anchor({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} style={{ textDecoration: "underline" }}>
+      {children}
+    </Link>
+  );
+}
+
+interface NicheCardProps {
+  niche: Niche;
+  spentToday: string;
+  onRun: (niche: Niche, platform: Platform) => void;
+}
+
+function NicheCard({ niche, spentToday, onRun }: NicheCardProps) {
   const cap = Number(niche.daily_spend_cap_usd);
   const spent = Number(spentToday);
-  const pct = cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
+  const pct = cap > 0 ? Math.min(100, (spent / cap) * 100) : 0;
+
+  const [isArchiving, startArchive] = useTransition();
+
+  const onArchive = () => {
+    if (!confirm(`Archive niche "${niche.title}"? This stops new posts.`)) {
+      return;
+    }
+    startArchive(async () => {
+      const fd = new FormData();
+      fd.set("niche_id", niche.id);
+      const res = await archiveNicheAction(EMPTY_STATE, fd);
+      if (!res.ok) {
+        notifications.show({
+          title: "Archive failed",
+          message: res.error ?? "Try again",
+          color: "red",
+        });
+        return;
+      }
+      notifications.show({
+        title: "Niche archived",
+        message: niche.title,
+        color: "green",
+      });
+    });
+  };
+
   return (
-    <li style={cardStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <h3 style={{ margin: 0 }}>{niche.title}</h3>
-        <span style={{ color: "#666", fontSize: 13 }}>
-          {formatUsd(spent)} / {formatUsd(cap)} today
-        </span>
-      </div>
-      <p style={{ color: "#444", margin: "4px 0" }}>{niche.description}</p>
-      <div style={{ display: "flex", gap: 12, color: "#666", fontSize: 13, flexWrap: "wrap" }}>
-        <span>image: {niche.image_quality}</span>
-        <span>video: {niche.video_resolution}</span>
-        <span>scenes: {niche.scene_count}</span>
-        <span>platforms: {niche.platforms.join(", ")}</span>
-      </div>
-      <div style={progressBarStyle}>
-        <div style={{ ...progressFillStyle, width: `${pct}%` }} />
-      </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
-        {niche.platforms.map((platform) => (
-          <EnqueueForm key={platform} nicheId={niche.id} platform={platform} />
-        ))}
-        <ArchiveForm nicheId={niche.id} title={niche.title} />
-      </div>
-    </li>
+    <Card withBorder padding="md" radius="md">
+      <Stack gap="xs">
+        <Group justify="space-between" wrap="nowrap" align="flex-start">
+          <Title order={4} lineClamp={1}>
+            {niche.title}
+          </Title>
+          <Menu shadow="md" position="bottom-end">
+            <Menu.Target>
+              <ActionIcon variant="subtle" color="gray" aria-label="Niche actions">
+                <IconDotsVertical size={18} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item
+                leftSection={<IconEdit size={14} />}
+                disabled
+                title="Editing coming soon"
+              >
+                Edit
+              </Menu.Item>
+              <Menu.Item
+                color="red"
+                leftSection={<IconArchive size={14} />}
+                onClick={onArchive}
+                disabled={isArchiving}
+              >
+                {isArchiving ? "Archiving…" : "Archive"}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+
+        <Text size="sm" c="dimmed" lineClamp={2}>
+          {niche.description}
+        </Text>
+
+        <Text size="xs" c="dimmed">
+          Audience: {niche.target_audience}
+        </Text>
+
+        {niche.hashtags.length > 0 && (
+          <Group gap={4} wrap="wrap">
+            {niche.hashtags.slice(0, 6).map((tag) => (
+              <Badge key={tag} variant="light" color="gray" size="sm">
+                #{tag}
+              </Badge>
+            ))}
+          </Group>
+        )}
+
+        <Group gap="md" wrap="wrap" mt={4}>
+          <Tooltip label="Image quality">
+            <Text size="xs" c="dimmed">
+              quality: <b>{niche.image_quality}</b>
+            </Text>
+          </Tooltip>
+          <Tooltip label="Video resolution">
+            <Text size="xs" c="dimmed">
+              res: <b>{niche.video_resolution}</b>
+            </Text>
+          </Tooltip>
+          <Tooltip label="Scenes per video">
+            <Text size="xs" c="dimmed">
+              scenes: <b>{niche.scene_count}</b>
+            </Text>
+          </Tooltip>
+        </Group>
+
+        <Tooltip label={`${formatUsd(spent)} of ${formatUsd(cap)}`} withArrow>
+          <Box>
+            <Progress
+              value={pct}
+              color={pct >= 100 ? "red" : pct >= 80 ? "yellow" : "indigo"}
+              size="sm"
+              radius="sm"
+            />
+            <Text size="xs" c="dimmed" mt={4}>
+              {formatUsd(spent)} / {formatUsd(cap)} today
+            </Text>
+          </Box>
+        </Tooltip>
+
+        <Group gap="xs" wrap="wrap" mt="xs">
+          {niche.platforms.map((platform) => (
+            <Button
+              key={platform}
+              size="xs"
+              variant="light"
+              color="indigo"
+              leftSection={<IconPlayerPlay size={12} />}
+              onClick={() => onRun(niche, platform)}
+            >
+              Run {platform}
+            </Button>
+          ))}
+        </Group>
+      </Stack>
+    </Card>
   );
 }
 
-function EnqueueForm({ nicheId, platform }: { nicheId: string; platform: string }) {
-  const [state, formAction] = useActionState<ActionState, FormData>(
-    enqueueJobAction,
-    EMPTY_STATE,
-  );
+function EmptyNiches() {
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <input type="hidden" name="niche_id" value={nicheId} />
-      <input type="hidden" name="platform" value={platform} />
-      <EnqueueSubmit platform={platform} />
-      {state.error && <span style={inlineErrorStyle}>{state.error}</span>}
-    </form>
+    <Center py={80}>
+      <Stack gap="md" align="center" maw={400}>
+        <ThemeIcon size={64} radius="xl" color="indigo" variant="light">
+          <IconSparkles size={32} />
+        </ThemeIcon>
+        <Title order={3}>No niches yet</Title>
+        <Text c="dimmed" ta="center">
+          Niches drive ideation, visuals, voice, scheduling, and the daily
+          spend ceiling. Create one to get the pipeline rolling.
+        </Text>
+        <Button
+          component={Link}
+          href="/onboarding"
+          leftSection={<IconPlus size={16} />}
+          color="indigo"
+          size="md"
+        >
+          Create your first niche
+        </Button>
+      </Stack>
+    </Center>
   );
 }
-
-function EnqueueSubmit({ platform }: { platform: string }) {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" disabled={pending} style={enqueueButtonStyle}>
-      {pending ? "Working…" : `Run now (${platform})`}
-    </button>
-  );
-}
-
-function ArchiveForm({ nicheId, title }: { nicheId: string; title: string }) {
-  const [state, formAction] = useActionState<ActionState, FormData>(
-    archiveNicheAction,
-    EMPTY_STATE,
-  );
-  return (
-    <form
-      action={formAction}
-      onSubmit={(e) => {
-        if (!confirm(`Archive niche "${title}"? This will stop new posts.`)) {
-          e.preventDefault();
-        }
-      }}
-      style={{ display: "flex", flexDirection: "column", gap: 4 }}
-    >
-      <input type="hidden" name="niche_id" value={nicheId} />
-      <ArchiveSubmit />
-      {state.error && <span style={inlineErrorStyle}>{state.error}</span>}
-    </form>
-  );
-}
-
-function ArchiveSubmit() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" disabled={pending} style={archiveButtonStyle}>
-      {pending ? "Archiving…" : "Archive"}
-    </button>
-  );
-}
-
-const headerStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-};
-const addLink: React.CSSProperties = {
-  background: "#111",
-  color: "white",
-  padding: "8px 14px",
-  borderRadius: 6,
-  textDecoration: "none",
-  fontWeight: 600,
-};
-const cardStyle: React.CSSProperties = {
-  listStyle: "none",
-  border: "1px solid #e5e5e5",
-  borderRadius: 8,
-  padding: 14,
-  background: "white",
-};
-const progressBarStyle: React.CSSProperties = {
-  width: "100%",
-  height: 6,
-  background: "#f0f0f0",
-  borderRadius: 3,
-  marginTop: 8,
-  overflow: "hidden",
-};
-const progressFillStyle: React.CSSProperties = {
-  height: "100%",
-  background: "#0a7",
-  transition: "width 200ms",
-};
-const enqueueButtonStyle: React.CSSProperties = {
-  padding: "6px 12px",
-  background: "#0a7",
-  color: "white",
-  border: 0,
-  borderRadius: 6,
-  cursor: "pointer",
-  fontSize: 13,
-  fontWeight: 600,
-};
-const archiveButtonStyle: React.CSSProperties = {
-  padding: "6px 12px",
-  background: "white",
-  color: "#933",
-  border: "1px solid #c33",
-  borderRadius: 6,
-  cursor: "pointer",
-  fontSize: 13,
-  fontWeight: 600,
-};
-const bannerStyle: React.CSSProperties = {
-  background: "#fff8e1",
-  border: "1px solid #f0c36d",
-  color: "#7a5800",
-  padding: 12,
-  borderRadius: 8,
-  margin: "12px 0",
-  display: "flex",
-  flexDirection: "column",
-  gap: 6,
-};
-const errorBannerStyle: React.CSSProperties = {
-  background: "#fdecec",
-  border: "1px solid #f4b6b6",
-  color: "#933",
-  padding: 8,
-  borderRadius: 6,
-  margin: "8px 0",
-  fontSize: 13,
-};
-const inlineErrorStyle: React.CSSProperties = {
-  color: "#933",
-  fontSize: 12,
-  maxWidth: 220,
-};

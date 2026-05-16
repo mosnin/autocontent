@@ -1,3 +1,5 @@
+import { Container, Stack, Title, Text } from "@mantine/core";
+
 import { api } from "../../../lib/api";
 import type { PersonalAccessToken } from "../../../lib/types";
 import { TokensClient } from "./TokensClient";
@@ -14,15 +16,18 @@ export default async function TokensPage({ searchParams }: PageProps) {
   const freshToken = sp.just_created ?? null;
 
   return (
-    <section style={{ maxWidth: 720 }}>
-      <h1>Personal access tokens</h1>
-      <p style={{ color: "#666" }}>
-        Tokens authenticate the CLI, the MCP server, and any external agent
-        driving autocontent. They start with <code>act_</code> and can do
-        anything your account can. Treat them like passwords.
-      </p>
-
-      <TokensClient tokens={tokens} freshToken={freshToken} />
-    </section>
+    <Container size="md" py="md">
+      <Stack gap="md">
+        <Stack gap={4}>
+          <Title order={2}>Personal access tokens</Title>
+          <Text c="dimmed">
+            Tokens authenticate the CLI, the MCP server, and any external agent
+            driving autocontent. They start with <code>act_</code> and can do
+            anything your account can. Treat them like passwords.
+          </Text>
+        </Stack>
+        <TokensClient tokens={tokens} freshToken={freshToken} />
+      </Stack>
+    </Container>
   );
 }

@@ -1,29 +1,36 @@
+import Link from "next/link";
+import { Stack, Title, Text, Alert, Container } from "@mantine/core";
+import { IconPlugConnectedX } from "@tabler/icons-react";
+
 import { OnboardingForm } from "./OnboardingForm";
 
-// Single-page form. "Required everything" per the product decision —
-// no defaults are silently chosen for the user; they must pick.
 export default function Onboarding() {
   return (
-    <section style={{ maxWidth: 720 }}>
-      <div
-        style={{
-          padding: "10px 12px",
-          marginBottom: 16,
-          background: "#fff8e1",
-          border: "1px solid #f5d77c",
-          borderRadius: 6,
-          fontSize: 14,
-        }}
-      >
-        Schedule posts require Ayrshare connected. <a href="/connect">Connect now</a>.
-      </div>
-      <h1>Add a niche</h1>
-      <p style={{ color: "#666" }}>
-        Every field is required. The pipeline uses these to drive ideation,
-        visuals, voice, scheduling, and the daily spend ceiling.
-      </p>
+    <Container size="md" py="md">
+      <Stack gap="md">
+        <Alert
+          color="yellow"
+          variant="light"
+          icon={<IconPlugConnectedX size={18} />}
+          title="Posting requires Ayrshare"
+        >
+          Schedule posts require Ayrshare connected.{" "}
+          <Link href="/connect" style={{ textDecoration: "underline" }}>
+            Connect now
+          </Link>
+          .
+        </Alert>
 
-      <OnboardingForm />
-    </section>
+        <Stack gap={4}>
+          <Title order={2}>Add a niche</Title>
+          <Text c="dimmed">
+            The pipeline uses these to drive ideation, visuals, voice,
+            scheduling, and the daily spend ceiling.
+          </Text>
+        </Stack>
+
+        <OnboardingForm />
+      </Stack>
+    </Container>
   );
 }

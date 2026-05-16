@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from autocontent.models import Job, JobStatus
@@ -48,6 +50,26 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     fn = modal.Function.from_name("autocontent", "run_pipeline")
     fn.spawn(ctx.user_id, str(body.niche_id), body.platform)
     return job
+
+
+@router.get("/{job_id}/video")
+async def get_job_video(job_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
+    """Stream the rendered mp4 for a finished job.
+
+    The dashboard / queue-detail page hits this through the Next.js proxy so
+    Clerk auth is attached server-side. 404 if the job is missing, not
+    owned, hasn't produced a render yet, or the file on the Modal artifacts
+    volume is gone.
+    """
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "job not found")
+    if job.rendered is None or not job.rendered.path:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no rendered video")
+    path = job.rendered.path
+    if not os.path.exists(path):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "rendered video missing on disk")
+    return FileResponse(path, media_type="video/mp4")
 
 
 @router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)

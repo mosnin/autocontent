@@ -1,12 +1,38 @@
 "use client";
 
-import { useActionState } from "react";
+import { useState, useTransition } from "react";
+import {
+  Stack,
+  Group,
+  Button,
+  Modal,
+  TextInput,
+  NumberInput,
+  Card,
+  Title,
+  Text,
+  Table,
+  Code,
+  Alert,
+  ActionIcon,
+  CopyButton,
+  Tooltip,
+  Box,
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
+import {
+  IconPlus,
+  IconCopy,
+  IconCheck,
+  IconTrash,
+  IconKey,
+} from "@tabler/icons-react";
 
 import {
   createTokenAction,
   revokeTokenAction,
   EMPTY_STATE,
-  type ActionState,
 } from "../../../lib/actions";
 import type { PersonalAccessToken } from "../../../lib/types";
 
@@ -16,167 +42,221 @@ interface Props {
 }
 
 export function TokensClient({ tokens, freshToken }: Props) {
-  const [createState, createFormAction] = useActionState<ActionState, FormData>(
-    createTokenAction,
-    EMPTY_STATE,
-  );
+  const [modalOpen, setModalOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const form = useForm<{ name: string; expires_in_days: number | "" }>({
+    initialValues: { name: "", expires_in_days: "" },
+    validate: {
+      name: (v) => (v.trim() ? null : "Required"),
+    },
+  });
+
+  const onCreate = () => {
+    if (form.validate().hasErrors) return;
+    setCreateError(null);
+    const v = form.getValues();
+    const fd = new FormData();
+    fd.set("name", v.name);
+    if (v.expires_in_days !== "" && v.expires_in_days != null) {
+      fd.set("expires_in_days", String(v.expires_in_days));
+    }
+    startTransition(async () => {
+      try {
+        const res = await createTokenAction(EMPTY_STATE, fd);
+        if (!res.ok && res.error) {
+          setCreateError(res.error);
+        }
+        // Server action redirects on success — no manual handling needed.
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (msg.includes("NEXT_REDIRECT")) throw e;
+        setCreateError(msg);
+      }
+    });
+  };
 
   return (
-    <>
+    <Stack gap="md">
       {freshToken && (
-        <div style={flashStyle}>
-          <strong>New token (shown once):</strong>
-          <pre style={{ margin: "8px 0", userSelect: "all" }}>{freshToken}</pre>
-          Copy it into <code>AUTOCONTENT_API_TOKEN</code> now — we don&apos;t
-          store the plaintext and can&apos;t recover it later.
-        </div>
+        <Alert color="yellow" variant="light" title="New token — shown once">
+          <Stack gap="xs">
+            <Code block style={{ userSelect: "all" }}>
+              {freshToken}
+            </Code>
+            <Group gap="xs">
+              <CopyButton value={freshToken} timeout={2000}>
+                {({ copied, copy }) => (
+                  <Button
+                    size="xs"
+                    color={copied ? "teal" : "indigo"}
+                    leftSection={copied ? <IconCheck size={14} /> : <IconCopy size={14} />}
+                    onClick={copy}
+                  >
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                )}
+              </CopyButton>
+              <Text size="xs" c="dimmed">
+                Save into <code>AUTOCONTENT_API_TOKEN</code> — the plaintext
+                isn't stored.
+              </Text>
+            </Group>
+          </Stack>
+        </Alert>
       )}
 
-      <form action={createFormAction} style={formStyle}>
-        <h2 style={{ margin: 0 }}>Create token</h2>
-        <label>
-          Name (for your reference)
-          <input
-            name="name"
-            required
+      <Group justify="space-between">
+        <Title order={4}>Active tokens</Title>
+        <Button
+          leftSection={<IconPlus size={16} />}
+          color="indigo"
+          onClick={() => setModalOpen(true)}
+        >
+          New token
+        </Button>
+      </Group>
+
+      {tokens.length === 0 ? (
+        <Card withBorder padding="lg">
+          <Stack gap="xs" align="center">
+            <IconKey size={32} stroke={1.5} color="var(--mantine-color-gray-6)" />
+            <Text c="dimmed">No tokens yet.</Text>
+          </Stack>
+        </Card>
+      ) : (
+        <Box style={{ overflowX: "auto" }}>
+          <Table withTableBorder striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Name</Table.Th>
+                <Table.Th>Prefix</Table.Th>
+                <Table.Th>Created</Table.Th>
+                <Table.Th>Expires</Table.Th>
+                <Table.Th>Last used</Table.Th>
+                <Table.Th />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {tokens.map((t) => (
+                <TokenRow key={t.id} token={t} />
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Box>
+      )}
+
+      <Modal
+        opened={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setCreateError(null);
+          form.reset();
+        }}
+        title="Create token"
+        centered
+      >
+        <Stack gap="md">
+          <TextInput
+            label="Name"
+            description="For your reference"
             placeholder="e.g. laptop-cli"
-            style={inputStyle}
+            required
+            key={form.key("name")}
+            {...form.getInputProps("name")}
           />
-        </label>
-        <label>
-          Expires in days (optional)
-          <input
-            name="expires_in_days"
-            type="number"
+          <NumberInput
+            label="Expires in days"
+            description="Leave blank for non-expiring"
             min={1}
             max={3650}
-            placeholder="leave blank for non-expiring"
-            style={inputStyle}
+            allowDecimal={false}
+            key={form.key("expires_in_days")}
+            {...form.getInputProps("expires_in_days")}
           />
-        </label>
-        {createState.error && (
-          <div style={{ color: "#b00020" }}>{createState.error}</div>
-        )}
-        <button type="submit" style={buttonStyle}>Create</button>
-      </form>
-
-      <h2 style={{ marginTop: 32 }}>Active tokens</h2>
-      {tokens.length === 0 ? (
-        <p style={{ color: "#666" }}>(none)</p>
-      ) : (
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Name</th>
-              <th style={thStyle}>Prefix</th>
-              <th style={thStyle}>Created</th>
-              <th style={thStyle}>Expires</th>
-              <th style={thStyle}>Last used</th>
-              <th style={thStyle}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {tokens.map((t) => (
-              <TokenRow key={t.id} token={t} />
-            ))}
-          </tbody>
-        </table>
-      )}
-    </>
+          {createError && (
+            <Alert color="red" variant="light">
+              {createError}
+            </Alert>
+          )}
+          <Group justify="flex-end">
+            <Button
+              variant="default"
+              onClick={() => setModalOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button onClick={onCreate} loading={isPending} color="indigo">
+              Create
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
+    </Stack>
   );
 }
 
 function TokenRow({ token }: { token: PersonalAccessToken }) {
-  const [state, formAction] = useActionState<ActionState, FormData>(
-    revokeTokenAction,
-    EMPTY_STATE,
-  );
+  const [isPending, startTransition] = useTransition();
+  const onRevoke = () => {
+    if (!confirm(`Revoke "${token.name}"? Anything using it will stop working.`))
+      return;
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("token_id", token.id);
+      const res = await revokeTokenAction(EMPTY_STATE, fd);
+      if (!res.ok) {
+        notifications.show({
+          title: "Revoke failed",
+          message: res.error ?? "Try again",
+          color: "red",
+        });
+        return;
+      }
+      notifications.show({
+        title: "Token revoked",
+        message: token.name,
+        color: "green",
+      });
+    });
+  };
+
   return (
-    <tr>
-      <td style={tdStyle}>{token.name}</td>
-      <td style={tdStyle}><code>{token.prefix}</code></td>
-      <td style={tdStyle}>{new Date(token.created_at).toLocaleString()}</td>
-      <td style={tdStyle}>
-        {token.expires_at ? new Date(token.expires_at).toLocaleString() : "—"}
-      </td>
-      <td style={tdStyle}>
-        {token.last_used_at ? new Date(token.last_used_at).toLocaleString() : "never"}
-      </td>
-      <td style={tdStyle}>
-        <form action={formAction}>
-          <input type="hidden" name="token_id" value={token.id} />
-          <button type="submit" style={revokeButtonStyle}>Revoke</button>
-          {state.error && (
-            <div style={{ color: "#b00020", fontSize: 12 }}>{state.error}</div>
-          )}
-        </form>
-      </td>
-    </tr>
+    <Table.Tr>
+      <Table.Td>{token.name}</Table.Td>
+      <Table.Td>
+        <Code>{token.prefix}</Code>
+      </Table.Td>
+      <Table.Td>
+        <Text size="xs">{new Date(token.created_at).toLocaleString()}</Text>
+      </Table.Td>
+      <Table.Td>
+        <Text size="xs">
+          {token.expires_at ? new Date(token.expires_at).toLocaleString() : "—"}
+        </Text>
+      </Table.Td>
+      <Table.Td>
+        <Text size="xs">
+          {token.last_used_at
+            ? new Date(token.last_used_at).toLocaleString()
+            : "never"}
+        </Text>
+      </Table.Td>
+      <Table.Td>
+        <Tooltip label="Revoke">
+          <ActionIcon
+            color="red"
+            variant="subtle"
+            onClick={onRevoke}
+            loading={isPending}
+            aria-label="Revoke token"
+          >
+            <IconTrash size={16} />
+          </ActionIcon>
+        </Tooltip>
+      </Table.Td>
+    </Table.Tr>
   );
 }
-
-const flashStyle: React.CSSProperties = {
-  padding: 16,
-  margin: "16px 0",
-  background: "#fff8e1",
-  border: "1px solid #f5d77c",
-  borderRadius: 6,
-};
-
-const formStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 12,
-  padding: 16,
-  marginTop: 16,
-  border: "1px solid #e5e5e5",
-  borderRadius: 8,
-};
-
-const inputStyle: React.CSSProperties = {
-  display: "block",
-  width: "100%",
-  padding: 8,
-  marginTop: 4,
-  border: "1px solid #ccc",
-  borderRadius: 4,
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: "10px 18px",
-  background: "#111",
-  color: "white",
-  border: 0,
-  borderRadius: 6,
-  fontWeight: 600,
-  cursor: "pointer",
-  width: "fit-content",
-};
-
-const revokeButtonStyle: React.CSSProperties = {
-  padding: "4px 10px",
-  background: "transparent",
-  color: "#b00020",
-  border: "1px solid #b00020",
-  borderRadius: 4,
-  cursor: "pointer",
-};
-
-const tableStyle: React.CSSProperties = {
-  borderCollapse: "collapse",
-  width: "100%",
-  marginTop: 8,
-};
-
-const thStyle: React.CSSProperties = {
-  textAlign: "left",
-  padding: "6px 8px",
-  borderBottom: "1px solid #ccc",
-  fontSize: 13,
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "6px 8px",
-  borderBottom: "1px solid #eee",
-  fontSize: 14,
-};

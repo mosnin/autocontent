@@ -1,40 +1,30 @@
+import { Badge, type MantineColor } from "@mantine/core";
+
 import type { JobStatus } from "../../lib/types";
 
-const STATUS_COLORS: Record<JobStatus, string> = {
-  queued: "#888",
-  ideating: "#48f",
-  scripting: "#48f",
-  generating_images: "#48f",
-  animating: "#48f",
-  voicing: "#48f",
-  editing: "#48f",
-  captioning: "#48f",
-  qa: "#48f",
-  scheduling: "#48f",
-  done: "#0a7",
-  failed: "#c33",
+const STATUS_MANTINE_COLOR: Record<JobStatus, MantineColor> = {
+  queued: "gray",
+  ideating: "blue",
+  scripting: "blue",
+  generating_images: "blue",
+  animating: "blue",
+  voicing: "blue",
+  editing: "blue",
+  captioning: "blue",
+  qa: "blue",
+  scheduling: "blue",
+  done: "green",
+  failed: "red",
 };
 
-export function statusColor(status: JobStatus): string {
-  return STATUS_COLORS[status];
+export function statusColor(status: JobStatus): MantineColor {
+  return STATUS_MANTINE_COLOR[status];
 }
 
 export function StatusBadge({ status }: { status: JobStatus }) {
-  const color = STATUS_COLORS[status];
   return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "2px 8px",
-        borderRadius: 10,
-        background: color,
-        color: "white",
-        fontSize: 12,
-        fontWeight: 600,
-        textTransform: "lowercase",
-      }}
-    >
-      {status}
-    </span>
+    <Badge color={STATUS_MANTINE_COLOR[status]} variant="light" radius="sm">
+      {status.replace(/_/g, " ")}
+    </Badge>
   );
 }

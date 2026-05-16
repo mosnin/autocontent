@@ -1,15 +1,32 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
+import {
+  Stack,
+  Title,
+  Tabs,
+  Table,
+  Group,
+  Text,
+  Loader,
+  Button,
+  Alert,
+  Code,
+  Center,
+  ThemeIcon,
+  Box,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { IconList, IconRefresh } from "@tabler/icons-react";
 
-import { EMPTY_STATE, retryJobAction, type ActionState } from "../../lib/actions";
+import { EMPTY_STATE, retryJobAction } from "../../lib/actions";
 import { clientFetch } from "../../lib/client-fetcher";
 import type { Job, JobStatus } from "../../lib/types";
-import { StatusBadge, statusColor } from "../components/StatusBadge";
+import { StatusBadge } from "../components/StatusBadge";
 
-const ORDER: JobStatus[] = [
+const IN_PROGRESS_STATUSES: JobStatus[] = [
   "queued",
   "ideating",
   "scripting",
@@ -20,166 +37,173 @@ const ORDER: JobStatus[] = [
   "captioning",
   "qa",
   "scheduling",
-  "done",
-  "failed",
 ];
 
 const POLL_MS = 5000;
 
+type FilterKey = "all" | "in_progress" | "done" | "failed";
+
+function matchesFilter(job: Job, filter: FilterKey): boolean {
+  if (filter === "all") return true;
+  if (filter === "done") return job.status === "done";
+  if (filter === "failed") return job.status === "failed";
+  return IN_PROGRESS_STATUSES.includes(job.status);
+}
+
 export function QueueClient({ initial }: { initial: Job[] }) {
+  const router = useRouter();
+  const [filter, setFilter] = useState<FilterKey>("all");
+
   const { data, error } = useSWR<Job[]>("/api/v1/jobs?limit=100", clientFetch, {
     refreshInterval: POLL_MS,
     fallbackData: initial,
   });
 
   const jobs = data ?? [];
+  const filtered = useMemo(() => jobs.filter((j) => matchesFilter(j, filter)), [jobs, filter]);
 
-  const grouped: Record<JobStatus, Job[]> = Object.fromEntries(
-    ORDER.map((s) => [s, [] as Job[]]),
-  ) as Record<JobStatus, Job[]>;
-  for (const j of jobs) grouped[j.status].push(j);
+  const counts = useMemo(() => {
+    const c: Record<FilterKey, number> = { all: jobs.length, in_progress: 0, done: 0, failed: 0 };
+    for (const j of jobs) {
+      if (j.status === "done") c.done++;
+      else if (j.status === "failed") c.failed++;
+      else if (IN_PROGRESS_STATUSES.includes(j.status)) c.in_progress++;
+    }
+    return c;
+  }, [jobs]);
 
   return (
-    <section>
-      <h1>Queue</h1>
+    <Stack gap="md" py="md">
+      <Title order={2}>Queue</Title>
+
       {error && (
-        <div style={errorBannerStyle}>
-          Live updates paused: {error.message ?? "fetch failed"}
-        </div>
+        <Alert color="red" variant="light" title="Live updates paused">
+          {error.message ?? "fetch failed"}
+        </Alert>
       )}
-      {jobs.length === 0 ? (
-        <p>
-          No jobs yet. Trigger one from the <a href="/dashboard">dashboard</a>.
-        </p>
+
+      <Tabs value={filter} onChange={(v) => setFilter((v as FilterKey) ?? "all")}>
+        <Tabs.List>
+          <Tabs.Tab value="all">All ({counts.all})</Tabs.Tab>
+          <Tabs.Tab value="in_progress">In progress ({counts.in_progress})</Tabs.Tab>
+          <Tabs.Tab value="done">Done ({counts.done})</Tabs.Tab>
+          <Tabs.Tab value="failed">Failed ({counts.failed})</Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
+
+      {filtered.length === 0 ? (
+        <EmptyQueue />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {ORDER.filter((s) => grouped[s].length > 0).map((status) => (
-            <details
-              key={status}
-              open={status !== "done"}
-              style={groupStyle}
-            >
-              <summary style={{ ...summaryStyle, color: statusColor(status) }}>
-                {status} ({grouped[status].length})
-              </summary>
-              <ul style={{ padding: 0, display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-                {grouped[status].map((j) => (
-                  <JobRow key={j.id} job={j} />
-                ))}
-              </ul>
-            </details>
-          ))}
-        </div>
+        <Box style={{ overflowX: "auto" }}>
+          <Table striped highlightOnHover withTableBorder verticalSpacing="sm">
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Status</Table.Th>
+                <Table.Th>Job</Table.Th>
+                <Table.Th>Platform</Table.Th>
+                <Table.Th>Hook</Table.Th>
+                <Table.Th>Created</Table.Th>
+                <Table.Th>Scheduled</Table.Th>
+                <Table.Th />
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {filtered.map((job) => (
+                <Table.Tr
+                  key={job.id}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => router.push(`/queue/${job.id}`)}
+                >
+                  <Table.Td>
+                    <Group gap={6} wrap="nowrap">
+                      <StatusBadge status={job.status} />
+                      {IN_PROGRESS_STATUSES.includes(job.status) && (
+                        <Loader size="xs" />
+                      )}
+                    </Group>
+                  </Table.Td>
+                  <Table.Td>
+                    <Code>{job.id.slice(0, 8)}</Code>
+                  </Table.Td>
+                  <Table.Td>{job.platform}</Table.Td>
+                  <Table.Td>
+                    <Text size="sm" lineClamp={1} maw={280}>
+                      {job.script?.idea?.hook ?? "—"}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="xs" c="dimmed">
+                      {new Date(job.created_at).toLocaleString()}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text size="xs" c="dimmed">
+                      {job.scheduled_for
+                        ? new Date(job.scheduled_for).toLocaleString()
+                        : "—"}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td onClick={(e) => e.stopPropagation()}>
+                    {job.status === "failed" && <RetryButton jobId={job.id} />}
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </Box>
       )}
-    </section>
+    </Stack>
   );
 }
 
-function JobRow({ job }: { job: Job }) {
+function RetryButton({ jobId }: { jobId: string }) {
+  const [isPending, startTransition] = useTransition();
+  const onClick = () => {
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set("job_id", jobId);
+      const res = await retryJobAction(EMPTY_STATE, fd);
+      if (!res.ok) {
+        notifications.show({
+          title: "Retry failed",
+          message: res.error ?? "Try again",
+          color: "red",
+        });
+        return;
+      }
+      notifications.show({
+        title: "Job re-queued",
+        message: `Retrying ${jobId.slice(0, 8)}…`,
+        color: "green",
+      });
+    });
+  };
   return (
-    <li style={rowStyle}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <StatusBadge status={job.status} />
-          <code style={{ fontSize: 12, color: "#666" }}>{job.id.slice(0, 8)}</code>
-          <span>{job.platform}</span>
-          <span style={{ color: "#666", fontSize: 13 }}>
-            {new Date(job.created_at).toLocaleString()}
-          </span>
-        </div>
-        {job.status === "failed" && <RetryForm jobId={job.id} />}
-      </div>
-      {job.script?.idea?.hook && (
-        <div style={{ marginTop: 6, fontStyle: "italic" }}>&ldquo;{job.script.idea.hook}&rdquo;</div>
-      )}
-      {job.error && <pre style={errorStyle}>{job.error}</pre>}
-      {job.scheduled_for && (
-        <div style={{ marginTop: 6, color: "#666", fontSize: 13 }}>
-          Scheduled for {new Date(job.scheduled_for).toLocaleString()}
-          {job.provider_post_id && (
-            <span style={{ marginLeft: 8 }}>
-              · post id <code>{job.provider_post_id}</code>
-            </span>
-          )}
-        </div>
-      )}
-    </li>
+    <Button
+      size="xs"
+      color="red"
+      variant="light"
+      leftSection={<IconRefresh size={12} />}
+      loading={isPending}
+      onClick={onClick}
+    >
+      Retry
+    </Button>
   );
 }
 
-function RetryForm({ jobId }: { jobId: string }) {
-  const [state, formAction] = useActionState<ActionState, FormData>(
-    retryJobAction,
-    EMPTY_STATE,
-  );
+function EmptyQueue() {
   return (
-    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-      <input type="hidden" name="job_id" value={jobId} />
-      <RetrySubmit />
-      {state.error && <span style={inlineErrorStyle}>{state.error}</span>}
-    </form>
+    <Center py={60}>
+      <Stack gap="sm" align="center" maw={400}>
+        <ThemeIcon size={48} radius="xl" color="gray" variant="light">
+          <IconList size={24} />
+        </ThemeIcon>
+        <Text fw={600}>No jobs in this view</Text>
+        <Text size="sm" c="dimmed" ta="center">
+          Trigger one from the dashboard's "Run now" button.
+        </Text>
+      </Stack>
+    </Center>
   );
 }
-
-function RetrySubmit() {
-  const { pending } = useFormStatus();
-  return (
-    <button type="submit" disabled={pending} style={retryButtonStyle}>
-      {pending ? "Retrying…" : "Retry"}
-    </button>
-  );
-}
-
-const groupStyle: React.CSSProperties = {
-  border: "1px solid #eee",
-  borderRadius: 8,
-  padding: "8px 12px",
-  background: "#fafafa",
-};
-const summaryStyle: React.CSSProperties = {
-  cursor: "pointer",
-  fontWeight: 700,
-  fontSize: 14,
-  textTransform: "lowercase",
-  userSelect: "none",
-};
-const rowStyle: React.CSSProperties = {
-  listStyle: "none",
-  padding: 12,
-  border: "1px solid #e5e5e5",
-  borderRadius: 8,
-  background: "white",
-};
-const retryButtonStyle: React.CSSProperties = {
-  padding: "4px 10px",
-  background: "#c33",
-  color: "white",
-  border: 0,
-  borderRadius: 6,
-  cursor: "pointer",
-  fontSize: 13,
-  fontWeight: 600,
-};
-const errorStyle: React.CSSProperties = {
-  marginTop: 8,
-  padding: 8,
-  background: "#fdecec",
-  color: "#933",
-  borderRadius: 4,
-  fontSize: 12,
-  whiteSpace: "pre-wrap",
-  wordBreak: "break-word",
-};
-const errorBannerStyle: React.CSSProperties = {
-  background: "#fdecec",
-  border: "1px solid #f4b6b6",
-  color: "#933",
-  padding: 8,
-  borderRadius: 6,
-  margin: "8px 0",
-  fontSize: 13,
-};
-const inlineErrorStyle: React.CSSProperties = {
-  color: "#933",
-  fontSize: 12,
-};
