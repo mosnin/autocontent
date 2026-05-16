@@ -50,6 +50,32 @@ class SpendContext:
     today_spend: TodaySpendReader = field(default=_default_today_spend)
     abort_event: asyncio.Event = field(default_factory=asyncio.Event)
 
+    async def ensure_can_spend(self, estimated_usd: Decimal) -> None:
+        """Refuse a provider call if it would exceed today's cap.
+
+        No-op when cap_usd is None. Checks abort_event first (cheap
+        in-process signal set by a sibling task that already tripped the
+        cap), then reads today_spend from the DB once and raises
+        SpendCapExceeded if (today + estimated) > cap.
+        """
+        if self.cap_usd is None:
+            return
+
+        from ..repos.spend import SpendCapExceeded
+
+        if self.abort_event.is_set():
+            raise SpendCapExceeded(
+                f"niche {self.niche_id} spend aborted: cap already exceeded"
+            )
+
+        spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
+        if spent + estimated_usd > self.cap_usd:
+            self.abort_event.set()
+            raise SpendCapExceeded(
+                f"niche {self.niche_id} pre-flight cap check: "
+                f"${spent} + ${estimated_usd} > ${self.cap_usd}"
+            )
+
     async def log(
         self,
         *,

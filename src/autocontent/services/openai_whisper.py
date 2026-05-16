@@ -48,6 +48,8 @@ async def transcribe_word_level(
     spend: SpendContext | None = None,
 ) -> list[dict]:
     """Returns a list of {"word", "start", "end"} dicts."""
+    if spend is not None:
+        await spend.ensure_can_spend(whisper_cost(_audio_duration_seconds(audio_path)))
     client = _get_client()
     with audio_path.open("rb") as fp:
         result = await client.audio.transcriptions.create(

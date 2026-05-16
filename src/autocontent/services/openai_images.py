@@ -58,6 +58,8 @@ async def generate_keyframe(
 ) -> Path:
     """Generate one keyframe; if `reference_image_path` is provided, pass
     it as an input so the model preserves the established look."""
+    if spend is not None:
+        await spend.ensure_can_spend(image_cost(quality))
     client = _get_client()
     if reference_image_path is not None:
         with reference_image_path.open("rb") as fp:

@@ -121,6 +121,8 @@ async def animate(
     spend: SpendContext | None = None,
 ) -> Path:
     """Submit a keyframe + motion prompt to Grok Imagine, poll, download mp4."""
+    if spend is not None:
+        await spend.ensure_can_spend(imagine_video_cost(duration_sec))
     duration = max(1, min(15, int(round(duration_sec))))
     body = {
         "model": SKU,

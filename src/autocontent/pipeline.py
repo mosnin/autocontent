@@ -176,13 +176,16 @@ async def _run_job_inner(
             niche, quality=niche.image_quality, spend=spend
         )
         try:
-            job.clips = list(await asyncio.gather(
-                *[
-                    _generate_scene_assets(
+            sem = asyncio.Semaphore(settings.scene_fanout_limit)
+
+            async def _bounded(s: Scene) -> Clip:
+                async with sem:
+                    return await _generate_scene_assets(
                         s, root, niche=niche, reference_image=reference, spend=spend,
                     )
-                    for s in script.scenes
-                ]
+
+            job.clips = list(await asyncio.gather(
+                *[_bounded(s) for s in script.scenes]
             ))
         except spend_repo.SpendCapExceeded:
             return await _fail_with(job, "spend_cap_exceeded during fan-out")
