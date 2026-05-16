@@ -2,11 +2,10 @@
 
 import { useActionState } from "react";
 
+import { EMPTY_STATE, type ActionState } from "../../../lib/action-state";
 import {
   createTokenAction,
   revokeTokenAction,
-  EMPTY_STATE,
-  type ActionState,
 } from "../../../lib/actions";
 import type { PersonalAccessToken } from "../../../lib/types";
 

@@ -3,11 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import {
-  createNicheAction,
-  EMPTY_STATE,
-  type ActionState,
-} from "../../lib/actions";
+import { EMPTY_STATE, type ActionState } from "../../lib/action-state";
+import { createNicheAction } from "../../lib/actions";
 import { PLATFORMS, QUALITIES, RESOLUTIONS } from "../../lib/types";
 
 export function OnboardingForm() {
