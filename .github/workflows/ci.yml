@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python:
+    name: Python (ruff + pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package (with dev extras)
+        # --ignore-installed PyJWT works around a debian-managed PyJWT
+        # present in some sandboxed environments; harmless on clean runners.
+        run: pip install -e ".[dev]" --ignore-installed PyJWT
+
+      - name: Ruff
+        run: python -m ruff check src/autocontent tests backend modal_app.py
+
+      - name: Pytest
+        run: python -m pytest tests/ -q
+
+  web:
+    name: Web (tsc + next build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Next build (compile-only gate)
+        # Clerk's static prerender hard-requires a valid publishable key,
+        # which we deliberately don't ship in CI. We DO want to catch real
+        # compile/type errors, so we check whether the build reached
+        # "Compiled successfully" and only fail if it didn't.
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmsuY2xlcmsuZGV2JA
+        run: |
+          set +e
+          out=$(npx next build --no-lint 2>&1)
+          rc=$?
+          echo "$out"
+          if echo "$out" | grep -q "Compiled successfully"; then
+            echo "::notice::Compile succeeded; ignoring static-prerender failures (Clerk key not provided in CI)."
+            exit 0
+          fi
+          exit $rc
