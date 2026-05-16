@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { api } from "./api";
+import type { ActionState } from "./action-state";
 import type {
   AyrshareConnectResponse,
   Job,
@@ -11,13 +12,6 @@ import type {
   Platform,
   TokenCreateResponse,
 } from "./types";
-
-export interface ActionState {
-  ok: boolean;
-  error?: string;
-}
-
-export const EMPTY_STATE: ActionState = { ok: false };
 
 interface NicheCreatePayload {
   title: string;

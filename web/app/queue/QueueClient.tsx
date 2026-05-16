@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import useSWR from "swr";
 
-import { EMPTY_STATE, retryJobAction, type ActionState } from "../../lib/actions";
+import { EMPTY_STATE, type ActionState } from "../../lib/action-state";
+import { retryJobAction } from "../../lib/actions";
 import { clientFetch } from "../../lib/client-fetcher";
 import type { Job, JobStatus } from "../../lib/types";
 import { StatusBadge, statusColor } from "../components/StatusBadge";

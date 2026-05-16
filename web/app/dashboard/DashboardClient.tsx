@@ -4,11 +4,10 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import useSWR from "swr";
 
+import { EMPTY_STATE, type ActionState } from "../../lib/action-state";
 import {
   archiveNicheAction,
   enqueueJobAction,
-  EMPTY_STATE,
-  type ActionState,
 } from "../../lib/actions";
 import { clientFetch } from "../../lib/client-fetcher";
 import { formatUsd } from "../../lib/format";
