@@ -15,6 +15,12 @@ from __future__ import annotations
 
 import modal
 
+# Initialise JSON logging + Sentry at import time so any error during
+# Modal container startup is captured before user code runs.
+from autocontent.logging import configure as _configure_logging
+
+_configure_logging()
+
 APP_NAME = "autocontent"
 
 image = (
