@@ -6,6 +6,13 @@ import { redirect } from "next/navigation";
 import { api } from "./api";
 import type { Job, Niche, Platform } from "./types";
 
+export interface ActionState {
+  ok: boolean;
+  error?: string;
+}
+
+export const EMPTY_STATE: ActionState = { ok: false };
+
 interface NicheCreatePayload {
   title: string;
   description: string;
@@ -31,9 +38,19 @@ function splitCsv(raw: string | null): string[] {
     .filter(Boolean);
 }
 
-export async function createNicheAction(formData: FormData): Promise<void> {
+function errorMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  return String(e);
+}
+
+export async function createNicheAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const platforms = (formData.getAll("platforms") as string[]) as Platform[];
-  if (platforms.length === 0) throw new Error("pick at least one platform");
+  if (platforms.length === 0) {
+    return { ok: false, error: "pick at least one platform" };
+  }
 
   const postingHour = Number(formData.get("posting_hour"));
   const postingMinute = Number(formData.get("posting_minute"));
@@ -58,30 +75,67 @@ export async function createNicheAction(formData: FormData): Promise<void> {
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
   };
 
-  await api<Niche>("/api/v1/niches", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
+  try {
+    await api<Niche>("/api/v1/niches", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
 
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }
 
-export async function enqueueJobAction(formData: FormData): Promise<void> {
+export async function enqueueJobAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const niche_id = String(formData.get("niche_id"));
   const platform = String(formData.get("platform")) as Platform;
-  if (!niche_id || !platform) throw new Error("niche_id and platform required");
-  await api<Job>("/api/v1/jobs", {
-    method: "POST",
-    body: JSON.stringify({ niche_id, platform }),
-  });
+  if (!niche_id || !platform) {
+    return { ok: false, error: "niche_id and platform required" };
+  }
+  try {
+    await api<Job>("/api/v1/jobs", {
+      method: "POST",
+      body: JSON.stringify({ niche_id, platform }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
   revalidatePath("/queue");
   revalidatePath("/dashboard");
+  return { ok: true };
 }
 
-export async function retryJobAction(formData: FormData): Promise<void> {
+export async function retryJobAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const job_id = String(formData.get("job_id"));
-  if (!job_id) throw new Error("job_id required");
-  await api<Job>(`/api/v1/jobs/${job_id}/retry`, { method: "POST" });
+  if (!job_id) return { ok: false, error: "job_id required" };
+  try {
+    await api<Job>(`/api/v1/jobs/${job_id}/retry`, { method: "POST" });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
   revalidatePath("/queue");
+  return { ok: true };
+}
+
+export async function archiveNicheAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const niche_id = String(formData.get("niche_id"));
+  if (!niche_id) return { ok: false, error: "niche_id required" };
+  try {
+    await api<Niche>(`/api/v1/niches/${niche_id}`, { method: "DELETE" });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/dashboard");
+  return { ok: true };
 }
