@@ -73,13 +73,20 @@ async def nightly_batch() -> list[dict]:
     for r in rows:
         user_id = r["id"]
         for niche in await niches_repo.list_for_user(user_id):
-            for w in niche.posting_windows:
-                slot = w.at(now).astimezone(timezone.utc)
-                if now <= slot < horizon:
-                    for platform in niche.platforms:
-                        coros.append(run_pipeline.remote.aio(
-                            user_id, str(niche.id), platform
-                        ))
+            # Scan a week of forward windows so we don't silently miss
+            # a slot whose tz puts today's instance in the past (or
+            # tomorrow's instance closer than today's). The horizon is
+            # still 30 min, but we evaluate each window across 0..7 days
+            # and let the comparison decide.
+            for offset in range(0, 8):
+                day = now + timedelta(days=offset)
+                for w in niche.posting_windows:
+                    slot = w.at(day).astimezone(timezone.utc)
+                    if now <= slot < horizon:
+                        for platform in niche.platforms:
+                            coros.append(run_pipeline.remote.aio(
+                                user_id, str(niche.id), platform
+                            ))
     return list(await asyncio.gather(*coros)) if coros else []
 
 
