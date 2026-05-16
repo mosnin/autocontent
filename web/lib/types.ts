@@ -88,3 +88,18 @@ export const TERMINAL_STATUSES: JobStatus[] = ["done", "failed"];
 export function isFailed(j: Job): boolean {
   return j.status === "failed";
 }
+
+export interface PersonalAccessToken {
+  id: string;
+  user_id: string;
+  name: string;
+  prefix: string;
+  last_used_at: string | null;
+  created_at: string;
+  expires_at: string | null;
+}
+
+export interface TokenCreateResponse {
+  token: string;
+  info: PersonalAccessToken;
+}

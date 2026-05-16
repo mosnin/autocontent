@@ -16,7 +16,12 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
     "pyjwt[crypto]>=2.9",
+    "mcp[cli]>=1.2",
 ]
+
+[project.scripts]
+autocontent = "autocontent.cli:main"
+autocontent-mcp = "autocontent.mcp_server:main"
 
 [project.optional-dependencies]
 dev = [
