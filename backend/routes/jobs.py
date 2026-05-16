@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from autocontent.models import Job, JobStatus
@@ -48,6 +50,25 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     fn = modal.Function.from_name("autocontent", "run_pipeline")
     fn.spawn(ctx.user_id, str(body.niche_id), body.platform)
     return job
+
+
+@router.get("/{job_id}/video")
+async def get_job_video(job_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
+    """Stream the rendered mp4 for a finished job.
+
+    Ownership is checked (the job must belong to ``ctx.user_id``). Any
+    of "job missing", "no rendered video on the job", or "file missing
+    on disk" produce a 404 — the web client doesn't differentiate.
+    """
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    rendered = job.rendered
+    if rendered is None or not rendered.path:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no rendered video")
+    if not os.path.exists(rendered.path):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "file missing")
+    return FileResponse(rendered.path, media_type="video/mp4")
 
 
 @router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)

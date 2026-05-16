@@ -1,0 +1,228 @@
+"use client";
+
+import * as React from "react";
+import { useActionState } from "react";
+import { Copy, KeyRound, MoreHorizontal, Plus } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { createTokenAction, revokeTokenAction } from "@/lib/actions";
+import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
+import type { PersonalAccessToken } from "@/lib/types";
+
+interface Props {
+  tokens: PersonalAccessToken[];
+  freshToken: string | null;
+}
+
+export function TokensClient({ tokens, freshToken }: Props) {
+  const [createState, createFormAction] = useActionState<ActionState, FormData>(
+    createTokenAction,
+    EMPTY_STATE,
+  );
+  const [open, setOpen] = React.useState(false);
+
+  async function copy(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Copied to clipboard");
+    } catch {
+      toast.error("Copy failed");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {freshToken && (
+        <Card className="border-success/40 bg-success/5">
+          <CardContent className="space-y-3 pt-6">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <KeyRound className="h-4 w-4 text-success" />
+              New token — shown once
+            </div>
+            <div className="flex items-center gap-2 rounded-md border bg-background p-2">
+              <code className="flex-1 overflow-x-auto font-mono text-xs">
+                {freshToken}
+              </code>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => copy(freshToken)}
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Copy it into{" "}
+              <code className="rounded bg-muted px-1">
+                AUTOCONTENT_API_TOKEN
+              </code>{" "}
+              now — we don&apos;t store the plaintext and can&apos;t recover it.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Active tokens</h2>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4" />
+              New token
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create personal access token</DialogTitle>
+              <DialogDescription>
+                The plaintext value is shown once after creation.
+              </DialogDescription>
+            </DialogHeader>
+            <form action={createFormAction} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="token-name">Name</Label>
+                <Input
+                  id="token-name"
+                  name="name"
+                  required
+                  placeholder="laptop-cli"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="token-exp">Expires in days (optional)</Label>
+                <Input
+                  id="token-exp"
+                  name="expires_in_days"
+                  type="number"
+                  min={1}
+                  max={3650}
+                  placeholder="leave blank for non-expiring"
+                />
+              </div>
+              {createState.error && (
+                <p className="text-sm text-destructive">{createState.error}</p>
+              )}
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Create</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {tokens.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            No tokens yet.
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Prefix</TableHead>
+                <TableHead>Created</TableHead>
+                <TableHead>Expires</TableHead>
+                <TableHead>Last used</TableHead>
+                <TableHead className="w-[60px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {tokens.map((t) => (
+                <TokenRow key={t.id} token={t} />
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function TokenRow({ token }: { token: PersonalAccessToken }) {
+  async function onRevoke() {
+    if (!confirm(`Revoke token "${token.name}"? This can't be undone.`)) return;
+    const fd = new FormData();
+    fd.set("token_id", token.id);
+    const res = await revokeTokenAction({ ok: false }, fd);
+    if (res.ok) toast.success("Token revoked");
+    else toast.error(res.error ?? "Revoke failed");
+  }
+
+  return (
+    <TableRow>
+      <TableCell className="font-medium">{token.name}</TableCell>
+      <TableCell>
+        <code className="font-mono text-xs">{token.prefix}</code>
+      </TableCell>
+      <TableCell className="text-muted-foreground">
+        {new Date(token.created_at).toLocaleString()}
+      </TableCell>
+      <TableCell className="text-muted-foreground">
+        {token.expires_at ? new Date(token.expires_at).toLocaleString() : "—"}
+      </TableCell>
+      <TableCell className="text-muted-foreground">
+        {token.last_used_at
+          ? new Date(token.last_used_at).toLocaleString()
+          : "never"}
+      </TableCell>
+      <TableCell className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              onSelect={(e) => {
+                e.preventDefault();
+                void onRevoke();
+              }}
+              className="text-destructive focus:text-destructive"
+            >
+              Revoke
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  );
+}

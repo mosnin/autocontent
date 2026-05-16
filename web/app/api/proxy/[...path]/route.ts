@@ -25,15 +25,26 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
     cache: "no-store",
   };
   if (req.method !== "GET" && req.method !== "HEAD") {
-    init.body = await req.text();
+    // Binary-safe passthrough: forward the raw stream, don't decode as text.
+    const buf = await req.arrayBuffer();
+    if (buf.byteLength > 0) init.body = buf;
   }
 
   const upstream = await fetch(url, init);
-  const body = await upstream.text();
-  const resp = new NextResponse(body, { status: upstream.status });
-  const upstreamCt = upstream.headers.get("content-type");
-  if (upstreamCt) resp.headers.set("content-type", upstreamCt);
-  return resp;
+
+  // Stream the upstream body straight through — never `.text()` because
+  // it would corrupt binary responses (mp4, png, etc).
+  const respHeaders = new Headers();
+  for (const [k, v] of upstream.headers.entries()) {
+    // Drop hop-by-hop headers Next would otherwise strip anyway.
+    const lk = k.toLowerCase();
+    if (lk === "transfer-encoding" || lk === "connection") continue;
+    respHeaders.set(k, v);
+  }
+  return new NextResponse(upstream.body, {
+    status: upstream.status,
+    headers: respHeaders,
+  });
 }
 
 type Ctx = { params: Promise<{ path: string[] }> };

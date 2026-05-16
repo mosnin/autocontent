@@ -33,6 +33,31 @@ class NicheCreate(BaseModel):
     tts_style_directions: str | None = None
 
 
+class NicheUpdate(BaseModel):
+    """All fields optional — partial update.
+
+    Mirrors :class:`NicheCreate` so the web client can POST the same
+    payload to either endpoint and the backend interprets unset keys
+    as "leave alone".
+    """
+
+    title: str | None = None
+    description: str | None = None
+    target_audience: str | None = None
+    hashtags: list[str] | None = None
+    visual_style: str | None = None
+    voice: str | None = None
+    target_duration_sec: int | None = None
+    scene_count: int | None = None
+    posting_windows: list[PostingWindow] | None = None
+    platforms: list[Literal["tiktok", "reels", "shorts"]] | None = None
+    daily_spend_cap_usd: Decimal | None = None
+    image_quality: Literal["low", "medium", "high"] | None = None
+    video_resolution: Literal["480p", "720p"] | None = None
+    scene_max_duration_sec: int | None = None
+    tts_style_directions: str | None = None
+
+
 @router.get("", response_model=list[Niche])
 async def list_niches(ctx: AuthCtx = CurrentUser) -> list[Niche]:
     return await niches_repo.list_for_user(ctx.user_id)
@@ -46,6 +71,22 @@ async def create_niche(body: NicheCreate, ctx: AuthCtx = CurrentUser) -> Niche:
 @router.get("/{niche_id}", response_model=Niche)
 async def get_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> Niche:
     n = await niches_repo.get(niche_id, user_id=ctx.user_id)
+    if n is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    return n
+
+
+@router.put("/{niche_id}", response_model=Niche)
+async def update_niche(
+    niche_id: UUID,
+    body: NicheUpdate,
+    ctx: AuthCtx = CurrentUser,
+) -> Niche:
+    """Partial update. Fields left unset are not touched."""
+    # exclude_unset so omitted JSON keys (vs. explicit nulls) don't
+    # clobber existing values.
+    fields = body.model_dump(exclude_unset=True)
+    n = await niches_repo.update(niche_id, user_id=ctx.user_id, **fields)
     if n is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     return n
