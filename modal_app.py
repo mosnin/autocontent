@@ -84,6 +84,25 @@ async def nightly_batch() -> list[dict]:
 
 
 @app.function(
+    volumes={"/artifacts": artifacts},
+    schedule=modal.Cron("0 9 * * *"),  # 09:00 UTC daily
+    timeout=60 * 30,
+)
+def gc_artifacts() -> dict:
+    """Daily GC: delete job artifact dirs older than 30 days.
+    DB rows in `jobs` and `spend_ledger` are untouched."""
+    from autocontent.storage.retention import gc_artifacts as _gc
+
+    result = _gc(max_age_days=30)
+    artifacts.commit()
+    return {
+        "scanned": result.scanned,
+        "removed": result.removed,
+        "bytes_freed": result.bytes_freed,
+    }
+
+
+@app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60,
     min_containers=1,

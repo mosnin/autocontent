@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
 from uuid import UUID
 
 from ..db import get_pool

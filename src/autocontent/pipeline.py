@@ -20,14 +20,39 @@ from .orchestrator import run_ideation, run_qa, run_scriptwriter, run_visual_dir
 from .repos import jobs as jobs_repo
 from .repos import niches as niches_repo
 from .repos import spend as spend_repo
-from .services import captions, dalle, ffmpeg, grok_imagine, music, scheduler, tts
+from .services import (
+    character_sheet,
+    ffmpeg,
+    grok_imagine,
+    music,
+    openai_images,
+    openai_tts,
+    openai_whisper,
+    scheduler,
+    subtitle,
+)
+from .services.spend_context import SpendContext, default_context
 from .storage.volume import ensure_layout
 
+IMAGE_QUALITY = "medium"
 
-async def _generate_scene_assets(scene: Scene, root: Path) -> Clip:
+
+async def _generate_scene_assets(
+    scene: Scene,
+    root: Path,
+    *,
+    reference_image: Path,
+    spend: SpendContext,
+) -> Clip:
     keyframe = root / "keyframes" / f"scene_{scene.index}.png"
     clip = root / "clips" / f"scene_{scene.index}.mp4"
-    await dalle.generate_keyframe(scene.visual_prompt, keyframe)
+    await openai_images.generate_keyframe(
+        scene.visual_prompt,
+        keyframe,
+        quality=IMAGE_QUALITY,
+        reference_image_path=reference_image,
+        spend=spend,
+    )
     await grok_imagine.animate(
         keyframe, scene.motion_prompt, clip, duration_sec=scene.duration_sec
     )
@@ -67,6 +92,7 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
 
     job = await jobs_repo.create(user_id=user_id, niche_id=niche_id, platform=platform)
     root = ensure_layout(f"{user_id}/{job.id}")
+    spend = default_context(user_id=user_id, niche_id=niche_id, job_id=job.id)
 
     if not await _ensure_cap(job, niche):
         return job
@@ -93,8 +119,14 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
         return job
     job.status = JobStatus.generating_images
     await _persist(job)
+    reference = await character_sheet.get_or_create(
+        niche, quality=IMAGE_QUALITY, spend=spend
+    )
     job.clips = list(await asyncio.gather(
-        *[_generate_scene_assets(s, root) for s in script.scenes]
+        *[
+            _generate_scene_assets(s, root, reference_image=reference, spend=spend)
+            for s in script.scenes
+        ]
     ))
     job.status = JobStatus.animating
     await _persist(job)
@@ -106,7 +138,7 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     await _persist(job)
     vo_path = root / "audio" / "voiceover.wav"
     narration = " ".join(s.narration for s in script.scenes)
-    await tts.synthesize(narration, vo_path, voice=niche.voice)
+    await openai_tts.synthesize(narration, vo_path, voice=niche.voice, spend=spend)
 
     # 5. Music
     music_path = music.pick_track(
@@ -132,9 +164,9 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     # 7. Captions
     job.status = JobStatus.captioning
     await _persist(job)
-    words = await captions.transcribe_word_level(vo_path)
+    words = await openai_whisper.transcribe_word_level(vo_path, spend=spend)
     ass_path = root / "captions" / "subs.ass"
-    captions.words_to_ass(words, ass_path)
+    subtitle.words_to_ass(words, ass_path)
     final = root / "output" / "final.mp4"
     ffmpeg.burn_subtitles(mixed, ass_path, final)
     job.rendered = RenderedVideo(
