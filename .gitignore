@@ -21,3 +21,6 @@ artifacts/
 .mypy_cache/
 .pytest_cache/
 .DS_Store
+
+# Claude Code harness sub-agent worktrees (not project code)
+.claude/
