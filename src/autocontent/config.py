@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     xai_api_key: str = ""
     ayrshare_api_key: str = ""
+    pixabay_api_key: str = ""
 
     # Supabase Postgres (use the pooler URL for the runtime app).
     database_url: str = ""
