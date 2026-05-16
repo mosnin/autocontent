@@ -27,6 +27,10 @@ class NicheCreate(BaseModel):
     posting_windows: list[PostingWindow]
     platforms: list[Literal["tiktok", "reels", "shorts"]]
     daily_spend_cap_usd: Decimal
+    image_quality: Literal["low", "medium", "high"] = "medium"
+    video_resolution: Literal["480p", "720p"] = "480p"
+    scene_max_duration_sec: int = 5
+    tts_style_directions: str | None = None
 
 
 @router.get("", response_model=list[Niche])

@@ -36,6 +36,22 @@ async def today_spend_usd(*, user_id: str, niche_id: UUID) -> Decimal:
     return Decimal(val)
 
 
+async def today_spend_by_niche(*, user_id: str) -> dict[UUID, Decimal]:
+    """One row per niche the user has spent on today. Powers the dashboard."""
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select niche_id, coalesce(sum(cost_usd), 0)::numeric as total
+          from spend_ledger
+         where user_id = $1
+           and created_at::date = (now() at time zone 'utc')::date
+         group by niche_id
+        """,
+        user_id,
+    )
+    return {r["niche_id"]: Decimal(r["total"]) for r in rows}
+
+
 class SpendCapExceeded(Exception):
     pass
 

@@ -34,13 +34,12 @@ from .services import (
 from .services.spend_context import SpendContext, default_context
 from .storage.volume import ensure_layout
 
-IMAGE_QUALITY = "medium"
-
 
 async def _generate_scene_assets(
     scene: Scene,
     root: Path,
     *,
+    niche: Niche,
     reference_image: Path,
     spend: SpendContext,
 ) -> Clip:
@@ -49,19 +48,22 @@ async def _generate_scene_assets(
     await openai_images.generate_keyframe(
         scene.visual_prompt,
         keyframe,
-        quality=IMAGE_QUALITY,
+        quality=niche.image_quality,
         reference_image_path=reference_image,
         spend=spend,
     )
+    clip_duration = min(scene.duration_sec, niche.scene_max_duration_sec)
     await grok_imagine.animate(
         keyframe, scene.motion_prompt, clip,
-        duration_sec=scene.duration_sec, spend=spend,
+        duration_sec=clip_duration,
+        resolution=niche.video_resolution,
+        spend=spend,
     )
     return Clip(
         scene_index=scene.index,
         keyframe_path=str(keyframe),
         video_path=str(clip),
-        duration_sec=scene.duration_sec,
+        duration_sec=clip_duration,
     )
 
 
@@ -121,11 +123,13 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     job.status = JobStatus.generating_images
     await _persist(job)
     reference = await character_sheet.get_or_create(
-        niche, quality=IMAGE_QUALITY, spend=spend
+        niche, quality=niche.image_quality, spend=spend
     )
     job.clips = list(await asyncio.gather(
         *[
-            _generate_scene_assets(s, root, reference_image=reference, spend=spend)
+            _generate_scene_assets(
+                s, root, niche=niche, reference_image=reference, spend=spend,
+            )
             for s in script.scenes
         ]
     ))
@@ -139,7 +143,12 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     await _persist(job)
     vo_path = root / "audio" / "voiceover.wav"
     narration = " ".join(s.narration for s in script.scenes)
-    await openai_tts.synthesize(narration, vo_path, voice=niche.voice, spend=spend)
+    await openai_tts.synthesize(
+        narration, vo_path,
+        voice=niche.voice,
+        style_directions=niche.tts_style_directions,
+        spend=spend,
+    )
 
     # 5. Music
     music_path = music.pick_track(

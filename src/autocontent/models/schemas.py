@@ -98,6 +98,12 @@ class Niche(BaseModel):
     target_duration_sec: int
     scene_count: int
 
+    # Per-niche overrides for provider behavior.
+    image_quality: Literal["low", "medium", "high"] = "medium"
+    video_resolution: Literal["480p", "720p"] = "480p"
+    scene_max_duration_sec: int = Field(default=5, ge=1, le=15)
+    tts_style_directions: str | None = None
+
     posting_windows: list[PostingWindow]
     platforms: list[Literal["tiktok", "reels", "shorts"]]
     daily_spend_cap_usd: Decimal

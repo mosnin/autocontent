@@ -11,13 +11,13 @@ async def create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     pool = await get_pool()
     row = await pool.fetchrow(
         """
-        insert into jobs (user_id, niche_id, platform)
-        values ($1, $2, $3)
+        insert into jobs (user_id, niche_id, platform, payload)
+        values ($1, $2, $3, '{}'::jsonb)
         returning id, created_at
         """,
         user_id, niche_id, platform,
     )
-    return Job(
+    job = Job(
         id=row["id"],
         user_id=user_id,
         niche_id=niche_id,
@@ -25,6 +25,21 @@ async def create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
         status=JobStatus.queued,
         created_at=row["created_at"],
     )
+    await save_snapshot(job)
+    return job
+
+
+async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
+    """Reset a failed job back to `queued` and clear `error`. Returns the
+    fresh Job snapshot. Returns None if the job isn't owned by the user
+    or isn't currently in a terminal state."""
+    job = await get(job_id, user_id=user_id)
+    if job is None or job.status != JobStatus.failed:
+        return None
+    job.status = JobStatus.queued
+    job.error = None
+    await save_snapshot(job)
+    return job
 
 
 async def save_snapshot(job: Job) -> None:

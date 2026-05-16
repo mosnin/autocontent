@@ -48,3 +48,20 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     fn = modal.Function.from_name("autocontent", "run_pipeline")
     fn.spawn(ctx.user_id, str(body.niche_id), body.platform)
     return job
+
+
+@router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
+async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+    """Re-run a previously failed job from scratch. Only works on jobs in
+    `failed` state owned by the caller."""
+    import modal
+
+    job = await jobs_repo.reset_for_retry(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="job not found, not owned, or not in failed state",
+        )
+    fn = modal.Function.from_name("autocontent", "run_pipeline")
+    fn.spawn(ctx.user_id, str(job.niche_id), job.platform)
+    return job

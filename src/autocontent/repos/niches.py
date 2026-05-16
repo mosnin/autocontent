@@ -28,6 +28,10 @@ async def create(
     posting_windows: list[PostingWindow],
     platforms: list[str],
     daily_spend_cap_usd: Decimal,
+    image_quality: str = "medium",
+    video_resolution: str = "480p",
+    scene_max_duration_sec: int = 5,
+    tts_style_directions: str | None = None,
 ) -> Niche:
     pool = await get_pool()
     row = await pool.fetchrow(
@@ -35,15 +39,19 @@ async def create(
         insert into niches (
             user_id, title, description, target_audience, hashtags,
             visual_style, voice, target_duration_sec, scene_count,
-            posting_windows, platforms, daily_spend_cap_usd
+            posting_windows, platforms, daily_spend_cap_usd,
+            image_quality, video_resolution, scene_max_duration_sec,
+            tts_style_directions
         )
-        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16)
         returning *
         """,
         user_id, title, description, target_audience, hashtags,
         visual_style, voice, target_duration_sec, scene_count,
         json.dumps([w.model_dump() for w in posting_windows]),
         platforms, daily_spend_cap_usd,
+        image_quality, video_resolution, scene_max_duration_sec,
+        tts_style_directions,
     )
     return _row_to_niche(row)
 
