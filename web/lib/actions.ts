@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { api } from "./api";
-import type { Job, Niche, Platform } from "./types";
+import type { AyrshareConnectResponse, Job, Niche, Platform } from "./types";
 
 export interface ActionState {
   ok: boolean;
@@ -138,4 +138,14 @@ export async function archiveNicheAction(
   }
   revalidatePath("/dashboard");
   return { ok: true };
+}
+
+export async function connectAyrshareAction(): Promise<void> {
+  // Creates (or reuses) the user's Ayrshare profile and bounces them to
+  // the hosted OAuth chooser so they can link TikTok / IG / YouTube.
+  const res = await api<AyrshareConnectResponse>("/api/v1/connect/ayrshare", {
+    method: "POST",
+  });
+  revalidatePath("/connect");
+  redirect(res.login_url);
 }

@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     aspect: str = "9:16"
 
+    # Comma-separated list of origins allowed by the FastAPI CORS middleware.
+    # If empty/unset we fall back to "*" with credentials disabled.
+    web_origin: str = ""
+
     # Modal volume mount points.
     artifacts_dir: str = "/artifacts"
     assets_dir: str = "/assets"
