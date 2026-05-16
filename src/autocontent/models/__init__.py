@@ -1,12 +1,29 @@
-from .schemas import Idea, Scene, Script, Clip, AudioTrack, RenderedVideo, Job, JobStatus
+from .schemas import (
+    AudioTrack,
+    Clip,
+    Idea,
+    Job,
+    JobStatus,
+    Niche,
+    PostingWindow,
+    RenderedVideo,
+    Scene,
+    Script,
+    SpendEntry,
+    User,
+)
 
 __all__ = [
-    "Idea",
-    "Scene",
-    "Script",
-    "Clip",
     "AudioTrack",
-    "RenderedVideo",
+    "Clip",
+    "Idea",
     "Job",
     "JobStatus",
+    "Niche",
+    "PostingWindow",
+    "RenderedVideo",
+    "Scene",
+    "Script",
+    "SpendEntry",
+    "User",
 ]

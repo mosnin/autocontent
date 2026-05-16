@@ -8,12 +8,16 @@ class Settings(BaseSettings):
     xai_api_key: str = ""
     ayrshare_api_key: str = ""
 
-    niche: str = ""
-    target_duration_sec: int = 45
-    scene_count: int = 6
+    # Supabase Postgres (use the pooler URL for the runtime app).
+    database_url: str = ""
+
+    # Clerk JWT verification.
+    clerk_jwks_url: str = ""
+    clerk_issuer: str = ""
+
     aspect: str = "9:16"
 
-    # Modal volume mount points
+    # Modal volume mount points.
     artifacts_dir: str = "/artifacts"
     assets_dir: str = "/assets"
 

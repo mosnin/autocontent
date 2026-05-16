@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, time
+from decimal import Decimal
 from enum import Enum
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -65,10 +67,50 @@ class JobStatus(str, Enum):
     failed = "failed"
 
 
+class User(BaseModel):
+    id: str  # Clerk user_id
+    email: str
+    ayrshare_profile_key: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PostingWindow(BaseModel):
+    hour: int = Field(ge=0, le=23)
+    minute: int = Field(ge=0, le=59)
+    tz: str  # IANA, e.g. "America/Los_Angeles"
+
+    def at(self, day: datetime) -> datetime:
+        from zoneinfo import ZoneInfo
+
+        return datetime.combine(day.date(), time(self.hour, self.minute), ZoneInfo(self.tz))
+
+
+class Niche(BaseModel):
+    id: UUID
+    user_id: str
+    title: str
+    description: str
+    target_audience: str
+    hashtags: list[str] = Field(default_factory=list)
+
+    visual_style: str
+    voice: str
+    target_duration_sec: int
+    scene_count: int
+
+    posting_windows: list[PostingWindow]
+    platforms: list[Literal["tiktok", "reels", "shorts"]]
+    daily_spend_cap_usd: Decimal
+
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    archived_at: datetime | None = None
+
+
 class Job(BaseModel):
-    id: str
-    niche: str
-    platform: Literal["tiktok", "reels", "shorts"] = "tiktok"
+    id: UUID
+    user_id: str
+    niche_id: UUID
+    platform: Literal["tiktok", "reels", "shorts"]
     status: JobStatus = JobStatus.queued
     created_at: datetime = Field(default_factory=datetime.utcnow)
     script: Script | None = None
@@ -77,3 +119,13 @@ class Job(BaseModel):
     rendered: RenderedVideo | None = None
     scheduled_for: datetime | None = None
     error: str | None = None
+
+
+class SpendEntry(BaseModel):
+    user_id: str
+    niche_id: UUID
+    job_id: UUID | None
+    provider: str  # "openai" | "xai" | "ayrshare"
+    sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
+    units: Decimal
+    cost_usd: Decimal
