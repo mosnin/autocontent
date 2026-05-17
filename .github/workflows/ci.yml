@@ -8,6 +8,25 @@ jobs:
   python:
     name: Python (ruff + pytest)
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      AUTOCONTENT_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+
     steps:
       - uses: actions/checkout@v4
 
@@ -22,7 +41,13 @@ jobs:
         run: pip install -e ".[dev]" --ignore-installed PyJWT
 
       - name: Ruff
-        run: python -m ruff check src/autocontent tests backend modal_app.py
+        run: python -m ruff check src/autocontent tests backend modal_app.py scripts
+
+      - name: Apply migrations (integration gate)
+        # Validates migration SQL syntax against a real Postgres instance.
+        # Existing unit tests monkeypatch DB repos and do not need Postgres,
+        # so this step is the sole integration coverage for migration SQL.
+        run: python scripts/migrate.py up
 
       - name: Pytest
         run: python -m pytest tests/ -q

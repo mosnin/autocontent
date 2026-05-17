@@ -27,7 +27,7 @@ image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg")
     .pip_install_from_pyproject("pyproject.toml")
-    .add_local_python_source("autocontent", "backend")
+    .add_local_python_source("autocontent", "backend", "scripts")
 )
 
 artifacts = modal.Volume.from_name("autocontent-artifacts", create_if_missing=True)
@@ -124,6 +124,30 @@ def gc_artifacts() -> dict:
 def api():
     from backend.main import create_app
     return create_app()
+
+
+@app.function(
+    timeout=120,
+)
+def apply_migrations() -> dict:
+    """Apply all pending database migrations via yoyo-migrations.
+
+    This function is idempotent: yoyo records applied migrations in the
+    ``_yoyo_migration`` table and skips them on subsequent runs.
+
+    Deploy flow
+    -----------
+    Run this *before* ``modal deploy`` so the schema is updated before new
+    application code goes live::
+
+        modal run modal_app.py::apply_migrations
+        modal deploy modal_app.py
+    """
+    from scripts.migrate import status as migration_status  # noqa: PLC0415
+    from scripts.migrate import up as migration_up  # noqa: PLC0415
+
+    migration_up()
+    return migration_status()
 
 
 @app.local_entrypoint()
