@@ -14,6 +14,8 @@ from .schemas import (
     Scene,
     Script,
     SpendEntry,
+    SpendHistory,
+    SpendHistoryRow,
     TodaySpend,
     User,
 )
@@ -34,6 +36,8 @@ __all__ = [
     "Scene",
     "Script",
     "SpendEntry",
+    "SpendHistory",
+    "SpendHistoryRow",
     "TodaySpend",
     "User",
 ]

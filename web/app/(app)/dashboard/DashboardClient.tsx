@@ -254,7 +254,14 @@ function NicheCard({
     <Card className="flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-lg font-semibold">{niche.title}</CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            <Link
+              href={`/niches/${niche.id}`}
+              className="hover:underline"
+            >
+              {niche.title}
+            </Link>
+          </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

@@ -69,6 +69,20 @@ export interface TodaySpend {
   total_usd: string;
 }
 
+export interface SpendHistoryRow {
+  /** UTC calendar day, e.g. "2026-01-15" */
+  day: string;
+  niche_id: string;
+  /** Decimal serialized as string by pydantic, e.g. "0.2500" */
+  cost_usd: string;
+}
+
+export interface SpendHistory {
+  rows: SpendHistoryRow[];
+  days: number;
+  total_usd: string;
+}
+
 export interface AyrshareConnectStatus {
   connected: boolean;
   profile_key: string | null;
