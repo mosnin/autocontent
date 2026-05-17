@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Copy, KeyRound, MoreHorizontal, Plus } from "lucide-react";
+import { Copy, Key, KeyRound, MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -147,12 +147,24 @@ export function TokensClient({ tokens, freshToken }: Props) {
 
       {tokens.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No tokens yet.
+          <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <Key className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold">No tokens</h3>
+            <p className="max-w-sm text-sm text-muted-foreground">
+              Create a token to authenticate the CLI, MCP server, or any
+              external agent driving autocontent.
+            </p>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Create your first token
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <div className="overflow-x-auto">
+          <Card className="min-w-[640px]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -170,7 +182,8 @@ export function TokensClient({ tokens, freshToken }: Props) {
               ))}
             </TableBody>
           </Table>
-        </Card>
+          </Card>
+        </div>
       )}
     </div>
   );
@@ -206,8 +219,8 @@ function TokenRow({ token }: { token: PersonalAccessToken }) {
       <TableCell className="text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`More options for token ${token.name}`}>
+              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

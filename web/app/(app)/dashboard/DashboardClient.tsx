@@ -13,6 +13,7 @@ import {
   Pencil,
   Play,
   Plus,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 
@@ -60,7 +61,7 @@ const PLATFORM_LABEL: Record<Platform, string> = {
 };
 
 export function DashboardClient({ initial }: { initial: InitialData }) {
-  const { data: niches, error: nichesError } = useSWR<Niche[]>(
+  const { data: niches, error: nichesError, mutate: mutateNiches } = useSWR<Niche[]>(
     "/api/v1/niches",
     clientFetch,
     { refreshInterval: POLL_MS, fallbackData: initial.niches },
@@ -86,10 +87,54 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     },
   );
 
+  // Track whether a SWR error toast has already been shown for the
+  // current error sequence so we don't spam on every poll tick.
+  const errorToastedRef = React.useRef(false);
+  const hasError = !!(nichesError || spendError);
+
+  React.useEffect(() => {
+    if (hasError && !errorToastedRef.current) {
+      errorToastedRef.current = true;
+      const msg =
+        (nichesError ?? spendError)?.message ?? "fetch failed";
+      toast.error(`Live updates paused: ${msg}`);
+    }
+    if (!hasError) {
+      errorToastedRef.current = false;
+    }
+  }, [hasError, nichesError, spendError]);
+
   const nichesList = niches ?? [];
   const spendData = spend ?? { by_niche: {}, total_usd: "0" };
   const showAyrshareBanner =
     ayrshare !== undefined && ayrshare.connected === false;
+
+  async function handleArchive(niche: Niche) {
+    if (!confirm(`Archive niche "${niche.title}"? This will stop new posts.`)) {
+      return;
+    }
+
+    // Optimistically remove the niche from the list.
+    const prevNiches = niches ?? [];
+    void mutateNiches(
+      prevNiches.filter((n) => n.id !== niche.id),
+      false,
+    );
+
+    const fd = new FormData();
+    fd.set("niche_id", niche.id);
+    const res = await archiveNicheAction({ ok: false }, fd);
+
+    if (res.ok) {
+      toast.success(`Archived ${niche.title}`);
+      // Revalidate to sync server truth.
+      void mutateNiches();
+    } else {
+      // Revert optimistic update.
+      void mutateNiches(prevNiches, false);
+      toast.error(res.error ?? "Archive failed");
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -142,13 +187,11 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         </Card>
       )}
 
-      {(nichesError || spendError) && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="pt-6 text-sm text-destructive">
-            Live updates paused:{" "}
-            {(nichesError ?? spendError)?.message ?? "fetch failed"}
-          </CardContent>
-        </Card>
+      {hasError && (
+        <p className="text-sm text-muted-foreground">
+          Live updates paused —{" "}
+          {(nichesError ?? spendError)?.message ?? "fetch failed"}
+        </p>
       )}
 
       {nichesList.length === 0 ? (
@@ -160,6 +203,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               key={n.id}
               niche={n}
               spentToday={spendData.by_niche[n.id] ?? "0"}
+              onArchive={handleArchive}
             />
           ))}
         </div>
@@ -173,7 +217,7 @@ function EmptyState() {
     <Card>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
         <div className="rounded-full bg-muted p-3">
-          <Inbox className="h-6 w-6 text-muted-foreground" />
+          <Sparkles className="h-6 w-6 text-muted-foreground" />
         </div>
         <h3 className="text-lg font-semibold">No niches yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
@@ -191,23 +235,20 @@ function EmptyState() {
   );
 }
 
-function NicheCard({ niche, spentToday }: { niche: Niche; spentToday: string }) {
+function NicheCard({
+  niche,
+  spentToday,
+  onArchive,
+}: {
+  niche: Niche;
+  spentToday: string;
+  onArchive: (niche: Niche) => Promise<void>;
+}) {
   const { openRunConfirm } = useRunConfirm();
   const cap = Number(niche.daily_spend_cap_usd);
   const spent = Number(spentToday);
   const pct = cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
   const tooltipText = `${formatUsd(spent)} of ${formatUsd(cap)} used today`;
-
-  async function onArchive() {
-    if (!confirm(`Archive niche "${niche.title}"? This will stop new posts.`)) {
-      return;
-    }
-    const fd = new FormData();
-    fd.set("niche_id", niche.id);
-    const res = await archiveNicheAction({ ok: false }, fd);
-    if (res.ok) toast.success(`Archived ${niche.title}`);
-    else toast.error(res.error ?? "Archive failed");
-  }
 
   return (
     <Card className="flex flex-col">
@@ -216,7 +257,12 @@ function NicheCard({ niche, spentToday }: { niche: Niche; spentToday: string }) 
           <CardTitle className="text-lg font-semibold">{niche.title}</CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="-mr-2 h-8 w-8">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="-mr-2 h-8 w-8"
+                aria-label={`More options for ${niche.title}`}
+              >
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -230,7 +276,7 @@ function NicheCard({ niche, spentToday }: { niche: Niche; spentToday: string }) 
               <DropdownMenuItem
                 onSelect={(e) => {
                   e.preventDefault();
-                  void onArchive();
+                  void onArchive(niche);
                 }}
                 className="text-destructive focus:text-destructive"
               >
@@ -290,16 +336,18 @@ function NicheCard({ niche, spentToday }: { niche: Niche; spentToday: string }) 
             key={p}
             size="sm"
             variant="outline"
+            aria-label={`Run ${niche.title} on ${PLATFORM_LABEL[p]}`}
+            className="focus-visible:ring-2"
             onClick={() => openRunConfirm({ nicheId: niche.id, platform: p })}
           >
-            <Play className="h-3.5 w-3.5" />
+            <Play className="h-3.5 w-3.5" aria-hidden="true" />
             {PLATFORM_LABEL[p]}
           </Button>
         ))}
         <Button asChild size="sm" variant="ghost" className="ml-auto">
           <Link href={`/niches/${niche.id}/edit`}>
             Edit
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </Button>
       </CardFooter>
