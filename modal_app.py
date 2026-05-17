@@ -19,6 +19,10 @@ import modal
 # Modal container startup is captured before user code runs.
 from autocontent.logging import configure as _configure_logging
 
+# Import settings before any @app.function decorator so that
+# pipeline_global_concurrency is resolved at deploy time.
+from autocontent.config import settings as _settings
+
 _configure_logging()
 
 APP_NAME = "autocontent"
@@ -47,6 +51,7 @@ app = modal.App(APP_NAME, image=image, secrets=secrets)
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
+    concurrency_limit=_settings.pipeline_global_concurrency,
 )
 async def run_pipeline(user_id: str, niche_id: str, platform: str) -> dict:
     from uuid import UUID
