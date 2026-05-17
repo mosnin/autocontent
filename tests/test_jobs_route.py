@@ -69,7 +69,7 @@ def test_list_jobs_returns_200(monkeypatch):
     _reset_limiter()
     import autocontent.repos.jobs as jobs_repo
 
-    async def _list(user_id: str, *, status=None, limit: int = 50):
+    async def _list(user_id: str, *, status=None, niche_id=None, limit: int = 50):
         return [_make_job()]
 
     monkeypatch.setattr(jobs_repo, "list_for_user", _list)
@@ -89,7 +89,7 @@ def test_list_jobs_with_status_filter(monkeypatch):
 
     received_status: list = []
 
-    async def _list(user_id: str, *, status=None, limit: int = 50):
+    async def _list(user_id: str, *, status=None, niche_id=None, limit: int = 50):
         received_status.append(status)
         return []
 
