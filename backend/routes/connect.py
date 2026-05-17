@@ -12,13 +12,14 @@ GET /api/v1/connect/ayrshare/status
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from autocontent.repos import users as users_repo
 from autocontent.services import ayrshare_profiles
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
 
@@ -34,7 +35,8 @@ class ConnectStatusResponse(BaseModel):
 
 
 @router.post("/ayrshare", response_model=ConnectResponse)
-async def connect_ayrshare(ctx: AuthCtx = CurrentUser) -> ConnectResponse:
+@limiter.limit("5/minute")
+async def connect_ayrshare(request: Request, ctx: AuthCtx = CurrentUser) -> ConnectResponse:
     user = await users_repo.get(ctx.user_id)
     profile_key = user.ayrshare_profile_key if user else None
 

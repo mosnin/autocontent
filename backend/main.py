@@ -4,11 +4,15 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from autocontent.config import settings
 from autocontent.logging import configure as _configure_logging
 
-from .routes import connect, jobs, niches, spend, tokens, users, webhooks
+from .rate_limit import limiter
+from .routes import connect, healthz, jobs, niches, spend, tokens, users, webhooks
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +25,11 @@ def create_app() -> FastAPI:
     _configure_logging()
 
     app = FastAPI(title="autocontent api", version="0.1.0")
+
+    # ── Rate limiting (must be registered before CORS middleware) ─────────────
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     origins = _parse_origins(settings.web_origin)
     if origins:
@@ -42,6 +51,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    app.include_router(healthz.router, prefix="", tags=["health"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
     app.include_router(niches.router, prefix="/api/v1/niches", tags=["niches"])
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
@@ -49,9 +59,5 @@ def create_app() -> FastAPI:
     app.include_router(connect.router, prefix="/api/v1/connect", tags=["connect"])
     app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
     app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
-
-    @app.get("/healthz")
-    async def healthz() -> dict:
-        return {"ok": True}
 
     return app
