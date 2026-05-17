@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, time
+from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
 from typing import Literal
@@ -174,6 +174,18 @@ class TodaySpend(BaseModel):
     """Mirrors backend.routes.spend.TodaySpend so SDK callers have one shape."""
 
     by_niche: dict[str, Decimal]
+    total_usd: Decimal
+
+
+class SpendHistoryRow(BaseModel):
+    day: date
+    niche_id: UUID
+    cost_usd: Decimal
+
+
+class SpendHistory(BaseModel):
+    rows: list[SpendHistoryRow]
+    days: int
     total_usd: Decimal
 
 

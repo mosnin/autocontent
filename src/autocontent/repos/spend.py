@@ -4,7 +4,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from ..db import get_pool
-from ..models import SpendEntry
+from ..models import SpendEntry, SpendHistoryRow
 
 
 async def record(entry: SpendEntry) -> None:
@@ -50,6 +50,45 @@ async def today_spend_by_niche(*, user_id: str) -> dict[UUID, Decimal]:
         user_id,
     )
     return {r["niche_id"]: Decimal(r["total"]) for r in rows}
+
+
+async def history(
+    *,
+    user_id: str,
+    days: int,
+    niche_id: UUID | None = None,
+) -> list[SpendHistoryRow]:
+    """Return per-day per-niche spend aggregates for the last ``days`` days.
+
+    The bucketing is UTC calendar day, matching the ``created_at`` timezone
+    used throughout the rest of the spend queries. ``niche_id=None`` returns
+    all niches for the user.
+    """
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select date_trunc('day', created_at)::date as day,
+               niche_id,
+               sum(cost_usd) as cost_usd
+          from spend_ledger
+         where user_id = $1
+           and created_at >= now() - ($2 || ' days')::interval
+           and ($3::uuid is null or niche_id = $3)
+         group by 1, 2
+         order by 1 asc, 2 asc
+        """,
+        user_id,
+        str(days),
+        niche_id,
+    )
+    return [
+        SpendHistoryRow(
+            day=r["day"],
+            niche_id=r["niche_id"],
+            cost_usd=Decimal(r["cost_usd"]),
+        )
+        for r in rows
+    ]
 
 
 class SpendCapExceeded(Exception):

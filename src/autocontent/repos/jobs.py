@@ -66,21 +66,24 @@ async def list_for_user(
     user_id: str,
     *,
     status: JobStatus | None = None,
+    niche_id: UUID | None = None,
     limit: int = 50,
 ) -> list[Job]:
     pool = await get_pool()
-    if status is None:
-        rows = await pool.fetch(
-            "select payload from jobs where user_id = $1 order by created_at desc limit $2",
-            user_id, limit,
-        )
-    else:
-        rows = await pool.fetch(
-            """select payload from jobs
-                where user_id = $1 and status = $2
-                order by created_at desc limit $3""",
-            user_id, status.value, limit,
-        )
+    rows = await pool.fetch(
+        """
+        select payload from jobs
+         where user_id = $1
+           and ($2::job_status is null or status = $2)
+           and ($3::uuid is null or niche_id = $3)
+         order by created_at desc
+         limit $4
+        """,
+        user_id,
+        status.value if status is not None else None,
+        niche_id,
+        limit,
+    )
     return [Job.model_validate(json.loads(r["payload"])) for r in rows]
 
 

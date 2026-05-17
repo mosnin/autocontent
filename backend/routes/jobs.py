@@ -25,9 +25,12 @@ class JobEnqueue(BaseModel):
 async def list_jobs(
     ctx: AuthCtx = CurrentUser,
     status_filter: JobStatus | None = None,
+    niche_id: UUID | None = None,
     limit: int = 50,
 ) -> list[Job]:
-    return await jobs_repo.list_for_user(ctx.user_id, status=status_filter, limit=limit)
+    return await jobs_repo.list_for_user(
+        ctx.user_id, status=status_filter, niche_id=niche_id, limit=limit
+    )
 
 
 @router.get("/{job_id}", response_model=Job)
