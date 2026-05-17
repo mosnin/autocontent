@@ -23,6 +23,8 @@ from pathlib import Path
 from typing import Iterator
 from uuid import UUID
 
+from opentelemetry import trace
+
 from .config import settings
 from .logging import get_logger, job_context
 from .models import AudioTrack, Clip, Job, JobStatus, Niche, RenderedVideo, Scene, Script
@@ -38,6 +40,7 @@ from .services import (
     openai_images,
     openai_tts,
     openai_whisper,
+    otel,
     scheduler,
     subtitle,
 )
@@ -50,14 +53,26 @@ log = get_logger(__name__)
 
 @contextmanager
 def _stage(name: str) -> Iterator[None]:
-    """Emit stage.start / stage.end log lines around a block."""
-    log.info("stage.start", extra={"stage": name})
-    started = time.monotonic()
-    try:
-        yield
-    finally:
-        elapsed_ms = int((time.monotonic() - started) * 1000)
-        log.info("stage.end", extra={"stage": name, "latency_ms": elapsed_ms})
+    """Emit stage.start / stage.end log lines around a block.
+
+    Also creates an OTEL span named ``pipeline.stage.<name>`` so the
+    per-stage latency is visible in any connected APM (Honeycomb, Axiom,
+    Datadog, Tempo…). The log lines are preserved for backward compat.
+    """
+    tracer = otel.get_tracer(__name__)
+    with tracer.start_as_current_span(f"pipeline.stage.{name}") as span:
+        span.set_attribute("autocontent.stage", name)
+        log.info("stage.start", extra={"stage": name})
+        started = time.monotonic()
+        try:
+            yield
+        except Exception as exc:
+            span.record_exception(exc)
+            span.set_status(trace.StatusCode.ERROR, str(exc))
+            raise
+        finally:
+            elapsed_ms = int((time.monotonic() - started) * 1000)
+            log.info("stage.end", extra={"stage": name, "latency_ms": elapsed_ms})
 
 
 async def _generate_scene_assets(
@@ -178,8 +193,21 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
                 cap_usd=niche.daily_spend_cap_usd,
             )
 
-            with job_context(job_id=job.id, user_id=user_id, niche_id=niche_id):
-                return await _run_job_inner(job, niche, platform, root, spend)
+            tracer = otel.get_tracer(__name__)
+            with tracer.start_as_current_span("pipeline.run_job") as span:
+                span.set_attribute("autocontent.user_id", user_id)
+                span.set_attribute("autocontent.niche_id", str(niche_id))
+                span.set_attribute("autocontent.platform", platform)
+                span.set_attribute("autocontent.job_id", str(job.id))
+                with job_context(job_id=job.id, user_id=user_id, niche_id=niche_id):
+                    try:
+                        result = await _run_job_inner(job, niche, platform, root, spend)
+                    except Exception as exc:
+                        span.record_exception(exc)
+                        span.set_status(trace.StatusCode.ERROR, str(exc))
+                        raise
+                    span.set_attribute("autocontent.job_status", result.status.value)
+                    return result
 
 
 async def _run_job_inner(

@@ -97,6 +97,12 @@ def configure(level: int = logging.INFO) -> None:
             )
         _sentry_inited = True
 
+        # OTEL is initialised after Sentry so both coexist independently.
+        # When otel_exporter_otlp_endpoint is empty, init_tracing() is a no-op.
+        from .services.otel import init_tracing  # deferred — mirrors Sentry pattern
+
+        init_tracing()
+
 
 def get_logger(name: str) -> logging.Logger:
     """Get a configured JSON logger. Configures on first call."""

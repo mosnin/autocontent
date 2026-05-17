@@ -56,10 +56,17 @@ app = modal.App(APP_NAME, image=image, secrets=secrets)
 async def run_pipeline(user_id: str, niche_id: str, platform: str) -> dict:
     from uuid import UUID
     from autocontent.pipeline import run_job
+    from autocontent.services.otel import force_flush
 
-    job = await run_job(user_id=user_id, niche_id=UUID(niche_id), platform=platform)
-    artifacts.commit()
-    return job.model_dump(mode="json")
+    try:
+        job = await run_job(user_id=user_id, niche_id=UUID(niche_id), platform=platform)
+        artifacts.commit()
+        return job.model_dump(mode="json")
+    finally:
+        # Flush the OTEL BatchSpanProcessor so the spans for this pipeline run
+        # are exported before the Modal container is reclaimed. Without this,
+        # the last ~5 s of buffered spans may be lost on container exit.
+        force_flush(timeout_ms=5000)
 
 
 @app.function(

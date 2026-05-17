@@ -60,4 +60,16 @@ def create_app() -> FastAPI:
     app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
     app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
 
+    # ── OpenTelemetry FastAPI per-app instrumentation ──────────────────────
+    # Called AFTER routes are registered so the instrumentor captures the
+    # full route table (needed for http.route attribute on spans).
+    # The global TracerProvider was initialised by _configure_logging() →
+    # init_tracing(). When OTEL is disabled the instrumentor is a no-op.
+    try:
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor  # noqa: PLC0415
+
+        FastAPIInstrumentor.instrument_app(app)
+    except ImportError:
+        pass  # package not installed; tracing stays disabled
+
     return app
