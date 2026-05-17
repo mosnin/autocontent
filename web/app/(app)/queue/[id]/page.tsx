@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
@@ -132,21 +133,23 @@ export default async function JobDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+      <div className="flex flex-col gap-6 lg:flex-row">
+        <Card className="lg:w-1/2">
           <CardHeader>
             <CardTitle className="text-base">Rendered video</CardTitle>
           </CardHeader>
           <CardContent>
             {videoPath ? (
-              <video
-                controls
-                preload="metadata"
-                className="w-full rounded-lg border bg-black"
-                src={videoPath}
-              >
-                Your browser doesn&apos;t support the video tag.
-              </video>
+              <div className="aspect-video w-full max-w-full overflow-hidden rounded-lg border bg-black">
+                <video
+                  controls
+                  preload="metadata"
+                  className="h-full w-full object-contain"
+                  src={videoPath}
+                >
+                  Your browser doesn&apos;t support the video tag.
+                </video>
+              </div>
             ) : (
               <div className="space-y-3">
                 <Skeleton className="aspect-[9/16] w-full rounded-lg" />
@@ -158,15 +161,18 @@ export default async function JobDetailPage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:w-1/2">
           <CardContent className="p-0">
             <Tabs defaultValue="script">
-              <TabsList className="w-full justify-start rounded-none rounded-t-lg border-b bg-transparent p-2">
-                <TabsTrigger value="script">Script</TabsTrigger>
-                <TabsTrigger value="scenes">Scenes</TabsTrigger>
-                <TabsTrigger value="costs">Costs</TabsTrigger>
-                <TabsTrigger value="logs">Logs</TabsTrigger>
-              </TabsList>
+              <ScrollArea>
+                <TabsList className="w-max rounded-none rounded-t-lg border-b bg-transparent p-2 justify-start">
+                  <TabsTrigger value="script">Script</TabsTrigger>
+                  <TabsTrigger value="scenes">Scenes</TabsTrigger>
+                  <TabsTrigger value="costs">Costs</TabsTrigger>
+                  <TabsTrigger value="logs">Logs</TabsTrigger>
+                </TabsList>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
 
               <TabsContent value="script" className="m-0 p-6">
                 {fullScript ? (

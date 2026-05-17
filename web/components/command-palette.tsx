@@ -22,6 +22,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { DialogTitle } from "@/components/ui/dialog";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { Niche, Platform } from "@/lib/types";
@@ -59,6 +60,7 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
+      <DialogTitle className="sr-only">Command palette</DialogTitle>
       <CommandInput placeholder="Type a command or search…" />
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
