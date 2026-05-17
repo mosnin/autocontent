@@ -41,7 +41,7 @@ class Clip(BaseModel):
 
 class AudioTrack(BaseModel):
     voiceover_path: str
-    music_path: str
+    music_path: str | None = None
     music_gain_db: float = -18.0
 
 

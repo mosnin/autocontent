@@ -227,12 +227,22 @@ async def _run_job_inner(
             return await _fail_with(job, str(e))
 
     # 5. Music
+    # Derive a search query from existing Niche fields — no schema change needed.
+    # `niche.title` (e.g. "claymation econ explainers") + `niche.visual_style`
+    # (e.g. "claymation, warm palette") give Pixabay enough signal to find
+    # thematically appropriate background music. We take just the title to keep
+    # the query short and searchable; visual_style tends to be image-specific.
+    music_query = niche.title
     music_path = await music.pick_track(
-        mood="upbeat-educational",
-        target_duration_sec=script.total_duration_sec,
+        query=music_query,
+        target_duration_sec=int(script.total_duration_sec),
         library_dir=Path(settings.assets_dir) / "music",
+        cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
     )
-    job.audio = AudioTrack(voiceover_path=str(vo_path), music_path=str(music_path))
+    job.audio = AudioTrack(
+        voiceover_path=str(vo_path),
+        music_path=str(music_path) if music_path is not None else None,
+    )
 
     # 6. Edit (concat + mix)
     with _stage(JobStatus.editing.value):
@@ -245,7 +255,7 @@ async def _run_job_inner(
         mixed = root / "output" / "mixed.mp4"
         ffmpeg.mix_audio(
             silent_video, vo_path, music_path, mixed,
-            music_gain_db=job.audio.music_gain_db,
+            music_gain_db=job.audio.music_gain_db if job.audio else -18.0,
         )
 
     # 7. Captions
