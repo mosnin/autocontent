@@ -72,7 +72,16 @@ class User(BaseModel):
     id: str  # Clerk user_id
     email: str
     ayrshare_profile_key: str | None = None
+    global_daily_cap_usd: Decimal | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class UserSettingsUpdate(BaseModel):
+    """Body for PATCH /api/v1/users/me — all fields optional."""
+
+    global_daily_cap_usd: Decimal | None = None
+
+    model_config = {"extra": "forbid"}
 
 
 class PostingWindow(BaseModel):

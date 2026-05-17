@@ -4,16 +4,29 @@ import { KeyRound, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { api } from "@/lib/api";
+import type { User } from "@/lib/types";
+import { SpendCapForm } from "./SpendCapForm";
 
-// Index page for the settings sub-tree. Today it's just a two-card
-// landing pad pointing at Connect and Tokens; new subsections can land
-// here without rewiring navigation.
-export default function SettingsPage() {
+export const dynamic = "force-dynamic";
+
+// Index page for the settings sub-tree. Contains a Spend Caps section
+// plus nav cards for Connect and Tokens.
+export default async function SettingsPage() {
+  // Best-effort: if the user fetch fails we still render the page.
+  let user: User | null = null;
+  try {
+    user = await api<User>("/api/v1/users/me");
+  } catch {
+    // ignore — form renders with empty default
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
@@ -22,6 +35,20 @@ export default function SettingsPage() {
           Connections, authentication, and per-account config.
         </p>
       </div>
+
+      {/* Spend caps */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Spend caps</CardTitle>
+          <CardDescription>
+            Set a global daily limit across all niches. Leave blank for no
+            global cap (each niche still has its own per-niche cap).
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SpendCapForm initialCap={user?.global_daily_cap_usd ?? null} />
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>

@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { Niche, TodaySpend } from "@/lib/types";
+import type { Niche, TodaySpend, User } from "@/lib/types";
 import { DashboardClient } from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
@@ -18,16 +18,25 @@ async function fetchAyrshareConnected(): Promise<boolean | null> {
   }
 }
 
+async function fetchUser(): Promise<User | null> {
+  try {
+    return await api<User>("/api/v1/users/me");
+  } catch {
+    return null;
+  }
+}
+
 export default async function Dashboard() {
-  const [niches, spend, ayrshareConnected] = await Promise.all([
+  const [niches, spend, ayrshareConnected, user] = await Promise.all([
     api<Niche[]>("/api/v1/niches"),
     api<TodaySpend>("/api/v1/spend/today"),
     fetchAyrshareConnected(),
+    fetchUser(),
   ]);
 
   return (
     <DashboardClient
-      initial={{ niches, spend, ayrshareConnected }}
+      initial={{ niches, spend, ayrshareConnected, globalCap: user?.global_daily_cap_usd ?? null }}
     />
   );
 }

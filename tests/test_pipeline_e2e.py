@@ -26,6 +26,7 @@ from autocontent.models import (
     PostingWindow,
     Scene,
     Script,
+    User,
 )
 from autocontent.repos.spend import SpendCapExceeded
 
@@ -103,9 +104,26 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
         return Decimal("0.00")
     monkeypatch.setattr(pipeline.spend_repo, "today_spend_usd", fake_today_spend)
 
+    async def fake_today_total_spend(*, user_id):
+        return Decimal("0.00")
+    monkeypatch.setattr(pipeline.spend_repo, "today_spend_total_usd", fake_today_total_spend)
+
     async def fake_assert_within_cap(*, user_id, niche_id, cap_usd):
         return None
     monkeypatch.setattr(pipeline.spend_repo, "assert_within_cap", fake_assert_within_cap)
+
+    # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
+    import autocontent.repos.users as _users_repo
+    from datetime import datetime, timezone
+
+    async def fake_users_get(user_id: str):
+        return User(
+            id=user_id,
+            email="test@test.com",
+            global_daily_cap_usd=None,
+            created_at=datetime.now(timezone.utc),
+        )
+    monkeypatch.setattr(_users_repo, "get", fake_users_get)
 
     # The default SpendContext.record calls spend_repo.record which needs
     # a DB pool — stub it out to a no-op so providers can log freely.

@@ -103,12 +103,29 @@ async def _ensure_cap(job: Job, niche: Niche) -> bool:
             niche_id=niche.id,
             cap_usd=niche.daily_spend_cap_usd,
         )
-        return True
     except spend_repo.SpendCapExceeded as e:
         job.status = JobStatus.failed
         job.error = str(e)
         await _persist(job)
         return False
+
+    # Global cap check — read user record to get global_daily_cap_usd.
+    from .repos import users as users_repo
+
+    user = await users_repo.get(job.user_id)
+    if user is not None and user.global_daily_cap_usd is not None:
+        total = await spend_repo.today_spend_total_usd(user_id=job.user_id)
+        if total >= user.global_daily_cap_usd:
+            msg = (
+                f"user global daily cap exceeded: "
+                f"${total} >= ${user.global_daily_cap_usd}"
+            )
+            job.status = JobStatus.failed
+            job.error = msg
+            await _persist(job)
+            return False
+
+    return True
 
 
 async def _fail_with(job: Job, error: str) -> Job:
@@ -154,7 +171,7 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
                 user_id=user_id, niche_id=niche_id, platform=platform
             )
             root = ensure_layout(f"{user_id}/{job.id}")
-            spend = default_context(
+            spend = await default_context(
                 user_id=user_id,
                 niche_id=niche_id,
                 job_id=job.id,

@@ -93,6 +93,14 @@ export interface AyrshareConnectResponse {
   login_url: string;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  ayrshare_profile_key: string | null;
+  global_daily_cap_usd: string | null;
+  created_at: string;
+}
+
 export const PLATFORMS: Platform[] = ["tiktok", "reels", "shorts"];
 export const QUALITIES: ImageQuality[] = ["low", "medium", "high"];
 export const RESOLUTIONS: VideoResolution[] = ["480p", "720p"];

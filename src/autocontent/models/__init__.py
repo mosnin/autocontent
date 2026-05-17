@@ -18,6 +18,7 @@ from .schemas import (
     SpendHistoryRow,
     TodaySpend,
     User,
+    UserSettingsUpdate,
 )
 
 __all__ = [
@@ -40,4 +41,5 @@ __all__ = [
     "SpendHistoryRow",
     "TodaySpend",
     "User",
+    "UserSettingsUpdate",
 ]
