@@ -77,35 +77,51 @@ def concat_clips(clip_paths: list[Path], out_path: Path, aspect: str = "9:16") -
 def mix_audio(
     video_path: Path,
     voiceover_path: Path,
-    music_path: Path,
+    music_path: Path | None,
     out_path: Path,
     music_gain_db: float = -18.0,
 ) -> Path:
-    """Mux VO + sidechain-ducked music onto the silent video.
+    """Mux VO (+ optional sidechain-ducked music) onto the silent video.
 
-    Music is attenuated to `music_gain_db` and then ducked further
-    whenever the VO is loud (sidechain compression), so the narration
-    always sits clearly on top.
+    When `music_path` is None the voiceover is copied directly as the
+    audio track — the result is a valid mp4 with no background music.
+    When music is provided it is attenuated to `music_gain_db` and ducked
+    further whenever the VO is loud (sidechain compression), so the
+    narration always sits clearly on top.
     """
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    filter_complex = (
-        f"[2:a]volume={music_gain_db}dB[m];"
-        "[m][1:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[mducked];"
-        "[mducked][1:a]amix=inputs=2:duration=longest:dropout_transition=0[a]"
-    )
-    _ffmpeg([
-        "-i", str(video_path),
-        "-i", str(voiceover_path),
-        "-i", str(music_path),
-        "-filter_complex", filter_complex,
-        "-map", "0:v",
-        "-map", "[a]",
-        "-c:v", "copy",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-shortest",
-        str(out_path),
-    ])
+    if music_path is None:
+        # Voiceover-only mix: no music input, just copy VO stream.
+        _ffmpeg([
+            "-i", str(video_path),
+            "-i", str(voiceover_path),
+            "-map", "0:v",
+            "-map", "1:a",
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-shortest",
+            str(out_path),
+        ])
+    else:
+        filter_complex = (
+            f"[2:a]volume={music_gain_db}dB[m];"
+            "[m][1:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[mducked];"
+            "[mducked][1:a]amix=inputs=2:duration=longest:dropout_transition=0[a]"
+        )
+        _ffmpeg([
+            "-i", str(video_path),
+            "-i", str(voiceover_path),
+            "-i", str(music_path),
+            "-filter_complex", filter_complex,
+            "-map", "0:v",
+            "-map", "[a]",
+            "-c:v", "copy",
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-shortest",
+            str(out_path),
+        ])
     return out_path
 
 
