@@ -19,11 +19,14 @@ dependencies = [
     "mcp[cli]>=1.2",
     "sentry-sdk[fastapi]>=2.0",
     "slowapi>=0.1.9",
+    "yoyo-migrations>=8.2",
+    "psycopg2-binary>=2.9",
 ]
 
 [project.scripts]
 autocontent = "autocontent.cli:main"
 autocontent-mcp = "autocontent.mcp_server:main"
+autocontent-migrate = "scripts.migrate:main"
 
 [project.optional-dependencies]
 dev = [
@@ -42,7 +45,8 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "."]
+include = ["autocontent*", "scripts*"]
 
 [tool.ruff]
 line-length = 100

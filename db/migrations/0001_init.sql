@@ -78,7 +78,7 @@ create table if not exists spend_ledger (
 );
 
 create index if not exists spend_user_niche_day_idx
-    on spend_ledger(user_id, niche_id, (created_at::date));
+    on spend_ledger(user_id, niche_id, (cast(created_at at time zone 'UTC' as date)));
 
 -- Updated-at trigger for jobs.
 create or replace function set_updated_at() returns trigger as $$

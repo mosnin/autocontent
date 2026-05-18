@@ -8,6 +8,18 @@ from fastapi.testclient import TestClient
 # Helpers
 # ---------------------------------------------------------------------------
 
+def _stub_migrations_ok(monkeypatch) -> None:
+    """Patch scripts.migrate.status to report all migrations applied, none pending."""
+    # The healthz deep handler imports migration_status inline; we patch the
+    # module attribute on the already-imported healthz module via sys.modules.
+    import sys  # noqa: PLC0415
+    import types  # noqa: PLC0415
+
+    fake_migrate = types.ModuleType("scripts.migrate")
+    fake_migrate.status = lambda **_: {"applied": 3, "pending": 0}  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "scripts.migrate", fake_migrate)
+
+
 def _make_client(monkeypatch) -> TestClient:
     """Return a TestClient with rate-limiter resets so tests are isolated."""
     # Patch settings *before* importing the app so the rate_limit module
@@ -17,6 +29,8 @@ def _make_client(monkeypatch) -> TestClient:
     # Ensure JWKS URL looks set by default so we can toggle it per-test.
     # (Each test that needs it missing can set it to "" locally.)
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+
+    _stub_migrations_ok(monkeypatch)
 
     from backend.main import create_app
 
@@ -78,6 +92,9 @@ def test_healthz_deep_all_healthy(monkeypatch):
 
     monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FakeHTTPClient())
 
+    # Stub migration check — no real DB in unit tests.
+    _stub_migrations_ok(monkeypatch)
+
     from backend.main import create_app
     client = TestClient(create_app(), raise_server_exceptions=False)
     resp = client.get("/healthz/deep")
@@ -88,6 +105,8 @@ def test_healthz_deep_all_healthy(monkeypatch):
     assert data["checks"]["db"]["ok"] is True
     assert "latency_ms" in data["checks"]["db"]
     assert data["checks"]["clerk_jwks"]["ok"] is True
+    assert data["checks"]["migrations"]["ok"] is True
+    assert data["checks"]["migrations"]["pending"] == 0
     assert data["checks"]["openai_api_key"] == {"configured": True}
     assert data["checks"]["xai_api_key"] == {"configured": False}
     assert data["checks"]["ayrshare_api_key"] == {"configured": True}
@@ -127,6 +146,9 @@ def test_healthz_deep_db_failure(monkeypatch):
             return _FakeResponse()
 
     monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FakeHTTPClient())
+
+    # Stub migration check — no real DB in unit tests.
+    _stub_migrations_ok(monkeypatch)
 
     from backend.main import create_app
     client = TestClient(create_app(), raise_server_exceptions=False)
@@ -174,6 +196,9 @@ def test_healthz_deep_jwks_failure(monkeypatch):
 
     import backend.routes.healthz as healthz_mod
     monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FailingHTTPClient())
+
+    # Stub migration check — no real DB in unit tests.
+    _stub_migrations_ok(monkeypatch)
 
     from backend.main import create_app
     client = TestClient(create_app(), raise_server_exceptions=False)
@@ -227,6 +252,9 @@ def test_healthz_deep_optional_key_missing_still_200(monkeypatch):
 
     import backend.routes.healthz as healthz_mod
     monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FakeHTTPClient())
+
+    # Stub migration check — no real DB in unit tests.
+    _stub_migrations_ok(monkeypatch)
 
     from backend.main import create_app
     client = TestClient(create_app(), raise_server_exceptions=False)

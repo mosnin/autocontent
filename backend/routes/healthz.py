@@ -6,9 +6,12 @@
                  monitors can inspect individual component state.
 
 Critical checks (failures → 503):
-  db        — asyncpg pool fetchval("select 1") with a 2 s timeout.
+  db         — asyncpg pool fetchval("select 1") with a 2 s timeout.
   clerk_jwks — HTTP HEAD to the configured JWKS URL with a 2 s timeout
                (skipped when AUTOCONTENT_CLERK_JWKS_URL is unset).
+  migrations — pending migration count via yoyo; pending > 0 means the
+               deploy was not preceded by ``autocontent-migrate up`` and
+               is treated as a configuration error (503).
 
 Informational checks (non-critical, never affect the HTTP status):
   openai_api_key, xai_api_key, ayrshare_api_key — just report "configured"
@@ -68,6 +71,21 @@ async def healthz_deep() -> JSONResponse:
             all_critical_ok = False
     else:
         checks["clerk_jwks"] = {"ok": False, "error": "AUTOCONTENT_CLERK_JWKS_URL not set"}
+        all_critical_ok = False
+
+    # ── Migration status check ────────────────────────────────────────────────
+    try:
+        from scripts.migrate import status as migration_status  # noqa: PLC0415
+
+        # migration_status() uses psycopg2 (sync); run in a thread to avoid
+        # blocking the async event loop.
+        loop = asyncio.get_event_loop()
+        mig = await loop.run_in_executor(None, migration_status)
+        checks["migrations"] = {"ok": mig["pending"] == 0, **mig}
+        if mig["pending"] > 0:
+            all_critical_ok = False
+    except Exception as exc:  # noqa: BLE001
+        checks["migrations"] = {"ok": False, "error": str(exc)}
         all_critical_ok = False
 
     # ── Optional API-key presence checks ─────────────────────────────────────
