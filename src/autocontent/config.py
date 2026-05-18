@@ -34,6 +34,17 @@ class Settings(BaseSettings):
     # Lower values reduce peak spend rate and provider rate-limit exposure.
     scene_fanout_limit: int = 4
 
+    # Concurrency controls for the nightly batch scheduler.
+    # pipeline_global_concurrency is passed to Modal's concurrency_limit on
+    # run_pipeline — it caps the total number of live containers across the
+    # entire deployment.
+    pipeline_global_concurrency: int = 20
+    # Maximum number of run_pipeline jobs active at once for a single user.
+    pipeline_per_user_concurrency: int = 3
+    # Maximum number of run_pipeline jobs active at once for a single niche.
+    # Use 1 to serialize per-niche (avoids character-sheet write races).
+    pipeline_per_niche_concurrency: int = 1
+
     # Sentry error reporting. Set sentry_dsn to enable; leave empty to disable.
     sentry_dsn: str = ""
     sentry_environment: str = "production"

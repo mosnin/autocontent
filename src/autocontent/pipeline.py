@@ -41,6 +41,7 @@ from .services import (
     scheduler,
     subtitle,
 )
+from .services.concurrency import niche_lock, user_lock
 from .services.spend_context import SpendContext, default_context
 from .storage.volume import ensure_layout
 
@@ -129,17 +130,39 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     if platform not in niche.platforms:
         raise ValueError(f"platform {platform} not enabled for niche {niche_id}")
 
-    job = await jobs_repo.create(user_id=user_id, niche_id=niche_id, platform=platform)
-    root = ensure_layout(f"{user_id}/{job.id}")
-    spend = default_context(
-        user_id=user_id,
-        niche_id=niche_id,
-        job_id=job.id,
-        cap_usd=niche.daily_spend_cap_usd,
-    )
+    async with niche_lock(niche_id) as got_niche:
+        if not got_niche:
+            # Another container is already working this niche — create a
+            # visible job row so users can see the skip in the queue UI,
+            # then return immediately without touching any provider.
+            job = await jobs_repo.create(
+                user_id=user_id, niche_id=niche_id, platform=platform
+            )
+            job.status = JobStatus.skipped
+            job.error = "niche already running in another job"
+            await jobs_repo.save_snapshot(job)
+            log.info(
+                "skip: niche already running",
+                extra={"niche_id": str(niche_id)},
+            )
+            return job
 
-    with job_context(job_id=job.id, user_id=user_id, niche_id=niche_id):
-        return await _run_job_inner(job, niche, platform, root, spend)
+        async with user_lock(
+            user_id, max_parallel=settings.pipeline_per_user_concurrency
+        ):
+            job = await jobs_repo.create(
+                user_id=user_id, niche_id=niche_id, platform=platform
+            )
+            root = ensure_layout(f"{user_id}/{job.id}")
+            spend = default_context(
+                user_id=user_id,
+                niche_id=niche_id,
+                job_id=job.id,
+                cap_usd=niche.daily_spend_cap_usd,
+            )
+
+            with job_context(job_id=job.id, user_id=user_id, niche_id=niche_id):
+                return await _run_job_inner(job, niche, platform, root, spend)
 
 
 async def _run_job_inner(
