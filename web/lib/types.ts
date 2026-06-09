@@ -101,6 +101,60 @@ export interface User {
   created_at: string;
 }
 
+export interface PostMetrics {
+  id: string;
+  job_id: string;
+  provider_post_id: string;
+  platform: string;
+  sampled_at: string;
+  views: number | null;
+  likes: number | null;
+  comments: number | null;
+  shares: number | null;
+  saves: number | null;
+  watch_time_sec: string | null;       // Decimal serialized as string
+  avg_watch_time_sec: string | null;
+  completion_rate: string | null;      // 0..1 as string
+  reach: number | null;
+  impressions: number | null;
+  raw: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface JobPerformance {
+  job_id: string;
+  created_at: string;
+  platform: string;
+  status: string;
+  hook: string | null;
+  topic: string | null;
+  visual_style: string | null;
+  scene_count: number | null;
+  target_duration_sec: number | null;
+  cost_usd: string;
+  views: number | null;
+  likes: number | null;
+  watch_time_sec: string | null;
+  avg_watch_time_sec: string | null;
+  completion_rate: string | null;
+}
+
+export interface PerformanceSummary {
+  total_videos: number;
+  total_spend_usd: string;
+  total_views: number;
+  avg_views_per_video: number;
+  best_job_id: string | null;
+  worst_job_id: string | null;
+}
+
+export interface NichePerformance {
+  niche_id: string;
+  days: number;
+  jobs: JobPerformance[];
+  summary: PerformanceSummary;
+}
+
 export const PLATFORMS: Platform[] = ["tiktok", "reels", "shorts"];
 export const QUALITIES: ImageQuality[] = ["low", "medium", "high"];
 export const RESOLUTIONS: VideoResolution[] = ["480p", "720p"];
