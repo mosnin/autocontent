@@ -172,9 +172,13 @@ def stub_pipeline(monkeypatch, tmp_path: Path):
         return root
     monkeypatch.setattr(pipeline, "ensure_layout", fake_layout)
 
-    async def fake_ideation(title):
+    async def fake_ideation(title, *, performance_context: str = ""):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
+
+    async def fake_perf_ctx(*, niche_id, user_id, lookback_days):
+        return ""
+    monkeypatch.setattr(pipeline, "build_performance_context", fake_perf_ctx)
 
     async def fake_script(idea, *, scene_count, target_duration_sec):
         return _make_script()
