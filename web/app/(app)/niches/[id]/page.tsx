@@ -15,8 +15,9 @@ import { SpendHistoryChart } from "@/components/spend-history-chart";
 import { api } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
 import { StatusBadge } from "@/lib/status-badge";
-import type { Job, Niche, SpendHistory, TodaySpend } from "@/lib/types";
+import type { Job, Niche, NichePerformance, SpendHistory, TodaySpend } from "@/lib/types";
 import { NicheRunButtons } from "./NicheRunButtons";
+import { PerformanceCard } from "./PerformanceCard";
 import { RecentJobsTable } from "./RecentJobsTable";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,20 @@ async function fetchRecentJobs(nicheId: string): Promise<Job[]> {
   }
 }
 
+async function fetchPerformance(nicheId: string): Promise<NichePerformance | null> {
+  try {
+    return await api<NichePerformance>(
+      `/api/v1/niches/${nicheId}/performance?days=30`,
+    );
+  } catch (e) {
+    // 404 means the endpoint isn't deployed yet (parallel PR not merged)
+    // or no data. Either way render an empty state gracefully.
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith("404") || msg.startsWith("422")) return null;
+    throw e;
+  }
+}
+
 export default async function NichePage({
   params,
 }: {
@@ -70,12 +85,14 @@ export default async function NichePage({
 }) {
   const { id } = await params;
 
-  const [niche, spendHistory, todaySpend, recentJobs] = await Promise.all([
-    fetchNiche(id),
-    fetchSpendHistory(id),
-    fetchTodaySpend(),
-    fetchRecentJobs(id),
-  ]);
+  const [niche, spendHistory, todaySpend, recentJobs, performance] =
+    await Promise.all([
+      fetchNiche(id),
+      fetchSpendHistory(id),
+      fetchTodaySpend(),
+      fetchRecentJobs(id),
+      fetchPerformance(id),
+    ]);
 
   if (!niche) notFound();
 
@@ -179,6 +196,9 @@ export default async function NichePage({
           <SpendHistoryChart data={spendHistory.rows} days={30} />
         </CardContent>
       </Card>
+
+      {/* performance card */}
+      <PerformanceCard performance={performance} />
 
       {/* recent jobs table */}
       <Card>

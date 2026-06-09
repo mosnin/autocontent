@@ -13,7 +13,8 @@ import { api } from "@/lib/api";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
 import { StatusBadge } from "@/lib/status-badge";
-import type { Job, Niche } from "@/lib/types";
+import type { Job, Niche, PostMetrics } from "@/lib/types";
+import { MetricsTab } from "./MetricsTab";
 import { RetryButton } from "./RetryButton";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,21 @@ async function fetchNiche(id: string): Promise<Niche | null> {
   }
 }
 
+async function fetchJobMetrics(
+  jobId: string,
+): Promise<{ latest: PostMetrics | null; history: PostMetrics[] } | null> {
+  try {
+    return await api<{ latest: PostMetrics | null; history: PostMetrics[] }>(
+      `/api/v1/jobs/${jobId}/metrics`,
+    );
+  } catch (e) {
+    // 404 = endpoint not deployed yet (parallel PR); render empty state.
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith("404") || msg.startsWith("422")) return null;
+    throw e;
+  }
+}
+
 export default async function JobDetailPage({
   params,
 }: {
@@ -61,7 +77,10 @@ export default async function JobDetailPage({
   const job = await fetchJob(id);
   if (!job) notFound();
 
-  const niche = await fetchNiche(job.niche_id);
+  const [niche, jobMetrics] = await Promise.all([
+    fetchNiche(job.niche_id),
+    fetchJobMetrics(id),
+  ]);
 
   // The TS type for Job.script intentionally only declares `idea` —
   // the full Pydantic model carries more. Re-cast through `Script` for
@@ -170,6 +189,7 @@ export default async function JobDetailPage({
                   <TabsTrigger value="scenes">Scenes</TabsTrigger>
                   <TabsTrigger value="costs">Costs</TabsTrigger>
                   <TabsTrigger value="logs">Logs</TabsTrigger>
+                  <TabsTrigger value="metrics">Metrics</TabsTrigger>
                 </TabsList>
                 <ScrollBar orientation="horizontal" />
               </ScrollArea>
@@ -206,6 +226,13 @@ export default async function JobDetailPage({
                 ) : (
                   <Empty>No errors</Empty>
                 )}
+              </TabsContent>
+
+              <TabsContent value="metrics" className="m-0 p-6">
+                <MetricsTab
+                  metrics={jobMetrics}
+                  providerPostId={job.provider_post_id}
+                />
               </TabsContent>
             </Tabs>
           </CardContent>
