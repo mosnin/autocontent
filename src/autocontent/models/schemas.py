@@ -207,3 +207,24 @@ class AyrshareConnectResponse(BaseModel):
 class AyrshareConnectStatus(BaseModel):
     connected: bool
     profile_key: str | None = None
+
+
+class PostMetrics(BaseModel):
+    id: UUID
+    user_id: str
+    job_id: UUID
+    provider_post_id: str
+    platform: str
+    sampled_at: datetime
+    views: int | None = None
+    likes: int | None = None
+    comments: int | None = None
+    shares: int | None = None
+    saves: int | None = None
+    watch_time_sec: Decimal | None = None
+    avg_watch_time_sec: Decimal | None = None
+    completion_rate: Decimal | None = None
+    reach: int | None = None
+    impressions: int | None = None
+    raw: dict
+    created_at: datetime
