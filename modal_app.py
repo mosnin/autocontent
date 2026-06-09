@@ -162,6 +162,125 @@ def apply_migrations() -> dict:
     return migration_status()
 
 
+@app.function(
+    schedule=modal.Cron("0 11 * * *"),  # 11:00 UTC daily — off-peak relative to 09:00 gc_artifacts
+    timeout=60 * 30,
+)
+async def daily_analytics_sync() -> dict:
+    """Pull per-post engagement metrics from Ayrshare for every job in the
+    last 14 days that has a provider_post_id.
+
+    Each invocation writes a new post_metrics row — callers can chart the
+    time series. One failed fetch never kills the whole sync loop.
+    """
+    import asyncio
+    import logging
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    from autocontent.db import get_pool
+    from autocontent.models import PostMetrics
+    from autocontent.repos import post_metrics as post_metrics_repo
+    from autocontent.services.ayrshare_analytics import (
+        AyrshareAnalyticsError,
+        fetch_post_analytics,
+    )
+
+    logger = logging.getLogger(__name__)
+
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select id, user_id, platform, payload->>'provider_post_id' as provider_post_id
+          from jobs
+         where created_at >= now() - interval '14 days'
+           and status in ('done', 'failed')
+           and payload->>'provider_post_id' is not null
+        """,
+    )
+
+    now = datetime.now(timezone.utc)
+    ok = 0
+    errors = 0
+
+    async def _sync_one(job_id, user_id: str, platform: str, provider_post_id: str) -> None:
+        nonlocal ok, errors
+        try:
+            raw = await fetch_post_analytics(provider_post_id, platforms=[platform])
+            # Ayrshare nests analytics per-platform under a top-level
+            # "analytics" key.  We try to unpack the relevant sub-dict for
+            # the canonical columns; the full raw response is always stored.
+            analytics: dict = {}
+            if isinstance(raw.get("analytics"), dict):
+                # Ayrshare uses the internal platform name as the key
+                # (tiktok / instagram / youtube).  Our platform field uses
+                # our internal names; try both to be safe.
+                from autocontent.services.scheduler import PLATFORM_MAP
+                ayr_key = PLATFORM_MAP.get(platform, platform)
+                analytics = (
+                    raw["analytics"].get(ayr_key)
+                    or raw["analytics"].get(platform)
+                    or {}
+                )
+
+            def _int(key: str) -> int | None:
+                v = analytics.get(key)
+                return int(v) if v is not None else None
+
+            def _dec(key: str):
+                from decimal import Decimal
+                v = analytics.get(key)
+                return Decimal(str(v)) if v is not None else None
+
+            metrics = PostMetrics(
+                id=uuid4(),
+                user_id=user_id,
+                job_id=job_id,
+                provider_post_id=provider_post_id,
+                platform=platform,
+                sampled_at=now,
+                views=_int("views") or _int("videoViews"),
+                likes=_int("likes"),
+                comments=_int("comments"),
+                shares=_int("shares"),
+                saves=_int("saves") or _int("saved"),
+                watch_time_sec=_dec("totalWatchTime"),
+                avg_watch_time_sec=_dec("averageWatchTime"),
+                completion_rate=_dec("completionRate"),
+                reach=_int("reach"),
+                impressions=_int("impressions"),
+                raw=raw,
+                created_at=now,
+            )
+            await post_metrics_repo.record(metrics)
+            ok += 1
+        except AyrshareAnalyticsError as exc:
+            logger.warning(
+                "analytics fetch failed for job %s provider_post_id=%s: %s",
+                job_id, provider_post_id, exc,
+            )
+            errors += 1
+        except Exception:
+            logger.exception(
+                "unexpected error syncing metrics for job %s provider_post_id=%s",
+                job_id, provider_post_id,
+            )
+            errors += 1
+
+    await asyncio.gather(*[
+        _sync_one(
+            r["id"],
+            r["user_id"],
+            r["platform"],
+            r["provider_post_id"],
+        )
+        for r in rows
+    ])
+
+    logger.info("daily_analytics_sync complete: ok=%d errors=%d", ok, errors)
+    return {"synced": ok, "errors": errors, "total": len(rows)}
+
+
 @app.local_entrypoint()
 def main(user_id: str, niche_id: str, platform: str = "tiktok"):
     print(run_pipeline.remote(user_id, niche_id, platform))

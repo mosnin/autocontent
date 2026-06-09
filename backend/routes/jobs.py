@@ -8,8 +8,9 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from autocontent.models import Job, JobStatus
+from autocontent.models import Job, JobStatus, PostMetrics
 from autocontent.repos import jobs as jobs_repo
+from autocontent.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -72,6 +73,27 @@ async def get_job_video(job_id: UUID, ctx: AuthCtx = CurrentUser) -> FileRespons
     if not os.path.exists(rendered.path):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "file missing")
     return FileResponse(rendered.path, media_type="video/mp4")
+
+
+class JobMetricsResponse(BaseModel):
+    latest: PostMetrics | None
+    history: list[PostMetrics]
+
+
+@router.get("/{job_id}/metrics", response_model=JobMetricsResponse)
+async def get_job_metrics(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobMetricsResponse:
+    """Return the latest analytics sample and full time-series history for a job.
+
+    Auth-scoped: the job must belong to the requesting user. Returns 404 if the
+    job does not exist or is owned by another user.  Returns ``{"latest": null,
+    "history": []}`` for jobs that have never been sampled yet.
+    """
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    latest = await post_metrics_repo.latest_for_job(job_id, user_id=ctx.user_id)
+    history = await post_metrics_repo.list_for_job(job_id, user_id=ctx.user_id)
+    return JobMetricsResponse(latest=latest, history=history)
 
 
 @router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
