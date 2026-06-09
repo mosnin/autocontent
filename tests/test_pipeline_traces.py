@@ -135,6 +135,36 @@ def stub_pipeline(monkeypatch, tmp_path: Path):
         return None
     monkeypatch.setattr(pipeline.spend_repo, "record", fake_record)
 
+    async def fake_today_total(**_kw):
+        return Decimal("0.00")
+    monkeypatch.setattr(pipeline.spend_repo, "today_spend_total_usd", fake_today_total)
+
+    # users_repo.get is called inside default_context to pull the global cap.
+    import autocontent.repos.users as _users_repo
+    from datetime import datetime, timezone
+    from autocontent.models import User
+
+    async def fake_users_get(user_id: str):
+        return User(
+            id=user_id, email="t@t.com", global_daily_cap_usd=None,
+            created_at=datetime.now(timezone.utc),
+        )
+    monkeypatch.setattr(_users_repo, "get", fake_users_get)
+
+    # niche_lock and user_lock take real pg advisory locks. In a unit test
+    # without Postgres, bypass them with no-op context managers.
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def _fake_niche_lock(niche_id):
+        yield True
+    monkeypatch.setattr(pipeline, "niche_lock", _fake_niche_lock)
+
+    @asynccontextmanager
+    async def _fake_user_lock(user_id, *, max_parallel):
+        yield
+    monkeypatch.setattr(pipeline, "user_lock", _fake_user_lock)
+
     def fake_layout(path: str) -> Path:
         root = tmp_path / path
         for sub in ("keyframes", "clips", "audio", "captions", "output"):
