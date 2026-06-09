@@ -116,6 +116,75 @@ async def list_for_niche(
 
 
 # ---------------------------------------------------------------------------
+# Performance-attribution queries (D2)
+# ---------------------------------------------------------------------------
+
+async def top_performers_for_niche(
+    niche_id: UUID,
+    *,
+    user_id: str,
+    limit: int = 5,
+    days: int = 30,
+) -> list[tuple[UUID, int]]:
+    """Return [(job_id, views), ...] for the top N jobs by views in window.
+
+    Joins post_metrics against jobs to scope by niche and user.  Jobs with
+    no view data are skipped (NULLS LAST with a NOT NULL filter).
+    """
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select pm.job_id, pm.views
+          from post_metrics pm
+          join jobs j on j.id = pm.job_id
+         where j.niche_id = $1
+           and j.user_id = $2
+           and pm.views is not null
+           and pm.sampled_at >= now() - ($3 || ' days')::interval
+         order by pm.views desc nulls last
+         limit $4
+        """,
+        niche_id,
+        user_id,
+        str(days),
+        limit,
+    )
+    return [(r["job_id"], r["views"]) for r in rows]
+
+
+async def bottom_performers_for_niche(
+    niche_id: UUID,
+    *,
+    user_id: str,
+    limit: int = 5,
+    days: int = 30,
+) -> list[tuple[UUID, int]]:
+    """Return [(job_id, views), ...] for the bottom N jobs by views in window.
+
+    Identical to ``top_performers_for_niche`` but ordered ascending.
+    """
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select pm.job_id, pm.views
+          from post_metrics pm
+          join jobs j on j.id = pm.job_id
+         where j.niche_id = $1
+           and j.user_id = $2
+           and pm.views is not null
+           and pm.sampled_at >= now() - ($3 || ' days')::interval
+         order by pm.views asc nulls last
+         limit $4
+        """,
+        niche_id,
+        user_id,
+        str(days),
+        limit,
+    )
+    return [(r["job_id"], r["views"]) for r in rows]
+
+
+# ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
