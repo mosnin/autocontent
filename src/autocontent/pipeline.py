@@ -25,6 +25,7 @@ from uuid import UUID
 
 from opentelemetry import trace
 
+from .agents.performance_context import build_performance_context
 from .config import settings
 from .logging import get_logger, job_context
 from .models import AudioTrack, Clip, Job, JobStatus, Niche, RenderedVideo, Scene, Script
@@ -224,7 +225,12 @@ async def _run_job_inner(
     with _stage(JobStatus.ideating.value):
         job.status = JobStatus.ideating
         await _persist(job)
-        idea = await run_ideation(niche.title)
+        perf_ctx = await build_performance_context(
+            niche_id=niche.id,
+            user_id=job.user_id,
+            lookback_days=30,
+        )
+        idea = await run_ideation(niche.title, performance_context=perf_ctx)
 
     # 2. Script + visual direction
     with _stage(JobStatus.scripting.value):

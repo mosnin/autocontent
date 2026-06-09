@@ -217,3 +217,36 @@ def _row_to_model(row) -> PostMetrics:
         raw=raw_value,
         created_at=row["created_at"],
     )
+
+
+# ---------------------------------------------------------------------------
+# D2 stubs — replaced when performance-attribution lands
+# ---------------------------------------------------------------------------
+
+async def top_performers_for_niche(
+    niche_id: UUID,
+    *,
+    user_id: str,
+    limit: int = 5,
+    days: int = 30,
+) -> list[tuple[UUID, int]]:
+    """Return up to *limit* (job_id, views) pairs for the top-performing jobs
+    in the given niche over the last *days* days, sorted descending by views.
+
+    Stub: always returns [] until D2 (performance-attribution) lands.
+    """
+    return []  # pragma: no cover
+
+
+async def bottom_performers_for_niche(
+    niche_id: UUID,
+    *,
+    user_id: str,
+    limit: int = 5,
+    days: int = 30,
+) -> list[tuple[UUID, int]]:
+    """Mirror of top_performers_for_niche, ascending order.
+
+    Stub: always returns [] until D2 (performance-attribution) lands.
+    """
+    return []  # pragma: no cover

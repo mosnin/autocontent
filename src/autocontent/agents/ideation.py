@@ -2,10 +2,15 @@
 
 Output: `Idea` schema. Optimized for short-form hook patterns
 (curiosity gap, contrarian claim, "you've been doing X wrong", etc).
+
+When ``performance_context`` is provided to :func:`build_ideation_prompt`,
+the prompt is prepended with a markdown block summarising recent top and
+bottom performers so the model can avoid flopped patterns and double down on
+angles that already resonated.
 """
 from __future__ import annotations
 
-from agents import Agent
+from agents import Agent, Runner
 
 from ..models import Idea
 
@@ -22,6 +27,13 @@ The audience should be precisely scoped (not "everyone").
 `why_it_works` should reference a concrete cognitive or platform mechanic.
 """
 
+_PERF_PREAMBLE = (
+    "Use the performance context below to inform your idea — "
+    "lean into the angles and topics that worked, "
+    "avoid the patterns that flopped, "
+    "and look for adjacent unexplored angles.\n\n"
+)
+
 
 def build_ideation_agent() -> Agent:
     return Agent(
@@ -29,3 +41,32 @@ def build_ideation_agent() -> Agent:
         instructions=IDEATION_INSTRUCTIONS,
         output_type=Idea,
     )
+
+
+def build_ideation_prompt(niche_title: str, *, performance_context: str = "") -> str:
+    """Construct the user-turn prompt for the ideation agent.
+
+    When *performance_context* is non-empty the prompt is prefixed with a
+    preamble directing the model to use the data, followed by the context
+    block itself.  When empty the prompt is ``"Niche: <title>"`` — identical
+    to the previous stateless behaviour.
+    """
+    base = f"Niche: {niche_title}"
+    if not performance_context:
+        return base
+    return f"{_PERF_PREAMBLE}{performance_context}\n\n{base}"
+
+
+async def run_ideation(niche_title: str, *, performance_context: str = "") -> Idea:
+    """Run the ideation agent and return a single :class:`~autocontent.models.Idea`.
+
+    When *performance_context* is non-empty (built by
+    :func:`~autocontent.agents.performance_context.build_performance_context`),
+    the prompt is enriched with top/bottom performer data so the model can
+    tune its suggestions toward proven angles.  When empty the call is
+    identical to the original stateless behaviour — safe for cold-start niches.
+    """
+    agent = build_ideation_agent()
+    prompt = build_ideation_prompt(niche_title, performance_context=performance_context)
+    result = await Runner.run(agent, input=prompt)
+    return result.final_output_as(Idea)
