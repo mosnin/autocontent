@@ -36,6 +36,21 @@ async def today_spend_usd(*, user_id: str, niche_id: UUID) -> Decimal:
     return Decimal(val)
 
 
+async def today_spend_total_usd(*, user_id: str) -> Decimal:
+    """Sum today's USD spend for a user across ALL niches. Global-cap check reads this."""
+    pool = await get_pool()
+    val = await pool.fetchval(
+        """
+        select coalesce(sum(cost_usd), 0)::numeric
+          from spend_ledger
+         where user_id = $1
+           and created_at::date = (now() at time zone 'utc')::date
+        """,
+        user_id,
+    )
+    return Decimal(val)
+
+
 async def today_spend_by_niche(*, user_id: str) -> dict[UUID, Decimal]:
     """One row per niche the user has spent on today. Powers the dashboard."""
     pool = await get_pool()
@@ -92,12 +107,22 @@ async def history(
 
 
 class SpendCapExceeded(Exception):
-    pass
+    """Raised when a spend cap is exceeded.
+
+    ``scope`` distinguishes per-niche caps (``"niche"``) from the
+    user-level global cap (``"global"``). Defaults to ``"niche"`` for
+    backward compatibility with callers that don't pass the kwarg.
+    """
+
+    def __init__(self, message: str = "", *, scope: str = "niche") -> None:
+        super().__init__(message)
+        self.scope = scope
 
 
 async def assert_within_cap(*, user_id: str, niche_id: UUID, cap_usd: Decimal) -> None:
     spent = await today_spend_usd(user_id=user_id, niche_id=niche_id)
     if spent >= cap_usd:
         raise SpendCapExceeded(
-            f"niche {niche_id} hit daily cap: ${spent} >= ${cap_usd}"
+            f"niche {niche_id} hit daily cap: ${spent} >= ${cap_usd}",
+            scope="niche",
         )

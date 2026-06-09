@@ -147,9 +147,27 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
         return Decimal("0.00")
     monkeypatch.setattr(pipeline.spend_repo, "today_spend_usd", fake_today_spend)
 
+    async def fake_today_total_spend(*, user_id):
+        return Decimal("0.00")
+    monkeypatch.setattr(pipeline.spend_repo, "today_spend_total_usd", fake_today_total_spend)
+
     async def fake_record(entry):
         return None
     monkeypatch.setattr(pipeline.spend_repo, "record", fake_record)
+
+    # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
+    import autocontent.repos.users as _users_repo
+    from datetime import datetime, timezone
+    from autocontent.models import User
+
+    async def fake_users_get(user_id: str):
+        return User(
+            id=user_id,
+            email="test@test.com",
+            global_daily_cap_usd=None,
+            created_at=datetime.now(timezone.utc),
+        )
+    monkeypatch.setattr(_users_repo, "get", fake_users_get)
 
     def fake_layout(path):
         root = tmp_path / path

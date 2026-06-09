@@ -50,6 +50,7 @@ interface InitialData {
   niches: Niche[];
   spend: TodaySpend;
   ayrshareConnected: boolean | null;
+  globalCap: string | null;
 }
 
 const POLL_MS = 5000;
@@ -71,6 +72,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     clientFetch,
     { refreshInterval: POLL_MS, fallbackData: initial.spend },
   );
+  const globalCap = initial.globalCap;
 
   // Probe Ayrshare status only when the parent told us the route exists
   // (initial.ayrshareConnected !== null).
@@ -157,10 +159,30 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         <CardHeader className="pb-2">
           <CardDescription>Today&apos;s total spend</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
           <div className="text-2xl font-semibold tracking-tight">
             {formatUsd(spendData.total_usd)}
+            {globalCap !== null && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                / {formatUsd(globalCap)} global cap
+              </span>
+            )}
           </div>
+          {globalCap !== null && (() => {
+            const cap = Number(globalCap);
+            const spent = Number(spendData.total_usd);
+            const pct = cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Progress value={pct} className="h-2" />
+                </TooltipTrigger>
+                <TooltipContent>
+                  {formatUsd(spent)} of {formatUsd(cap)} global daily cap used
+                </TooltipContent>
+              </Tooltip>
+            );
+          })()}
         </CardContent>
       </Card>
 

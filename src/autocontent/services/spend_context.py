@@ -12,8 +12,11 @@ fan-out tasks within one job race past the pre-stage `_ensure_cap`
 check. An in-process `asyncio.Event` is also flipped so the rest of the
 job can short-circuit cheaply.
 
-Cap is optional: a `SpendContext` with `cap_usd=None` skips the in-`log`
-check entirely (no extra DB calls) and behaves like the old code path.
+Both caps are optional:
+- ``cap_usd=None`` skips per-niche post-log checks.
+- ``global_cap_usd=None`` skips global post-log checks.
+Either can be active independently. ``ensure_can_spend`` and ``log``
+check whichever caps are configured.
 """
 from __future__ import annotations
 
@@ -34,10 +37,20 @@ class TodaySpendReader(Protocol):
     async def __call__(self, *, user_id: str, niche_id: UUID) -> Decimal: ...
 
 
+class TotalSpendReader(Protocol):
+    async def __call__(self, *, user_id: str) -> Decimal: ...
+
+
 async def _default_today_spend(*, user_id: str, niche_id: UUID) -> Decimal:
     from ..repos import spend as spend_repo
 
     return await spend_repo.today_spend_usd(user_id=user_id, niche_id=niche_id)
+
+
+async def _default_today_total_spend(*, user_id: str) -> Decimal:
+    from ..repos import spend as spend_repo
+
+    return await spend_repo.today_spend_total_usd(user_id=user_id)
 
 
 @dataclass
@@ -48,6 +61,8 @@ class SpendContext:
     record: SpendRecorder
     cap_usd: Decimal | None = None
     today_spend: TodaySpendReader = field(default=_default_today_spend)
+    global_cap_usd: Decimal | None = None
+    today_total_spend: TotalSpendReader | None = None
     abort_event: asyncio.Event = field(default_factory=asyncio.Event)
 
     async def ensure_can_spend(self, estimated_usd: Decimal) -> None:
@@ -57,24 +72,37 @@ class SpendContext:
         in-process signal set by a sibling task that already tripped the
         cap), then reads today_spend from the DB once and raises
         SpendCapExceeded if (today + estimated) > cap.
-        """
-        if self.cap_usd is None:
-            return
 
+        If global_cap_usd is also set, performs the same check against
+        the user's total cross-niche spend for the day.
+        """
         from ..repos.spend import SpendCapExceeded
 
         if self.abort_event.is_set():
             raise SpendCapExceeded(
-                f"niche {self.niche_id} spend aborted: cap already exceeded"
+                f"niche {self.niche_id} spend aborted: cap already exceeded",
+                scope="niche",
             )
 
-        spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
-        if spent + estimated_usd > self.cap_usd:
-            self.abort_event.set()
-            raise SpendCapExceeded(
-                f"niche {self.niche_id} pre-flight cap check: "
-                f"${spent} + ${estimated_usd} > ${self.cap_usd}"
-            )
+        if self.cap_usd is not None:
+            spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
+            if spent + estimated_usd > self.cap_usd:
+                self.abort_event.set()
+                raise SpendCapExceeded(
+                    f"niche {self.niche_id} pre-flight cap check: "
+                    f"${spent} + ${estimated_usd} > ${self.cap_usd}",
+                    scope="niche",
+                )
+
+        if self.global_cap_usd is not None and self.today_total_spend is not None:
+            total_spent = await self.today_total_spend(user_id=self.user_id)
+            if total_spent + estimated_usd > self.global_cap_usd:
+                self.abort_event.set()
+                raise SpendCapExceeded(
+                    f"user {self.user_id} pre-flight global cap check: "
+                    f"${total_spent} + ${estimated_usd} > ${self.global_cap_usd}",
+                    scope="global",
+                )
 
     async def log(
         self,
@@ -106,16 +134,25 @@ class SpendContext:
             extra={"provider": provider, "sku": sku, "cost_usd": str(cost_usd)},
         )
 
-        if self.cap_usd is None:
-            return
+        if self.cap_usd is not None:
+            spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
+            if spent >= self.cap_usd:
+                self.abort_event.set()
+                raise SpendCapExceeded(
+                    f"niche {self.niche_id} hit daily cap during job: "
+                    f"${spent} >= ${self.cap_usd}",
+                    scope="niche",
+                )
 
-        spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
-        if spent >= self.cap_usd:
-            self.abort_event.set()
-            raise SpendCapExceeded(
-                f"niche {self.niche_id} hit daily cap during job: "
-                f"${spent} >= ${self.cap_usd}"
-            )
+        if self.global_cap_usd is not None and self.today_total_spend is not None:
+            total_spent = await self.today_total_spend(user_id=self.user_id)
+            if total_spent >= self.global_cap_usd:
+                self.abort_event.set()
+                raise SpendCapExceeded(
+                    f"user {self.user_id} hit global daily cap during job: "
+                    f"${total_spent} >= ${self.global_cap_usd}",
+                    scope="global",
+                )
 
 
 async def _default_record(entry: SpendEntry) -> None:
@@ -124,17 +161,31 @@ async def _default_record(entry: SpendEntry) -> None:
     await spend_repo.record(entry)
 
 
-def default_context(
+async def default_context(
     *,
     user_id: str,
     niche_id: UUID,
     job_id: UUID | None,
     cap_usd: Decimal | None = None,
 ) -> SpendContext:
+    """Build the canonical SpendContext for a pipeline job.
+
+    Fetches the user record to wire the global daily cap and plugs in the
+    default DB-backed readers. The function is async so we can do one
+    users-repo lookup without coupling the pipeline to a synchronous
+    construction pattern or adding a separate init step.
+    """
+    from ..repos import users as users_repo
+
+    user = await users_repo.get(user_id)
+    global_cap_usd = user.global_daily_cap_usd if user is not None else None
+
     return SpendContext(
         user_id=user_id,
         niche_id=niche_id,
         job_id=job_id,
         record=_default_record,
         cap_usd=cap_usd,
+        global_cap_usd=global_cap_usd,
+        today_total_spend=_default_today_total_spend if global_cap_usd is not None else None,
     )

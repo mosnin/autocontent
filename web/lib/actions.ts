@@ -11,6 +11,7 @@ import type {
   Niche,
   Platform,
   TokenCreateResponse,
+  User,
 } from "./types";
 
 interface NicheCreatePayload {
@@ -245,4 +246,24 @@ export async function connectAyrshareAction(): Promise<void> {
   });
   revalidatePath("/connect");
   redirect(res.login_url);
+}
+
+export async function updateUserSettingsAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const rawCap = String(formData.get("global_daily_cap_usd") || "").trim();
+  const global_daily_cap_usd = rawCap === "" ? null : rawCap;
+
+  try {
+    await api<User>("/api/v1/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ global_daily_cap_usd }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+
+  revalidatePath("/settings");
+  return { ok: true };
 }
