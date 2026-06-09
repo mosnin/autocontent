@@ -15,6 +15,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from openai import AsyncOpenAI
+from opentelemetry import trace
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from ..config import settings
@@ -81,12 +82,17 @@ async def generate_keyframe(
         )
 
     _decode_b64_to(out_path, result.data[0].b64_json)
+    cost = image_cost(quality)
+    span = trace.get_current_span()
+    span.set_attribute("openai.sku", SKU)
+    span.set_attribute("openai.image_quality", quality)
+    span.set_attribute("autocontent.cost_usd", str(cost))
     if spend is not None:
         await spend.log(
             provider=PROVIDER,
             sku=SKU,
             units=Decimal(1),
-            cost_usd=image_cost(quality),
+            cost_usd=cost,
         )
     return out_path
 

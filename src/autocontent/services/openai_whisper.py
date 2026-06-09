@@ -5,6 +5,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from openai import AsyncOpenAI
+from opentelemetry import trace
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from ..config import settings
@@ -67,10 +68,15 @@ async def transcribe_word_level(
 
     if spend is not None:
         seconds = _audio_duration_seconds(audio_path)
+        cost = whisper_cost(seconds)
+        span = trace.get_current_span()
+        span.set_attribute("openai.sku", SKU)
+        span.set_attribute("openai.audio_seconds", round(seconds, 4))
+        span.set_attribute("autocontent.cost_usd", str(cost))
         await spend.log(
             provider=PROVIDER,
             sku=SKU,
             units=Decimal(str(round(seconds, 4))),
-            cost_usd=whisper_cost(seconds),
+            cost_usd=cost,
         )
     return words

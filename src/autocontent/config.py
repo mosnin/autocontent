@@ -53,5 +53,20 @@ class Settings(BaseSettings):
     # Ayrshare webhook HMAC secret. Must be set to accept webhook deliveries.
     ayrshare_webhook_secret: str = ""
 
+    # OpenTelemetry tracing. Leave otel_exporter_otlp_endpoint empty to
+    # disable OTEL entirely (all instrumentation becomes a no-op).
+    # Example endpoints:
+    #   Honeycomb:  https://api.honeycomb.io/
+    #   Axiom:      https://api.axiom.co/
+    #   Datadog:    https://otlp.datadoghq.com/ (OTLP/HTTP)
+    #   Grafana Tempo: http://localhost:4318/
+    otel_exporter_otlp_endpoint: str = ""
+    otel_service_name: str = "autocontent"
+    # Comma-separated key=value pairs for OTLP auth headers, e.g.
+    #   x-honeycomb-team=<key>
+    #   x-axiom-dataset=autocontent,authorization=Bearer <token>
+    otel_exporter_otlp_headers: str = ""
+    otel_traces_sample_rate: float = 1.0
+
 
 settings = Settings()

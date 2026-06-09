@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+from opentelemetry import trace
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from ..config import settings
@@ -144,10 +145,15 @@ async def animate(
 
     if spend is not None:
         billed_seconds = float(video.get("duration", duration))
+        cost = imagine_video_cost(billed_seconds)
+        span = trace.get_current_span()
+        span.set_attribute("xai.sku", SKU)
+        span.set_attribute("xai.billed_seconds", billed_seconds)
+        span.set_attribute("autocontent.cost_usd", str(cost))
         await spend.log(
             provider=PROVIDER,
             sku=SKU,
             units=Decimal(str(billed_seconds)),
-            cost_usd=imagine_video_cost(billed_seconds),
+            cost_usd=cost,
         )
     return out_path
