@@ -106,6 +106,32 @@ async def history(
     ]
 
 
+async def cost_by_job(job_ids: list[UUID], *, user_id: str) -> dict[UUID, Decimal]:
+    """Sum spend_ledger.cost_usd grouped by job_id for the given set.
+
+    Returns a dict keyed by job_id. Missing job_ids (no spend rows) map to
+    ``Decimal('0')``. Uses a single query — no N+1.
+    """
+    if not job_ids:
+        return {}
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select job_id, coalesce(sum(cost_usd), 0)::numeric as total
+          from spend_ledger
+         where job_id = any($1::uuid[])
+           and user_id = $2
+         group by job_id
+        """,
+        [str(jid) for jid in job_ids],
+        user_id,
+    )
+    result: dict[UUID, Decimal] = {jid: Decimal("0") for jid in job_ids}
+    for r in rows:
+        result[r["job_id"]] = Decimal(r["total"])
+    return result
+
+
 class SpendCapExceeded(Exception):
     """Raised when a spend cap is exceeded.
 

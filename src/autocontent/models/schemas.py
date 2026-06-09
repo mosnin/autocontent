@@ -228,3 +228,38 @@ class PostMetrics(BaseModel):
     impressions: int | None = None
     raw: dict
     created_at: datetime
+
+
+class JobPerformance(BaseModel):
+    job_id: UUID
+    created_at: datetime
+    platform: str
+    status: str
+    hook: str | None = None             # from job.script.idea.hook if scripted
+    topic: str | None = None            # from job.script.idea.topic
+    visual_style: str | None = None     # from niche snapshot at script time
+    scene_count: int | None = None      # len(job.script.scenes)
+    target_duration_sec: int | None = None
+    cost_usd: Decimal                   # sum of spend_ledger rows for this job
+    # newest metric sample (None if not yet sampled or post failed)
+    views: int | None = None
+    likes: int | None = None
+    watch_time_sec: Decimal | None = None
+    avg_watch_time_sec: Decimal | None = None
+    completion_rate: Decimal | None = None
+
+
+class PerformanceSummary(BaseModel):
+    total_videos: int            # done jobs in window
+    total_spend_usd: Decimal
+    total_views: int             # sum across sampled jobs
+    avg_views_per_video: float   # 0 if no sampled jobs
+    best_job_id: UUID | None     # highest views in window
+    worst_job_id: UUID | None    # lowest non-null views
+
+
+class NichePerformance(BaseModel):
+    niche_id: UUID
+    days: int
+    jobs: list[JobPerformance]
+    summary: PerformanceSummary

@@ -12,7 +12,7 @@ from autocontent.config import settings
 from autocontent.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import connect, healthz, jobs, niches, spend, tokens, users, webhooks
+from .routes import connect, healthz, jobs, niches, performance, spend, tokens, users, webhooks
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,7 @@ def create_app() -> FastAPI:
     app.include_router(healthz.router, prefix="", tags=["health"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
     app.include_router(niches.router, prefix="/api/v1/niches", tags=["niches"])
+    app.include_router(performance.router, prefix="/api/v1/niches", tags=["performance"])
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
     app.include_router(spend.router, prefix="/api/v1/spend", tags=["spend"])
     app.include_router(connect.router, prefix="/api/v1/connect", tags=["connect"])
