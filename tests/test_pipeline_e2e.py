@@ -140,7 +140,11 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
     monkeypatch.setattr(pipeline, "ensure_layout", fake_ensure_layout)
 
     # --- Agents ------------------------------------------------------------
-    async def fake_ideation(title):
+    async def fake_build_performance_context(*, niche_id, user_id, lookback_days=30):
+        return ""
+    monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
+
+    async def fake_ideation(title, *, performance_context=""):
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)

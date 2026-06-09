@@ -17,14 +17,9 @@ from .agents import (
     build_visual_director_agent,
     build_qa_agent,
 )
+from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
 from .models import Idea, Niche, Script
 from .agents.qa import QAReport
-
-
-async def run_ideation(niche_title: str) -> Idea:
-    agent = build_ideation_agent()
-    result = await Runner.run(agent, input=f"Niche: {niche_title}")
-    return result.final_output_as(Idea)
 
 
 async def run_scriptwriter(idea: Idea, *, scene_count: int, target_duration_sec: int) -> Script:
