@@ -1,30 +1,95 @@
 "use client";
 
-import * as React from "react";
-import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
-import { Check } from "lucide-react";
-
+import {
+  Checkbox as ArkCheckbox,
+  useCheckboxContext,
+} from "@ark-ui/react/checkbox";
+import { CheckIcon, MinusIcon } from "lucide-react";
+import type React from "react";
+import { tv } from "tailwind-variants";
 import { cn } from "@/lib/utils";
 
-const Checkbox = React.forwardRef<
-  React.ElementRef<typeof CheckboxPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof CheckboxPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <CheckboxPrimitive.Root
-    ref={ref}
-    className={cn(
-      "peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground",
-      className,
-    )}
-    {...props}
-  >
-    <CheckboxPrimitive.Indicator
-      className={cn("flex items-center justify-center text-current")}
-    >
-      <Check className="h-4 w-4" />
-    </CheckboxPrimitive.Indicator>
-  </CheckboxPrimitive.Root>
-));
-Checkbox.displayName = CheckboxPrimitive.Root.displayName;
+export const useCheckbox = useCheckboxContext;
 
-export { Checkbox };
+export const CheckboxGroup = (
+  props: React.ComponentProps<typeof ArkCheckbox.Group>
+) => {
+  const { className, ...rest } = props;
+
+  return (
+    <ArkCheckbox.Group
+      className={cn("flex flex-col gap-2", className)}
+      data-slot="checkbox-group"
+      {...rest}
+    />
+  );
+};
+
+export const checkboxVariants = tv({
+  base: [
+    "relative",
+    "inline-flex shrink-0 items-center justify-center",
+    "size-4",
+    "bg-transparent",
+    "rounded-sm border border-input shadow-xs/5",
+    "transition-shadow",
+    "data-focus-visible:border-primary data-focus-visible:ring-[3px] data-focus-visible:ring-ring/32 data-focus-visible:ring-offset-1 data-focus-visible:ring-offset-background",
+    "dark:data-focus-visible:data-invalid:border-destructive-foreground/64 dark:data-focus-visible:data-invalid:ring-destructive-foreground/48",
+    "data-disabled:opacity-64",
+    "[[data-disabled],[data-checked],[data-invalid]]:shadow-none",
+    "data-invalid:border-destructive data-invalid:ring-[3px] data-invalid:ring-destructive/24",
+    "dark:data-invalid:border-destructive-foreground dark:data-invalid:text-destructive-foreground dark:data-invalid:ring-destructive-foreground/20",
+    "dark:not-data-checked:bg-input/32 dark:data-invalid:ring-destructive-foreground/24",
+    "motion-reduce:transition-none!",
+  ],
+});
+
+export const Checkbox = (
+  props: React.ComponentProps<typeof ArkCheckbox.Root>
+) => {
+  const { className, tabIndex, ...rest } = props;
+
+  return (
+    <ArkCheckbox.Root
+      className={cn(checkboxVariants(), className)}
+      data-slot="checkbox"
+      role="checkbox"
+      {...rest}
+    >
+      <ArkCheckbox.Control data-slot="checkbox-control">
+        <CheckboxIndicator>
+          <CheckIcon />
+        </CheckboxIndicator>
+
+        <CheckboxIndicator indeterminate>
+          <MinusIcon />
+        </CheckboxIndicator>
+      </ArkCheckbox.Control>
+
+      <ArkCheckbox.HiddenInput tabIndex={tabIndex} />
+    </ArkCheckbox.Root>
+  );
+};
+
+export const CheckboxIndicator = (
+  props: React.ComponentProps<typeof ArkCheckbox.Indicator>
+) => {
+  const { className, ...rest } = props;
+
+  return (
+    <ArkCheckbox.Indicator
+      className={cn(
+        "absolute -inset-px",
+        "flex items-center justify-center",
+        "rounded-sm",
+        "text-primary-foreground",
+        "data-[state=checked]:bg-primary",
+        "data-[state=unchecked]:hidden",
+        "data-[state=indeterminate]:text-foreground",
+        className
+      )}
+      data-slot="checkbox-indicator"
+      {...rest}
+    />
+  );
+};
