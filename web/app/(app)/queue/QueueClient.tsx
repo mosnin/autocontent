@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Inbox, RefreshCw } from "lucide-react";
+import { Inbox, Instagram, Music2, RefreshCw, Youtube } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -245,7 +245,7 @@ function JobRow({
   return (
     <TableRow
       onClick={onClick}
-      className="cursor-pointer"
+      className="group cursor-pointer transition-colors hover:bg-muted/40"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -259,11 +259,16 @@ function JobRow({
         <StatusBadge status={job.status} />
       </TableCell>
       <TableCell>
-        <code className="font-mono text-xs text-muted-foreground">
+        <code className="font-mono text-xs tabular-nums text-muted-foreground transition-colors group-hover:text-foreground">
           {job.id.slice(0, 8)}
         </code>
       </TableCell>
-      <TableCell className="capitalize">{job.platform}</TableCell>
+      <TableCell>
+        <span className="flex items-center gap-1.5 text-sm">
+          <PlatformIcon platform={job.platform} />
+          {PLATFORM_LABEL[job.platform] ?? job.platform}
+        </span>
+      </TableCell>
       <TableCell className="max-w-[420px] truncate">
         {job.script?.idea?.hook ? (
           <span className="italic text-muted-foreground">
@@ -273,11 +278,18 @@ function JobRow({
           <span className="text-muted-foreground">—</span>
         )}
       </TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell className="tabular-nums text-muted-foreground">
         {relative(job.created_at)}
       </TableCell>
-      <TableCell className="text-muted-foreground">
-        {job.scheduled_for ? new Date(job.scheduled_for).toLocaleString() : "—"}
+      <TableCell className="tabular-nums text-muted-foreground">
+        {job.scheduled_for
+          ? new Date(job.scheduled_for).toLocaleString(undefined, {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "—"}
       </TableCell>
       <TableCell className="text-right">
         {job.status === "failed" || job.status === "queued" ? (
@@ -299,6 +311,20 @@ function JobRow({
   );
 }
 
+
+const PLATFORM_LABEL: Record<string, string> = {
+  tiktok: "TikTok",
+  reels: "Reels",
+  shorts: "Shorts",
+};
+
+function PlatformIcon({ platform }: { platform: string }) {
+  const cls = "size-3.5 text-muted-foreground";
+  if (platform === "tiktok") return <Music2 className={cls} />;
+  if (platform === "reels") return <Instagram className={cls} />;
+  if (platform === "shorts") return <Youtube className={cls} />;
+  return null;
+}
 
 function TabCount({ value, live }: { value: number; live?: boolean }) {
   return (
