@@ -4,6 +4,7 @@ import { Hero } from "@/components/marketing/hero";
 import { LoopSection } from "@/components/marketing/loop-section";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { SiteNav } from "@/components/marketing/site-nav";
+import { SpendDemo } from "@/components/marketing/spend-demo";
 import { StackBand } from "@/components/marketing/stack-band";
 import { SystemVoices } from "@/components/marketing/system-voices";
 
@@ -22,6 +23,7 @@ export default function Home() {
         <main>
           <Hero />
           <LoopSection />
+          <SpendDemo />
           <FeatureGrid />
           <StackBand />
           <SystemVoices />

@@ -37,10 +37,13 @@ export default async function EditNichePage({
         </Link>
       </Button>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Edit {niche.title}
+        <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+          Edit niche
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+          {niche.title}
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           Adjust any field below and save. The pipeline picks up the new
           settings on the next run.
         </p>

@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Pencil } from "lucide-react";
+import {
+  ArrowLeft,
+  Instagram,
+  Music2,
+  Pencil,
+  Youtube,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,21 +18,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Reveal } from "@/components/marketing/reveal";
+import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 import { SpendHistoryChart } from "@/components/spend-history-chart";
 import { api } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
-import { StatusBadge } from "@/lib/status-badge";
-import type { Job, Niche, NichePerformance, SpendHistory, TodaySpend } from "@/lib/types";
+import { statusVariant } from "@/lib/status-badge";
+import { cn } from "@/lib/utils";
+import type {
+  Job,
+  Niche,
+  NichePerformance,
+  Platform,
+  SpendHistory,
+  TodaySpend,
+} from "@/lib/types";
 import { NicheRunButtons } from "./NicheRunButtons";
 import { PerformanceCard } from "./PerformanceCard";
 import { RecentJobsTable } from "./RecentJobsTable";
 
 export const dynamic = "force-dynamic";
 
-const PLATFORM_LABEL: Record<string, string> = {
-  tiktok: "TikTok",
-  reels: "Reels",
-  shorts: "Shorts",
+const PLATFORM_META: Record<Platform, { label: string; icon: LucideIcon }> = {
+  tiktok: { label: "TikTok", icon: Music2 },
+  reels: { label: "Reels", icon: Instagram },
+  shorts: { label: "Shorts", icon: Youtube },
 };
 
 async function fetchNiche(id: string): Promise<Niche | null> {
@@ -104,6 +121,15 @@ export default async function NichePage({
   const doneJobs = recentJobs.filter((j) => j.status === "done");
   const avgCostUsd = doneJobs.length > 0 ? total30dUsd / doneJobs.length : 0;
 
+  // "hot" when today's spend is within striking distance of the cap.
+  const capPct = cap > 0 ? todayUsd / cap : 0;
+  const hot = capPct >= 0.8;
+
+  // Any in-flight pipeline stage renders as the "outline" variant — use it
+  // as a proxy for a live run so the header can wear the recording dot.
+  const live = recentJobs.some((j) => statusVariant(j.status) === "outline");
+  const hasJobs = recentJobs.length > 0;
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       {/* back nav */}
@@ -115,101 +141,171 @@ export default async function NichePage({
       </Button>
 
       {/* header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{niche.title}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{niche.description}</p>
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {niche.platforms.map((p) => (
-              <Badge key={p} variant="secondary">
-                {PLATFORM_LABEL[p] ?? p}
-              </Badge>
-            ))}
-            {niche.archived_at && (
-              <Badge variant="destructive">Archived</Badge>
-            )}
+      <Reveal>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+                Niche
+              </p>
+              {live && (
+                <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
+                  <span aria-hidden className="relative flex size-2">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
+                    <span className="relative inline-flex size-2 rounded-full bg-brand" />
+                  </span>
+                  Live
+                </span>
+              )}
+            </div>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              {niche.title}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {niche.description}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {niche.platforms.map((p) => {
+                const meta = PLATFORM_META[p];
+                const Icon = meta?.icon;
+                return (
+                  <Badge key={p} variant="secondary" className="gap-1.5">
+                    {Icon && <Icon className="size-3.5" />}
+                    {meta?.label ?? p}
+                  </Badge>
+                );
+              })}
+              {niche.archived_at && (
+                <Badge variant="destructive">Archived</Badge>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/niches/${niche.id}/edit`}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Link>
+            </Button>
           </div>
         </div>
-        <div className="flex shrink-0 gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={`/niches/${niche.id}/edit`}>
-              <Pencil className="h-3.5 w-3.5" />
-              Edit
-            </Link>
-          </Button>
-        </div>
-      </div>
+      </Reveal>
 
       {/* run-now buttons (client) */}
       <NicheRunButtons niche={niche} />
 
       {/* stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Today&apos;s spend / cap</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tabular-nums">
-              {formatUsd(todayUsd)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              of {formatUsd(cap)} daily cap
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>30-day spend</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tabular-nums">
-              {formatUsd(total30dUsd)}
-            </div>
-            <p className="text-xs text-muted-foreground">last 30 days</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Avg cost per video</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-semibold tabular-nums">
-              {doneJobs.length > 0 ? formatUsd(avgCostUsd) : "—"}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {doneJobs.length} completed job{doneJobs.length !== 1 ? "s" : ""}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Reveal delay={0.05}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Today's spend / cap"
+            value={formatUsd(todayUsd)}
+            sub={`of ${formatUsd(cap)} daily cap`}
+            hot={hot}
+          />
+          <StatCard
+            label="30-day spend"
+            value={formatUsd(total30dUsd)}
+            sub="last 30 days"
+          />
+          <StatCard
+            label="Avg cost / video"
+            value={doneJobs.length > 0 ? formatUsd(avgCostUsd) : "—"}
+            sub={`${doneJobs.length} completed job${doneJobs.length !== 1 ? "s" : ""}`}
+          />
+        </div>
+      </Reveal>
 
       {/* spend chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Spend over time</CardTitle>
-          <CardDescription>Daily USD spend for the last 30 days</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SpendHistoryChart data={spendHistory.rows} days={30} />
-        </CardContent>
-      </Card>
+      <Reveal delay={0.1}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Spend over time</CardTitle>
+            <CardDescription>
+              Daily USD spend for the last 30 days
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SpendHistoryChart data={spendHistory.rows} days={30} />
+          </CardContent>
+        </Card>
+      </Reveal>
 
       {/* performance card */}
-      <PerformanceCard performance={performance} />
+      <Reveal delay={0.1}>
+        <PerformanceCard performance={performance} />
+      </Reveal>
 
-      {/* recent jobs table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent jobs</CardTitle>
-          <CardDescription>Last 20 pipeline runs for this niche</CardDescription>
-        </CardHeader>
-        <CardContent className="p-0">
-          <RecentJobsTable jobs={recentJobs} />
-        </CardContent>
-      </Card>
+      {/* recent jobs */}
+      <Reveal delay={0.1}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent jobs</CardTitle>
+            <CardDescription>
+              Last 20 pipeline runs for this niche
+            </CardDescription>
+          </CardHeader>
+          <CardContent className={hasJobs ? "p-0" : undefined}>
+            {hasJobs ? (
+              <RecentJobsTable jobs={recentJobs} />
+            ) : (
+              <div className="flex flex-col items-center gap-4 py-6 text-center">
+                <LoopCircuit className="max-w-[320px]" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">No videos yet</p>
+                  <p className="text-sm text-muted-foreground">
+                    Trigger a run to start the loop.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </Reveal>
     </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  hot = false,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  hot?: boolean;
+}) {
+  return (
+    <Card
+      className={cn(
+        "border-border/60",
+        hot && "border-brand/30 bg-brand/[0.04]",
+      )}
+    >
+      <CardContent className="space-y-1.5 p-5">
+        <div className="flex items-center gap-1.5">
+          {hot && (
+            <span aria-hidden className="relative flex size-2">
+              <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
+              <span className="relative inline-flex size-2 rounded-full bg-brand" />
+            </span>
+          )}
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
+            {label}
+          </p>
+        </div>
+        <div
+          className={cn(
+            "font-mono text-2xl font-semibold tabular-nums",
+            hot && "text-brand",
+          )}
+        >
+          {value}
+        </div>
+        <p className="text-xs text-muted-foreground">{sub}</p>
+      </CardContent>
+    </Card>
   );
 }
