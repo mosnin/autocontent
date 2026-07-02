@@ -44,6 +44,7 @@ import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Niche, Platform, TodaySpend } from "@/lib/types";
 
 interface InitialData {
@@ -155,36 +156,92 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardDescription>Today&apos;s total spend</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-2xl font-semibold tracking-tight">
-            {formatUsd(spendData.total_usd)}
-            {globalCap !== null && (
-              <span className="ml-2 text-sm font-normal text-muted-foreground">
-                / {formatUsd(globalCap)} global cap
-              </span>
-            )}
+      {(() => {
+        const spent = Number(spendData.total_usd);
+        const cap = globalCap !== null ? Number(globalCap) : null;
+        const pct =
+          cap && cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
+        const hot = cap !== null && pct >= 80;
+        const remaining = cap !== null ? Math.max(0, cap - spent) : null;
+
+        return (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Primary: today's spend against the account cap. */}
+            <Card>
+              <CardContent className="space-y-2 pt-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Spent today
+                </p>
+                <p
+                  className={cn(
+                    "font-mono text-3xl font-semibold tabular-nums tracking-tight",
+                    hot ? "text-brand" : "text-foreground",
+                  )}
+                >
+                  {formatUsd(spent)}
+                </p>
+                {cap !== null && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Progress
+                        className={cn(
+                          "h-1.5",
+                          hot && "**:data-[slot=progress-range]:bg-brand",
+                        )}
+                        value={pct}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {formatUsd(spent)} of {formatUsd(cap)} global daily cap
+                      used
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-2 pt-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  {cap !== null ? "Cap remaining" : "Global cap"}
+                </p>
+                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight">
+                  {remaining !== null ? formatUsd(remaining) : "—"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {cap !== null ? (
+                    <>of {formatUsd(cap)} today</>
+                  ) : (
+                    <>
+                      No account cap ·{" "}
+                      <Link
+                        className="text-brand hover:underline"
+                        href="/settings"
+                      >
+                        add one
+                      </Link>
+                    </>
+                  )}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-2 pt-6">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Active niches
+                </p>
+                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight">
+                  {nichesList.length}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  each on its own daily cap
+                </p>
+              </CardContent>
+            </Card>
           </div>
-          {globalCap !== null && (() => {
-            const cap = Number(globalCap);
-            const spent = Number(spendData.total_usd);
-            const pct = cap > 0 ? Math.min(100, Math.round((spent / cap) * 100)) : 0;
-            return (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Progress value={pct} className="h-2" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  {formatUsd(spent)} of {formatUsd(cap)} global daily cap used
-                </TooltipContent>
-              </Tooltip>
-            );
-          })()}
-        </CardContent>
-      </Card>
+        );
+      })()}
 
       {showAyrshareBanner && (
         <Card className="border-destructive/50 bg-destructive/5">
