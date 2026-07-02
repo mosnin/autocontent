@@ -28,6 +28,12 @@ export default function TextBurnNeon({
       const split = new SplitText(textRef.current, { type: "chars" });
       const chars = split.chars;
 
+      // The burn must land on the theme's foreground color, not hard white —
+      // hard white disappears on the light theme.
+      const settled = textRef.current
+        ? getComputedStyle(textRef.current).color
+        : "#ffffff";
+
       const masterTl = gsap.timeline({
         repeat: repeat ? -1 : 0,
         repeatDelay: 1,
@@ -60,8 +66,8 @@ export default function TextBurnNeon({
         });
 
         tl.to(char, {
-          color: "#ffffff",
-          textShadow: "0 0 10px #ffffff, 0 0 20px #ffaa00",
+          color: settled,
+          textShadow: "0 0 10px currentColor, 0 0 20px #ffaa00",
           duration: 0.4,
           ease: "power2.out",
         });
