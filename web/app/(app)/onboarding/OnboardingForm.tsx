@@ -30,7 +30,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -201,18 +200,53 @@ export function OnboardingForm() {
         className="space-y-6"
       >
         <Card>
-          <CardHeader className="space-y-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">
-                Step {step} of 3
-              </CardTitle>
-              <span className="text-xs text-muted-foreground">
-                {step === 1 && "Identity"}
-                {step === 2 && "Creative"}
-                {step === 3 && "Schedule & cap"}
-              </span>
+          <CardHeader className="space-y-4">
+            <CardTitle className="sr-only">Step {step} of 3</CardTitle>
+            {/* Segmented stepper: done segments are solid brand, the
+                current one pulses (the machine is recording this step),
+                and completed steps are clickable to go back. */}
+            <div className="grid grid-cols-3 gap-2" role="list">
+              {(
+                [
+                  [1, "Identity"],
+                  [2, "Creative"],
+                  [3, "Schedule & cap"],
+                ] as const
+              ).map(([n, label]) => {
+                const state =
+                  n < step ? "done" : n === step ? "current" : "todo";
+                return (
+                  <button
+                    aria-current={state === "current" ? "step" : undefined}
+                    className="group flex flex-col gap-1.5 text-left disabled:cursor-default"
+                    disabled={n >= step}
+                    key={n}
+                    onClick={() => n < step && setStep(n)}
+                    role="listitem"
+                    type="button"
+                  >
+                    <span
+                      className={
+                        state === "done"
+                          ? "h-1 rounded-full bg-brand transition-colors"
+                          : state === "current"
+                            ? "h-1 animate-pulse rounded-full bg-brand/70"
+                            : "h-1 rounded-full bg-muted"
+                      }
+                    />
+                    <span
+                      className={
+                        state === "current"
+                          ? "text-xs font-medium text-foreground"
+                          : "text-xs text-muted-foreground group-hover:text-foreground group-disabled:group-hover:text-muted-foreground"
+                      }
+                    >
+                      {label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
-            <Progress value={(step / 3) * 100} />
           </CardHeader>
           <CardContent className="space-y-5">
             {step === 1 && <StepIdentity />}
