@@ -87,6 +87,8 @@ export function QueueClient({ initial }: { initial: Job[] }) {
   }, [error]);
 
   const jobs = data ?? [];
+  const inProgressCount = jobs.filter((j) => matches(j, "in_progress")).length;
+
   const filtered = jobs.filter((j) => matches(j, filter));
 
   async function handleRetry(job: Job) {
@@ -133,27 +135,27 @@ export function QueueClient({ initial }: { initial: Job[] }) {
           <TabsList className="w-max">
             <TabsTrigger value="all">
               All
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                {jobs.length}
-              </span>
+              <TabCount value={jobs.length} />
             </TabsTrigger>
             <TabsTrigger value="in_progress">
+              {inProgressCount > 0 && (
+                <span aria-hidden className="relative mr-0.5 flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
+                  <span className="relative inline-flex size-2 rounded-full bg-brand" />
+                </span>
+              )}
               In progress
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                {jobs.filter((j) => matches(j, "in_progress")).length}
-              </span>
+              <TabCount value={inProgressCount} live={inProgressCount > 0} />
             </TabsTrigger>
             <TabsTrigger value="done">
               Done
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                {jobs.filter((j) => j.status === "done").length}
-              </span>
+              <TabCount value={jobs.filter((j) => j.status === "done").length} />
             </TabsTrigger>
             <TabsTrigger value="failed">
               Failed
-              <span className="ml-1.5 text-xs text-muted-foreground">
-                {jobs.filter((j) => j.status === "failed").length}
-              </span>
+              <TabCount
+                value={jobs.filter((j) => j.status === "failed").length}
+              />
             </TabsTrigger>
           </TabsList>
           <ScrollBar orientation="horizontal" />
@@ -294,5 +296,20 @@ function JobRow({
         ) : null}
       </TableCell>
     </TableRow>
+  );
+}
+
+
+function TabCount({ value, live }: { value: number; live?: boolean }) {
+  return (
+    <span
+      className={
+        live
+          ? "ml-1.5 rounded-full bg-brand/15 px-1.5 text-[11px] font-medium tabular-nums text-brand"
+          : "ml-1.5 rounded-full bg-muted px-1.5 text-[11px] font-medium tabular-nums text-muted-foreground"
+      }
+    >
+      {value}
+    </span>
   );
 }
