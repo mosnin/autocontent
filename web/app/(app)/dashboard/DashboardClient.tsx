@@ -13,7 +13,6 @@ import {
   Pencil,
   Play,
   Plus,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 
@@ -40,6 +39,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
@@ -237,10 +237,8 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 function EmptyState() {
   return (
     <Card>
-      <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <Sparkles className="h-6 w-6 text-muted-foreground" />
-        </div>
+      <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+        <LoopCircuit className="scale-75 opacity-90" />
         <h3 className="text-lg font-semibold">No niches yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create one to start the pipeline. You can have as many as you want;
@@ -273,7 +271,7 @@ function NicheCard({
   const tooltipText = `${formatUsd(spent)} of ${formatUsd(cap)} used today`;
 
   return (
-    <Card className="flex flex-col">
+    <Card className="group flex flex-col transition-colors duration-300 hover:border-brand/30">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-lg font-semibold">
@@ -355,7 +353,10 @@ function NicheCard({
               <TooltipContent>{tooltipText}</TooltipContent>
             </Tooltip>
           </div>
-          <Progress value={pct} />
+          <Progress
+            className={pct >= 80 ? "**:data-[slot=progress-range]:bg-brand" : undefined}
+            value={pct}
+          />
         </div>
       </CardContent>
 
