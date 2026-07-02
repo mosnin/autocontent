@@ -19,7 +19,10 @@ export default async function TokensPage({ searchParams }: PageProps) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+          Agent access
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           Personal access tokens
         </h1>
         <p className="text-sm text-muted-foreground">
