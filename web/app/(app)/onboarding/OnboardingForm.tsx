@@ -12,7 +12,17 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFormContext } from "react-hook-form";
-import { ArrowLeft, ArrowRight, Loader2, X } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Hash,
+  Instagram,
+  Loader2,
+  Music2,
+  Plus,
+  Youtube,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -43,6 +53,7 @@ import { createNicheAction } from "@/lib/actions";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
 import { PLATFORMS, QUALITIES, RESOLUTIONS } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 const VOICE_OPTIONS = [
   "alloy",
@@ -61,6 +72,34 @@ const STYLE_EXAMPLES = [
   "horror short narrator",
   "70s film grain",
 ];
+
+// Shared presentation primitives so all three steps read as one form.
+// Sub-label above a grouped cluster of controls.
+function StepKicker({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+      {children}
+    </p>
+  );
+}
+
+// Selectable tile — used for segmented radios and platform checkboxes.
+// Monochrome at rest, brand ring + tint when chosen. `as` lets a label
+// wrap native radio/checkbox controls without extra markup.
+const tileBase =
+  "flex cursor-pointer select-none items-center justify-center gap-2 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors focus-within:ring-[3px] focus-within:ring-ring/32";
+const tileOn = "border-brand/50 bg-brand/10 text-foreground";
+const tileOff =
+  "border-input text-muted-foreground hover:border-brand/30 hover:bg-brand/5 hover:text-foreground";
+
+const PLATFORM_META: Record<
+  (typeof PLATFORMS)[number],
+  { label: string; Icon: React.ComponentType<{ className?: string }> }
+> = {
+  tiktok: { label: "TikTok", Icon: Music2 },
+  reels: { label: "Reels", Icon: Instagram },
+  shorts: { label: "Shorts", Icon: Youtube },
+};
 
 const schema = z.object({
   // Step 1
@@ -284,7 +323,8 @@ export function OnboardingForm() {
 
 function StepIdentity() {
   return (
-    <>
+    <div className="space-y-5">
+      <StepKicker>Channel identity</StepKicker>
       <FormField
         name="title"
         render={({ field }) => (
@@ -293,6 +333,9 @@ function StepIdentity() {
             <FormControl>
               <Input placeholder="Claymation econ teacher" {...field} />
             </FormControl>
+            <FormDescription>
+              Short, human name for this niche — shown across your dashboard.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -309,6 +352,9 @@ function StepIdentity() {
                 {...field}
               />
             </FormControl>
+            <FormDescription>
+              Sets the editorial angle the script generator writes toward.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
@@ -324,12 +370,15 @@ function StepIdentity() {
                 {...field}
               />
             </FormControl>
+            <FormDescription>
+              Who each video should speak to — tone follows the audience.
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
       />
       <HashtagsField />
-    </>
+    </div>
   );
 }
 
@@ -522,10 +571,14 @@ function StepCreative() {
               >
                 {QUALITIES.map((q) => (
                   <label
+                    className={cn(
+                      tileBase,
+                      "capitalize",
+                      field.value === q ? tileOn : tileOff,
+                    )}
                     key={q}
-                    className="flex items-center gap-2 rounded-md border p-3 text-sm capitalize hover:bg-accent/30"
                   >
-                    <RadioGroupItem value={q} />
+                    <RadioGroupItem className="sr-only" value={q} />
                     {q}
                   </label>
                 ))}
@@ -549,10 +602,10 @@ function StepCreative() {
               >
                 {RESOLUTIONS.map((r) => (
                   <label
+                    className={cn(tileBase, field.value === r ? tileOn : tileOff)}
                     key={r}
-                    className="flex items-center gap-2 rounded-md border p-3 text-sm hover:bg-accent/30"
                   >
-                    <RadioGroupItem value={r} />
+                    <RadioGroupItem className="sr-only" value={r} />
                     {r}
                   </label>
                 ))}
@@ -675,18 +728,24 @@ function StepSchedule() {
             <FormItem>
               <FormLabel>Platforms</FormLabel>
               <div className="grid grid-cols-3 gap-2">
-                {PLATFORMS.map((p) => (
-                  <label
-                    key={p}
-                    className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm capitalize hover:bg-accent/30"
-                  >
-                    <Checkbox
-                      checked={selected.includes(p)}
-                      onCheckedChange={() => toggle(p)}
-                    />
-                    {p}
-                  </label>
-                ))}
+                {PLATFORMS.map((p) => {
+                  const on = selected.includes(p);
+                  const { label, Icon } = PLATFORM_META[p];
+                  return (
+                    <label
+                      className={cn(tileBase, on ? tileOn : tileOff)}
+                      key={p}
+                    >
+                      <Checkbox
+                        checked={on}
+                        className="sr-only"
+                        onCheckedChange={() => toggle(p)}
+                      />
+                      <Icon className="size-4" />
+                      {label}
+                    </label>
+                  );
+                })}
               </div>
               <FormMessage />
             </FormItem>
