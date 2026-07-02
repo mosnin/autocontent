@@ -10,11 +10,23 @@ import {
   Link2,
   ListChecks,
   Settings,
-  Sparkles,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
+} from "@/components/ui/sidebar";
 
 interface NavItem {
   href: string;
@@ -22,57 +34,114 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-const NAV: NavItem[] = [
+const OPERATE: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/queue", label: "Queue", icon: ListChecks },
+];
+
+const CONFIGURE: NavItem[] = [
   { href: "/connect", label: "Connect", icon: Link2 },
   { href: "/settings/tokens", label: "Tokens", icon: KeyRound },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-export function AppSidebar({ onNavigate }: { onNavigate?: () => void }) {
+function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
 
   return (
-    <aside className="flex h-full w-60 flex-col border-r bg-card/40">
-      <div className="flex h-14 items-center gap-2 border-b px-4">
-        <Sparkles className="h-5 w-5 text-primary" />
-        <span className="font-semibold tracking-tight">autocontent</span>
-      </div>
+    <SidebarGroup>
+      <SidebarGroupLabel>{label}</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => {
+            const Icon = item.icon;
+            // Exact match or any descendant of the same segment — but let a
+            // more specific sibling (e.g. /settings/tokens) win over
+            // /settings.
+            const active =
+              pathname === item.href ||
+              (item.href !== "/settings" &&
+                pathname.startsWith(`${item.href}/`)) ||
+              (item.href === "/settings" &&
+                pathname.startsWith("/settings/") &&
+                !pathname.startsWith("/settings/tokens"));
 
-      <nav className="flex-1 space-y-1 p-3">
-        {NAV.map((item) => {
-          const Icon = item.icon;
-          // Match exact paths and any descendant under the same segment
-          // (e.g. /settings/tokens stays "Tokens" highlighted even when
-          // a sub-page is added later).
-          const active =
-            pathname === item.href ||
-            (item.href !== "/" && pathname.startsWith(`${item.href}/`));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onNavigate}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                active
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </Link>
-          );
-        })}
-      </nav>
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  tooltip={item.label}
+                >
+                  <Link
+                    aria-current={active ? "page" : undefined}
+                    href={item.href}
+                    onClick={() => {
+                      if (isMobile) setOpenMobile(false);
+                    }}
+                  >
+                    <Icon />
+                    <span>{item.label}</span>
+                    {active ? (
+                      <span
+                        aria-hidden
+                        className="ml-auto size-1.5 rounded-full bg-brand"
+                      />
+                    ) : null}
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
 
-      <div className="flex items-center justify-between border-t px-3 py-3">
-        <UserButton afterSignOutUrl="/" />
-        <ThemeToggle />
-      </div>
-    </aside>
+export function AppSidebar() {
+  return (
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <Link
+          className="flex items-center gap-2.5 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          href="/dashboard"
+        >
+          {/* The closed-loop mark, same as the marketing site. */}
+          <svg
+            aria-hidden
+            className="size-5 shrink-0 text-brand"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+            <path d="M21 3v6h-6" />
+          </svg>
+          <span className="truncate font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+            autocontent
+          </span>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <NavGroup items={OPERATE} label="Operate" />
+        <NavGroup items={CONFIGURE} label="Configure" />
+      </SidebarContent>
+
+      <SidebarFooter>
+        <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col">
+          <UserButton afterSignOutUrl="/" />
+          <div className="group-data-[collapsible=icon]:hidden">
+            <ThemeSwitcher />
+          </div>
+        </div>
+      </SidebarFooter>
+
+      <SidebarRail />
+    </Sidebar>
   );
 }

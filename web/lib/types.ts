@@ -48,7 +48,8 @@ export type JobStatus =
   | "qa"
   | "scheduling"
   | "done"
-  | "failed";
+  | "failed"
+  | "skipped";
 
 export interface Job {
   id: string;

@@ -1,17 +1,14 @@
 "use client";
 
-// Bar chart of daily spend. Wraps recharts in the shadcn ChartContainer
-// so colours follow the app's CSS variable palette in dark mode.
+// Daily spend, rendered on the animated line-chart engine (ncdai metrics
+// aesthetic): natural curve, edge fades, grid shimmer on load, and a
+// crosshair tooltip. Values follow the chart-* CSS palette in both themes.
 
 import * as React from "react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import Grid from "@/components/charts/grid";
+import LineChart, { Line } from "@/components/charts/line-chart";
+import { ChartTooltip } from "@/components/charts/tooltip";
 import type { SpendHistoryRow } from "@/lib/types";
 
 interface Props {
@@ -19,32 +16,15 @@ interface Props {
   days: number;
 }
 
-const chartConfig: ChartConfig = {
-  cost_usd: {
-    label: "Spend (USD)",
-    color: "hsl(var(--chart-1))",
-  },
-};
-
-// Aggregate multiple niche rows for the same day into a single bar.
-function aggregate(rows: SpendHistoryRow[]): { day: string; cost_usd: number }[] {
+// Aggregate multiple niche rows for the same day into a single point.
+function aggregate(rows: SpendHistoryRow[]): { date: string; spend: number }[] {
   const byDay = new Map<string, number>();
   for (const row of rows) {
     byDay.set(row.day, (byDay.get(row.day) ?? 0) + Number(row.cost_usd));
   }
   return Array.from(byDay.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([day, cost_usd]) => ({ day, cost_usd }));
-}
-
-function shortDate(iso: string): string {
-  // "2026-01-15" → "Jan 15"
-  const [, m, d] = iso.split("-");
-  const monthNames = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-  return `${monthNames[Number(m) - 1]} ${Number(d)}`;
+    .map(([date, spend]) => ({ date, spend: Number(spend.toFixed(4)) }));
 }
 
 export function SpendHistoryChart({ data, days }: Props) {
@@ -59,37 +39,16 @@ export function SpendHistoryChart({ data, days }: Props) {
   const chartData = aggregate(data);
 
   return (
-    <ChartContainer config={chartConfig} className="h-48 w-full">
-      <BarChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-        <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis
-          dataKey="day"
-          tickFormatter={shortDate}
-          tickLine={false}
-          axisLine={false}
-          tick={{ fontSize: 11 }}
-          interval="preserveStartEnd"
-        />
-        <YAxis
-          tickFormatter={(v: number) => `$${v.toFixed(2)}`}
-          tickLine={false}
-          axisLine={false}
-          tick={{ fontSize: 11 }}
-          width={52}
-        />
-        <ChartTooltip
-          cursor={false}
-          content={
-            <ChartTooltipContent
-              formatter={(value) =>
-                typeof value === "number" ? `$${value.toFixed(4)}` : String(value)
-              }
-              labelFormatter={(label) => shortDate(String(label))}
-            />
-          }
-        />
-        <Bar dataKey="cost_usd" fill="var(--color-cost_usd)" radius={[3, 3, 0, 0]} />
-      </BarChart>
-    </ChartContainer>
+    <LineChart
+      aspectRatio="3 / 1"
+      className="w-full"
+      data={chartData}
+      margin={{ top: 12, right: 16, bottom: 28, left: 16 }}
+      xDataKey="date"
+    >
+      <Grid horizontal />
+      <Line dataKey="spend" strokeWidth={2} />
+      <ChartTooltip />
+    </LineChart>
   );
 }
