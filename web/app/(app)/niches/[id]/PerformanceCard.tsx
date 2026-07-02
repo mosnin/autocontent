@@ -46,15 +46,15 @@ interface Props {
 const scatterConfig: ChartConfig = {
   done: {
     label: "Done",
-    color: "hsl(142 76% 36%)",
+    color: "var(--color-success)",
   },
   failed: {
     label: "Failed",
-    color: "hsl(0 84% 60%)",
+    color: "hsl(var(--destructive))",
   },
   other: {
     label: "Other",
-    color: "hsl(217 91% 60%)",
+    color: "hsl(var(--brand))",
   },
 };
 
@@ -168,9 +168,9 @@ export function PerformanceCard({ performance }: Props) {
     }));
 
   function dotColor(status: string): string {
-    if (status === "done") return "hsl(142 76% 36%)";
-    if (status === "failed") return "hsl(0 84% 60%)";
-    return "hsl(217 91% 60%)";
+    if (status === "done") return "var(--color-success)";
+    if (status === "failed") return "hsl(var(--destructive))";
+    return "hsl(var(--brand))";
   }
 
   // Sortable table

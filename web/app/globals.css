@@ -36,7 +36,7 @@
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
 
-  --color-success: hsl(var(--success));
+  --color-success: var(--success);
   --color-success-foreground: hsl(var(--success-foreground));
 
   --radius-lg: var(--radius);
