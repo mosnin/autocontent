@@ -21,11 +21,17 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
+  CommandShortcut,
 } from "@/components/ui/command";
 import { DialogTitle } from "@/components/ui/dialog";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { Niche, Platform } from "@/lib/types";
+
+// Brand-kicker treatment for cmdk group headings: uppercase, wide tracking,
+// recording-orange. Matches the marketing/dashboard section kickers.
+const KICKER =
+  "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-1 [&_[cmdk-group-heading]]:text-[0.65rem] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.25em] [&_[cmdk-group-heading]]:text-brand";
 
 export function CommandPalette() {
   const [open, setOpen] = React.useState(false);
@@ -64,53 +70,55 @@ export function CommandPalette() {
       <CommandInput placeholder="Type a command or search…" />
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
-        <CommandGroup heading="Pages">
+        <CommandGroup heading="Pages" className={KICKER}>
           <CommandItem onSelect={() => go("/dashboard")}>
-            <LayoutDashboard /> Dashboard
+            <LayoutDashboard className="text-muted-foreground" /> Dashboard
           </CommandItem>
           <CommandItem onSelect={() => go("/queue")}>
-            <ListChecks /> Queue
+            <ListChecks className="text-muted-foreground" /> Queue
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
-            <Link2 /> Connect socials
+            <Link2 className="text-muted-foreground" /> Connect socials
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
-            <Settings /> Settings
+            <Settings className="text-muted-foreground" /> Settings
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
-            <KeyRound /> Tokens
+            <KeyRound className="text-muted-foreground" /> Tokens
           </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
 
-        <CommandGroup heading="Actions">
+        <CommandGroup heading="Actions" className={KICKER}>
           <CommandItem onSelect={() => go("/onboarding")}>
-            <Plus /> Create niche
+            <Plus className="text-muted-foreground" /> Create niche
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
-            <Link2 /> Connect socials
+            <Link2 className="text-muted-foreground" /> Connect socials
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
-            <KeyRound /> Create token
+            <KeyRound className="text-muted-foreground" /> Create token
           </CommandItem>
         </CommandGroup>
 
         {niches && niches.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Niches">
+            <CommandGroup heading="Enqueue a run" className={KICKER}>
               {niches.flatMap((n) =>
                 n.platforms.map((p) => (
                   <CommandItem
                     key={`${n.id}-${p}`}
                     value={`enqueue ${n.title} ${p}`}
                     onSelect={() => enqueue(n.id, p)}
+                    className="data-[selected=true]:border-brand/30 border border-transparent"
                   >
-                    <Play /> Enqueue {n.title}
-                    <span className="ml-auto text-xs text-muted-foreground">
+                    <Play className="fill-brand/20 text-brand" />
+                    <span className="font-medium">Enqueue {n.title}</span>
+                    <CommandShortcut className="font-mono uppercase tracking-normal">
                       {p}
-                    </span>
+                    </CommandShortcut>
                   </CommandItem>
                 )),
               )}
@@ -118,8 +126,18 @@ export function CommandPalette() {
           </>
         )}
       </CommandList>
-      <div className="border-t px-3 py-2 text-xs text-muted-foreground">
-        esc to close · enter to select
+      <div className="flex items-center justify-between gap-2 border-t px-3 py-2.5 text-[0.7rem] text-muted-foreground">
+        <span className="font-mono tabular-nums">↑↓ navigate · ↵ select · esc close</span>
+        <span className="inline-flex items-center gap-1.5">
+          <span
+            aria-hidden
+            className="relative flex size-2"
+          >
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
+            <span className="relative inline-flex size-2 rounded-full bg-brand" />
+          </span>
+          autocontent
+        </span>
       </div>
     </CommandDialog>
   );

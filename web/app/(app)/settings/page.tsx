@@ -1,20 +1,35 @@
 import Link from "next/link";
-import { KeyRound, Link2 } from "lucide-react";
+import { ChevronRight, Gauge, KeyRound, Link2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { User } from "@/lib/types";
 import { SpendCapForm } from "./SpendCapForm";
 
 export const dynamic = "force-dynamic";
+
+// Linked settings areas that live on their own routes.
+const AREAS = [
+  {
+    href: "/connect",
+    icon: Link2,
+    title: "Connect socials",
+    description: "Link Ayrshare so scheduled posts actually ship.",
+  },
+  {
+    href: "/settings/tokens",
+    icon: KeyRound,
+    title: "Personal access tokens",
+    description: "For the CLI, MCP server, and external agents.",
+  },
+] as const;
 
 // Index page for the settings sub-tree. Contains a Spend Caps section
 // plus nav cards for Connect and Tokens.
@@ -28,18 +43,32 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Connections, authentication, and per-account config.
+    <div className="mx-auto max-w-3xl space-y-8">
+      <header className="space-y-1.5">
+        <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+          Settings
         </p>
-      </div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Connections &amp; account
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Spend caps, authentication, and per-account config for your
+          autocontent workspace.
+        </p>
+      </header>
 
-      {/* Spend caps */}
-      <Card>
+      {/* Spend caps — an inline form, not a nav target. */}
+      <Card className="border-border/60 bg-card/40">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Spend caps</CardTitle>
+          <div className="flex items-center gap-2">
+            <Gauge
+              className="size-4 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <CardTitle className="text-base font-semibold">
+              Spend caps
+            </CardTitle>
+          </div>
           <CardDescription>
             Set a global daily limit across all niches. Leave blank for no
             global cap (each niche still has its own per-niche cap).
@@ -51,37 +80,36 @@ export default async function SettingsPage() {
       </Card>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <Link2 className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base font-semibold">Socials</CardTitle>
-            <CardDescription>
-              Link Ayrshare so scheduled posts actually ship.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/connect">Open</Link>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <KeyRound className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base font-semibold">
-              Personal access tokens
-            </CardTitle>
-            <CardDescription>
-              For the CLI, MCP server, and external agents.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-              <Link href="/settings/tokens">Manage</Link>
-            </Button>
-          </CardFooter>
-        </Card>
+        {AREAS.map((area) => {
+          const Icon = area.icon;
+          return (
+            <Link
+              key={area.href}
+              href={area.href}
+              className={cn(
+                "group flex items-start gap-4 rounded-xl border border-border/60 bg-card/40 p-5 transition-colors",
+                "hover:border-brand/30 hover:bg-card/60",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
+              )}
+            >
+              <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-colors group-hover:border-brand/30 group-hover:text-brand">
+                <Icon className="size-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1 space-y-1">
+                <span className="block text-sm font-semibold leading-none">
+                  {area.title}
+                </span>
+                <span className="block text-sm text-muted-foreground">
+                  {area.description}
+                </span>
+              </span>
+              <ChevronRight
+                className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-brand"
+                aria-hidden="true"
+              />
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

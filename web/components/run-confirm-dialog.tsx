@@ -21,11 +21,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { enqueueJobAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { Niche, Platform, TodaySpend } from "@/lib/types";
 
 interface OpenArgs {
@@ -66,6 +68,16 @@ export function RunConfirmProvider({ children }: { children: React.ReactNode }) 
   );
 }
 
+// Verbatim recording indicator — a brand dot with a slow ping halo.
+function RecordingDot() {
+  return (
+    <span aria-hidden className="relative flex size-2">
+      <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
+      <span className="relative inline-flex size-2 rounded-full bg-brand" />
+    </span>
+  );
+}
+
 function RunConfirmDialog({
   open,
   onOpenChange,
@@ -103,6 +115,13 @@ function RunConfirmDialog({
   const spentToday = niche && spend ? Number(spend.by_niche[niche.id] ?? "0") : 0;
   const cap = niche ? Number(niche.daily_spend_cap_usd) : 0;
   const remaining = Math.max(0, cap - spentToday);
+  const usedPct = cap > 0 ? Math.min(100, (spentToday / cap) * 100) : 0;
+
+  // "Tight" = this run would eat most/all of what's left of the daily cap.
+  // We surface that in brand orange so the operator sees it before spending.
+  const tight =
+    !!breakdown && cap > 0 && breakdown.total > remaining - breakdown.total;
+  const overCap = !!breakdown && cap > 0 && breakdown.total > remaining;
 
   async function onConfirm() {
     if (!args) return;
@@ -124,6 +143,9 @@ function RunConfirmDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
+          <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+            Confirm run
+          </p>
           <DialogTitle>
             Run {niche?.title ?? "niche"} on {args?.platform ?? ""}
           </DialogTitle>
@@ -134,46 +156,86 @@ function RunConfirmDialog({
         </DialogHeader>
 
         {niche && breakdown ? (
-          <div className="space-y-3 text-sm">
-            <div className="flex items-baseline justify-between">
-              <span className="text-muted-foreground">Estimated cost</span>
-              <span className="font-mono font-semibold">
-                {formatUsd(breakdown.total)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-muted-foreground">Spent today</span>
-              <span className="font-mono">{formatUsd(spentToday)}</span>
-            </div>
-            <div className="flex items-baseline justify-between">
-              <span className="text-muted-foreground">Daily cap remaining</span>
-              <span className="font-mono">{formatUsd(remaining)}</span>
-            </div>
-            <Separator />
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li className="flex justify-between">
-                <span>images ({niche.scene_count})</span>
-                <span className="font-mono">{formatUsd(breakdown.image)}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>video</span>
-                <span className="font-mono">{formatUsd(breakdown.video)}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>tts</span>
-                <span className="font-mono">{formatUsd(breakdown.tts)}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>whisper</span>
-                <span className="font-mono">{formatUsd(breakdown.whisper)}</span>
-              </li>
-              <li className="flex justify-between">
-                <span>character sheet</span>
-                <span className="font-mono">
-                  {formatUsd(breakdown.character_sheet)}
+          <div className="space-y-5">
+            {/* Headline cost */}
+            <div className="rounded-lg border border-border/60 bg-card/40 p-4">
+              <div className="flex items-baseline justify-between">
+                <span className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
+                  Estimated cost
                 </span>
-              </li>
-            </ul>
+                <span className="font-mono text-2xl font-semibold tabular-nums">
+                  {formatUsd(breakdown.total)}
+                </span>
+              </div>
+
+              {/* Today's spend vs cap */}
+              <div className="mt-4 space-y-1.5">
+                <div className="flex items-baseline justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    Today · {formatUsd(spentToday)} of {formatUsd(cap)}
+                  </span>
+                  <span
+                    className={cn(
+                      "font-mono tabular-nums",
+                      tight ? "text-brand" : "text-muted-foreground",
+                    )}
+                  >
+                    {formatUsd(remaining)} left
+                  </span>
+                </div>
+                <Progress
+                  value={usedPct}
+                  className={
+                    tight ? "**:data-[slot=progress-range]:bg-brand" : undefined
+                  }
+                />
+                {overCap ? (
+                  <p className="text-xs text-brand">
+                    This run exceeds the remaining daily cap.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Line-item breakdown */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
+                Breakdown
+              </p>
+              <Separator />
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                <li className="flex justify-between">
+                  <span>images ({niche.scene_count})</span>
+                  <span className="font-mono tabular-nums">
+                    {formatUsd(breakdown.image)}
+                  </span>
+                </li>
+                <li className="flex justify-between">
+                  <span>video</span>
+                  <span className="font-mono tabular-nums">
+                    {formatUsd(breakdown.video)}
+                  </span>
+                </li>
+                <li className="flex justify-between">
+                  <span>tts</span>
+                  <span className="font-mono tabular-nums">
+                    {formatUsd(breakdown.tts)}
+                  </span>
+                </li>
+                <li className="flex justify-between">
+                  <span>whisper</span>
+                  <span className="font-mono tabular-nums">
+                    {formatUsd(breakdown.whisper)}
+                  </span>
+                </li>
+                <li className="flex justify-between">
+                  <span>character sheet</span>
+                  <span className="font-mono tabular-nums">
+                    {formatUsd(breakdown.character_sheet)}
+                  </span>
+                </li>
+              </ul>
+            </div>
           </div>
         ) : (
           <div className="flex h-24 items-center justify-center text-muted-foreground">
@@ -186,11 +248,16 @@ function RunConfirmDialog({
             Cancel
           </Button>
           <Button onClick={onConfirm} disabled={!niche || submitting}>
-            {submitting
-              ? "Working…"
-              : breakdown
-                ? `Run for ${formatUsd(breakdown.total)}`
-                : "Run"}
+            {submitting ? (
+              <>
+                <RecordingDot />
+                Working…
+              </>
+            ) : breakdown ? (
+              `Run for ${formatUsd(breakdown.total)}`
+            ) : (
+              "Run"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

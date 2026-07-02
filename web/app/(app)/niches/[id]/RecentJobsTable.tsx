@@ -1,9 +1,14 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowUpRight, Inbox } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ChevronRight,
+  Instagram,
+  Music2,
+  Youtube,
+  type LucideIcon,
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -13,7 +18,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/lib/status-badge";
-import type { Job } from "@/lib/types";
+import type { Job, Platform } from "@/lib/types";
+
+const PLATFORM_META: Record<Platform, { label: string; icon: LucideIcon }> = {
+  tiktok: { label: "TikTok", icon: Music2 },
+  reels: { label: "Reels", icon: Instagram },
+  shorts: { label: "Shorts", icon: Youtube },
+};
 
 function relative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -27,53 +38,70 @@ function relative(iso: string): string {
 }
 
 export function RecentJobsTable({ jobs }: { jobs: Job[] }) {
+  const router = useRouter();
+
   if (jobs.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <Inbox className="h-5 w-5 text-muted-foreground" />
-        </div>
-        <p className="text-sm text-muted-foreground">No jobs yet for this niche.</p>
-      </div>
+      <p className="py-10 text-center text-sm text-muted-foreground">
+        A run hasn&apos;t happened yet.
+      </p>
     );
   }
 
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead className="w-[140px]">Status</TableHead>
-          <TableHead className="w-[110px]">Job ID</TableHead>
-          <TableHead className="w-[110px]">Platform</TableHead>
-          <TableHead className="w-[130px]">Created</TableHead>
-          <TableHead className="w-[100px] text-right">Actions</TableHead>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="h-9 w-[150px] text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            Status
+          </TableHead>
+          <TableHead className="h-9 w-[110px] text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            Job ID
+          </TableHead>
+          <TableHead className="h-9 w-[120px] text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            Platform
+          </TableHead>
+          <TableHead className="h-9 text-right text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+            Created
+          </TableHead>
+          <TableHead className="h-9 w-[40px]" />
         </TableRow>
       </TableHeader>
       <TableBody>
-        {jobs.map((job) => (
-          <TableRow key={job.id}>
-            <TableCell>
-              <StatusBadge status={job.status} />
-            </TableCell>
-            <TableCell>
-              <code className="font-mono text-xs text-muted-foreground">
-                {job.id.slice(0, 8)}
-              </code>
-            </TableCell>
-            <TableCell className="capitalize">{job.platform}</TableCell>
-            <TableCell className="text-muted-foreground">
-              {relative(job.created_at)}
-            </TableCell>
-            <TableCell className="text-right">
-              <Button asChild size="sm" variant="ghost">
-                <Link href={`/queue/${job.id}`}>
-                  View
-                  <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
+        {jobs.map((job) => {
+          const meta = PLATFORM_META[job.platform];
+          const Icon = meta?.icon;
+          return (
+            <TableRow
+              key={job.id}
+              onClick={() => router.push(`/queue/${job.id}`)}
+              className="group cursor-pointer transition-colors hover:bg-muted/40"
+            >
+              <TableCell className="py-2.5">
+                <StatusBadge status={job.status} />
+              </TableCell>
+              <TableCell className="py-2.5">
+                <code className="font-mono text-xs tabular-nums text-muted-foreground">
+                  {job.id.slice(0, 8)}
+                </code>
+              </TableCell>
+              <TableCell className="py-2.5">
+                <span className="flex items-center gap-1.5 text-sm">
+                  {Icon && (
+                    <Icon className="size-3.5 text-muted-foreground" />
+                  )}
+                  {meta?.label ?? job.platform}
+                </span>
+              </TableCell>
+              <TableCell className="py-2.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+                {relative(job.created_at)}
+              </TableCell>
+              <TableCell className="py-2.5 text-right">
+                <ChevronRight className="ml-auto size-4 text-muted-foreground/40 transition-colors group-hover:text-foreground" />
+              </TableCell>
+            </TableRow>
+          );
+        })}
       </TableBody>
     </Table>
   );
