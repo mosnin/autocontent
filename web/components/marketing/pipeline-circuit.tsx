@@ -51,22 +51,28 @@ const FULL_CONNECTIONS = [
 
 export function PipelineCircuit({ className }: { className?: string }) {
   return (
-    <div className={cn("relative w-full overflow-hidden", className)}>
+    <div className={cn("relative w-full", className)}>
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 z-10 [background:radial-gradient(ellipse_at_center,transparent_55%,hsl(var(--background))_98%)]"
       />
-      <CircuitBoard
-        aria-label="The autocontent pipeline: ideate, script, keyframes, animate, voice, mix, post — with analytics feeding back into ideation"
-        className="mx-auto w-full max-w-4xl"
-        connections={FULL_CONNECTIONS}
-        height={400}
-        nodes={FULL_NODES}
-        pulseColor="hsl(var(--brand))"
-        pulseSpeed={2.4}
-        showGrid
-        width={760}
-      />
+      {/* The board is a fixed 760px canvas. It fits inside max-w-4xl on
+          desktop; on narrow screens the inner track pans horizontally
+          (centered on load) instead of clipping the hero's centerpiece.
+          Edge-fade masks so the pan reads as intentional. */}
+      <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-x-visible [mask-image:linear-gradient(to_right,transparent,black_2rem,black_calc(100%-2rem),transparent)] md:[mask-image:none]">
+        <CircuitBoard
+          aria-label="The autocontent pipeline: ideate, script, keyframes, animate, voice, mix, post — with analytics feeding back into ideation"
+          className="mx-auto"
+          connections={FULL_CONNECTIONS}
+          height={400}
+          nodes={FULL_NODES}
+          pulseColor="hsl(var(--brand))"
+          pulseSpeed={2.4}
+          showGrid
+          width={760}
+        />
+      </div>
     </div>
   );
 }
