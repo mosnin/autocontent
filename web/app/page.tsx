@@ -2,6 +2,7 @@ import { FeatureGrid } from "@/components/marketing/feature-grid";
 import { FinalCta } from "@/components/marketing/final-cta";
 import { Hero } from "@/components/marketing/hero";
 import { LoopSection } from "@/components/marketing/loop-section";
+import { Pricing } from "@/components/marketing/pricing";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { Showcase } from "@/components/marketing/showcase";
 import { SiteNav } from "@/components/marketing/site-nav";
@@ -26,6 +27,7 @@ export default function Home() {
           <Showcase />
           <LoopSection />
           <SpendDemo />
+          <Pricing />
           <FeatureGrid />
           <StackBand />
           <SystemVoices />

@@ -74,6 +74,9 @@ class User(BaseModel):
     email: str
     ayrshare_profile_key: str | None = None
     global_daily_cap_usd: Decimal | None = None
+    # Prepaid pipeline credit (hosted product). Ignored when billing is
+    # disabled.
+    credit_balance_usd: Decimal = Decimal("0")
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -151,6 +154,18 @@ class SpendEntry(BaseModel):
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
     cost_usd: Decimal
+
+
+class CreditTransaction(BaseModel):
+    """One movement of prepaid credit — purchase, grant, or pipeline debit."""
+
+    id: UUID
+    user_id: str
+    amount_usd: Decimal
+    kind: str  # 'purchase' | 'debit' | 'grant'
+    reference: str | None = None
+    description: str = ""
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class PersonalAccessToken(BaseModel):

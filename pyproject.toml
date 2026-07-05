@@ -19,6 +19,7 @@ dependencies = [
     "mcp[cli]>=1.2",
     "sentry-sdk[fastapi]>=2.0",
     "slowapi>=0.1.9",
+    "stripe>=10.0",
     "yoyo-migrations>=8.2",
     "psycopg2-binary>=2.9",
     "opentelemetry-api>=1.27",

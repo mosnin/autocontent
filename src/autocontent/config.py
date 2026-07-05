@@ -53,6 +53,22 @@ class Settings(BaseSettings):
     # Ayrshare webhook HMAC secret. Must be set to accept webhook deliveries.
     ayrshare_webhook_secret: str = ""
 
+    # --- Hosted product (Route A) -------------------------------------
+    # When true, pipeline spend requires prepaid credit and debits it at
+    # cost * billing_margin. Self-hosted deploys leave this false and
+    # nothing changes.
+    billing_enabled: bool = False
+    billing_margin: float = 1.5
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+    # Public origin for checkout redirects + email links,
+    # e.g. https://app.autocontent.dev
+    app_url: str = ""
+
+    # Transactional email (Resend). Empty key = emails silently skipped.
+    resend_api_key: str = ""
+    email_from: str = "autocontent <notifications@autocontent.dev>"
+
     # OpenTelemetry tracing. Leave otel_exporter_otlp_endpoint empty to
     # disable OTEL entirely (all instrumentation becomes a no-op).
     # Example endpoints:

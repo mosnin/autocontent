@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Gauge, KeyRound, Link2 } from "lucide-react";
+import { ChevronRight, Coins, Gauge, KeyRound, Link2 } from "lucide-react";
 
 import {
   Card,
@@ -17,6 +17,12 @@ export const dynamic = "force-dynamic";
 
 // Linked settings areas that live on their own routes.
 const AREAS = [
+  {
+    href: "/settings/billing",
+    icon: Coins,
+    title: "Pipeline credits",
+    description: "Balance, top-ups, and every charge — down to the API call.",
+  },
   {
     href: "/connect",
     icon: Link2,

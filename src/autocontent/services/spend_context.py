@@ -104,6 +104,26 @@ class SpendContext:
                     scope="global",
                 )
 
+        # Hosted product: prepaid credit is the final gate. The estimated
+        # charge includes the billing margin so a call is refused before
+        # it would take the balance negative.
+        from ..config import settings
+
+        if settings.billing_enabled:
+            from decimal import Decimal as _D
+
+            from ..repos import billing as billing_repo
+
+            bal = await billing_repo.balance(self.user_id)
+            charge = estimated_usd * _D(str(settings.billing_margin))
+            if bal < charge:
+                self.abort_event.set()
+                raise SpendCapExceeded(
+                    f"user {self.user_id} has ${bal} credit; "
+                    f"call would charge ${charge}. Top up to continue.",
+                    scope="credits",
+                )
+
     async def log(
         self,
         *,
@@ -123,6 +143,23 @@ class SpendContext:
                 cost_usd=cost_usd,
             )
         )
+
+        # Hosted product: mirror the spend into the credit ledger at
+        # cost * margin. Runs before the cap checks so the charge lands
+        # even when this call is the one that trips a cap.
+        from ..config import settings as _settings
+
+        if _settings.billing_enabled:
+            from decimal import Decimal as _D
+
+            from ..repos import billing as billing_repo
+
+            await billing_repo.debit(
+                user_id=self.user_id,
+                amount_usd=cost_usd * _D(str(_settings.billing_margin)),
+                job_id=self.job_id,
+                description=f"{provider}/{sku}",
+            )
 
         # Late-imports so a `from .spend_context import SpendContext`
         # doesn't pull `db.get_pool` into modules that never spend.
