@@ -45,6 +45,35 @@ function errorMessage(e: unknown): string {
   return String(e);
 }
 
+export interface NicheDraft {
+  title: string;
+  description: string;
+  target_audience: string;
+  hashtags: string[];
+  visual_style: string;
+  voice: string;
+  target_duration_sec: number;
+  scene_count: number;
+  image_quality: "low" | "medium" | "high";
+  video_resolution: "480p" | "720p";
+  scene_max_duration_sec: number;
+  tts_style_directions: string;
+}
+
+export async function draftNicheAction(
+  description: string,
+): Promise<{ ok: true; draft: NicheDraft } | { ok: false; error: string }> {
+  try {
+    const draft = await api<NicheDraft>("/api/v1/niches/draft", {
+      method: "POST",
+      body: JSON.stringify({ description }),
+    });
+    return { ok: true, draft };
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+}
+
 export async function createNicheAction(
   _prev: ActionState,
   formData: FormData,

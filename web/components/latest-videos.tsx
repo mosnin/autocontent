@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowRight, Clapperboard } from "lucide-react";
+import { ArrowRight, Clapperboard, Eye, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +19,20 @@ import type { Job } from "@/lib/types";
 const POLL_MS = 15000;
 const FIRST_VIDEO_KEY = "autocontent_first_video_seen";
 
+interface MetricsSummary {
+  total_views: number;
+  sampled_videos: number;
+  best_job_id: string | null;
+  best_views: number | null;
+  days: number;
+}
+
+function fmtViews(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
 function videoSrc(jobId: string): string {
   return `/api/proxy/api/v1/jobs/${jobId}/video`;
 }
@@ -33,6 +47,12 @@ export function LatestVideos() {
     "/api/v1/jobs?status_filter=done&limit=6",
     clientFetch,
     { refreshInterval: POLL_MS },
+  );
+
+  const { data: summary } = useSWR<MetricsSummary>(
+    "/api/v1/metrics/summary",
+    clientFetch,
+    { refreshInterval: 60000 },
   );
 
   const done = data ?? [];
@@ -53,8 +73,53 @@ export function LatestVideos() {
 
   if (done.length === 0) return null;
 
+  const hasPayoff =
+    summary !== undefined &&
+    summary.sampled_videos > 0 &&
+    summary.total_views > 0;
+
   return (
     <section className="space-y-3">
+      {hasPayoff && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand/5 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="size-5 text-brand" />
+            <div>
+              <p className="text-sm">
+                Your machine earned{" "}
+                <span className="font-mono font-semibold tabular-nums text-brand">
+                  {fmtViews(summary.total_views)}
+                </span>{" "}
+                views across{" "}
+                <span className="font-mono tabular-nums">
+                  {summary.sampled_videos}
+                </span>{" "}
+                {summary.sampled_videos === 1 ? "video" : "videos"} — last{" "}
+                {summary.days} days.
+              </p>
+              {summary.best_views !== null && summary.best_job_id && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Best performer:{" "}
+                  <Link
+                    className="text-brand hover:underline"
+                    href={`/queue/${summary.best_job_id}`}
+                  >
+                    {fmtViews(summary.best_views)} views
+                  </Link>
+                  . The loop is feeding this back into your next ideas.
+                </p>
+              )}
+            </div>
+          </div>
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/queue?status_filter=done">
+              <Eye className="size-3.5" />
+              See all
+            </Link>
+          </Button>
+        </div>
+      )}
+
       <div className="flex items-baseline justify-between">
         <h2 className="text-lg font-semibold tracking-tight">Latest videos</h2>
         <Button asChild size="sm" variant="ghost">
