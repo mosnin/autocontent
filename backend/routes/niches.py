@@ -17,6 +17,35 @@ from ..auth import AuthCtx, CurrentUser
 router = APIRouter()
 
 
+class DraftRequest(BaseModel):
+    description: str
+
+
+@router.post("/draft")
+async def draft_niche_spec(
+    body: DraftRequest, ctx: AuthCtx = CurrentUser
+) -> dict:
+    """One sentence in, a full channel spec out. The onboarding front
+    door: the client shows the returned fields on a review screen so the
+    user launches instead of filling a 16-field form."""
+    from autocontent.agents.niche_draft import draft_niche
+
+    text = body.description.strip()
+    if len(text) < 8:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="describe your channel in a sentence (at least a few words)",
+        )
+    try:
+        draft = await draft_niche(text)
+    except Exception as e:  # noqa: BLE001 — surface as a clean 502
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail=f"could not draft a channel: {e}",
+        ) from e
+    return draft.model_dump()
+
+
 class NicheCreate(BaseModel):
     title: str
     description: str

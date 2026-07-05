@@ -217,3 +217,47 @@ def _row_to_model(row) -> PostMetrics:
         raw=raw_value,
         created_at=row["created_at"],
     )
+
+
+async def account_summary(user_id: str, *, days: int = 30) -> dict:
+    """Account-wide payoff numbers: total views across the latest sample of
+    every video in the window, the count of sampled videos, and the single
+    best (job_id, views). Powers the dashboard 'views earned' banner."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        with latest as (
+            select distinct on (pm.job_id) pm.job_id, pm.views
+              from post_metrics pm
+             where pm.user_id = $1
+               and pm.sampled_at >= now() - ($2 || ' days')::interval
+             order by pm.job_id, pm.sampled_at desc
+        )
+        select
+            coalesce(sum(views), 0)::bigint as total_views,
+            count(*) filter (where views is not null)::int as sampled_videos
+          from latest
+        """,
+        user_id, str(days),
+    )
+    best = await pool.fetchrow(
+        """
+        with latest as (
+            select distinct on (pm.job_id) pm.job_id, pm.views
+              from post_metrics pm
+             where pm.user_id = $1
+               and pm.sampled_at >= now() - ($2 || ' days')::interval
+               and pm.views is not null
+             order by pm.job_id, pm.sampled_at desc
+        )
+        select job_id, views from latest order by views desc limit 1
+        """,
+        user_id, str(days),
+    )
+    return {
+        "total_views": int(row["total_views"]) if row else 0,
+        "sampled_videos": int(row["sampled_videos"]) if row else 0,
+        "best_job_id": str(best["job_id"]) if best else None,
+        "best_views": int(best["views"]) if best else None,
+        "days": days,
+    }

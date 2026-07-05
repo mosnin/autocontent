@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { AyrshareConnectStatus } from "@/lib/types";
-import { OnboardingForm } from "./OnboardingForm";
+import { OnboardingEntry } from "./OnboardingEntry";
 
 async function fetchAyrshareConnected(): Promise<boolean | null> {
   try {
@@ -26,10 +26,9 @@ export default async function Onboarding() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Add a niche</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">New channel</h1>
         <p className="text-sm text-muted-foreground">
-          The pipeline uses these to drive ideation, visuals, voice, scheduling,
-          and the daily spend ceiling.
+          One sentence is enough — the machine drafts the rest.
         </p>
       </div>
 
@@ -56,7 +55,7 @@ export default async function Onboarding() {
         </Card>
       )}
 
-      <OnboardingForm />
+      <OnboardingEntry />
     </div>
   );
 }

@@ -164,27 +164,48 @@ function defaultTz(): string {
   return "UTC";
 }
 
-export function OnboardingForm() {
+export interface NicheDraftPrefill {
+  title?: string;
+  description?: string;
+  target_audience?: string;
+  hashtags?: string[];
+  visual_style?: string;
+  voice?: Values["voice"];
+  target_duration_sec?: number;
+  scene_count?: number;
+  image_quality?: Values["image_quality"];
+  video_resolution?: Values["video_resolution"];
+  scene_max_duration_sec?: number;
+  tts_style_directions?: string;
+}
+
+export function OnboardingForm({
+  prefill,
+  startStep = 1,
+}: {
+  prefill?: NicheDraftPrefill;
+  startStep?: StepKey;
+} = {}) {
   const router = useRouter();
-  const [step, setStep] = React.useState<StepKey>(1);
+  const [step, setStep] = React.useState<StepKey>(startStep);
   const [submitting, setSubmitting] = React.useState(false);
 
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     mode: "onTouched",
     defaultValues: {
-      title: "",
-      description: "",
-      target_audience: "",
-      hashtags: [],
-      visual_style: "",
-      voice: "onyx",
-      target_duration_sec: 60,
-      scene_count: 6,
-      image_quality: "medium",
-      video_resolution: "480p",
-      scene_max_duration_sec: 5,
-      tts_style_directions: "",
+      title: prefill?.title ?? "",
+      description: prefill?.description ?? "",
+      target_audience: prefill?.target_audience ?? "",
+      hashtags: prefill?.hashtags ?? [],
+      visual_style: prefill?.visual_style ?? "",
+      voice: prefill?.voice ?? "onyx",
+      target_duration_sec: prefill?.target_duration_sec ?? 60,
+      scene_count: prefill?.scene_count ?? 6,
+      image_quality: prefill?.image_quality ?? "medium",
+      video_resolution: prefill?.video_resolution ?? "480p",
+      scene_max_duration_sec: prefill?.scene_max_duration_sec ?? 5,
+      tts_style_directions: prefill?.tts_style_directions ?? "",
       posting_hour: 9,
       posting_minute: 0,
       tz: defaultTz(),
