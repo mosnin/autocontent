@@ -10,6 +10,7 @@ import {
   Terminal,
 } from "lucide-react";
 
+import { Power } from "@/components/marketing/power";
 import { Reveal } from "@/components/marketing/reveal";
 import { PixelCanvas } from "@/components/ui/pixel-canvas";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,8 @@ export function FeatureGrid() {
           The system
         </p>
         <h2 className="mt-3 max-w-xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          Everything a channel needs. Nothing you have to babysit.
+          Everything a channel needs. Nothing you have to{" "}
+          <Power>babysit</Power>.
         </h2>
       </Reveal>
 

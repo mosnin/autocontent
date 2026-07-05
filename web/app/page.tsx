@@ -3,6 +3,7 @@ import { FinalCta } from "@/components/marketing/final-cta";
 import { Hero } from "@/components/marketing/hero";
 import { LoopSection } from "@/components/marketing/loop-section";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { Showcase } from "@/components/marketing/showcase";
 import { SiteNav } from "@/components/marketing/site-nav";
 import { SpendDemo } from "@/components/marketing/spend-demo";
 import { StackBand } from "@/components/marketing/stack-band";
@@ -22,6 +23,7 @@ export default function Home() {
         <SiteNav />
         <main>
           <Hero />
+          <Showcase />
           <LoopSection />
           <SpendDemo />
           <FeatureGrid />

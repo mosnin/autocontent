@@ -71,6 +71,27 @@ async def run_pipeline(user_id: str, niche_id: str, platform: str) -> dict:
 
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 10,
+)
+async def finish_scheduling(user_id: str, job_id: str) -> dict:
+    """Resume an operator-approved job at the scheduling stage.
+
+    Spawned by `POST /api/v1/jobs/{id}/approve` — the video is already
+    rendered on the artifacts volume; only the Ayrshare upload +
+    schedule remain."""
+    from uuid import UUID
+    from autocontent.pipeline import schedule_approved_job
+    from autocontent.services.otel import force_flush
+
+    try:
+        job = await schedule_approved_job(user_id=user_id, job_id=UUID(job_id))
+        return job.model_dump(mode="json")
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
     schedule=modal.Cron("*/30 * * * *"),  # poll every 30 min; per-niche windows decide
     timeout=60 * 60 * 3,
 )

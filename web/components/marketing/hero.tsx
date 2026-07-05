@@ -6,6 +6,7 @@ import { ArrowRight } from "lucide-react";
 
 import { DotGridSpotlight } from "@/components/dot-grid-spotlight";
 import { PipelineCircuit } from "@/components/marketing/pipeline-circuit";
+import { Power } from "@/components/marketing/power";
 import { ShimmeringText } from "@/components/shimmering-text";
 import { TextFlip } from "@/components/text-flip";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,7 @@ export function Hero() {
         </Link>
 
         <h1 className="max-w-4xl text-balance text-5xl font-semibold leading-[1.05] tracking-tight sm:text-7xl">
-          The content machine
+          The <Power>content machine</Power>
           <br />
           that{" "}
           <ShimmeringText

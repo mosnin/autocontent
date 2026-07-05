@@ -30,6 +30,7 @@ interface NicheCreatePayload {
   video_resolution: "480p" | "720p";
   scene_max_duration_sec: number;
   tts_style_directions: string | null;
+  approve_before_post: boolean;
 }
 
 function splitCsv(raw: string | null): string[] {
@@ -74,6 +75,7 @@ export async function createNicheAction(
     video_resolution: (formData.get("video_resolution") as "480p" | "720p") || "480p",
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
+    approve_before_post: formData.get("approve_before_post") === "on",
   };
 
   try {
@@ -126,6 +128,7 @@ export async function updateNicheAction(
       (formData.get("video_resolution") as "480p" | "720p") || "480p",
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
+    approve_before_post: formData.get("approve_before_post") === "on",
   };
 
   try {
@@ -161,6 +164,36 @@ export async function enqueueJobAction(
   }
   revalidatePath("/queue");
   revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function approveJobAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const job_id = String(formData.get("job_id"));
+  if (!job_id) return { ok: false, error: "job_id required" };
+  try {
+    await api<Job>(`/api/v1/jobs/${job_id}/approve`, { method: "POST" });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/queue");
+  return { ok: true };
+}
+
+export async function rejectJobAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const job_id = String(formData.get("job_id"));
+  if (!job_id) return { ok: false, error: "job_id required" };
+  try {
+    await api<Job>(`/api/v1/jobs/${job_id}/reject`, { method: "POST" });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/queue");
   return { ok: true };
 }
 

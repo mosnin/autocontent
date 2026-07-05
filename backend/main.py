@@ -12,7 +12,7 @@ from autocontent.config import settings
 from autocontent.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import connect, healthz, jobs, niches, performance, spend, tokens, users, webhooks
+from .routes import connect, healthz, jobs, niches, performance, spend, tokens, users, voices, webhooks
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
     app.include_router(spend.router, prefix="/api/v1/spend", tags=["spend"])
     app.include_router(connect.router, prefix="/api/v1/connect", tags=["connect"])
     app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
+    app.include_router(voices.router, prefix="/api/v1/voices", tags=["voices"])
     app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
 
     # ── OpenTelemetry FastAPI per-app instrumentation ──────────────────────

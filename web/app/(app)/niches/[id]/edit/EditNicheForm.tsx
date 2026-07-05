@@ -344,6 +344,24 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             required
           />
         </Labelled>
+
+        <label className="flex cursor-pointer items-start gap-3 rounded-md border border-input p-4 transition-colors hover:border-brand/30">
+          <input
+            className="mt-0.5 size-4 accent-[hsl(var(--brand))]"
+            defaultChecked={niche.approve_before_post}
+            name="approve_before_post"
+            type="checkbox"
+          />
+          <span>
+            <span className="block text-sm font-medium">
+              Review each video before it posts
+            </span>
+            <span className="mt-0.5 block text-xs text-muted-foreground">
+              Rendered videos wait for your approval in the queue instead of
+              posting on schedule.
+            </span>
+          </span>
+        </label>
       </SectionCard>
 
       {state.error && <p className="text-sm text-destructive">{state.error}</p>}

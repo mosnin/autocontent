@@ -63,6 +63,7 @@ class JobStatus(str, Enum):
     captioning = "captioning"
     qa = "qa"
     scheduling = "scheduling"
+    awaiting_approval = "awaiting_approval"
     done = "done"
     failed = "failed"
     skipped = "skipped"
@@ -117,6 +118,10 @@ class Niche(BaseModel):
     posting_windows: list[PostingWindow]
     platforms: list[Literal["tiktok", "reels", "shorts"]]
     daily_spend_cap_usd: Decimal
+
+    # Trust ramp: when true, a rendered video parks in awaiting_approval
+    # after QA instead of scheduling autonomously.
+    approve_before_post: bool = False
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     archived_at: datetime | None = None

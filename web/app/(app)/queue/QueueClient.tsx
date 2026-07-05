@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Inbox, Instagram, Music2, RefreshCw, Youtube } from "lucide-react";
+import { Check, Inbox, Instagram, Music2, RefreshCw, Youtube } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,7 +18,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { retryJobAction } from "@/lib/actions";
+import {
+  approveJobAction,
+  rejectJobAction,
+  retryJobAction,
+} from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { StatusBadge } from "@/lib/status-badge";
 import type { Job, JobStatus } from "@/lib/types";
@@ -37,10 +41,11 @@ const IN_PROGRESS = new Set<JobStatus>([
   "scheduling",
 ]);
 
-type Filter = "all" | "in_progress" | "done" | "failed";
+type Filter = "all" | "awaiting" | "in_progress" | "done" | "failed";
 
 function matches(job: Job, filter: Filter): boolean {
   if (filter === "all") return true;
+  if (filter === "awaiting") return job.status === "awaiting_approval";
   if (filter === "done") return job.status === "done";
   if (filter === "failed") return job.status === "failed";
   if (filter === "in_progress")
@@ -88,6 +93,7 @@ export function QueueClient({ initial }: { initial: Job[] }) {
 
   const jobs = data ?? [];
   const inProgressCount = jobs.filter((j) => matches(j, "in_progress")).length;
+  const awaitingCount = jobs.filter((j) => j.status === "awaiting_approval").length;
 
   const filtered = jobs.filter((j) => matches(j, filter));
 
@@ -115,6 +121,31 @@ export function QueueClient({ initial }: { initial: Job[] }) {
     }
   }
 
+  async function handleApprove(job: Job) {
+    const fd = new FormData();
+    fd.set("job_id", job.id);
+    const res = await approveJobAction({ ok: false }, fd);
+    if (res.ok) {
+      toast.success("Approved — scheduling the post now");
+      void mutate();
+    } else {
+      toast.error(res.error ?? "Approve failed");
+    }
+  }
+
+  async function handleReject(job: Job) {
+    if (!confirm("Reject this video? It will never post.")) return;
+    const fd = new FormData();
+    fd.set("job_id", job.id);
+    const res = await rejectJobAction({ ok: false }, fd);
+    if (res.ok) {
+      toast.success("Rejected — it will not post");
+      void mutate();
+    } else {
+      toast.error(res.error ?? "Reject failed");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -137,6 +168,12 @@ export function QueueClient({ initial }: { initial: Job[] }) {
               All
               <TabCount value={jobs.length} />
             </TabsTrigger>
+            {awaitingCount > 0 && (
+              <TabsTrigger value="awaiting">
+                Needs approval
+                <TabCount live value={awaitingCount} />
+              </TabsTrigger>
+            )}
             <TabsTrigger value="in_progress">
               {inProgressCount > 0 && (
                 <span aria-hidden className="relative mr-0.5 flex size-2">
@@ -188,6 +225,8 @@ export function QueueClient({ initial }: { initial: Job[] }) {
                         job={j}
                         onClick={() => router.push(`/queue/${j.id}`)}
                         onRetry={handleRetry}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
                       />
                     ))}
                   </TableBody>
@@ -228,12 +267,31 @@ function JobRow({
   job,
   onClick,
   onRetry,
+  onApprove,
+  onReject,
 }: {
   job: Job;
   onClick: () => void;
   onRetry: (job: Job) => Promise<void>;
+  onApprove: (job: Job) => Promise<void>;
+  onReject: (job: Job) => Promise<void>;
 }) {
   const [retrying, setRetrying] = React.useState(false);
+  const [acting, setActing] = React.useState(false);
+
+  async function handleApproveClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    setActing(true);
+    await onApprove(job);
+    setActing(false);
+  }
+
+  async function handleRejectClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    setActing(true);
+    await onReject(job);
+    setActing(false);
+  }
 
   async function handleRetryClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -292,20 +350,40 @@ function JobRow({
           : "—"}
       </TableCell>
       <TableCell className="text-right">
-        {job.status === "failed" || job.status === "queued" ? (
-          job.status === "failed" ? (
+        {job.status === "failed" && (
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={handleRetryClick}
+            disabled={retrying}
+            aria-label={`Retry job ${job.id.slice(0, 8)}`}
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} aria-hidden="true" />
+            {retrying ? "…" : "Retry"}
+          </Button>
+        )}
+        {job.status === "awaiting_approval" && (
+          <span className="flex items-center justify-end gap-1.5">
             <Button
+              aria-label={`Reject job ${job.id.slice(0, 8)}`}
+              disabled={acting}
+              onClick={handleRejectClick}
               size="sm"
-              variant="destructive"
-              onClick={handleRetryClick}
-              disabled={retrying}
-              aria-label={`Retry job ${job.id.slice(0, 8)}`}
+              variant="ghost"
             >
-              <RefreshCw className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} aria-hidden="true" />
-              {retrying ? "…" : "Retry"}
+              Reject
             </Button>
-          ) : null
-        ) : null}
+            <Button
+              aria-label={`Approve and post job ${job.id.slice(0, 8)}`}
+              disabled={acting}
+              onClick={handleApproveClick}
+              size="sm"
+            >
+              <Check className="h-3.5 w-3.5" aria-hidden="true" />
+              {acting ? "…" : "Approve"}
+            </Button>
+          </span>
+        )}
       </TableCell>
     </TableRow>
   );
