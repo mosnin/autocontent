@@ -178,6 +178,23 @@ export interface PersonalAccessToken {
   expires_at: string | null;
 }
 
+export interface CreditTransaction {
+  id: string;
+  user_id: string;
+  amount_usd: string;
+  kind: "purchase" | "debit" | "grant";
+  reference: string | null;
+  description: string;
+  created_at: string;
+}
+
+export interface BillingBalance {
+  balance_usd: string;
+  billing_enabled: boolean;
+  margin: number;
+  transactions: CreditTransaction[];
+}
+
 export interface TokenCreateResponse {
   token: string;
   info: PersonalAccessToken;

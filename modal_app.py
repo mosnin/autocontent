@@ -91,6 +91,31 @@ async def finish_scheduling(user_id: str, job_id: str) -> dict:
 
 
 @app.function(
+    volumes={"/assets": assets},
+    timeout=60 * 5,
+)
+async def prewarm_voice_previews() -> dict:
+    """Synthesize any missing voice-preview samples so the onboarding
+    play button is instant. Run once after deploy:
+
+        modal run modal_app.py::prewarm_voice_previews
+    """
+    from backend.routes.voices import ALLOWED_VOICES, PREVIEW_LINE, preview_path
+    from autocontent.services import openai_tts
+
+    created: list[str] = []
+    for voice in sorted(ALLOWED_VOICES):
+        path = preview_path(voice)
+        if path.exists():
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        await openai_tts.synthesize(PREVIEW_LINE, path, voice=voice)
+        created.append(voice)
+    assets.commit()
+    return {"created": created, "skipped": len(ALLOWED_VOICES) - len(created)}
+
+
+@app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     schedule=modal.Cron("*/30 * * * *"),  # poll every 30 min; per-niche windows decide
     timeout=60 * 60 * 3,

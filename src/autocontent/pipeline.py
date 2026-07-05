@@ -33,6 +33,7 @@ from .orchestrator import run_ideation, run_qa, run_scriptwriter, run_visual_dir
 from .repos import jobs as jobs_repo
 from .repos import niches as niches_repo
 from .repos import spend as spend_repo
+from .services import email as email_svc
 from .services import (
     character_sheet,
     ffmpeg,
@@ -142,6 +143,25 @@ async def _ensure_cap(job: Job, niche: Niche) -> bool:
             return False
 
     return True
+
+
+async def _notify(job: Job, *, kind: str) -> None:
+    """Email the operator at a terminal moment. Fail-open: notification
+    problems never affect job state."""
+    try:
+        from .repos import users as users_repo
+
+        user = await users_repo.get(job.user_id)
+        if user is None or not user.email:
+            return
+        hook = job.script.idea.hook if job.script else None
+        if kind == "review":
+            subject, html = email_svc.render_ready_for_review(str(job.id), hook)
+        else:
+            subject, html = email_svc.render_video_scheduled(str(job.id), hook)
+        await email_svc.send_email(to=user.email, subject=subject, html=html)
+    except Exception as e:  # noqa: BLE001 — never let email break a job
+        log.warning("notification failed", extra={"error": str(e)})
 
 
 async def _fail_with(job: Job, error: str) -> Job:
@@ -372,6 +392,7 @@ async def _run_job_inner(
         job.status = JobStatus.awaiting_approval
         await _persist(job)
         log.info("awaiting approval", extra={"job_id": str(job.id)})
+        await _notify(job, kind="review")
         return job
 
     # 10. Schedule via Ayrshare (per-user profile)
@@ -401,6 +422,7 @@ async def _schedule_stage(job: Job, niche: Niche) -> Job:
         job.provider_post_id = post_id
         job.status = JobStatus.done
         await _persist(job)
+    await _notify(job, kind="scheduled")
     return job
 
 

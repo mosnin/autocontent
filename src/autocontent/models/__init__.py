@@ -12,6 +12,7 @@ from .schemas import (
     NichePerformance,
     PerformanceSummary,
     PersonalAccessToken,
+    CreditTransaction,
     PostMetrics,
     PostingWindow,
     RenderedVideo,
@@ -26,6 +27,7 @@ from .schemas import (
 )
 
 __all__ = [
+    "CreditTransaction",
     "AudioTrack",
     "AyrshareConnectResponse",
     "AyrshareConnectStatus",

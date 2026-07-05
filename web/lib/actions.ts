@@ -271,6 +271,23 @@ export async function revokeTokenAction(
   return { ok: true };
 }
 
+export async function createCheckoutAction(
+  _prev: ActionState & { url?: string },
+  formData: FormData,
+): Promise<ActionState & { url?: string }> {
+  const pack = String(formData.get("pack") || "");
+  if (!pack) return { ok: false, error: "pack required" };
+  try {
+    const res = await api<{ url: string }>("/api/v1/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ pack }),
+    });
+    return { ok: true, url: res.url };
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+}
+
 export async function connectAyrshareAction(): Promise<void> {
   // Creates (or reuses) the user's Ayrshare profile and bounces them to
   // the hosted OAuth chooser so they can link TikTok / IG / YouTube.
