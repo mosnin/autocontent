@@ -32,6 +32,7 @@ export interface Niche {
   posting_windows: PostingWindow[];
   platforms: Platform[];
   daily_spend_cap_usd: string;
+  approve_before_post: boolean;
   created_at: string;
   archived_at: string | null;
 }
@@ -47,6 +48,7 @@ export type JobStatus =
   | "captioning"
   | "qa"
   | "scheduling"
+  | "awaiting_approval"
   | "done"
   | "failed"
   | "skipped";

@@ -32,6 +32,7 @@ async def create(
     video_resolution: str = "480p",
     scene_max_duration_sec: int = 5,
     tts_style_directions: str | None = None,
+    approve_before_post: bool = False,
 ) -> Niche:
     pool = await get_pool()
     row = await pool.fetchrow(
@@ -41,9 +42,9 @@ async def create(
             visual_style, voice, target_duration_sec, scene_count,
             posting_windows, platforms, daily_spend_cap_usd,
             image_quality, video_resolution, scene_max_duration_sec,
-            tts_style_directions
+            tts_style_directions, approve_before_post
         )
-        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17)
         returning *
         """,
         user_id, title, description, target_audience, hashtags,
@@ -51,7 +52,7 @@ async def create(
         json.dumps([w.model_dump() for w in posting_windows]),
         platforms, daily_spend_cap_usd,
         image_quality, video_resolution, scene_max_duration_sec,
-        tts_style_directions,
+        tts_style_directions, approve_before_post,
     )
     return _row_to_niche(row)
 
@@ -97,7 +98,7 @@ async def update(
         "visual_style", "voice", "target_duration_sec", "scene_count",
         "posting_windows", "platforms", "daily_spend_cap_usd",
         "image_quality", "video_resolution", "scene_max_duration_sec",
-        "tts_style_directions",
+        "tts_style_directions", "approve_before_post",
     }
 
     sets: list[str] = []

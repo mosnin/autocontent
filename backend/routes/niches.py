@@ -5,10 +5,12 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from autocontent.models import Niche, PostingWindow
 from autocontent.repos import niches as niches_repo
+from autocontent.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -31,6 +33,7 @@ class NicheCreate(BaseModel):
     video_resolution: Literal["480p", "720p"] = "480p"
     scene_max_duration_sec: int = 5
     tts_style_directions: str | None = None
+    approve_before_post: bool = False
 
 
 class NicheUpdate(BaseModel):
@@ -56,6 +59,7 @@ class NicheUpdate(BaseModel):
     video_resolution: Literal["480p", "720p"] | None = None
     scene_max_duration_sec: int | None = None
     tts_style_directions: str | None = None
+    approve_before_post: bool | None = None
 
 
 @router.get("", response_model=list[Niche])
@@ -95,3 +99,23 @@ async def update_niche(
 @router.delete("/{niche_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def archive_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
     await niches_repo.archive(niche_id, user_id=ctx.user_id)
+
+
+@router.get("/{niche_id}/character-sheet")
+async def character_sheet_image(
+    niche_id: UUID, ctx: AuthCtx = CurrentUser
+) -> FileResponse:
+    """The niche's generated character sheet — the face of the channel.
+
+    404 until the first pipeline run generates it; the niche detail page
+    hides the card in that case."""
+    niche = await niches_repo.get(niche_id, user_id=ctx.user_id)
+    if niche is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+    path = sheet_path(niche_id)
+    if not path.exists():
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail="character sheet not generated yet — run a video first",
+        )
+    return FileResponse(path, media_type="image/png")

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 
 import { ElasticSlider } from "@/components/elastic-slider";
+import { Power } from "@/components/marketing/power";
 import { Reveal } from "@/components/marketing/reveal";
 
 /**
@@ -39,7 +40,8 @@ export function SpendDemo() {
               Your budget, enforced
             </p>
             <h2 className="mt-3 max-w-xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-              Set the ceiling. The machine runs under it — or not at all.
+              Set the ceiling. The machine runs under it — or{" "}
+              <Power>not at all</Power>.
             </h2>
           </Reveal>
 

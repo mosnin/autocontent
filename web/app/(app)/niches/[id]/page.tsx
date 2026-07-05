@@ -35,6 +35,7 @@ import type {
 } from "@/lib/types";
 import { NicheRunButtons } from "./NicheRunButtons";
 import { PerformanceCard } from "./PerformanceCard";
+import { CharacterSheetCard } from "./CharacterSheetCard";
 import { RecentJobsTable } from "./RecentJobsTable";
 
 export const dynamic = "force-dynamic";
@@ -230,6 +231,8 @@ export default async function NichePage({
           </CardContent>
         </Card>
       </Reveal>
+
+      <CharacterSheetCard nicheId={niche.id} />
 
       {/* performance card */}
       <Reveal delay={0.1}>

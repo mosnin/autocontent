@@ -96,6 +96,45 @@ async def get_job_metrics(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobMetric
     return JobMetricsResponse(latest=latest, history=history)
 
 
+@router.post("/{job_id}/approve", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
+async def approve_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+    """Operator sign-off on an `awaiting_approval` job. Spawns the Modal
+    `finish_scheduling` function, which uploads + schedules the already
+    rendered video and marks the job done."""
+    import modal
+
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
+    if job.status != JobStatus.awaiting_approval:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=f"job is {job.status.value}, not awaiting_approval",
+        )
+    fn = modal.Function.from_name("autocontent", "finish_scheduling")
+    fn.spawn(ctx.user_id, str(job_id))
+    return job
+
+
+@router.post("/{job_id}/reject", response_model=Job)
+async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+    """Operator veto on an `awaiting_approval` job. The rendered video
+    stays on the volume (retention GC handles cleanup); the job is marked
+    failed so it never posts."""
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
+    if job.status != JobStatus.awaiting_approval:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=f"job is {job.status.value}, not awaiting_approval",
+        )
+    job.status = JobStatus.failed
+    job.error = "rejected by operator before posting"
+    await jobs_repo.save_snapshot(job)
+    return job
+
+
 @router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
 async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     """Re-run a previously failed job from scratch. Only works on jobs in

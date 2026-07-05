@@ -1,5 +1,6 @@
 "use client";
 
+import { Power } from "@/components/marketing/power";
 import { Reveal } from "@/components/marketing/reveal";
 import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 
@@ -36,7 +37,8 @@ export function LoopSection() {
               How it works
             </p>
             <h2 className="mt-3 max-w-lg text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-              Four phases. Zero hand-offs. One loop that never stops learning.
+              Four phases. Zero hand-offs. One loop that{" "}
+              <Power>never stops learning</Power>.
             </h2>
           </Reveal>
 

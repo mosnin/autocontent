@@ -364,16 +364,35 @@ async def _run_job_inner(
         if not report.passed:
             return await _fail_with(job, "; ".join(report.issues))
 
-    # 9. Schedule via Ayrshare (per-user profile)
+    # 9. Approval gate — the trust ramp. When the niche requires sign-off,
+    # a fully rendered + QA-passed video parks here instead of posting.
+    # The operator approves via the API, which resumes at the scheduling
+    # stage through `schedule_approved_job`.
+    if niche.approve_before_post:
+        job.status = JobStatus.awaiting_approval
+        await _persist(job)
+        log.info("awaiting approval", extra={"job_id": str(job.id)})
+        return job
+
+    # 10. Schedule via Ayrshare (per-user profile)
+    return await _schedule_stage(job, niche)
+
+
+async def _schedule_stage(job: Job, niche: Niche) -> Job:
+    """Upload + schedule the rendered video, then mark the job done.
+
+    Shared by the autonomous path (straight after QA) and the approval
+    path (resumed via `schedule_approved_job`)."""
+    assert job.rendered is not None and job.script is not None
     with _stage(JobStatus.scheduling.value):
         job.status = JobStatus.scheduling
         await _persist(job)
         when = _next_posting_slot(niche)
         post_id = await scheduler.schedule_post(
-            video_path=final,
-            caption=idea.hook,
+            video_path=Path(job.rendered.path),
+            caption=job.script.idea.hook,
             hashtags=niche.hashtags,
-            platform=platform,
+            platform=job.platform,
             scheduled_for=when,
             profile_key=None,  # resolved inside scheduler from user_id
             user_id=job.user_id,
@@ -383,6 +402,27 @@ async def _run_job_inner(
         job.status = JobStatus.done
         await _persist(job)
     return job
+
+
+async def schedule_approved_job(*, user_id: str, job_id: UUID) -> Job:
+    """Resume an `awaiting_approval` job at the scheduling stage.
+
+    Invoked from the Modal `finish_scheduling` function after the
+    operator approves via `POST /api/v1/jobs/{id}/approve`."""
+    job = await jobs_repo.get(job_id, user_id=user_id)
+    if job is None:
+        raise ValueError(f"job {job_id} not found for user {user_id}")
+    if job.status != JobStatus.awaiting_approval:
+        raise ValueError(f"job {job_id} is {job.status}, not awaiting_approval")
+    niche = await niches_repo.get(job.niche_id, user_id=user_id)
+    if niche is None:
+        raise ValueError(f"niche {job.niche_id} not found for user {user_id}")
+
+    with job_context(job_id=job.id, user_id=user_id, niche_id=job.niche_id):
+        try:
+            return await _schedule_stage(job, niche)
+        except Exception as e:
+            return await _fail_with(job, f"scheduling failed after approval: {e}")
 
 
 def _next_posting_slot(niche: Niche) -> datetime:

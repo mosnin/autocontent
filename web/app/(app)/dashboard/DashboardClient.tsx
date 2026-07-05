@@ -39,6 +39,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LatestVideos } from "@/components/latest-videos";
 import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
@@ -272,6 +273,8 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
           {(nichesError ?? spendError)?.message ?? "fetch failed"}
         </p>
       )}
+
+      <LatestVideos />
 
       {nichesList.length === 0 ? (
         <EmptyState />

@@ -2,6 +2,7 @@
 
 import { BarChart3, Bot, ShieldCheck, Timer } from "lucide-react";
 
+import { Power } from "@/components/marketing/power";
 import { Reveal } from "@/components/marketing/reveal";
 import { ScrollFadeEffect } from "@/components/scroll-fade-effect";
 
@@ -48,7 +49,8 @@ export function SystemVoices() {
           No testimonials. Receipts.
         </p>
         <h2 className="mt-3 max-w-xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-          The subsystems can speak for themselves.
+          The subsystems can{" "}
+          <Power>speak for themselves</Power>.
         </h2>
       </Reveal>
 

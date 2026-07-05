@@ -366,3 +366,22 @@ async def test_unknown_niche_raises(monkeypatch, stub_all):
 # Sanity check: tells future-us that SpendCapExceeded import paths line up.
 def test_spend_cap_exceeded_is_subclass_of_exception():
     assert issubclass(SpendCapExceeded, Exception)
+
+
+async def test_approval_gate_parks_job_before_scheduling(stub_all, stage_log):
+    """A niche with approve_before_post renders fully, passes QA, then
+    parks in awaiting_approval — the scheduler must never be called."""
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"approve_before_post": True}
+    )
+
+    job = await pipeline.run_job(
+        user_id="user_e2e", niche_id=niche.id, platform="tiktok"
+    )
+
+    assert job.status == JobStatus.awaiting_approval
+    assert job.rendered is not None  # the video exists, it just didn't post
+    assert job.provider_post_id is None  # scheduler never ran
+    assert "scheduling" not in stage_log
+    assert "awaiting_approval" in stage_log

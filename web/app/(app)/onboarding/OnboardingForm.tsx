@@ -19,7 +19,9 @@ import {
   Instagram,
   Loader2,
   Music2,
+  Play,
   Plus,
+  Square,
   Youtube,
   X,
 } from "lucide-react";
@@ -124,6 +126,7 @@ const schema = z.object({
   tz: z.string().min(1),
   platforms: z.array(z.enum(["tiktok", "reels", "shorts"])).min(1, "Pick one"),
   daily_spend_cap_usd: z.coerce.number().min(0.5),
+  approve_before_post: z.boolean(),
 });
 
 type Values = z.infer<typeof schema>;
@@ -146,6 +149,7 @@ const STEP_FIELDS: Record<StepKey, (keyof Values)[]> = {
     "tz",
     "platforms",
     "daily_spend_cap_usd",
+    "approve_before_post",
   ],
 };
 
@@ -186,6 +190,7 @@ export function OnboardingForm() {
       tz: defaultTz(),
       platforms: [],
       daily_spend_cap_usd: 5,
+      approve_before_post: true,
     },
   });
 
@@ -219,6 +224,7 @@ export function OnboardingForm() {
     fd.set("tz", values.tz);
     for (const p of values.platforms) fd.append("platforms", p);
     fd.set("daily_spend_cap_usd", String(values.daily_spend_cap_usd));
+    if (values.approve_before_post) fd.set("approve_before_post", "on");
 
     const res = await createNicheAction({ ok: false }, fd);
     // createNicheAction redirects on success — we only reach here on
@@ -514,20 +520,26 @@ function StepCreative() {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Voice</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {VOICE_OPTIONS.map((v) => (
-                    <SelectItem key={v} value={v}>
-                      {v}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {VOICE_OPTIONS.map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {v}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <VoicePreviewButton voice={field.value} />
+              </div>
+              <FormDescription>
+                Hit play — never pick a voice blind.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -768,6 +780,39 @@ function StepSchedule() {
           </FormItem>
         )}
       />
+
+      <FormField
+        name="approve_before_post"
+        render={({ field }) => (
+          <FormItem>
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors",
+                field.value
+                  ? "border-brand/50 bg-brand/5"
+                  : "border-input hover:border-brand/30",
+              )}
+            >
+              <Checkbox
+                checked={field.value}
+                className="mt-0.5"
+                onCheckedChange={field.onChange}
+              />
+              <span>
+                <span className="block text-sm font-medium">
+                  Review each video before it posts
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Rendered videos wait for your approval in the queue instead
+                  of posting on schedule. Turn this off any time to go fully
+                  autonomous.
+                </span>
+              </span>
+            </label>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </>
   );
 }
@@ -777,4 +822,59 @@ function StepSchedule() {
 function useFormWatch(): Values {
   const { watch } = useFormContext<Values>();
   return watch();
+}
+
+// Plays a short cached sample of the selected voice, synthesized once
+// server-side via GET /api/v1/voices/{voice}/preview.
+function VoicePreviewButton({ voice }: { voice: string }) {
+  const [state, setState] = React.useState<"idle" | "loading" | "playing">(
+    "idle",
+  );
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  async function toggle() {
+    if (state === "playing") {
+      audioRef.current?.pause();
+      setState("idle");
+      return;
+    }
+    setState("loading");
+    try {
+      const audio = new Audio(`/api/proxy/api/v1/voices/${voice}/preview`);
+      audioRef.current = audio;
+      audio.onended = () => setState("idle");
+      audio.onerror = () => {
+        setState("idle");
+        toast.error("Voice preview unavailable");
+      };
+      await audio.play();
+      setState("playing");
+    } catch {
+      setState("idle");
+      toast.error("Voice preview unavailable");
+    }
+  }
+
+  return (
+    <Button
+      aria-label={
+        state === "playing"
+          ? `Stop ${voice} preview`
+          : `Play a sample of the ${voice} voice`
+      }
+      disabled={state === "loading"}
+      onClick={toggle}
+      size="icon-md"
+      type="button"
+      variant="outline"
+    >
+      {state === "loading" ? (
+        <Loader2 className="size-4 animate-spin" aria-hidden />
+      ) : state === "playing" ? (
+        <Square className="size-3.5" aria-hidden />
+      ) : (
+        <Play className="size-4" aria-hidden />
+      )}
+    </Button>
+  );
 }
