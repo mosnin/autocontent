@@ -3,7 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowRight, Clapperboard, Eye, TrendingUp } from "lucide-react";
+import { ArrowRight, Clapperboard, Eye, Film, TrendingUp } from "lucide-react";
+import { AppIcon } from "@/components/ui/app-icon";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -120,8 +121,11 @@ export function LatestVideos() {
         </div>
       )}
 
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold tracking-tight">Latest videos</h2>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <AppIcon color="orange"><Film /></AppIcon>
+          <h2 className="text-lg font-semibold tracking-tight">Latest videos</h2>
+        </div>
         <Button asChild size="sm" variant="ghost">
           <Link href="/queue">
             All jobs

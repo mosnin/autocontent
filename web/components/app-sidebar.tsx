@@ -9,10 +9,12 @@ import {
   LayoutDashboard,
   Link2,
   ListChecks,
+  Plus,
   Settings,
 } from "lucide-react";
 
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -105,27 +107,46 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <Link
-          className="flex items-center gap-2.5 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+          className="flex items-center gap-2.5 px-1.5 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
           href="/dashboard"
         >
-          {/* The closed-loop mark, same as the marketing site. */}
-          <svg
-            aria-hidden
-            className="size-5 shrink-0 text-brand"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-            <path d="M21 3v6h-6" />
-          </svg>
+          {/* Dark rounded chip with the white closed-loop glyph — the
+              reference's logo treatment. */}
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-cat-navy text-white shadow-sm">
+            <svg
+              aria-hidden
+              className="size-4"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
+          </span>
           <span className="truncate font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
             autocontent
           </span>
         </Link>
       </SidebarHeader>
+
+      <div className="px-2 pb-1 group-data-[collapsible=icon]:px-0">
+        <Button
+          asChild
+          className="w-full justify-center bg-card shadow-sm group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
+          size="sm"
+          variant="outline"
+        >
+          <Link href="/onboarding">
+            <Plus className="size-4" />
+            <span className="group-data-[collapsible=icon]:hidden">
+              New channel
+            </span>
+          </Link>
+        </Button>
+      </div>
 
       <SidebarContent>
         <NavGroup items={OPERATE} label="Operate" />

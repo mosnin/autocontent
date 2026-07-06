@@ -7,13 +7,17 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   ArrowRight,
+  DollarSign,
+  Eye,
   Inbox,
+  Layers,
   Link2,
   MoreHorizontal,
   Pencil,
   Play,
   Plus,
   Trash2,
+  Wallet,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { AppIcon } from "@/components/ui/app-icon";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -75,6 +80,10 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     { refreshInterval: POLL_MS, fallbackData: initial.spend },
   );
   const globalCap = initial.globalCap;
+  const { data: metricsSummary } = useSWR<{
+    total_views: number;
+    sampled_videos: number;
+  }>("/api/v1/metrics/summary", clientFetch, { refreshInterval: 60000 });
 
   // Probe Ayrshare status only when the parent told us the route exists
   // (initial.ayrshareConnected !== null).
@@ -166,80 +175,48 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         const remaining = cap !== null ? Math.max(0, cap - spent) : null;
 
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {/* Primary: today's spend against the account cap. */}
-            <Card>
-              <CardContent className="space-y-2 pt-6">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Spent today
-                </p>
-                <p
-                  className={cn(
-                    "font-mono text-3xl font-semibold tabular-nums tracking-tight",
-                    hot ? "text-brand" : "text-foreground",
-                  )}
-                >
-                  {formatUsd(spent)}
-                </p>
-                {cap !== null && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Progress
-                        className={cn(
-                          "h-1.5",
-                          hot && "**:data-[slot=progress-range]:bg-brand",
-                        )}
-                        value={pct}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {formatUsd(spent)} of {formatUsd(cap)} global daily cap
-                      used
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-2 pt-6">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  {cap !== null ? "Cap remaining" : "Global cap"}
-                </p>
-                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight">
-                  {remaining !== null ? formatUsd(remaining) : "—"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {cap !== null ? (
-                    <>of {formatUsd(cap)} today</>
-                  ) : (
-                    <>
-                      No account cap ·{" "}
-                      <Link
-                        className="text-brand hover:underline"
-                        href="/settings"
-                      >
-                        add one
-                      </Link>
-                    </>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-2 pt-6">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Active niches
-                </p>
-                <p className="font-mono text-3xl font-semibold tabular-nums tracking-tight">
-                  {nichesList.length}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  each on its own daily cap
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCard
+              color="green"
+              foot={
+                cap !== null ? `of ${formatUsd(cap)} daily cap` : "no cap set"
+              }
+              icon={<DollarSign />}
+              title="Spent today"
+              tone={hot ? "warn" : undefined}
+              trail={cap !== null ? `${pct}%` : undefined}
+              value={formatUsd(spent)}
+            />
+            <KpiCard
+              color="blue"
+              foot={cap !== null ? "resets at midnight UTC" : undefined}
+              footLink={cap === null ? { href: "/settings", label: "Set a cap" } : undefined}
+              icon={<Wallet />}
+              title="Cap remaining"
+              value={remaining !== null ? formatUsd(remaining) : "—"}
+            />
+            <KpiCard
+              color="navy"
+              foot="each on its own cap"
+              icon={<Layers />}
+              title="Active niches"
+              value={String(nichesList.length)}
+            />
+            <KpiCard
+              color="orange"
+              foot={
+                metricsSummary && metricsSummary.sampled_videos > 0
+                  ? `across ${metricsSummary.sampled_videos} videos`
+                  : "no data yet"
+              }
+              icon={<Eye />}
+              title="Views · 30d"
+              value={
+                metricsSummary
+                  ? fmtCompact(metricsSummary.total_views)
+                  : "—"
+              }
+            />
           </div>
         );
       })()}
@@ -441,6 +418,81 @@ function NicheCard({
           </Link>
         </Button>
       </CardFooter>
+    </Card>
+  );
+}
+
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return String(n);
+}
+
+function KpiCard({
+  color,
+  icon,
+  title,
+  value,
+  foot,
+  footLink,
+  trail,
+  tone,
+}: {
+  color: "green" | "orange" | "blue" | "navy" | "purple";
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  foot?: string;
+  footLink?: { href: string; label: string };
+  trail?: string;
+  tone?: "warn";
+}) {
+  return (
+    <Card className="shadow-sm">
+      <CardContent className="space-y-3 pt-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <AppIcon color={color}>{icon}</AppIcon>
+            <span className="text-sm font-medium text-muted-foreground">
+              {title}
+            </span>
+          </div>
+          <button
+            aria-label={`Options for ${title}`}
+            className="text-muted-foreground/60 transition-colors hover:text-foreground"
+            type="button"
+          >
+            <MoreHorizontal className="size-4" />
+          </button>
+        </div>
+        <p
+          className={cn(
+            "font-mono text-3xl font-semibold tabular-nums tracking-tight",
+            tone === "warn" ? "text-brand" : "text-foreground",
+          )}
+        >
+          {value}
+        </p>
+        <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs">
+          {footLink ? (
+            <Link className="text-brand hover:underline" href={footLink.href}>
+              {footLink.label}
+            </Link>
+          ) : (
+            <span className="text-muted-foreground">{foot ?? "\u00A0"}</span>
+          )}
+          {trail && (
+            <span
+              className={cn(
+                "font-mono tabular-nums",
+                tone === "warn" ? "text-brand" : "text-muted-foreground",
+              )}
+            >
+              {trail}
+            </span>
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 }
