@@ -79,7 +79,7 @@ export const ProgressRange = (
 ) => (
   <ArkProgress.Range
     className={cn(
-      "bg-primary",
+      "bg-accent-blue",
       "transition-all duration-300 ease-out",
       "data-[orientation=horizontal]:h-full",
       "data-[orientation=vertical]:h-full",

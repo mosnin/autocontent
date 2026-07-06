@@ -18,6 +18,25 @@
   --color-brand: hsl(var(--brand));
   --color-brand-foreground: hsl(var(--brand-foreground));
 
+  /* Reference-style category chips + functional blue + page shell. */
+  --color-page: hsl(var(--page));
+  --color-accent-blue: hsl(var(--accent-blue));
+  --color-cat-green: hsl(var(--cat-green));
+  --color-cat-orange: hsl(var(--cat-orange));
+  --color-cat-blue: hsl(var(--cat-blue));
+  --color-cat-purple: hsl(var(--cat-purple));
+  --color-cat-navy: hsl(var(--cat-navy));
+
+  /* Sidebar sits on the warm page; the content floats as a white panel. */
+  --color-sidebar: hsl(var(--page));
+  --color-sidebar-foreground: hsl(var(--foreground));
+  --color-sidebar-accent: hsl(var(--secondary));
+  --color-sidebar-accent-foreground: hsl(var(--foreground));
+  --color-sidebar-border: hsl(var(--border));
+  --color-sidebar-ring: hsl(var(--ring));
+  --color-sidebar-primary: hsl(var(--primary));
+  --color-sidebar-primary-foreground: hsl(var(--primary-foreground));
+
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
 
@@ -61,30 +80,43 @@
 }
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
+  /* Warm-stone light theme — a white content panel floats on this
+     off-white page (see the floating-panel shell in site-shell.tsx). */
+  --page: 40 16% 96%;
+  --background: 40 16% 96%;
+  --foreground: 30 8% 12%;
   --brand: 11 93% 54%;
   --brand-foreground: 0 0% 100%;
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card-foreground: 30 8% 12%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
+  --popover-foreground: 30 8% 12%;
+  /* Primary is near-black — matches the reference's black action button. */
+  --primary: 30 9% 12%;
+  --primary-foreground: 40 20% 98%;
+  --secondary: 40 14% 94%;
+  --secondary-foreground: 30 9% 15%;
+  --muted: 40 14% 95%;
+  --muted-foreground: 33 6% 46%;
+  --accent: 40 14% 95%;
+  --accent-foreground: 30 9% 15%;
+  --destructive: 4 74% 54%;
   --destructive-foreground: var(--color-red-700);
   --success: var(--color-emerald-500);
   --success-foreground: var(--color-emerald-700);
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  --radius: 0.5rem;
+  --border: 36 12% 90%;
+  --input: 36 12% 88%;
+  --ring: 30 9% 12%;
+  --radius: 0.75rem;
+  /* Functional blue — toggles, chart lines, progress fills. */
+  --accent-blue: 217 89% 55%;
+  /* Category chip palette — the colored rounded-square icons on every
+     card header. Green / orange / blue / purple / navy. */
+  --cat-green: 152 56% 42%;
+  --cat-orange: 24 90% 52%;
+  --cat-blue: 217 89% 55%;
+  --cat-purple: 255 70% 62%;
+  --cat-navy: 222 35% 22%;
   /* chart palette */
   --chart-1: 221.2 83.2% 53.3%;
   --chart-2: 212 95% 68%;
@@ -120,10 +152,17 @@
 
 .dark {
   color-scheme: dark;
+  --page: 240 10% 6%;
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
   --brand: 11 100% 60%;
   --brand-foreground: 240 10% 3.9%;
+  --accent-blue: 217 90% 62%;
+  --cat-green: 152 52% 48%;
+  --cat-orange: 24 90% 58%;
+  --cat-blue: 217 90% 62%;
+  --cat-purple: 255 75% 70%;
+  --cat-navy: 222 30% 70%;
   --card: 240 10% 5.5%;
   --card-foreground: 0 0% 98%;
   --popover: 240 10% 3.9%;
