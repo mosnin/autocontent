@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { Check, Inbox, Instagram, Music2, RefreshCw, Youtube } from "lucide-react";
@@ -66,9 +66,17 @@ function relative(iso: string): string {
   return `${day}d ago`;
 }
 
+const FILTERS: Filter[] = ["all", "awaiting", "in_progress", "done", "failed"];
+
 export function QueueClient({ initial }: { initial: Job[] }) {
   const router = useRouter();
-  const [filter, setFilter] = React.useState<Filter>("all");
+  const searchParams = useSearchParams();
+  // Deep links (e.g. the dashboard payoff banner's ?status_filter=done)
+  // land on the right tab instead of silently resetting to "all".
+  const requested = searchParams.get("status_filter");
+  const [filter, setFilter] = React.useState<Filter>(
+    FILTERS.includes(requested as Filter) ? (requested as Filter) : "all",
+  );
 
   const { data, error, mutate } = useSWR<Job[]>(
     "/api/v1/jobs?limit=100",
