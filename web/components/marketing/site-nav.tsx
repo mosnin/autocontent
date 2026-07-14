@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const LINKS = [
   { label: "How it works", href: "#how-it-works" },
@@ -47,6 +54,27 @@ export function SiteNav() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Mobile menu: the inline nav is hidden below `sm`, so expose
+              the same links behind an accessible dropdown on phones. */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                aria-label="Open navigation menu"
+                className="sm:hidden"
+                size="icon"
+                variant="ghost"
+              >
+                <Menu aria-hidden="true" className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="sm:hidden">
+              {LINKS.map((l) => (
+                <DropdownMenuItem asChild key={l.href}>
+                  <a href={l.href}>{l.label}</a>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <SignedIn>
             <Button asChild size="sm">
               <Link href="/dashboard">Dashboard</Link>

@@ -457,13 +457,6 @@ function KpiCard({
               {title}
             </span>
           </div>
-          <button
-            aria-label={`Options for ${title}`}
-            className="text-muted-foreground/60 transition-colors hover:text-foreground"
-            type="button"
-          >
-            <MoreHorizontal className="size-4" />
-          </button>
         </div>
         <p
           className={cn(

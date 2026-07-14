@@ -38,15 +38,24 @@ import type { PersonalAccessToken } from "@/lib/types";
 
 interface Props {
   tokens: PersonalAccessToken[];
-  freshToken: string | null;
 }
 
-export function TokensClient({ tokens, freshToken }: Props) {
-  const [createState, createFormAction] = useActionState<ActionState, FormData>(
-    createTokenAction,
-    EMPTY_STATE,
-  );
+type CreateTokenState = ActionState & { token?: string };
+
+export function TokensClient({ tokens }: Props) {
+  const [createState, createFormAction] = useActionState<
+    CreateTokenState,
+    FormData
+  >(createTokenAction, EMPTY_STATE);
   const [open, setOpen] = React.useState(false);
+
+  // The plaintext token lives only in the action state — never in the
+  // URL — and is rendered once here after a successful create.
+  const freshToken = createState.ok ? (createState.token ?? null) : null;
+
+  React.useEffect(() => {
+    if (createState.ok && createState.token) setOpen(false);
+  }, [createState]);
 
   async function copy(text: string) {
     try {

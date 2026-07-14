@@ -257,9 +257,9 @@ export async function archiveNicheAction(
 }
 
 export async function createTokenAction(
-  _prev: ActionState,
+  _prev: ActionState & { token?: string },
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState & { token?: string }> {
   const name = String(formData.get("name") || "").trim();
   if (!name) return { ok: false, error: "name required" };
   const expRaw = String(formData.get("expires_in_days") || "").trim();
@@ -280,9 +280,10 @@ export async function createTokenAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/settings/tokens");
-  // The plaintext is shown exactly once via the query param. We could
-  // use cookies but they leak via cache; the URL is fine for a short hop.
-  redirect(`/settings/tokens?just_created=${encodeURIComponent(plaintext)}`);
+  // The plaintext is returned in the action state and rendered
+  // client-side exactly once — it must never enter the URL, logs, or
+  // browser history.
+  return { ok: true, token: plaintext };
 }
 
 export async function revokeTokenAction(

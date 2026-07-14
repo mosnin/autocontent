@@ -80,7 +80,7 @@ export function CommandPalette() {
           <CommandItem onSelect={() => go("/connect")}>
             <Link2 className="text-muted-foreground" /> Connect socials
           </CommandItem>
-          <CommandItem onSelect={() => go("/settings/tokens")}>
+          <CommandItem onSelect={() => go("/settings")}>
             <Settings className="text-muted-foreground" /> Settings
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>

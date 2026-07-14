@@ -207,7 +207,7 @@ export default async function JobDetailPage({
             </CardHeader>
             <CardContent>
               {videoPath ? (
-                <div className="aspect-video w-full max-w-full overflow-hidden rounded-lg border bg-black">
+                <div className="mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-lg border bg-black">
                   <video
                     controls
                     preload="metadata"
