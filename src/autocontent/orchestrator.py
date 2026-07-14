@@ -17,42 +17,43 @@ from .agents import (
     build_visual_director_agent,
     build_qa_agent,
 )
-from .config import settings
-from .models import Idea, Script
+from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
+from .models import Idea, Niche, Script
 from .agents.qa import QAReport
 
 
-async def run_ideation(niche: str) -> Idea:
-    agent = build_ideation_agent()
-    result = await Runner.run(agent, input=f"Niche: {niche}")
-    return result.final_output_as(Idea)
-
-
-async def run_scriptwriter(idea: Idea) -> Script:
+async def run_scriptwriter(idea: Idea, *, scene_count: int, target_duration_sec: int) -> Script:
     agent = build_scriptwriter_agent()
     prompt = (
         f"Idea:\n{idea.model_dump_json(indent=2)}\n\n"
-        f"Target: {settings.scene_count} scenes, "
-        f"{settings.target_duration_sec}s total."
+        f"Target: {scene_count} scenes, {target_duration_sec}s total."
     )
     result = await Runner.run(agent, input=prompt)
     return result.final_output_as(Script)
 
 
-async def run_visual_director(script: Script) -> Script:
+async def run_visual_director(script: Script, *, visual_style: str) -> Script:
     agent = build_visual_director_agent()
-    result = await Runner.run(agent, input=script.model_dump_json())
+    payload = {"style": visual_style, "script": script.model_dump()}
+    import json
+    result = await Runner.run(agent, input=json.dumps(payload))
     return result.final_output_as(Script)
 
 
-async def run_qa(script: Script, transcript: str, duration_sec: float) -> QAReport:
+async def run_qa(
+    script: Script,
+    transcript: str,
+    duration_sec: float,
+    *,
+    niche: Niche,
+) -> QAReport:
     agent = build_qa_agent()
     payload = {
         "script": script.model_dump(),
         "transcript": transcript,
         "duration_sec": duration_sec,
-        "target_duration_sec": settings.target_duration_sec,
-        "niche": settings.niche,
+        "target_duration_sec": niche.target_duration_sec,
+        "niche": niche.title,
     }
     import json
 

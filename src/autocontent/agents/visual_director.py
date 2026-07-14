@@ -10,12 +10,13 @@ from agents import Agent
 from ..models import Script
 
 VISUAL_DIRECTOR_INSTRUCTIONS = """You are a visual director.
-Read the supplied Script and rewrite every scene's `visual_prompt` and
-`motion_prompt` so the resulting video has a SINGLE, COHESIVE look.
+Input is JSON: {"style": "<style brief>", "script": <Script>}.
+
+Rewrite every scene's `visual_prompt` and `motion_prompt` so the resulting
+video has a SINGLE, COHESIVE look that matches the supplied style.
 
 Rules:
-- Pick ONE style (e.g. "soft 3D claymation, pastel palette, studio lighting")
-  and prefix every visual_prompt with it.
+- Prefix every visual_prompt with the supplied style verbatim.
 - If a recurring character appears, give them a fixed description repeated
   verbatim every scene (clothing, hair, build) so DALL-E renders consistently.
 - Keep aspect ratio cues for 9:16 vertical.
