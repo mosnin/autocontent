@@ -4,7 +4,7 @@ import os
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -27,7 +27,7 @@ async def list_jobs(
     ctx: AuthCtx = CurrentUser,
     status_filter: JobStatus | None = None,
     niche_id: UUID | None = None,
-    limit: int = 50,
+    limit: int = Query(default=50, ge=1, le=200),
 ) -> list[Job]:
     return await jobs_repo.list_for_user(
         ctx.user_id, status=status_filter, niche_id=niche_id, limit=limit
@@ -48,11 +48,27 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     poll GET /{job_id} for status."""
     import modal
 
+    from marketer.repos import niches as niches_repo
+
+    # Ownership/existence check up front: without it a foreign or
+    # nonexistent niche_id inserts a spurious row (or 500s on the FK)
+    # and only fails later, inside the Modal container.
+    niche = await niches_repo.get(body.niche_id, user_id=ctx.user_id)
+    if niche is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+    if body.platform not in niche.platforms:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"platform {body.platform} not enabled for this niche",
+        )
+
     job = await jobs_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, platform=body.platform
     )
-    fn = modal.Function.from_name("marketer", "run_pipeline")
-    fn.spawn(ctx.user_id, str(body.niche_id), body.platform)
+    fn = modal.Function.from_name("marketer-sh", "run_pipeline")
+    # Pass the job id so the pipeline reuses THIS row — otherwise the id
+    # we just returned to the client never leaves `queued`.
+    fn.spawn(ctx.user_id, str(body.niche_id), body.platform, str(job.id))
     return job
 
 
@@ -103,15 +119,19 @@ async def approve_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     rendered video and marks the job done."""
     import modal
 
-    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    # Atomic claim: exactly one approve call transitions the row out of
+    # awaiting_approval, so a double-click can't spawn two schedulers
+    # (and two social posts).
+    job = await jobs_repo.claim_for_scheduling(job_id, user_id=ctx.user_id)
     if job is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
-    if job.status != JobStatus.awaiting_approval:
+        existing = await jobs_repo.get(job_id, user_id=ctx.user_id)
+        if existing is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            detail=f"job is {job.status.value}, not awaiting_approval",
+            detail=f"job is {existing.status.value}, not awaiting_approval",
         )
-    fn = modal.Function.from_name("marketer", "finish_scheduling")
+    fn = modal.Function.from_name("marketer-sh", "finish_scheduling")
     fn.spawn(ctx.user_id, str(job_id))
     return job
 
@@ -147,6 +167,7 @@ async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
             status.HTTP_409_CONFLICT,
             detail="job not found, not owned, or not in failed state",
         )
-    fn = modal.Function.from_name("marketer", "run_pipeline")
-    fn.spawn(ctx.user_id, str(job.niche_id), job.platform)
+    fn = modal.Function.from_name("marketer-sh", "run_pipeline")
+    # Reuse the job's own row: the retried id is the id that progresses.
+    fn.spawn(ctx.user_id, str(job.niche_id), job.platform, str(job.id))
     return job

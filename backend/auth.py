@@ -13,7 +13,8 @@ Rate limiting on auth failures
 When either the PAT or JWT branch rejects a bearer token we consume one token
 from a per-IP bucket (20 failures / minute) via the shared slowapi limiter.
 This ensures brute-force PAT enumeration is throttled even before any route
-decorator fires.  The bucket key is the raw remote address so it cannot be
+decorator fires.  The bucket key is the client IP (first X-Forwarded-For hop behind the
+ingress, else the socket peer) so it cannot be
 bypassed by rotating bearer strings.
 """
 from __future__ import annotations
@@ -24,7 +25,6 @@ import jwt
 from fastapi import Depends, HTTPException, Request, status
 from jwt import PyJWKClient
 from limits import parse as parse_limit
-from slowapi.util import get_remote_address
 
 from marketer.config import settings
 from marketer.repos import tokens as tokens_repo
@@ -68,9 +68,9 @@ def _consume_failure_token(request: Request) -> None:
     if not hasattr(request, "client"):
         return
 
-    from .rate_limit import limiter  # local import avoids circular dependency
+    from .rate_limit import client_ip, limiter  # local import avoids circular dependency
 
-    ip = get_remote_address(request)
+    ip = client_ip(request)
     allowed = limiter.limiter.hit(_AUTH_FAILURE_LIMIT, ip, _AUTH_FAILURE_SCOPE)
     if not allowed:
         raise HTTPException(
@@ -95,16 +95,26 @@ async def _resolve_pat(token: str, request: Request) -> AuthCtx:
 async def _resolve_clerk_jwt(token: str, request: Request) -> AuthCtx:
     try:
         signing_key = _jwks().get_signing_key_from_jwt(token).key
+        # aud is verified when MARKETER_CLERK_AUDIENCE is configured;
+        # issuer when MARKETER_CLERK_ISSUER is. Both should be set in
+        # production — otherwise any RS256 token from the same JWKS
+        # (e.g. minted for a different frontend on the same Clerk
+        # instance) is accepted.
         claims = jwt.decode(
             token,
             signing_key,
             algorithms=["RS256"],
             issuer=settings.clerk_issuer or None,
-            options={"verify_aud": False},
+            audience=settings.clerk_audience or None,
+            options={"verify_aud": bool(settings.clerk_audience)},
         )
     except jwt.PyJWTError as e:
         _consume_failure_token(request)
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {e}") from e
+        # Don't echo library internals to the client; log them instead.
+        import logging
+
+        logging.getLogger(__name__).info("JWT rejected: %s", e)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token") from e
 
     user_id = claims.get("sub")
     email = claims.get("email") or claims.get("primary_email_address") or ""

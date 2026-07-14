@@ -144,20 +144,20 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context=""):
+    async def fake_ideation(title, *, performance_context="", spend=None):
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style):
+    async def fake_visual_director(script, *, visual_style, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 
@@ -291,17 +291,20 @@ async def test_scriptwriter_failure_marks_job_failed(monkeypatch, stub_all):
         raise RuntimeError("scriptwriter exploded")
     monkeypatch.setattr(pipeline, "run_scriptwriter", boom)
 
-    with pytest.raises(RuntimeError, match="scriptwriter exploded"):
-        await pipeline.run_job(
-            user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
-        )
+    # The terminal backstop converts unhandled stage exceptions into a
+    # failed job (no more unretryable zombie rows stuck mid-status).
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.failed
+    assert "scriptwriter exploded" in (job.error or "")
 
-    # The job snapshot taken right before the failing call should still
-    # have been persisted; check the last saved state.
+    # The terminal state must also be what was persisted — a failed job
+    # the queue can retry, not a row stranded at `scripting`.
     saved = stub_all["saved"]
     final_state = next(iter(saved.values()))
-    # Last persisted status before exception was `scripting`.
-    assert final_state.status == JobStatus.scripting
+    assert final_state.status == JobStatus.failed
+    assert "scriptwriter exploded" in (final_state.error or "")
 
 
 async def test_spend_cap_overshoot_during_fan_out(monkeypatch, stub_all, stage_log):
@@ -331,7 +334,7 @@ async def test_spend_cap_overshoot_during_fan_out(monkeypatch, stub_all, stage_l
 
 
 async def test_qa_failure_marks_job_failed(monkeypatch, stub_all):
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(
             passed=False, issues=["off-topic", "low energy"],
             suggested_action="regenerate_script",

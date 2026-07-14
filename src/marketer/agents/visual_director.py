@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from agents import Agent
 
+from ..config import settings
 from ..models import Script
 
 VISUAL_DIRECTOR_INSTRUCTIONS = """You are a visual director.
@@ -29,6 +30,7 @@ Do not change narration or duration_sec.
 
 def build_visual_director_agent() -> Agent:
     return Agent(
+        model=settings.agent_model,
         name="VisualDirector",
         instructions=VISUAL_DIRECTOR_INSTRUCTIONS,
         output_type=Script,

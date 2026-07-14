@@ -53,13 +53,20 @@ app = modal.App(APP_NAME, image=image, secrets=secrets)
     timeout=60 * 60,
     concurrency_limit=_settings.pipeline_global_concurrency,
 )
-async def run_pipeline(user_id: str, niche_id: str, platform: str) -> dict:
+async def run_pipeline(
+    user_id: str, niche_id: str, platform: str, job_id: str | None = None
+) -> dict:
     from uuid import UUID
     from marketer.pipeline import run_job
     from marketer.services.otel import force_flush
 
     try:
-        job = await run_job(user_id=user_id, niche_id=UUID(niche_id), platform=platform)
+        job = await run_job(
+            user_id=user_id,
+            niche_id=UUID(niche_id),
+            platform=platform,
+            job_id=UUID(job_id) if job_id else None,
+        )
         artifacts.commit()
         return job.model_dump(mode="json")
     finally:
@@ -117,15 +124,52 @@ async def prewarm_voice_previews() -> dict:
 
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
-    schedule=modal.Cron("*/30 * * * *"),  # poll every 30 min; per-niche windows decide
-    timeout=60 * 60 * 3,
+    timeout=60 * 60 * 3,  # sequential platforms: up to 3 renders back-to-back
 )
-async def nightly_batch() -> list[dict]:
-    """Walk every user's active niches and spawn one Job per niche
-    whose next posting window falls within the next ~30 min."""
-    import asyncio
+async def run_niche_window(user_id: str, niche_id: str, platforms: list[str]) -> list[dict]:
+    """Run one niche's posting window: every configured platform,
+    sequentially, inside a single container.
+
+    Sequential matters: the per-niche advisory lock means concurrent
+    per-platform spawns would race it and mark all but one `skipped` —
+    a multi-platform niche would silently post to a single platform
+    every window, forever.
+    """
+    from uuid import UUID
+    from marketer.pipeline import run_job
+    from marketer.services.otel import force_flush
+
+    results: list[dict] = []
+    try:
+        for platform in platforms:
+            job = await run_job(
+                user_id=user_id, niche_id=UUID(niche_id), platform=platform
+            )
+            results.append(job.model_dump(mode="json"))
+        artifacts.commit()
+        return results
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    schedule=modal.Cron("*/30 * * * *"),  # poll every 30 min; per-niche windows decide
+    timeout=60 * 10,
+)
+async def nightly_batch() -> dict:
+    """Walk every user's active niches and spawn one window-run per niche
+    whose next posting window falls within the next ~30 min.
+
+    Spawns (fire-and-forget) rather than awaiting: the cron container
+    should not sit blocked for the length of the slowest render, and one
+    failed pipeline must not poison the batch. An idempotency guard skips
+    niches that already have a live job, so an overlapping or delayed
+    cron tick can't double-enqueue the same window.
+    """
     from datetime import datetime, timedelta, timezone
     from marketer.db import get_pool
+    from marketer.repos import jobs as jobs_repo
     from marketer.repos import niches as niches_repo
 
     pool = await get_pool()
@@ -133,7 +177,8 @@ async def nightly_batch() -> list[dict]:
     now = datetime.now(timezone.utc)
     horizon = now + timedelta(minutes=30)
 
-    coros = []
+    spawned = 0
+    skipped = 0
     for r in rows:
         user_id = r["id"]
         for niche in await niches_repo.list_for_user(user_id):
@@ -142,16 +187,37 @@ async def nightly_batch() -> list[dict]:
             # tomorrow's instance closer than today's). The horizon is
             # still 30 min, but we evaluate each window across 0..7 days
             # and let the comparison decide.
-            for offset in range(0, 8):
-                day = now + timedelta(days=offset)
-                for w in niche.posting_windows:
-                    slot = w.at(day).astimezone(timezone.utc)
-                    if now <= slot < horizon:
-                        for platform in niche.platforms:
-                            coros.append(run_pipeline.remote.aio(
-                                user_id, str(niche.id), platform
-                            ))
-    return list(await asyncio.gather(*coros)) if coros else []
+            due = any(
+                now <= w.at(now + timedelta(days=offset)).astimezone(timezone.utc) < horizon
+                for offset in range(0, 8)
+                for w in niche.posting_windows
+            )
+            if not due:
+                continue
+            if await jobs_repo.has_active_for_niche(niche.id, within_minutes=45):
+                skipped += 1
+                continue
+            run_niche_window.spawn(user_id, str(niche.id), list(niche.platforms))
+            spawned += 1
+    return {"spawned": spawned, "skipped_active": skipped}
+
+
+@app.function(
+    schedule=modal.Cron("15 * * * *"),  # hourly, offset from other crons
+    timeout=60 * 5,
+)
+async def reap_stale_jobs() -> dict:
+    """Fail jobs stuck in a non-terminal status with no progress for 2h+
+    (crashed or timed-out containers strand them there, unretryable)."""
+    import logging
+    from marketer.repos import jobs as jobs_repo
+
+    reaped = await jobs_repo.reap_stale(older_than_minutes=120)
+    if reaped:
+        logging.getLogger(__name__).error(
+            "reaped %d stale job(s) — a container died or timed out mid-run", reaped
+        )
+    return {"reaped": reaped}
 
 
 @app.function(
@@ -285,11 +351,11 @@ async def daily_analytics_sync() -> dict:
                 provider_post_id=provider_post_id,
                 platform=platform,
                 sampled_at=now,
-                views=_int("views") or _int("videoViews"),
+                views=_int("views") if _int("views") is not None else _int("videoViews"),
                 likes=_int("likes"),
                 comments=_int("comments"),
                 shares=_int("shares"),
-                saves=_int("saves") or _int("saved"),
+                saves=_int("saves") if _int("saves") is not None else _int("saved"),
                 watch_time_sec=_dec("totalWatchTime"),
                 avg_watch_time_sec=_dec("averageWatchTime"),
                 completion_rate=_dec("completionRate"),
@@ -313,17 +379,22 @@ async def daily_analytics_sync() -> dict:
             )
             errors += 1
 
-    await asyncio.gather(*[
-        _sync_one(
-            r["id"],
-            r["user_id"],
-            r["platform"],
-            r["provider_post_id"],
-        )
-        for r in rows
-    ])
+    # Bound the fan-out so a large backlog doesn't hammer Ayrshare's
+    # rate limits and turn the whole sync into 429 noise.
+    sem = asyncio.Semaphore(5)
 
-    logger.info("daily_analytics_sync complete: ok=%d errors=%d", ok, errors)
+    async def _bounded(r) -> None:
+        async with sem:
+            await _sync_one(r["id"], r["user_id"], r["platform"], r["provider_post_id"])
+
+    await asyncio.gather(*[_bounded(r) for r in rows])
+
+    if errors and not ok:
+        # Total failure must be loud (ERROR crosses the Sentry threshold);
+        # a warning here means a 100%-failing sync is invisible for weeks.
+        logger.error("daily_analytics_sync failed entirely: errors=%d", errors)
+    else:
+        logger.info("daily_analytics_sync complete: ok=%d errors=%d", ok, errors)
     return {"synced": ok, "errors": errors, "total": len(rows)}
 
 

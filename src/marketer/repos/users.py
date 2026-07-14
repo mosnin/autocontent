@@ -13,7 +13,11 @@ async def upsert(user_id: str, email: str) -> User:
     row = await pool.fetchrow(
         """
         insert into users (id, email) values ($1, $2)
-        on conflict (id) do update set email = excluded.email
+        -- Never let a token without an email claim (default Clerk session
+        -- tokens) blank out a stored address on every request.
+        on conflict (id) do update
+            set email = case when excluded.email <> '' then excluded.email
+                             else users.email end
         returning id, email, ayrshare_profile_key, global_daily_cap_usd, created_at
         """,
         user_id,

@@ -10,8 +10,11 @@ from __future__ import annotations
 
 from typing import Literal
 
-from agents import Agent, Runner
+from agents import Agent
 from pydantic import BaseModel, Field
+
+from ..config import settings
+from .metered import run_metered
 
 # Voices the TTS layer supports — the model must pick one of these.
 _VOICES = "alloy, echo, fable, onyx, nova, shimmer, ash, sage, coral"
@@ -58,14 +61,15 @@ class NicheDraft(BaseModel):
 
 def build_niche_draft_agent() -> Agent:
     return Agent(
+        model=settings.agent_model,
         name="NicheDraft",
         instructions=DRAFT_INSTRUCTIONS,
         output_type=NicheDraft,
     )
 
 
-async def draft_niche(description: str) -> NicheDraft:
+async def draft_niche(description: str, *, spend=None) -> NicheDraft:
     """Turn a one-line channel description into a full draft spec."""
     agent = build_niche_draft_agent()
-    result = await Runner.run(agent, input=f"Channel description: {description}")
+    result = await run_metered(agent, f"Channel description: {description}", spend=spend)
     return result.final_output_as(NicheDraft)

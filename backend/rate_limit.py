@@ -2,10 +2,14 @@
 
 Keying strategy
 ---------------
-When a bearer token is present we key on *that token* so per-PAT limits are
-accurate even behind a CDN that shares a single egress IP.  When there is no
-bearer (public endpoints, pre-auth failures) we fall back to the raw remote
-address so anonymous clients are still throttled.
+Buckets are keyed on the *client IP*, resolved from ``X-Forwarded-For``
+(first hop) when present — behind Modal's ingress the socket peer is the
+proxy, so keying on the raw remote address collapses every tenant into
+one shared bucket.
+
+We deliberately do NOT key on the bearer token: the Authorization header
+is attacker-controlled input, and keying on it hands every client a
+fresh bucket per rotated string — nullifying the limiter entirely.
 
 Redis vs. in-process
 --------------------
@@ -23,11 +27,18 @@ from slowapi.util import get_remote_address
 from marketer.config import settings
 
 
-def _limit_key(request: Request) -> str:
-    auth = request.headers.get("authorization", "")
-    if auth:
-        return auth  # key on the full "Bearer <token>" string
+def client_ip(request: Request) -> str:
+    """Best-effort real client IP: first X-Forwarded-For hop, else peer."""
+    xff = request.headers.get("x-forwarded-for", "")
+    if xff:
+        first = xff.split(",")[0].strip()
+        if first:
+            return first
     return get_remote_address(request)
+
+
+def _limit_key(request: Request) -> str:
+    return client_ip(request)
 
 
 _limiter_kwargs: dict = {

@@ -95,20 +95,41 @@ def test_create_token_rate_limit_same_bearer(monkeypatch):
     assert statuses[5] == 429
 
 
-def test_create_token_different_bearers_not_shared(monkeypatch):
-    """Different bearer tokens each get their own 5/minute bucket."""
+def test_create_token_bearer_rotation_shares_ip_bucket(monkeypatch):
+    """Rotating bearer strings must NOT mint fresh buckets — the limiter
+    keys on client IP, so a client spraying unique bearers still trips the
+    5/minute route limit. (Keying on the Authorization header would let an
+    attacker bypass every limit by rotating it.)"""
     _reset_limiter()
     client = _make_authed_app(monkeypatch)
 
     payload = {"name": "test-token"}
     statuses = []
     for i in range(6):
-        # A unique bearer per request → each hits a fresh bucket.
         headers = {"Authorization": f"Bearer mkt_uniquebearer{i:04d}xyz"}
         resp = client.post("/api/v1/tokens", json=payload, headers=headers)
         statuses.append(resp.status_code)
 
-    assert 429 not in statuses, f"Got unexpected 429 with unique bearers: {statuses}"
+    assert statuses.count(429) >= 1, f"Bearer rotation bypassed the IP bucket: {statuses}"
+
+
+def test_create_token_distinct_client_ips_not_shared(monkeypatch):
+    """Distinct clients (different X-Forwarded-For hops) get their own
+    buckets — one tenant's burst can't 429 another's."""
+    _reset_limiter()
+    client = _make_authed_app(monkeypatch)
+
+    payload = {"name": "test-token"}
+    statuses = []
+    for i in range(6):
+        headers = {
+            "Authorization": "Bearer mkt_samebearerXXXXXXXX",
+            "X-Forwarded-For": f"203.0.113.{i}",
+        }
+        resp = client.post("/api/v1/tokens", json=payload, headers=headers)
+        statuses.append(resp.status_code)
+
+    assert 429 not in statuses, f"Got unexpected 429 across distinct IPs: {statuses}"
 
 
 # ---------------------------------------------------------------------------

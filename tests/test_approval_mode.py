@@ -75,12 +75,12 @@ def test_approve_spawns_finish_scheduling(client, monkeypatch):
 
     job = _job()
 
-    async def fake_get(job_id, *, user_id):
+    async def fake_claim(job_id, *, user_id):
         assert user_id == "user_a"
         return job
 
     from marketer.repos import jobs as jobs_repo
-    monkeypatch.setattr(jobs_repo, "get", fake_get)
+    monkeypatch.setattr(jobs_repo, "claim_for_scheduling", fake_claim)
 
     spawned: list[tuple] = []
 
@@ -104,10 +104,14 @@ def test_approve_spawns_finish_scheduling(client, monkeypatch):
 def test_approve_conflicts_when_not_awaiting(client, monkeypatch):
     job = _job(status=JobStatus.done)
 
+    async def fake_claim(job_id, *, user_id):
+        return None  # not awaiting_approval → claim loses
+
     async def fake_get(job_id, *, user_id):
         return job
 
     from marketer.repos import jobs as jobs_repo
+    monkeypatch.setattr(jobs_repo, "claim_for_scheduling", fake_claim)
     monkeypatch.setattr(jobs_repo, "get", fake_get)
 
     resp = client.post(

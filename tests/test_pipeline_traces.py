@@ -172,7 +172,7 @@ def stub_pipeline(monkeypatch, tmp_path: Path):
         return root
     monkeypatch.setattr(pipeline, "ensure_layout", fake_layout)
 
-    async def fake_ideation(title, *, performance_context: str = ""):
+    async def fake_ideation(title, *, performance_context: str = "", spend=None):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
@@ -180,15 +180,15 @@ def stub_pipeline(monkeypatch, tmp_path: Path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_perf_ctx)
 
-    async def fake_script(idea, *, scene_count, target_duration_sec):
+    async def fake_script(idea, *, scene_count, target_duration_sec, spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_script)
 
-    async def fake_vd(script, *, visual_style):
+    async def fake_vd(script, *, visual_style, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 
@@ -321,8 +321,9 @@ async def test_exception_in_stage_records_error_status(in_memory_provider, monke
 
     monkeypatch.setattr(pipeline, "run_scriptwriter", boom)
 
-    with pytest.raises(RuntimeError, match="scripting exploded"):
-        await pipeline.run_job(user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok")
+    job = await pipeline.run_job(user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok")
+    assert job.status.value == "failed"
+    assert "scripting exploded" in (job.error or "")
 
     spans = in_memory_provider.get_finished_spans()
     # Both the stage span and the root span should be ERROR.

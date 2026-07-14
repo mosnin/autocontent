@@ -49,7 +49,7 @@ def _get_database_url() -> str:
     if not url:
         print(
             "ERROR: database URL not configured. "
-            "Set MARKETER_DATABASE_URL or MARKETER_DATABASE_URL in your environment.",
+            "Set MARKETER_DATABASE_URL in your environment.",
             file=sys.stderr,
         )
         sys.exit(1)

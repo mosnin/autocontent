@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 from agents import Agent
 
+from ..config import settings
+
 
 class QAReport(BaseModel):
     passed: bool
@@ -32,6 +34,7 @@ Otherwise pass. Be strict but not pedantic.
 
 def build_qa_agent() -> Agent:
     return Agent(
+        model=settings.agent_model,
         name="QA",
         instructions=QA_INSTRUCTIONS,
         output_type=QAReport,

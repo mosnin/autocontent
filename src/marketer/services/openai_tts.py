@@ -41,12 +41,21 @@ def _wav_duration_seconds(path: Path) -> float:
         return frames / float(rate) if rate else 0.0
 
 
+# Only the provider call is retried; the cap pre-flight and spend
+# recording run exactly once (retrying them re-spends or retries
+# SpendCapExceeded past the daily cap).
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
     retry=retry_if_exception_type(Exception),
 )
+async def _call_api(out_path: Path, kwargs: dict) -> None:
+    client = _get_client()
+    async with client.audio.speech.with_streaming_response.create(**kwargs) as response:
+        await response.stream_to_file(out_path)
+
+
 async def synthesize(
     text: str,
     out_path: Path,
@@ -57,7 +66,6 @@ async def synthesize(
 ) -> Path:
     if spend is not None:
         await spend.ensure_can_spend(tts_cost_estimated(len(text)))
-    client = _get_client()
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     kwargs: dict = {
@@ -69,8 +77,7 @@ async def synthesize(
     if style_directions:
         kwargs["instructions"] = style_directions
 
-    async with client.audio.speech.with_streaming_response.create(**kwargs) as response:
-        await response.stream_to_file(out_path)
+    await _call_api(out_path, kwargs)
 
     if spend is not None:
         seconds = _wav_duration_seconds(out_path)

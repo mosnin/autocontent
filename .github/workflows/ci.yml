@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# One run per ref: a push to a PR branch supersedes the in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   python:
     name: Python (ruff + pytest)

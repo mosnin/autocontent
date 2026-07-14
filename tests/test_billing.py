@@ -150,6 +150,7 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
         "data": {
             "object": {
                 "id": "cs_test_123",
+                "payment_status": "paid",
                 "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
             }
         },

@@ -185,6 +185,15 @@ def test_enqueue_job_returns_202(monkeypatch):
 
     monkeypatch.setattr(jobs_repo, "create", _create)
 
+    # Enqueue now verifies niche ownership before creating the row.
+    import marketer.repos.niches as niches_repo
+    from types import SimpleNamespace
+
+    async def _niche_get(niche_id, *, user_id):
+        return SimpleNamespace(id=niche_id, platforms=["tiktok", "reels", "shorts"])
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+
     # Stub out modal so we don't import the real thing.
     class _FakeFunction:
         @staticmethod

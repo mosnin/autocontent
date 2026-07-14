@@ -128,21 +128,25 @@ async def top_performers_for_niche(
 ) -> list[tuple[UUID, int]]:
     """Return [(job_id, views), ...] for the top N jobs by views in window.
 
-    Joins post_metrics against jobs to scope by niche and user.  Jobs with
-    no view data are skipped (NULLS LAST with a NOT NULL filter).
+    Uses each job's LATEST sample only (one row per job): metrics are
+    sampled daily, so ranking raw rows lets a single viral job fill every
+    slot with its 30 samples.
     """
     pool = await get_pool()
     rows = await pool.fetch(
         """
-        select pm.job_id, pm.views
-          from post_metrics pm
-          join jobs j on j.id = pm.job_id
-         where j.niche_id = $1
-           and j.user_id = $2
-           and pm.views is not null
-           and pm.sampled_at >= now() - ($3 || ' days')::interval
-         order by pm.views desc nulls last
-         limit $4
+        select job_id, views from (
+            select distinct on (pm.job_id) pm.job_id, pm.views
+              from post_metrics pm
+              join jobs j on j.id = pm.job_id
+             where j.niche_id = $1
+               and j.user_id = $2
+               and pm.views is not null
+               and pm.sampled_at >= now() - ($3 || ' days')::interval
+             order by pm.job_id, pm.sampled_at desc
+        ) latest
+        order by views desc
+        limit $4
         """,
         niche_id,
         user_id,
@@ -161,20 +165,26 @@ async def bottom_performers_for_niche(
 ) -> list[tuple[UUID, int]]:
     """Return [(job_id, views), ...] for the bottom N jobs by views in window.
 
-    Identical to ``top_performers_for_niche`` but ordered ascending.
+    Identical to ``top_performers_for_niche`` but ordered ascending. Using
+    the latest sample per job matters even more here: raw rows would fill
+    the "what flopped" list with day-1 samples of posts that later did
+    fine, systematically feeding the ideation loop a false signal.
     """
     pool = await get_pool()
     rows = await pool.fetch(
         """
-        select pm.job_id, pm.views
-          from post_metrics pm
-          join jobs j on j.id = pm.job_id
-         where j.niche_id = $1
-           and j.user_id = $2
-           and pm.views is not null
-           and pm.sampled_at >= now() - ($3 || ' days')::interval
-         order by pm.views asc nulls last
-         limit $4
+        select job_id, views from (
+            select distinct on (pm.job_id) pm.job_id, pm.views
+              from post_metrics pm
+              join jobs j on j.id = pm.job_id
+             where j.niche_id = $1
+               and j.user_id = $2
+               and pm.views is not null
+               and pm.sampled_at >= now() - ($3 || ' days')::interval
+             order by pm.job_id, pm.sampled_at desc
+        ) latest
+        order by views asc
+        limit $4
         """,
         niche_id,
         user_id,

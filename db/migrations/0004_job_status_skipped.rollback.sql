@@ -1,0 +1,4 @@
+-- Intentionally empty: Postgres cannot remove a value from an enum type.
+-- Rows with status='skipped' would also block a re-create. Rolling back
+-- past 0004 requires a manual enum rebuild; this file exists so yoyo can
+-- record the rollback step (see db/README.md).

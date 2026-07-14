@@ -10,10 +10,22 @@ from marketer.services.openai_pricing import (
 
 
 def test_image_cost_per_quality():
-    assert image_cost("low") == Decimal("0.011")
-    assert image_cost("medium") == Decimal("0.042")
-    assert image_cost("high") == Decimal("0.167")
-    assert image_cost("medium", n_images=6) == Decimal("0.252")
+    # Default size is the portrait 1024x1536 the pipeline renders — billed
+    # at its own (higher) tier, NOT the square tier.
+    assert image_cost("low") == Decimal("0.016")
+    assert image_cost("medium") == Decimal("0.063")
+    assert image_cost("high") == Decimal("0.25")
+    assert image_cost("medium", n_images=6) == Decimal("0.378")
+    # Square tier still available explicitly.
+    assert image_cost("low", size="1024x1024") == Decimal("0.011")
+    assert image_cost("medium", size="1024x1024") == Decimal("0.042")
+    assert image_cost("high", size="1024x1024") == Decimal("0.167")
+
+
+def test_image_cost_unknown_size_raises():
+    import pytest
+    with pytest.raises(ValueError):
+        image_cost("medium", size="512x512")
 
 
 def test_image_cost_unknown_quality_raises():

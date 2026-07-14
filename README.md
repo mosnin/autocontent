@@ -24,7 +24,7 @@ Autonomous short-form content creation system optimized for hook-driven, educati
 - **TTS**: OpenAI TTS
 - **Transcription**: OpenAI Whisper
 - **Video**: ffmpeg
-- **Storage**: Modal volumes for clips/assets, SQLite metadata
+- **Storage**: Modal volumes for clips/assets, Supabase Postgres metadata
 
 ## Multi-tenant
 
@@ -61,12 +61,20 @@ modal_app.py           # Modal entry: run_pipeline, nightly_batch, api (ASGI)
 ## Running
 
 ```bash
-# 1. Apply schema
-psql "$MARKETER_DATABASE_URL" -f db/migrations/0001_init.sql
+# 0. Configure env (see .env.example) — MARKETER_DATABASE_URL at minimum.
 
-# 2. Deploy Modal app (pipeline + FastAPI)
+# 1. Apply all migrations via the yoyo runner (never psql a single file —
+#    that bypasses yoyo's bookkeeping and breaks later `marketer-migrate up`).
+modal run modal_app.py::apply_migrations        # or locally: marketer-migrate up
+
+# 2. Deploy the Modal app (pipeline + FastAPI)
 modal deploy modal_app.py
 
-# 3. Start web UI
+# 3. Pre-warm onboarding voice previews (one-time)
+modal run modal_app.py::prewarm_voice_previews
+
+# 4. Start the web UI
 cd web && npm install && npm run dev
 ```
+
+See `db/README.md` for the full migration workflow (status, rollback, CI gate).

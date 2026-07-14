@@ -37,12 +37,26 @@ def _audio_duration_seconds(path: Path) -> float:
         return 0.0
 
 
+# Only the provider call is retried; the cap pre-flight and spend
+# recording run exactly once (retrying them re-spends or retries
+# SpendCapExceeded past the daily cap).
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
     retry=retry_if_exception_type(Exception),
 )
+async def _call_api(audio_path: Path):
+    client = _get_client()
+    with audio_path.open("rb") as fp:
+        return await client.audio.transcriptions.create(
+            model=SKU,
+            file=fp,
+            response_format="verbose_json",
+            timestamp_granularities=["word"],
+        )
+
+
 async def transcribe_word_level(
     audio_path: Path,
     *,
@@ -51,14 +65,7 @@ async def transcribe_word_level(
     """Returns a list of {"word", "start", "end"} dicts."""
     if spend is not None:
         await spend.ensure_can_spend(whisper_cost(_audio_duration_seconds(audio_path)))
-    client = _get_client()
-    with audio_path.open("rb") as fp:
-        result = await client.audio.transcriptions.create(
-            model=SKU,
-            file=fp,
-            response_format="verbose_json",
-            timestamp_granularities=["word"],
-        )
+    result = await _call_api(audio_path)
 
     raw = getattr(result, "words", None) or []
     words: list[dict] = []

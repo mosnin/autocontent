@@ -15,8 +15,17 @@ class Settings(BaseSettings):
     # Clerk JWT verification.
     clerk_jwks_url: str = ""
     clerk_issuer: str = ""
+    # When set, JWT `aud` is verified against this value. Set it in
+    # production so tokens minted for another frontend on the same Clerk
+    # instance are rejected.
+    clerk_audience: str = ""
 
     aspect: str = "9:16"
+
+    # Model used by every Agents-SDK stage (ideation, scriptwriter,
+    # visual director, QA, niche draft). Pinned explicitly so LLM spend
+    # is priceable — an SDK default bump would silently change COGS.
+    agent_model: str = "gpt-5.4-mini"
 
     # Comma-separated list of origins allowed by the FastAPI CORS middleware.
     # If empty/unset we fall back to "*" with credentials disabled.

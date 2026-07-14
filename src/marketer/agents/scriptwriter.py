@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from agents import Agent
 
+from ..config import settings
 from ..models import Script
 
 SCRIPTWRITER_INSTRUCTIONS = """You are a short-form script director.
@@ -32,6 +33,7 @@ Educational rules:
 
 def build_scriptwriter_agent() -> Agent:
     return Agent(
+        model=settings.agent_model,
         name="Scriptwriter",
         instructions=SCRIPTWRITER_INSTRUCTIONS,
         output_type=Script,

@@ -38,6 +38,17 @@ async def update_me(
 
     from marketer.repos import users as users_repo
 
+    # Only forward fields the client actually sent: the repo's `...`
+    # sentinel distinguishes "omitted" from "explicit null". Without this,
+    # PATCH {} would silently clear the user's spend-cap safety net.
+    if "global_daily_cap_usd" not in body.model_fields_set:
+        from marketer.repos.users import get as get_user
+
+        current = await get_user(ctx.user_id)
+        if current is None:
+            raise HTTPException(status_code=404, detail="user not found")
+        return current
+
     updated = await users_repo.update_settings(
         ctx.user_id,
         global_daily_cap_usd=body.global_daily_cap_usd,

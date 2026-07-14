@@ -67,8 +67,8 @@ def test_configure_with_dsn_calls_sentry_init_once(monkeypatch):
 
 
 def test_fail_with_calls_capture_exception(monkeypatch):
-    """_fail_with should invoke sentry_sdk.capture_exception so failed job
-    pipeline stages are forwarded to Sentry."""
+    """_fail_with forwards failures to Sentry: capture_message when only a
+    string is known, capture_exception when the exception object is passed."""
     from uuid import uuid4, UUID
     from marketer.models import Job, JobStatus
     from marketer.config import settings
@@ -102,5 +102,8 @@ def test_fail_with_calls_capture_exception(monkeypatch):
 
         import asyncio
         asyncio.run(pipeline_mod._fail_with(job, "test error"))
+        # With an exception object, capture_exception is used instead.
+        asyncio.run(pipeline_mod._fail_with(job, "boom", RuntimeError("boom")))
 
+    assert mock_sentry.capture_message.called
     assert mock_sentry.capture_exception.called

@@ -7,6 +7,11 @@ Two entry points:
 - `generate_reference(...)` produces a stand-alone character/style sheet.
 
 Returns the saved path; records a spend_ledger row when given a context.
+
+Retry policy: only the provider API call is retried. The cap pre-flight,
+spend recording, and decode/save steps run exactly once — a retry there
+would double-spend (the API charges on success) or, worse, retry
+`SpendCapExceeded` and blow past the daily cap.
 """
 from __future__ import annotations
 
@@ -48,6 +53,33 @@ def _decode_b64_to(path: Path, b64: str) -> Path:
     wait=wait_exponential(multiplier=2, min=2, max=16),
     retry=retry_if_exception_type(Exception),
 )
+async def _call_api(
+    prompt: str,
+    *,
+    quality: str,
+    size: str,
+    reference_image_path: Path | None,
+):
+    client = _get_client()
+    if reference_image_path is not None:
+        with reference_image_path.open("rb") as fp:
+            return await client.images.edit(
+                model=SKU,
+                image=fp,
+                prompt=prompt,
+                size=size,
+                quality=quality,
+                n=1,
+            )
+    return await client.images.generate(
+        model=SKU,
+        prompt=prompt,
+        size=size,
+        quality=quality,
+        n=1,
+    )
+
+
 async def generate_keyframe(
     prompt: str,
     out_path: Path,
@@ -60,29 +92,14 @@ async def generate_keyframe(
     """Generate one keyframe; if `reference_image_path` is provided, pass
     it as an input so the model preserves the established look."""
     if spend is not None:
-        await spend.ensure_can_spend(image_cost(quality))
-    client = _get_client()
-    if reference_image_path is not None:
-        with reference_image_path.open("rb") as fp:
-            result = await client.images.edit(
-                model=SKU,
-                image=fp,
-                prompt=prompt,
-                size=size,
-                quality=quality,
-                n=1,
-            )
-    else:
-        result = await client.images.generate(
-            model=SKU,
-            prompt=prompt,
-            size=size,
-            quality=quality,
-            n=1,
-        )
+        await spend.ensure_can_spend(image_cost(quality, size=size))
+    result = await _call_api(
+        prompt, quality=quality, size=size, reference_image_path=reference_image_path
+    )
 
-    _decode_b64_to(out_path, result.data[0].b64_json)
-    cost = image_cost(quality)
+    # The API charged us the moment the call above succeeded — record the
+    # spend before decoding so a local failure can't undercount the ledger.
+    cost = image_cost(quality, size=size)
     span = trace.get_current_span()
     span.set_attribute("openai.sku", SKU)
     span.set_attribute("openai.image_quality", quality)
@@ -94,6 +111,7 @@ async def generate_keyframe(
             units=Decimal(1),
             cost_usd=cost,
         )
+    _decode_b64_to(out_path, result.data[0].b64_json)
     return out_path
 
 

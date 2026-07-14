@@ -42,6 +42,86 @@ async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
     return job
 
 
+_REAPABLE_STATUSES = (
+    "queued", "ideating", "scripting", "generating_images", "animating",
+    "voicing", "editing", "captioning", "qa", "scheduling",
+)
+
+_REAP_ERROR = "reaped: no progress (container died or timed out mid-run)"
+
+
+async def reap_stale(*, older_than_minutes: int = 120) -> int:
+    """Fail every job stuck in a non-terminal status with no progress for
+    *older_than_minutes*. A crashed/timed-out Modal container otherwise
+    strands its job in `generating_images`/`scheduling`/… forever —
+    unretryable (retry requires `failed`) and invisible to alerts.
+
+    `awaiting_approval` is deliberately not reaped: parking there is the
+    approval feature, not staleness. Both the columns and the payload
+    snapshot are updated so payload-reading list endpoints agree.
+    """
+    pool = await get_pool()
+    result = await pool.execute(
+        """
+        update jobs
+           set status = 'failed',
+               error = $2,
+               payload = jsonb_set(
+                   jsonb_set(payload, '{status}', '"failed"'),
+                   '{error}', to_jsonb($2::text))
+         where status = any($1::job_status[])
+           and updated_at < now() - make_interval(mins => $3)
+        """,
+        list(_REAPABLE_STATUSES),
+        _REAP_ERROR,
+        older_than_minutes,
+    )
+    # asyncpg returns e.g. "UPDATE 3"
+    return int(result.split()[-1])
+
+
+async def has_active_for_niche(niche_id: UUID, *, within_minutes: int = 45) -> bool:
+    """True if the niche already has a live (non-terminal) job created
+    recently — used by the batch scheduler as an idempotency guard so an
+    overlapping/delayed cron tick doesn't double-enqueue the same window."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        select 1 from jobs
+         where niche_id = $1
+           and status = any($2::job_status[])
+           and created_at > now() - make_interval(mins => $3)
+         limit 1
+        """,
+        niche_id,
+        list(_REAPABLE_STATUSES),
+        within_minutes,
+    )
+    return row is not None
+
+
+async def claim_for_scheduling(job_id: UUID, *, user_id: str) -> Job | None:
+    """Atomically move an `awaiting_approval` job to `scheduling`.
+
+    The approve endpoint is check-then-spawn; two rapid clicks both read
+    `awaiting_approval` and spawn two schedulers → two social posts. This
+    single UPDATE ... WHERE status filter makes exactly one caller win.
+    Returns the claimed Job, or None if the job wasn't claimable.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        update jobs
+           set status = 'scheduling',
+               payload = jsonb_set(payload, '{status}', '"scheduling"')
+         where id = $1 and user_id = $2 and status = 'awaiting_approval'
+        returning payload
+        """,
+        job_id, user_id,
+    )
+    return Job.model_validate(json.loads(row["payload"])) if row else None
+
+
 async def save_snapshot(job: Job) -> None:
     """Persist the in-memory Job to the row. Called after each pipeline stage."""
     pool = await get_pool()
@@ -84,7 +164,16 @@ async def list_for_user(
         niche_id,
         limit,
     )
-    return [Job.model_validate(json.loads(r["payload"])) for r in rows]
+    jobs: list[Job] = []
+    for r in rows:
+        # One corrupt snapshot must not 500 the whole listing for the user.
+        try:
+            jobs.append(Job.model_validate(json.loads(r["payload"])))
+        except Exception:
+            import logging
+
+            logging.getLogger(__name__).exception("unparseable job payload; skipping row")
+    return jobs
 
 
 async def get(job_id: UUID, *, user_id: str) -> Job | None:

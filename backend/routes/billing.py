@@ -7,6 +7,7 @@ session id makes retries no-ops).
 """
 from __future__ import annotations
 
+import logging
 from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -17,6 +18,8 @@ from marketer.models import CreditTransaction
 from marketer.repos import billing as billing_repo
 
 from ..auth import AuthCtx, CurrentUser
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -129,8 +132,18 @@ async def stripe_webhook(request: Request) -> dict:
             status.HTTP_401_UNAUTHORIZED, detail=f"invalid webhook: {e}"
         ) from e
 
-    if event["type"] == "checkout.session.completed":
+    if event["type"] in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
         session = event["data"]["object"]
+        # `completed` fires before funds settle for delayed payment
+        # methods (payment_status="unpaid"); crediting then would grant
+        # balance for money that may never arrive. Those sessions credit
+        # on the later `async_payment_succeeded` event instead.
+        if session.get("payment_status") != "paid":
+            logger.info(
+                "checkout session %s not yet paid (payment_status=%s); awaiting settlement",
+                session.get("id"), session.get("payment_status"),
+            )
+            return {"ok": True}
         meta = session.get("metadata") or {}
         user_id = meta.get("user_id")
         credit = meta.get("credit_usd")
@@ -141,5 +154,19 @@ async def stripe_webhook(request: Request) -> dict:
                 checkout_session_id=session["id"],
                 description="credit pack purchase",
             )
+        else:
+            # A paid session we can't attribute is money taken with no
+            # credit granted — this must never be silent.
+            logger.error(
+                "paid checkout session %s missing user_id/credit_usd metadata; "
+                "credit NOT granted — reconcile manually",
+                session.get("id"),
+            )
+    elif event["type"] == "checkout.session.async_payment_failed":
+        session = event["data"]["object"]
+        logger.warning(
+            "async payment failed for checkout session %s (user_id=%s)",
+            session.get("id"), (session.get("metadata") or {}).get("user_id"),
+        )
 
     return {"ok": True}

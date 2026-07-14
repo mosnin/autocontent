@@ -164,19 +164,50 @@ async def _notify(job: Job, *, kind: str) -> None:
         log.warning("notification failed", extra={"error": str(e)})
 
 
-async def _fail_with(job: Job, error: str) -> Job:
+async def _fail_with(job: Job, error: str, exc: BaseException | None = None) -> Job:
     job.status = JobStatus.failed
     job.error = error
     await _persist(job)
     try:
         import sentry_sdk
-        sentry_sdk.capture_exception()
+        if exc is not None:
+            sentry_sdk.capture_exception(exc)
+        else:
+            sentry_sdk.capture_message(f"job {job.id} failed: {error}", level="error")
     except Exception:  # sentry not installed or not initialised — never block the pipeline
         pass
     return job
 
 
-async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
+async def _obtain_job(
+    *, user_id: str, niche_id: UUID, platform: str, job_id: UUID | None
+) -> Job:
+    """Reuse the caller's job row when one was already created (enqueue /
+    retry pass it through), else create one. Reusing keeps the id the API
+    handed to the client as the id that actually progresses — previously
+    the pipeline always created a second row and the first sat `queued`
+    forever."""
+    if job_id is not None:
+        job = await jobs_repo.get(job_id, user_id=user_id)
+        if job is not None:
+            # Restart from a clean slate: a retried job carries stale
+            # script/clip state from the failed attempt.
+            job.status = JobStatus.queued
+            job.error = None
+            job.script = None
+            job.clips = []
+            job.rendered = None
+            job.scheduled_for = None
+            job.provider_post_id = None
+            await _persist(job)
+            return job
+        log.warning("job %s not found for reuse; creating fresh row", job_id)
+    return await jobs_repo.create(user_id=user_id, niche_id=niche_id, platform=platform)
+
+
+async def run_job(
+    *, user_id: str, niche_id: UUID, platform: str, job_id: UUID | None = None
+) -> Job:
     niche = await niches_repo.get(niche_id, user_id=user_id)
     if niche is None:
         raise ValueError(f"niche {niche_id} not found for user {user_id}")
@@ -185,11 +216,11 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
 
     async with niche_lock(niche_id) as got_niche:
         if not got_niche:
-            # Another container is already working this niche — create a
-            # visible job row so users can see the skip in the queue UI,
-            # then return immediately without touching any provider.
-            job = await jobs_repo.create(
-                user_id=user_id, niche_id=niche_id, platform=platform
+            # Another container is already working this niche — mark the
+            # job skipped (visibly, in the queue UI) without touching any
+            # provider.
+            job = await _obtain_job(
+                user_id=user_id, niche_id=niche_id, platform=platform, job_id=job_id
             )
             job.status = JobStatus.skipped
             job.error = "niche already running in another job"
@@ -203,8 +234,8 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
         async with user_lock(
             user_id, max_parallel=settings.pipeline_per_user_concurrency
         ):
-            job = await jobs_repo.create(
-                user_id=user_id, niche_id=niche_id, platform=platform
+            job = await _obtain_job(
+                user_id=user_id, niche_id=niche_id, platform=platform, job_id=job_id
             )
             root = ensure_layout(f"{user_id}/{job.id}")
             spend = await default_context(
@@ -224,9 +255,14 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
                     try:
                         result = await _run_job_inner(job, niche, platform, root, spend)
                     except Exception as exc:
+                        # Terminal backstop: without this, any unhandled
+                        # provider/ffmpeg/LLM failure strands the row in a
+                        # non-terminal status forever (unretryable zombie).
                         span.record_exception(exc)
                         span.set_status(trace.StatusCode.ERROR, str(exc))
-                        raise
+                        return await _fail_with(
+                            job, f"{type(exc).__name__}: {exc}", exc
+                        )
                     span.set_attribute("marketer.job_status", result.status.value)
                     return result
 
@@ -250,7 +286,9 @@ async def _run_job_inner(
             user_id=job.user_id,
             lookback_days=30,
         )
-        idea = await run_ideation(niche.title, performance_context=perf_ctx)
+        idea = await run_ideation(
+            niche.title, performance_context=perf_ctx, spend=spend
+        )
 
     # 2. Script + visual direction
     with _stage(JobStatus.scripting.value):
@@ -260,8 +298,11 @@ async def _run_job_inner(
             idea,
             scene_count=niche.scene_count,
             target_duration_sec=niche.target_duration_sec,
+            spend=spend,
         )
-        script = await run_visual_director(script, visual_style=niche.visual_style)
+        script = await run_visual_director(
+            script, visual_style=niche.visual_style, spend=spend
+        )
         job.script = script
         (root / "script.json").write_text(script.model_dump_json(indent=2))
 
@@ -380,7 +421,9 @@ async def _run_job_inner(
         job.status = JobStatus.qa
         await _persist(job)
         transcript = " ".join(w["word"] for w in words)
-        report = await run_qa(script, transcript, script.total_duration_sec, niche=niche)
+        report = await run_qa(
+            script, transcript, script.total_duration_sec, niche=niche, spend=spend
+        )
         if not report.passed:
             return await _fail_with(job, "; ".join(report.issues))
 
@@ -434,8 +477,13 @@ async def schedule_approved_job(*, user_id: str, job_id: UUID) -> Job:
     job = await jobs_repo.get(job_id, user_id=user_id)
     if job is None:
         raise ValueError(f"job {job_id} not found for user {user_id}")
-    if job.status != JobStatus.awaiting_approval:
+    # The approve endpoint atomically claims the row into `scheduling`
+    # before spawning us; accept awaiting_approval too for direct
+    # invocation (modal run / tests).
+    if job.status not in (JobStatus.awaiting_approval, JobStatus.scheduling):
         raise ValueError(f"job {job_id} is {job.status}, not awaiting_approval")
+    if job.provider_post_id:
+        raise ValueError(f"job {job_id} already has a scheduled post")
     niche = await niches_repo.get(job.niche_id, user_id=user_id)
     if niche is None:
         raise ValueError(f"niche {job.niche_id} not found for user {user_id}")

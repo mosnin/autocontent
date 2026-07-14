@@ -10,9 +10,12 @@ angles that already resonated.
 """
 from __future__ import annotations
 
-from agents import Agent, Runner
+from agents import Agent
 
+from ..config import settings
+from .metered import run_metered
 from ..models import Idea
+from ..services.spend_context import SpendContext  # noqa: TC001 — used in signature
 
 IDEATION_INSTRUCTIONS = """You are an expert short-form content strategist.
 Given a niche, produce ONE Idea optimized for educational short-form video.
@@ -37,6 +40,7 @@ _PERF_PREAMBLE = (
 
 def build_ideation_agent() -> Agent:
     return Agent(
+        model=settings.agent_model,
         name="Ideation",
         instructions=IDEATION_INSTRUCTIONS,
         output_type=Idea,
@@ -57,7 +61,12 @@ def build_ideation_prompt(niche_title: str, *, performance_context: str = "") ->
     return f"{_PERF_PREAMBLE}{performance_context}\n\n{base}"
 
 
-async def run_ideation(niche_title: str, *, performance_context: str = "") -> Idea:
+async def run_ideation(
+    niche_title: str,
+    *,
+    performance_context: str = "",
+    spend: "SpendContext | None" = None,
+) -> Idea:
     """Run the ideation agent and return a single :class:`~marketer.models.Idea`.
 
     When *performance_context* is non-empty (built by
@@ -68,5 +77,5 @@ async def run_ideation(niche_title: str, *, performance_context: str = "") -> Id
     """
     agent = build_ideation_agent()
     prompt = build_ideation_prompt(niche_title, performance_context=performance_context)
-    result = await Runner.run(agent, input=prompt)
+    result = await run_metered(agent, prompt, spend=spend)
     return result.final_output_as(Idea)
