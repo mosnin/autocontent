@@ -86,7 +86,7 @@ async def generate_keyframe(
     span = trace.get_current_span()
     span.set_attribute("openai.sku", SKU)
     span.set_attribute("openai.image_quality", quality)
-    span.set_attribute("autocontent.cost_usd", str(cost))
+    span.set_attribute("marketer.cost_usd", str(cost))
     if spend is not None:
         await spend.log(
             provider=PROVIDER,

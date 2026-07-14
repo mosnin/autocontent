@@ -59,7 +59,7 @@ def _shell(body: str) -> str:
         'max-width:480px;margin:0 auto;padding:32px 24px;color:#18181b">'
         f"{body}"
         '<p style="margin-top:32px;font-size:12px;color:#71717a">'
-        "autocontent — the content machine that ships itself</p></div>"
+        "marketer — the content machine that ships itself</p></div>"
     )
 
 

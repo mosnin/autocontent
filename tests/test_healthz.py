@@ -24,7 +24,7 @@ def _make_client(monkeypatch) -> TestClient:
     """Return a TestClient with rate-limiter resets so tests are isolated."""
     # Patch settings *before* importing the app so the rate_limit module
     # picks up the stub values.
-    from autocontent.config import settings
+    from marketer.config import settings
 
     # Ensure JWKS URL looks set by default so we can toggle it per-test.
     # (Each test that needs it missing can set it to "" locally.)
@@ -55,7 +55,7 @@ def test_healthz_always_200(monkeypatch):
 
 def test_healthz_deep_all_healthy(monkeypatch):
     """When DB and Clerk JWKS are reachable, deep probe returns 200."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "openai_api_key", "sk-test")
@@ -118,7 +118,7 @@ def test_healthz_deep_all_healthy(monkeypatch):
 
 def test_healthz_deep_db_failure(monkeypatch):
     """When get_pool raises, deep probe returns 503 with db.ok=False."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
 
@@ -168,7 +168,7 @@ def test_healthz_deep_db_failure(monkeypatch):
 def test_healthz_deep_jwks_failure(monkeypatch):
     """When the JWKS HEAD request fails, deep probe returns 503."""
     import httpx as httpx_real
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
 
@@ -217,7 +217,7 @@ def test_healthz_deep_jwks_failure(monkeypatch):
 
 def test_healthz_deep_optional_key_missing_still_200(monkeypatch):
     """Missing optional API keys must not degrade the overall status."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "openai_api_key", "")  # missing — should be "configured: false"

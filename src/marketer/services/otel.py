@@ -13,7 +13,7 @@ Supported vendors (set endpoint + headers accordingly):
   Honeycomb:   endpoint=https://api.honeycomb.io/
                headers=x-honeycomb-team=<api-key>
   Axiom:       endpoint=https://api.axiom.co/
-               headers=authorization=Bearer <token>,x-axiom-dataset=autocontent
+               headers=authorization=Bearer <token>,x-axiom-dataset=marketer
   Datadog:     endpoint=https://otlp.datadoghq.com/
                headers=DD-API-KEY=<key>
   Tempo:       endpoint=http://localhost:4318/  (no headers needed)
@@ -52,7 +52,7 @@ def _parse_headers(raw: str) -> dict[str, str]:
 def init_tracing() -> None:
     """Idempotent.
 
-    If ``AUTOCONTENT_OTEL_EXPORTER_OTLP_ENDPOINT`` is set, configure the
+    If ``MARKETER_OTEL_EXPORTER_OTLP_ENDPOINT`` is set, configure the
     global ``TracerProvider`` with an ``OTLPSpanExporter`` pointed at it
     and activate FastAPI / httpx / asyncpg auto-instrumentations.
 
@@ -70,14 +70,14 @@ def init_tracing() -> None:
 
     endpoint = settings.otel_exporter_otlp_endpoint.strip()
     if not endpoint:
-        log.debug("otel.disabled (AUTOCONTENT_OTEL_EXPORTER_OTLP_ENDPOINT not set)")
+        log.debug("otel.disabled (MARKETER_OTEL_EXPORTER_OTLP_ENDPOINT not set)")
         return
 
     # ── Build resource ────────────────────────────────────────────────────
     from opentelemetry.sdk.resources import Resource  # noqa: PLC0415
 
     try:
-        version = importlib.metadata.version("autocontent")
+        version = importlib.metadata.version("marketer-sh")
     except importlib.metadata.PackageNotFoundError:
         version = "dev"
 

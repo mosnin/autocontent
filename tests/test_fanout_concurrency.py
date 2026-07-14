@@ -10,9 +10,9 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from autocontent import pipeline
-from autocontent.agents.qa import QAReport
-from autocontent.models import (
+from marketer import pipeline
+from marketer.agents.qa import QAReport
+from marketer.models import (
     Clip,
     Idea,
     Job,
@@ -130,7 +130,7 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline.spend_repo, "record", fake_record)
 
     # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
 
     async def fake_users_get(user_id: str):

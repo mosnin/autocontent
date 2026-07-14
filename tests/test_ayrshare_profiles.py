@@ -5,12 +5,12 @@ import json
 import httpx
 import pytest
 
-from autocontent.services import ayrshare_profiles
+from marketer.services import ayrshare_profiles
 
 
 @pytest.fixture(autouse=True)
 def _ayrshare_key(monkeypatch):
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_api_key", "ayr-test")
 
 
@@ -132,9 +132,9 @@ async def test_generate_login_jwt_missing_url_raises(patch_async_client):
 
 
 async def test_missing_api_key_raises(monkeypatch, patch_async_client):
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_api_key", "")
     patch_async_client(_profiles_transport(captured={}, response={}))
 
-    with pytest.raises(RuntimeError, match="AUTOCONTENT_AYRSHARE_API_KEY"):
+    with pytest.raises(RuntimeError, match="MARKETER_AYRSHARE_API_KEY"):
         await ayrshare_profiles.create_profile(title="x")

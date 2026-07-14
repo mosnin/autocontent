@@ -2,7 +2,7 @@ from decimal import Decimal
 
 import pytest
 
-from autocontent.services.openai_pricing import (
+from marketer.services.openai_pricing import (
     image_cost,
     tts_cost,
     whisper_cost,

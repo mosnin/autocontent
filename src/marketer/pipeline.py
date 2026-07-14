@@ -63,7 +63,7 @@ def _stage(name: str) -> Iterator[None]:
     """
     tracer = otel.get_tracer(__name__)
     with tracer.start_as_current_span(f"pipeline.stage.{name}") as span:
-        span.set_attribute("autocontent.stage", name)
+        span.set_attribute("marketer.stage", name)
         log.info("stage.start", extra={"stage": name})
         started = time.monotonic()
         try:
@@ -216,10 +216,10 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
 
             tracer = otel.get_tracer(__name__)
             with tracer.start_as_current_span("pipeline.run_job") as span:
-                span.set_attribute("autocontent.user_id", user_id)
-                span.set_attribute("autocontent.niche_id", str(niche_id))
-                span.set_attribute("autocontent.platform", platform)
-                span.set_attribute("autocontent.job_id", str(job.id))
+                span.set_attribute("marketer.user_id", user_id)
+                span.set_attribute("marketer.niche_id", str(niche_id))
+                span.set_attribute("marketer.platform", platform)
+                span.set_attribute("marketer.job_id", str(job.id))
                 with job_context(job_id=job.id, user_id=user_id, niche_id=niche_id):
                     try:
                         result = await _run_job_inner(job, niche, platform, root, spend)
@@ -227,7 +227,7 @@ async def run_job(*, user_id: str, niche_id: UUID, platform: str) -> Job:
                         span.record_exception(exc)
                         span.set_status(trace.StatusCode.ERROR, str(exc))
                         raise
-                    span.set_attribute("autocontent.job_status", result.status.value)
+                    span.set_attribute("marketer.job_status", result.status.value)
                     return result
 
 

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from autocontent.services import openai_images
+from marketer.services import openai_images
 
 
 PNG_BYTES = (

@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from autocontent.services import openai_whisper
+from marketer.services import openai_whisper
 
 
 def _write_silence_wav(path: Path, seconds: float = 60.0, rate: int = 16000) -> None:

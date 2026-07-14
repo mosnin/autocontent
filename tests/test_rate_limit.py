@@ -31,7 +31,7 @@ def _make_authed_app(monkeypatch, *, user_id: str = "user_test") -> TestClient:
     every request is considered authenticated.  Token-repo calls are stubbed so
     the create_token route doesn't hit the DB.
     """
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
@@ -42,8 +42,8 @@ def _make_authed_app(monkeypatch, *, user_id: str = "user_test") -> TestClient:
         return AuthCtx(user_id=user_id, email="test@example.com")
 
     # Stub token repo calls used by POST /api/v1/tokens.
-    from autocontent.repos import tokens as tokens_repo
-    from autocontent.models import PersonalAccessToken
+    from marketer.repos import tokens as tokens_repo
+    from marketer.models import PersonalAccessToken
     from datetime import datetime, timezone
     from uuid import uuid4
 
@@ -52,11 +52,11 @@ def _make_authed_app(monkeypatch, *, user_id: str = "user_test") -> TestClient:
             id=uuid4(),
             user_id=user_id,
             name=name,
-            prefix="act_test",
+            prefix="mkt_test",
             created_at=datetime.now(timezone.utc),
             expires_at=expires_at,
         )
-        return info, "act_testplaintext123456"
+        return info, "mkt_testplaintext123456"
 
     async def _fake_list(user_id):
         return []
@@ -81,7 +81,7 @@ def test_create_token_rate_limit_same_bearer(monkeypatch):
     _reset_limiter()
     client = _make_authed_app(monkeypatch)
 
-    headers = {"Authorization": "Bearer act_samebearertokenXX"}
+    headers = {"Authorization": "Bearer mkt_samebearertokenXX"}
     payload = {"name": "test-token"}
 
     statuses = []
@@ -104,7 +104,7 @@ def test_create_token_different_bearers_not_shared(monkeypatch):
     statuses = []
     for i in range(6):
         # A unique bearer per request → each hits a fresh bucket.
-        headers = {"Authorization": f"Bearer act_uniquebearer{i:04d}xyz"}
+        headers = {"Authorization": f"Bearer mkt_uniquebearer{i:04d}xyz"}
         resp = client.post("/api/v1/tokens", json=payload, headers=headers)
         statuses.append(resp.status_code)
 
@@ -120,7 +120,7 @@ def test_list_tokens_rate_limit(monkeypatch):
     _reset_limiter()
     client = _make_authed_app(monkeypatch)
 
-    headers = {"Authorization": "Bearer act_listbearertokenXX"}
+    headers = {"Authorization": "Bearer mkt_listbearertokenXX"}
     statuses = []
     for _ in range(31):
         resp = client.get("/api/v1/tokens", headers=headers)
@@ -139,13 +139,13 @@ def test_invalid_bearer_throttled_after_20_failures(monkeypatch):
     """Hitting any endpoint with an invalid bearer ≥20 times triggers 429."""
     _reset_limiter()
 
-    from autocontent.config import settings
+    from marketer.config import settings
 
     # Use the real auth path (not stubbed) with a PAT prefix so _resolve_pat runs.
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
 
     # Stub token lookup to always return None (unknown token).
-    from autocontent.repos import tokens as tokens_repo
+    from marketer.repos import tokens as tokens_repo
 
     async def _not_found(_token):
         return None
@@ -157,7 +157,7 @@ def test_invalid_bearer_throttled_after_20_failures(monkeypatch):
     app = create_app()
     client = TestClient(app, raise_server_exceptions=False)
 
-    headers = {"Authorization": "Bearer act_invalidtokenXXXX"}
+    headers = {"Authorization": "Bearer mkt_invalidtokenXXXX"}
     statuses = []
     for _ in range(25):
         # Any protected endpoint will trigger auth; /api/v1/tokens is convenient.

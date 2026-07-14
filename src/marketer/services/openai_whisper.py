@@ -72,7 +72,7 @@ async def transcribe_word_level(
         span = trace.get_current_span()
         span.set_attribute("openai.sku", SKU)
         span.set_attribute("openai.audio_seconds", round(seconds, 4))
-        span.set_attribute("autocontent.cost_usd", str(cost))
+        span.set_attribute("marketer.cost_usd", str(cost))
         await spend.log(
             provider=PROVIDER,
             sku=SKU,

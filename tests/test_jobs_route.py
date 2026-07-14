@@ -12,7 +12,7 @@ from uuid import UUID
 
 from fastapi.testclient import TestClient
 
-from autocontent.models import Job, JobStatus
+from marketer.models import Job, JobStatus
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -45,7 +45,7 @@ def _reset_limiter():
 
 
 def _make_authed_client(monkeypatch) -> TestClient:
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -67,7 +67,7 @@ def _make_authed_client(monkeypatch) -> TestClient:
 def test_list_jobs_returns_200(monkeypatch):
     """GET /jobs returns 200 with list (possibly empty)."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     async def _list(user_id: str, *, status=None, niche_id=None, limit: int = 50):
         return [_make_job()]
@@ -75,7 +75,7 @@ def test_list_jobs_returns_200(monkeypatch):
     monkeypatch.setattr(jobs_repo, "list_for_user", _list)
 
     client = _make_authed_client(monkeypatch)
-    resp = client.get("/api/v1/jobs", headers={"Authorization": "Bearer act_tok"})
+    resp = client.get("/api/v1/jobs", headers={"Authorization": "Bearer mkt_tok"})
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -85,7 +85,7 @@ def test_list_jobs_returns_200(monkeypatch):
 def test_list_jobs_with_status_filter(monkeypatch):
     """status_filter query param is forwarded to the repo."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     received_status: list = []
 
@@ -98,7 +98,7 @@ def test_list_jobs_with_status_filter(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         "/api/v1/jobs?status_filter=done",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     assert received_status[0] == JobStatus.done
@@ -107,7 +107,7 @@ def test_list_jobs_with_status_filter(monkeypatch):
 def test_list_jobs_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -124,7 +124,7 @@ def test_list_jobs_without_auth_returns_401(monkeypatch):
 def test_get_job_returns_200_for_owned(monkeypatch):
     """Owned job → 200."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     job = _make_job()
 
@@ -136,7 +136,7 @@ def test_get_job_returns_200_for_owned(monkeypatch):
     monkeypatch.setattr(jobs_repo, "get", _get)
 
     client = _make_authed_client(monkeypatch)
-    resp = client.get(f"/api/v1/jobs/{_JOB_ID}", headers={"Authorization": "Bearer act_tok"})
+    resp = client.get(f"/api/v1/jobs/{_JOB_ID}", headers={"Authorization": "Bearer mkt_tok"})
     assert resp.status_code == 200
     assert resp.json()["id"] == str(_JOB_ID)
 
@@ -144,7 +144,7 @@ def test_get_job_returns_200_for_owned(monkeypatch):
 def test_get_job_returns_404_for_other_user(monkeypatch):
     """Job owned by another user → 404."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     async def _get(job_id: UUID, *, user_id: str) -> Job | None:
         return None
@@ -152,14 +152,14 @@ def test_get_job_returns_404_for_other_user(monkeypatch):
     monkeypatch.setattr(jobs_repo, "get", _get)
 
     client = _make_authed_client(monkeypatch)
-    resp = client.get(f"/api/v1/jobs/{_JOB_ID}", headers={"Authorization": "Bearer act_tok"})
+    resp = client.get(f"/api/v1/jobs/{_JOB_ID}", headers={"Authorization": "Bearer mkt_tok"})
     assert resp.status_code == 404
 
 
 def test_get_job_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -176,7 +176,7 @@ def test_get_job_without_auth_returns_401(monkeypatch):
 def test_enqueue_job_returns_202(monkeypatch):
     """Valid POST /jobs → 202 Accepted with queued job."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     job = _make_job(status=JobStatus.queued)
 
@@ -204,7 +204,7 @@ def test_enqueue_job_returns_202(monkeypatch):
     resp = client.post(
         "/api/v1/jobs",
         json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 202
     assert resp.json()["status"] == "queued"
@@ -213,7 +213,7 @@ def test_enqueue_job_returns_202(monkeypatch):
 def test_enqueue_job_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -233,7 +233,7 @@ def test_enqueue_job_without_auth_returns_401(monkeypatch):
 def test_retry_failed_job_returns_202(monkeypatch):
     """Retry a failed job → 202 with queued status."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     retried_job = _make_job(status=JobStatus.queued)
 
@@ -260,7 +260,7 @@ def test_retry_failed_job_returns_202(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.post(
         f"/api/v1/jobs/{_JOB_ID}/retry",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 202
     assert resp.json()["status"] == "queued"
@@ -269,7 +269,7 @@ def test_retry_failed_job_returns_202(monkeypatch):
 def test_retry_non_failed_job_returns_409(monkeypatch):
     """Retry a job not in failed state → 409 Conflict."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     # Repo returns None when job is not in failed state.
     async def _reset(job_id: UUID, *, user_id: str) -> Job | None:
@@ -280,7 +280,7 @@ def test_retry_non_failed_job_returns_409(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.post(
         f"/api/v1/jobs/{_JOB_ID}/retry",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 409
 
@@ -288,7 +288,7 @@ def test_retry_non_failed_job_returns_409(monkeypatch):
 def test_retry_job_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -305,8 +305,8 @@ def test_retry_job_without_auth_returns_401(monkeypatch):
 def test_get_job_video_streams_when_file_exists(monkeypatch, tmp_path):
     """When the rendered video file exists, streaming response is returned."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
-    from autocontent.models import RenderedVideo
+    import marketer.repos.jobs as jobs_repo
+    from marketer.models import RenderedVideo
 
     video_file = tmp_path / "output.mp4"
     video_file.write_bytes(b"fake mp4 content")
@@ -324,7 +324,7 @@ def test_get_job_video_streams_when_file_exists(monkeypatch, tmp_path):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/jobs/{_JOB_ID}/video",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("video/mp4")

@@ -59,7 +59,7 @@ export function Hero() {
 
         <div className="mt-8 flex max-w-2xl flex-col items-center gap-1 text-lg text-muted-foreground">
           <p className="text-balance">
-            Describe a channel once. autocontent ideates, writes, animates,
+            Describe a channel once. marketer.sh ideates, writes, animates,
             voices, mixes, and posts every day to
           </p>
           <TextFlip

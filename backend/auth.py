@@ -1,7 +1,7 @@
 """Bearer auth.
 
 Two acceptable bearer formats:
-  - ``act_...`` — a personal access token (see ``autocontent.repos.tokens``).
+  - ``mkt_...`` — a personal access token (see ``marketer.repos.tokens``).
     Looked up by sha256(plaintext). Used by the CLI, MCP server, and any
     external agent driving the API without a browser session.
   - Anything else is treated as a Clerk session JWT, verified against
@@ -26,9 +26,9 @@ from jwt import PyJWKClient
 from limits import parse as parse_limit
 from slowapi.util import get_remote_address
 
-from autocontent.config import settings
-from autocontent.repos import tokens as tokens_repo
-from autocontent.repos import users as users_repo
+from marketer.config import settings
+from marketer.repos import tokens as tokens_repo
+from marketer.repos import users as users_repo
 
 _jwks_client: PyJWKClient | None = None
 
@@ -41,7 +41,7 @@ def _jwks() -> PyJWKClient:
     global _jwks_client
     if _jwks_client is None:
         if not settings.clerk_jwks_url:
-            raise RuntimeError("AUTOCONTENT_CLERK_JWKS_URL not set")
+            raise RuntimeError("MARKETER_CLERK_JWKS_URL not set")
         _jwks_client = PyJWKClient(settings.clerk_jwks_url, cache_keys=True)
     return _jwks_client
 

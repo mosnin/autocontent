@@ -30,7 +30,7 @@ export function SiteNav() {
             <path d="M21 3v6h-6" />
           </svg>
           <span className="text-sm font-semibold tracking-tight">
-            autocontent
+            marketer.sh
           </span>
         </Link>
 

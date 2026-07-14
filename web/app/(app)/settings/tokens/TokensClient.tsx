@@ -82,7 +82,7 @@ export function TokensClient({ tokens, freshToken }: Props) {
             <p className="text-xs text-muted-foreground">
               Copy it into{" "}
               <code className="rounded bg-muted px-1">
-                AUTOCONTENT_API_TOKEN
+                MARKETER_API_TOKEN
               </code>{" "}
               now — we don&apos;t store the plaintext and can&apos;t recover it.
             </p>
@@ -154,7 +154,7 @@ export function TokensClient({ tokens, freshToken }: Props) {
             <h3 className="text-lg font-semibold">No tokens</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               Create a token to authenticate the CLI, MCP server, or any
-              external agent driving autocontent.
+              external agent driving marketer.sh.
             </p>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" />

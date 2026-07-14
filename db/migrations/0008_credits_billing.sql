@@ -2,7 +2,7 @@
 --
 -- Users buy credit via Stripe Checkout; every provider call debits the
 -- balance at cost * margin. Self-hosted deployments never touch these
--- columns (AUTOCONTENT_BILLING_ENABLED defaults false).
+-- columns (MARKETER_BILLING_ENABLED defaults false).
 alter table users add column credit_balance_usd numeric(10, 4) not null default 0;
 
 create table credit_transactions (

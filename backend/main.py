@@ -8,8 +8,8 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from autocontent.config import settings
-from autocontent.logging import configure as _configure_logging
+from marketer.config import settings
+from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
 from .routes import billing, connect, healthz, jobs, metrics, niches, performance, spend, tokens, users, voices, webhooks
@@ -24,7 +24,7 @@ def _parse_origins(raw: str) -> list[str]:
 def create_app() -> FastAPI:
     _configure_logging()
 
-    app = FastAPI(title="autocontent api", version="0.1.0")
+    app = FastAPI(title="marketer api", version="0.1.0")
 
     # ── Rate limiting (must be registered before CORS middleware) ─────────────
     app.state.limiter = limiter
@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
         allow_credentials = True
     else:
         logger.warning(
-            "AUTOCONTENT_WEB_ORIGIN not set; falling back to '*' with "
+            "MARKETER_WEB_ORIGIN not set; falling back to '*' with "
             "allow_credentials=False. Configure for production."
         )
         allow_origins = ["*"]

@@ -1,5 +1,5 @@
 // Manual TS mirrors of the pydantic models in
-// src/autocontent/models/schemas.py. Keep these in sync when the
+// src/marketer/models/schemas.py. Keep these in sync when the
 // schema changes.
 
 export type Platform = "tiktok" | "reels" | "shorts";

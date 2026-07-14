@@ -46,7 +46,7 @@ class AyrshareError(RuntimeError):
 
 def _api_key() -> str:
     if not settings.ayrshare_api_key:
-        raise RuntimeError("AUTOCONTENT_AYRSHARE_API_KEY not set")
+        raise RuntimeError("MARKETER_AYRSHARE_API_KEY not set")
     return settings.ayrshare_api_key
 
 

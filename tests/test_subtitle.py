@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from autocontent.services import subtitle
+from marketer.services import subtitle
 
 
 def test_ass_time_formats_correctly():

@@ -20,7 +20,7 @@ def _reset_limiter():
 
 
 def _make_authed_client(monkeypatch) -> TestClient:
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -42,7 +42,7 @@ def _make_authed_client(monkeypatch) -> TestClient:
 def test_today_spend_empty_returns_zero(monkeypatch):
     """No spend entries → total_usd is 0."""
     _reset_limiter()
-    import autocontent.repos.spend as spend_repo
+    import marketer.repos.spend as spend_repo
 
     async def _today(*, user_id: str) -> dict:
         return {}
@@ -50,7 +50,7 @@ def test_today_spend_empty_returns_zero(monkeypatch):
     monkeypatch.setattr(spend_repo, "today_spend_by_niche", _today)
 
     client = _make_authed_client(monkeypatch)
-    resp = client.get("/api/v1/spend/today", headers={"Authorization": "Bearer act_tok"})
+    resp = client.get("/api/v1/spend/today", headers={"Authorization": "Bearer mkt_tok"})
     assert resp.status_code == 200
     data = resp.json()
     assert Decimal(data["total_usd"]) == Decimal("0")
@@ -60,7 +60,7 @@ def test_today_spend_empty_returns_zero(monkeypatch):
 def test_today_spend_reflects_ledger_rows(monkeypatch):
     """Spend entries by niche are summed correctly."""
     _reset_limiter()
-    import autocontent.repos.spend as spend_repo
+    import marketer.repos.spend as spend_repo
 
     async def _today(*, user_id: str) -> dict:
         return {_NICHE_ID: Decimal("3.50")}
@@ -68,7 +68,7 @@ def test_today_spend_reflects_ledger_rows(monkeypatch):
     monkeypatch.setattr(spend_repo, "today_spend_by_niche", _today)
 
     client = _make_authed_client(monkeypatch)
-    resp = client.get("/api/v1/spend/today", headers={"Authorization": "Bearer act_tok"})
+    resp = client.get("/api/v1/spend/today", headers={"Authorization": "Bearer mkt_tok"})
     assert resp.status_code == 200
     data = resp.json()
     assert Decimal(data["total_usd"]) == Decimal("3.50")
@@ -81,7 +81,7 @@ def test_today_spend_reflects_ledger_rows(monkeypatch):
 def test_today_spend_without_auth_returns_401(monkeypatch):
     """No auth header → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 

@@ -25,7 +25,7 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "autocontent",
+  title: "marketer.sh",
   description: "Autonomous short-form content creation",
 };
 

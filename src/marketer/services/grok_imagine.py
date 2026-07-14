@@ -149,7 +149,7 @@ async def animate(
         span = trace.get_current_span()
         span.set_attribute("xai.sku", SKU)
         span.set_attribute("xai.billed_seconds", billed_seconds)
-        span.set_attribute("autocontent.cost_usd", str(cost))
+        span.set_attribute("marketer.cost_usd", str(cost))
         await spend.log(
             provider=PROVIDER,
             sku=SKU,

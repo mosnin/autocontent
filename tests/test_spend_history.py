@@ -15,7 +15,7 @@ from fastapi import HTTPException
 
 from backend.auth import AuthCtx
 from backend.routes import spend as spend_route
-from autocontent.models import SpendHistoryRow
+from marketer.models import SpendHistoryRow
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────

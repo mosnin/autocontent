@@ -59,7 +59,7 @@ export default async function SettingsPage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           Spend caps, authentication, and per-account config for your
-          autocontent workspace.
+          marketer.sh workspace.
         </p>
       </header>
 

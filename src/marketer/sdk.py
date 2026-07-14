@@ -1,10 +1,10 @@
-"""Thin async client around the autocontent FastAPI backend.
+"""Thin async client around the marketer FastAPI backend.
 
-Auth: pass a personal access token (``act_...``) explicitly via ``token``
-or set ``AUTOCONTENT_API_TOKEN`` in the environment. The base URL comes
-from ``base_url`` or ``AUTOCONTENT_API_BASE_URL``.
+Auth: pass a personal access token (``mkt_...``) explicitly via ``token``
+or set ``MARKETER_API_TOKEN`` in the environment. The base URL comes
+from ``base_url`` or ``MARKETER_API_BASE_URL``.
 
-Every method returns pydantic models from ``autocontent.models``.
+Every method returns pydantic models from ``marketer.models``.
 """
 from __future__ import annotations
 
@@ -25,11 +25,11 @@ from .models import (
     TodaySpend,
 )
 
-ENV_BASE_URL = "AUTOCONTENT_API_BASE_URL"
-ENV_TOKEN = "AUTOCONTENT_API_TOKEN"
+ENV_BASE_URL = "MARKETER_API_BASE_URL"
+ENV_TOKEN = "MARKETER_API_TOKEN"
 
 
-class AutoContentError(Exception):
+class MarketerError(Exception):
     """Raised on non-2xx responses from the backend."""
 
     def __init__(self, status_code: int, message: str) -> None:
@@ -41,12 +41,12 @@ class AutoContentError(Exception):
 def _require(value: str | None, env_var: str, ctor_arg: str) -> str:
     if not value:
         raise RuntimeError(
-            f"missing {ctor_arg} (set {env_var} or pass {ctor_arg}= to AutoContentClient)"
+            f"missing {ctor_arg} (set {env_var} or pass {ctor_arg}= to MarketerClient)"
         )
     return value
 
 
-class AutoContentClient:
+class MarketerClient:
     """Async client. Use as a context manager or call ``aclose()`` yourself."""
 
     def __init__(
@@ -76,7 +76,7 @@ class AutoContentClient:
     async def aclose(self) -> None:
         await self._client.aclose()
 
-    async def __aenter__(self) -> "AutoContentClient":
+    async def __aenter__(self) -> "MarketerClient":
         return self
 
     async def __aexit__(self, *exc: object) -> None:
@@ -98,7 +98,7 @@ class AutoContentClient:
                 detail = resp.json()
             except Exception:
                 detail = resp.text
-            raise AutoContentError(resp.status_code, str(detail))
+            raise MarketerError(resp.status_code, str(detail))
         return resp
 
     # ------------------------------------------------------------------ niches

@@ -8,9 +8,9 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from autocontent.models import Job, JobStatus, PostMetrics
-from autocontent.repos import jobs as jobs_repo
-from autocontent.repos import post_metrics as post_metrics_repo
+from marketer.models import Job, JobStatus, PostMetrics
+from marketer.repos import jobs as jobs_repo
+from marketer.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -51,7 +51,7 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     job = await jobs_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, platform=body.platform
     )
-    fn = modal.Function.from_name("autocontent", "run_pipeline")
+    fn = modal.Function.from_name("marketer", "run_pipeline")
     fn.spawn(ctx.user_id, str(body.niche_id), body.platform)
     return job
 
@@ -111,7 +111,7 @@ async def approve_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
             status.HTTP_409_CONFLICT,
             detail=f"job is {job.status.value}, not awaiting_approval",
         )
-    fn = modal.Function.from_name("autocontent", "finish_scheduling")
+    fn = modal.Function.from_name("marketer", "finish_scheduling")
     fn.spawn(ctx.user_id, str(job_id))
     return job
 
@@ -147,6 +147,6 @@ async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
             status.HTTP_409_CONFLICT,
             detail="job not found, not owned, or not in failed state",
         )
-    fn = modal.Function.from_name("autocontent", "run_pipeline")
+    fn = modal.Function.from_name("marketer", "run_pipeline")
     fn.spawn(ctx.user_id, str(job.niche_id), job.platform)
     return job

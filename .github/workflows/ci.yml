@@ -25,7 +25,7 @@ jobs:
           --health-retries 10
 
     env:
-      AUTOCONTENT_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      MARKETER_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
 
     steps:
       - uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
         run: pip install -e ".[dev]" --ignore-installed PyJWT
 
       - name: Ruff
-        run: python -m ruff check src/autocontent tests backend modal_app.py scripts
+        run: python -m ruff check src/marketer tests backend modal_app.py scripts
 
       - name: Apply migrations (integration gate)
         # Validates migration SQL syntax against a real Postgres instance.

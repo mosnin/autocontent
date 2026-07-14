@@ -5,8 +5,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent.models import SpendEntry
-from autocontent.services.spend_context import SpendContext
+from marketer.models import SpendEntry
+from marketer.services.spend_context import SpendContext
 
 
 @dataclass
@@ -33,7 +33,7 @@ def fake_spend() -> tuple[SpendContext, FakeRecorder]:
 @pytest.fixture(autouse=True)
 def _stub_openai_key(monkeypatch):
     """Provide a non-empty key so the AsyncOpenAI constructor doesn't blow up."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "openai_api_key", "sk-test")
     yield

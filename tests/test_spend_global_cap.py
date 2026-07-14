@@ -14,9 +14,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent.models import SpendEntry
-from autocontent.repos.spend import SpendCapExceeded
-from autocontent.services.spend_context import SpendContext
+from marketer.models import SpendEntry
+from marketer.repos.spend import SpendCapExceeded
+from marketer.services.spend_context import SpendContext
 
 
 # ---------------------------------------------------------------------------
@@ -156,7 +156,7 @@ async def test_log_raises_when_global_cap_crossed():
 async def test_today_spend_total_usd_is_callable():
     """Smoke-test the module-level function signature (no DB, just import)."""
     import inspect
-    from autocontent.repos.spend import today_spend_total_usd
+    from marketer.repos.spend import today_spend_total_usd
 
     assert inspect.iscoroutinefunction(today_spend_total_usd)
     sig = inspect.signature(today_spend_total_usd)
@@ -173,8 +173,8 @@ async def test_pipeline_ensure_cap_rejects_global_exceeded(monkeypatch):
     from datetime import datetime, timezone
     from uuid import uuid4
 
-    from autocontent import pipeline
-    from autocontent.models import Job, JobStatus, Niche, PostingWindow, User
+    from marketer import pipeline
+    from marketer.models import Job, JobStatus, Niche, PostingWindow, User
 
     USER_ID = "user_global_pipeline"
     NICHE_ID = UUID("00000000-0000-0000-0000-000000000020")
@@ -220,7 +220,7 @@ async def test_pipeline_ensure_cap_rejects_global_exceeded(monkeypatch):
     monkeypatch.setattr(pipeline.spend_repo, "today_spend_total_usd", fake_today_total)
 
     # User has a $10 global cap (already at it).
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
 
     async def fake_get(user_id: str):
         return User(

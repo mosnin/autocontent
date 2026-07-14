@@ -8,9 +8,9 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from autocontent.models import Niche, PostingWindow
-from autocontent.repos import niches as niches_repo
-from autocontent.services.character_sheet import sheet_path
+from marketer.models import Niche, PostingWindow
+from marketer.repos import niches as niches_repo
+from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -28,7 +28,7 @@ async def draft_niche_spec(
     """One sentence in, a full channel spec out. The onboarding front
     door: the client shows the returned fields on a review screen so the
     user launches instead of filling a 16-field form."""
-    from autocontent.agents.niche_draft import draft_niche
+    from marketer.agents.niche_draft import draft_niche
 
     text = body.description.strip()
     if len(text) < 8:

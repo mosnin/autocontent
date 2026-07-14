@@ -36,7 +36,7 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 pb-8 pt-14">
         <div className="flex flex-col justify-between gap-10 sm:flex-row">
           <div className="max-w-xs">
-            <p className="text-sm font-semibold">autocontent</p>
+            <p className="text-sm font-semibold">marketer.sh</p>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               Autonomous short-form video pipelines with a spend cap and a
               feedback loop.
@@ -82,7 +82,7 @@ export function SiteFooter() {
         {/* Oversized wordmark, clipped at the baseline — the reveal payoff. */}
         <div aria-hidden className="select-none overflow-hidden">
           <p className="translate-y-[0.28em] bg-gradient-to-b from-foreground/15 to-transparent bg-clip-text text-center text-[18vw] font-bold leading-none tracking-tighter text-transparent sm:text-[13rem]">
-            autocontent
+            marketer.sh
           </p>
         </div>
       </div>

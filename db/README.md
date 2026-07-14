@@ -1,6 +1,6 @@
 # db
 
-Supabase Postgres schema for autocontent. Migrations are plain SQL files
+Supabase Postgres schema for marketer. Migrations are plain SQL files
 managed by **yoyo-migrations** — a lightweight, file-based runner that
 records applied versions in a `_yoyo_migration` table it creates automatically.
 
@@ -11,28 +11,28 @@ records applied versions in a `_yoyo_migration` table it creates automatically.
 Apply all pending migrations:
 
 ```bash
-autocontent-migrate up
+marketer-migrate up
 ```
 
 Check which migrations are applied vs. pending:
 
 ```bash
-autocontent-migrate status
+marketer-migrate status
 ```
 
 Roll back the last migration:
 
 ```bash
-autocontent-migrate down
+marketer-migrate down
 ```
 
 Roll back the last N migrations:
 
 ```bash
-autocontent-migrate down 3
+marketer-migrate down 3
 ```
 
-The tool reads `AUTOCONTENT_DATABASE_URL` from your environment (or `.env`).
+The tool reads `MARKETER_DATABASE_URL` from your environment (or `.env`).
 
 ### Modal (production)
 
@@ -71,7 +71,7 @@ production indicate the deploy sequence was not followed.
    with the reverse SQL (e.g. `DROP TABLE` for a `CREATE TABLE`).
    - If the migration is non-reversible (e.g. a destructive data migration),
      leave the rollback file empty and add a comment explaining why.
-3. Run `autocontent-migrate up` locally to verify the migration applies cleanly.
+3. Run `marketer-migrate up` locally to verify the migration applies cleanly.
 4. Commit both files in the same PR as the application code that depends on
    the new schema.
 

@@ -23,13 +23,13 @@ def test_draft_rejects_too_short(client):
     resp = client.post(
         "/api/v1/niches/draft",
         json={"description": "hi"},
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 422
 
 
 def test_draft_returns_full_spec(client, monkeypatch):
-    from autocontent.agents.niche_draft import NicheDraft
+    from marketer.agents.niche_draft import NicheDraft
 
     async def fake_draft(description):
         assert "economics" in description
@@ -49,14 +49,14 @@ def test_draft_returns_full_spec(client, monkeypatch):
         )
 
     # The endpoint imports draft_niche lazily; patch at the agent module.
-    import autocontent.agents.niche_draft as nd
+    import marketer.agents.niche_draft as nd
 
     monkeypatch.setattr(nd, "draft_niche", fake_draft)
 
     resp = client.post(
         "/api/v1/niches/draft",
         json={"description": "claymation videos explaining economics for adults"},
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 200
     body = resp.json()
@@ -74,7 +74,7 @@ def test_draft_returns_full_spec(client, monkeypatch):
 
 def test_draft_spec_voice_is_constrained():
     """The draft model must only emit voices the TTS layer supports."""
-    from autocontent.agents.niche_draft import NicheDraft
+    from marketer.agents.niche_draft import NicheDraft
 
     with pytest.raises(Exception):
         NicheDraft(

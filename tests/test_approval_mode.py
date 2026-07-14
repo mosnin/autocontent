@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from autocontent.models import Job, JobStatus, Niche, PostingWindow
+from marketer.models import Job, JobStatus, Niche, PostingWindow
 from backend.auth import AuthCtx, require_user
 from backend.main import create_app
 from backend.rate_limit import limiter
@@ -79,7 +79,7 @@ def test_approve_spawns_finish_scheduling(client, monkeypatch):
         assert user_id == "user_a"
         return job
 
-    from autocontent.repos import jobs as jobs_repo
+    from marketer.repos import jobs as jobs_repo
     monkeypatch.setattr(jobs_repo, "get", fake_get)
 
     spawned: list[tuple] = []
@@ -95,7 +95,7 @@ def test_approve_spawns_finish_scheduling(client, monkeypatch):
 
     resp = client.post(
         f"/api/v1/jobs/{job.id}/approve",
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 202
     assert spawned == [("user_a", str(job.id))]
@@ -107,12 +107,12 @@ def test_approve_conflicts_when_not_awaiting(client, monkeypatch):
     async def fake_get(job_id, *, user_id):
         return job
 
-    from autocontent.repos import jobs as jobs_repo
+    from marketer.repos import jobs as jobs_repo
     monkeypatch.setattr(jobs_repo, "get", fake_get)
 
     resp = client.post(
         f"/api/v1/jobs/{job.id}/approve",
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 409
 
@@ -127,13 +127,13 @@ def test_reject_marks_failed_without_posting(client, monkeypatch):
     async def fake_save(j):
         saved.append(j)
 
-    from autocontent.repos import jobs as jobs_repo
+    from marketer.repos import jobs as jobs_repo
     monkeypatch.setattr(jobs_repo, "get", fake_get)
     monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
 
     resp = client.post(
         f"/api/v1/jobs/{job.id}/reject",
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 200
     assert saved and saved[0].status == JobStatus.failed
@@ -141,7 +141,7 @@ def test_reject_marks_failed_without_posting(client, monkeypatch):
 
 
 async def test_schedule_approved_job_rejects_wrong_status(monkeypatch):
-    from autocontent import pipeline
+    from marketer import pipeline
 
     job = _job(status=JobStatus.done)
 

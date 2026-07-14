@@ -58,10 +58,10 @@ def build_ideation_prompt(niche_title: str, *, performance_context: str = "") ->
 
 
 async def run_ideation(niche_title: str, *, performance_context: str = "") -> Idea:
-    """Run the ideation agent and return a single :class:`~autocontent.models.Idea`.
+    """Run the ideation agent and return a single :class:`~marketer.models.Idea`.
 
     When *performance_context* is non-empty (built by
-    :func:`~autocontent.agents.performance_context.build_performance_context`),
+    :func:`~marketer.agents.performance_context.build_performance_context`),
     the prompt is enriched with top/bottom performer data so the model can
     tune its suggestions toward proven angles.  When empty the call is
     identical to the original stateless behaviour — safe for cold-start niches.

@@ -9,7 +9,7 @@ address so anonymous clients are still throttled.
 
 Redis vs. in-process
 --------------------
-Set ``AUTOCONTENT_RATE_LIMIT_REDIS_URL`` to a Redis connection string to share
+Set ``MARKETER_RATE_LIMIT_REDIS_URL`` to a Redis connection string to share
 state across multiple instances (recommended for production).  When the var is
 empty the limiter uses the default in-process MemoryStorage, which is safe for
 single-instance deployments.
@@ -20,7 +20,7 @@ from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from autocontent.config import settings
+from marketer.config import settings
 
 
 def _limit_key(request: Request) -> str:

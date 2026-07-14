@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from autocontent.services.spend_context import SpendContext
+from marketer.services.spend_context import SpendContext
 from backend.auth import AuthCtx, require_user
 from backend.main import create_app
 from backend.rate_limit import limiter
@@ -33,9 +33,9 @@ def _ctx() -> SpendContext:
 
 
 async def test_preflight_blocks_when_credit_short(monkeypatch):
-    from autocontent.config import settings
-    from autocontent.repos import billing as billing_repo
-    from autocontent.repos.spend import SpendCapExceeded
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
+    from marketer.repos.spend import SpendCapExceeded
 
     monkeypatch.setattr(settings, "billing_enabled", True)
     monkeypatch.setattr(settings, "billing_margin", 1.5)
@@ -53,8 +53,8 @@ async def test_preflight_blocks_when_credit_short(monkeypatch):
 
 
 async def test_preflight_allows_with_credit(monkeypatch):
-    from autocontent.config import settings
-    from autocontent.repos import billing as billing_repo
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
 
     monkeypatch.setattr(settings, "billing_enabled", True)
 
@@ -66,8 +66,8 @@ async def test_preflight_allows_with_credit(monkeypatch):
 
 
 async def test_billing_disabled_never_touches_repo(monkeypatch):
-    from autocontent.config import settings
-    from autocontent.repos import billing as billing_repo
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
 
     monkeypatch.setattr(settings, "billing_enabled", False)
 
@@ -79,8 +79,8 @@ async def test_billing_disabled_never_touches_repo(monkeypatch):
 
 
 async def test_log_debits_at_margin(monkeypatch):
-    from autocontent.config import settings
-    from autocontent.repos import billing as billing_repo
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
 
     monkeypatch.setattr(settings, "billing_enabled", True)
     monkeypatch.setattr(settings, "billing_margin", 2.0)
@@ -101,32 +101,32 @@ async def test_log_debits_at_margin(monkeypatch):
 
 
 def test_checkout_503_when_disabled(client, monkeypatch):
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "billing_enabled", False)
     resp = client.post(
         "/api/v1/billing/checkout",
         json={"pack": "starter"},
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 503
 
 
 def test_checkout_unknown_pack_422(client, monkeypatch):
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "billing_enabled", True)
     monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_x")
     resp = client.post(
         "/api/v1/billing/checkout",
         json={"pack": "yacht"},
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 422
 
 
 def test_webhook_rejects_bad_signature(client, monkeypatch):
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
     resp = client.post(
@@ -140,8 +140,8 @@ def test_webhook_rejects_bad_signature(client, monkeypatch):
 def test_webhook_credits_on_completed_session(client, monkeypatch):
     import stripe as stripe_mod
 
-    from autocontent.config import settings
-    from autocontent.repos import billing as billing_repo
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
 
     monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
 
@@ -176,8 +176,8 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
 
 
 async def test_email_noop_without_key(monkeypatch):
-    from autocontent.config import settings
-    from autocontent.services import email as email_svc
+    from marketer.config import settings
+    from marketer.services import email as email_svc
 
     monkeypatch.setattr(settings, "resend_api_key", "")
     assert (
@@ -189,8 +189,8 @@ async def test_email_noop_without_key(monkeypatch):
 async def test_email_sends_with_key(monkeypatch):
     import httpx
 
-    from autocontent.config import settings
-    from autocontent.services import email as email_svc
+    from marketer.config import settings
+    from marketer.services import email as email_svc
 
     monkeypatch.setattr(settings, "resend_api_key", "re_test")
 

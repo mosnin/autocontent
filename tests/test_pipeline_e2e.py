@@ -16,9 +16,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent import pipeline
-from autocontent.agents.qa import QAReport
-from autocontent.models import (
+from marketer import pipeline
+from marketer.agents.qa import QAReport
+from marketer.models import (
     Idea,
     Job,
     JobStatus,
@@ -28,7 +28,7 @@ from autocontent.models import (
     Script,
     User,
 )
-from autocontent.repos.spend import SpendCapExceeded
+from marketer.repos.spend import SpendCapExceeded
 
 USER_ID = "user_e2e"
 NICHE_ID = UUID("00000000-0000-0000-0000-000000000abc")
@@ -113,7 +113,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
     monkeypatch.setattr(pipeline.spend_repo, "assert_within_cap", fake_assert_within_cap)
 
     # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
 
     async def fake_users_get(user_id: str):

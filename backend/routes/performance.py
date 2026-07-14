@@ -24,11 +24,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from autocontent.models import JobPerformance, NichePerformance, PerformanceSummary
-from autocontent.repos import jobs as jobs_repo
-from autocontent.repos import niches as niches_repo
-from autocontent.repos import post_metrics as post_metrics_repo
-from autocontent.repos import spend as spend_repo
+from marketer.models import JobPerformance, NichePerformance, PerformanceSummary
+from marketer.repos import jobs as jobs_repo
+from marketer.repos import niches as niches_repo
+from marketer.repos import post_metrics as post_metrics_repo
+from marketer.repos import spend as spend_repo
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -160,7 +160,7 @@ async def niche_performance(
         )
 
     # Compute summary stats.
-    from autocontent.models import JobStatus as _JobStatus
+    from marketer.models import JobStatus as _JobStatus
 
     done_jobs = [jp for jp in job_perfs if jp.status == _JobStatus.done.value]
     total_spend = sum((jp.cost_usd for jp in job_perfs), Decimal("0"))

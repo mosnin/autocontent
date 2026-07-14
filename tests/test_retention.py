@@ -4,7 +4,7 @@ import os
 import time
 from pathlib import Path
 
-from autocontent.storage.retention import gc_artifacts
+from marketer.storage.retention import gc_artifacts
 
 
 def _seed_job(root: Path, user: str, job: str, *, age_days: float, size: int = 1024) -> Path:

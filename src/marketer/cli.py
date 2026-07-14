@@ -1,7 +1,7 @@
-"""``autocontent`` CLI.
+"""``marketer`` CLI.
 
-Reads ``AUTOCONTENT_API_BASE_URL`` and ``AUTOCONTENT_API_TOKEN`` from the
-environment, then dispatches to the async :class:`AutoContentClient`.
+Reads ``MARKETER_API_BASE_URL`` and ``MARKETER_API_TOKEN`` from the
+environment, then dispatches to the async :class:`MarketerClient`.
 
 stdlib only — no typer/click/rich. Tables are formatted by hand so the
 output is easy to pipe.
@@ -26,7 +26,7 @@ from .models import (
     PostingWindow,
     TodaySpend,
 )
-from .sdk import ENV_BASE_URL, ENV_TOKEN, AutoContentClient, AutoContentError
+from .sdk import ENV_BASE_URL, ENV_TOKEN, MarketerClient, MarketerError
 
 PLATFORMS = ["tiktok", "reels", "shorts"]
 
@@ -141,25 +141,25 @@ def _check_env() -> tuple[str, str] | None:
 # ---------------------------------------------------------------- handlers
 
 
-async def _run(handler: Callable[[AutoContentClient, argparse.Namespace], Awaitable[None]],
+async def _run(handler: Callable[[MarketerClient, argparse.Namespace], Awaitable[None]],
                args: argparse.Namespace) -> None:
-    async with AutoContentClient() as client:
+    async with MarketerClient() as client:
         await handler(client, args)
 
 
 # --- niches
 
-async def h_niches_list(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_niches_list(c: MarketerClient, a: argparse.Namespace) -> None:
     items = await c.list_niches()
     _print_rows(items, ["id", "title", "platforms", "cap_usd", "archived", "created_at"],
                 _niche_row, as_json=a.json)
 
 
-async def h_niches_get(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_niches_get(c: MarketerClient, a: argparse.Namespace) -> None:
     _print_one(await c.get_niche(a.id))
 
 
-async def h_niches_create(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_niches_create(c: MarketerClient, a: argparse.Namespace) -> None:
     platforms = [p.strip() for p in a.platforms.split(",") if p.strip()]
     for p in platforms:
         if p not in PLATFORMS:
@@ -186,25 +186,25 @@ async def h_niches_create(c: AutoContentClient, a: argparse.Namespace) -> None:
     _print_one(n)
 
 
-async def h_niches_archive(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_niches_archive(c: MarketerClient, a: argparse.Namespace) -> None:
     await c.archive_niche(a.id)
     _confirm(f"archived niche {a.id}")
 
 
 # --- jobs
 
-async def h_jobs_list(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_jobs_list(c: MarketerClient, a: argparse.Namespace) -> None:
     items = await c.list_jobs(status=a.status, limit=a.limit)
     _print_rows(items,
                 ["id", "niche_id", "platform", "status", "created_at", "scheduled_for", "error"],
                 _job_row, as_json=a.json)
 
 
-async def h_jobs_get(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_jobs_get(c: MarketerClient, a: argparse.Namespace) -> None:
     _print_one(await c.get_job(a.id))
 
 
-async def h_jobs_enqueue(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_jobs_enqueue(c: MarketerClient, a: argparse.Namespace) -> None:
     if a.platform not in PLATFORMS:
         raise SystemExit(f"unknown platform '{a.platform}'")
     job = await c.enqueue_job(niche_id=a.niche, platform=a.platform)
@@ -212,7 +212,7 @@ async def h_jobs_enqueue(c: AutoContentClient, a: argparse.Namespace) -> None:
     _print_one(job)
 
 
-async def h_jobs_retry(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_jobs_retry(c: MarketerClient, a: argparse.Namespace) -> None:
     job = await c.retry_job(a.id)
     _confirm(f"retrying job {job.id}")
     _print_one(job)
@@ -220,7 +220,7 @@ async def h_jobs_retry(c: AutoContentClient, a: argparse.Namespace) -> None:
 
 # --- spend
 
-async def h_spend_today(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_spend_today(c: MarketerClient, a: argparse.Namespace) -> None:
     spend: TodaySpend = await c.today_spend()
     if a.json:
         _print_one(spend)
@@ -233,7 +233,7 @@ async def h_spend_today(c: AutoContentClient, a: argparse.Namespace) -> None:
 
 # --- connect
 
-async def h_connect_ayrshare(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_connect_ayrshare(c: MarketerClient, a: argparse.Namespace) -> None:
     res = await c.connect_ayrshare()
     _confirm("Open this URL to connect TikTok / Instagram / YouTube:")
     print(res.login_url)
@@ -241,19 +241,19 @@ async def h_connect_ayrshare(c: AutoContentClient, a: argparse.Namespace) -> Non
 
 # --- tokens
 
-async def h_tokens_list(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_tokens_list(c: MarketerClient, a: argparse.Namespace) -> None:
     items = await c.list_tokens()
     _print_rows(items, ["id", "name", "prefix", "created_at", "expires_at", "last_used_at"],
                 _token_row, as_json=a.json)
 
 
-async def h_tokens_create(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_tokens_create(c: MarketerClient, a: argparse.Namespace) -> None:
     info, plaintext = await c.create_token(name=a.name, expires_in_days=a.expires_in_days)
     _confirm(f"created token {info.id} ({info.prefix}). Plaintext below — store it now.")
     print(plaintext)
 
 
-async def h_tokens_revoke(c: AutoContentClient, a: argparse.Namespace) -> None:
+async def h_tokens_revoke(c: MarketerClient, a: argparse.Namespace) -> None:
     await c.revoke_token(a.id)
     _confirm(f"revoked token {a.id}")
 
@@ -266,7 +266,7 @@ def _add_json_flag(p: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="autocontent", description="autocontent CLI")
+    parser = argparse.ArgumentParser(prog="marketer", description="marketer CLI")
     sub = parser.add_subparsers(dest="group", required=True)
 
     # niches
@@ -376,7 +376,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     try:
         asyncio.run(_run(args.handler, args))
-    except AutoContentError as e:
+    except MarketerError as e:
         print(f"api error: {e}", file=sys.stderr)
         return 1
     except RuntimeError as e:

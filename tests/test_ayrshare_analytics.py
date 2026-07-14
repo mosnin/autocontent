@@ -7,8 +7,8 @@ from __future__ import annotations
 import pytest
 import httpx
 
-from autocontent.services import ayrshare_analytics as analytics_module
-from autocontent.services.ayrshare_analytics import (
+from marketer.services import ayrshare_analytics as analytics_module
+from marketer.services.ayrshare_analytics import (
     AyrshareAnalyticsError,
     fetch_post_analytics,
 )
@@ -18,7 +18,7 @@ PROVIDER_POST_ID = "ayr-post-abc123"
 
 @pytest.fixture(autouse=True)
 def _set_api_key(monkeypatch):
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_api_key", "ayr-test-key")
 
 

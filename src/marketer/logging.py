@@ -9,7 +9,7 @@ right tags without threading the context through every function. Per-
 record extras like `stage`, `provider`, `sku`, `latency_ms`, `cost_usd`
 are passed through `extra=...` on the log call.
 
-Sentry is initialised inside `configure()` when `AUTOCONTENT_SENTRY_DSN`
+Sentry is initialised inside `configure()` when `MARKETER_SENTRY_DSN`
 is set. The `LoggingIntegration` captures WARNING+ to Sentry breadcrumbs
 and ERROR+ as Sentry events. All initialisation is idempotent.
 """

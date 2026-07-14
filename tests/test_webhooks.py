@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from autocontent.models import Job, JobStatus
+from marketer.models import Job, JobStatus
 
 # ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ def _post_webhook(client: TestClient, payload: dict[str, Any], *, secret: str = 
 @pytest.fixture(autouse=True)
 def _set_secret(monkeypatch):
     """Ensure the webhook secret is set for all tests (can be overridden per-test)."""
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_webhook_secret", WEBHOOK_SECRET)
 
 
@@ -78,7 +78,7 @@ def app(monkeypatch, make_job):
     async def _save_snapshot(job: Job) -> None:
         saved.append(job)
 
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     monkeypatch.setattr(jobs_repo, "get_by_provider_post_id", _get_by_provider_post_id)
     monkeypatch.setattr(jobs_repo, "save_snapshot", _save_snapshot)
@@ -154,7 +154,7 @@ def test_unknown_provider_post_id_returns_200(client):
 
 def test_missing_secret_returns_503(monkeypatch):
     """If the env var is unset the endpoint must refuse all deliveries."""
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_webhook_secret", "")
 
     from backend.main import create_app

@@ -18,7 +18,7 @@ import { clientFetch } from "@/lib/client-fetcher";
 import type { Job } from "@/lib/types";
 
 const POLL_MS = 15000;
-const FIRST_VIDEO_KEY = "autocontent_first_video_seen";
+const FIRST_VIDEO_KEY = "marketer_first_video_seen";
 
 interface MetricsSummary {
   total_views: number;

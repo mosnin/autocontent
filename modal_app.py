@@ -17,32 +17,32 @@ import modal
 
 # Initialise JSON logging + Sentry at import time so any error during
 # Modal container startup is captured before user code runs.
-from autocontent.logging import configure as _configure_logging
+from marketer.logging import configure as _configure_logging
 
 # Import settings before any @app.function decorator so that
 # pipeline_global_concurrency is resolved at deploy time.
-from autocontent.config import settings as _settings
+from marketer.config import settings as _settings
 
 _configure_logging()
 
-APP_NAME = "autocontent"
+APP_NAME = "marketer-sh"
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
     .apt_install("ffmpeg")
     .pip_install_from_pyproject("pyproject.toml")
-    .add_local_python_source("autocontent", "backend", "scripts")
+    .add_local_python_source("marketer", "backend", "scripts")
 )
 
-artifacts = modal.Volume.from_name("autocontent-artifacts", create_if_missing=True)
-assets = modal.Volume.from_name("autocontent-assets", create_if_missing=True)
+artifacts = modal.Volume.from_name("marketer-artifacts", create_if_missing=True)
+assets = modal.Volume.from_name("marketer-assets", create_if_missing=True)
 
 secrets = [
-    modal.Secret.from_name("autocontent-openai"),    # OPENAI_API_KEY
-    modal.Secret.from_name("autocontent-xai"),       # XAI_API_KEY
-    modal.Secret.from_name("autocontent-ayrshare"),  # AYRSHARE_API_KEY
-    modal.Secret.from_name("autocontent-supabase"),  # AUTOCONTENT_DATABASE_URL
-    modal.Secret.from_name("autocontent-clerk"),     # AUTOCONTENT_CLERK_JWKS_URL + ISSUER
+    modal.Secret.from_name("marketer-openai"),    # OPENAI_API_KEY
+    modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
+    modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
+    modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
+    modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
 ]
 
 app = modal.App(APP_NAME, image=image, secrets=secrets)
@@ -55,8 +55,8 @@ app = modal.App(APP_NAME, image=image, secrets=secrets)
 )
 async def run_pipeline(user_id: str, niche_id: str, platform: str) -> dict:
     from uuid import UUID
-    from autocontent.pipeline import run_job
-    from autocontent.services.otel import force_flush
+    from marketer.pipeline import run_job
+    from marketer.services.otel import force_flush
 
     try:
         job = await run_job(user_id=user_id, niche_id=UUID(niche_id), platform=platform)
@@ -80,8 +80,8 @@ async def finish_scheduling(user_id: str, job_id: str) -> dict:
     rendered on the artifacts volume; only the Ayrshare upload +
     schedule remain."""
     from uuid import UUID
-    from autocontent.pipeline import schedule_approved_job
-    from autocontent.services.otel import force_flush
+    from marketer.pipeline import schedule_approved_job
+    from marketer.services.otel import force_flush
 
     try:
         job = await schedule_approved_job(user_id=user_id, job_id=UUID(job_id))
@@ -101,7 +101,7 @@ async def prewarm_voice_previews() -> dict:
         modal run modal_app.py::prewarm_voice_previews
     """
     from backend.routes.voices import ALLOWED_VOICES, PREVIEW_LINE, preview_path
-    from autocontent.services import openai_tts
+    from marketer.services import openai_tts
 
     created: list[str] = []
     for voice in sorted(ALLOWED_VOICES):
@@ -125,8 +125,8 @@ async def nightly_batch() -> list[dict]:
     whose next posting window falls within the next ~30 min."""
     import asyncio
     from datetime import datetime, timedelta, timezone
-    from autocontent.db import get_pool
-    from autocontent.repos import niches as niches_repo
+    from marketer.db import get_pool
+    from marketer.repos import niches as niches_repo
 
     pool = await get_pool()
     rows = await pool.fetch("select id from users")
@@ -162,7 +162,7 @@ async def nightly_batch() -> list[dict]:
 def gc_artifacts() -> dict:
     """Daily GC: delete job artifact dirs older than 30 days.
     DB rows in `jobs` and `spend_ledger` are untouched."""
-    from autocontent.storage.retention import gc_artifacts as _gc
+    from marketer.storage.retention import gc_artifacts as _gc
 
     result = _gc(max_age_days=30)
     artifacts.commit()
@@ -224,10 +224,10 @@ async def daily_analytics_sync() -> dict:
     from datetime import datetime, timezone
     from uuid import uuid4
 
-    from autocontent.db import get_pool
-    from autocontent.models import PostMetrics
-    from autocontent.repos import post_metrics as post_metrics_repo
-    from autocontent.services.ayrshare_analytics import (
+    from marketer.db import get_pool
+    from marketer.models import PostMetrics
+    from marketer.repos import post_metrics as post_metrics_repo
+    from marketer.services.ayrshare_analytics import (
         AyrshareAnalyticsError,
         fetch_post_analytics,
     )
@@ -261,7 +261,7 @@ async def daily_analytics_sync() -> dict:
                 # Ayrshare uses the internal platform name as the key
                 # (tiktok / instagram / youtube).  Our platform field uses
                 # our internal names; try both to be safe.
-                from autocontent.services.scheduler import PLATFORM_MAP
+                from marketer.services.scheduler import PLATFORM_MAP
                 ayr_key = PLATFORM_MAP.get(platform, platform)
                 analytics = (
                     raw["analytics"].get(ayr_key)

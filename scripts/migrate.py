@@ -1,4 +1,4 @@
-"""Migration runner for autocontent.
+"""Migration runner for marketer.
 
 Uses yoyo-migrations with psycopg2 (sync) as the DB backend so migrations run
 outside the asyncpg event loop used by the application runtime.
@@ -11,11 +11,11 @@ Subcommands
 
 Entry-point
 -----------
-  autocontent-migrate   (installed via pyproject.toml [project.scripts])
+  marketer-migrate   (installed via pyproject.toml [project.scripts])
 
 Environment
 -----------
-  AUTOCONTENT_DATABASE_URL   Postgres DSN (same as the runtime app).
+  MARKETER_DATABASE_URL   Postgres DSN (same as the runtime app).
 """
 from __future__ import annotations
 
@@ -34,22 +34,22 @@ MIGRATIONS_DIR = Path(__file__).parent.parent / "db" / "migrations"
 def _get_database_url() -> str:
     """Return the database URL from settings or the environment.
 
-    Importing autocontent.config triggers pydantic-settings which may raise
+    Importing marketer.config triggers pydantic-settings which may raise
     if required env vars are absent.  We tolerate that and fall back to the
     raw env var so the CLI works even in minimal environments (e.g. CI before
     the full package is configured).
     """
     try:
-        from autocontent.config import settings  # noqa: PLC0415
+        from marketer.config import settings  # noqa: PLC0415
 
         url = settings.database_url
     except Exception:  # noqa: BLE001
-        url = os.environ.get("AUTOCONTENT_DATABASE_URL", "")
+        url = os.environ.get("MARKETER_DATABASE_URL", "")
 
     if not url:
         print(
             "ERROR: database URL not configured. "
-            "Set AUTOCONTENT_DATABASE_URL or AUTOCONTENT_DATABASE_URL in your environment.",
+            "Set MARKETER_DATABASE_URL or MARKETER_DATABASE_URL in your environment.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -121,8 +121,8 @@ def down(n: int = 1, database_url: str | None = None) -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="autocontent-migrate",
-        description="Manage autocontent database migrations via yoyo-migrations.",
+        prog="marketer-migrate",
+        description="Manage marketer database migrations via yoyo-migrations.",
     )
     sub = parser.add_subparsers(dest="command", metavar="COMMAND")
 

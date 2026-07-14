@@ -16,7 +16,7 @@ async def get_pool() -> asyncpg.Pool:
     global _pool
     if _pool is None:
         if not settings.database_url:
-            raise RuntimeError("AUTOCONTENT_DATABASE_URL is not set")
+            raise RuntimeError("MARKETER_DATABASE_URL is not set")
         _pool = await asyncpg.create_pool(
             settings.database_url,
             min_size=1,

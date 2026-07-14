@@ -1,12 +1,12 @@
-"""MCP server that exposes the autocontent SDK to LLM agents over stdio.
+"""MCP server that exposes the marketer SDK to LLM agents over stdio.
 
-Reads ``AUTOCONTENT_API_BASE_URL`` and ``AUTOCONTENT_API_TOKEN`` from the
+Reads ``MARKETER_API_BASE_URL`` and ``MARKETER_API_TOKEN`` from the
 environment at startup. Tool descriptions are written for an LLM caller —
 they call out the side-effects and rough cost of each action so the model
 can decide whether to confirm with the user first.
 
 Run via:
-    autocontent-mcp
+    marketer-mcp
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from .models import (
     PersonalAccessToken,
     TodaySpend,
 )
-from .sdk import ENV_BASE_URL, ENV_TOKEN, AutoContentClient
+from .sdk import ENV_BASE_URL, ENV_TOKEN, MarketerClient
 
 
 def _dump(model: Any) -> str:
@@ -40,10 +40,10 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
     Exposed as a function so tests can call it without entering the stdio
     loop. The returned object is a configured ``FastMCP`` instance.
     """
-    mcp = FastMCP("autocontent")
+    mcp = FastMCP("marketer")
 
-    def _client() -> AutoContentClient:
-        return AutoContentClient(base_url=base_url, token=token)
+    def _client() -> MarketerClient:
+        return MarketerClient(base_url=base_url, token=token)
 
     # ------------------------------------------------------------- niches
 
@@ -140,22 +140,22 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
 
     # ------------------------------------------------------------- resources
 
-    @mcp.resource("autocontent://niches")
+    @mcp.resource("marketer://niches")
     async def res_niches() -> str:
         async with _client() as c:
             return _dump(await c.list_niches())
 
-    @mcp.resource("autocontent://niches/{niche_id}")
+    @mcp.resource("marketer://niches/{niche_id}")
     async def res_niche(niche_id: str) -> str:
         async with _client() as c:
             return _dump(await c.get_niche(niche_id))
 
-    @mcp.resource("autocontent://jobs")
+    @mcp.resource("marketer://jobs")
     async def res_jobs() -> str:
         async with _client() as c:
             return _dump(await c.list_jobs())
 
-    @mcp.resource("autocontent://jobs/{job_id}")
+    @mcp.resource("marketer://jobs/{job_id}")
     async def res_job(job_id: str) -> str:
         async with _client() as c:
             return _dump(await c.get_job(job_id))
@@ -171,7 +171,7 @@ def main() -> int:
     token = os.environ.get(ENV_TOKEN, "").strip()
     if not base_url or not token:
         print(
-            f"autocontent-mcp: {ENV_BASE_URL} and {ENV_TOKEN} must both be set.",
+            f"marketer-mcp: {ENV_BASE_URL} and {ENV_TOKEN} must both be set.",
             file=sys.stderr,
         )
         return 2

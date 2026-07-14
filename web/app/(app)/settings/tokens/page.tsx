@@ -27,8 +27,8 @@ export default async function TokensPage({ searchParams }: PageProps) {
         </h1>
         <p className="text-sm text-muted-foreground">
           Tokens authenticate the CLI, the MCP server, and any external agent
-          driving autocontent. They start with{" "}
-          <code className="rounded bg-muted px-1 py-0.5 text-xs">act_</code>{" "}
+          driving marketer.sh. They start with{" "}
+          <code className="rounded bg-muted px-1 py-0.5 text-xs">mkt_</code>{" "}
           and can do anything your account can. Treat them like passwords.
         </p>
       </div>

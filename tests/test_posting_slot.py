@@ -7,8 +7,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from autocontent import pipeline
-from autocontent.models import Niche, PostingWindow
+from marketer import pipeline
+from marketer.models import Niche, PostingWindow
 
 
 def _make_niche(windows: list[PostingWindow]) -> Niche:

@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_prefix="AUTOCONTENT_", env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(env_prefix="MARKETER_", env_file=".env", extra="ignore")
 
     openai_api_key: str = ""
     xai_api_key: str = ""
@@ -62,12 +62,12 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
     # Public origin for checkout redirects + email links,
-    # e.g. https://app.autocontent.dev
+    # e.g. https://app.marketer.dev
     app_url: str = ""
 
     # Transactional email (Resend). Empty key = emails silently skipped.
     resend_api_key: str = ""
-    email_from: str = "autocontent <notifications@autocontent.dev>"
+    email_from: str = "marketer <notifications@marketer.dev>"
 
     # OpenTelemetry tracing. Leave otel_exporter_otlp_endpoint empty to
     # disable OTEL entirely (all instrumentation becomes a no-op).
@@ -77,10 +77,10 @@ class Settings(BaseSettings):
     #   Datadog:    https://otlp.datadoghq.com/ (OTLP/HTTP)
     #   Grafana Tempo: http://localhost:4318/
     otel_exporter_otlp_endpoint: str = ""
-    otel_service_name: str = "autocontent"
+    otel_service_name: str = "marketer-sh"
     # Comma-separated key=value pairs for OTLP auth headers, e.g.
     #   x-honeycomb-team=<key>
-    #   x-axiom-dataset=autocontent,authorization=Bearer <token>
+    #   x-axiom-dataset=marketer,authorization=Bearer <token>
     otel_exporter_otlp_headers: str = ""
     otel_traces_sample_rate: float = 1.0
 

@@ -1,6 +1,6 @@
 """Personal access tokens (long-lived API keys for CLI / MCP / agent use).
 
-Plaintext format: ``act_<24-char-base32>`` (28 chars total). The DB only
+Plaintext format: ``mkt_<24-char-base32>`` (28 chars total). The DB only
 stores the sha256 hex of the plaintext plus a short display prefix so the
 operator can identify a token in lists without revealing it.
 """
@@ -15,13 +15,13 @@ from uuid import UUID
 from ..db import get_pool
 from ..models import PersonalAccessToken
 
-TOKEN_PREFIX = "act_"
+TOKEN_PREFIX = "mkt_"
 TOKEN_BODY_LEN = 24  # base32 chars after the prefix
 DISPLAY_PREFIX_BODY_LEN = 4  # chars of the body kept in `prefix` for display
 
 
 def generate_plaintext() -> str:
-    """Return a new opaque token: ``act_`` + 24 random base32 chars."""
+    """Return a new opaque token: ``mkt_`` + 24 random base32 chars."""
     # 15 bytes -> 24 base32 chars (no padding).
     raw = secrets.token_bytes(15)
     body = base64.b32encode(raw).decode("ascii").rstrip("=").lower()
@@ -33,7 +33,7 @@ def hash_token(plaintext: str) -> str:
 
 
 def display_prefix(plaintext: str) -> str:
-    """Short, non-secret hint shown in token lists, e.g. ``act_a3f9``.
+    """Short, non-secret hint shown in token lists, e.g. ``mkt_a3f9``.
 
     Stores just enough of the body for the operator to recognise which
     token they're looking at, without leaking the secret.

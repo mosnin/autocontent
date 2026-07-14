@@ -7,7 +7,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from autocontent.models import PersonalAccessToken, User
+from marketer.models import PersonalAccessToken, User
 
 
 class _FakeRequest:
@@ -17,14 +17,14 @@ class _FakeRequest:
 
 async def test_pat_happy_path(monkeypatch):
     from backend import auth
-    from autocontent.repos import tokens as tokens_repo
-    from autocontent.repos import users as users_repo
+    from marketer.repos import tokens as tokens_repo
+    from marketer.repos import users as users_repo
 
     pat = PersonalAccessToken(
         id=uuid4(),
         user_id="user_abc",
         name="ci",
-        prefix="act_test",
+        prefix="mkt_test",
         created_at=datetime.now(timezone.utc),
     )
 
@@ -37,14 +37,14 @@ async def test_pat_happy_path(monkeypatch):
     monkeypatch.setattr(tokens_repo, "get_by_token", _get)
     monkeypatch.setattr(users_repo, "get", _get_user)
 
-    ctx = await auth.require_user(_FakeRequest("Bearer act_validtoken123"))
+    ctx = await auth.require_user(_FakeRequest("Bearer mkt_validtoken123"))
     assert ctx.user_id == "user_abc"
     assert ctx.email == ""  # PAT auth carries no email
 
 
 async def test_pat_unknown_token_401(monkeypatch):
     from backend import auth
-    from autocontent.repos import tokens as tokens_repo
+    from marketer.repos import tokens as tokens_repo
 
     async def _get(_plain: str):
         return None
@@ -52,20 +52,20 @@ async def test_pat_unknown_token_401(monkeypatch):
     monkeypatch.setattr(tokens_repo, "get_by_token", _get)
 
     with pytest.raises(HTTPException) as ei:
-        await auth.require_user(_FakeRequest("Bearer act_unknowntoken"))
+        await auth.require_user(_FakeRequest("Bearer mkt_unknowntoken"))
     assert ei.value.status_code == 401
 
 
 async def test_pat_owner_missing_401(monkeypatch):
     from backend import auth
-    from autocontent.repos import tokens as tokens_repo
-    from autocontent.repos import users as users_repo
+    from marketer.repos import tokens as tokens_repo
+    from marketer.repos import users as users_repo
 
     pat = PersonalAccessToken(
         id=uuid4(),
         user_id="user_ghost",
         name="ci",
-        prefix="act_test",
+        prefix="mkt_test",
         created_at=datetime.now(timezone.utc),
     )
 
@@ -79,7 +79,7 @@ async def test_pat_owner_missing_401(monkeypatch):
     monkeypatch.setattr(users_repo, "get", _get_user)
 
     with pytest.raises(HTTPException) as ei:
-        await auth.require_user(_FakeRequest("Bearer act_validtoken123"))
+        await auth.require_user(_FakeRequest("Bearer mkt_validtoken123"))
     assert ei.value.status_code == 401
 
 
@@ -91,14 +91,14 @@ async def test_missing_bearer_401():
 
 
 async def test_non_pat_token_falls_through_to_clerk(monkeypatch):
-    """A bearer that doesn't start with act_ must take the JWT path.
+    """A bearer that doesn't start with mkt_ must take the JWT path.
 
     We monkeypatch the Clerk decode helper to a known sentinel to confirm
     routing without standing up real JWKS.
     """
     from backend import auth
-    from autocontent.repos import users as users_repo
-    from autocontent.models import User
+    from marketer.repos import users as users_repo
+    from marketer.models import User
 
     called: dict = {}
 

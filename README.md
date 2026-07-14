@@ -1,4 +1,4 @@
-# autocontent
+# marketer.sh
 
 Autonomous short-form content creation system optimized for hook-driven, educational content.
 
@@ -37,7 +37,7 @@ cap that the pipeline checks before every credit-spending stage.
 ## Layout
 
 ```
-src/autocontent/
+src/marketer/
   config.py            # env + settings (db url, clerk, secrets)
   db.py                # asyncpg pool
   pipeline.py          # run_job(user_id, niche_id, platform)
@@ -62,7 +62,7 @@ modal_app.py           # Modal entry: run_pipeline, nightly_batch, api (ASGI)
 
 ```bash
 # 1. Apply schema
-psql "$AUTOCONTENT_DATABASE_URL" -f db/migrations/0001_init.sql
+psql "$MARKETER_DATABASE_URL" -f db/migrations/0001_init.sql
 
 # 2. Deploy Modal app (pipeline + FastAPI)
 modal deploy modal_app.py

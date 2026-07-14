@@ -12,9 +12,9 @@ from decimal import Decimal
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
-from autocontent.config import settings
-from autocontent.models import CreditTransaction
-from autocontent.repos import billing as billing_repo
+from marketer.config import settings
+from marketer.models import CreditTransaction
+from marketer.repos import billing as billing_repo
 
 from ..auth import AuthCtx, CurrentUser
 

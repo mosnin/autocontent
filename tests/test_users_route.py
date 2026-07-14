@@ -21,12 +21,12 @@ def _reset_limiter():
 
 def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = None) -> TestClient:
     """App with require_user overridden and users_repo stubs in place."""
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.auth import AuthCtx, require_user
-    from autocontent.models import User
+    from marketer.models import User
     from datetime import datetime, timezone
 
     _current_cap: dict[str, Decimal | None] = {"value": global_daily_cap_usd}
@@ -52,7 +52,7 @@ def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = N
             created_at=datetime.now(timezone.utc),
         )
 
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
     monkeypatch.setattr(users_repo, "upsert", _fake_upsert)
     monkeypatch.setattr(users_repo, "update_settings", _fake_update_settings)
 
@@ -71,7 +71,7 @@ def test_me_returns_200_with_user_id(monkeypatch):
     _reset_limiter()
     client = _make_authed_client(monkeypatch)
 
-    resp = client.get("/api/v1/users/me", headers={"Authorization": "Bearer act_testtoken"})
+    resp = client.get("/api/v1/users/me", headers={"Authorization": "Bearer mkt_testtoken"})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -82,7 +82,7 @@ def test_me_returns_200_with_user_id(monkeypatch):
 def test_me_without_auth_returns_401(monkeypatch):
     """No auth header → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -105,7 +105,7 @@ def test_patch_me_sets_global_cap(monkeypatch):
     resp = client.patch(
         "/api/v1/users/me",
         json={"global_daily_cap_usd": "10.00"},
-        headers={"Authorization": "Bearer act_testtoken"},
+        headers={"Authorization": "Bearer mkt_testtoken"},
     )
 
     assert resp.status_code == 200
@@ -121,7 +121,7 @@ def test_patch_me_clears_global_cap(monkeypatch):
     resp = client.patch(
         "/api/v1/users/me",
         json={"global_daily_cap_usd": None},
-        headers={"Authorization": "Bearer act_testtoken"},
+        headers={"Authorization": "Bearer mkt_testtoken"},
     )
 
     assert resp.status_code == 200
@@ -137,7 +137,7 @@ def test_patch_me_negative_cap_returns_422(monkeypatch):
     resp = client.patch(
         "/api/v1/users/me",
         json={"global_daily_cap_usd": "-1.00"},
-        headers={"Authorization": "Bearer act_testtoken"},
+        headers={"Authorization": "Bearer mkt_testtoken"},
     )
 
     assert resp.status_code == 422
@@ -151,7 +151,7 @@ def test_patch_me_zero_cap_is_valid(monkeypatch):
     resp = client.patch(
         "/api/v1/users/me",
         json={"global_daily_cap_usd": "0.00"},
-        headers={"Authorization": "Bearer act_testtoken"},
+        headers={"Authorization": "Bearer mkt_testtoken"},
     )
 
     assert resp.status_code == 200

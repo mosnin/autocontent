@@ -127,7 +127,7 @@ export function AppSidebar() {
             </svg>
           </span>
           <span className="truncate font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-            autocontent
+            marketer.sh
           </span>
         </Link>
       </SidebarHeader>

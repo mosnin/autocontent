@@ -9,15 +9,15 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from autocontent.models import NicheCreatePayload, PostingWindow
-from autocontent.sdk import AutoContentClient, AutoContentError
+from marketer.models import NicheCreatePayload, PostingWindow
+from marketer.sdk import MarketerClient, MarketerError
 
 
-def _client(handler) -> AutoContentClient:
+def _client(handler) -> MarketerClient:
     transport = httpx.MockTransport(handler)
-    return AutoContentClient(
+    return MarketerClient(
         base_url="https://api.test.local",
-        token="act_testtoken12345",
+        token="mkt_testtoken12345",
         transport=transport,
     )
 
@@ -65,9 +65,9 @@ def _job_row(*, job_id=None) -> dict:
 
 
 async def test_env_var_fallback(monkeypatch):
-    monkeypatch.setenv("AUTOCONTENT_API_BASE_URL", "https://from-env.local")
-    monkeypatch.setenv("AUTOCONTENT_API_TOKEN", "act_envtoken12345")
-    c = AutoContentClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
+    monkeypatch.setenv("MARKETER_API_BASE_URL", "https://from-env.local")
+    monkeypatch.setenv("MARKETER_API_TOKEN", "mkt_envtoken12345")
+    c = MarketerClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
     try:
         assert c._base_url == "https://from-env.local"
     finally:
@@ -75,10 +75,10 @@ async def test_env_var_fallback(monkeypatch):
 
 
 async def test_missing_env_raises(monkeypatch):
-    monkeypatch.delenv("AUTOCONTENT_API_BASE_URL", raising=False)
-    monkeypatch.delenv("AUTOCONTENT_API_TOKEN", raising=False)
-    with pytest.raises(RuntimeError, match="AUTOCONTENT_API_BASE_URL"):
-        AutoContentClient()
+    monkeypatch.delenv("MARKETER_API_BASE_URL", raising=False)
+    monkeypatch.delenv("MARKETER_API_TOKEN", raising=False)
+    with pytest.raises(RuntimeError, match="MARKETER_API_BASE_URL"):
+        MarketerClient()
 
 
 async def test_list_niches_happy_path():
@@ -94,7 +94,7 @@ async def test_list_niches_happy_path():
         out = await c.list_niches()
     assert len(out) == 1
     assert out[0].title == "duck explains macro"
-    assert captured["headers"]["authorization"] == "Bearer act_testtoken12345"
+    assert captured["headers"]["authorization"] == "Bearer mkt_testtoken12345"
     assert captured["url"].endswith("/api/v1/niches")
 
 
@@ -103,7 +103,7 @@ async def test_get_niche_404_raises():
         return httpx.Response(404, json={"detail": "not found"})
 
     async with _client(handler) as c:
-        with pytest.raises(AutoContentError) as ei:
+        with pytest.raises(MarketerError) as ei:
             await c.get_niche(uuid4())
     assert ei.value.status_code == 404
 
@@ -218,12 +218,12 @@ async def test_ayrshare_status():
 async def test_create_token_returns_plaintext_and_info():
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(201, json={
-            "token": "act_freshplaintext1234567",
+            "token": "mkt_freshplaintext1234567",
             "info": {
                 "id": str(uuid4()),
                 "user_id": "user_abc",
                 "name": "ci",
-                "prefix": "act_fres",
+                "prefix": "mkt_fres",
                 "last_used_at": None,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "expires_at": None,
@@ -232,8 +232,8 @@ async def test_create_token_returns_plaintext_and_info():
 
     async with _client(handler) as c:
         info, pt = await c.create_token(name="ci")
-    assert pt.startswith("act_")
-    assert info.prefix == "act_fres"
+    assert pt.startswith("mkt_")
+    assert info.prefix == "mkt_fres"
 
 
 async def test_list_tokens_happy_path():
@@ -262,7 +262,7 @@ async def test_server_error_surfaces_text_when_not_json():
         return httpx.Response(500, text="boom")
 
     async with _client(handler) as c:
-        with pytest.raises(AutoContentError) as ei:
+        with pytest.raises(MarketerError) as ei:
             await c.list_niches()
     assert ei.value.status_code == 500
     assert "boom" in ei.value.message
