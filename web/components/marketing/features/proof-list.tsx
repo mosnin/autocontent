@@ -1,8 +1,12 @@
 import * as React from "react";
 
+import { warmDot } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
-/** Compact checked bullet list used as "proof" under feature ledes. */
+/**
+ * Compact bullet list used as "proof" under feature ledes. Bullets are
+ * warm pass-dots (Amendment 2), never an icon glyph.
+ */
 export function ProofList({
   items,
   className,
@@ -19,20 +23,8 @@ export function ProofList({
         >
           <span
             aria-hidden
-            className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-zinc-900/[0.08] bg-white text-zinc-700"
-          >
-            <svg
-              className="size-3"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2.5"
-              viewBox="0 0 24 24"
-            >
-              <path d="m5 13 4 4L19 7" />
-            </svg>
-          </span>
+            className={cn("mt-[9px] size-1.5 shrink-0 rounded-full", warmDot)}
+          />
           <span>{item}</span>
         </li>
       ))}

@@ -255,20 +255,72 @@ export function ApprovalGateBand() {
 /* Platforms                                                           */
 /* ------------------------------------------------------------------ */
 
-const PLATFORMS = [
+const PLATFORMS: Array<{
+  name: string;
+  note: string;
+  scene: VignetteScene;
+  wash: string;
+  caption: [string, string, string];
+  time: string;
+}> = [
   {
     name: "TikTok",
     note: "Native 9:16 export, karaoke captions burned in for sound-off scrolls.",
+    scene: "mist",
+    wash: "bg-[linear-gradient(160deg,#c7d2fe,#fbcfe8)]",
+    caption: ["dial in", "your", "shot"],
+    time: "0:38",
   },
   {
     name: "Instagram Reels",
     note: "Same cut, Reels-ready. Scheduled into the windows your niche sets.",
+    scene: "dawn",
+    wash: "bg-[linear-gradient(160deg,#fbcfe8,#fde68a)]",
+    caption: ["steam", "silky", "milk"],
+    time: "0:42",
   },
   {
     name: "YouTube Shorts",
     note: "Published alongside the rest, with per-post metrics flowing back.",
+    scene: "sky",
+    wash: "bg-[linear-gradient(160deg,#bae6fd,#c7d2fe)]",
+    caption: ["grind", "finer", "today"],
+    time: "0:36",
   },
 ];
+
+/**
+ * Tiny 9:16 short in a phone-shaped frame: gradient still, word-level
+ * karaoke captions (current word carries the warm highlight), and the
+ * playhead. Product miniature, not decoration.
+ */
+function ShortThumb({ platform }: { platform: (typeof PLATFORMS)[number] }) {
+  const [before, current, after] = platform.caption;
+  return (
+    <div
+      className={cn(
+        "relative mx-auto flex aspect-[9/16] w-[30%] min-w-[3rem] max-w-[6.5rem] flex-col justify-end overflow-hidden rounded-2xl shadow-[0_14px_36px_rgba(15,23,42,0.16)] ring-1 ring-inset ring-zinc-900/[0.08]",
+        platform.wash,
+      )}
+    >
+      <span className="absolute right-2 top-2 rounded-full bg-zinc-900/45 px-1.5 py-0.5 font-mono text-[8px] font-medium text-white/90">
+        {platform.time}
+      </span>
+      <div className="px-1.5 pb-2 text-center">
+        <p className="text-[9px] font-semibold leading-tight text-white drop-shadow-[0_1px_2px_rgba(15,23,42,0.45)]">
+          {before}{" "}
+          <span className="rounded-[3px] bg-amber-500/95 px-0.5 text-white">
+            {current}
+          </span>{" "}
+          {after}
+        </p>
+        <div className="mt-1.5 h-0.5 overflow-hidden rounded-full bg-white/30">
+          <div className="h-full w-3/5 rounded-full bg-white/90" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function PlatformRow() {
   return (
@@ -289,17 +341,13 @@ export function PlatformRow() {
       </Reveal>
       <Stagger className="mt-12 grid gap-6 md:grid-cols-3" gap={0.08}>
         {PLATFORMS.map((p) => (
-          <div
-            className="rounded-[2rem] border border-zinc-900/[0.06] bg-white p-8 shadow-[0_8px_40px_rgba(15,23,42,0.06)]"
+          <VignetteCard
+            description={p.note}
             key={p.name}
-          >
-            <h3 className="font-display text-xl font-semibold tracking-tight text-zinc-900">
-              {p.name}
-            </h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
-              {p.note}
-            </p>
-          </div>
+            scene={p.scene}
+            title={p.name}
+            vignette={<ShortThumb platform={p} />}
+          />
         ))}
       </Stagger>
     </section>

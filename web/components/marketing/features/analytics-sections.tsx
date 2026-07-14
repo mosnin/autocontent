@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import { SpendGuardIllustration } from "@/components/marketing/illustrations";
 import {
   DisplayHeading,
   GlassPanel,
@@ -14,11 +13,13 @@ import {
   warmChip,
 } from "@/components/marketing/system";
 import {
+  CapGaugeVignette,
   CreditsVignette,
   MetricsVignette,
 } from "@/components/marketing/vignettes";
 
 import { ProofList } from "./proof-list";
+import { VignetteStage } from "./vignette-stage";
 
 /* ------------------------------------------------------------------ */
 /* Learning loop                                                       */
@@ -98,7 +99,9 @@ export function LoopBand() {
             />
           </Reveal>
           <Reveal className="flex justify-center" delay={0.12}>
-            <PerformersCard />
+            <VignetteStage scene="dawn">
+              <PerformersCard />
+            </VignetteStage>
           </Reveal>
         </div>
       </div>
@@ -137,8 +140,10 @@ export function SpendBand() {
               ]}
             />
           </Reveal>
-          <Reveal className="lg:order-1" delay={0.12}>
-            <SpendGuardIllustration />
+          <Reveal className="flex justify-center lg:order-1" delay={0.12}>
+            <VignetteStage scene="pearl">
+              <CapGaugeVignette />
+            </VignetteStage>
           </Reveal>
         </div>
       </GradientScene>
