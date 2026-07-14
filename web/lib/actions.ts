@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { api } from "./api";
 import type { ActionState } from "./action-state";
 import type {
+  Article,
   AyrshareConnectResponse,
   Job,
   Niche,
@@ -238,6 +239,44 @@ export async function retryJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  return { ok: true };
+}
+
+export async function createArticleAction(
+  _prev: ActionState & { article?: Article },
+  formData: FormData,
+): Promise<ActionState & { article?: Article }> {
+  const niche_id = String(formData.get("niche_id") || "").trim();
+  if (!niche_id) return { ok: false, error: "niche_id required" };
+  // Topic is optional — the pipeline picks one from the niche when omitted.
+  const topic = String(formData.get("topic") || "").trim();
+  let article: Article;
+  try {
+    article = await api<Article>("/api/v1/articles", {
+      method: "POST",
+      body: JSON.stringify(topic ? { niche_id, topic } : { niche_id }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/articles");
+  return { ok: true, article };
+}
+
+export async function retryArticleAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const article_id = String(formData.get("article_id"));
+  if (!article_id) return { ok: false, error: "article_id required" };
+  try {
+    await api<Article>(`/api/v1/articles/${article_id}/retry`, {
+      method: "POST",
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/articles");
   return { ok: true };
 }
 

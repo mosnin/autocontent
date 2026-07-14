@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import {
+  FileText,
   KeyRound,
   LayoutDashboard,
   Link2,
@@ -39,6 +40,7 @@ interface NavItem {
 const OPERATE: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/queue", label: "Queue", icon: ListChecks },
+  { href: "/articles", label: "Articles", icon: FileText },
 ];
 
 const CONFIGURE: NavItem[] = [

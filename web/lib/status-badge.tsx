@@ -4,7 +4,7 @@
 // In-flight jobs get the recording-light treatment: a pulsing brand dot,
 // the same visual grammar as the marketing site's "live" indicators.
 import { Badge } from "@/components/ui/badge";
-import type { JobStatus } from "@/lib/types";
+import type { ArticleStatus, JobStatus } from "@/lib/types";
 
 type Variant =
   | "default"
@@ -47,6 +47,41 @@ export function StatusBadge({ status }: { status: JobStatus }) {
       </Badge>
     );
   }
+  return (
+    <Badge className="gap-1.5 font-mono lowercase" variant={variant}>
+      {recording && (
+        <span aria-hidden className="relative flex size-2">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
+          <span className="relative inline-flex size-2 rounded-full bg-brand" />
+        </span>
+      )}
+      {status}
+    </Badge>
+  );
+}
+
+// --- Written-content pipeline ------------------------------------------
+
+/** Article statuses that mean "the pipeline is actively working". */
+export const ARTICLE_IN_PROGRESS: ReadonlySet<ArticleStatus> = new Set([
+  "researching",
+  "outlining",
+  "writing",
+  "qa",
+  "metadata",
+  "imaging",
+]);
+
+export function articleStatusVariant(status: ArticleStatus): Variant {
+  if (status === "done") return "success";
+  if (status === "failed") return "destructive";
+  if (status === "queued") return "secondary";
+  return "outline";
+}
+
+export function ArticleStatusBadge({ status }: { status: ArticleStatus }) {
+  const variant = articleStatusVariant(status);
+  const recording = ARTICLE_IN_PROGRESS.has(status);
   return (
     <Badge className="gap-1.5 font-mono lowercase" variant={variant}>
       {recording && (

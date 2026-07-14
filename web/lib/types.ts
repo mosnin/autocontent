@@ -168,6 +168,57 @@ export function isFailed(j: Job): boolean {
   return j.status === "failed";
 }
 
+export type ArticleStatus =
+  | "queued"
+  | "researching"
+  | "outlining"
+  | "writing"
+  | "qa"
+  | "metadata"
+  | "imaging"
+  | "done"
+  | "failed";
+
+/** Quality report emitted by the article QA step (camelCase on the wire). */
+export interface ArticleQuality {
+  overall: number;
+  keywordDensity: number;
+  eeatScore: number;
+  readability: number;
+  notes: string[];
+}
+
+export interface ArticleLinkSuggestion {
+  anchor: string;
+  targetUrl: string;
+  score: number;
+}
+
+export interface Article {
+  id: string;
+  user_id: string;
+  niche_id: string;
+  status: ArticleStatus;
+  topic: string;
+  focus_keyword: string;
+  title: string | null;
+  slug: string | null;
+  meta_description: string | null;
+  keywords: string[];
+  article_markdown: string | null;
+  schema_jsonld: string | null;
+  hero_image_path: string | null;
+  hero_image_alt: string | null;
+  quality: ArticleQuality | null;
+  link_suggestions: ArticleLinkSuggestion[];
+  word_count: number | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const ARTICLE_TERMINAL_STATUSES: ArticleStatus[] = ["done", "failed"];
+
 export interface PersonalAccessToken {
   id: string;
   user_id: string;
