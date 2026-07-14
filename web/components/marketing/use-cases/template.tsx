@@ -23,16 +23,19 @@ import { UseCaseScene, type SceneName } from "./scene";
 
 function StagedLine({ line, index }: { line: string; index: number }) {
   const reduced = useReducedMotion();
-  if (reduced) {
-    return <span className="block">{line}</span>;
-  }
+  // Always mount the motion element (see FadeUp): the branch pattern strands
+  // motion's SSR'd translateY(110%) on the DOM for reduced-motion users.
   return (
     <span className="block overflow-hidden pb-[0.08em]">
       <motion.span
         animate={{ y: 0 }}
         className="block"
-        initial={{ y: "110%" }}
-        transition={{ duration: 0.8, ease: EASE, delay: 0.25 + index * 0.12 }}
+        initial={reduced ? false : { y: "110%" }}
+        transition={
+          reduced
+            ? { duration: 0 }
+            : { duration: 0.8, ease: EASE, delay: 0.25 + index * 0.12 }
+        }
       >
         {line}
       </motion.span>
@@ -50,13 +53,15 @@ function FadeUp({
   className?: string;
 }) {
   const reduced = useReducedMotion();
-  if (reduced) return <div className={className}>{children}</div>;
+  // Always mount the motion element: the plain-div branch leaves motion's
+  // SSR'd opacity:0 inline style on the hydrated DOM (React skips the stale
+  // attribute), blanking content for prefers-reduced-motion users.
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
       className={className}
-      initial={{ opacity: 0, y: 16 }}
-      transition={{ duration: 0.7, ease: EASE, delay }}
+      initial={reduced ? false : { opacity: 0, y: 16 }}
+      transition={reduced ? { duration: 0 } : { duration: 0.7, ease: EASE, delay }}
     >
       {children}
     </motion.div>

@@ -22,13 +22,17 @@ function FadeUp({
   className?: string;
 }) {
   const reduced = useReducedMotion();
-  if (reduced) return <div className={className}>{children}</div>;
+  // Always mount the motion element: branching to a plain <div> under
+  // reduced motion leaves motion's SSR'd `opacity:0` inline style on the
+  // hydrated DOM forever (React doesn't reconcile the stale attribute),
+  // blanking the page for prefers-reduced-motion users. With the element
+  // mounted, motion owns the style and lands on the animate target.
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
       className={className}
-      initial={{ opacity: 0, y: 16 }}
-      transition={{ duration: 0.7, ease: EASE, delay }}
+      initial={reduced ? false : { opacity: 0, y: 16 }}
+      transition={reduced ? { duration: 0 } : { duration: 0.7, ease: EASE, delay }}
     >
       {children}
     </motion.div>

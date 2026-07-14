@@ -23,13 +23,15 @@ function Rise({
   className?: string;
 }) {
   const reduced = useReducedMotion();
-  if (reduced) return <div className={className}>{children}</div>;
+  // Always mount the motion element: the plain-div branch leaves motion's
+  // SSR'd opacity:0 inline style on the hydrated DOM (React skips the stale
+  // attribute), blanking content for prefers-reduced-motion users.
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
       className={className}
-      initial={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.7, ease: EASE, delay }}
+      initial={reduced ? false : { opacity: 0, y: 20 }}
+      transition={reduced ? { duration: 0 } : { duration: 0.7, ease: EASE, delay }}
     >
       {children}
     </motion.div>
