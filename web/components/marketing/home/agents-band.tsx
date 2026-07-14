@@ -25,9 +25,10 @@ export function AgentsBand() {
                 Your agents ship the campaign.
               </h2>
               <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-zinc-400">
-                Every pipeline is callable. Point an agent at the API, the
-                TypeScript SDK, the CLI, or the MCP server and it can brief,
-                approve, and publish on your behalf, inside the caps you set.
+                And you don&apos;t even have to be the one asking. Point an
+                agent at the API, the TypeScript SDK, the CLI, or the MCP
+                server and it can brief, approve, and publish for you, inside
+                the caps you set.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {SURFACES.map((s) => (

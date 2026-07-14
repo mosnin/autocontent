@@ -20,11 +20,12 @@ export function Formats() {
   return (
     <section aria-label="Content formats" className="mx-auto max-w-6xl px-6 py-24 md:py-32">
       <Reveal className="max-w-2xl">
-        <Kicker>Two production lines</Kicker>
+        <Kicker>Two pipelines, one brief</Kicker>
         <DisplayHeading className="mt-4">One brief. Every format.</DisplayHeading>
         <Lede className="mt-5">
-          The same brand brief drives both pipelines. Short-form video for
-          reach, SEO articles for search. Each learns from the other.
+          The brief that ran the night shift drives both lines. Short-form
+          video for reach, SEO articles for search. Each learns from the
+          other.
         </Lede>
       </Reveal>
 

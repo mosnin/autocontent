@@ -33,7 +33,7 @@ export function TrustBand() {
     <section aria-label="Spend controls and approvals" className="px-4 py-6 md:px-6">
       <GradientScene
         className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
-        variant="pearl"
+        variant="mist"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal className="order-2 lg:order-1" delay={0.1}>
@@ -42,13 +42,14 @@ export function TrustBand() {
             </div>
           </Reveal>
           <Reveal className="order-1 lg:order-2">
-            <Kicker>Autonomy with a leash</Kicker>
+            <Kicker>Trust and control</Kicker>
             <DisplayHeading className="mt-4">
               Nothing posts without your rules.
             </DisplayHeading>
             <Lede className="mt-5">
-              Autonomous does not mean unsupervised. You set the budget, the
-              schedule, and the approval gates. The system works inside them.
+              Autonomy is only useful because you hold the leash. You set the
+              budget, the schedule, and the approval gates. The system works
+              inside them.
             </Lede>
             <dl className="mt-9 space-y-6">
               {RULES.map((r) => (

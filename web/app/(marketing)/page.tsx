@@ -4,6 +4,7 @@ import { AgentsBand } from "@/components/marketing/home/agents-band";
 import { Formats } from "@/components/marketing/home/formats";
 import { Hero } from "@/components/marketing/home/hero";
 import { LearningLoop } from "@/components/marketing/home/learning-loop";
+import { NightShift } from "@/components/marketing/home/night-shift";
 import { PipelineStory } from "@/components/marketing/home/pipeline-story";
 import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
 import { Stats } from "@/components/marketing/home/stats";
@@ -48,6 +49,7 @@ export default function HomePage() {
         type="application/ld+json"
       />
       <Hero />
+      <NightShift />
       <Formats />
       <PipelineStory />
       <AgentsBand />
@@ -62,7 +64,7 @@ export default function HomePage() {
         primaryLabel="Start creating"
         secondaryHref="/pricing"
         secondaryLabel="See pricing"
-        sub="Describe your brand once. Review what ships. Keep every dollar under a cap you set."
+        sub="Five dollars of credit. A cap you set. A gate you hold. Your first short ships today."
       />
     </main>
   );

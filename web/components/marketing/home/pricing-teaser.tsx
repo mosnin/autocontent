@@ -21,7 +21,7 @@ export function PricingTeaser() {
       <Reveal className="max-w-2xl">
         <Kicker>Pricing</Kicker>
         <DisplayHeading className="mt-4">
-          No subscription. Pay for what ships.
+          No subscription. You buy renders, not seats.
         </DisplayHeading>
         <Lede className="mt-5">
           Buy credit once. Every video and article draws it down at provider

@@ -7,6 +7,7 @@ import { VideoPipelineIllustration } from "@/components/marketing/illustrations"
 import {
   DisplayHeading,
   Kicker,
+  Lede,
   PinnedScene,
   Reveal,
 } from "@/components/marketing/system";
@@ -33,6 +34,9 @@ function Header() {
       <DisplayHeading className="mt-4">
         Watch a post make itself.
       </DisplayHeading>
+      <Lede className="mt-5">
+        Here&apos;s the night shift, stage by stage.
+      </Lede>
     </div>
   );
 }
@@ -96,10 +100,12 @@ function Scene({ progress }: { progress: MotionValue<number> }) {
   return (
     <div className="mx-auto max-w-6xl px-6">
       <Header />
-      <div className="mt-10 grid items-center gap-10 lg:grid-cols-[minmax(0,20rem)_1fr]">
-        <CaptionRail active={stage} />
-        <div className="rounded-[2rem] border border-zinc-900/[0.05] bg-white p-6 shadow-[0_8px_40px_rgba(15,23,42,0.06)] md:p-10">
-          <VideoPipelineIllustration stage={stage} />
+      <div className="mt-10 grid items-stretch gap-8 lg:grid-cols-[minmax(0,18rem)_1fr]">
+        <div className="self-center">
+          <CaptionRail active={stage} />
+        </div>
+        <div className="flex min-h-[24rem] items-center rounded-[2rem] border border-zinc-900/[0.05] bg-white p-5 shadow-[0_8px_40px_rgba(15,23,42,0.06)] md:p-8 xl:min-h-[27rem]">
+          <VideoPipelineIllustration className="w-full" stage={stage} />
         </div>
       </div>
     </div>

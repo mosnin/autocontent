@@ -61,6 +61,67 @@ export function QueueMoment() {
 
 const TRAITS = ["mid-30s barista", "denim apron", "warm, direct", "counter framing"];
 
+const SCENE_TILES = [
+  {
+    id: "char-scene-dawn",
+    label: "Scene 1 · dawn",
+    sky: ["#fecdd3", "#fef3c7"],
+    glow: { cx: 22, cy: 38, r: 12, fill: "#fb923c", opacity: 0.4 },
+  },
+  {
+    id: "char-scene-day",
+    label: "Scene 4 · day",
+    sky: ["#bfdbfe", "#e0f2fe"],
+    glow: { cx: 62, cy: 12, r: 9, fill: "#fef08a", opacity: 0.8 },
+  },
+  {
+    id: "char-scene-dusk",
+    label: "Scene 7 · dusk",
+    sky: ["#c7d2fe", "#fbcfe8"],
+    glow: { cx: 58, cy: 40, r: 13, fill: "#f472b6", opacity: 0.35 },
+  },
+] as const;
+
+/** The same presenter silhouette in every tile; that sameness is the point. */
+function CharacterSilhouette() {
+  return (
+    <g fill="#3f3f46" fillOpacity="0.8">
+      <circle cx="40" cy="24" r="7.5" />
+      <path d="M26 52 C26 40.5 32 35.5 40 35.5 C48 35.5 54 40.5 54 52 Z" />
+    </g>
+  );
+}
+
+function SceneTile({ tile }: { tile: (typeof SCENE_TILES)[number] }) {
+  return (
+    <div className="overflow-hidden rounded-xl border border-zinc-900/[0.06] bg-white">
+      <svg aria-hidden className="block h-auto w-full" viewBox="0 0 80 52">
+        <defs>
+          <linearGradient id={tile.id} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor={tile.sky[0]} />
+            <stop offset="1" stopColor={tile.sky[1]} />
+          </linearGradient>
+        </defs>
+        <rect fill={`url(#${tile.id})`} height="52" width="80" />
+        {/* Scene light: sun low at dawn, high at midday, warm at dusk */}
+        <circle
+          cx={tile.glow.cx}
+          cy={tile.glow.cy}
+          fill={tile.glow.fill}
+          opacity={tile.glow.opacity}
+          r={tile.glow.r}
+        />
+        {/* Counter line, same framing every scene */}
+        <rect fill="#ffffff" height="8" opacity="0.35" width="80" y="44" />
+        <CharacterSilhouette />
+      </svg>
+      <p className="py-1.5 text-center text-[10px] font-medium text-zinc-400">
+        {tile.label}
+      </p>
+    </div>
+  );
+}
+
 function CharacterSheetCard() {
   return (
     <GlassPanel className="w-full max-w-sm p-5">
@@ -94,17 +155,8 @@ function CharacterSheetCard() {
         ))}
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2">
-        {["Scene 1", "Scene 4", "Scene 7"].map((label) => (
-          <div
-            className="rounded-xl border border-zinc-900/[0.05] bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-2.5"
-            key={label}
-          >
-            <div className="mx-auto mt-1 size-6 rounded-full bg-gradient-to-br from-amber-100 to-rose-100 ring-1 ring-zinc-900/[0.06]" />
-            <div className="mx-auto mt-1.5 h-4 w-8 rounded-t-full bg-zinc-900/[0.07]" />
-            <p className="mt-2 text-center text-[10px] font-medium text-zinc-400">
-              {label}
-            </p>
-          </div>
+        {SCENE_TILES.map((tile) => (
+          <SceneTile key={tile.id} tile={tile} />
         ))}
       </div>
       <p className="mt-3 text-center text-[11px] text-zinc-400">
