@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
+import { WARM_FROM, WARM_TO } from "@/components/marketing/system/accent";
 import { VIEWPORT } from "@/components/marketing/system/motion";
 
 /**
@@ -58,6 +59,10 @@ export function SpendGuardIllustration({ className }: { className?: string }) {
           <stop offset="0%" stopColor="#dbeafe" stopOpacity="0.7" />
           <stop offset="100%" stopColor="#eff6ff" stopOpacity="0" />
         </radialGradient>
+        <linearGradient id={`${id}-warm`} x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor={WARM_FROM} />
+          <stop offset="100%" stopColor={WARM_TO} />
+        </linearGradient>
       </defs>
 
       <motion.g
@@ -269,7 +274,7 @@ export function SpendGuardIllustration({ className }: { className?: string }) {
             strokeWidth={1.5}
           />
           <motion.path
-            className="stroke-emerald-600"
+            className="stroke-amber-500"
             d="m 203 121 5 5 9 -11"
             fill="none"
             strokeLinecap="round"
@@ -334,7 +339,7 @@ export function SpendGuardIllustration({ className }: { className?: string }) {
             x={96}
             y={244}
           />
-          <circle className="fill-emerald-500" cx={116} cy={259} r={5.5} />
+          <circle cx={116} cy={259} fill={`url(#${id}-warm)`} r={5.5} />
           <path
             className="stroke-white"
             d="m 113.5 259 1.8 1.8 3.2 -3.6"

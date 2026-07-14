@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
+import { warmChip, warmDot } from "./accent";
 import { GlassPanel } from "./glass-panel";
 import { EASE } from "./motion";
 
@@ -41,8 +42,7 @@ function StatusPill({
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
         tone === "recording" && "border-brand/20 bg-brand/[0.07] text-zinc-700",
         tone === "scheduled" && "border-zinc-900/10 bg-white/80 text-zinc-500",
-        tone === "published" &&
-          "border-emerald-600/15 bg-emerald-50/80 text-emerald-700",
+        tone === "published" && warmChip,
         tone === "neutral" && "border-zinc-900/10 bg-white/80 text-zinc-500",
       )}
     >
@@ -115,7 +115,7 @@ export function MockChat({ className }: { className?: string }) {
           </div>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-900/10 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
+          <span className={cn("size-1.5 rounded-full", warmDot)} />
           online now
         </span>
       </div>
@@ -242,12 +242,17 @@ function ArticleCard({ className }: { className?: string }) {
           <p className="text-[13px] font-semibold text-zinc-900">SEO article</p>
           <p className="text-[11px] text-zinc-400">drafted 8:41 AM</p>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/15 bg-emerald-50/80 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium",
+            warmChip,
+          )}
+        >
           Score 94
         </span>
       </div>
       <div className="mt-4 rounded-xl border border-zinc-900/[0.05] bg-white/80 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-        <p className="text-[11px] text-emerald-700">
+        <p className="text-[11px] text-zinc-500">
           marketer.sh/blog/best-home-espresso-machines
         </p>
         <p className="mt-1 text-[13px] font-medium leading-snug text-sky-800">

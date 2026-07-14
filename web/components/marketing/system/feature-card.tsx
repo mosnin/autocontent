@@ -1,12 +1,14 @@
 import * as React from "react";
-import Link from "next/link";
 
-import { cn } from "@/lib/utils";
-import { Kicker } from "./typography";
+import { VignetteCard, type VignetteScene } from "./vignette-card";
 
 /**
- * Big floating feature panel: illustration up top, kicker + title + copy
- * below, quiet arrow link at the bottom. Whole card is clickable.
+ * Feature link card: composes `<VignetteCard>` (Amendment 2 card
+ * language) with the illustration staged in the vignette frame and a
+ * quiet arrow link pinned to the bottom. Whole card is clickable.
+ *
+ * Props are backward compatible with the original FeatureCard; `scene`
+ * is a new optional wash selector.
  */
 export function FeatureCard({
   title,
@@ -15,6 +17,7 @@ export function FeatureCard({
   linkLabel = "Learn more",
   kicker,
   illustration,
+  scene = "pearl",
   className,
 }: {
   title: string;
@@ -23,30 +26,15 @@ export function FeatureCard({
   linkLabel?: string;
   kicker?: string;
   illustration?: React.ReactNode;
+  scene?: VignetteScene;
   className?: string;
 }) {
   return (
-    <Link
-      className={cn(
-        "group flex h-full flex-col overflow-hidden rounded-[2rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_50px_rgba(15,23,42,0.10)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900",
-        className,
-      )}
-      href={href}
-    >
-      {illustration ? (
-        <div className="border-b border-zinc-900/[0.04] bg-[radial-gradient(110%_110%_at_50%_-10%,#f0f4ff_0%,#fafafa_70%)] px-6 pt-8 pb-4">
-          {illustration}
-        </div>
-      ) : null}
-      <div className="flex flex-1 flex-col p-8">
-        {kicker ? <Kicker className="mb-3">{kicker}</Kicker> : null}
-        <h3 className="font-display text-xl font-semibold tracking-tight text-zinc-900 md:text-2xl">
-          {title}
-        </h3>
-        <p className="mt-2 max-w-md text-[15px] leading-relaxed text-zinc-600">
-          {description}
-        </p>
-        <span className="mt-auto inline-flex items-center gap-1.5 pt-6 text-sm font-medium text-zinc-900">
+    <VignetteCard
+      className={className}
+      description={description}
+      footer={
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-900">
           {linkLabel}
           <svg
             aria-hidden
@@ -62,7 +50,12 @@ export function FeatureCard({
             <path d="m13 6 6 6-6 6" />
           </svg>
         </span>
-      </div>
-    </Link>
+      }
+      href={href}
+      kicker={kicker}
+      scene={scene}
+      title={title}
+      vignette={illustration ?? null}
+    />
   );
 }

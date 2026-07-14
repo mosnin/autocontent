@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
+import { WARM_FROM, WARM_TO } from "@/components/marketing/system/accent";
 import { VIEWPORT } from "@/components/marketing/system/motion";
 
 /**
@@ -62,6 +63,10 @@ export function ArticleFlowIllustration({ className }: { className?: string }) {
         <linearGradient id={`${id}-card`} x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#ffffff" />
           <stop offset="100%" stopColor="#f5f8fd" />
+        </linearGradient>
+        <linearGradient id={`${id}-warm`} x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor={WARM_FROM} />
+          <stop offset="100%" stopColor={WARM_TO} />
         </linearGradient>
       </defs>
 
@@ -425,7 +430,7 @@ export function ArticleFlowIllustration({ className }: { className?: string }) {
             },
           }}
         >
-          <circle className="fill-emerald-500" cx={588} cy={246} r={8} />
+          <circle cx={588} cy={246} fill={`url(#${id}-warm)`} r={8} />
           <path
             className="stroke-white"
             d="m 584.5 246 2.5 2.5 5 -5.5"
@@ -476,7 +481,7 @@ export function ArticleFlowIllustration({ className }: { className?: string }) {
               x={c.x}
               y={288}
             />
-            <circle className="fill-emerald-500" cx={c.x + 14} cy={301} r={3} />
+            <circle className="fill-amber-500" cx={c.x + 14} cy={301} r={3} />
             <text
               className="fill-zinc-500 font-mono text-[10px]"
               x={c.x + 23}

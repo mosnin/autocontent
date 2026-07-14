@@ -4,6 +4,7 @@ import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
+import { WARM_FROM, WARM_TO } from "@/components/marketing/system/accent";
 import { VIEWPORT } from "@/components/marketing/system/motion";
 
 /**
@@ -56,6 +57,14 @@ export function AnalyticsLoopIllustration({
           <stop offset="0%" stopColor="#ffffff" />
           <stop offset="100%" stopColor="#f6f9fd" />
         </linearGradient>
+        <linearGradient id={`${id}-warm`} x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor={WARM_FROM} />
+          <stop offset="100%" stopColor={WARM_TO} />
+        </linearGradient>
+        <linearGradient id={`${id}-warm-soft`} x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor={WARM_FROM} stopOpacity="0.13" />
+          <stop offset="100%" stopColor={WARM_TO} stopOpacity="0.10" />
+        </linearGradient>
       </defs>
 
       <motion.g
@@ -100,7 +109,8 @@ export function AnalyticsLoopIllustration({
           }}
         >
           <rect
-            className="fill-emerald-50 stroke-emerald-600/20"
+            className="stroke-amber-600/20"
+            fill={`url(#${id}-warm-soft)`}
             height={22}
             rx={11}
             strokeWidth={1.5}
@@ -109,15 +119,15 @@ export function AnalyticsLoopIllustration({
             y={46}
           />
           <path
-            className="stroke-emerald-600"
             d="M 436 62 l 5 -6 4 3 6 -7"
             fill="none"
+            stroke={`url(#${id}-warm)`}
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={1.5}
           />
           <text
-            className="fill-emerald-700 font-mono text-[10px] font-medium"
+            className="fill-amber-700 font-mono text-[10px] font-medium"
             x={456}
             y={61}
           >
