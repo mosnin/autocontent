@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import { SiteShell } from "@/components/site-shell";
 import { CommandPalette } from "@/components/command-palette";
 import { RunConfirmProvider } from "@/components/run-confirm-dialog";
@@ -12,9 +13,11 @@ export const dynamic = "force-dynamic";
 // sidebar shell. Auth itself still happens in `web/middleware.ts`.
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
+    <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
     <RunConfirmProvider>
       <SiteShell>{children}</SiteShell>
       <CommandPalette />
     </RunConfirmProvider>
+    </ClerkProvider>
   );
 }
