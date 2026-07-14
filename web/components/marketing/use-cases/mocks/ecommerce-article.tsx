@@ -33,7 +33,7 @@ export function EcommerceArticleMock({ className }: { className?: string }) {
         title="SEO article"
       />
       <div className="mt-4 rounded-xl border border-zinc-900/[0.05] bg-white/80 p-3.5">
-        <p className="truncate text-[11px] text-emerald-700">
+        <p className="truncate text-[11px] text-zinc-500">
           yourstore.com/guides/best-espresso-grinders-under-200
         </p>
         <p className="mt-1 text-[13px] font-medium leading-snug text-sky-800">
@@ -62,7 +62,7 @@ export function EcommerceArticleMock({ className }: { className?: string }) {
           >
             <svg
               aria-hidden
-              className="size-3 text-emerald-600"
+              className="size-3 text-amber-600"
               fill="none"
               stroke="currentColor"
               strokeLinecap="round"

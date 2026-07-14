@@ -112,7 +112,7 @@ export function AgentChatMock({ className }: { className?: string }) {
                 <code className="truncate font-mono text-[11px] text-zinc-600">
                   {t.call}
                 </code>
-                <span className="shrink-0 font-mono text-[10px] text-emerald-600">
+                <span className="shrink-0 font-mono text-[10px] text-amber-600">
                   {t.note}
                 </span>
               </span>

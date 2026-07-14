@@ -3,6 +3,7 @@
 import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
+import { warmChip } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
 /** The recording light: a small pulsing brand-orange dot. */
@@ -38,8 +39,7 @@ export function MiniPill({
         "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium",
         tone === "neutral" && "border-zinc-900/10 bg-white/80 text-zinc-500",
         tone === "live" && "border-brand/20 bg-brand/[0.07] text-zinc-700",
-        tone === "ok" &&
-          "border-emerald-600/15 bg-emerald-50/80 text-emerald-700",
+        tone === "ok" && warmChip,
         tone === "wait" && "border-amber-500/20 bg-amber-50/80 text-amber-700",
         className,
       )}
