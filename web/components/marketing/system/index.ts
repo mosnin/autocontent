@@ -11,5 +11,21 @@ export { SectionCta } from "./section-cta";
 export { LogoRow } from "./logo-row";
 export { StatStrip, type Stat } from "./stat-strip";
 export { FeatureCard } from "./feature-card";
+export {
+  VignetteCard,
+  VIGNETTE_SCENES,
+  type VignetteScene,
+} from "./vignette-card";
+export {
+  WARM_GRADIENT,
+  WARM_GRADIENT_SOFT,
+  WARM_FROM,
+  WARM_TO,
+  warmBg,
+  warmText,
+  warmChip,
+  warmDot,
+  warmDotFill,
+} from "./accent";
 export { MockDashboard, MockChat } from "./mock-cards";
 export { EASE, VIEWPORT, REVEAL_DURATION } from "./motion";
