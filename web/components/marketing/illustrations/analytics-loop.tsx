@@ -8,14 +8,26 @@ import { VIEWPORT } from "@/components/marketing/system/motion";
 
 /**
  * The performance loop: a retention line draws itself across a chart,
- * then the trace arcs back to the idea node on the left. Post → measure →
- * next brief.
+ * insights condense out of it, and the trace arcs back to the next brief.
+ * Post → measure → learn → next brief.
  */
 
 const LINE_D =
   "M 200 204 C 236 192 254 196 286 172 C 318 148 342 140 378 126 C 414 112 454 92 500 72";
 
 const LOOP_D = "M 500 72 C 566 128 470 288 150 282 C 122 281 104 274 94 264";
+
+const POINTS = [
+  { x: 200, y: 204 },
+  { x: 286, y: 172 },
+  { x: 378, y: 126 },
+  { x: 500, y: 72 },
+];
+
+const INSIGHTS = [
+  { x: 24, y: 62, w: 126, dot: "fill-sky-400", label: "hooks under 2s win" },
+  { x: 34, y: 102, w: 116, dot: "fill-indigo-300", label: "voice B converts" },
+];
 
 export function AnalyticsLoopIllustration({
   className,
@@ -27,7 +39,7 @@ export function AnalyticsLoopIllustration({
 
   return (
     <motion.svg
-      aria-label="Diagram of a performance chart whose results loop back into the next content idea"
+      aria-label="Diagram of a performance chart whose results become insights that loop back into the next content brief"
       className={cn("h-auto w-full", className)}
       initial={reduced ? false : "hidden"}
       role="img"
@@ -40,6 +52,10 @@ export function AnalyticsLoopIllustration({
           <stop offset="0%" stopColor="#bfdbfe" stopOpacity="0.55" />
           <stop offset="100%" stopColor="#eff6ff" stopOpacity="0" />
         </linearGradient>
+        <linearGradient id={`${id}-card`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#f6f9fd" />
+        </linearGradient>
       </defs>
 
       <motion.g
@@ -48,9 +64,11 @@ export function AnalyticsLoopIllustration({
       >
         {/* Chart card */}
         <motion.rect
-          className="fill-white stroke-zinc-200"
+          className="stroke-zinc-200"
+          fill={`url(#${id}-card)`}
           height={212}
           rx={20}
+          strokeWidth={1.5}
           variants={{
             hidden: { opacity: 0, y: 14 },
             show: {
@@ -70,13 +88,51 @@ export function AnalyticsLoopIllustration({
         >
           Retention by post
         </text>
+        {/* KPI chip */}
+        <motion.g
+          variants={{
+            hidden: { opacity: 0, scale: 0.85 },
+            show: {
+              opacity: 1,
+              scale: 1,
+              transition: { duration: 0.4, delay: 1.9 },
+            },
+          }}
+        >
+          <rect
+            className="fill-emerald-50 stroke-emerald-600/20"
+            height={22}
+            rx={11}
+            strokeWidth={1.5}
+            width={82}
+            x={422}
+            y={46}
+          />
+          <path
+            className="stroke-emerald-600"
+            d="M 436 62 l 5 -6 4 3 6 -7"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+          />
+          <text
+            className="fill-emerald-700 font-mono text-[10px] font-medium"
+            x={456}
+            y={61}
+          >
+            avg 64%
+          </text>
+        </motion.g>
 
-        {/* Grid */}
-        {[112, 156, 200].map((y, i) => (
-          <motion.line
-            className="stroke-zinc-100"
-            key={y}
-            strokeWidth={1}
+        {/* Grid + axis labels */}
+        {[
+          { y: 112, label: "70" },
+          { y: 156, label: "50" },
+          { y: 200, label: "30" },
+        ].map((g, i) => (
+          <motion.g
+            key={g.y}
             variants={{
               hidden: { opacity: 0 },
               show: {
@@ -84,10 +140,43 @@ export function AnalyticsLoopIllustration({
                 transition: { duration: 0.4, delay: 0.4 + i * 0.08 },
               },
             }}
-            x1={200}
-            x2={504}
-            y1={y}
-            y2={y}
+          >
+            <line
+              className="stroke-zinc-100"
+              strokeWidth={1}
+              x1={210}
+              x2={504}
+              y1={g.y}
+              y2={g.y}
+            />
+            <text
+              className="fill-zinc-300 font-mono text-[9px]"
+              textAnchor="end"
+              x={204}
+              y={g.y + 3}
+            >
+              {g.label}
+            </text>
+          </motion.g>
+        ))}
+        {/* Baseline post ticks */}
+        {POINTS.map((p, i) => (
+          <motion.line
+            className="stroke-zinc-200"
+            key={`tick-${p.x}`}
+            strokeLinecap="round"
+            strokeWidth={1.5}
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { duration: 0.3, delay: 0.6 + i * 0.08 },
+              },
+            }}
+            x1={p.x}
+            x2={p.x}
+            y1={214}
+            y2={220}
           />
         ))}
 
@@ -121,11 +210,8 @@ export function AnalyticsLoopIllustration({
           }}
         />
 
-        {/* Marker dots on the two best posts */}
-        {[
-          { x: 378, y: 126 },
-          { x: 500, y: 72 },
-        ].map((p, i) => (
+        {/* Marker dots at each post */}
+        {POINTS.map((p, i) => (
           <motion.g
             key={p.x}
             variants={{
@@ -133,7 +219,7 @@ export function AnalyticsLoopIllustration({
               show: {
                 opacity: 1,
                 scale: 1,
-                transition: { duration: 0.35, delay: 1.5 + i * 0.25 },
+                transition: { duration: 0.35, delay: 1.1 + i * 0.2 },
               },
             }}
           >
@@ -141,11 +227,66 @@ export function AnalyticsLoopIllustration({
               className="fill-white stroke-zinc-800"
               cx={p.x}
               cy={p.y}
-              r={5}
-              strokeWidth={2}
+              r={i >= 2 ? 5 : 3.5}
+              strokeWidth={i >= 2 ? 2 : 1.5}
             />
           </motion.g>
         ))}
+
+        {/* Insight chips: what the loop carries back */}
+        {INSIGHTS.map((c, i) => (
+          <motion.g
+            key={c.label}
+            variants={{
+              hidden: { opacity: 0, y: 8, scale: 0.94 },
+              show: {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                transition: {
+                  duration: 0.45,
+                  ease: [0.22, 1, 0.36, 1],
+                  delay: 2.3 + i * 0.15,
+                },
+              },
+            }}
+          >
+            <rect
+              className="fill-white stroke-zinc-200"
+              height={30}
+              rx={15}
+              strokeWidth={1.5}
+              width={c.w}
+              x={c.x}
+              y={c.y}
+            />
+            <circle className={c.dot} cx={c.x + 16} cy={c.y + 15} r={3} />
+            <text
+              className="fill-zinc-500 text-[10px] font-medium"
+              x={c.x + 25}
+              y={c.y + 18.5}
+            >
+              {c.label}
+            </text>
+          </motion.g>
+        ))}
+        {/* Insights feed the next brief */}
+        <motion.path
+          className="stroke-zinc-200"
+          d="M 84 136 C 76 168 68 192 64 208"
+          fill="none"
+          strokeDasharray="2 6"
+          strokeLinecap="round"
+          strokeWidth={1.5}
+          variants={{
+            hidden: { pathLength: 0, opacity: 0 },
+            show: {
+              pathLength: 1,
+              opacity: 1,
+              transition: { duration: 0.6, ease: "easeInOut", delay: 2.7 },
+            },
+          }}
+        />
 
         {/* Loop trace back to the idea node */}
         <motion.path

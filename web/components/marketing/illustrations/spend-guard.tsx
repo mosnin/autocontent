@@ -7,10 +7,15 @@ import { cn } from "@/lib/utils";
 import { VIEWPORT } from "@/components/marketing/system/motion";
 
 /**
- * The spend guard: a gauge fills toward a hard cap line that glows, then a
- * shield-check confirms nothing can pass it. Today's spend never exceeds
- * the cap; that's the whole story of the drawing.
+ * The spend guard: a ticked gauge fills toward a hard cap line that glows,
+ * then a shield-check confirms nothing can pass it. Today's spend never
+ * exceeds the cap; that's the whole story of the drawing.
  */
+
+/** Gauge center and radius. */
+const GX = 210;
+const GY = 190;
+const GR = 120;
 
 /** Semicircle gauge, left ($0) to right ($10). */
 const ARC_D = "M 90 190 A 120 120 0 0 1 330 190";
@@ -18,8 +23,25 @@ const ARC_D = "M 90 190 A 120 120 0 0 1 330 190";
 /** Spend fill stops at 72% of the arc; the cap tick sits at 78%. */
 const FILL_RATIO = 0.72;
 
+/** Tick marks around the dial, $1 apart. */
+const TICKS = Array.from({ length: 11 }, (_, i) => {
+  const t = i / 10;
+  const a = Math.PI * (1 - t);
+  const major = i % 5 === 0;
+  const r1 = 131;
+  const r2 = major ? 141 : 137;
+  return {
+    major,
+    x1: GX + Math.cos(a) * r1,
+    y1: GY - Math.sin(a) * r1,
+    x2: GX + Math.cos(a) * r2,
+    y2: GY - Math.sin(a) * r2,
+  };
+});
+
 export function SpendGuardIllustration({ className }: { className?: string }) {
   const reduced = useReducedMotion();
+  const id = React.useId();
 
   return (
     <motion.svg
@@ -31,10 +53,77 @@ export function SpendGuardIllustration({ className }: { className?: string }) {
       viewport={VIEWPORT}
       whileInView="show"
     >
+      <defs>
+        <radialGradient cx="50%" cy="60%" id={`${id}-glow`} r="55%">
+          <stop offset="0%" stopColor="#dbeafe" stopOpacity="0.7" />
+          <stop offset="100%" stopColor="#eff6ff" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
       <motion.g
         animate={reduced ? undefined : { y: [0, -3, 0] }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
       >
+        {/* Soft glow grounding the gauge */}
+        <motion.circle
+          cx={GX}
+          cy={150}
+          fill={`url(#${id}-glow)`}
+          r={160}
+          variants={{
+            hidden: { opacity: 0 },
+            show: { opacity: 1, transition: { duration: 1 } },
+          }}
+        />
+
+        {/* Dial ticks */}
+        {TICKS.map((t, i) => (
+          <motion.line
+            className={t.major ? "stroke-zinc-300" : "stroke-zinc-200"}
+            key={i}
+            strokeLinecap="round"
+            strokeWidth={1.5}
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { duration: 0.25, delay: 0.15 + i * 0.05 },
+              },
+            }}
+            x1={t.x1}
+            x2={t.x2}
+            y1={t.y1}
+            y2={t.y2}
+          />
+        ))}
+        <motion.text
+          className="fill-zinc-300 font-mono text-[10px]"
+          textAnchor="middle"
+          variants={{
+            hidden: { opacity: 0 },
+            show: { opacity: 1, transition: { duration: 0.3, delay: 0.7 } },
+          }}
+          x={GX}
+          y={40}
+        >
+          $5
+        </motion.text>
+
+        {/* Baseline */}
+        <motion.line
+          className="stroke-zinc-100"
+          strokeLinecap="round"
+          strokeWidth={1.5}
+          variants={{
+            hidden: { opacity: 0 },
+            show: { opacity: 1, transition: { duration: 0.4, delay: 0.3 } },
+          }}
+          x1={104}
+          x2={316}
+          y1={GY}
+          y2={GY}
+        />
+
         {/* Track */}
         <motion.path
           className="stroke-zinc-200"
@@ -113,11 +202,42 @@ export function SpendGuardIllustration({ className }: { className?: string }) {
             hidden: { opacity: 0 },
             show: { opacity: 1, transition: { duration: 0.3, delay: 1.35 } },
           }}
-          x={322}
+          x={324}
           y={92}
         >
           hard cap
         </motion.text>
+
+        {/* Channel chip, balancing the cap label */}
+        <motion.g
+          variants={{
+            hidden: { opacity: 0, y: 8, scale: 0.94 },
+            show: {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              transition: {
+                duration: 0.45,
+                ease: [0.22, 1, 0.36, 1],
+                delay: 1.5,
+              },
+            },
+          }}
+        >
+          <rect
+            className="fill-white stroke-zinc-200"
+            height={30}
+            rx={15}
+            strokeWidth={1.5}
+            width={126}
+            x={12}
+            y={62}
+          />
+          <circle className="fill-zinc-300" cx={28} cy={77} r={3} />
+          <text className="fill-zinc-500 text-[10px] font-medium" x={37} y={81}>
+            espresso · $10/day
+          </text>
+        </motion.g>
 
         {/* Scale labels */}
         <text className="fill-zinc-400 font-mono text-[11px]" textAnchor="middle" x={90} y={216}>
@@ -209,6 +329,7 @@ export function SpendGuardIllustration({ className }: { className?: string }) {
             className="fill-white stroke-zinc-200"
             height={30}
             rx={15}
+            strokeWidth={1.5}
             width={228}
             x={96}
             y={244}
@@ -220,7 +341,7 @@ export function SpendGuardIllustration({ className }: { className?: string }) {
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={1.4}
+            strokeWidth={1.5}
           />
           <text className="fill-zinc-600 text-[11.5px] font-medium" x={130} y={263}>
             Calls past the cap are refused

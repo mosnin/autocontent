@@ -91,14 +91,21 @@ export function MockChat({ className }: { className?: string }) {
   const reduced = useReducedMotion();
 
   return (
-    <GlassPanel className={cn("w-full max-w-sm p-5", className)}>
+    <GlassPanel
+      className={cn(
+        "w-full max-w-sm p-5 ring-1 ring-inset ring-white/50",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between border-b border-zinc-900/[0.06] pb-4">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden
-            className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-200 to-indigo-200 ring-1 ring-white/80"
+            className="rounded-full bg-gradient-to-br from-sky-300 via-indigo-200 to-rose-200 p-[2px]"
           >
-            <span className="size-2 rounded-full bg-zinc-900/70" />
+            <span className="flex size-8 items-center justify-center rounded-full bg-gradient-to-br from-sky-100 to-indigo-100 ring-2 ring-white/90">
+              <span className="size-2 rounded-full bg-zinc-900/70" />
+            </span>
           </span>
           <div>
             <p className="text-[13px] font-semibold text-zinc-900">
@@ -107,14 +114,18 @@ export function MockChat({ className }: { className?: string }) {
             <p className="text-[11px] text-zinc-400">home-espresso channel</p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-900/10 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-zinc-500">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-900/10 bg-white/80 px-2.5 py-1 text-[11px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
           <span className="size-1.5 rounded-full bg-emerald-500" />
           online now
         </span>
       </div>
 
+      <p className="mt-3 text-center text-[10px] font-medium uppercase tracking-[0.08em] text-zinc-300">
+        Today 9:02 AM
+      </p>
+
       <motion.ul
-        className="mt-4 space-y-2.5"
+        className="mt-2 space-y-2.5"
         initial={reduced ? false : "hidden"}
         variants={{
           hidden: {},
@@ -181,9 +192,19 @@ const QUEUE_ROWS = [
 
 function QueueCard({ className }: { className?: string }) {
   return (
-    <GlassPanel className={cn("w-full max-w-sm p-5", className)}>
+    <GlassPanel
+      className={cn(
+        "w-full max-w-sm p-5 ring-1 ring-inset ring-white/50",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-zinc-900">Publish queue</p>
+        <div>
+          <p className="text-[13px] font-semibold text-zinc-900">
+            Publish queue
+          </p>
+          <p className="text-[11px] text-zinc-400">updated 2 min ago</p>
+        </div>
         <span className="rounded-full bg-zinc-900/[0.05] px-2.5 py-1 text-[11px] font-medium text-zinc-500">
           home-espresso
         </span>
@@ -191,7 +212,7 @@ function QueueCard({ className }: { className?: string }) {
       <ul className="mt-4 space-y-2">
         {QUEUE_ROWS.map((row) => (
           <li
-            className="flex items-center justify-between gap-3 rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-3"
+            className="flex items-center justify-between gap-3 rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]"
             key={row.title}
           >
             <div className="min-w-0">
@@ -210,14 +231,22 @@ function QueueCard({ className }: { className?: string }) {
 
 function ArticleCard({ className }: { className?: string }) {
   return (
-    <GlassPanel className={cn("w-full max-w-sm p-5", className)}>
+    <GlassPanel
+      className={cn(
+        "w-full max-w-sm p-5 ring-1 ring-inset ring-white/50",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-zinc-900">SEO article</p>
+        <div>
+          <p className="text-[13px] font-semibold text-zinc-900">SEO article</p>
+          <p className="text-[11px] text-zinc-400">drafted 8:41 AM</p>
+        </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-600/15 bg-emerald-50/80 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
           Score 94
         </span>
       </div>
-      <div className="mt-4 rounded-xl border border-zinc-900/[0.05] bg-white/80 p-3.5">
+      <div className="mt-4 rounded-xl border border-zinc-900/[0.05] bg-white/80 p-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
         <p className="text-[11px] text-emerald-700">
           marketer.sh/blog/best-home-espresso-machines
         </p>

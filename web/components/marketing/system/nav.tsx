@@ -103,11 +103,20 @@ const RESOURCES = [
 ];
 
 const GUIDES = [
-  { title: "Launch your first channel", href: "/resources/guides/first-channel" },
-  { title: "SEO articles that rank", href: "/resources/guides/seo-articles" },
+  {
+    title: "Launch your first channel",
+    href: "/resources/guides/first-channel",
+    desc: "Zero to a posting channel in one sitting.",
+  },
+  {
+    title: "SEO articles that rank",
+    href: "/resources/guides/seo-articles",
+    desc: "Research, outline, publish, and measure.",
+  },
   {
     title: "Agent-driven marketing",
     href: "/resources/guides/agent-driven-marketing",
+    desc: "Wire your agent into the whole pipeline.",
   },
 ];
 
@@ -310,8 +319,39 @@ function FeaturesPanel({ onNavigate }: { onNavigate: () => void }) {
         <span className="mt-1 text-[12.5px] leading-snug text-zinc-500">
           Set a daily budget per channel. The agent plans the queue around it.
         </span>
-        <span className="mt-auto pt-4 text-[13px] font-medium text-zinc-900">
+        {/* Mini spend-cap sketch fills the card between copy and link. */}
+        <span
+          aria-hidden
+          className="relative mt-4 flex min-h-14 flex-1 items-end gap-1.5 px-0.5 pt-5"
+        >
+          <span className="absolute inset-x-0.5 top-2 border-t border-dashed border-zinc-900/20" />
+          <span className="absolute right-0.5 top-2 size-1.5 -translate-y-1/2 rounded-full bg-brand" />
+          {[14, 22, 18, 28, 36].map((h, i) => (
+            <span
+              className={cn(
+                "w-full rounded-t-[3px]",
+                i === 4 ? "bg-zinc-900/20" : "bg-zinc-900/10",
+              )}
+              key={i}
+              style={{ height: h }}
+            />
+          ))}
+        </span>
+        <span className="inline-flex items-center gap-1 pt-4 text-[13px] font-medium text-zinc-900">
           Read the changelog
+          <svg
+            aria-hidden
+            className="size-3"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M5 12h14" />
+            <path d="m13 6 6 6-6 6" />
+          </svg>
         </span>
       </Link>
     </div>
@@ -371,6 +411,7 @@ function ResourcesPanel({ onNavigate }: { onNavigate: () => void }) {
         <div className="grid gap-1">
           {GUIDES.map((g) => (
             <PanelLink
+              desc={g.desc}
               href={g.href}
               key={g.href}
               onNavigate={onNavigate}
@@ -392,24 +433,39 @@ const MOBILE_GROUPS = [
     key: "features",
     label: "Features",
     hubHref: "/features",
-    links: FEATURES.map((f) => ({ title: f.title, href: f.href })),
+    hubDesc: "Everything the platform produces.",
+    links: FEATURES.map((f) => ({
+      title: f.title,
+      href: f.href,
+      desc: f.desc,
+    })),
   },
   {
     key: "use-cases",
     label: "Use cases",
     hubHref: "/use-cases",
-    links: USE_CASES.map((u) => ({ title: u.title, href: u.href })),
+    hubDesc: "Who runs marketer.sh, and how.",
+    links: USE_CASES.map((u) => ({
+      title: u.title,
+      href: u.href,
+      desc: u.desc,
+    })),
   },
   {
     key: "resources",
     label: "Resources",
     hubHref: "/resources",
+    hubDesc: "Docs, guides, and what shipped.",
     links: [
-      ...RESOURCES.map((r) => ({ title: r.title, href: r.href })),
-      ...GUIDES.map((g) => ({ title: g.title, href: g.href })),
+      ...RESOURCES.map((r) => ({ title: r.title, href: r.href, desc: r.desc })),
+      ...GUIDES.map((g) => ({ title: g.title, href: g.href, desc: g.desc })),
     ],
   },
 ];
+
+/** Tiny SVG noise for the mobile aurora, tiled at very low opacity. */
+const MOBILE_GRAIN =
+  `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`;
 
 function MobileOverlay({ onClose }: { onClose: () => void }) {
   const reduced = useReducedMotion();
@@ -419,6 +475,15 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
   React.useEffect(() => {
     closeRef.current?.focus();
   }, []);
+
+  // Escape dismisses the overlay.
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const item = reduced
     ? { hidden: { opacity: 0 }, show: { opacity: 1 } }
@@ -431,15 +496,40 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
         },
       };
 
+  const subItem = reduced
+    ? { hidden: { opacity: 0 }, show: { opacity: 1 } }
+    : {
+        hidden: { opacity: 0, x: -14 },
+        show: {
+          opacity: 1,
+          x: 0,
+          transition: { duration: 0.35, ease: EASE },
+        },
+      };
+
   return (
     <motion.div
       animate={{ opacity: 1 }}
-      className="fixed inset-0 z-[60] flex flex-col bg-[radial-gradient(130%_130%_at_85%_-10%,#dbeafe_0%,#eff6ff_45%,#f5f6f8_100%)] md:hidden"
+      aria-label="Menu"
+      aria-modal="true"
+      className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-[#f5f6f8] md:hidden"
       exit={{ opacity: 0 }}
       initial={{ opacity: 0 }}
+      role="dialog"
       transition={{ duration: reduced ? 0.15 : 0.3, ease: "easeOut" }}
     >
-      <div className="flex items-center justify-between px-5 pt-5">
+      {/* Aurora wash + grain behind everything */}
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="absolute inset-0 bg-[radial-gradient(130%_100%_at_85%_-10%,#dbeafe_0%,#eff6ff_50%,rgba(239,246,255,0)_78%)]" />
+        <div className="absolute -left-1/4 top-1/3 h-[46vh] w-[85vw] rounded-full bg-indigo-200/45 blur-3xl" />
+        <div className="absolute -right-1/4 bottom-[-12%] h-[42vh] w-[80vw] rounded-full bg-rose-200/40 blur-3xl" />
+        <div
+          className="absolute inset-0 opacity-[0.05] mix-blend-overlay"
+          style={{ backgroundImage: MOBILE_GRAIN }}
+        />
+      </div>
+
+      <div className="relative flex items-center justify-between px-5 pt-5">
         <Wordmark />
         <button
           aria-label="Close menu"
@@ -465,7 +555,7 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
       <motion.nav
         animate="show"
         aria-label="Mobile"
-        className="flex-1 overflow-y-auto px-5 pt-8 pb-6"
+        className="relative flex-1 overflow-y-auto px-6 pt-8 pb-6"
         initial="hidden"
         variants={{
           hidden: {},
@@ -481,7 +571,7 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
               <motion.li key={group.key} variants={item}>
                 <button
                   aria-expanded={isOpen}
-                  className="flex w-full items-center justify-between rounded-2xl px-2 py-3 text-left font-display text-3xl font-semibold tracking-tight text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                  className="flex w-full items-center justify-between rounded-2xl px-1 py-2.5 text-left font-display text-[clamp(2.5rem,9vw,3rem)] font-semibold leading-[1.08] tracking-tight text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
                   onClick={() => setExpanded(isOpen ? null : group.key)}
                   type="button"
                 >
@@ -489,7 +579,7 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
                   <svg
                     aria-hidden
                     className={cn(
-                      "size-5 text-zinc-400 transition-transform duration-200",
+                      "size-6 shrink-0 text-zinc-400 transition-transform duration-200",
                       isOpen && "rotate-45",
                     )}
                     fill="none"
@@ -512,28 +602,51 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
                       }
                       transition={{ duration: reduced ? 0.15 : 0.35, ease: EASE }}
                     >
-                      <ul className="space-y-0.5 px-2 pb-3">
-                        <li>
+                      <motion.ul
+                        animate="show"
+                        className="space-y-0.5 px-1 pb-4 pt-1"
+                        initial={reduced ? false : "hidden"}
+                        variants={{
+                          hidden: {},
+                          show: {
+                            transition: {
+                              staggerChildren: reduced ? 0 : 0.045,
+                              delayChildren: reduced ? 0 : 0.08,
+                            },
+                          },
+                        }}
+                      >
+                        <motion.li variants={subItem}>
                           <Link
-                            className="block rounded-xl py-2 text-[17px] font-medium text-zinc-900"
+                            className="block rounded-xl py-2"
                             href={group.hubHref}
                             onClick={onClose}
                           >
-                            Overview
+                            <span className="block text-[17px] font-medium text-zinc-900">
+                              Overview
+                            </span>
+                            <span className="mt-0.5 block text-[13px] leading-snug text-zinc-500">
+                              {group.hubDesc}
+                            </span>
                           </Link>
-                        </li>
+                        </motion.li>
                         {group.links.map((l) => (
-                          <li key={l.href}>
+                          <motion.li key={l.href} variants={subItem}>
                             <Link
-                              className="block rounded-xl py-2 text-[17px] text-zinc-600"
+                              className="block rounded-xl py-2"
                               href={l.href}
                               onClick={onClose}
                             >
-                              {l.title}
+                              <span className="block text-[17px] font-medium text-zinc-800">
+                                {l.title}
+                              </span>
+                              <span className="mt-0.5 block text-[13px] leading-snug text-zinc-500">
+                                {l.desc}
+                              </span>
                             </Link>
-                          </li>
+                          </motion.li>
                         ))}
-                      </ul>
+                      </motion.ul>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -543,7 +656,7 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
           {PLAIN_LINKS.map((l) => (
             <motion.li key={l.href} variants={item}>
               <Link
-                className="block rounded-2xl px-2 py-3 font-display text-3xl font-semibold tracking-tight text-zinc-900"
+                className="block rounded-2xl px-1 py-2.5 font-display text-[clamp(2.5rem,9vw,3rem)] font-semibold leading-[1.08] tracking-tight text-zinc-900"
                 href={l.href}
                 onClick={onClose}
               >
@@ -556,10 +669,39 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
 
       <motion.div
         animate={{ opacity: 1, y: 0 }}
-        className="border-t border-zinc-900/[0.06] bg-white/60 px-5 py-4 backdrop-blur-xl"
+        className="relative border-t border-zinc-900/[0.06] bg-white/60 px-6 py-4 backdrop-blur-xl"
         initial={reduced ? { opacity: 0, y: 0 } : { opacity: 0, y: 16 }}
         transition={{ duration: 0.4, ease: EASE, delay: 0.2 }}
       >
+        {/* Meta row: the space reads composed, not abandoned. */}
+        <div className="mb-3.5 flex items-center justify-between">
+          <span className="flex items-center gap-1.5 text-[12px] font-medium text-zinc-400">
+            <svg
+              aria-hidden
+              className="size-3.5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeWidth="2.25"
+              viewBox="0 0 24 24"
+            >
+              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+              <path d="M21 3v6h-6" />
+            </svg>
+            marketer.sh
+          </span>
+          <span className="flex items-center gap-4 text-[12px] font-medium text-zinc-500">
+            <Link href="/resources/changelog" onClick={onClose}>
+              Changelog
+            </Link>
+            <Link href="/resources/api" onClick={onClose}>
+              API
+            </Link>
+            <Link href="/resources/faq" onClick={onClose}>
+              FAQ
+            </Link>
+          </span>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <Link
             className="flex min-h-11 items-center justify-center rounded-full border border-zinc-900/10 bg-white text-sm font-medium text-zinc-900"
@@ -642,23 +784,29 @@ export function MarketingNav() {
         >
           <motion.nav
             animate={{
-              paddingTop: condensed ? 5 : 9,
-              paddingBottom: condensed ? 5 : 9,
-              paddingLeft: condensed ? 12 : 18,
-              paddingRight: condensed ? 6 : 10,
+              paddingTop: condensed ? 6 : 9,
+              paddingBottom: condensed ? 6 : 9,
+              paddingLeft: condensed ? 10 : 14,
+              paddingRight: condensed ? 5 : 8,
               backgroundColor: condensed
-                ? "rgba(255,255,255,0.88)"
+                ? "rgba(255,255,255,0.85)"
                 : "rgba(255,255,255,0.7)",
               boxShadow: condensed
                 ? "0 12px 32px rgba(15,23,42,0.12)"
                 : "0 2px 16px rgba(15,23,42,0.05)",
             }}
             aria-label="Primary"
-            className="flex items-center gap-1 rounded-full border border-white/40 backdrop-blur-xl"
+            className="flex items-center gap-0.5 rounded-full border border-white/40 backdrop-blur-xl"
             initial={false}
             transition={spring}
           >
-            <Wordmark className="-ml-1 mr-2" />
+            <motion.div
+              animate={{ scale: condensed ? 0.9 : 1 }}
+              className="-ml-1 mr-1.5 origin-left"
+              transition={spring}
+            >
+              <Wordmark />
+            </motion.div>
 
             {/* Desktop items */}
             <div className="hidden items-center gap-0.5 md:flex">
@@ -668,7 +816,7 @@ export function MarketingNav() {
                   aria-expanded={open === m.key}
                   aria-haspopup="true"
                   className={cn(
-                    "rounded-full px-3.5 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-900/[0.05] hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900",
+                    "rounded-full px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-900/[0.05] hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900",
                     open === m.key && "bg-zinc-900/[0.05] text-zinc-900",
                   )}
                   key={m.key}
@@ -685,7 +833,7 @@ export function MarketingNav() {
               ))}
               {PLAIN_LINKS.map((l) => (
                 <Link
-                  className="rounded-full px-3.5 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-900/[0.05] hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                  className="rounded-full px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-900/[0.05] hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
                   href={l.href}
                   key={l.href}
                   onFocus={close}
@@ -697,9 +845,9 @@ export function MarketingNav() {
             </div>
 
             {/* Desktop auth */}
-            <div className="ml-2 hidden items-center gap-1.5 md:flex">
+            <div className="ml-1.5 hidden items-center gap-1 md:flex">
               <Link
-                className="rounded-full px-3.5 py-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                className="rounded-full px-3 py-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
                 href="/sign-in"
               >
                 Log in
@@ -741,7 +889,7 @@ export function MarketingNav() {
                 <motion.div
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   className={cn(
-                    "origin-top overflow-hidden rounded-3xl border border-white/50 bg-white/85 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl",
+                    "origin-top overflow-hidden rounded-3xl border border-white/50 bg-white/[0.68] shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur-2xl backdrop-saturate-150",
                     open === "features" && "w-[680px]",
                     open === "use-cases" && "w-[560px]",
                     open === "resources" && "w-[620px]",

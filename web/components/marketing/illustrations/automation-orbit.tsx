@@ -8,8 +8,9 @@ import { VIEWPORT } from "@/components/marketing/system/motion";
 
 /**
  * The agent core with orbiting surfaces: content channels on the inner
- * ring, the developer surfaces (API / CLI / SDK / MCP) on the outer ring.
- * Slow counter-rotating orbits; everything stays upright.
+ * ring, the developer surfaces (API / CLI / SDK / MCP) on the outer ring,
+ * a faint horizon ring behind. Slow counter-rotating orbits with drifting
+ * satellites; everything stays upright.
  */
 
 const CX = 240;
@@ -17,6 +18,7 @@ const CY = 170;
 
 const INNER_R = 78;
 const OUTER_R = 132;
+const HORIZON_R = 158;
 
 const INNER_NODES = [
   {
@@ -48,6 +50,10 @@ const OUTER_CHIPS = [
   { angle: -135, label: "MCP" },
 ];
 
+/** Small satellites drifting on each ring, filling the orbits. */
+const INNER_SATELLITES = [-30, 90, 210];
+const OUTER_SATELLITES = [0, 90, 180, -90];
+
 function polar(r: number, angleDeg: number) {
   const a = (angleDeg * Math.PI) / 180;
   return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) };
@@ -72,21 +78,43 @@ export function AutomationOrbitIllustration({
       whileInView="show"
     >
       <defs>
-        <radialGradient cx="50%" cy="40%" id={`${id}-glow`} r="60%">
+        <radialGradient cx="50%" cy="42%" id={`${id}-glow`} r="60%">
           <stop offset="0%" stopColor="#dbeafe" stopOpacity="0.9" />
           <stop offset="100%" stopColor="#eff6ff" stopOpacity="0" />
         </radialGradient>
+        <linearGradient id={`${id}-node`} x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#eaf1fc" />
+        </linearGradient>
+        <linearGradient id={`${id}-core`} x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="100%" stopColor="#eef4fe" />
+        </linearGradient>
       </defs>
 
-      {/* Ambient glow behind the core */}
+      {/* Ambient glow behind the whole system */}
       <motion.circle
         cx={CX}
         cy={CY}
         fill={`url(#${id}-glow)`}
-        r={120}
+        r={150}
         variants={{
           hidden: { opacity: 0 },
           show: { opacity: 1, transition: { duration: 1.2 } },
+        }}
+      />
+
+      {/* Faint horizon ring behind everything */}
+      <motion.circle
+        className="stroke-zinc-100"
+        cx={CX}
+        cy={CY}
+        fill="none"
+        r={HORIZON_R}
+        strokeWidth={1.5}
+        variants={{
+          hidden: { opacity: 0 },
+          show: { opacity: 1, transition: { duration: 0.8, delay: 0.1 } },
         }}
       />
 
@@ -101,7 +129,7 @@ export function AutomationOrbitIllustration({
           r={r}
           strokeDasharray="3 7"
           strokeLinecap="round"
-          strokeWidth={1.25}
+          strokeWidth={1.5}
           variants={{
             hidden: { pathLength: 0, opacity: 0 },
             show: {
@@ -125,6 +153,45 @@ export function AutomationOrbitIllustration({
         animate={reduced ? undefined : { rotate: 360 }}
         transition={{ duration: 48, repeat: Infinity, ease: "linear" }}
       >
+        {/* Spokes tie the channels to the core */}
+        {INNER_NODES.map((n) => {
+          const a = polar(36, n.angle);
+          const b = polar(INNER_R - 22, n.angle);
+          return (
+            <motion.line
+              className="stroke-zinc-200"
+              key={`spoke-${n.angle}`}
+              strokeDasharray="2 5"
+              strokeLinecap="round"
+              strokeWidth={1.5}
+              variants={{
+                hidden: { opacity: 0 },
+                show: { opacity: 1, transition: { duration: 0.5, delay: 1 } },
+              }}
+              x1={a.x}
+              x2={b.x}
+              y1={a.y}
+              y2={b.y}
+            />
+          );
+        })}
+        {/* Drifting satellites on the inner ring */}
+        {INNER_SATELLITES.map((a) => {
+          const p = polar(INNER_R, a);
+          return (
+            <motion.circle
+              className="fill-zinc-300"
+              cx={p.x}
+              cy={p.y}
+              key={`in-sat-${a}`}
+              r={2.5}
+              variants={{
+                hidden: { opacity: 0 },
+                show: { opacity: 1, transition: { duration: 0.4, delay: 1.3 } },
+              }}
+            />
+          );
+        })}
         {INNER_NODES.map((n, i) => {
           const p = polar(INNER_R, n.angle);
           return (
@@ -147,22 +214,40 @@ export function AutomationOrbitIllustration({
                   },
                 }}
               >
+                {/* Invisible balancer keeps the counter-rotation centered
+                    on the node despite the label below. */}
+                <rect
+                  fill="none"
+                  height={10}
+                  width={44}
+                  x={p.x - 22}
+                  y={p.y - 36}
+                />
                 <circle
-                  className="fill-white stroke-zinc-300"
+                  className="stroke-zinc-300"
                   cx={p.x}
                   cy={p.y}
-                  r={17}
+                  fill={`url(#${id}-node)`}
+                  r={20}
                   strokeWidth={1.5}
                 />
                 <g
                   className="fill-zinc-500 stroke-zinc-500"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={1.4}
+                  strokeWidth={1.5}
                   transform={`translate(${p.x} ${p.y})`}
                 >
                   {n.glyph}
                 </g>
+                <text
+                  className="fill-zinc-400 text-[10px] font-medium"
+                  textAnchor="middle"
+                  x={p.x}
+                  y={p.y + 34}
+                >
+                  {n.label}
+                </text>
               </motion.g>
             </motion.g>
           );
@@ -174,6 +259,22 @@ export function AutomationOrbitIllustration({
         animate={reduced ? undefined : { rotate: -360 }}
         transition={{ duration: 72, repeat: Infinity, ease: "linear" }}
       >
+        {OUTER_SATELLITES.map((a) => {
+          const p = polar(OUTER_R, a);
+          return (
+            <motion.circle
+              className="fill-zinc-200"
+              cx={p.x}
+              cy={p.y}
+              key={`out-sat-${a}`}
+              r={2}
+              variants={{
+                hidden: { opacity: 0 },
+                show: { opacity: 1, transition: { duration: 0.4, delay: 1.5 } },
+              }}
+            />
+          );
+        })}
         {OUTER_CHIPS.map((c, i) => {
           const p = polar(OUTER_R, c.angle);
           return (
@@ -197,13 +298,14 @@ export function AutomationOrbitIllustration({
                 }}
               >
                 <rect
-                  className="fill-white stroke-zinc-300"
-                  height={24}
-                  rx={12}
+                  className="stroke-zinc-300"
+                  fill={`url(#${id}-node)`}
+                  height={26}
+                  rx={13}
                   strokeWidth={1.5}
-                  width={48}
-                  x={p.x - 24}
-                  y={p.y - 12}
+                  width={52}
+                  x={p.x - 26}
+                  y={p.y - 13}
                 />
                 <text
                   className="fill-zinc-600 font-mono text-[11px] font-medium"
@@ -231,13 +333,14 @@ export function AutomationOrbitIllustration({
         }}
       >
         <rect
-          className="fill-white stroke-zinc-800"
-          height={58}
-          rx={17}
+          className="stroke-zinc-800"
+          fill={`url(#${id}-core)`}
+          height={62}
+          rx={18}
           strokeWidth={1.5}
-          width={58}
-          x={CX - 29}
-          y={CY - 29}
+          width={62}
+          x={CX - 31}
+          y={CY - 31}
         />
         {[-9, 9].map((dx) =>
           [-9, 9].map((dy) => (
@@ -255,13 +358,14 @@ export function AutomationOrbitIllustration({
           <motion.circle
             animate={{ scale: [1, 1.9], opacity: [0.6, 0] }}
             className="fill-brand"
-            cx={CX + 24}
-            cy={CY - 24}
+            cx={CX + 25}
+            cy={CY - 25}
             r={4}
+            style={{ transformBox: "fill-box", transformOrigin: "center" }}
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
           />
         )}
-        <circle className="fill-brand" cx={CX + 24} cy={CY - 24} r={3.5} />
+        <circle className="fill-brand" cx={CX + 25} cy={CY - 25} r={3.5} />
       </motion.g>
     </motion.svg>
   );
