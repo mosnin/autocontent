@@ -127,3 +127,26 @@ band used on EVERY page), `<LogoRow>`, `<StatStrip>`,
 Illustrations: `<VideoPipelineIllustration>`, `<ArticleFlowIllustration>`,
 `<AutomationOrbitIllustration>`, `<AnalyticsLoopIllustration>`,
 `<SpendGuardIllustration>`, `<AgentGridIllustration>`.
+
+## Amendment 2 — Card language + warm accent (binding, supersedes conflicts)
+
+### The vignette card (every card on every page)
+Cards never carry decorative icons. A card is: (top) a **product
+vignette** — a real-looking miniature of the product UI (queue rows,
+article SEO panel, agent chat, cap gauge, schedule strip, SERP scan,
+terminal, metrics) staged inside a soft gradient vignette frame
+(rounded-2xl inner panel, subtle inner hairline, light mode ALWAYS) —
+then (bottom) a plain text block: title (text-lg/xl, ink) + 1-2 line
+zinc-600 description. Reference: Expo's use-case grid and feature
+cards, rendered in light mode. Use the shared `<VignetteCard>` +
+vignette library; never a lucide icon as card decoration. (Functional
+glyphs in real UI vignettes — play, check, arrows inside the mock UI —
+are fine; that's product, not decoration.)
+
+### Warm accent gradient (replaces ALL green on marketing surfaces)
+Green/emerald is retired from marketing pages. Positive/success/live
+moments use the warm gradient accent: `linear-gradient(135deg, #f59e0b,
+#f43f5e)` (amber-500 → rose-500), exposed as utility classes/tokens
+(`.accent-warm-bg`, `.accent-warm-text` via bg-clip-text). Small
+"pass/ok" dots use solid amber-500; the brand recording-light orange
+remains the live-pulse accent (they are family). Never green.
