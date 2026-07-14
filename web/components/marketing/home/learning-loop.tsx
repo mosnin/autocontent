@@ -10,7 +10,9 @@ import {
   Kicker,
   Lede,
   Reveal,
+  warmDot,
 } from "@/components/marketing/system";
+import { cn } from "@/lib/utils";
 
 /** The performance loop: every post tunes the next brief. */
 export function LearningLoop() {
@@ -38,18 +40,13 @@ export function LearningLoop() {
                 "Underperformers are retired, not repeated",
               ].map((point) => (
                 <li className="flex items-start gap-3 text-[15px] text-zinc-600" key={point}>
-                  <svg
+                  <span
                     aria-hidden
-                    className="mt-1 size-4 shrink-0 text-zinc-900"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="m5 13 4 4L19 7" />
-                  </svg>
+                    className={cn(
+                      "mt-[7px] size-1.5 shrink-0 rounded-full",
+                      warmDot,
+                    )}
+                  />
                   {point}
                 </li>
               ))}

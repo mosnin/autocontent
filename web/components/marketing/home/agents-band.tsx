@@ -5,6 +5,10 @@ import Link from "next/link";
 
 import { AgentGridIllustration } from "@/components/marketing/illustrations";
 import { Reveal, Stagger } from "@/components/marketing/system";
+import {
+  MCPVignette,
+  TerminalVignette,
+} from "@/components/marketing/vignettes";
 
 const SURFACES = ["API", "SDK", "CLI", "MCP"];
 
@@ -43,50 +47,10 @@ export function AgentsBand() {
             </Reveal>
 
             <Stagger className="mt-10 space-y-3" gap={0.1}>
-              {/* Terminal card */}
-              <div className="rounded-2xl border border-white/10 bg-zinc-900/70 shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
-                <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-4 py-3">
-                  <span className="size-2.5 rounded-full bg-white/10" />
-                  <span className="size-2.5 rounded-full bg-white/10" />
-                  <span className="size-2.5 rounded-full bg-white/10" />
-                </div>
-                <div className="space-y-1.5 px-5 py-4 font-mono text-[13px] leading-relaxed">
-                  <p className="text-zinc-300">
-                    <span className="text-zinc-600">$ </span>
-                    marketer articles generate --niche &quot;home espresso&quot;
-                  </p>
-                  <p className="text-zinc-500">
-                    → outline ready · 1,840 words · draft in queue
-                  </p>
-                  <p className="text-zinc-500">
-                    → spend $0.34 · cap $10.00 · <span className="text-emerald-400">ok</span>
-                  </p>
-                </div>
-              </div>
-              {/* MCP tool call chip */}
-              <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-white/10 bg-zinc-900/70 px-5 py-3.5 backdrop-blur-xl">
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[11px] text-zinc-400">
-                  mcp
-                </span>
-                <code className="font-mono text-[13px] text-zinc-300">
-                  tool: marketer.create_video
-                </code>
-                <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[12px] text-emerald-400">
-                  <svg
-                    aria-hidden
-                    className="size-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="m5 13 4 4L19 7" />
-                  </svg>
-                  queued
-                </span>
-              </div>
+              {/* The CLI at work */}
+              <TerminalVignette className="mx-0 max-w-none border-white/10 shadow-[0_8px_40px_rgba(0,0,0,0.35)]" />
+              {/* The MCP surface */}
+              <MCPVignette className="mx-0 max-w-none" />
             </Stagger>
 
             <Reveal delay={0.2}>

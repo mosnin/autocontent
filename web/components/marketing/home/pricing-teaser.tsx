@@ -11,6 +11,7 @@ import {
   Lede,
   Reveal,
   Stagger,
+  warmDot,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
@@ -53,18 +54,10 @@ export function PricingTeaser() {
             <ul className="mt-6 space-y-2.5">
               {p.points.map((pt) => (
                 <li className="flex items-center gap-2.5 text-sm text-zinc-600" key={pt}>
-                  <svg
+                  <span
                     aria-hidden
-                    className="size-3.5 shrink-0 text-zinc-900"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="m5 13 4 4L19 7" />
-                  </svg>
+                    className={cn("size-1.5 shrink-0 rounded-full", warmDot)}
+                  />
                   {pt}
                 </li>
               ))}

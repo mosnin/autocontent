@@ -2,10 +2,7 @@
 
 import * as React from "react";
 
-import {
-  ArticleFlowIllustration,
-  VideoPipelineIllustration,
-} from "@/components/marketing/illustrations";
+import { VideoPipelineIllustration } from "@/components/marketing/illustrations";
 import {
   DisplayHeading,
   FeatureCard,
@@ -14,6 +11,7 @@ import {
   Reveal,
   Stagger,
 } from "@/components/marketing/system";
+import { ArticleSeoVignette } from "@/components/marketing/vignettes";
 
 /** "One brief. Every format." — the two production lines. */
 export function Formats() {
@@ -36,14 +34,16 @@ export function Formats() {
           illustration={<VideoPipelineIllustration />}
           kicker="Short-form video"
           linkLabel="Explore video"
+          scene="sky"
           title="Video, end to end"
         />
         <FeatureCard
           description="Live SERP research becomes an outline, the outline becomes a ranked article with clean meta, internal links, and your voice."
           href="/features/articles"
-          illustration={<ArticleFlowIllustration />}
+          illustration={<ArticleSeoVignette />}
           kicker="Articles & SEO"
           linkLabel="Explore articles"
+          scene="dawn"
           title="Articles that rank"
         />
       </Stagger>
