@@ -6,6 +6,8 @@ import {
   GlassPanel,
   Kicker,
   Stagger,
+  warmBg,
+  warmDot,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +32,12 @@ export function PricingTiles() {
           key={pack.label}
         >
           {pack.featured ? (
-            <span className="absolute -top-3 left-8 inline-flex items-center gap-1.5 rounded-full border border-brand/20 bg-white px-3 py-1 text-[11px] font-medium text-zinc-700 shadow-[0_2px_12px_rgba(15,23,42,0.10)]">
-              <span className="size-1.5 rounded-full bg-brand" />
+            <span
+              className={cn(
+                "absolute -top-3 left-8 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium text-white shadow-[0_2px_12px_rgba(244,63,94,0.30)]",
+                warmBg,
+              )}
+            >
               Most popular
             </span>
           ) : null}
@@ -46,21 +52,16 @@ export function PricingTiles() {
           <ul className="mt-7 space-y-3">
             {pack.points.map((point) => (
               <li
-                className="flex items-center gap-2.5 text-[15px] text-zinc-600"
+                className="flex items-start gap-2.5 text-[15px] text-zinc-600"
                 key={point}
               >
-                <svg
+                <span
                   aria-hidden
-                  className="size-4 shrink-0 text-zinc-900"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.5"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="m5 13 4 4L19 7" />
-                </svg>
+                  className={cn(
+                    "mt-[9px] size-1.5 shrink-0 rounded-full",
+                    warmDot,
+                  )}
+                />
                 {point}
               </li>
             ))}

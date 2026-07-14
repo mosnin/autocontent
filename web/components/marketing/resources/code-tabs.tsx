@@ -15,8 +15,8 @@ function K({ children }: { children: React.ReactNode }) {
   return <span className="text-sky-300">{children}</span>;
 }
 function S({ children }: { children: React.ReactNode }) {
-  // strings
-  return <span className="text-emerald-300">{children}</span>;
+  // strings — warm amber tint (Amendment 2; never green)
+  return <span className="text-amber-300">{children}</span>;
 }
 function C({ children }: { children: React.ReactNode }) {
   // comments / output
@@ -261,20 +261,11 @@ export function CodeTabs() {
               {surface.blurb}
             </p>
             <div className="mt-5">{surface.code}</div>
-            <p className="mt-4 flex max-w-2xl items-start gap-2 text-sm leading-relaxed text-zinc-500">
-              <svg
+            <p className="mt-4 flex max-w-2xl items-start gap-2.5 text-sm leading-relaxed text-zinc-500">
+              <span
                 aria-hidden
-                className="mt-0.5 size-4 shrink-0 text-zinc-400"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-              >
-                <circle cx="12" cy="12" r="9" />
-                <path d="M12 8h.01M12 12v4" />
-              </svg>
+                className="mt-[7px] size-1.5 shrink-0 rounded-full bg-amber-500"
+              />
               {surface.note}
             </p>
           </motion.div>

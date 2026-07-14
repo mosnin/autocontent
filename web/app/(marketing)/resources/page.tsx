@@ -2,7 +2,18 @@ import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing/resources/page-hero";
 import { ResourceCard } from "@/components/marketing/resources/resource-card";
+import {
+  ChangelogMiniVignette,
+  FaqMiniVignette,
+} from "@/components/marketing/resources/resource-vignettes";
 import { SectionCta, Stagger } from "@/components/marketing/system";
+import {
+  AgentChatVignette,
+  ArticleSeoVignette,
+  MCPVignette,
+  ScheduleVignette,
+  TerminalVignette,
+} from "@/components/marketing/vignettes";
 
 const DESCRIPTION =
   "Docs, guides, and references for marketer.sh: the quickstart, the API, SDK, CLI and MCP surfaces, launch guides, the changelog, and answers to common questions.";
@@ -25,6 +36,8 @@ const CARDS = [
     description:
       "From sign-up to a running channel in six steps. One sentence in, first video approved, autopilot on.",
     href: "/resources/quickstart",
+    scene: "sky",
+    vignette: <ScheduleVignette />,
   },
   {
     category: "Developers",
@@ -32,6 +45,8 @@ const CARDS = [
     description:
       "Four surfaces, one platform. Enqueue work over REST, script it in Python, drive it from a terminal, or hand it to an agent.",
     href: "/resources/api",
+    scene: "dusk",
+    vignette: <TerminalVignette />,
   },
   {
     category: "Guide",
@@ -39,6 +54,8 @@ const CARDS = [
     description:
       "Framing a niche, writing the one-sentence brief, choosing a voice, and earning trust with approval mode.",
     href: "/resources/guides/first-channel",
+    scene: "pearl",
+    vignette: <AgentChatVignette />,
   },
   {
     category: "Guide",
@@ -46,6 +63,8 @@ const CARDS = [
     description:
       "How the article pipeline researches, outlines, and writes, and how to set up internal links and cadence per niche.",
     href: "/resources/guides/seo-articles",
+    scene: "mist",
+    vignette: <ArticleSeoVignette />,
   },
   {
     category: "Guide",
@@ -53,6 +72,8 @@ const CARDS = [
     description:
       "MCP setup, token scopes, spend caps as guardrails, and how to widen autonomy once the output earns it.",
     href: "/resources/guides/agent-driven-marketing",
+    scene: "dawn",
+    vignette: <MCPVignette />,
   },
   {
     category: "Product",
@@ -60,6 +81,8 @@ const CARDS = [
     description:
       "What shipped and when. New pipelines, guardrails, and agent surfaces, newest first.",
     href: "/resources/changelog",
+    scene: "warm",
+    vignette: <ChangelogMiniVignette />,
   },
   {
     category: "Support",
@@ -67,8 +90,10 @@ const CARDS = [
     description:
       "Caps, approvals, platforms, ownership, refunds, and data handling, answered plainly.",
     href: "/resources/faq",
+    scene: "sky",
+    vignette: <FaqMiniVignette />,
   },
-];
+] as const;
 
 export default function ResourcesPage() {
   return (

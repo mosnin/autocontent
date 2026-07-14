@@ -1,19 +1,26 @@
 import * as React from "react";
 
-import { SpendGuardIllustration } from "@/components/marketing/illustrations";
 import {
   DisplayHeading,
   GlassPanel,
   GradientScene,
   Kicker,
   Lede,
-  MockDashboard,
   Reveal,
   Stagger,
   StatStrip,
+  VignetteCard,
+  warmChip,
+  type VignetteScene,
 } from "@/components/marketing/system";
+import {
+  ApprovalVignette,
+  QueueVignette,
+} from "@/components/marketing/vignettes";
+import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
+import { VignetteStage } from "./vignette-stage";
 
 /* ------------------------------------------------------------------ */
 /* Queue moment                                                        */
@@ -47,7 +54,9 @@ export function QueueMoment() {
             />
           </Reveal>
           <Reveal className="flex justify-center" delay={0.12}>
-            <MockDashboard variant="queue" />
+            <VignetteStage scene="sky">
+              <QueueVignette />
+            </VignetteStage>
           </Reveal>
         </div>
       </GradientScene>
@@ -140,7 +149,12 @@ function CharacterSheetCard() {
             <p className="text-[11px] text-zinc-400">home-espresso · v3</p>
           </div>
         </div>
-        <span className="rounded-full border border-emerald-600/15 bg-emerald-50/80 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-1 text-[11px] font-medium",
+            warmChip,
+          )}
+        >
           locked
         </span>
       </div>
@@ -226,8 +240,10 @@ export function ApprovalGateBand() {
               ]}
             />
           </Reveal>
-          <Reveal delay={0.12}>
-            <SpendGuardIllustration />
+          <Reveal className="flex justify-center" delay={0.12}>
+            <VignetteStage scene="dawn">
+              <ApprovalVignette />
+            </VignetteStage>
           </Reveal>
         </div>
       </GradientScene>

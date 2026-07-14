@@ -9,7 +9,12 @@ import {
   Lede,
   Reveal,
   Stagger,
+  VignetteCard,
 } from "@/components/marketing/system";
+import {
+  MCPVignette,
+  TerminalVignette,
+} from "@/components/marketing/vignettes";
 
 import { ProofList } from "./proof-list";
 
@@ -17,44 +22,31 @@ import { ProofList } from "./proof-list";
 /* Surface cards: API / SDK / CLI / MCP                                */
 /* ------------------------------------------------------------------ */
 
-function TerminalFrame({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-900/[0.06] bg-zinc-950">
-      <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-4 py-2.5">
-        <span className="size-2.5 rounded-full bg-white/10" />
-        <span className="size-2.5 rounded-full bg-white/10" />
-        <span className="size-2.5 rounded-full bg-white/10" />
-      </div>
-      <div className="space-y-1 overflow-x-auto px-4 py-3.5 font-mono text-[12.5px] leading-relaxed">
-        {children}
-      </div>
-    </div>
-  );
-}
-
-function SurfaceCard({
-  name,
-  title,
-  copy,
+/**
+ * Dark code miniature for the REST and SDK cards, in the
+ * `TerminalVignette` frame language: traffic dots, mono 11px, staged
+ * inside the card's vignette wash.
+ */
+function CodeVignette({
+  meta,
   children,
 }: {
-  name: string;
-  title: string;
-  copy: string;
+  meta: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-full flex-col rounded-[2rem] border border-zinc-900/[0.06] bg-white p-7 shadow-[0_8px_40px_rgba(15,23,42,0.06)] md:p-8">
-      <div className="flex items-center justify-between">
-        <h3 className="font-display text-xl font-semibold tracking-tight text-zinc-900">
-          {title}
-        </h3>
-        <span className="rounded-full bg-zinc-900/[0.05] px-2.5 py-1 font-mono text-[11px] font-medium text-zinc-500">
-          {name}
+    <div className="mx-auto w-full max-w-[380px] rounded-2xl border border-white/10 bg-zinc-900 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.35)]">
+      <div className="flex items-center gap-1.5">
+        <span className="size-2 rounded-full bg-white/15" />
+        <span className="size-2 rounded-full bg-white/15" />
+        <span className="size-2 rounded-full bg-white/15" />
+        <span className="ml-auto font-mono text-[10px] text-zinc-500">
+          {meta}
         </span>
       </div>
-      <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">{copy}</p>
-      <div className="mt-auto pt-6">{children}</div>
+      <div className="mt-3 space-y-1.5 font-mono text-[11px] leading-relaxed">
+        {children}
+      </div>
     </div>
   );
 }
@@ -77,73 +69,59 @@ export function SurfaceCards() {
       </Reveal>
 
       <Stagger className="mt-12 grid gap-6 md:grid-cols-2" gap={0.08}>
-        <SurfaceCard
-          copy="Every pipeline behind plain endpoints. Enqueue a video, poll a job, read the ledger."
-          name="REST"
+        <VignetteCard
+          description="Every pipeline behind plain endpoints. Enqueue a video, poll a job, read the ledger."
+          kicker="REST"
+          scene="sky"
           title="API"
-        >
-          <TerminalFrame>
-            <p className="text-zinc-300">
-              <span className="text-sky-400">POST</span> /v1/niches/home-espresso/videos
-            </p>
-            <p className="text-zinc-500">
-              202 Accepted · job <span className="text-zinc-300">vid_8c21</span> queued
-            </p>
-          </TerminalFrame>
-        </SurfaceCard>
+          vignette={
+            <CodeVignette meta="HTTP">
+              <p className="text-zinc-100">
+                <span className="text-sky-300">POST</span>{" "}
+                /v1/niches/home-espresso/videos
+              </p>
+              <p className="text-zinc-400">
+                202 Accepted · job{" "}
+                <span className="text-zinc-200">vid_8c21</span> queued
+              </p>
+            </CodeVignette>
+          }
+        />
 
-        <SurfaceCard
-          copy="Typed end to end. Your editor knows the request shapes before the docs do."
-          name="Python"
+        <VignetteCard
+          description="Typed end to end. Your editor knows the request shapes before the docs do."
+          kicker="Python"
+          scene="pearl"
           title="SDK"
-        >
-          <TerminalFrame>
-            <p className="text-zinc-300">
-              <span className="text-violet-400">from</span> marketer{" "}
-              <span className="text-violet-400">import</span> Marketer
-            </p>
-            <p className="text-zinc-300">
-              client.videos.enqueue(niche=<span className="text-emerald-400">&quot;home-espresso&quot;</span>)
-            </p>
-          </TerminalFrame>
-        </SurfaceCard>
+          vignette={
+            <CodeVignette meta="agent.py">
+              <p className="text-zinc-100">
+                <span className="text-violet-300">from</span> marketer{" "}
+                <span className="text-violet-300">import</span> Marketer
+              </p>
+              <p className="text-zinc-100">
+                client.videos.enqueue(niche=
+                <span className="text-amber-300">&quot;home-espresso&quot;</span>)
+              </p>
+            </CodeVignette>
+          }
+        />
 
-        <SurfaceCard
-          copy="The whole platform from a shell. Scriptable, cron-able, agent-runnable."
-          name="CLI"
+        <VignetteCard
+          description="The whole platform from a shell. Scriptable, cron-able, agent-runnable."
+          kicker="CLI"
+          scene="dusk"
           title="marketer"
-        >
-          <TerminalFrame>
-            <p className="text-zinc-300">
-              <span className="text-zinc-600">$ </span>marketer articles generate --niche{" "}
-              <span className="text-emerald-400">&quot;home espresso&quot;</span>
-            </p>
-            <p className="text-zinc-500">→ outline ready · 8 sections · draft queued</p>
-          </TerminalFrame>
-        </SurfaceCard>
+          vignette={<TerminalVignette />}
+        />
 
-        <SurfaceCard
-          copy="Tool descriptions carry cost estimates, so an agent knows the price before it calls."
-          name="MCP"
+        <VignetteCard
+          description="Tool descriptions carry cost estimates, so an agent knows the price before it calls."
+          kicker="MCP"
+          scene="mist"
           title="MCP server"
-        >
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2.5 rounded-2xl border border-zinc-900/[0.06] bg-zinc-950 px-4 py-3">
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[11px] text-zinc-400">
-                tool
-              </span>
-              <code className="font-mono text-[13px] text-zinc-300">
-                generate_article
-              </code>
-              <span className="ml-auto font-mono text-[11px] text-zinc-500">
-                confirms cost first
-              </span>
-            </div>
-            <div className="rounded-2xl border border-zinc-900/[0.06] bg-white px-4 py-3 text-[13px] leading-snug text-zinc-600 shadow-sm">
-              Estimated $0.34 against today&apos;s $10.00 cap. Proceed?
-            </div>
-          </div>
-        </SurfaceCard>
+          vignette={<MCPVignette />}
+        />
       </Stagger>
     </section>
   );

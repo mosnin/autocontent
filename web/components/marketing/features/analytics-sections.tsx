@@ -8,8 +8,15 @@ import {
   Kicker,
   Lede,
   Reveal,
+  Stagger,
   StatStrip,
+  VignetteCard,
+  warmChip,
 } from "@/components/marketing/system";
+import {
+  CreditsVignette,
+  MetricsVignette,
+} from "@/components/marketing/vignettes";
 
 import { ProofList } from "./proof-list";
 
@@ -27,12 +34,14 @@ function PerformersCard() {
         </span>
       </div>
       <ul className="mt-4 space-y-2">
-        <li className="rounded-xl border border-emerald-600/15 bg-emerald-50/50 px-3.5 py-3">
+        <li className="rounded-xl border border-amber-600/15 bg-amber-50/50 px-3.5 py-3">
           <div className="flex items-center justify-between gap-3">
             <p className="truncate text-[13px] font-medium text-zinc-800">
               Dial in espresso in 60 seconds
             </p>
-            <span className="shrink-0 rounded-full border border-emerald-600/15 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+            <span
+              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${warmChip}`}
+            >
               top performer
             </span>
           </div>
@@ -141,82 +150,6 @@ export function SpendBand() {
 /* Metrics + ledger moment                                             */
 /* ------------------------------------------------------------------ */
 
-const METRICS = [
-  { label: "Views", value: "48,200" },
-  { label: "Avg watch time", value: "23.4s" },
-  { label: "Completion", value: "71%" },
-];
-
-const LEDGER = [
-  { call: "script · LLM", cost: "$0.03" },
-  { call: "keyframes · gpt-image-1", cost: "$0.12" },
-  { call: "animation", cost: "$0.21" },
-  { call: "voiceover · TTS", cost: "$0.04" },
-];
-
-function MetricsCard() {
-  return (
-    <GlassPanel className="w-full max-w-sm p-5">
-      <p className="text-[13px] font-semibold text-zinc-900">
-        Post performance
-      </p>
-      <p className="mt-0.5 truncate text-[12px] text-zinc-400">
-        Dial in espresso in 60 seconds · TikTok
-      </p>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        {METRICS.map((m) => (
-          <div
-            className="rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3 py-3 text-center"
-            key={m.label}
-          >
-            <p className="font-display text-lg font-semibold tabular-nums tracking-tight text-zinc-900">
-              {m.value}
-            </p>
-            <p className="mt-0.5 text-[10px] font-medium text-zinc-400">
-              {m.label}
-            </p>
-          </div>
-        ))}
-      </div>
-      <p className="mt-3 text-center text-[11px] text-zinc-400">
-        attributed and fed to the next ideation round
-      </p>
-    </GlassPanel>
-  );
-}
-
-function LedgerCard() {
-  return (
-    <GlassPanel className="w-full max-w-sm p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-zinc-900">Cost ledger</p>
-        <span className="font-mono text-[11px] tabular-nums text-zinc-500">
-          $3.80 / $10.00 cap
-        </span>
-      </div>
-      <ul className="mt-4 space-y-1.5">
-        {LEDGER.map((row) => (
-          <li
-            className="flex items-center justify-between rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-2.5"
-            key={row.call}
-          >
-            <p className="font-mono text-[12px] text-zinc-600">{row.call}</p>
-            <p className="font-mono text-[12px] tabular-nums text-zinc-800">
-              {row.cost}
-            </p>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-zinc-900/[0.06]">
-        <div className="h-full w-[38%] rounded-full bg-zinc-900" />
-      </div>
-      <p className="mt-2 text-[11px] text-zinc-400">
-        metered per call, checked against caps before each step
-      </p>
-    </GlassPanel>
-  );
-}
-
 export function MetricsMoment() {
   return (
     <section aria-label="Metrics and ledger" className="px-4 pt-6 md:px-6">
@@ -235,14 +168,23 @@ export function MetricsMoment() {
               always know whether a channel is paying for itself.
             </Lede>
           </Reveal>
-          <div className="mt-12 flex flex-wrap items-start justify-center gap-6">
-            <Reveal delay={0.1}>
-              <MetricsCard />
-            </Reveal>
-            <Reveal delay={0.2}>
-              <LedgerCard />
-            </Reveal>
-          </div>
+          <Stagger
+            className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2"
+            gap={0.1}
+          >
+            <VignetteCard
+              description="Views, watch time, and completion, attributed and fed to the next ideation round."
+              scene="sky"
+              title="Post performance"
+              vignette={<MetricsVignette />}
+            />
+            <VignetteCard
+              description="Every call metered as it happens, checked against caps before each step."
+              scene="dawn"
+              title="Cost ledger"
+              vignette={<CreditsVignette />}
+            />
+          </Stagger>
         </div>
       </GradientScene>
     </section>

@@ -9,10 +9,13 @@ import {
   Lede,
   Reveal,
   Stagger,
+  warmBg,
+  warmChip,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
+import { VignetteStage } from "./vignette-stage";
 
 /* ------------------------------------------------------------------ */
 /* SERP research                                                       */
@@ -107,7 +110,9 @@ export function SerpBand() {
             />
           </Reveal>
           <Reveal className="flex justify-center" delay={0.12}>
-            <SerpCard />
+            <VignetteStage scene="sky">
+              <SerpCard />
+            </VignetteStage>
           </Reveal>
         </div>
       </div>
@@ -190,7 +195,12 @@ function MetadataCard() {
     <GlassPanel className="w-full max-w-md p-5">
       <div className="flex items-center justify-between">
         <p className="text-[13px] font-semibold text-zinc-900">SEO metadata</p>
-        <span className="rounded-full border border-emerald-600/15 bg-emerald-50/80 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-1 text-[11px] font-medium",
+            warmChip,
+          )}
+        >
           generated
         </span>
       </div>
@@ -256,7 +266,9 @@ export function MetadataBand() {
             />
           </Reveal>
           <Reveal className="flex justify-center" delay={0.12}>
-            <MetadataCard />
+            <VignetteStage className="max-w-lg" scene="pearl">
+              <MetadataCard />
+            </VignetteStage>
           </Reveal>
         </div>
       </GradientScene>
@@ -315,7 +327,7 @@ export function QaBand() {
             </div>
             <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-zinc-900/[0.06]">
               <div
-                className="h-full rounded-full bg-zinc-900"
+                className={cn("h-full rounded-full", warmBg)}
                 style={{ width: `${q.score}%` }}
               />
             </div>

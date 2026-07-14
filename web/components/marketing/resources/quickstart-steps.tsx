@@ -3,7 +3,12 @@
 import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-import { GlassPanel, Reveal } from "@/components/marketing/system";
+import {
+  GlassPanel,
+  Reveal,
+  VIGNETTE_SCENES,
+  type VignetteScene,
+} from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -158,11 +163,11 @@ function ArticlesMock() {
       <p className="text-xs font-medium text-zinc-500">Article pipeline</p>
       <div className="mt-3 space-y-1.5 font-mono text-[11px] leading-relaxed text-zinc-600">
         <p>
-          <CheckIcon className="mr-1.5 inline size-3 text-emerald-600" />
+          <CheckIcon className="mr-1.5 inline size-3 text-amber-600" />
           SERP research · 9 competitors read
         </p>
         <p>
-          <CheckIcon className="mr-1.5 inline size-3 text-emerald-600" />
+          <CheckIcon className="mr-1.5 inline size-3 text-amber-600" />
           Outline · 7 sections, 3 FAQs
         </p>
         <p className="flex items-center gap-1.5 text-zinc-800">
@@ -215,36 +220,43 @@ const STEPS: Array<{
   title: string;
   copy: string;
   mock: React.ReactNode;
+  scene: VignetteScene;
 }> = [
   {
     title: "Sign up",
     copy: "Create an account with your email. There is nothing to install and no card required, your workspace is live in under a minute.",
     mock: <SignUpMock />,
+    scene: "pearl",
   },
   {
     title: "Describe your channel in one sentence",
     copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full niche from it: audience, tone, topic pillars, and a starting posting plan.",
     mock: <BriefMock />,
+    scene: "sky",
   },
   {
     title: "Review voice, style, and caps",
     copy: "Everything the draft chose is editable. Pick the narration voice, set the visual style, and put a hard daily cap on spend before anything renders.",
     mock: <ReviewMock />,
+    scene: "mist",
   },
   {
     title: "Your first video renders. Approve it",
     copy: "The pipeline runs end to end: script, on-model keyframes, animation, voiceover, captions, QA. You watch the result and approve or reject with one click.",
     mock: <FirstVideoMock />,
+    scene: "dawn",
   },
   {
     title: "Add articles",
     copy: "Turn on the SEO pipeline for the same niche. It researches the SERP, outlines, writes sections in parallel, then ships metadata, JSON-LD, and a hero image with every draft.",
     mock: <ArticlesMock />,
+    scene: "dusk",
   },
   {
     title: "Set posting windows and let it run",
     copy: "Choose when each platform posts and how many per day. From here the system ideates, produces, publishes, and learns from performance, inside the caps you set.",
     mock: <WindowsMock />,
+    scene: "warm",
   },
 ];
 
@@ -278,8 +290,16 @@ export function QuickstartSteps() {
                   {step.copy}
                 </p>
               </div>
-              <div className="max-w-sm lg:justify-self-end lg:pt-1">
-                {step.mock}
+              <div className="w-full max-w-sm lg:justify-self-end lg:pt-1">
+                {/* vignette frame: mock staged on a scene wash (Amendment 2) */}
+                <div
+                  className={cn(
+                    "rounded-2xl p-3 ring-1 ring-inset ring-zinc-900/[0.05] sm:p-4",
+                    VIGNETTE_SCENES[step.scene],
+                  )}
+                >
+                  {step.mock}
+                </div>
               </div>
             </div>
           </Reveal>
