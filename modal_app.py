@@ -38,7 +38,11 @@ artifacts = modal.Volume.from_name("marketer-artifacts", create_if_missing=True)
 assets = modal.Volume.from_name("marketer-assets", create_if_missing=True)
 
 secrets = [
-    modal.Secret.from_name("marketer-openai"),    # OPENAI_API_KEY
+    # OPENAI_API_KEY; also carries the optional article-pipeline vars
+    # (MARKETER_EXA_API_KEY, MARKETER_ARTICLE_WRITER_MODEL,
+    # MARKETER_ARTICLE_HERO_IMAGE) — unset Exa degrades SERP research
+    # to model knowledge rather than failing runs.
+    modal.Secret.from_name("marketer-openai"),
     modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
     modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
     modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
@@ -207,17 +211,48 @@ async def nightly_batch() -> dict:
     timeout=60 * 5,
 )
 async def reap_stale_jobs() -> dict:
-    """Fail jobs stuck in a non-terminal status with no progress for 2h+
-    (crashed or timed-out containers strand them there, unretryable)."""
+    """Fail jobs/articles stuck in a non-terminal status with no progress
+    for 2h+ (crashed or timed-out containers strand them there,
+    unretryable)."""
     import logging
+    from marketer.repos import articles as articles_repo
     from marketer.repos import jobs as jobs_repo
 
     reaped = await jobs_repo.reap_stale(older_than_minutes=120)
-    if reaped:
+    reaped_articles = await articles_repo.reap_stale(older_than_minutes=120)
+    if reaped or reaped_articles:
         logging.getLogger(__name__).error(
-            "reaped %d stale job(s) — a container died or timed out mid-run", reaped
+            "reaped %d stale job(s) and %d stale article(s) — a container died or timed out mid-run",
+            reaped, reaped_articles,
         )
-    return {"reaped": reaped}
+    return {"reaped": reaped, "reaped_articles": reaped_articles}
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_article_pipeline(
+    user_id: str, niche_id: str, article_id: str | None = None, topic: str = ""
+) -> dict:
+    """One article, end-to-end: research → outline → write → QA →
+    metadata/JSON-LD → hero image. The written-content half of the
+    platform; spend is metered into the same ledger/caps as video."""
+    from uuid import UUID
+    from marketer.articles.pipeline import run_article
+    from marketer.services.otel import force_flush
+
+    try:
+        article = await run_article(
+            user_id=user_id,
+            niche_id=UUID(niche_id),
+            article_id=UUID(article_id) if article_id else None,
+            topic=topic,
+        )
+        artifacts.commit()
+        return article.model_dump(mode="json")
+    finally:
+        force_flush(timeout_ms=5000)
 
 
 @app.function(

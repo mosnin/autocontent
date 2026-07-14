@@ -117,6 +117,54 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
         async with _client() as c:
             return _dump(await c.retry_job(job_id))
 
+    # ------------------------------------------------------------- articles
+
+    @mcp.tool(description=(
+        "List the user's SEO articles, newest first. Cheap, read-only. Filter "
+        "by status (queued|researching|outlining|writing|qa|metadata|imaging|"
+        "done|failed) and/or niche_id."
+    ))
+    async def list_articles(
+        status: str | None = None, niche_id: str | None = None, limit: int = 50
+    ) -> str:
+        async with _client() as c:
+            return _dump(await c.list_articles(status=status, niche_id=niche_id, limit=limit))
+
+    @mcp.tool(description=(
+        "Fetch one article: status, SEO metadata (title/slug/meta description/"
+        "keywords/JSON-LD), quality score, and internal-link suggestions. "
+        "Cheap, read-only."
+    ))
+    async def get_article(article_id: str) -> str:
+        async with _client() as c:
+            return _dump(await c.get_article(article_id))
+
+    @mcp.tool(description=(
+        "Download a finished article's full markdown body. Cheap, read-only."
+    ))
+    async def get_article_markdown(article_id: str) -> str:
+        async with _client() as c:
+            return await c.get_article_markdown(article_id)
+
+    @mcp.tool(description=(
+        "Generate a new SEO article for a niche: SERP research, outline, "
+        "long-form writing, QA scoring, metadata + JSON-LD schema, hero image. "
+        "Omit topic to let the pipeline pick the next best topic for the niche. "
+        "EXPENSIVE: spawns a Modal run billing roughly $0.10-0.50 in LLM + image "
+        "spend against the niche's daily cap. Confirm with the user first."
+    ))
+    async def generate_article(niche_id: str, topic: str = "") -> str:
+        async with _client() as c:
+            return _dump(await c.generate_article(niche_id=niche_id, topic=topic))
+
+    @mcp.tool(description=(
+        "Re-run a previously failed article from scratch (same topic). Same "
+        "cost profile as generate_article — confirm with the user."
+    ))
+    async def retry_article(article_id: str) -> str:
+        async with _client() as c:
+            return _dump(await c.retry_article(article_id))
+
     # ------------------------------------------------------------- spend
 
     @mcp.tool(description=(
@@ -154,6 +202,16 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
     async def res_jobs() -> str:
         async with _client() as c:
             return _dump(await c.list_jobs())
+
+    @mcp.resource("marketer://articles")
+    async def res_articles() -> str:
+        async with _client() as c:
+            return _dump(await c.list_articles())
+
+    @mcp.resource("marketer://articles/{article_id}")
+    async def res_article(article_id: str) -> str:
+        async with _client() as c:
+            return _dump(await c.get_article(article_id))
 
     @mcp.resource("marketer://jobs/{job_id}")
     async def res_job(job_id: str) -> str:

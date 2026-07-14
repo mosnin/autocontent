@@ -218,6 +218,43 @@ async def h_jobs_retry(c: MarketerClient, a: argparse.Namespace) -> None:
     _print_one(job)
 
 
+def _article_row(a) -> list[str]:
+    return [
+        str(a.id), str(a.niche_id), a.status.value,
+        (a.title or a.topic or "")[:48],
+        str(a.word_count or ""),
+        str(a.created_at or ""),
+        a.error or "",
+    ]
+
+
+async def h_articles_list(c: MarketerClient, a: argparse.Namespace) -> None:
+    items = await c.list_articles(status=a.status, niche_id=a.niche, limit=a.limit)
+    _print_rows(items,
+                ["id", "niche_id", "status", "title", "words", "created_at", "error"],
+                _article_row, as_json=a.json)
+
+
+async def h_articles_get(c: MarketerClient, a: argparse.Namespace) -> None:
+    _print_one(await c.get_article(a.id))
+
+
+async def h_articles_markdown(c: MarketerClient, a: argparse.Namespace) -> None:
+    print(await c.get_article_markdown(a.id))
+
+
+async def h_articles_generate(c: MarketerClient, a: argparse.Namespace) -> None:
+    article = await c.generate_article(niche_id=a.niche, topic=a.topic or "")
+    _confirm(f"generating article {article.id} for niche {a.niche}")
+    _print_one(article)
+
+
+async def h_articles_retry(c: MarketerClient, a: argparse.Namespace) -> None:
+    article = await c.retry_article(a.id)
+    _confirm(f"retrying article {article.id}")
+    _print_one(article)
+
+
 # --- spend
 
 async def h_spend_today(c: MarketerClient, a: argparse.Namespace) -> None:
@@ -331,6 +368,34 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(handler=h_jobs_retry)
 
     # spend
+
+    articles = sub.add_parser("articles", help="manage SEO articles").add_subparsers(
+        dest="cmd", required=True
+    )
+    p = articles.add_parser("list")
+    p.add_argument("--status", default=None)
+    p.add_argument("--niche", default=None)
+    p.add_argument("--limit", type=int, default=50)
+    p.add_argument("--json", action="store_true")
+    p.set_defaults(handler=h_articles_list)
+
+    p = articles.add_parser("get")
+    p.add_argument("id")
+    p.set_defaults(handler=h_articles_get)
+
+    p = articles.add_parser("markdown")
+    p.add_argument("id")
+    p.set_defaults(handler=h_articles_markdown)
+
+    p = articles.add_parser("generate")
+    p.add_argument("--niche", required=True)
+    p.add_argument("--topic", default="")
+    p.set_defaults(handler=h_articles_generate)
+
+    p = articles.add_parser("retry")
+    p.add_argument("id")
+    p.set_defaults(handler=h_articles_retry)
+
     spend = sub.add_parser("spend", help="spend").add_subparsers(dest="cmd", required=True)
     p = spend.add_parser("today")
     _add_json_flag(p)

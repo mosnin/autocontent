@@ -1,8 +1,17 @@
 # marketer.sh
 
-Autonomous short-form content creation system optimized for hook-driven, educational content.
+Autonomous marketing platform for AI agents: one system that ideates,
+produces, publishes, and learns from marketing content across formats.
 
-## Pipeline
+Two production pipelines share the same niches, spend caps, billing,
+and agent surfaces (REST API, Python SDK, CLI, MCP server):
+
+- **Video** — hook-driven short-form video for TikTok / Reels / Shorts.
+- **Articles** — SEO-optimized long-form written content: SERP research,
+  structured outline, section-parallel writing, QA scoring, metadata +
+  JSON-LD schema, hero image.
+
+## Video pipeline
 
 1. **Ideation** — pick a topic + write the hook
 2. **Script** — break the topic into scenes (each scene = 1 image + 1 animation + caption beat)
@@ -15,6 +24,21 @@ Autonomous short-form content creation system optimized for hook-driven, educati
 9. **QA** — automated checks on duration, audio levels, caption sync
 10. **Publish** — schedule to TikTok / Reels / Shorts
 
+## Article pipeline
+
+1. **Topic** — picked for the niche (deduped against recent articles) or supplied by the caller
+2. **Research** — Exa SERP analysis of what currently ranks (degrades to model knowledge when unconfigured)
+3. **Outline** — one H1, 5-10 H2s with writer notes
+4. **Write** — sections drafted in parallel, E-E-A-T prose rules enforced
+5. **QA** — keyword density + E-E-A-T + readability scoring; one corrective rewrite below threshold
+6. **SEO metadata** — title, slug, meta description, keywords, JSON-LD (Article + FAQPage)
+7. **Internal links** — suggestions against the user's prior articles
+8. **Hero image** — gpt-image-1 editorial hero (optional)
+
+Every LLM/image call in both pipelines is metered into the same
+`spend_ledger` and gated by per-niche + global daily caps and prepaid
+credits.
+
 ## Stack
 
 - **Orchestration**: OpenAI Agents SDK (multi-agent handoffs)
@@ -23,6 +47,7 @@ Autonomous short-form content creation system optimized for hook-driven, educati
 - **Animation**: Grok Imagine (xAI)
 - **TTS**: OpenAI TTS
 - **Transcription**: OpenAI Whisper
+- **SERP research**: Exa
 - **Video**: ffmpeg
 - **Storage**: Modal volumes for clips/assets, Supabase Postgres metadata
 
@@ -42,10 +67,11 @@ src/marketer/
   db.py                # asyncpg pool
   pipeline.py          # run_job(user_id, niche_id, platform)
   orchestrator.py      # OpenAI Agents SDK wiring
-  agents/              # one agent per LLM stage
+  agents/              # one agent per LLM stage (video)
+  articles/            # article pipeline (research, outline, write, QA, SEO)
   services/            # provider clients (DALL-E, Grok, ffmpeg, ...)
   models/              # pydantic schemas (User, Niche, Job, SpendEntry, ...)
-  repos/               # asyncpg repositories (users, niches, jobs, spend)
+  repos/               # asyncpg repositories (users, niches, jobs, articles, spend)
   storage/             # Modal volume layout helpers
 backend/               # FastAPI on Modal — REST surface for the web UI
   main.py
@@ -78,3 +104,11 @@ cd web && npm install && npm run dev
 ```
 
 See `db/README.md` for the full migration workflow (status, rollback, CI gate).
+
+## Roadmap (article platform, phase 2)
+
+Ported from the upstream written-content system and planned next:
+publishing integrations (WordPress, Ghost, Medium, Shopify, Dev.to),
+Google Search Console-backed performance attribution, competitor
+monitoring, topic clusters, autopilot content calendars, newsletter
+digests, and semantic dedup memory.

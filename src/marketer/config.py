@@ -27,6 +27,14 @@ class Settings(BaseSettings):
     # is priceable — an SDK default bump would silently change COGS.
     agent_model: str = "gpt-5.4-mini"
 
+    # Article pipeline. The writer model drafts long-form prose (can be a
+    # bigger model than agent_model); unset Exa key degrades research to
+    # model knowledge instead of failing runs.
+    article_writer_model: str = "gpt-5.4-mini"
+    exa_api_key: str = ""
+    # Skip the hero image stage entirely when False.
+    article_hero_image: bool = True
+
     # Comma-separated list of origins allowed by the FastAPI CORS middleware.
     # If empty/unset we fall back to "*" with credentials disabled.
     web_origin: str = ""

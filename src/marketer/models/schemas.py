@@ -150,6 +150,7 @@ class SpendEntry(BaseModel):
     user_id: str
     niche_id: UUID
     job_id: UUID | None
+    article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
     provider: str  # "openai" | "xai" | "ayrshare"
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal

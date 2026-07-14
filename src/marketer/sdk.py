@@ -14,6 +14,7 @@ from uuid import UUID
 
 import httpx
 
+from .articles.models import Article, ArticleStatus
 from .models import (
     AyrshareConnectResponse,
     AyrshareConnectStatus,
@@ -145,6 +146,42 @@ class MarketerClient:
     async def retry_job(self, job_id: UUID | str) -> Job:
         resp = await self._request("POST", f"/api/v1/jobs/{job_id}/retry")
         return Job.model_validate(resp.json())
+
+    # --------------------------------------------------------------- articles
+
+    async def list_articles(
+        self,
+        *,
+        status: ArticleStatus | str | None = None,
+        niche_id: UUID | str | None = None,
+        limit: int = 50,
+    ) -> list[Article]:
+        params: dict[str, Any] = {"limit": limit}
+        if status is not None:
+            params["status_filter"] = status.value if isinstance(status, ArticleStatus) else status
+        if niche_id is not None:
+            params["niche_id"] = str(niche_id)
+        resp = await self._request("GET", "/api/v1/articles", params=params)
+        return [Article.model_validate(r) for r in resp.json()]
+
+    async def get_article(self, article_id: UUID | str) -> Article:
+        resp = await self._request("GET", f"/api/v1/articles/{article_id}")
+        return Article.model_validate(resp.json())
+
+    async def get_article_markdown(self, article_id: UUID | str) -> str:
+        resp = await self._request("GET", f"/api/v1/articles/{article_id}/markdown")
+        return resp.text
+
+    async def generate_article(
+        self, *, niche_id: UUID | str, topic: str = ""
+    ) -> Article:
+        body = {"niche_id": str(niche_id), "topic": topic}
+        resp = await self._request("POST", "/api/v1/articles", json=body)
+        return Article.model_validate(resp.json())
+
+    async def retry_article(self, article_id: UUID | str) -> Article:
+        resp = await self._request("POST", f"/api/v1/articles/{article_id}/retry")
+        return Article.model_validate(resp.json())
 
     # ------------------------------------------------------------------ spend
 
