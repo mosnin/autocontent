@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+// One family everywhere (Apple's single-typeface discipline): Geist for text
+// and display, Geist Mono for data. Display presence comes from scale + tight
+// tracking + the gradient-text accent, not a novelty face.
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -13,13 +16,6 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-// Display face: headlines only. Characterful grotesque that gives titles
-// real presence; Geist stays for body (readability) and mono for data.
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
   subsets: ["latin"],
 });
 
@@ -37,7 +33,7 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable}`}
+        className={`${geistSans.variable} ${geistMono.variable}`}
       >
         <body className="min-h-screen bg-background font-sans text-foreground antialiased">
           <ThemeProvider

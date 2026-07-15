@@ -64,7 +64,17 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-bricolage);
+  /* Unified on Geist — headlines get presence from scale + tracking, not a
+     separate novelty face. */
+  --font-display: var(--font-geist-sans);
+
+  /* Warm brand gradient (amber → rose), used for hero display text and the
+     occasional accent. The single sanctioned gradient — no rainbow soup. */
+  --gradient-warm: linear-gradient(
+    100deg,
+    hsl(28 95% 55%),
+    hsl(345 82% 58%)
+  );
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -222,6 +232,11 @@
   }
   h1, h2, h3 {
     font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+    /* Apple-tight display tracking; slightly tighter still on large sizes. */
+    letter-spacing: -0.021em;
+  }
+  h1 {
+    letter-spacing: -0.032em;
   }
 
 @keyframes show-top-mask {
@@ -271,6 +286,17 @@
     syntax: "<length>";
     inherits: true;
     initial-value: 64px;
+}
+
+/* Warm gradient display text — for the one or two hero words that carry the
+   page. Falls back to a solid warm tone where background-clip:text is
+   unsupported. Keep it rare: gradient text loses impact if everything is one. */
+@utility text-gradient {
+    background-image: var(--gradient-warm);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: hsl(28 95% 52%);
 }
 
 @utility scroll-fade-effect-y {
