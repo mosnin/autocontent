@@ -10,6 +10,7 @@
 import {
   BarChart3,
   CalendarDays,
+  CheckSquare,
   FileText,
   Film,
   KeyRound,
@@ -19,6 +20,7 @@ import {
   ListChecks,
   Megaphone,
   Palette,
+  ScrollText,
   Settings,
   ShieldCheck,
   Sparkles,
@@ -111,6 +113,8 @@ const ADS: Product = {
       items: [
         { href: "/ads", label: "Overview", icon: BarChart3 },
         { href: "/ads/campaigns", label: "Campaigns", icon: Megaphone, soon: true },
+        { href: "/ads/approvals", label: "Approvals", icon: CheckSquare },
+        { href: "/ads/activity", label: "Activity", icon: ScrollText },
         { href: "/ads/insights", label: "Insights", icon: Sparkles, soon: true },
         { href: "/ads/creatives", label: "Creatives", icon: Palette, soon: true },
       ],
