@@ -110,3 +110,23 @@
   - Verified: ruff clean, 397 unit + 9 real-Postgres integration green,
     tsc --noEmit clean, next build compiles all routes. Still NO push
     (holding for the single final push per Vercel build-cost constraint).
+- Cycles 45-48 (Workstream E, ruthless core-surface debug): commissioned a
+  read-only correctness review of the CORE surfaces (video/article pipelines,
+  money/DB repos, auth, dashboard/queue/articles/niches/settings) and fixed
+  every substantiated finding.
+  - P1 money: prepaid credit could be overspent by intra-stage fan-out — the
+    credit gate was pre-flight only and log() never re-checked it. log() now
+    re-reads the debit's returned balance and trips abort_event (scope=
+    credits) on non-positive, symmetric with the cap post-log re-reads;
+    abort reason tracked via abort_scope so pre-flight reports the true cause.
+  - P1 auth: JWT issuer now derived from the JWKS URL and enforced by default
+    (Clerk iss == {jwks_base}), rejecting tokens from another instance's key
+    without any config change; audience stays opt-in.
+  - P2: niche daily_spend_cap_usd now Field(gt=0) (create+update) — a zero
+    cap used to fail every run; niche 'Avg cost / video' now divides by jobs
+    completed in the same 30d window and marks itself approximate when the
+    job page is saturated (was dividing by a truncated 20-job count).
+  - Review confirmed sound: cross-tenant scoping, Stripe idempotency, atomic
+    claim-for-scheduling, reap_stale triggers, no missing awaits, UI states.
+  - Verified: ruff clean, 404 pytest (9 real-Postgres integration) green,
+    tsc clean, next build compiles. Still holding the single final push.
