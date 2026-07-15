@@ -172,6 +172,16 @@ Beyond the two content pipelines, the product ships:
 - **Spend controls everywhere** — per-niche daily cap, optional per-user
   global cap, prepaid credits; every LLM/image/video/TTS call metered to a
   ledger and gated race-safely.
+- **x402 agent payments** — agents fund their own prepaid credit over HTTP
+  402 (Coinbase's protocol). `POST /api/v1/x402/credits` answers `402` with a
+  payment envelope, then verifies + settles the `X-PAYMENT` via a facilitator
+  and credits the caller's balance idempotently (keyed on the on-chain
+  settlement id). Off by default; see the x402 config in `config.py`.
+- **Legal** — a full `/legal` surface (Terms, Privacy, Acceptable Use,
+  Cookies, Subprocessors, DPA, Refund), text-first with no decorative icons.
+- **Workspace suite** — the app is a Google-Workspace-style set of distinct
+  products (Studio / Press / Ads / Suite) with an app switcher; each has its
+  own dashboard and focused nav.
 
 ## Testing
 
