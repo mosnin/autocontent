@@ -175,6 +175,54 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
         async with _client() as c:
             return _dump(await c.repurpose_article(article_id, platforms=platforms))
 
+    # ------------------------------------------------------------- calendar
+
+    @mcp.tool(description=(
+        "The content calendar: scheduled video posts and article activity for "
+        "the next N days (default 30). Cheap, read-only. Returns a time-ordered "
+        "list of {kind, id, niche_id, title, status, platform, at}."
+    ))
+    async def calendar(days: int = 30) -> str:
+        async with _client() as c:
+            return _dump(await c.calendar(days=days))
+
+    # ------------------------------------------------------------- brand kit
+
+    @mcp.tool(description=(
+        "Read the account's brand kit (name, tone, banned words, hashtags, "
+        "accent color). Cheap, read-only. The brand kit steers new channel "
+        "drafts so they come out on-brand."
+    ))
+    async def get_brand_kit() -> str:
+        async with _client() as c:
+            return _dump(await c.get_brand_kit())
+
+    @mcp.tool(description=(
+        "Update the account's brand kit. Pass any of: brand_name, tagline, "
+        "tone_of_voice, target_audience, banned_words (list), "
+        "preferred_hashtags (list), color_hex ('#rrggbb'). Cheap, no LLM spend. "
+        "Affects future channel drafts, not existing channels."
+    ))
+    async def set_brand_kit(
+        brand_name: str | None = None,
+        tagline: str | None = None,
+        tone_of_voice: str | None = None,
+        target_audience: str | None = None,
+        banned_words: list[str] | None = None,
+        preferred_hashtags: list[str] | None = None,
+        color_hex: str | None = None,
+    ) -> str:
+        fields = {
+            k: v for k, v in {
+                "brand_name": brand_name, "tagline": tagline,
+                "tone_of_voice": tone_of_voice, "target_audience": target_audience,
+                "banned_words": banned_words, "preferred_hashtags": preferred_hashtags,
+                "color_hex": color_hex,
+            }.items() if v is not None
+        }
+        async with _client() as c:
+            return _dump(await c.set_brand_kit(**fields))
+
     # ------------------------------------------------------------- spend
 
     @mcp.tool(description=(

@@ -195,6 +195,26 @@ class MarketerClient:
         )
         return resp.json().get("snippets", [])
 
+    # ------------------------------------------------------------------ calendar
+
+    async def calendar(self, *, days: int = 30) -> list[dict]:
+        """Scheduled videos + article activity for the next `days`. Returns a
+        time-ordered list of {kind, id, niche_id, title, status, platform, at}."""
+        resp = await self._request("GET", "/api/v1/calendar", params={"days": days})
+        return resp.json()
+
+    # ------------------------------------------------------------------ brand kit
+
+    async def get_brand_kit(self) -> dict:
+        resp = await self._request("GET", "/api/v1/brand-kit")
+        return resp.json()
+
+    async def set_brand_kit(self, **fields: object) -> dict:
+        """Upsert the brand kit. Any of: brand_name, tagline, tone_of_voice,
+        target_audience, banned_words[], preferred_hashtags[], color_hex."""
+        resp = await self._request("PUT", "/api/v1/brand-kit", json=fields)
+        return resp.json()
+
     # ------------------------------------------------------------------ spend
 
     async def today_spend(self) -> TodaySpend:
