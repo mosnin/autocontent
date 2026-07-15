@@ -148,3 +148,19 @@
     tsc clean, next build compiles; migration 0014 apply/rollback/reapply
     checked on a fresh DB. Still holding the single final push per the
     Vercel build-cost constraint.
+- Cycles 57-60 (polish + final debug): email preferences link + full
+  end-of-run verification.
+  - Every email footer now carries a "Manage email notifications" link to
+    /settings (UX + CAN-SPAM-minded). Template test covers deep links + the
+    prefs link across the new article/video templates.
+  - Final comprehensive debug pass: all 14 migrations apply on a fresh DB;
+    ruff clean; 411 pytest green (9 real-Postgres integration); tsc clean;
+    next build compiles every route. Migration 0014 apply/rollback/reapply
+    verified. All unpushed commits carry the correct committer identity.
+
+## Status: 60-cycle goal complete — branch verified, awaiting push authorization
+All hard requirements delivered (SOC2 admin dashboard, ICP features, Apple-
+level polish) plus a ruthless bug-fix pass (credit-race overspend, JWT issuer
+hardening, cap validation, avg-cost metric). Everything is committed locally
+and fully green. The single Vercel push is held pending explicit user
+authorization per the build-cost constraint.
