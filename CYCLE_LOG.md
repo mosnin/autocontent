@@ -74,3 +74,13 @@
   - Article detail RepurposeCard: pick platforms → generate social posts
     (metered) → per-post copy. Wires POST /articles/{id}/social.
   - tsc clean, next build compiles all new routes.
+- Cycles 31-34 (Workstream E, hardening): real-Postgres integration tests.
+  - Stood up a local Postgres 16; verified ALL 12 migrations apply, and the
+    4 new ones roll back + re-apply cleanly (schema validated end to end).
+  - tests/integration/test_pg_money_admin.py: 7 tests against a real DB for
+    the audit's #1 gap (money/admin never hit Postgres) — credit-purchase
+    idempotency (partial unique index), atomic debit+ledger mirror, spend-cap
+    summation over real rows, append-only admin audit, admin overview counts,
+    grant-credit balance, erasure FK-cascade. Skips cleanly with no DB; runs
+    automatically in CI (which already sets MARKETER_DATABASE_URL).
+  - 384 passed + 7 integration (real DB) / 7 skipped (no DB); ruff clean.
