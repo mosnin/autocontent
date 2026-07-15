@@ -26,6 +26,14 @@ const ROUTES = [
   "/resources/guides/agent-driven-marketing",
   "/resources/changelog",
   "/resources/faq",
+  "/legal",
+  "/legal/terms",
+  "/legal/privacy",
+  "/legal/acceptable-use",
+  "/legal/cookies",
+  "/legal/subprocessors",
+  "/legal/dpa",
+  "/legal/refund",
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

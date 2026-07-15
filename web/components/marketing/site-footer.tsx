@@ -23,6 +23,15 @@ const COLUMNS: { heading: string; links: { label: string; href: string; external
       { label: "MCP server", href: "https://github.com/mosnin/autocontent#mcp", external: true },
     ],
   },
+  {
+    heading: "Legal",
+    links: [
+      { label: "Terms", href: "/legal/terms" },
+      { label: "Privacy", href: "/legal/privacy" },
+      { label: "Acceptable use", href: "/legal/acceptable-use" },
+      { label: "Cookies", href: "/legal/cookies" },
+    ],
+  },
 ];
 
 /**

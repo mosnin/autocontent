@@ -104,11 +104,25 @@ export function MarketingFooter() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col gap-3 border-t border-zinc-900/[0.06] pt-6 text-xs text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-4 border-t border-zinc-900/[0.06] pt-6 text-xs text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} marketer.sh. All rights reserved.</p>
-          <p>
-            Prepaid credits, hard spend caps, nothing posts without your rules.
-          </p>
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
+            {[
+              { label: "Terms", href: "/legal/terms" },
+              { label: "Privacy", href: "/legal/privacy" },
+              { label: "Acceptable use", href: "/legal/acceptable-use" },
+              { label: "Cookies", href: "/legal/cookies" },
+              { label: "Legal", href: "/legal" },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                className="transition-colors hover:text-zinc-900"
+                href={l.href}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>
