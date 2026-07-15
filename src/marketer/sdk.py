@@ -290,6 +290,39 @@ class MarketerClient:
         )
         return resp.json()
 
+    # ------------------------------------------------------------------ x402
+
+    async def x402_config(self) -> dict:
+        """Discover whether x402 credit top-ups are available + the accepted
+        network/asset/bounds. Cheap, read-only."""
+        resp = await self._request("GET", "/api/v1/x402/config")
+        return resp.json()
+
+    async def x402_buy_credits(
+        self, amount_usd: str, *, payment_header: str | None = None
+    ) -> dict:
+        """Fund prepaid credit over HTTP 402.
+
+        Call once WITHOUT payment_header to receive
+        ``{status:'payment_required', requirements:{...}}`` — the 402 envelope
+        your wallet must satisfy. Sign it and call again WITH the base64
+        X-PAYMENT header to settle and credit; returns
+        ``{status:'credited', ...}`` on success."""
+        headers = {"X-PAYMENT": payment_header} if payment_header else {}
+        resp = await self._client.request(
+            "POST", "/api/v1/x402/credits",
+            params={"amount_usd": str(amount_usd)}, headers=headers,
+        )
+        if resp.status_code == 402:
+            return {"status": "payment_required", "requirements": resp.json()}
+        if resp.status_code >= 400:
+            raise MarketerError(resp.status_code, resp.text)
+        return {
+            "status": "credited",
+            "payment_response": resp.headers.get("x-payment-response"),
+            **resp.json(),
+        }
+
     # ------------------------------------------------------------------ spend
 
     async def today_spend(self) -> TodaySpend:

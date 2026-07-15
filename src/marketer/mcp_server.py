@@ -324,6 +324,33 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
         async with _client() as c:
             return json.dumps(await c.decide_ad_approval(approval_id, decision), indent=2)
 
+    # ------------------------------------------------------------- x402
+
+    @mcp.tool(description=(
+        "Check whether this workspace accepts x402 stablecoin payments for "
+        "prepaid credit, and the network / asset / min-max bounds. Cheap, "
+        "read-only. Call this before attempting a top-up."
+    ))
+    async def x402_config() -> str:
+        async with _client() as c:
+            return json.dumps(await c.x402_config(), indent=2)
+
+    @mcp.tool(description=(
+        "Top up prepaid credit by paying with a stablecoin over HTTP 402. "
+        "TWO-STEP: call first WITHOUT payment_header to get "
+        "{status:'payment_required', requirements:{...}} — the payment envelope "
+        "your wallet must sign (network, asset, payTo, amount in atomic units). "
+        "Sign it, then call again WITH the base64 X-PAYMENT string as "
+        "payment_header to settle on-chain and credit the balance. SPENDS REAL "
+        "money from your wallet — confirm the amount with the user first."
+    ))
+    async def x402_buy_credits(amount_usd: str, payment_header: str | None = None) -> str:
+        async with _client() as c:
+            return json.dumps(
+                await c.x402_buy_credits(amount_usd, payment_header=payment_header),
+                indent=2,
+            )
+
     # ------------------------------------------------------------- spend
 
     @mcp.tool(description=(

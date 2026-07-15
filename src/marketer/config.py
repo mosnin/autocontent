@@ -102,6 +102,26 @@ class Settings(BaseSettings):
     inngest_event_key: str = ""
     inngest_dev: bool = False
 
+    # --- x402 agent payments (HTTP 402, stablecoin) -------------------
+    # Lets agents fund their own prepaid credit over HTTP 402. Off by default;
+    # inert without a pay-to address + asset. All facilitator calls are mocked
+    # in tests — no real settlement in CI.
+    x402_enabled: bool = False
+    # CAIP-2 network id (e.g. 'base' / 'eip155:8453') the facilitator settles on.
+    x402_network: str = "base"
+    # USDC (or other EIP-3009) token contract address on that network.
+    x402_asset: str = ""
+    # Optional human token metadata for the payment envelope's `extra`.
+    x402_asset_name: str = "USDC"
+    x402_asset_version: str = "2"
+    # The address that receives payment.
+    x402_pay_to: str = ""
+    # Facilitator base URL (verify + settle). Coinbase CDP or x402.org.
+    x402_facilitator_url: str = "https://x402.org/facilitator"
+    # Bounds on a single top-up, in USD.
+    x402_min_topup_usd: float = 1.0
+    x402_max_topup_usd: float = 1000.0
+
     # Transactional email (Resend). Empty key = emails silently skipped.
     resend_api_key: str = ""
     email_from: str = "marketer <notifications@marketer.dev>"

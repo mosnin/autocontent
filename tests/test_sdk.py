@@ -315,3 +315,31 @@ async def test_connect_ad_account_returns_redirect():
     async with _client(handler) as c:
         out = await c.connect_ad_account("google_ads")
     assert out["redirect_url"].startswith("https://")
+
+
+# --------------------------------------------------------------------------- x402
+
+async def test_x402_buy_credits_returns_402_envelope():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert "x-payment" not in {k.lower() for k in req.headers}
+        return httpx.Response(402, json={"x402Version": 1, "accepts": [{"scheme": "exact"}]})
+
+    async with _client(handler) as c:
+        out = await c.x402_buy_credits("10")
+    assert out["status"] == "payment_required"
+    assert out["requirements"]["accepts"][0]["scheme"] == "exact"
+
+
+async def test_x402_buy_credits_credited_with_payment():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert req.headers.get("x-payment") == "base64payload"
+        return httpx.Response(
+            200, json={"credited_usd": "10.00", "balance_usd": "10.00"},
+            headers={"X-PAYMENT-RESPONSE": "resp64"},
+        )
+
+    async with _client(handler) as c:
+        out = await c.x402_buy_credits("10", payment_header="base64payload")
+    assert out["status"] == "credited"
+    assert out["credited_usd"] == "10.00"
+    assert out["payment_response"] == "resp64"
