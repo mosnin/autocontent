@@ -70,6 +70,15 @@ def create_app() -> FastAPI:
     app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
     app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
 
+    # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
+    # when enabled this serves the functions at /api/inngest.
+    try:
+        from marketer.services import inngest_app
+
+        inngest_app.mount(app)
+    except Exception:  # noqa: BLE001 — workflow wiring must never break boot
+        logger.warning("inngest mount skipped", exc_info=True)
+
     # ── OpenTelemetry FastAPI per-app instrumentation ──────────────────────
     # Called AFTER routes are registered so the instrumentor captures the
     # full route table (needed for http.route attribute on spans).
