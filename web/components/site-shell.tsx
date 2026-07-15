@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
 import {
@@ -9,6 +11,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
+import { productForPath } from "@/lib/products";
 
 /**
  * Reference-style shell: the sidebar rides directly on the warm page, and
@@ -24,7 +27,8 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-4">
             <SidebarTrigger aria-label="Toggle sidebar" />
             <Separator className="mr-1 h-4" orientation="vertical" />
-            <span className="hidden text-xs text-muted-foreground sm:inline">
+            <ProductCrumb />
+            <span className="ml-auto hidden text-xs text-muted-foreground sm:inline">
               <kbd className="rounded border border-border/70 bg-muted px-1.5 py-0.5 font-mono text-[10px]">
                 ⌘B
               </kbd>{" "}
@@ -37,5 +41,38 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+/**
+ * A minimal product breadcrumb: "Home / <Product>". Anchors the user in the
+ * suite so switching products always reads as moving between distinct apps.
+ */
+function ProductCrumb() {
+  const pathname = usePathname();
+  const isHome = pathname === "/home";
+  const product = productForPath(pathname);
+
+  return (
+    <nav aria-label="Breadcrumb" className="min-w-0">
+      <ol className="flex items-center gap-1.5 text-sm">
+        <li>
+          <Link
+            href="/home"
+            className="text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Home
+          </Link>
+        </li>
+        {!isHome && (
+          <>
+            <li aria-hidden className="text-muted-foreground/50">
+              /
+            </li>
+            <li className="truncate font-medium">{product.label}</li>
+          </>
+        )}
+      </ol>
+    </nav>
   );
 }
