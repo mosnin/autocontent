@@ -194,6 +194,9 @@ export async function enqueueJobAction(
   }
   revalidatePath("/queue");
   revalidatePath("/dashboard");
+  // A new job also changes the niche's recent-jobs table + the niches list.
+  revalidatePath("/niches/[id]", "page");
+  revalidatePath("/niches");
   return { ok: true };
 }
 
@@ -209,6 +212,7 @@ export async function approveJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
   return { ok: true };
 }
 
@@ -224,6 +228,7 @@ export async function rejectJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
   return { ok: true };
 }
 
@@ -239,6 +244,7 @@ export async function retryJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
   return { ok: true };
 }
 
@@ -292,6 +298,8 @@ export async function archiveNicheAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/dashboard");
+  revalidatePath("/niches");
+  revalidatePath("/niches/[id]", "page");
   return { ok: true };
 }
 

@@ -13,3 +13,11 @@
     list+detail, set_role, suspend, grant_credit w/ ledger).
   - routes/admin.py: overview, users, suspension, role, credits, audit-log
     — every route RBAC-gated and audited. 8 admin tests; 369 total green.
+- Cycles 4-6 (Workstream A+D+E): backend features.
+  - GET /articles/{id}/hero-image (unblocks article-detail hero render).
+  - GDPR: GET /users/me/export (full data bundle, PAT prefixes only),
+    DELETE /users/me (right to erasure via FK cascade). repos/privacy.py.
+  - Admin: feature flags (GET/PUT /admin/flags), GET /admin/health
+    (db_ok + stuck/failed job signals), both audited. repos/feature_flags.
+  - sitemap.xml + robots.txt; /admin protected in middleware.
+  - 371 tests green (privacy + admin flags/health covered), ruff clean.

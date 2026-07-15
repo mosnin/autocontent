@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
+import os
+
 from fastapi import APIRouter, HTTPException, Query, status
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
 from marketer.articles.models import Article, ArticleStatus
@@ -82,6 +84,21 @@ async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> A
     fn = modal.Function.from_name("marketer-sh", "run_article_pipeline")
     fn.spawn(ctx.user_id, str(body.niche_id), str(article.id), body.topic)
     return article
+
+
+@router.get("/{article_id}/hero-image")
+async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
+    """Stream the article's editorial hero image (gpt-image-1 PNG).
+
+    Ownership-scoped like every other media endpoint. 404 if the article is
+    missing/foreign, has no hero, or the file isn't on the volume."""
+    article = await articles_repo.get(article_id, user_id=ctx.user_id)
+    if article is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    path = article.hero_image_path
+    if not path or not os.path.exists(path):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "no hero image")
+    return FileResponse(path, media_type="image/png")
 
 
 @router.post("/{article_id}/retry", response_model=Article, status_code=status.HTTP_202_ACCEPTED)

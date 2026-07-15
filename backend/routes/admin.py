@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 
 from marketer.repos import admin as admin_repo
 from marketer.repos import admin_audit
+from marketer.repos import feature_flags as flags_repo
 
 from ..auth import AdminCtx, CurrentAdmin
 
@@ -134,6 +135,62 @@ async def grant_credits(user_id: str, body: GrantBody, ctx: AdminCtx = CurrentAd
         metadata={"amount_usd": str(body.amount_usd), "note": body.note},
     )
     return {"user_id": user_id, "new_balance_usd": str(new_balance)}
+
+
+# --------------------------------------------------------------------------- feature flags
+
+@router.get("/flags", response_model=list[flags_repo.FeatureFlag])
+async def list_flags(ctx: AdminCtx = CurrentAdmin) -> list[flags_repo.FeatureFlag]:
+    return await flags_repo.list_all()
+
+
+class FlagBody(BaseModel):
+    enabled: bool
+    description: str = Field(default="", max_length=500)
+
+
+@router.put("/flags/{key}", response_model=flags_repo.FeatureFlag)
+async def upsert_flag(key: str, body: FlagBody, ctx: AdminCtx = CurrentAdmin) -> flags_repo.FeatureFlag:
+    if not key or len(key) > 100:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid flag key")
+    flag = await flags_repo.upsert(
+        key, enabled=body.enabled, description=body.description, updated_by=ctx.user_id
+    )
+    await _audit(
+        ctx, "flag.set", target_type="flag", target_id=key,
+        metadata={"enabled": body.enabled},
+    )
+    return flag
+
+
+# --------------------------------------------------------------------------- system health
+
+@router.get("/health")
+async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
+    """Operational snapshot: DB reachability + recent failure/skew signals.
+    Read-only; audited as a view."""
+    from marketer.db import get_pool
+
+    pool = await get_pool()
+    db_ok = True
+    try:
+        await pool.fetchval("select 1")
+    except Exception:  # noqa: BLE001
+        db_ok = False
+
+    stuck = await pool.fetchval(
+        """
+        select count(*) from jobs
+         where status not in ('done', 'failed', 'skipped', 'awaiting_approval')
+           and updated_at < now() - interval '2 hours'
+        """
+    ) if db_ok else None
+    failed_24h = await pool.fetchval(
+        "select count(*) from jobs where status = 'failed' and created_at >= now() - interval '24 hours'"
+    ) if db_ok else None
+
+    await _audit(ctx, "health.view", target_type="system")
+    return {"db_ok": db_ok, "stuck_jobs": stuck, "failed_jobs_24h": failed_24h}
 
 
 # --------------------------------------------------------------------------- audit log
