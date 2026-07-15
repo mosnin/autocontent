@@ -1,0 +1,60 @@
+# Run database migrations against the remote Postgres (Neon) from CI, where
+# egress is unrestricted. Credentials come ONLY from encrypted repository
+# secrets — never from dispatch inputs, so nothing sensitive lands in run
+# metadata or logs.
+#
+# One-time setup (repo Settings → Secrets and variables → Actions):
+#   NEON_DATABASE_URL — the connection string from the Neon dashboard's
+#                       "Connect" panel (either pooled or direct works).
+name: db-migrate
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package (migration runner + drivers)
+        run: pip install -e . --ignore-installed PyJWT
+
+      - name: Check secret is configured
+        env:
+          MARKETER_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          if [ -z "${MARKETER_DATABASE_URL}" ]; then
+            echo "::error::Repository secret NEON_DATABASE_URL is not set. Add it under Settings → Secrets and variables → Actions." >&2
+            exit 1
+          fi
+
+      - name: Apply migrations
+        env:
+          MARKETER_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: python -m scripts.migrate up
+
+      - name: Verify
+        env:
+          MARKETER_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: |
+          python -m scripts.migrate status
+          python - <<'PY'
+          import os, psycopg2
+          conn = psycopg2.connect(os.environ["MARKETER_DATABASE_URL"])
+          cur = conn.cursor()
+          cur.execute(
+              "select count(*) from information_schema.tables "
+              "where table_schema = 'public'"
+          )
+          print(f"public tables: {cur.fetchone()[0]}")
+          cur.execute("select table_name from information_schema.tables "
+                      "where table_schema='public' order by 1")
+          for (t,) in cur.fetchall():
+              print(f"  - {t}")
+          PY
