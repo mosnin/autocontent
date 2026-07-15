@@ -8,10 +8,15 @@ import {
   FileText,
   KeyRound,
   LayoutDashboard,
+  Layers,
   Link2,
   ListChecks,
   Plus,
+  ScrollText,
   Settings,
+  Shield,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -39,6 +44,7 @@ interface NavItem {
 
 const OPERATE: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/niches", label: "Niches", icon: Layers },
   { href: "/queue", label: "Queue", icon: ListChecks },
   { href: "/articles", label: "Articles", icon: FileText },
 ];
@@ -47,6 +53,16 @@ const CONFIGURE: NavItem[] = [
   { href: "/connect", label: "Connect", icon: Link2 },
   { href: "/settings/tokens", label: "Tokens", icon: KeyRound },
   { href: "/settings", label: "Settings", icon: Settings },
+];
+
+// Admin nav renders for everyone; the /admin pages self-guard server-side
+// (the admin layout returns a "not authorized" state on HTTP 403), so no
+// role check is needed — or possible — here on the client.
+const ADMIN: NavItem[] = [
+  { href: "/admin", label: "Overview", icon: ShieldCheck },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/audit", label: "Audit log", icon: ScrollText },
+  { href: "/admin/security", label: "Security", icon: Shield },
 ];
 
 function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
@@ -62,11 +78,12 @@ function NavGroup({ label, items }: { label: string; items: NavItem[] }) {
             const Icon = item.icon;
             // Exact match or any descendant of the same segment — but let a
             // more specific sibling (e.g. /settings/tokens) win over
-            // /settings.
+            // /settings, and keep index links (/admin) from lighting up on
+            // their own children (/admin/users).
+            const indexOnly = item.href === "/settings" || item.href === "/admin";
             const active =
               pathname === item.href ||
-              (item.href !== "/settings" &&
-                pathname.startsWith(`${item.href}/`)) ||
+              (!indexOnly && pathname.startsWith(`${item.href}/`)) ||
               (item.href === "/settings" &&
                 pathname.startsWith("/settings/") &&
                 !pathname.startsWith("/settings/tokens"));
@@ -153,6 +170,7 @@ export function AppSidebar() {
       <SidebarContent>
         <NavGroup items={OPERATE} label="Operate" />
         <NavGroup items={CONFIGURE} label="Configure" />
+        <NavGroup items={ADMIN} label="Admin" />
       </SidebarContent>
 
       <SidebarFooter>

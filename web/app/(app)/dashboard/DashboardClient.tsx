@@ -227,10 +227,10 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
               <div>
-                <div className="font-medium">Ayrshare not connected</div>
+                <div className="font-medium">Posting profile not set up</div>
                 <div className="text-sm text-muted-foreground">
-                  Pipeline runs will succeed locally, but posts won&apos;t ship
-                  until you link a socials profile.
+                  Pipeline runs will succeed, but posts won&apos;t ship until you
+                  create your posting profile and link socials in Ayrshare.
                 </div>
               </div>
             </div>

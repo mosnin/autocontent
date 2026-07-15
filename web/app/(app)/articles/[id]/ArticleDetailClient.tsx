@@ -8,7 +8,7 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowLeft, Download, RefreshCw } from "lucide-react";
+import { ArrowLeft, Download, ImageIcon, RefreshCw } from "lucide-react";
 
 import { ArticleMarkdown } from "@/components/article-markdown";
 import { Badge } from "@/components/ui/badge";
@@ -148,6 +148,10 @@ export function ArticleDetailClient({
         <pre className="max-h-60 overflow-auto whitespace-pre-wrap rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
           {article.error}
         </pre>
+      )}
+
+      {article.hero_image_path && (
+        <HeroImageCard articleId={article.id} alt={article.hero_image_alt} />
       )}
 
       <div className="flex flex-col gap-6 lg:flex-row">
@@ -319,6 +323,51 @@ export function ArticleDetailClient({
         </div>
       </div>
     </div>
+  );
+}
+
+// The pipeline generates an editorial hero image on the artifacts volume;
+// GET /api/v1/articles/{id}/hero-image streams it (ownership-scoped),
+// proxied like the character sheet. Render it in its 16/10 editorial
+// frame with the generated alt text; fall back to a labelled card if the
+// bytes 404 (e.g. GC'd artifact).
+function HeroImageCard({ articleId, alt }: { articleId: string; alt: string | null }) {
+  const [errored, setErrored] = React.useState(false);
+  const src = `/api/proxy/api/v1/articles/${articleId}/hero-image`;
+  return (
+    <Card className="overflow-hidden">
+      {!errored ? (
+        <div className="relative aspect-[16/10] w-full bg-muted/40">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={src}
+            alt={alt ?? "Generated hero image for this article"}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            onError={() => setErrored(true)}
+          />
+        </div>
+      ) : (
+        <CardContent className="flex items-start gap-4 p-4">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card/40 text-muted-foreground">
+            <ImageIcon className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 space-y-1">
+            <p className="text-sm font-medium">Hero image generated</p>
+            <p className="text-sm text-muted-foreground">
+              {alt ?? "A hero image was produced for this article."}
+            </p>
+          </div>
+        </CardContent>
+      )}
+      {!errored && alt ? (
+        <CardContent className="p-3">
+          <p className="text-xs text-muted-foreground">
+            <span className="font-medium text-foreground/80">Alt text:</span> {alt}
+          </p>
+        </CardContent>
+      ) : null}
+    </Card>
   );
 }
 

@@ -75,7 +75,16 @@ export function RecentJobsTable({ jobs }: { jobs: Job[] }) {
             <TableRow
               key={job.id}
               onClick={() => router.push(`/queue/${job.id}`)}
-              className="group cursor-pointer transition-colors hover:bg-muted/40"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  router.push(`/queue/${job.id}`);
+                }
+              }}
+              aria-label={`Open job ${job.id.slice(0, 8)}`}
+              className="group cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               <TableCell className="py-2.5">
                 <StatusBadge status={job.status} />

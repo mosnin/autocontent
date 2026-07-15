@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { FileText, Plus, RefreshCw } from "lucide-react";
@@ -42,7 +42,11 @@ import {
 } from "@/components/ui/tooltip";
 import { createArticleAction, retryArticleAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
-import { ARTICLE_IN_PROGRESS, ArticleStatusBadge } from "@/lib/status-badge";
+import {
+  ARTICLE_IN_PROGRESS,
+  articleStatusLabel,
+  ArticleStatusBadge,
+} from "@/lib/status-badge";
 import type { Article, ArticleStatus, Niche } from "@/lib/types";
 
 const POLL_MS = 10_000;
@@ -81,8 +85,13 @@ export function ArticlesClient({
   niches: Niche[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [filter, setFilter] = React.useState<Filter>("all");
-  const [newOpen, setNewOpen] = React.useState(false);
+  // The command palette's "New article" action deep-links here with
+  // ?new=1 so it can pop the dialog open on arrival.
+  const [newOpen, setNewOpen] = React.useState(
+    () => searchParams.get("new") === "1",
+  );
 
   const { data, error, mutate } = useSWR<Article[]>(
     "/api/v1/articles?limit=100",
@@ -304,7 +313,8 @@ function ArticleRow({
   return (
     <TableRow
       onClick={onClick}
-      className="group cursor-pointer transition-colors hover:bg-muted/40"
+      role="button"
+      className="group cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -312,7 +322,7 @@ function ArticleRow({
           onClick();
         }
       }}
-      aria-label={`Article ${article.id.slice(0, 8)}, status ${article.status}`}
+      aria-label={`Open article ${article.id.slice(0, 8)}, status ${articleStatusLabel(article.status)}`}
     >
       <TableCell>
         {article.status === "failed" && article.error ? (

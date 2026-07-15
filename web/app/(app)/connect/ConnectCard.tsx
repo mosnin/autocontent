@@ -50,12 +50,12 @@ export function ConnectCard({
           <Link2 className="size-6" />
         </div>
         <CardTitle className="mt-1">
-          {connected ? "Profile connected" : "Connect Ayrshare"}
+          {connected ? "Posting profile created" : "Connect Ayrshare"}
         </CardTitle>
         <CardDescription className="max-w-sm">
           {connected
-            ? "You can re-run the OAuth chooser any time to add or revoke a platform."
-            : "We'll bounce you to Ayrshare's hosted chooser to authorize each platform."}
+            ? "Your Ayrshare posting profile is ready. Open the hosted chooser any time to link, add, or revoke individual platforms."
+            : "We'll bounce you to Ayrshare's hosted chooser to create a posting profile and authorize each platform."}
         </CardDescription>
       </CardHeader>
 

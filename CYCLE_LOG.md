@@ -30,3 +30,18 @@
   account settings UI for GDPR export/erasure, calendar UI, then continue
   ICP features (brand kit/voice presets, team seats, outbound webhooks,
   approval notifications) and Apple-polish sweeps. ~52 cycles remain.
+- Cycles 9-14: authed-app upgrade + admin dashboard UI integrated.
+  - Admin UI (dashboard aesthetic): overview KPIs, users list+detail with
+    audited styled-dialog actions (suspend/role/credits), audit-log viewer
+    (keyset paging, humanized actions), SOC2 security page. Server guard
+    renders "Not authorized" on 403, leaks nothing. Split admin-api
+    (client-safe) from admin-server (RSC/Clerk) to fix a client-bundle
+    build break.
+  - P0: /niches index route, live-polling /queue/[id], retry revalidation,
+    billing/connect 5xx guards, corrected /connect model + dashboard banner
+    copy.
+  - P1: humanized status labels, keyboard/roles on all tables, edit-form
+    label association, loading skeletons, extra metrics, hero image now
+    rendered via the new endpoint, command palette entries.
+  - Verified: tsc clean, next build compiles all admin routes, 374 pytest
+    green, ruff clean.

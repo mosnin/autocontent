@@ -112,26 +112,33 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
         title="Who this is for"
         description="What this channel is and who it's for."
       >
-        <Labelled label="Title">
-          <Input name="title" defaultValue={niche.title} required />
+        <Labelled label="Title" htmlFor="niche-title">
+          <Input id="niche-title" name="title" defaultValue={niche.title} required />
         </Labelled>
-        <Labelled label="Description">
+        <Labelled label="Description" htmlFor="niche-description">
           <Textarea
+            id="niche-description"
             name="description"
             defaultValue={niche.description}
             rows={3}
             required
           />
         </Labelled>
-        <Labelled label="Target audience">
+        <Labelled label="Target audience" htmlFor="niche-target_audience">
           <Input
+            id="niche-target_audience"
             name="target_audience"
             defaultValue={niche.target_audience}
             required
           />
         </Labelled>
-        <Labelled label="Hashtags" hint="Comma-separated, without #">
+        <Labelled
+          label="Hashtags"
+          hint="Comma-separated, without #"
+          htmlFor="niche-hashtags"
+        >
           <Input
+            id="niche-hashtags"
             name="hashtags"
             defaultValue={niche.hashtags.join(", ")}
             placeholder="econ, macro, fed"
@@ -153,8 +160,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
         title="Look & voice"
         description="Style and provider behavior."
       >
-        <Labelled label="Visual style">
+        <Labelled label="Visual style" htmlFor="niche-visual_style">
           <Textarea
+            id="niche-visual_style"
             name="visual_style"
             defaultValue={niche.visual_style}
             rows={3}
@@ -162,9 +170,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           />
         </Labelled>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Labelled label="Voice">
+          <Labelled label="Voice" htmlFor="niche-voice">
             <Select name="voice" defaultValue={niche.voice}>
-              <SelectTrigger>
+              <SelectTrigger id="niche-voice">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -176,8 +184,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               </SelectContent>
             </Select>
           </Labelled>
-          <Labelled label="Duration (s)">
+          <Labelled label="Duration (s)" htmlFor="niche-target_duration_sec">
             <Input
+              id="niche-target_duration_sec"
               name="target_duration_sec"
               type="number"
               min={15}
@@ -189,8 +198,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               required
             />
           </Labelled>
-          <Labelled label="Scenes">
+          <Labelled label="Scenes" htmlFor="niche-scene_count">
             <Input
+              id="niche-scene_count"
               name="scene_count"
               type="number"
               min={2}
@@ -205,7 +215,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Labelled label="Image quality">
+          <Labelled label="Image quality" htmlFor="niche-image_quality">
             <Select
               name="image_quality"
               defaultValue={niche.image_quality}
@@ -213,7 +223,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
                 patchCost({ image_quality: v as ImageQuality })
               }
             >
-              <SelectTrigger>
+              <SelectTrigger id="niche-image_quality">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -225,7 +235,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               </SelectContent>
             </Select>
           </Labelled>
-          <Labelled label="Video resolution">
+          <Labelled label="Video resolution" htmlFor="niche-video_resolution">
             <Select
               name="video_resolution"
               defaultValue={niche.video_resolution}
@@ -233,7 +243,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
                 patchCost({ video_resolution: v as VideoResolution })
               }
             >
-              <SelectTrigger>
+              <SelectTrigger id="niche-video_resolution">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -245,8 +255,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               </SelectContent>
             </Select>
           </Labelled>
-          <Labelled label="Max scene (s)">
+          <Labelled label="Max scene (s)" htmlFor="niche-scene_max_duration_sec">
             <Input
+              id="niche-scene_max_duration_sec"
               name="scene_max_duration_sec"
               type="number"
               min={1}
@@ -260,8 +271,13 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           </Labelled>
         </div>
 
-        <Labelled label="TTS style directions" hint="Optional, passed verbatim">
+        <Labelled
+          label="TTS style directions"
+          hint="Optional, passed verbatim"
+          htmlFor="niche-tts_style_directions"
+        >
           <Input
+            id="niche-tts_style_directions"
             name="tts_style_directions"
             defaultValue={niche.tts_style_directions ?? ""}
             placeholder="calm, conspiratorial narrator with deliberate pauses"
@@ -287,8 +303,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
         description="When and how often to post."
       >
         <div className="grid gap-4 sm:grid-cols-3">
-          <Labelled label="Hour (0-23)">
+          <Labelled label="Hour (0-23)" htmlFor="niche-posting_hour">
             <Input
+              id="niche-posting_hour"
               name="posting_hour"
               type="number"
               min={0}
@@ -297,8 +314,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               required
             />
           </Labelled>
-          <Labelled label="Minute">
+          <Labelled label="Minute" htmlFor="niche-posting_minute">
             <Input
+              id="niche-posting_minute"
               name="posting_minute"
               type="number"
               min={0}
@@ -307,12 +325,20 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               required
             />
           </Labelled>
-          <Labelled label="Timezone">
-            <Input name="tz" defaultValue={window.tz} required />
+          <Labelled label="Timezone" htmlFor="niche-tz">
+            <Input id="niche-tz" name="tz" defaultValue={window.tz} required />
           </Labelled>
         </div>
 
-        <Labelled label="Platforms">
+        {/* Checkbox group: a single htmlFor can't point at many inputs,
+            so associate the "Platforms" heading via role=group +
+            aria-labelledby instead. */}
+        <div
+          className="space-y-2"
+          role="group"
+          aria-labelledby="niche-platforms-label"
+        >
+          <Label id="niche-platforms-label">Platforms</Label>
           <div className="grid grid-cols-3 gap-2">
             {PLATFORMS.map((p) => (
               <label
@@ -332,10 +358,11 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               </label>
             ))}
           </div>
-        </Labelled>
+        </div>
 
-        <Labelled label="Daily spend cap (USD)">
+        <Labelled label="Daily spend cap (USD)" htmlFor="niche-daily_spend_cap_usd">
           <Input
+            id="niche-daily_spend_cap_usd"
             name="daily_spend_cap_usd"
             type="number"
             step="0.01"
@@ -410,15 +437,17 @@ function SectionCard({
 function Labelled({
   label,
   hint,
+  htmlFor,
   children,
 }: {
   label: string;
   hint?: string;
+  htmlFor: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>

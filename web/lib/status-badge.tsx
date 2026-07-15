@@ -25,6 +25,30 @@ const IN_PROGRESS: Set<JobStatus> = new Set([
   "scheduling",
 ]);
 
+// Human-readable labels for the raw JobStatus enum. Keeps the wire
+// values in the badge's data model while showing something a person
+// would actually say ("Generating images", not "generating_images").
+const JOB_STATUS_LABELS: Record<JobStatus, string> = {
+  queued: "Queued",
+  ideating: "Ideating",
+  scripting: "Scripting",
+  generating_images: "Generating images",
+  animating: "Animating",
+  voicing: "Voicing",
+  editing: "Editing",
+  captioning: "Captioning",
+  qa: "QA",
+  scheduling: "Scheduling",
+  awaiting_approval: "Awaiting approval",
+  done: "Done",
+  failed: "Failed",
+  skipped: "Skipped",
+};
+
+export function jobStatusLabel(status: JobStatus): string {
+  return JOB_STATUS_LABELS[status] ?? status;
+}
+
 export function statusVariant(status: JobStatus): Variant {
   if (status === "done") return "success";
   if (status === "failed") return "destructive";
@@ -39,23 +63,23 @@ export function StatusBadge({ status }: { status: JobStatus }) {
   if (status === "awaiting_approval") {
     return (
       <Badge
-        className="gap-1.5 border-brand/50 font-mono lowercase text-brand"
+        className="gap-1.5 border-brand/50 font-mono text-brand"
         variant="outline"
       >
         <span aria-hidden className="size-2 rounded-full bg-brand" />
-        needs approval
+        Needs approval
       </Badge>
     );
   }
   return (
-    <Badge className="gap-1.5 font-mono lowercase" variant={variant}>
+    <Badge className="gap-1.5 font-mono" variant={variant}>
       {recording && (
         <span aria-hidden className="relative flex size-2">
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
           <span className="relative inline-flex size-2 rounded-full bg-brand" />
         </span>
       )}
-      {status}
+      {jobStatusLabel(status)}
     </Badge>
   );
 }
@@ -72,6 +96,22 @@ export const ARTICLE_IN_PROGRESS: ReadonlySet<ArticleStatus> = new Set([
   "imaging",
 ]);
 
+const ARTICLE_STATUS_LABELS: Record<ArticleStatus, string> = {
+  queued: "Queued",
+  researching: "Researching",
+  outlining: "Outlining",
+  writing: "Writing",
+  qa: "QA",
+  metadata: "Metadata",
+  imaging: "Imaging",
+  done: "Done",
+  failed: "Failed",
+};
+
+export function articleStatusLabel(status: ArticleStatus): string {
+  return ARTICLE_STATUS_LABELS[status] ?? status;
+}
+
 export function articleStatusVariant(status: ArticleStatus): Variant {
   if (status === "done") return "success";
   if (status === "failed") return "destructive";
@@ -83,14 +123,14 @@ export function ArticleStatusBadge({ status }: { status: ArticleStatus }) {
   const variant = articleStatusVariant(status);
   const recording = ARTICLE_IN_PROGRESS.has(status);
   return (
-    <Badge className="gap-1.5 font-mono lowercase" variant={variant}>
+    <Badge className="gap-1.5 font-mono" variant={variant}>
       {recording && (
         <span aria-hidden className="relative flex size-2">
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
           <span className="relative inline-flex size-2 rounded-full bg-brand" />
         </span>
       )}
-      {status}
+      {articleStatusLabel(status)}
     </Badge>
   );
 }
