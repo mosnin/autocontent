@@ -266,3 +266,24 @@ async def test_email_sends_with_key(monkeypatch):
     ok = await email_svc.send_email(to="a@a.com", subject="s", html="<p>x</p>")
     assert ok is True
     assert sent[0]["to"] == ["a@a.com"]
+
+
+def test_email_templates_render_links_and_prefs(monkeypatch):
+    from marketer.config import settings
+    from marketer.services import email as email_svc
+
+    monkeypatch.setattr(settings, "app_url", "https://app.marketer.sh")
+
+    subj, html = email_svc.render_article_done("art_1", "Dialing In Espresso")
+    assert "Dialing In Espresso" in html
+    assert "https://app.marketer.sh/articles/art_1" in html
+    # Every email carries a manage-notifications (unsubscribe) link.
+    assert "https://app.marketer.sh/settings" in html
+    assert subj
+
+    _, failed = email_svc.render_article_failed("art_2", None)
+    assert "https://app.marketer.sh/articles/art_2" in failed
+
+    _, vfailed = email_svc.render_video_failed("job_9", "a hook")
+    assert "https://app.marketer.sh/queue/job_9" in vfailed
+    assert "Manage email notifications" in vfailed

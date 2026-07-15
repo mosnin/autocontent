@@ -54,12 +54,15 @@ def _button(href: str, label: str) -> str:
 
 
 def _shell(body: str) -> str:
+    base = settings.app_url.rstrip("/") or "http://localhost:3000"
     return (
         '<div style="font-family:system-ui,-apple-system,sans-serif;'
         'max-width:480px;margin:0 auto;padding:32px 24px;color:#18181b">'
         f"{body}"
         '<p style="margin-top:32px;font-size:12px;color:#71717a">'
-        "marketer — the content machine that ships itself</p></div>"
+        "marketer — the content machine that ships itself<br>"
+        f'<a href="{base}/settings" style="color:#71717a;text-decoration:underline">'
+        "Manage email notifications</a></p></div>"
     )
 
 
