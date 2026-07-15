@@ -215,6 +215,81 @@ class MarketerClient:
         resp = await self._request("PUT", "/api/v1/brand-kit", json=fields)
         return resp.json()
 
+    # ------------------------------------------------------------------ ads
+
+    async def list_ad_accounts(self) -> list[dict]:
+        resp = await self._request("GET", "/api/v1/ads/accounts")
+        return resp.json()
+
+    async def connect_ad_account(self, platform: str) -> dict:
+        """Start an OAuth connection for an ad platform ('google_ads' |
+        'meta_ads'). Returns {redirect_url, account_id}; the user must open the
+        URL to authorize. Raises MarketerError(409) if ads aren't enabled."""
+        resp = await self._request(
+            "POST", "/api/v1/ads/accounts/connect", json={"platform": platform}
+        )
+        return resp.json()
+
+    async def ads_overview(self) -> dict:
+        resp = await self._request("GET", "/api/v1/ads/overview")
+        return resp.json()
+
+    async def list_ad_campaigns(self, *, account_id: str | None = None) -> list[dict]:
+        params = {"account_id": account_id} if account_id else None
+        resp = await self._request("GET", "/api/v1/ads/campaigns", params=params)
+        return resp.json()
+
+    async def get_ad_campaign(self, campaign_id: str) -> dict:
+        resp = await self._request("GET", f"/api/v1/ads/campaigns/{campaign_id}")
+        return resp.json()
+
+    async def create_ad_campaign(
+        self,
+        *,
+        ad_account_id: str,
+        name: str,
+        objective: str = "",
+        daily_budget_usd: str | None = None,
+    ) -> dict:
+        """Create a DRAFT campaign — no spend until activated. Cheap."""
+        body = {
+            "ad_account_id": ad_account_id, "name": name, "objective": objective,
+            "daily_budget_usd": daily_budget_usd,
+        }
+        resp = await self._request("POST", "/api/v1/ads/campaigns", json=body)
+        return resp.json()
+
+    async def change_ad_budget(self, campaign_id: str, daily_budget_usd: str) -> dict:
+        """Change a campaign's daily budget. Goes through the fail-closed spend
+        guard: may return {status:'pending_approval'} for large deltas, or raise
+        MarketerError(402) if denied (cap/kill-switch)."""
+        resp = await self._request(
+            "POST", f"/api/v1/ads/campaigns/{campaign_id}/budget",
+            json={"daily_budget_usd": daily_budget_usd},
+        )
+        return resp.json()
+
+    async def change_ad_status(self, campaign_id: str, status: str) -> dict:
+        """Activate / pause / end a campaign ('active'|'paused'|'ended')."""
+        resp = await self._request(
+            "POST", f"/api/v1/ads/campaigns/{campaign_id}/status",
+            json={"status": status},
+        )
+        return resp.json()
+
+    async def list_ad_approvals(self, *, status: str | None = None) -> list[dict]:
+        params = {"status_filter": status} if status else None
+        resp = await self._request("GET", "/api/v1/ads/approvals", params=params)
+        return resp.json()
+
+    async def decide_ad_approval(self, approval_id: str, decision: str) -> dict:
+        """Approve or reject a pending spend change ('approved'|'rejected')."""
+        resp = await self._request(
+            "POST", f"/api/v1/ads/approvals/{approval_id}/decide",
+            json={"decision": decision},
+        )
+        return resp.json()
+
     # ------------------------------------------------------------------ spend
 
     async def today_spend(self) -> TodaySpend:

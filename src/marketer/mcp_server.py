@@ -223,6 +223,107 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
         async with _client() as c:
             return _dump(await c.set_brand_kit(**fields))
 
+    # ------------------------------------------------------------- ads
+
+    @mcp.tool(description=(
+        "List the caller's connected ad accounts (Google Ads / Meta Ads) with "
+        "status and governance (daily/monthly caps, kill-switch). Cheap, "
+        "read-only."
+    ))
+    async def list_ad_accounts() -> str:
+        async with _client() as c:
+            return json.dumps(await c.list_ad_accounts(), indent=2)
+
+    @mcp.tool(description=(
+        "Start connecting an ad platform ('google_ads' or 'meta_ads'). Returns "
+        "a redirect_url the USER must open to authorize — you cannot complete "
+        "OAuth yourself. Returns a 409 error if ads aren't enabled for this "
+        "workspace."
+    ))
+    async def connect_ad_account(platform: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.connect_ad_account(platform), indent=2)
+
+    @mcp.tool(description=(
+        "Ads dashboard summary: spend today / 30d, active campaigns, pending "
+        "approvals. Cheap, read-only. Check this before proposing budget "
+        "changes."
+    ))
+    async def ads_overview() -> str:
+        async with _client() as c:
+            return json.dumps(await c.ads_overview(), indent=2)
+
+    @mcp.tool(description=(
+        "List ad campaigns, optionally filtered to one account. Cheap, "
+        "read-only."
+    ))
+    async def list_ad_campaigns(account_id: str | None = None) -> str:
+        async with _client() as c:
+            return json.dumps(await c.list_ad_campaigns(account_id=account_id), indent=2)
+
+    @mcp.tool(description=(
+        "Fetch one campaign plus its recent daily metrics (spend, clicks, "
+        "conversions, revenue). Cheap, read-only."
+    ))
+    async def get_ad_campaign(campaign_id: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.get_ad_campaign(campaign_id), indent=2)
+
+    @mcp.tool(description=(
+        "Create a DRAFT ad campaign. NO SPEND — a draft is never on the "
+        "platform until activated. daily_budget_usd is the intended budget, "
+        "stored on the draft. Safe to call."
+    ))
+    async def create_ad_campaign(
+        ad_account_id: str,
+        name: str,
+        objective: str = "",
+        daily_budget_usd: str | None = None,
+    ) -> str:
+        async with _client() as c:
+            return json.dumps(await c.create_ad_campaign(
+                ad_account_id=ad_account_id, name=name, objective=objective,
+                daily_budget_usd=daily_budget_usd,
+            ), indent=2)
+
+    @mcp.tool(description=(
+        "Change a campaign's daily budget. SPEND-AFFECTING: this passes a "
+        "fail-closed budget guard. A large increase returns "
+        "{status:'pending_approval'} and does NOT take effect until a human "
+        "approves it; a change over the account cap or with the kill-switch on "
+        "returns a 402 error. Always confirm the number with the user first."
+    ))
+    async def change_ad_budget(campaign_id: str, daily_budget_usd: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.change_ad_budget(campaign_id, daily_budget_usd), indent=2)
+
+    @mcp.tool(description=(
+        "Activate, pause, or end a campaign (status = 'active'|'paused'|"
+        "'ended'). Activating is spend-affecting and can be refused (402) by "
+        "governance; pausing/ending always works. Confirm activation with the "
+        "user."
+    ))
+    async def change_ad_status(campaign_id: str, status: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.change_ad_status(campaign_id, status), indent=2)
+
+    @mcp.tool(description=(
+        "List spend-change approvals (pass status='pending' to see what's "
+        "awaiting a decision). Read-only."
+    ))
+    async def list_ad_approvals(status: str | None = None) -> str:
+        async with _client() as c:
+            return json.dumps(await c.list_ad_approvals(status=status), indent=2)
+
+    @mcp.tool(description=(
+        "Approve or reject a pending spend change (decision = 'approved'|"
+        "'rejected'). Approving lets the change execute. This is a human "
+        "decision — only call it when the user explicitly tells you to."
+    ))
+    async def decide_ad_approval(approval_id: str, decision: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.decide_ad_approval(approval_id, decision), indent=2)
+
     # ------------------------------------------------------------- spend
 
     @mcp.tool(description=(

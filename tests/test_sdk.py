@@ -266,3 +266,52 @@ async def test_server_error_surfaces_text_when_not_json():
             await c.list_niches()
     assert ei.value.status_code == 500
     assert "boom" in ei.value.message
+
+
+# --------------------------------------------------------------------------- ads
+
+async def test_create_ad_campaign_posts_draft():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["body"] = json.loads(req.content)
+        return httpx.Response(201, json={"id": "c1", "status": "draft"})
+
+    async with _client(handler) as c:
+        out = await c.create_ad_campaign(
+            ad_account_id="a1", name="Launch", daily_budget_usd="20"
+        )
+    assert out["status"] == "draft"
+    assert captured["url"].endswith("/api/v1/ads/campaigns")
+    assert captured["body"]["ad_account_id"] == "a1"
+
+
+async def test_change_ad_budget_surfaces_402_deny():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(402, json={"detail": "account kill-switch is engaged"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.change_ad_budget("c1", "100")
+    assert ei.value.status_code == 402
+    assert "kill-switch" in ei.value.message
+
+
+async def test_change_ad_budget_pending_approval_passthrough():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"status": "pending_approval", "approval_id": "ap1"})
+
+    async with _client(handler) as c:
+        out = await c.change_ad_budget("c1", "100")
+    assert out["status"] == "pending_approval"
+
+
+async def test_connect_ad_account_returns_redirect():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert json.loads(req.content)["platform"] == "google_ads"
+        return httpx.Response(200, json={"redirect_url": "https://auth/x", "account_id": "a1"})
+
+    async with _client(handler) as c:
+        out = await c.connect_ad_account("google_ads")
+    assert out["redirect_url"].startswith("https://")
