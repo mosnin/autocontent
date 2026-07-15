@@ -12,19 +12,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFormContext } from "react-hook-form";
-import {
-  ArrowLeft,
-  ArrowRight,
-  Hash,
-  Instagram,
-  Loader2,
-  Music2,
-  Play,
-  Plus,
-  Square,
-  Youtube,
-  X,
-} from "lucide-react";
+import { Loader2, Play, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -94,13 +82,10 @@ const tileOn = "border-brand/50 bg-brand/10 text-foreground";
 const tileOff =
   "border-input text-muted-foreground hover:border-brand/30 hover:bg-brand/5 hover:text-foreground";
 
-const PLATFORM_META: Record<
-  (typeof PLATFORMS)[number],
-  { label: string; Icon: React.ComponentType<{ className?: string }> }
-> = {
-  tiktok: { label: "TikTok", Icon: Music2 },
-  reels: { label: "Reels", Icon: Instagram },
-  shorts: { label: "Shorts", Icon: Youtube },
+const PLATFORM_LABEL: Record<(typeof PLATFORMS)[number], string> = {
+  tiktok: "TikTok",
+  reels: "Reels",
+  shorts: "Shorts",
 };
 
 const schema = z.object({
@@ -328,13 +313,11 @@ export function OnboardingForm({
             onClick={onBack}
             disabled={step === 1}
           >
-            <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
           {step < 3 ? (
             <Button type="button" onClick={onNext}>
               Next
-              <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
             <Button type="submit" disabled={submitting}>
@@ -763,7 +746,6 @@ function StepSchedule() {
               <div className="grid grid-cols-3 gap-2">
                 {PLATFORMS.map((p) => {
                   const on = selected.includes(p);
-                  const { label, Icon } = PLATFORM_META[p];
                   return (
                     <label
                       className={cn(tileBase, on ? tileOn : tileOff)}
@@ -774,8 +756,7 @@ function StepSchedule() {
                         className="sr-only"
                         onCheckedChange={() => toggle(p)}
                       />
-                      <Icon className="size-4" />
-                      {label}
+                      {PLATFORM_LABEL[p]}
                     </label>
                   );
                 })}
