@@ -59,6 +59,12 @@ def stub_all(monkeypatch, tmp_path):
 
     monkeypatch.setattr(apipe.niches_repo, "get", fake_niche_get)
 
+    # No brand kit by default; the brand-voice blend test overrides this.
+    async def fake_brand_get(user_id):
+        return state.get("brand")
+
+    monkeypatch.setattr(apipe.brand_kit_repo, "get", fake_brand_get)
+
     async def fake_create(*, user_id, niche_id, topic=""):
         art = Article(
             id=uuid4(), user_id=user_id, niche_id=niche_id, topic=topic,
@@ -230,6 +236,43 @@ async def test_hero_image_skippable(stub_all, monkeypatch):
     assert art.status == ArticleStatus.done
     assert art.hero_image_path is None
     assert "imaging" not in stub_all["statuses"]
+
+
+def test_compose_tone_blends_brand():
+    from marketer.repos.brand_kit import BrandKit
+
+    # No brand → niche tone (or the sane default) passes through unchanged.
+    assert apipe._compose_tone("", None) == "professional, clear"
+    assert apipe._compose_tone("punchy", None) == "punchy"
+
+    brand = BrandKit(tone_of_voice="warm and expert", banned_words=["cheap", "guru"])
+    blended = apipe._compose_tone("punchy", brand)
+    assert "punchy" in blended
+    assert "Brand voice: warm and expert" in blended
+    assert "Never use these words: cheap, guru" in blended
+
+
+async def test_brand_voice_reaches_the_writer(stub_all, monkeypatch):
+    """A configured brand kit must flow into the tone the outliner/writer see,
+    so long-form articles come out on-brand — not just niche drafts."""
+    from marketer.repos.brand_kit import BrandKit
+
+    stub_all["brand"] = BrandKit(
+        tone_of_voice="warm and expert", banned_words=["cheap"]
+    )
+
+    seen: dict = {}
+
+    async def capture_outline(topic, keyword, research, tone, audience, *, spend=None):
+        seen["tone"] = tone
+        return _outline()
+
+    monkeypatch.setattr(apipe.llm, "generate_outline", capture_outline)
+
+    art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID, topic="espresso")
+    assert art.status == ArticleStatus.done
+    assert "Brand voice: warm and expert" in seen["tone"]
+    assert "Never use these words: cheap" in seen["tone"]
 
 
 def test_strip_ai_dashes():

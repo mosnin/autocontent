@@ -112,8 +112,10 @@ Beyond the two content pipelines, the product ships:
 - **Content calendar** — `GET /api/v1/calendar` and a `/calendar` agenda
   view unify scheduled video posts and article activity in one feed.
 - **Brand kit** — a reusable brand identity (name, tone, banned words,
-  hashtags, accent color) that seeds one-sentence channel drafts so new
-  channels come out on-brand. `GET/PUT /api/v1/brand-kit`, `/settings/brand`.
+  hashtags, accent color) that both seeds one-sentence channel drafts and
+  steers the article writer (blended into the tone the outliner, section
+  writers, and QA all see) so new channels *and* long-form content come out
+  on-brand. `GET/PUT /api/v1/brand-kit`, `/settings/brand`.
 - **Content repurposing** — `POST /api/v1/articles/{id}/social` turns a
   finished article into platform-native posts (X, LinkedIn, Instagram,
   Facebook, newsletter) in one metered call; surfaced on the article page

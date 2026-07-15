@@ -27,6 +27,7 @@ from opentelemetry import trace
 from ..config import settings
 from ..logging import get_logger
 from ..repos import articles as articles_repo
+from ..repos import brand_kit as brand_kit_repo
 from ..repos import niches as niches_repo
 from ..repos import spend as spend_repo
 from ..services import openai_images, otel
@@ -38,6 +39,22 @@ log = get_logger(__name__)
 
 QA_THRESHOLD = 0.6
 SECTION_CONCURRENCY = 3
+
+
+def _compose_tone(niche_tone: str, brand: brand_kit_repo.BrandKit | None) -> str:
+    """Blend the niche's tone directive with the account brand kit so
+    long-form articles come out in the same voice as everything else the
+    brand ships. The niche tone leads (it's the most specific); the brand
+    voice refines it and banned words become a hard constraint the writer,
+    outliner, and QA prompts all see (they all receive this string)."""
+    tone = niche_tone or "professional, clear"
+    if brand is None:
+        return tone
+    if brand.tone_of_voice:
+        tone = f"{tone}. Brand voice: {brand.tone_of_voice}"
+    if brand.banned_words:
+        tone = f"{tone}. Never use these words: {', '.join(brand.banned_words)}"
+    return tone
 
 
 @contextmanager
@@ -181,7 +198,8 @@ async def run_article(
 
 
 async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
-    tone = getattr(niche, "tts_style_directions", "") or "professional, clear"
+    brand = await brand_kit_repo.get(article.user_id)
+    tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
     audience = niche.target_audience
 
     # 0. Topic — pick one when the caller didn't supply it.
