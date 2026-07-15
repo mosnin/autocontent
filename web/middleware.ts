@@ -8,6 +8,7 @@ const isProtected = createRouteMatcher([
   "/connect(.*)",
   "/settings(.*)",
   "/niches(.*)",
+  "/admin(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
@@ -19,7 +20,7 @@ export const config = {
   // and the JWT-attaching proxy. Marketing pages never touch Clerk — no
   // handshake redirects, no auth latency, no clerk-js in their bundles.
   matcher: [
-    "/(onboarding|dashboard|queue|articles|connect|settings|niches)(.*)",
+    "/(onboarding|dashboard|queue|articles|connect|settings|niches|admin)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
   ],
