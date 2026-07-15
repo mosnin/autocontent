@@ -117,9 +117,7 @@ const ADS: Product = {
     },
     {
       label: "Setup",
-      items: [
-        { href: "/ads/connect", label: "Ad accounts", icon: Link2, soon: true },
-      ],
+      items: [{ href: "/ads/connect", label: "Ad accounts", icon: Link2 }],
     },
   ],
 };
