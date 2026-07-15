@@ -161,6 +161,22 @@ async def verify_and_settle(
     settlement_id = str(
         settle.get("transaction") or settle.get("txHash") or settle.get("settlementId") or ""
     )
+    if not settlement_id:
+        # Facilitator claims success but gave us no id to key idempotency on —
+        # we can't safely credit (no dedupe key), and the payer may have been
+        # charged. Fail closed and log loudly so it can be reconciled by hand.
+        import logging
+
+        logging.getLogger(__name__).error(
+            "x402 settle reported success with no settlement id; payer=%s "
+            "amount=%s — manual reconciliation may be required",
+            settle.get("payer") or verify.get("payer") or "?",
+            accepts["maxAmountRequired"],
+        )
+        return SettleResult(
+            False, "", "", Decimal("0"),
+            error="settlement succeeded but returned no transaction id",
+        )
     amount = from_atomic(accepts["maxAmountRequired"])
     payer = str(settle.get("payer") or verify.get("payer") or "")
     return SettleResult(True, settlement_id, payer, amount)

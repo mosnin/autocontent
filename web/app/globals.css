@@ -69,11 +69,13 @@
   --font-display: var(--font-geist-sans);
 
   /* Warm brand gradient (amber → rose), used for hero display text and the
-     occasional accent. The single sanctioned gradient — no rainbow soup. */
+     occasional accent. The single sanctioned gradient — no rainbow soup.
+     Stops are deep enough that gradient TEXT clears WCAG AA large-text
+     contrast on the light canvas (the orange end is the limiting one). */
   --gradient-warm: linear-gradient(
     100deg,
-    hsl(28 95% 55%),
-    hsl(345 82% 58%)
+    hsl(20 90% 45%),
+    hsl(345 80% 50%)
   );
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
@@ -296,7 +298,9 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    color: hsl(28 95% 52%);
+    /* Solid fallback (no background-clip support) — the darker orange keeps
+       AA large-text contrast on light. */
+    color: hsl(20 90% 42%);
 }
 
 @utility scroll-fade-effect-y {

@@ -99,6 +99,21 @@ async def test_verify_and_settle_success(monkeypatch):
     assert res.payer == "0xpayer"
 
 
+async def test_settle_success_without_id_fails_closed(monkeypatch):
+    _enable(monkeypatch)
+
+    async def fake_post(path, body):
+        if path == "/verify":
+            return {"isValid": True}
+        return {"success": True}  # no transaction/txHash/settlementId
+
+    monkeypatch.setattr(x402, "_facilitator_post", fake_post)
+    req = x402.build_requirements(amount_usd=Decimal("10"), resource="/r", description="d")
+    res = await x402.verify_and_settle(payment_payload={}, requirements=req)
+    assert res.success is False
+    assert "no transaction id" in res.error
+
+
 async def test_verify_failure_returns_unsuccessful(monkeypatch):
     _enable(monkeypatch)
 
@@ -139,6 +154,19 @@ def test_route_503_when_disabled(monkeypatch):
         "/api/v1/x402/credits?amount_usd=10", headers={"Authorization": "Bearer mkt_x"}
     )
     assert resp.status_code == 503
+
+
+def test_route_422_on_non_finite_amount(monkeypatch):
+    from backend.rate_limit import limiter
+    limiter._storage.reset()
+    _enable(monkeypatch)
+    client = _client(monkeypatch)
+    for bad in ("NaN", "Infinity", "-Infinity"):
+        resp = client.post(
+            f"/api/v1/x402/credits?amount_usd={bad}",
+            headers={"Authorization": "Bearer mkt_x"},
+        )
+        assert resp.status_code == 422, bad
 
 
 def test_route_402_without_payment(monkeypatch):

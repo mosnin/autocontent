@@ -31,9 +31,15 @@ _RESOURCE = "/api/v1/x402/credits"
 
 def _parse_amount(amount_usd: str) -> Decimal:
     try:
-        return Decimal(amount_usd)
-    except (InvalidOperation, TypeError) as e:
+        value = Decimal(amount_usd)
+    except (InvalidOperation, TypeError, ValueError) as e:
         raise HTTPException(422, "amount_usd must be a number") from e
+    # Decimal("NaN") / Decimal("Infinity") parse fine but poison every
+    # downstream comparison (a NaN ordering raises InvalidOperation). Reject
+    # non-finite values here so they surface as a clean 422, not a 500.
+    if not value.is_finite():
+        raise HTTPException(422, "amount_usd must be a finite number")
+    return value
 
 
 @router.get("/config")
@@ -109,11 +115,22 @@ async def buy_credits(
         checkout_session_id=f"x402:{result.settlement_id}",
         description="x402 agent top-up",
     )
-    await x402_repo.record(
-        user_id=ctx.user_id, settlement_id=result.settlement_id,
-        payer=result.payer, amount_usd=result.amount_usd,
-        network=settings.x402_network, asset=settings.x402_asset,
-    )
+    # Audit record is best-effort: the credit above is the source of truth and
+    # is idempotent. A failure here must not 500 the caller after we've already
+    # credited them — log and move on.
+    try:
+        await x402_repo.record(
+            user_id=ctx.user_id, settlement_id=result.settlement_id,
+            payer=result.payer, amount_usd=result.amount_usd,
+            network=settings.x402_network, asset=settings.x402_asset,
+        )
+    except Exception:  # noqa: BLE001 — never lose the credited response over an audit write
+        import logging
+
+        logging.getLogger(__name__).exception(
+            "x402 payment credited but audit record failed; settlement=%s",
+            result.settlement_id,
+        )
 
     response.headers["X-PAYMENT-RESPONSE"] = x402.encode_payment_response(result)
     balance = new_balance if new_balance is not None else await billing.balance(ctx.user_id)
