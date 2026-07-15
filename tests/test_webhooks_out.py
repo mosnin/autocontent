@@ -145,3 +145,50 @@ def test_create_returns_secret_once(monkeypatch):
     )
     assert resp.status_code == 201
     assert resp.json()["secret"] == "whsec_reveal"
+
+
+def test_patch_toggles_enabled(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+    from marketer.repos.webhooks_out import WebhookEndpoint
+    from datetime import datetime, timezone
+
+    eid = uuid4()
+    seen = {}
+
+    async def _set_enabled(endpoint_id, *, user_id, enabled):
+        seen["id"] = endpoint_id
+        seen["enabled"] = enabled
+        return WebhookEndpoint(
+            id=endpoint_id, user_id=user_id, url="https://ok.example/x",
+            events=[], enabled=enabled, description="",
+            created_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(repo, "set_enabled", _set_enabled)
+    client = _client(monkeypatch)
+    resp = client.patch(
+        f"/api/v1/webhook-endpoints/{eid}",
+        json={"enabled": False}, headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["enabled"] is False
+    assert seen == {"id": eid, "enabled": False}
+    # The one-time secret is never re-exposed on update.
+    assert resp.json()["secret"] is None
+
+
+def test_patch_unknown_endpoint_404s(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    async def _set_enabled(endpoint_id, *, user_id, enabled):
+        return None
+
+    monkeypatch.setattr(repo, "set_enabled", _set_enabled)
+    client = _client(monkeypatch)
+    resp = client.patch(
+        f"/api/v1/webhook-endpoints/{uuid4()}",
+        json={"enabled": True}, headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404

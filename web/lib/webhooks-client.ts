@@ -68,7 +68,7 @@ const ENDPOINTS_PATH = "/api/v1/webhook-endpoints";
 
 async function proxyMutate<T>(
   path: string,
-  method: "POST" | "DELETE",
+  method: "POST" | "DELETE" | "PATCH",
   body?: unknown,
 ): Promise<T> {
   const res = await fetch(`/api/proxy${path}`, {
@@ -96,6 +96,18 @@ export function createWebhook(input: CreateWebhookInput): Promise<WebhookEndpoin
 /** Delete an endpoint by id. Resolves once the backend returns 204. */
 export function deleteWebhook(id: string): Promise<void> {
   return proxyMutate<void>(`${ENDPOINTS_PATH}/${encodeURIComponent(id)}`, "DELETE");
+}
+
+/** Pause or resume delivery for an endpoint. Keeps its secret + history. */
+export function setWebhookEnabled(
+  id: string,
+  enabled: boolean,
+): Promise<WebhookEndpoint> {
+  return proxyMutate<WebhookEndpoint>(
+    `${ENDPOINTS_PATH}/${encodeURIComponent(id)}`,
+    "PATCH",
+    { enabled },
+  );
 }
 
 /** Fire a test delivery. Returns whether it was delivered + the status code. */

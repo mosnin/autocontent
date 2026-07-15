@@ -52,8 +52,10 @@ export default async function AdminLayout({
 }
 
 function NotAuthorized() {
+  // Rendered inside the app shell's <main>, so this is a plain section —
+  // a nested <main> would be invalid and confuse assistive tech.
   return (
-    <main className="flex min-h-[60vh] items-center justify-center p-6">
+    <div className="flex min-h-[60vh] items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
           <div className="rounded-full bg-muted p-3">
@@ -66,6 +68,6 @@ function NotAuthorized() {
           </p>
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

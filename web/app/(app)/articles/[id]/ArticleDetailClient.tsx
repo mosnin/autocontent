@@ -466,7 +466,12 @@ function RepurposeCard({ articleId }: { articleId: string }) {
       }
       const data = (await res.json()) as { snippets: Snippet[] };
       setSnippets(data.snippets);
-      toast.success(`Generated ${data.snippets.length} social posts`);
+      if (data.snippets.length === 0) {
+        toast.message("No posts came back — try different platforms.");
+      } else {
+        const n = data.snippets.length;
+        toast.success(`Generated ${n} social ${n === 1 ? "post" : "posts"}`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Generation failed");
     } finally {
@@ -533,6 +538,13 @@ function RepurposeCard({ articleId }: { articleId: string }) {
           />
           {loading ? "Generating…" : "Generate social posts"}
         </Button>
+
+        {snippets && snippets.length === 0 && (
+          <div className="rounded-lg border border-dashed border-border/60 bg-card/30 p-4 text-center text-sm text-muted-foreground">
+            No posts came back for the selected platforms. Try a different mix
+            and generate again.
+          </div>
+        )}
 
         {snippets && snippets.length > 0 && (
           <ul className="space-y-3">

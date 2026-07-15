@@ -111,13 +111,13 @@ export default async function AdminOverviewPage() {
               <span
                 className={cn(
                   "absolute inline-flex size-full animate-ping rounded-full opacity-60",
-                  failRate >= 20 ? "bg-brand" : "bg-success",
+                  failRate >= 20 ? "bg-warning" : "bg-success",
                 )}
               />
               <span
                 className={cn(
                   "relative inline-flex size-2 rounded-full",
-                  failRate >= 20 ? "bg-brand" : "bg-success",
+                  failRate >= 20 ? "bg-warning" : "bg-success",
                 )}
               />
             </span>
@@ -181,7 +181,7 @@ function HealthStat({
       <p
         className={cn(
           "font-mono text-lg font-semibold tabular-nums",
-          warn ? "text-brand" : "text-foreground",
+          warn ? "text-warning" : "text-foreground",
         )}
       >
         {value}

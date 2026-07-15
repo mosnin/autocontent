@@ -26,6 +26,11 @@ import { formatUsd } from "@/lib/format";
 import type { AdminUserRow } from "@/lib/admin-types";
 
 export const PAGE_SIZE = 25;
+// We fetch one extra row past the page size purely to detect whether a next
+// page exists. If the API hands back PAGE_SIZE + 1 rows there's more to see;
+// we display only the first PAGE_SIZE. This kills the classic off-by-one
+// where a perfectly full final page still offered an empty "Next".
+export const FETCH_LIMIT = PAGE_SIZE + 1;
 const POLL_MS = 15_000;
 
 export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
@@ -45,7 +50,7 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
 
   const key = adminKeys.users({
     q: query || undefined,
-    limit: PAGE_SIZE,
+    limit: FETCH_LIMIT,
     offset: page * PAGE_SIZE,
   });
 
@@ -65,9 +70,10 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
     if (!error) errorToastedRef.current = false;
   }, [error]);
 
-  const rows = data ?? [];
+  const raw = data ?? [];
+  const hasNext = raw.length > PAGE_SIZE;
+  const rows = hasNext ? raw.slice(0, PAGE_SIZE) : raw;
   const showInitialSkeleton = isLoading && !data;
-  const hasNext = rows.length === PAGE_SIZE;
   const rangeStart = rows.length === 0 ? 0 : page * PAGE_SIZE + 1;
   const rangeEnd = page * PAGE_SIZE + rows.length;
 
@@ -175,20 +181,23 @@ function UserRow({
   const { user } = row;
   return (
     <TableRow
-      role="button"
-      tabIndex={0}
+      // The row stays a real table row (keeps its grid semantics for AT).
+      // Pointer users can click anywhere for convenience; keyboard/AT users
+      // get a genuine focusable control in the email cell below.
       onClick={onOpen}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onOpen();
-        }
-      }}
-      aria-label={`Open ${user.email}`}
-      className="cursor-pointer transition-colors hover:bg-muted/40 focus-visible:bg-muted/40 focus-visible:outline-none"
+      className="cursor-pointer transition-colors hover:bg-muted/40 focus-within:bg-muted/40"
     >
-      <TableCell className="max-w-[280px] truncate font-medium">
-        {user.email}
+      <TableCell className="max-w-[280px] font-medium">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpen();
+          }}
+          className="block max-w-full truncate text-left underline-offset-4 hover:underline focus-visible:underline focus-visible:outline-none"
+        >
+          {user.email}
+        </button>
       </TableCell>
       <TableCell>
         <RoleBadge role={user.role} />

@@ -4,6 +4,8 @@
 // bundle. Client code uses admin-api.ts (proxy-based) instead.
 import "server-only";
 
+import { cache } from "react";
+
 import { api } from "@/lib/api";
 import { adminKeys } from "@/lib/admin-api";
 import type {
@@ -16,9 +18,12 @@ import type {
   UsersQuery,
 } from "@/lib/admin-types";
 
-export function fetchAdminOverview(): Promise<AdminOverview> {
-  return api<AdminOverview>(adminKeys.overview());
-}
+// Deduped per request: the /admin layout guard and the overview page both
+// call this within a single render, and React.cache collapses them into one
+// backend round-trip.
+export const fetchAdminOverview = cache(
+  (): Promise<AdminOverview> => api<AdminOverview>(adminKeys.overview()),
+);
 
 export function fetchAdminUsers(q: UsersQuery = {}): Promise<AdminUserRow[]> {
   return api<AdminUserRow[]>(adminKeys.users(q));

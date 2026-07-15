@@ -87,7 +87,12 @@ export function formatTime(iso: string): string {
   return timeFmt.format(new Date(iso));
 }
 
-/** "3 videos and 1 article" style count phrase (handles singular/plural). */
+/**
+ * "3 videos and 1 article" style count phrase (handles singular/plural).
+ * A kind with a zero count is dropped entirely — we say "3 videos", never
+ * "3 videos and 0 articles". With no items at all the phrase is empty; the
+ * caller renders its own "nothing scheduled" copy in that case.
+ */
 export function summarize(items: CalendarItem[]): {
   videos: number;
   articles: number;
@@ -95,7 +100,9 @@ export function summarize(items: CalendarItem[]): {
 } {
   const videos = items.filter((i) => i.kind === "video").length;
   const articles = items.length - videos;
-  const vLabel = `${videos} ${videos === 1 ? "video" : "videos"}`;
-  const aLabel = `${articles} ${articles === 1 ? "article" : "articles"}`;
-  return { videos, articles, phrase: `${vLabel} and ${aLabel}` };
+  const parts: string[] = [];
+  if (videos > 0) parts.push(`${videos} ${videos === 1 ? "video" : "videos"}`);
+  if (articles > 0)
+    parts.push(`${articles} ${articles === 1 ? "article" : "articles"}`);
+  return { videos, articles, phrase: parts.join(" and ") };
 }

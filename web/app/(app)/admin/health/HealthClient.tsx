@@ -103,7 +103,7 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {/* database reachability */}
         <HealthCard
-          color={dbDown ? "orange" : "green"}
+          color={dbDown ? "red" : "green"}
           icon={<Database />}
           title="Database"
         >
@@ -168,7 +168,10 @@ function StatusBanner({
   attention: boolean;
   critical: boolean;
 }) {
-  const accent = critical ? "destructive" : attention ? "brand" : "success";
+  // Semantic, not brand: red = a core dependency is down, amber = something
+  // needs a look, green = healthy. The brand accent is reserved for identity
+  // and primary actions, never for status signalling.
+  const accent = critical ? "destructive" : attention ? "warning" : "success";
   const Icon = attention ? AlertTriangle : CheckCircle2;
 
   return (
@@ -177,7 +180,7 @@ function StatusBanner({
         attention && critical
           ? "border-destructive/40 bg-destructive/5"
           : attention
-            ? "border-brand/30 bg-brand/5"
+            ? "border-warning/40 bg-warning/5"
             : "border-success/30 bg-success/5",
       )}
     >
@@ -189,8 +192,8 @@ function StatusBanner({
                 "absolute inline-flex size-full animate-ping rounded-full opacity-60",
                 accent === "destructive"
                   ? "bg-destructive"
-                  : accent === "brand"
-                    ? "bg-brand"
+                  : accent === "warning"
+                    ? "bg-warning"
                     : "bg-success",
               )}
             />
@@ -199,8 +202,8 @@ function StatusBanner({
                 "relative inline-flex size-2.5 rounded-full",
                 accent === "destructive"
                   ? "bg-destructive"
-                  : accent === "brand"
-                    ? "bg-brand"
+                  : accent === "warning"
+                    ? "bg-warning"
                     : "bg-success",
               )}
             />
@@ -211,8 +214,8 @@ function StatusBanner({
                 "size-4",
                 accent === "destructive"
                   ? "text-destructive"
-                  : accent === "brand"
-                    ? "text-brand"
+                  : accent === "warning"
+                    ? "text-warning"
                     : "text-success",
               )}
               aria-hidden
@@ -243,7 +246,7 @@ function HealthCard({
   title,
   children,
 }: {
-  color: "green" | "orange" | "blue" | "navy" | "purple";
+  color: "green" | "orange" | "blue" | "navy" | "purple" | "red";
   icon: React.ReactNode;
   title: string;
   children: React.ReactNode;
@@ -272,7 +275,7 @@ function StatCard({
   foot,
   tone,
 }: {
-  color: "green" | "orange" | "blue" | "navy" | "purple";
+  color: "green" | "orange" | "blue" | "navy" | "purple" | "red";
   icon: React.ReactNode;
   title: string;
   value: number | null;
@@ -294,7 +297,7 @@ function StatCard({
             value == null
               ? "text-muted-foreground"
               : tone === "warn"
-                ? "text-brand"
+                ? "text-warning"
                 : "text-foreground",
           )}
         >
@@ -303,7 +306,7 @@ function StatCard({
         <div className="border-t border-border/60 pt-3 text-xs">
           <span
             className={cn(
-              tone === "warn" ? "text-brand" : "text-muted-foreground",
+              tone === "warn" ? "text-warning" : "text-muted-foreground",
             )}
           >
             {foot}

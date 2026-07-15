@@ -204,10 +204,7 @@ export function UserDetailClient({
                   key={e.id}
                   className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3"
                 >
-                  <Badge
-                    variant={actionTone(e.action)}
-                    className="font-mono lowercase"
-                  >
+                  <Badge variant={actionTone(e.action)}>
                     {humanizeAction(e.action)}
                   </Badge>
                   <span className="text-sm text-muted-foreground">

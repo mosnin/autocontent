@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   Copy,
+  Pause,
+  Play,
   Plus,
   Send,
   ShieldCheck,
@@ -37,6 +39,7 @@ import {
   WEBHOOKS_KEY,
   createWebhook,
   deleteWebhook,
+  setWebhookEnabled,
   testWebhook,
   webhooksFetcher,
   type WebhookEndpoint,
@@ -367,8 +370,8 @@ function AddEndpointDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Creating…" : "Create endpoint"}
+            <Button type="submit" disabled={submitting} isLoading={submitting}>
+              Create endpoint
             </Button>
           </DialogFooter>
         </form>
@@ -432,9 +435,10 @@ function DeleteDialog({
             variant="destructive"
             onClick={onConfirm}
             disabled={deleting}
+            isLoading={deleting}
           >
             <Trash2 className="h-4 w-4" />
-            {deleting ? "Deleting…" : "Delete endpoint"}
+            Delete endpoint
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -448,12 +452,15 @@ function EndpointCard({
   endpoint,
   onDelete,
   onTested,
+  onChanged,
 }: {
   endpoint: WebhookEndpoint;
   onDelete: (e: WebhookEndpoint) => void;
   onTested: () => void;
+  onChanged: () => void;
 }) {
   const [testing, setTesting] = React.useState(false);
+  const [toggling, setToggling] = React.useState(false);
 
   async function onTest() {
     setTesting(true);
@@ -474,13 +481,29 @@ function EndpointCard({
     }
   }
 
+  async function onToggle() {
+    setToggling(true);
+    try {
+      await setWebhookEnabled(endpoint.id, !endpoint.enabled);
+      toast.success(endpoint.enabled ? "Delivery paused" : "Delivery resumed");
+      onChanged();
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setToggling(false);
+    }
+  }
+
   return (
-    <Card className="p-4">
+    <Card className={cn("p-4", !endpoint.enabled && "border-dashed bg-muted/30")}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <code
-              className="max-w-full truncate font-mono text-sm font-medium"
+              className={cn(
+                "max-w-full truncate font-mono text-sm font-medium",
+                !endpoint.enabled && "text-muted-foreground",
+              )}
               title={endpoint.url}
             >
               {endpoint.url}
@@ -532,12 +555,35 @@ function EndpointCard({
           <Button
             size="sm"
             variant="outline"
+            onClick={onToggle}
+            disabled={toggling}
+            isLoading={toggling}
+            aria-label={
+              endpoint.enabled
+                ? `Pause delivery to ${endpoint.url}`
+                : `Resume delivery to ${endpoint.url}`
+            }
+          >
+            {endpoint.enabled ? (
+              <Pause className="h-4 w-4" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            {endpoint.enabled ? "Pause" : "Resume"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             onClick={onTest}
-            disabled={testing}
+            disabled={testing || !endpoint.enabled}
+            isLoading={testing}
             aria-label={`Send a test delivery to ${endpoint.url}`}
+            title={
+              endpoint.enabled ? undefined : "Resume the endpoint to send a test"
+            }
           >
             <Send className="h-4 w-4" />
-            {testing ? "Sending…" : "Send test"}
+            Send test
           </Button>
           <Button
             size="icon"
@@ -651,6 +697,7 @@ export function WebhooksClient({ initial }: { initial: WebhookEndpoint[] }) {
               endpoint={ep}
               onDelete={setDeleteTarget}
               onTested={() => void mutate()}
+              onChanged={() => void mutate()}
             />
           ))}
         </div>

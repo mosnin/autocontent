@@ -8,8 +8,11 @@ import { cn } from "@/lib/utils";
 /**
  * The dashboard's KPI tile, reused verbatim on the admin surface: a
  * category-colored AppIcon, a big mono value, and a bordered foot line for
- * context or a warm-accent trailing figure. Kept in lockstep with
- * DashboardClient's KpiCard so the two surfaces read as one system.
+ * context or a trailing figure. A "warn" tone paints the value and trail with
+ * the semantic warning token (amber) — reserved for out-of-range metrics like
+ * failures or suspensions, kept distinct from the brand accent. Kept in
+ * lockstep with DashboardClient's KpiCard so the two surfaces read as one
+ * system.
  */
 export function AdminKpiCard({
   color,
@@ -44,7 +47,7 @@ export function AdminKpiCard({
         <p
           className={cn(
             "font-mono text-3xl font-semibold tabular-nums tracking-tight",
-            tone === "warn" ? "text-brand" : "text-foreground",
+            tone === "warn" ? "text-warning" : "text-foreground",
           )}
         >
           {value}
@@ -61,7 +64,7 @@ export function AdminKpiCard({
             <span
               className={cn(
                 "font-mono tabular-nums",
-                tone === "warn" ? "text-brand" : "text-muted-foreground",
+                tone === "warn" ? "text-warning" : "text-muted-foreground",
               )}
             >
               {trail}

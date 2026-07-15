@@ -52,6 +52,24 @@ async def create_endpoint(body: WebhookCreate, ctx: AuthCtx = CurrentUser) -> We
     )
 
 
+class WebhookEnabledPatch(BaseModel):
+    enabled: bool
+
+
+@router.patch("/{endpoint_id}", response_model=WebhookEndpoint)
+async def update_endpoint(
+    endpoint_id: UUID, body: WebhookEnabledPatch, ctx: AuthCtx = CurrentUser
+) -> WebhookEndpoint:
+    """Pause or resume delivery. A disabled endpoint keeps its history and
+    signing secret; re-enabling resumes with the same secret."""
+    ep = await webhooks_out.set_enabled(
+        endpoint_id, user_id=ctx.user_id, enabled=body.enabled
+    )
+    if ep is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "endpoint not found")
+    return ep
+
+
 @router.delete("/{endpoint_id}", status_code=204)
 async def delete_endpoint(endpoint_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
     ok = await webhooks_out.delete(endpoint_id, user_id=ctx.user_id)

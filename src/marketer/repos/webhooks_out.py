@@ -75,6 +75,24 @@ async def get(endpoint_id: UUID, *, user_id: str) -> WebhookEndpoint | None:
     return WebhookEndpoint(**dict(row)) if row else None
 
 
+async def set_enabled(
+    endpoint_id: UUID, *, user_id: str, enabled: bool
+) -> WebhookEndpoint | None:
+    """Enable or disable delivery for one endpoint. Disabled endpoints are
+    skipped by deliverable_for_event but keep their history and secret, so a
+    later re-enable resumes with the same signing secret."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        f"""
+        update webhook_endpoints set enabled = $3
+         where id = $1 and user_id = $2
+        returning {_COLS}
+        """,
+        endpoint_id, user_id, enabled,
+    )
+    return WebhookEndpoint(**dict(row)) if row else None
+
+
 async def delete(endpoint_id: UUID, *, user_id: str) -> bool:
     pool = await get_pool()
     result = await pool.execute(

@@ -276,16 +276,19 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
   const hasMeta =
     (entry.metadata && Object.keys(entry.metadata).length > 0) ||
     Boolean(entry.user_agent);
+  const detailId = `audit-detail-${entry.id}`;
+  const label = `${open ? "Collapse" : "Expand"} details for ${humanizeAction(
+    entry.action,
+  )}`;
 
   return (
     <>
       <TableRow
         className={cn(hasMeta && "cursor-pointer")}
         onClick={hasMeta ? () => setOpen((v) => !v) : undefined}
-        aria-expanded={hasMeta ? open : undefined}
       >
         <TableCell>
-          <Badge variant={actionTone(entry.action)} className="font-mono lowercase">
+          <Badge variant={actionTone(entry.action)}>
             {humanizeAction(entry.action)}
           </Badge>
         </TableCell>
@@ -305,20 +308,35 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
         </TableCell>
         <TableCell className="text-right">
           {hasMeta && (
-            <ChevronDown
-              className={cn(
-                "size-4 text-muted-foreground transition-transform",
-                open && "rotate-180",
-              )}
-              aria-hidden
-            />
+            <button
+              type="button"
+              // Row already toggles on click; stop the bubble so this
+              // doesn't double-fire, and expose a real focusable control
+              // so keyboard + AT users can operate the disclosure.
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen((v) => !v);
+              }}
+              aria-expanded={open}
+              aria-controls={detailId}
+              aria-label={label}
+              className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ChevronDown
+                className={cn(
+                  "size-4 transition-transform",
+                  open && "rotate-180",
+                )}
+                aria-hidden
+              />
+            </button>
           )}
         </TableCell>
       </TableRow>
       {open && hasMeta && (
         <TableRow className="hover:bg-transparent">
           <TableCell colSpan={6} className="bg-muted/30">
-            <div className="space-y-2 py-1 text-xs">
+            <div id={detailId} className="space-y-2 py-1 text-xs">
               <div className="text-muted-foreground">
                 {formatDateTime(entry.created_at)}
                 {entry.user_agent ? ` · ${entry.user_agent}` : ""}
