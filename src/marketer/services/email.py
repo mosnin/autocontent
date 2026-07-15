@@ -130,6 +130,20 @@ def render_article_done(article_id: str, title: str | None) -> tuple[str, str]:
     return subject, html
 
 
+def render_ad_approval_needed(summary: str, dollar_delta_usd: str) -> tuple[str, str]:
+    """Subject + HTML for a pending ad-spend approval."""
+    base = settings.app_url.rstrip("/") or "http://localhost:3000"
+    subject = "An ad spend change needs your approval"
+    html = _shell(
+        "<h2 style='margin:0 0 12px'>Approve or reject a spend change</h2>"
+        f"<p style='font-weight:600'>{summary}</p>"
+        f"<p>An agent proposed a change of about <strong>${dollar_delta_usd}/day</strong>. "
+        "It will not touch your ad account until you approve it.</p>"
+        f"<p style='margin-top:24px'>{_button(f'{base}/ads/approvals', 'Review it')}</p>"
+    )
+    return subject, html
+
+
 def render_article_failed(article_id: str, title: str | None) -> tuple[str, str]:
     """Subject + HTML for a failed-article notification."""
     base = settings.app_url.rstrip("/") or "http://localhost:3000"

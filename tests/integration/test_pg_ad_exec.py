@@ -93,6 +93,29 @@ async def test_large_change_parks_for_approval_and_does_not_apply(pool):
     assert any(e.action == "budget.approval_requested" for e in log)
 
 
+async def test_approval_needed_emails_the_user(pool, monkeypatch):
+    from marketer.services import email as email_svc
+    from marketer.services import ad_actions_exec as ex
+
+    sent: list[str] = []
+
+    async def fake_send(*, to, subject, html):
+        sent.append(subject)
+        return True
+
+    monkeypatch.setattr(email_svc, "send_email", fake_send)
+
+    uid, acc, camp = await _setup(pool, prev_budget=10)
+    apply_fn, _ = await _applied()
+    out = await ex.propose_budget_change(
+        user_id=uid, campaign_id=camp.id,
+        new_daily_budget_usd=Decimal("100"), apply_fn=apply_fn,
+    )
+    assert out["status"] == "pending_approval"
+    assert len(sent) == 1
+    assert "approval" in sent[0].lower()
+
+
 async def test_killswitch_denies_and_audits(pool):
     from marketer.repos import ad_actions
     from marketer.services import ad_actions_exec as ex

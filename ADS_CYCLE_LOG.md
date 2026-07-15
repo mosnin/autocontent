@@ -31,3 +31,13 @@ Progress tracker for the 30-phase ADS_GOAL. Newest at the bottom.
   money contract, Composio/Inngest integration, and off-by-default posture.
 - Final gate: 15 migrations apply on a fresh DB; 455 pytest green; ruff clean;
   tsc clean; next build compiles all routes.
+- Phases 23-24 (campaigns): create wizard, list, detail with governed budget +
+  status controls (activate passes guard; budget through safe-execute -> 402 /
+  pending_approval). 5 route tests.
+- Phase 27 (SDK/MCP): full ads surface for external agents with safety-framed
+  tool descriptions (draft = no spend; budget/activate guarded). 4 SDK tests.
+- Phase 28 (calendar): ad campaigns fold into /calendar as 'ad' items.
+- Phase 21/28 (alerting): agent-proposed approvals email the user (fail-open,
+  pref-gated). New render_ad_approval_needed template.
+- Phase 29 (hardening): fresh-DB all 15 migrations apply; 0015 rollback+reapply
+  clean; 466 pytest green (incl. real-PG ads integration); ruff/tsc/build clean.

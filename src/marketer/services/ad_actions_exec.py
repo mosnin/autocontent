@@ -46,6 +46,26 @@ async def _noop_apply(_campaign: AdCampaign, _budget: Decimal) -> dict:
     return {"applied": "local"}
 
 
+async def _notify_approval_needed(
+    user_id: str, summary: str, dollar_delta_usd: Decimal
+) -> None:
+    """Email the user that a spend change awaits approval. Fail-OPEN (a missed
+    email must never block the governance flow) and gated on their preference."""
+    try:
+        from ..repos import users as users_repo
+        from . import email as email_svc
+
+        user = await users_repo.get(user_id)
+        if user is None or not user.email or not user.email_notifications:
+            return
+        subject, html = email_svc.render_ad_approval_needed(
+            summary, str(dollar_delta_usd)
+        )
+        await email_svc.send_email(to=user.email, subject=subject, html=html)
+    except Exception:  # noqa: BLE001 — notification must not break governance
+        pass
+
+
 def _threshold() -> Decimal:
     return Decimal(str(settings.ads_approval_threshold_usd))
 
@@ -146,6 +166,7 @@ async def propose_budget_change(
             target_id=str(campaign_id), dollar_delta_usd=delta,
             after={"approval_id": str(approval.id)}, ip=ip, user_agent=user_agent,
         )
+        await _notify_approval_needed(user_id, approval.summary, delta)
         return {"status": "pending_approval", "approval_id": str(approval.id)}
 
     updated = await _apply_budget(
