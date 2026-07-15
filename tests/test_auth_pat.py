@@ -39,7 +39,9 @@ async def test_pat_happy_path(monkeypatch):
 
     ctx = await auth.require_user(_FakeRequest("Bearer mkt_validtoken123"))
     assert ctx.user_id == "user_abc"
-    assert ctx.email == ""  # PAT auth carries no email
+    # PAT auth now carries the owner's stored email (from the user row).
+    assert ctx.email == "x@y.z"
+    assert ctx.role == "user"
 
 
 async def test_pat_unknown_token_401(monkeypatch):

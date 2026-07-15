@@ -5,20 +5,28 @@ from decimal import Decimal
 from ..db import get_pool
 from ..models import User
 
+# Single source of truth for the User projection. credit_balance_usd, role,
+# and suspension were previously omitted here — the API reported balance 0
+# and no role regardless of the row (prior audit M14).
+_COLS = (
+    "id, email, ayrshare_profile_key, global_daily_cap_usd, "
+    "credit_balance_usd, role, suspended_at, suspended_reason, created_at"
+)
+
 
 async def upsert(user_id: str, email: str) -> User:
     """Idempotent insert keyed on Clerk user_id. Called from auth middleware
     on first request so the FK from niches/jobs always resolves."""
     pool = await get_pool()
     row = await pool.fetchrow(
-        """
+        f"""
         insert into users (id, email) values ($1, $2)
         -- Never let a token without an email claim (default Clerk session
         -- tokens) blank out a stored address on every request.
         on conflict (id) do update
             set email = case when excluded.email <> '' then excluded.email
                              else users.email end
-        returning id, email, ayrshare_profile_key, global_daily_cap_usd, created_at
+        returning {_COLS}
         """,
         user_id,
         email,
@@ -29,10 +37,7 @@ async def upsert(user_id: str, email: str) -> User:
 async def get(user_id: str) -> User | None:
     pool = await get_pool()
     row = await pool.fetchrow(
-        """
-        select id, email, ayrshare_profile_key, global_daily_cap_usd, created_at
-          from users where id = $1
-        """,
+        f"select {_COLS} from users where id = $1",
         user_id,
     )
     return User(**dict(row)) if row else None
@@ -80,7 +85,7 @@ async def update_settings(
         update users
            set {set_clause}
          where id = $1
-        returning id, email, ayrshare_profile_key, global_daily_cap_usd, created_at
+        returning {_COLS}
         """,
         user_id,
         *values,

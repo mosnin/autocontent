@@ -50,6 +50,18 @@ def _jwks() -> PyJWKClient:
 class AuthCtx:
     user_id: str
     email: str
+    role: str = "user"
+
+
+@dataclass
+class AdminCtx:
+    """Privileged request context. Carries request metadata so every admin
+    action can be attributed in the audit log (actor, IP, user-agent)."""
+
+    user_id: str
+    email: str
+    ip: str
+    user_agent: str
 
 
 def _consume_failure_token(request: Request) -> None:
@@ -89,7 +101,8 @@ async def _resolve_pat(token: str, request: Request) -> AuthCtx:
     if user is None:
         _consume_failure_token(request)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token owner no longer exists")
-    return AuthCtx(user_id=pat.user_id, email="")
+    _reject_if_suspended(user)
+    return AuthCtx(user_id=pat.user_id, email=user.email, role=user.role)
 
 
 async def _resolve_clerk_jwt(token: str, request: Request) -> AuthCtx:
@@ -122,8 +135,19 @@ async def _resolve_clerk_jwt(token: str, request: Request) -> AuthCtx:
         _consume_failure_token(request)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing sub claim")
 
-    await users_repo.upsert(user_id, email)
-    return AuthCtx(user_id=user_id, email=email)
+    user = await users_repo.upsert(user_id, email)
+    _reject_if_suspended(user)
+    return AuthCtx(user_id=user_id, email=email, role=user.role)
+
+
+def _reject_if_suspended(user) -> None:
+    """A suspended account is refused every request (defense in depth: the
+    check lives in the auth path, not just the UI)."""
+    if getattr(user, "suspended_at", None) is not None:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "account suspended — contact support",
+        )
 
 
 async def require_user(request: Request) -> AuthCtx:
@@ -137,4 +161,26 @@ async def require_user(request: Request) -> AuthCtx:
     return await _resolve_clerk_jwt(token, request)
 
 
+async def require_admin(request: Request) -> AdminCtx:
+    """Privileged dependency: valid auth AND role == 'admin'.
+
+    Returns an AdminCtx enriched with request metadata for the audit log.
+    A non-admin gets 403 (not 404) — admins are a known, small set and the
+    obfuscation buys nothing while complicating support. The role is read
+    from the DB on every call (no role claim is trusted from the token)."""
+    ctx = await require_user(request)
+    if ctx.role != "admin":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "admin access required")
+
+    from .rate_limit import client_ip
+
+    return AdminCtx(
+        user_id=ctx.user_id,
+        email=ctx.email,
+        ip=client_ip(request),
+        user_agent=request.headers.get("user-agent", "")[:512],
+    )
+
+
 CurrentUser = Depends(require_user)
+CurrentAdmin = Depends(require_admin)

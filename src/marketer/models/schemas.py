@@ -77,6 +77,9 @@ class User(BaseModel):
     # Prepaid pipeline credit (hosted product). Ignored when billing is
     # disabled.
     credit_balance_usd: Decimal = Decimal("0")
+    role: str = "user"  # 'user' | 'admin'
+    suspended_at: datetime | None = None
+    suspended_reason: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
