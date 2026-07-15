@@ -130,3 +130,21 @@
     claim-for-scheduling, reap_stale triggers, no missing awaits, UI states.
   - Verified: ruff clean, 404 pytest (9 real-Postgres integration) green,
     tsc clean, next build compiles. Still holding the single final push.
+- Cycles 49-56 (Workstream C + hardening): email notifications feature.
+  - Brand kit now steers the article writer (not just niche drafts):
+    _compose_tone blends niche tone + brand voice + banned words into the
+    tone the outliner/writers/QA all see. Unit + pipeline tests.
+  - Notifications completed + made controllable: video pipeline now emails on
+    failure too; the article pipeline (previously silent) emails on done and
+    failed. New Resend templates (video-failed, article-done/failed). New
+    users.email_notifications column (migration 0014, default true), gated in
+    both _notify helpers. PATCH /users/me accepts email_notifications
+    (forwards only keys present — never clobbers the cap). Settings
+    Notifications card with an optimistic toggle.
+  - Hardened test isolation: autouse conftest fixture resets the cached
+    asyncpg pool per test, killing a latent 'Event loop is closed' failure
+    when pipeline tests ran in isolation against a live DB.
+  - Verified: ruff clean, 410 pytest (9 real-Postgres integration) green,
+    tsc clean, next build compiles; migration 0014 apply/rollback/reapply
+    checked on a fresh DB. Still holding the single final push per the
+    Vercel build-cost constraint.
