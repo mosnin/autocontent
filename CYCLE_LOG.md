@@ -91,3 +91,22 @@
     user's brand identity (name, tone, banned words, hashtags).
   - Unit + real-DB integration tests. 395 passed WITH DB (all integration
     active), ruff clean.
+- Cycles 39-44 (Workstream B polish + C): new-surfaces punch-list + webhook
+  pause/resume.
+  - Applied a ruthless review of the newly-built admin/calendar/webhooks
+    surfaces. a11y: audit-log expand is a real disclosure button (keyboard +
+    AT); users table dropped <tr role=button> for a focusable email control;
+    fixed off-by-one pagination (probe-row fetch PAGE_SIZE+1); per-route
+    admin loading skeletons; removed nested <main>; overview fetch deduped
+    with React.cache.
+  - Semantic color: warn/attention now use the warning token (amber),
+    critical uses destructive; DB-down tile red not orange; humanized audit
+    labels no longer mono-lowercase. Brand accent reserved for identity.
+  - Webhook enable/disable: repo set_enabled + PATCH route + client helper +
+    Pause/Resume UI (disabled cards dim, Send-test gated); keeps signing
+    secret + history across a pause. Buttons use isLoading (spinner+aria).
+  - Calendar: range-switch Updating… affordance; summary copy drops zero
+    kinds. Repurpose: empty-result state + plural-correct toast.
+  - Verified: ruff clean, 397 unit + 9 real-Postgres integration green,
+    tsc --noEmit clean, next build compiles all routes. Still NO push
+    (holding for the single final push per Vercel build-cost constraint).
