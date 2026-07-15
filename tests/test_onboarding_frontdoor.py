@@ -31,7 +31,7 @@ def test_draft_rejects_too_short(client):
 def test_draft_returns_full_spec(client, monkeypatch):
     from marketer.agents.niche_draft import NicheDraft
 
-    async def fake_draft(description):
+    async def fake_draft(description, *, brand_context="", spend=None):
         assert "economics" in description
         return NicheDraft(
             title="Clay Economics",
@@ -50,8 +50,13 @@ def test_draft_returns_full_spec(client, monkeypatch):
 
     # The endpoint imports draft_niche lazily; patch at the agent module.
     import marketer.agents.niche_draft as nd
+    import marketer.repos.brand_kit as bk
+
+    async def _no_kit(uid):
+        return None
 
     monkeypatch.setattr(nd, "draft_niche", fake_draft)
+    monkeypatch.setattr(bk, "get", _no_kit)
 
     resp = client.post(
         "/api/v1/niches/draft",

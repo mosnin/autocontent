@@ -162,3 +162,24 @@ async def test_erasure_cascades(pool):
     # Niche cascaded away with the user.
     remaining = await pool.fetchval("select count(*) from niches where id = $1", nid)
     assert remaining == 0
+
+
+# --------------------------------------------------------------------------- brand kit
+
+async def test_brand_kit_upsert_roundtrip(pool):
+    from marketer.repos import brand_kit as bk
+
+    uid = await _mkuser(pool)
+    kit = bk.BrandKit(
+        brand_name="Harbor Coffee", tone_of_voice="warm, practical",
+        banned_words=["cheap"], preferred_hashtags=["#coffee"], color_hex="#a3402f",
+    )
+    saved = await bk.upsert(uid, kit)
+    assert saved.brand_name == "Harbor Coffee"
+    fetched = await bk.get(uid)
+    assert fetched is not None
+    assert fetched.banned_words == ["cheap"]
+    # Second upsert updates, not duplicates (PK on user_id).
+    kit.brand_name = "Harbor Roasters"
+    again = await bk.upsert(uid, kit)
+    assert again.brand_name == "Harbor Roasters"

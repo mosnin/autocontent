@@ -68,8 +68,15 @@ def build_niche_draft_agent() -> Agent:
     )
 
 
-async def draft_niche(description: str, *, spend=None) -> NicheDraft:
-    """Turn a one-line channel description into a full draft spec."""
+async def draft_niche(
+    description: str, *, brand_context: str = "", spend=None
+) -> NicheDraft:
+    """Turn a one-line channel description into a full draft spec. When
+    `brand_context` is provided (from the user's brand kit) the draft is
+    steered to match that brand identity."""
     agent = build_niche_draft_agent()
-    result = await run_metered(agent, f"Channel description: {description}", spend=spend)
+    prompt = f"Channel description: {description}"
+    if brand_context:
+        prompt = f"{brand_context}\n\n{prompt}"
+    result = await run_metered(agent, prompt, spend=spend)
     return result.final_output_as(NicheDraft)

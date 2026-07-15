@@ -84,3 +84,10 @@
     grant-credit balance, erasure FK-cascade. Skips cleanly with no DB; runs
     automatically in CI (which already sets MARKETER_DATABASE_URL).
   - 384 passed + 7 integration (real DB) / 7 skipped (no DB); ruff clean.
+- Cycles 35-38 (Workstream C): brand kit — reusable brand identity.
+  - 0013 migration (brand_kits, one per user); repo + as_prompt_context.
+  - GET/PUT /api/v1/brand-kit (validates #rrggbb, normalizes hashtags).
+  - Wired into POST /niches/draft: the onboarding drafter now steers to the
+    user's brand identity (name, tone, banned words, hashtags).
+  - Unit + real-DB integration tests. 395 passed WITH DB (all integration
+    active), ruff clean.
