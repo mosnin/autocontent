@@ -105,10 +105,47 @@ cd web && npm install && npm run dev
 
 See `db/README.md` for the full migration workflow (status, rollback, CI gate).
 
-## Roadmap (article platform, phase 2)
+## Platform surfaces
 
-Ported from the upstream written-content system and planned next:
-publishing integrations (WordPress, Ghost, Medium, Shopify, Dev.to),
+Beyond the two content pipelines, the product ships:
+
+- **Content calendar** — `GET /api/v1/calendar` and a `/calendar` agenda
+  view unify scheduled video posts and article activity in one feed.
+- **Brand kit** — a reusable brand identity (name, tone, banned words,
+  hashtags, accent color) that seeds one-sentence channel drafts so new
+  channels come out on-brand. `GET/PUT /api/v1/brand-kit`, `/settings/brand`.
+- **Content repurposing** — `POST /api/v1/articles/{id}/social` turns a
+  finished article into platform-native posts (X, LinkedIn, Instagram,
+  Facebook, newsletter) in one metered call; surfaced on the article page
+  and via the SDK/MCP `repurpose_article`.
+- **Outbound webhooks** — register HTTPS endpoints that receive
+  HMAC-SHA256-signed event deliveries (`job.done/failed/awaiting_approval`,
+  `article.done/failed`). Fully fail-open; managed at `/settings/webhooks`.
+- **Admin console (SOC2-minded)** — `/admin/*` behind a DB-checked `admin`
+  role: platform overview, user management (suspend, role, credit grants),
+  an **append-only audit log** of every privileged action (actor, target,
+  IP, UA), feature flags, and a system-health panel. Suspended accounts are
+  refused in the auth path itself.
+- **Data & privacy (GDPR)** — one-click data export
+  (`GET /users/me/export`) and account erasure (`DELETE /users/me`, FK
+  cascade) at `/settings/privacy`.
+- **Spend controls everywhere** — per-niche daily cap, optional per-user
+  global cap, prepaid credits; every LLM/image/video/TTS call metered to a
+  ledger and gated race-safely.
+
+## Testing
+
+`pytest` runs ~395 unit tests (stubbed pools) plus a real-Postgres
+integration suite (`tests/integration/`) that exercises the money and admin
+paths — credit-purchase idempotency, atomic debit + ledger, spend-cap
+summation, append-only audit, and GDPR erasure cascade. The integration
+tests skip when `MARKETER_DATABASE_URL` is unset and run automatically in CI
+(which provisions Postgres). `sitemap.xml` + `robots.txt` ship for the
+marketing site.
+
+## Roadmap
+
+Publishing integrations (WordPress, Ghost, Medium, Shopify, Dev.to),
 Google Search Console-backed performance attribution, competitor
-monitoring, topic clusters, autopilot content calendars, newsletter
-digests, and semantic dedup memory.
+monitoring, topic clusters, per-client brand kits + team seats for
+agencies, and semantic dedup memory.
