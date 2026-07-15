@@ -36,6 +36,7 @@ async def pool():
         await conn.execute("delete from users")
         await conn.execute("delete from admin_audit_log")
         await conn.execute("delete from feature_flags")
+        await conn.execute("delete from webhook_endpoints")
 
 
 async def _mkuser(pool, *, credit="0", role="user") -> str:
@@ -183,3 +184,29 @@ async def test_brand_kit_upsert_roundtrip(pool):
     kit.brand_name = "Harbor Roasters"
     again = await bk.upsert(uid, kit)
     assert again.brand_name == "Harbor Roasters"
+
+
+# --------------------------------------------------------------------------- webhooks
+
+async def test_webhook_enable_disable_gates_delivery(pool):
+    from marketer.repos import webhooks_out as wh
+
+    uid = await _mkuser(pool)
+    ep = await wh.create(user_id=uid, url="https://hook.example/x", events=[])
+    # Enabled endpoints are deliverable; the secret round-trips for signing.
+    targets = await wh.deliverable_for_event(uid, "job.done")
+    assert (ep.url, ep.secret) in targets
+
+    # Disable → no longer deliverable, but the row (and its secret) survive.
+    disabled = await wh.set_enabled(ep.id, user_id=uid, enabled=False)
+    assert disabled is not None and disabled.enabled is False
+    assert await wh.deliverable_for_event(uid, "job.done") == []
+
+    # Re-enable → deliverable again with the SAME secret (no rotation).
+    re = await wh.set_enabled(ep.id, user_id=uid, enabled=True)
+    assert re is not None and re.enabled is True
+    assert (ep.url, ep.secret) in await wh.deliverable_for_event(uid, "job.done")
+
+    # Cross-tenant guard: another user cannot toggle this endpoint.
+    other = await _mkuser(pool)
+    assert await wh.set_enabled(ep.id, user_id=other, enabled=False) is None
