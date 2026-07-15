@@ -86,6 +86,50 @@ async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> A
     return article
 
 
+class SocialRepurposeBody(BaseModel):
+    # Empty = all platforms. Validated against the known set below.
+    platforms: list[str] = Field(default_factory=list)
+
+
+@router.post("/{article_id}/social")
+async def repurpose_to_social(
+    article_id: UUID, body: SocialRepurposeBody, ctx: AuthCtx = CurrentUser
+) -> dict:
+    """Repurpose a finished article into platform-native social posts. One
+    metered LLM call (charged to the article's niche daily cap). The article
+    must be done and have content."""
+    from marketer.articles import llm
+    from marketer.articles.models import ArticleStatus
+    from marketer.repos import niches as niches_repo
+    from marketer.services.spend_context import default_context
+
+    article = await articles_repo.get(article_id, user_id=ctx.user_id)
+    if article is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    if article.status != ArticleStatus.done or not article.article_markdown:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "article is not finished yet"
+        )
+    niche = await niches_repo.get(article.niche_id, user_id=ctx.user_id)
+    cap = niche.daily_spend_cap_usd if niche else None
+    spend = await default_context(
+        user_id=ctx.user_id, niche_id=article.niche_id, job_id=None,
+        article_id=article.id, cap_usd=cap,
+    )
+    try:
+        snippets = await llm.generate_social_snippets(
+            article.title or article.topic, article.article_markdown,
+            body.platforms, spend=spend,
+        )
+    except Exception as exc:  # noqa: BLE001
+        # Cap tripped or provider error — surface a clean 4xx/5xx.
+        from marketer.repos.spend import SpendCapExceeded
+        if isinstance(exc, SpendCapExceeded):
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, str(exc)) from exc
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "generation failed") from exc
+    return {"snippets": [s.model_dump() for s in snippets]}
+
+
 @router.get("/{article_id}/hero-image")
 async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
     """Stream the article's editorial hero image (gpt-image-1 PNG).

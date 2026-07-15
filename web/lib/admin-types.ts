@@ -70,6 +70,27 @@ export interface CreditGrantResult {
   new_balance_usd: string;
 }
 
+/** A single feature flag. Every change is audited server-side. */
+export interface FeatureFlag {
+  key: string;
+  enabled: boolean;
+  description: string;
+  /** Admin who last wrote the flag, or null if never touched by an admin. */
+  updated_by: string | null;
+  updated_at: string;
+  created_at: string;
+}
+
+/** Snapshot of backend/worker health for the admin health panel. */
+export interface SystemHealth {
+  /** Whether the primary database responded to a probe. */
+  db_ok: boolean;
+  /** Jobs wedged past their expected runtime, or null if unavailable. */
+  stuck_jobs: number | null;
+  /** Jobs that failed in the last 24h, or null if unavailable. */
+  failed_jobs_24h: number | null;
+}
+
 // --- Request bodies -----------------------------------------------------
 
 export interface SuspensionBody {
@@ -84,6 +105,12 @@ export interface RoleBody {
 export interface CreditsBody {
   amount_usd: number;
   note: string;
+}
+
+/** Upsert body for PUT /admin/flags/{key}. */
+export interface FlagUpsertBody {
+  enabled: boolean;
+  description: string;
 }
 
 // --- Query params -------------------------------------------------------

@@ -165,6 +165,16 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
         async with _client() as c:
             return _dump(await c.retry_article(article_id))
 
+    @mcp.tool(description=(
+        "Repurpose a finished article into platform-native social posts "
+        "(twitter, linkedin, instagram, facebook, newsletter). Pass a subset "
+        "of platforms or omit for all. MODERATE COST: one LLM call metered to "
+        "the niche's daily cap. Returns a list of {platform, body, hashtags}."
+    ))
+    async def repurpose_article(article_id: str, platforms: list[str] | None = None) -> str:
+        async with _client() as c:
+            return _dump(await c.repurpose_article(article_id, platforms=platforms))
+
     # ------------------------------------------------------------- spend
 
     @mcp.tool(description=(

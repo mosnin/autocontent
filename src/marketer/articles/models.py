@@ -135,6 +135,20 @@ class ImagePrompt(BaseModel):
     altText: str
 
 
+class SocialSnippet(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    platform: str  # 'twitter' | 'linkedin' | 'instagram' | 'facebook' | 'newsletter'
+    body: str
+    hashtags: list[str] = Field(default_factory=list)
+
+
+class SocialSnippetSet(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    snippets: list[SocialSnippet] = Field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # DB row model
 # ---------------------------------------------------------------------------

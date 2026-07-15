@@ -57,3 +57,10 @@
     and emit wired into job (done/failed/awaiting_approval) + article
     (done/failed) pipeline terminal states.
   - 381 pytest green, ruff clean, web build compiles all routes.
+- Cycles 21-24 (Workstream C): content repurposing (article -> social).
+  - articles/llm.generate_social_snippets: one metered LLM call produces
+    platform-native posts (twitter/linkedin/instagram/facebook/newsletter).
+  - POST /api/v1/articles/{id}/social (metered to niche cap, 402 on cap,
+    409 if not done). SDK.repurpose_article + MCP repurpose_article tool.
+  - NOTE: holding all pushes per user (Vercel build cost) — local commits
+    only until final debug + single push.

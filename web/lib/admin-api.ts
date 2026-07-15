@@ -20,6 +20,8 @@ import type {
   AdminUserRow,
   AuditQuery,
   CreditGrantResult,
+  FeatureFlag,
+  FlagUpsertBody,
   UsersQuery,
 } from "@/lib/admin-types";
 
@@ -51,6 +53,8 @@ export const adminKeys = {
     const qs = p.toString();
     return `${ADMIN}/audit-log${qs ? `?${qs}` : ""}`;
   },
+  flags: () => `${ADMIN}/flags`,
+  health: () => `${ADMIN}/health`,
 };
 
 // --- Client helpers (browser, through the proxy) ------------------------
@@ -60,10 +64,14 @@ export function adminGet<T>(path: string): Promise<T> {
   return clientFetch<T>(path);
 }
 
-async function adminPost<T>(path: string, body: unknown): Promise<T> {
+async function adminWrite<T>(
+  method: "POST" | "PUT",
+  path: string,
+  body: unknown,
+): Promise<T> {
   const url = `/api/proxy${path.startsWith("/") ? path : `/${path}`}`;
   const res = await fetch(url, {
-    method: "POST",
+    method,
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
@@ -73,6 +81,10 @@ async function adminPost<T>(path: string, body: unknown): Promise<T> {
     throw new Error(`${res.status} ${text}`);
   }
   return res.json() as Promise<T>;
+}
+
+function adminPost<T>(path: string, body: unknown): Promise<T> {
+  return adminWrite<T>("POST", path, body);
 }
 
 export function adminSetSuspension(
@@ -102,4 +114,20 @@ export function adminGrantCredits(
     amount_usd: amountUsd,
     note,
   });
+}
+
+/**
+ * Upsert a feature flag through the proxy. Creating a new key and toggling
+ * an existing one are the same PUT — the backend upserts by key and audits
+ * the change.
+ */
+export function adminUpsertFlag(
+  key: string,
+  body: FlagUpsertBody,
+): Promise<FeatureFlag> {
+  return adminWrite<FeatureFlag>(
+    "PUT",
+    `${ADMIN}/flags/${encodeURIComponent(key)}`,
+    body,
+  );
 }

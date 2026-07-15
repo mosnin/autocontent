@@ -24,6 +24,7 @@ from .models import (
     QualityScore,
     SectionContext,
     SerpAnalysis,
+    SocialSnippet,
     TopicPick,
 )
 
@@ -472,3 +473,62 @@ async def generate_hero_prompt(
         except Exception:  # noqa: BLE001
             return None
     return None
+
+
+# ---------------------------------------------------------------------------
+# Content repurposing: article -> platform-native social snippets
+# ---------------------------------------------------------------------------
+
+_PLATFORM_GUIDANCE = {
+    "twitter": "A single punchy tweet under 280 characters. Hook first. 1-2 hashtags.",
+    "linkedin": "A professional LinkedIn post: a strong first line, 3-5 short lines of "
+                "insight, a soft CTA. 3-5 hashtags.",
+    "instagram": "An Instagram caption: warm, first-person, a hook line then value, "
+                 "5-10 relevant hashtags.",
+    "facebook": "A conversational Facebook post: 2-4 sentences, a question to drive "
+                "comments. 0-2 hashtags.",
+    "newsletter": "A short newsletter blurb: a subject-line-style hook, 2-3 sentences, "
+                  "and a read-more nudge. No hashtags.",
+}
+
+
+async def generate_social_snippets(
+    title: str,
+    article_md: str,
+    platforms: list[str],
+    *,
+    spend: SpendContext | None = None,
+) -> list[SocialSnippet]:
+    """Repurpose a finished article into platform-native social posts. One
+    metered LLM call produces all requested platforms at once."""
+
+    wanted = [p for p in platforms if p in _PLATFORM_GUIDANCE] or list(_PLATFORM_GUIDANCE)
+    guidance = "\n".join(f"- {p}: {_PLATFORM_GUIDANCE[p]}" for p in wanted)
+    system = (
+        "You are a social media editor. Given an article, write native posts "
+        "for each requested platform that drive clicks back to the article. "
+        "Match each platform's norms exactly. Never use em-dashes or en-dashes. "
+        "Do not invent facts not in the article. Return JSON of shape "
+        '{"snippets": [{"platform": str, "body": str, "hashtags": [str]}]} '
+        "with exactly one entry per requested platform.\n\nPlatform rules:\n"
+        f"{guidance}"
+    )
+    user = (
+        f"Article title: {title}\n"
+        f"Requested platforms: {', '.join(wanted)}\n\n"
+        f"Article (may be truncated):\n{article_md[:7000]}\n\n"
+        "Return the snippets JSON."
+    )
+    parsed = await _json_call(
+        model=settings.agent_model, system=system, user=user,
+        temperature=0.7, spend=spend,
+    )
+    out: list[SocialSnippet] = []
+    for item in parsed.get("snippets") or []:
+        try:
+            snip = SocialSnippet.model_validate(item)
+            snip.body = strip_ai_dashes(snip.body)
+            out.append(snip)
+        except Exception:  # noqa: BLE001 — skip malformed
+            continue
+    return out

@@ -183,6 +183,18 @@ class MarketerClient:
         resp = await self._request("POST", f"/api/v1/articles/{article_id}/retry")
         return Article.model_validate(resp.json())
 
+    async def repurpose_article(
+        self, article_id: UUID | str, *, platforms: list[str] | None = None
+    ) -> list[dict]:
+        """Repurpose a finished article into platform-native social posts.
+        Returns a list of {platform, body, hashtags}. Spends (metered to the
+        niche cap)."""
+        body = {"platforms": platforms or []}
+        resp = await self._request(
+            "POST", f"/api/v1/articles/{article_id}/social", json=body
+        )
+        return resp.json().get("snippets", [])
+
     # ------------------------------------------------------------------ spend
 
     async def today_spend(self) -> TodaySpend:

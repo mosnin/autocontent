@@ -11,6 +11,8 @@ import type {
   AdminUserRow,
   AuditEntry,
   AuditQuery,
+  FeatureFlag,
+  SystemHealth,
   UsersQuery,
 } from "@/lib/admin-types";
 
@@ -28,6 +30,14 @@ export function fetchAdminUser(id: string): Promise<AdminUserRow> {
 
 export function fetchAdminAudit(q: AuditQuery = {}): Promise<AuditEntry[]> {
   return api<AuditEntry[]>(adminKeys.audit(q));
+}
+
+export function fetchAdminFlags(): Promise<FeatureFlag[]> {
+  return api<FeatureFlag[]>(adminKeys.flags());
+}
+
+export function fetchAdminHealth(): Promise<SystemHealth> {
+  return api<SystemHealth>(adminKeys.health());
 }
 
 /** True when an error thrown by `api` (server) represents an HTTP 403. */
