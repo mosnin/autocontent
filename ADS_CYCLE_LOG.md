@@ -24,3 +24,10 @@ Progress tracker for the 30-phase ADS_GOAL. Newest at the bottom.
 - Phases 16-19 (Inngest): ad_workflows (metrics sync + ROAS optimization that
   only PROPOSES) + config-gated inngest_app (no-op mount when off) served at
   /api/inngest. 7 tests. Running total: 455 pytest green.
+- Phases 22/25 (governance UI): /ads/approvals inbox (one-click approve/reject,
+  20s poll) + /ads/activity append-only audit view. Live nav items.
+- Phase 30 (docs, partial): README rewritten as a suite (Studio/Press/Ads/
+  Suite) with a dedicated Ads product section documenting the fail-CLOSED
+  money contract, Composio/Inngest integration, and off-by-default posture.
+- Final gate: 15 migrations apply on a fresh DB; 455 pytest green; ruff clean;
+  tsc clean; next build compiles all routes.

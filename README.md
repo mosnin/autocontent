@@ -3,13 +3,20 @@
 Autonomous marketing platform for AI agents: one system that ideates,
 produces, publishes, and learns from marketing content across formats.
 
-Two production pipelines share the same niches, spend caps, billing,
-and agent surfaces (REST API, Python SDK, CLI, MCP server):
+It's a **suite** — a Google-Workspace-style set of distinct products under one
+shell, each with its own dashboard and focused navigation (an app switcher
+jumps between them; the sidebar shows only the active product):
 
-- **Video** — hook-driven short-form video for TikTok / Reels / Shorts.
-- **Articles** — SEO-optimized long-form written content: SERP research,
-  structured outline, section-parallel writing, QA scoring, metadata +
-  JSON-LD schema, hero image.
+- **Studio** — hook-driven short-form video for TikTok / Reels / Shorts.
+- **Press** — SEO-optimized long-form articles: SERP research, structured
+  outline, section-parallel writing, QA scoring, metadata + JSON-LD, hero image.
+- **Ads** — create, manage, and scale **paid** campaigns (Google Ads, Meta Ads)
+  with agents, governed by fail-closed budget guardrails, human approvals, and
+  an audit trail. See "Ads product" below.
+- **Suite** — account-wide settings, connections, brand kit, billing, admin.
+
+All products share the same niches, spend caps, billing, brand kit, and agent
+surfaces (REST API, Python SDK, CLI, MCP server).
 
 ## Video pipeline
 
@@ -38,6 +45,37 @@ and agent surfaces (REST API, Python SDK, CLI, MCP server):
 Every LLM/image call in both pipelines is metered into the same
 `spend_ledger` and gated by per-niche + global daily caps and prepaid
 credits.
+
+## Ads product (paid campaigns)
+
+The Ads product lets agents run **paid** advertising — real money leaving the
+user's payment method on the ad platform — so it is engineered around a strict,
+**fail-CLOSED** safety model (the inverse of the fail-open content pipelines).
+
+- **Integrations**: [Composio](https://composio.dev) for per-user OAuth to ad
+  platforms (Google Ads, Meta Ads) and agent tool access (OpenAI Agents SDK
+  provider); [Inngest](https://www.inngest.com) for durable, checkpointed
+  background workflows (metrics sync cron, optimization, budget scaling) served
+  at `/api/inngest` on the same FastAPI app.
+- **Off by default**: the whole product is inert unless `MARKETER_ADS_ENABLED`
+  is true *and* the relevant keys are set (`MARKETER_COMPOSIO_API_KEY`, auth
+  config ids, Inngest keys). Missing packages surface as a clean `AdsDisabled`
+  (409), never an ImportError or a 500. Every external call is mocked in tests —
+  no real campaign can be created from CI or a dev box.
+- **The money contract**: every spend-affecting action funnels through one
+  choke point (`services/ad_actions_exec.py`) that (1) evaluates the
+  fail-closed `AdSpendGuard` (per-account daily/monthly caps, kill-switch,
+  account-wide budget ceiling, negative-budget/inactive-account guards), (2)
+  parks any change above the approval threshold as a **pending approval** that a
+  human must approve before it applies, (3) writes an **append-only** audit row
+  for allow/deny/approval/execute, and only then (4) makes the platform call.
+  Approved actions are re-guarded at execution time and are single-use (no
+  replay). Agents can *propose* optimizations but can never move money alone.
+- **Surfaces**: `/api/v1/ads/*` (accounts, governance, campaigns, approvals,
+  actions, overview); `/ads` dashboard, `/ads/connect`, `/ads/approvals` inbox,
+  `/ads/activity` audit log. Schema in migration `0015_ads.sql`
+  (`ad_accounts`, `ad_campaigns`, `ad_sets`, `ad_creatives`, `ad_metrics_daily`,
+  `ad_actions_log`, `ad_approvals`).
 
 ## Stack
 
