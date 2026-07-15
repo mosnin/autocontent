@@ -1,10 +1,13 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isProtected = createRouteMatcher([
+  "/home(.*)",
   "/onboarding(.*)",
   "/dashboard(.*)",
   "/queue(.*)",
+  "/calendar(.*)",
   "/articles(.*)",
+  "/ads(.*)",
   "/connect(.*)",
   "/settings(.*)",
   "/niches(.*)",
@@ -20,7 +23,7 @@ export const config = {
   // and the JWT-attaching proxy. Marketing pages never touch Clerk — no
   // handshake redirects, no auth latency, no clerk-js in their bundles.
   matcher: [
-    "/(onboarding|dashboard|queue|articles|connect|settings|niches|admin)(.*)",
+    "/(home|onboarding|dashboard|queue|calendar|articles|ads|connect|settings|niches|admin)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
   ],
