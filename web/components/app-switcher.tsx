@@ -36,29 +36,29 @@ export function AppSwitcher({ active }: { active: Product }) {
           type="button"
           aria-label={`Current product: ${active.label}. Switch products`}
           className={cn(
-            "flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left transition-colors",
+            "flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors",
             "hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0",
           )}
         >
           <span
             className={cn(
-              "flex size-8 shrink-0 items-center justify-center rounded-lg text-white shadow-sm",
+              "flex size-7 shrink-0 items-center justify-center rounded-md text-white",
               productAccentClass(active.accent),
             )}
           >
-            <ActiveIcon className="size-4" aria-hidden />
+            <ActiveIcon className="size-3.5" aria-hidden />
           </span>
           <span className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-            <span className="block truncate text-sm font-semibold leading-tight">
-              marketer.sh
-            </span>
-            <span className="block truncate text-xs text-muted-foreground">
+            <span className="block truncate text-[13px] font-semibold leading-tight tracking-tight">
               {active.label}
+            </span>
+            <span className="block truncate text-[11px] text-muted-foreground">
+              marketer.sh
             </span>
           </span>
           <ChevronsUpDown
-            className="size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden"
+            className="size-3.5 shrink-0 text-muted-foreground/60 group-data-[collapsible=icon]:hidden"
             aria-hidden
           />
         </button>

@@ -4,11 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
-import { Plus } from "lucide-react";
 
 import { AppSwitcher } from "@/components/app-switcher";
 import { ThemeSwitcher } from "@/components/theme-switcher";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Sidebar,
@@ -24,6 +22,7 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import { productForPath, type NavGroup } from "@/lib/products";
 
 function NavGroupView({ group }: { group: NavGroup }) {
@@ -32,16 +31,14 @@ function NavGroupView({ group }: { group: NavGroup }) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+      <SidebarGroupLabel className="px-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+        {group.label}
+      </SidebarGroupLabel>
       <SidebarGroupContent>
-        <SidebarMenu>
+        <SidebarMenu className="gap-0.5">
           {group.items.map((item) => {
-            const Icon = item.icon;
-            // A nav item is active on an exact match or on any descendant
-            // route, but an index-style link (its own product home) must not
-            // light up for a deeper sibling. We treat the shortest routes as
-            // index links by requiring exact match when another item in the
-            // same group is a prefix of the current path.
+            // A nav item is active on an exact match or any descendant route,
+            // but an index-style link must not light up for a deeper sibling.
             const isIndex = group.items.some(
               (other) =>
                 other !== item && other.href.startsWith(`${item.href}/`),
@@ -56,16 +53,12 @@ function NavGroupView({ group }: { group: NavGroup }) {
                   <SidebarMenuButton
                     disabled
                     tooltip={`${item.label} — coming soon`}
-                    className="cursor-not-allowed opacity-60"
+                    className="h-8 cursor-default px-3 text-[13px] text-muted-foreground/50"
                   >
-                    <Icon />
                     <span>{item.label}</span>
-                    <Badge
-                      variant="secondary"
-                      className="ml-auto text-[10px] group-data-[collapsible=icon]:hidden"
-                    >
+                    <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground/40 group-data-[collapsible=icon]:hidden">
                       Soon
-                    </Badge>
+                    </span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -73,7 +66,17 @@ function NavGroupView({ group }: { group: NavGroup }) {
 
             return (
               <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                <SidebarMenuButton
+                  asChild
+                  isActive={active}
+                  tooltip={item.label}
+                  className={cn(
+                    "h-8 px-3 text-[13px] transition-colors",
+                    active
+                      ? "bg-sidebar-accent font-medium text-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
                   <Link
                     aria-current={active ? "page" : undefined}
                     href={item.href}
@@ -81,14 +84,7 @@ function NavGroupView({ group }: { group: NavGroup }) {
                       if (isMobile) setOpenMobile(false);
                     }}
                   >
-                    <Icon />
                     <span>{item.label}</span>
-                    {active ? (
-                      <span
-                        aria-hidden
-                        className="ml-auto size-1.5 rounded-full bg-brand"
-                      />
-                    ) : null}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -103,44 +99,40 @@ function NavGroupView({ group }: { group: NavGroup }) {
 export function AppSidebar() {
   const pathname = usePathname();
   const product = productForPath(pathname);
-  // Studio keeps its "New channel" quick action; other products get their own
-  // primary action (or none) as they mature.
+  // Each product's single primary action, rendered as one quiet button —
+  // not a competing second visual system.
   const primaryAction =
     product.id === "studio"
       ? { href: "/onboarding", label: "New channel" }
-      : null;
+      : product.id === "press"
+        ? { href: "/articles", label: "New article" }
+        : null;
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader className="px-2 pt-2">
         <AppSwitcher active={product} />
       </SidebarHeader>
 
-      {primaryAction && (
-        <div className="px-2 pb-1 group-data-[collapsible=icon]:px-0">
-          <Button
-            asChild
-            className="w-full justify-center bg-card shadow-sm group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:p-0"
-            size="sm"
-            variant="outline"
-          >
-            <Link href={primaryAction.href}>
-              <Plus className="size-4" />
-              <span className="group-data-[collapsible=icon]:hidden">
-                {primaryAction.label}
-              </span>
-            </Link>
-          </Button>
-        </div>
-      )}
-
-      <SidebarContent>
+      <SidebarContent className="px-1 pt-2">
+        {primaryAction && (
+          <div className="px-2 pb-1 group-data-[collapsible=icon]:hidden">
+            <Button
+              asChild
+              className="w-full justify-center"
+              size="sm"
+              variant="outline"
+            >
+              <Link href={primaryAction.href}>{primaryAction.label}</Link>
+            </Button>
+          </div>
+        )}
         {product.groups.map((group) => (
           <NavGroupView key={group.label} group={group} />
         ))}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="px-3 pb-3">
         <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col">
           <UserButton afterSignOutUrl="/" />
           <div className="group-data-[collapsible=icon]:hidden">

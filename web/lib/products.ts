@@ -3,28 +3,16 @@
 // and sidebar. The sidebar renders ONLY the active product's nav — products
 // are never mashed together into one long list.
 //
-// Pure + client-safe: no server-only imports, no React hooks. Holds lucide
-// icon component references (plain values) so both the sidebar and the /home
-// launcher can consume one registry.
+// Nav is text-first (no per-item icons — type and space carry the hierarchy);
+// each product keeps one glyph for the app switcher and the /home launcher.
+//
+// Pure + client-safe: no server-only imports, no React hooks.
 
 import {
-  BarChart3,
-  CalendarDays,
-  CheckSquare,
   FileText,
   Film,
-  KeyRound,
-  Layers,
-  LayoutDashboard,
-  Link2,
-  ListChecks,
   Megaphone,
-  Palette,
-  ScrollText,
   Settings,
-  ShieldCheck,
-  Sparkles,
-  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,7 +21,6 @@ export type ProductId = "studio" | "press" | "ads" | "suite";
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
   /** Not yet built — rendered disabled with a "Soon" hint. */
   soon?: boolean;
 }
@@ -72,10 +59,10 @@ const STUDIO: Product = {
     {
       label: "Operate",
       items: [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/niches", label: "Niches", icon: Layers },
-        { href: "/queue", label: "Queue", icon: ListChecks },
-        { href: "/calendar", label: "Calendar", icon: CalendarDays },
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/niches", label: "Niches" },
+        { href: "/queue", label: "Queue" },
+        { href: "/calendar", label: "Calendar" },
       ],
     },
   ],
@@ -87,13 +74,29 @@ const PRESS: Product = {
   tagline: "Long-form articles, SEO, and search performance",
   icon: FileText,
   accent: "blue",
-  home: "/articles",
-  match: ["/articles"],
+  home: "/press",
+  match: ["/press", "/articles"],
   groups: [
     {
       label: "Content",
       items: [
-        { href: "/articles", label: "Articles", icon: FileText },
+        { href: "/press", label: "Overview" },
+        { href: "/articles", label: "Articles" },
+        { href: "/calendar", label: "Calendar" },
+      ],
+    },
+    {
+      label: "Craft",
+      items: [
+        { href: "/settings/brand", label: "Brand voice" },
+        { href: "/press/seo", label: "SEO toolkit", soon: true },
+      ],
+    },
+    {
+      label: "Performance",
+      items: [
+        { href: "/press/search", label: "Search Console", soon: true },
+        { href: "/press/keywords", label: "Keyword tracking", soon: true },
       ],
     },
   ],
@@ -111,17 +114,17 @@ const ADS: Product = {
     {
       label: "Campaigns",
       items: [
-        { href: "/ads", label: "Overview", icon: BarChart3 },
-        { href: "/ads/campaigns", label: "Campaigns", icon: Megaphone },
-        { href: "/ads/approvals", label: "Approvals", icon: CheckSquare },
-        { href: "/ads/activity", label: "Activity", icon: ScrollText },
-        { href: "/ads/insights", label: "Insights", icon: Sparkles, soon: true },
-        { href: "/ads/creatives", label: "Creatives", icon: Palette, soon: true },
+        { href: "/ads", label: "Overview" },
+        { href: "/ads/campaigns", label: "Campaigns" },
+        { href: "/ads/approvals", label: "Approvals" },
+        { href: "/ads/activity", label: "Activity" },
+        { href: "/ads/insights", label: "Insights", soon: true },
+        { href: "/ads/creatives", label: "Creatives", soon: true },
       ],
     },
     {
       label: "Setup",
-      items: [{ href: "/ads/connect", label: "Ad accounts", icon: Link2 }],
+      items: [{ href: "/ads/connect", label: "Ad accounts" }],
     },
   ],
 };
@@ -138,16 +141,16 @@ const SUITE: Product = {
     {
       label: "Account",
       items: [
-        { href: "/settings", label: "Settings", icon: Settings },
-        { href: "/settings/brand", label: "Brand kit", icon: Palette },
-        { href: "/connect", label: "Connect socials", icon: Link2 },
-        { href: "/settings/tokens", label: "Tokens", icon: KeyRound },
-        { href: "/settings/billing", label: "Billing", icon: Wallet },
+        { href: "/settings", label: "Settings" },
+        { href: "/settings/brand", label: "Brand kit" },
+        { href: "/connect", label: "Connect socials" },
+        { href: "/settings/tokens", label: "Tokens" },
+        { href: "/settings/billing", label: "Billing" },
       ],
     },
     {
       label: "Admin",
-      items: [{ href: "/admin", label: "Admin console", icon: ShieldCheck }],
+      items: [{ href: "/admin", label: "Admin console" }],
     },
   ],
 };
