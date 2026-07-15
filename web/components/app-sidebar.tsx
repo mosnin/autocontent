@@ -13,6 +13,8 @@ import {
   Link2,
   ListChecks,
   Plus,
+  Activity,
+  Flag,
   ScrollText,
   Settings,
   Shield,
@@ -64,6 +66,8 @@ const ADMIN: NavItem[] = [
   { href: "/admin", label: "Overview", icon: ShieldCheck },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/audit", label: "Audit log", icon: ScrollText },
+  { href: "/admin/flags", label: "Feature flags", icon: Flag },
+  { href: "/admin/health", label: "System health", icon: Activity },
   { href: "/admin/security", label: "Security", icon: Shield },
 ];
 

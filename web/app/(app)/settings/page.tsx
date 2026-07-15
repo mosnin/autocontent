@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Coins, Gauge, KeyRound, Link2, ShieldCheck } from "lucide-react";
+import { ChevronRight, Coins, Gauge, KeyRound, Link2, ShieldCheck, Webhook } from "lucide-react";
 
 import {
   Card,
@@ -34,6 +34,12 @@ const AREAS = [
     icon: KeyRound,
     title: "Personal access tokens",
     description: "For the CLI, MCP server, and external agents.",
+  },
+  {
+    href: "/settings/webhooks",
+    icon: Webhook,
+    title: "Webhooks",
+    description: "Signed real-time events for agents and automation.",
   },
   {
     href: "/settings/privacy",

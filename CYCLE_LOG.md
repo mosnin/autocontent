@@ -64,3 +64,13 @@
     409 if not done). SDK.repurpose_article + MCP repurpose_article tool.
   - NOTE: holding all pushes per user (Vercel build cost) — local commits
     only until final debug + single push.
+- Cycles 25-30: management UIs + repurpose UI.
+  - Webhooks management UI (/settings/webhooks): list, add-endpoint dialog
+    with one-time secret reveal + signing-formula help, per-endpoint send-
+    test + delete, last-delivery status. Settings card wired.
+  - Admin Feature Flags (/admin/flags): toggle table + add-flag dialog,
+    optimistic + audited. Admin System Health (/admin/health): DB/stuck/
+    failed cards with auto+manual refresh. Sidebar admin entries wired.
+  - Article detail RepurposeCard: pick platforms → generate social posts
+    (metered) → per-post copy. Wires POST /articles/{id}/social.
+  - tsc clean, next build compiles all new routes.
