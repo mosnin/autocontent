@@ -19,9 +19,20 @@ import {
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
-const HEADLINE_LINES = ["Marketing that", "runs itself."];
+const HEADLINE_LINES = [
+  { text: "Marketing that", accent: false },
+  { text: "runs itself.", accent: true },
+];
 
-function StagedLine({ line, index }: { line: string; index: number }) {
+function StagedLine({
+  line,
+  accent,
+  index,
+}: {
+  line: string;
+  accent: boolean;
+  index: number;
+}) {
   const reduced = useReducedMotion();
   // Always mount the motion element (see FadeUp): the branch pattern strands
   // motion's SSR'd translateY(110%) on the DOM for reduced-motion users.
@@ -29,7 +40,7 @@ function StagedLine({ line, index }: { line: string; index: number }) {
     <span className="block overflow-hidden pb-[0.08em]">
       <motion.span
         animate={{ y: 0 }}
-        className="block"
+        className={cn("block", accent && "text-gradient")}
         initial={reduced ? false : { y: "110%" }}
         transition={
           reduced
@@ -176,7 +187,12 @@ export function Hero() {
             </FadeUp>
             <h1 className="mt-5 font-display text-5xl font-semibold leading-[1.02] tracking-tight text-zinc-900 md:text-6xl lg:text-7xl">
               {HEADLINE_LINES.map((line, i) => (
-                <StagedLine index={i} key={line} line={line} />
+                <StagedLine
+                  accent={line.accent}
+                  index={i}
+                  key={line.text}
+                  line={line.text}
+                />
               ))}
             </h1>
             <FadeUp delay={0.55}>
