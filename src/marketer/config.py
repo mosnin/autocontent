@@ -82,6 +82,26 @@ class Settings(BaseSettings):
     # e.g. https://app.marketer.dev
     app_url: str = ""
 
+    # --- Ads product (paid campaigns) ---------------------------------
+    # Master switch. When false, the Ads product is inert: no Composio calls,
+    # no Inngest workflows, no spend-affecting actions. Off by default so the
+    # feature can ship dark and be enabled per-deploy once keys are set.
+    ads_enabled: bool = False
+    # Spend-affecting actions whose dollar delta meets/exceeds this threshold
+    # require explicit human approval before the safe-execute layer runs them.
+    ads_approval_threshold_usd: float = 50.0
+    # Composio (agent tool access + per-user OAuth to ad platforms).
+    composio_api_key: str = ""
+    # Auth config ids per toolkit (created in the Composio dashboard). Empty =
+    # that platform can't be connected.
+    composio_googleads_auth_config_id: str = ""
+    composio_metaads_auth_config_id: str = ""
+    # Inngest (durable ad workflows). Keys from the Inngest dashboard; set
+    # inngest_dev=True only against a local Inngest dev server.
+    inngest_signing_key: str = ""
+    inngest_event_key: str = ""
+    inngest_dev: bool = False
+
     # Transactional email (Resend). Empty key = emails silently skipped.
     resend_api_key: str = ""
     email_from: str = "marketer <notifications@marketer.dev>"
