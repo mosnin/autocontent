@@ -21,3 +21,12 @@
     (db_ok + stuck/failed job signals), both audited. repos/feature_flags.
   - sitemap.xml + robots.txt; /admin protected in middleware.
   - 371 tests green (privacy + admin flags/health covered), ruff clean.
+- Cycles 7-8 (Workstream C): content calendar endpoint (video+article feed).
+- IN FLIGHT (agents): admin dashboard UI; P0 app fixes (niches index,
+  queue/[id] live polling, retry revalidation, billing/connect guarding,
+  connect model); P1 a11y/states (status humanize, table roles, edit-form
+  labels, loading skeletons, hero image render, extra metrics, cmd palette).
+- NEXT after agents land: integrate + verify (tsc/build/tests), wire
+  account settings UI for GDPR export/erasure, calendar UI, then continue
+  ICP features (brand kit/voice presets, team seats, outbound webhooks,
+  approval notifications) and Apple-polish sweeps. ~52 cycles remain.
