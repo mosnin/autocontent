@@ -256,6 +256,23 @@ async def list_campaigns(
     return [AdCampaign(**dict(r)) for r in rows]
 
 
+async def active_daily_budget_total(
+    *, user_id: str, ad_account_id: UUID, exclude_campaign_id: UUID | None = None
+) -> Decimal:
+    """Sum of daily budgets across an account's ACTIVE campaigns, optionally
+    excluding one (the campaign being changed). Feeds the guard's account-wide
+    daily-ceiling check."""
+    pool = await get_pool()
+    val = await pool.fetchval(
+        """select coalesce(sum(daily_budget_usd), 0) from ad_campaigns
+             where user_id = $1 and ad_account_id = $2 and status = 'active'
+               and daily_budget_usd is not null
+               and ($3::uuid is null or id <> $3)""",
+        user_id, ad_account_id, exclude_campaign_id,
+    )
+    return Decimal(str(val))
+
+
 async def get_campaign(campaign_id: UUID, *, user_id: str) -> AdCampaign | None:
     pool = await get_pool()
     row = await pool.fetchrow(
