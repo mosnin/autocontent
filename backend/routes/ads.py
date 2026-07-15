@@ -18,6 +18,8 @@ from pydantic import BaseModel, Field
 from marketer.repos import ad_actions, ad_approvals
 from marketer.repos import ads as ads_repo
 from marketer.services import ad_connections
+from marketer.services.ad_actions_exec import AdSpendDenied, propose_budget_change
+from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_budget_action
 from marketer.services.composio_client import AdsDisabled
 
 from ..auth import AuthCtx, CurrentUser
@@ -109,6 +111,101 @@ async def list_campaigns(
     account_id: UUID | None = None, ctx: AuthCtx = CurrentUser
 ) -> list[ads_repo.AdCampaign]:
     return await ads_repo.list_campaigns(ctx.user_id, ad_account_id=account_id)
+
+
+class CreateCampaignBody(BaseModel):
+    ad_account_id: UUID
+    name: str = Field(min_length=1, max_length=200)
+    objective: str = Field(default="", max_length=100)
+    # Intended daily budget stored on the draft. It does NOT spend until the
+    # campaign is activated, which routes through the guard.
+    daily_budget_usd: Decimal | None = Field(default=None, ge=0)
+    niche_id: UUID | None = None
+
+
+@router.post("/campaigns", response_model=ads_repo.AdCampaign, status_code=201)
+async def create_campaign(
+    body: CreateCampaignBody, ctx: AuthCtx = CurrentUser
+) -> ads_repo.AdCampaign:
+    """Create a DRAFT campaign. No spend — drafts are never on a platform until
+    activated. The account must belong to the caller."""
+    account = await ads_repo.get_account(body.ad_account_id, user_id=ctx.user_id)
+    if account is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "ad account not found")
+    camp = await ads_repo.create_campaign(
+        user_id=ctx.user_id, ad_account_id=body.ad_account_id, name=body.name,
+        objective=body.objective, status="draft",
+        daily_budget_usd=body.daily_budget_usd, niche_id=body.niche_id,
+    )
+    await ad_actions.record(
+        user_id=ctx.user_id, actor="user", actor_email=ctx.email,
+        action="campaign.create", platform=account.platform,
+        target_type="ad_campaign", target_id=str(camp.id),
+        after={"name": camp.name, "objective": camp.objective},
+    )
+    return camp
+
+
+class BudgetBody(BaseModel):
+    daily_budget_usd: Decimal = Field(ge=0)
+
+
+@router.post("/campaigns/{campaign_id}/budget")
+async def change_budget(
+    campaign_id: UUID, body: BudgetBody, ctx: AuthCtx = CurrentUser
+) -> dict:
+    """Change a campaign's daily budget through the safe-execute layer:
+    guarded, approval-gated for large deltas, and audited. 402 on a hard deny."""
+    try:
+        return await propose_budget_change(
+            user_id=ctx.user_id, campaign_id=campaign_id,
+            new_daily_budget_usd=body.daily_budget_usd,
+            actor="user", actor_email=ctx.email,
+        )
+    except AdSpendDenied as e:
+        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+
+
+class StatusBody(BaseModel):
+    status: str  # 'active' | 'paused' | 'ended'
+
+
+@router.post("/campaigns/{campaign_id}/status", response_model=ads_repo.AdCampaign)
+async def change_status(
+    campaign_id: UUID, body: StatusBody, ctx: AuthCtx = CurrentUser
+) -> ads_repo.AdCampaign:
+    """Activate / pause / end a campaign. Activation is spend-affecting and
+    passes the guard's non-budget check; pausing/ending always allowed."""
+    if body.status not in {"active", "paused", "ended"}:
+        raise HTTPException(422, "status must be active, paused, or ended")
+    camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
+    if camp is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "campaign not found")
+
+    action = "campaign.activate" if body.status == "active" else f"campaign.{body.status}"
+    account = await ads_repo.get_account(camp.ad_account_id, user_id=ctx.user_id)
+    gov = (
+        AccountGovernance(
+            status=account.status, killswitch=account.killswitch,
+            daily_cap_usd=account.daily_cap_usd, monthly_cap_usd=account.monthly_cap_usd,
+        )
+        if account
+        else None
+    )
+    decision = evaluate_non_budget_action(account=gov, action=action)
+    if not decision.allowed:
+        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, decision.reason)
+
+    updated = await ads_repo.update_campaign(
+        campaign_id, user_id=ctx.user_id, status=body.status
+    )
+    await ad_actions.record(
+        user_id=ctx.user_id, actor="user", actor_email=ctx.email,
+        action=action, platform=account.platform if account else "",
+        target_type="ad_campaign", target_id=str(campaign_id),
+        after={"status": body.status},
+    )
+    return updated or camp
 
 
 @router.get("/campaigns/{campaign_id}")

@@ -47,9 +47,37 @@ export interface AdApproval {
   created_at: string;
 }
 
+export interface AdCampaign {
+  id: string;
+  user_id: string;
+  ad_account_id: string;
+  external_campaign_id: string;
+  name: string;
+  objective: string;
+  status: string; // draft | pending | active | paused | ended | failed
+  daily_budget_usd: string | null;
+  lifetime_budget_usd: string | null;
+  niche_id: string | null;
+  last_error: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdMetricsDaily {
+  date: string;
+  impressions: number;
+  clicks: number;
+  spend_usd: string;
+  conversions: string;
+  revenue_usd: string;
+}
+
 export const adsKeys = {
   overview: () => `${ADS}/overview`,
   accounts: () => `${ADS}/accounts`,
+  campaigns: (accountId?: string) =>
+    `${ADS}/campaigns${accountId ? `?account_id=${accountId}` : ""}`,
+  campaign: (id: string) => `${ADS}/campaigns/${id}`,
   approvals: (status?: string) =>
     `${ADS}/approvals${status ? `?status_filter=${status}` : ""}`,
   actions: () => `${ADS}/actions`,
@@ -107,4 +135,32 @@ export function decideApproval(
   decision: "approved" | "rejected",
 ): Promise<AdApproval> {
   return proxy("POST", `${ADS}/approvals/${id}/decide`, { decision });
+}
+
+export function createCampaign(body: {
+  ad_account_id: string;
+  name: string;
+  objective?: string;
+  daily_budget_usd?: string | null;
+}): Promise<AdCampaign> {
+  return proxy("POST", `${ADS}/campaigns`, body);
+}
+
+/** Change a campaign's daily budget through the safe-execute layer. Resolves
+ *  to { status: 'executed' | 'pending_approval', ... }; rejects with a 402
+ *  message when governance denies. */
+export function changeBudget(
+  id: string,
+  dailyBudgetUsd: string,
+): Promise<{ status: string; approval_id?: string }> {
+  return proxy("POST", `${ADS}/campaigns/${id}/budget`, {
+    daily_budget_usd: dailyBudgetUsd,
+  });
+}
+
+export function changeCampaignStatus(
+  id: string,
+  status: "active" | "paused" | "ended",
+): Promise<AdCampaign> {
+  return proxy("POST", `${ADS}/campaigns/${id}/status`, { status });
 }

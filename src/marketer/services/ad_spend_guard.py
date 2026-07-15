@@ -105,7 +105,10 @@ def evaluate_non_budget_action(
     activating a campaign or resuming a paused one. Pausing/stopping is always
     allowed (it reduces spend); anything that starts or resumes spend needs a
     healthy, un-killed account."""
-    reduces_spend = action in {"campaign.pause", "campaign.stop", "campaign.end"}
+    reduces_spend = action in {
+        "campaign.pause", "campaign.paused", "campaign.stop", "campaign.stopped",
+        "campaign.end", "campaign.ended",
+    }
     if reduces_spend:
         return GuardDecision(True)
     if account is None:

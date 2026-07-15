@@ -112,7 +112,7 @@ const ADS: Product = {
       label: "Campaigns",
       items: [
         { href: "/ads", label: "Overview", icon: BarChart3 },
-        { href: "/ads/campaigns", label: "Campaigns", icon: Megaphone, soon: true },
+        { href: "/ads/campaigns", label: "Campaigns", icon: Megaphone },
         { href: "/ads/approvals", label: "Approvals", icon: CheckSquare },
         { href: "/ads/activity", label: "Activity", icon: ScrollText },
         { href: "/ads/insights", label: "Insights", icon: Sparkles, soon: true },
