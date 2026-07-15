@@ -100,6 +100,53 @@ async def test_log_debits_at_margin(monkeypatch):
     assert debits == [Decimal("0.10")]  # 0.05 * 2.0
 
 
+async def test_log_trips_abort_when_credit_crosses_zero(monkeypatch):
+    """The debit still lands (charge is real), but a non-positive resulting
+    balance must flip abort_event and raise so fan-out siblings and later
+    stages stop spending. This is the concurrency guard the pre-flight
+    snapshot alone can't provide."""
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
+    from marketer.repos.spend import SpendCapExceeded
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+    monkeypatch.setattr(settings, "billing_margin", 1.0)
+
+    recorded: list = []
+
+    async def fake_record(entry):
+        recorded.append(entry)
+
+    async def fake_debit(*, user_id, amount_usd, job_id, description):
+        return Decimal("-0.25")  # this call crossed zero
+
+    monkeypatch.setattr(billing_repo, "debit", fake_debit)
+
+    ctx = SpendContext(
+        user_id="user_a", niche_id=uuid4(), job_id=uuid4(), record=fake_record
+    )
+    with pytest.raises(SpendCapExceeded) as e:
+        await ctx.log(
+            provider="grok", sku="imagine", units=Decimal("1"),
+            cost_usd=Decimal("0.25"),
+        )
+    assert e.value.scope == "credits"
+    assert ctx.abort_event.is_set()
+    assert ctx.abort_scope == "credits"
+    # The charge was still recorded — we don't silently drop real spend.
+    assert len(recorded) == 1
+
+    # A subsequent pre-flight check short-circuits cheaply with the right scope,
+    # without even reading the balance again.
+    async def explode(user_id):
+        raise AssertionError("must not re-read balance after abort")
+
+    monkeypatch.setattr(billing_repo, "balance", explode)
+    with pytest.raises(SpendCapExceeded) as e2:
+        await ctx.ensure_can_spend(Decimal("0.01"))
+    assert e2.value.scope == "credits"
+
+
 def test_checkout_503_when_disabled(client, monkeypatch):
     from marketer.config import settings
 

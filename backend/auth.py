@@ -46,6 +46,27 @@ def _jwks() -> PyJWKClient:
     return _jwks_client
 
 
+def _expected_issuer() -> str | None:
+    """The issuer we require on Clerk JWTs.
+
+    Prefers the explicit ``MARKETER_CLERK_ISSUER``. When that's unset we
+    derive it from the JWKS URL: Clerk's ``iss`` claim is the Frontend API
+    origin and the JWKS lives at ``{iss}/.well-known/jwks.json``, so
+    stripping that suffix yields the issuer for free. This makes issuer
+    verification the default even when only the JWKS URL is configured, so a
+    token signed by a *different* Clerk instance's key can't be replayed
+    here. Returns None only when we genuinely can't determine an issuer, in
+    which case issuer verification is skipped (fail-open, as before).
+    """
+    if settings.clerk_issuer:
+        return settings.clerk_issuer
+    url = settings.clerk_jwks_url.strip()
+    suffix = "/.well-known/jwks.json"
+    if url.endswith(suffix):
+        return url[: -len(suffix)]
+    return None
+
+
 @dataclass
 class AuthCtx:
     user_id: str
@@ -108,18 +129,23 @@ async def _resolve_pat(token: str, request: Request) -> AuthCtx:
 async def _resolve_clerk_jwt(token: str, request: Request) -> AuthCtx:
     try:
         signing_key = _jwks().get_signing_key_from_jwt(token).key
-        # aud is verified when MARKETER_CLERK_AUDIENCE is configured;
-        # issuer when MARKETER_CLERK_ISSUER is. Both should be set in
-        # production — otherwise any RS256 token from the same JWKS
-        # (e.g. minted for a different frontend on the same Clerk
-        # instance) is accepted.
+        # Issuer is verified whenever we can determine it — explicitly via
+        # MARKETER_CLERK_ISSUER, or derived from the JWKS URL (see
+        # _expected_issuer) — so a token from a different Clerk instance's
+        # key is rejected. Audience is verified only when
+        # MARKETER_CLERK_AUDIENCE is set; set it in production to also reject
+        # a token minted for a *different frontend on the same* instance.
+        issuer = _expected_issuer()
         claims = jwt.decode(
             token,
             signing_key,
             algorithms=["RS256"],
-            issuer=settings.clerk_issuer or None,
+            issuer=issuer,
             audience=settings.clerk_audience or None,
-            options={"verify_aud": bool(settings.clerk_audience)},
+            options={
+                "verify_aud": bool(settings.clerk_audience),
+                "verify_iss": issuer is not None,
+            },
         )
     except jwt.PyJWTError as e:
         _consume_failure_token(request)

@@ -172,6 +172,35 @@ def test_create_niche_missing_field_returns_422(monkeypatch):
     assert resp.status_code == 422
 
 
+def test_create_niche_rejects_non_positive_cap(monkeypatch):
+    """A zero/negative daily cap is refused — it would trip the spend guard
+    on the first metered call and fail every run for the niche."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+
+    for bad in ("0", "0.00", "-1"):
+        payload = {**_VALID_PAYLOAD, "daily_spend_cap_usd": bad}
+        resp = client.post(
+            "/api/v1/niches",
+            json=payload,
+            headers={"Authorization": "Bearer mkt_tok"},
+        )
+        assert resp.status_code == 422, bad
+
+
+def test_update_niche_rejects_non_positive_cap(monkeypatch):
+    """Partial update path enforces the same positive-cap invariant."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+
+    resp = client.put(
+        f"/api/v1/niches/{_NICHE_ID}",
+        json={"daily_spend_cap_usd": "0"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+
+
 def test_create_niche_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()

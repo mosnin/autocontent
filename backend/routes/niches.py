@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from marketer.models import Niche, PostingWindow
 from marketer.repos import niches as niches_repo
@@ -61,7 +61,9 @@ class NicheCreate(BaseModel):
     scene_count: int
     posting_windows: list[PostingWindow]
     platforms: list[Literal["tiktok", "reels", "shorts"]]
-    daily_spend_cap_usd: Decimal
+    # Strictly positive: a zero/negative cap would trip the spend guard on
+    # the very first metered call, failing every run for the niche.
+    daily_spend_cap_usd: Decimal = Field(gt=0)
     image_quality: Literal["low", "medium", "high"] = "medium"
     video_resolution: Literal["480p", "720p"] = "480p"
     scene_max_duration_sec: int = 5
@@ -87,7 +89,7 @@ class NicheUpdate(BaseModel):
     scene_count: int | None = None
     posting_windows: list[PostingWindow] | None = None
     platforms: list[Literal["tiktok", "reels", "shorts"]] | None = None
-    daily_spend_cap_usd: Decimal | None = None
+    daily_spend_cap_usd: Decimal | None = Field(default=None, gt=0)
     image_quality: Literal["low", "medium", "high"] | None = None
     video_resolution: Literal["480p", "720p"] | None = None
     scene_max_duration_sec: int | None = None

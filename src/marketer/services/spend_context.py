@@ -17,6 +17,12 @@ Both caps are optional:
 - ``global_cap_usd=None`` skips global post-log checks.
 Either can be active independently. ``ensure_can_spend`` and ``log``
 check whichever caps are configured.
+
+Prepaid credit (hosted product) gets the same treatment: ``log`` debits
+the ledger and then re-reads the returned balance, tripping ``abort_event``
+if it has gone non-positive. Without that post-debit check, N fan-out tasks
+in one stage could all clear the pre-flight balance snapshot and each debit,
+taking the balance negative and spending past what the user paid for.
 """
 from __future__ import annotations
 
@@ -65,6 +71,14 @@ class SpendContext:
     global_cap_usd: Decimal | None = None
     today_total_spend: TotalSpendReader | None = None
     abort_event: asyncio.Event = field(default_factory=asyncio.Event)
+    # Why the job was aborted, so the cheap pre-flight short-circuit can
+    # report the real reason (niche/global cap vs. exhausted credit) rather
+    # than always blaming the niche cap.
+    abort_scope: str = "niche"
+
+    def _trip(self, scope: str) -> None:
+        self.abort_scope = scope
+        self.abort_event.set()
 
     async def ensure_can_spend(self, estimated_usd: Decimal) -> None:
         """Refuse a provider call if it would exceed today's cap.
@@ -81,14 +95,15 @@ class SpendContext:
 
         if self.abort_event.is_set():
             raise SpendCapExceeded(
-                f"niche {self.niche_id} spend aborted: cap already exceeded",
-                scope="niche",
+                f"niche {self.niche_id} spend aborted: {self.abort_scope} "
+                "limit already reached",
+                scope=self.abort_scope,
             )
 
         if self.cap_usd is not None:
             spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
             if spent + estimated_usd > self.cap_usd:
-                self.abort_event.set()
+                self._trip("niche")
                 raise SpendCapExceeded(
                     f"niche {self.niche_id} pre-flight cap check: "
                     f"${spent} + ${estimated_usd} > ${self.cap_usd}",
@@ -98,7 +113,7 @@ class SpendContext:
         if self.global_cap_usd is not None and self.today_total_spend is not None:
             total_spent = await self.today_total_spend(user_id=self.user_id)
             if total_spent + estimated_usd > self.global_cap_usd:
-                self.abort_event.set()
+                self._trip("global")
                 raise SpendCapExceeded(
                     f"user {self.user_id} pre-flight global cap check: "
                     f"${total_spent} + ${estimated_usd} > ${self.global_cap_usd}",
@@ -118,7 +133,7 @@ class SpendContext:
             bal = await billing_repo.balance(self.user_id)
             charge = estimated_usd * _D(str(settings.billing_margin))
             if bal < charge:
-                self.abort_event.set()
+                self._trip("credits")
                 raise SpendCapExceeded(
                     f"user {self.user_id} has ${bal} credit; "
                     f"call would charge ${charge}. Top up to continue.",
@@ -151,12 +166,13 @@ class SpendContext:
         # even when this call is the one that trips a cap.
         from ..config import settings as _settings
 
+        new_balance: Decimal | None = None
         if _settings.billing_enabled:
             from decimal import Decimal as _D
 
             from ..repos import billing as billing_repo
 
-            await billing_repo.debit(
+            new_balance = await billing_repo.debit(
                 user_id=self.user_id,
                 amount_usd=cost_usd * _D(str(_settings.billing_margin)),
                 job_id=self.job_id,
@@ -173,10 +189,25 @@ class SpendContext:
             extra={"provider": provider, "sku": sku, "cost_usd": str(cost_usd)},
         )
 
+        # Prepaid credit is post-checked here, symmetric with the niche/global
+        # cap re-reads below. `ensure_can_spend` gates each call pre-flight, but
+        # N fan-out tasks in one stage all read the same balance snapshot before
+        # any debit lands, so they can collectively cross zero. The ledger is
+        # the source of truth: once the balance is non-positive we flip
+        # abort_event so sibling tasks and every later stage short-circuit
+        # cheaply instead of continuing to spend the operator's money.
+        if new_balance is not None and new_balance <= 0:
+            self._trip("credits")
+            raise SpendCapExceeded(
+                f"user {self.user_id} exhausted prepaid credit during job: "
+                f"balance ${new_balance} after {provider}/{sku}. Top up to continue.",
+                scope="credits",
+            )
+
         if self.cap_usd is not None:
             spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
             if spent >= self.cap_usd:
-                self.abort_event.set()
+                self._trip("niche")
                 raise SpendCapExceeded(
                     f"niche {self.niche_id} hit daily cap during job: "
                     f"${spent} >= ${self.cap_usd}",
@@ -186,7 +217,7 @@ class SpendContext:
         if self.global_cap_usd is not None and self.today_total_spend is not None:
             total_spent = await self.today_total_spend(user_id=self.user_id)
             if total_spent >= self.global_cap_usd:
-                self.abort_event.set()
+                self._trip("global")
                 raise SpendCapExceeded(
                     f"user {self.user_id} hit global daily cap during job: "
                     f"${total_spent} >= ${self.global_cap_usd}",

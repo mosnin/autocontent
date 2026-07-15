@@ -127,3 +127,36 @@ async def test_non_pat_token_falls_through_to_clerk(monkeypatch):
     ctx = await auth.require_user(_FakeRequest("Bearer eyJsomejwt"))
     assert ctx.user_id == "user_jwt"
     assert called["upsert"] == ("user_jwt", "e@x")
+
+
+def test_expected_issuer_prefers_explicit(monkeypatch):
+    from backend import auth
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "clerk_issuer", "https://issuer.example")
+    monkeypatch.setattr(
+        settings, "clerk_jwks_url", "https://other.clerk.dev/.well-known/jwks.json"
+    )
+    assert auth._expected_issuer() == "https://issuer.example"
+
+
+def test_expected_issuer_derived_from_jwks_url(monkeypatch):
+    from backend import auth
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "clerk_issuer", "")
+    monkeypatch.setattr(
+        settings, "clerk_jwks_url", "https://acme.clerk.accounts.dev/.well-known/jwks.json"
+    )
+    # Derived by stripping the well-known suffix — matches Clerk's iss claim.
+    assert auth._expected_issuer() == "https://acme.clerk.accounts.dev"
+
+
+def test_expected_issuer_none_when_undeterminable(monkeypatch):
+    from backend import auth
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "clerk_issuer", "")
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://proxy.example/keys")
+    # Non-standard JWKS path → can't derive; issuer verification is skipped.
+    assert auth._expected_issuer() is None
