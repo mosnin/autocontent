@@ -6,8 +6,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from autocontent.models import SpendHistory, TodaySpend
-from autocontent.repos import spend as spend_repo
+from marketer.models import SpendHistory, TodaySpend
+from marketer.repos import spend as spend_repo
 
 from ..auth import AuthCtx, CurrentUser
 

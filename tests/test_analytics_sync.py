@@ -122,9 +122,9 @@ async def test_one_record_per_eligible_job(sync_fn, monkeypatch):
         recorded.append(metrics)
         return metrics
 
-    import autocontent.db as db_mod
-    import autocontent.repos.post_metrics as pm_repo
-    import autocontent.services.ayrshare_analytics as analytics_mod
+    import marketer.db as db_mod
+    import marketer.repos.post_metrics as pm_repo
+    import marketer.services.ayrshare_analytics as analytics_mod
 
     monkeypatch.setattr(db_mod, "get_pool", _fake_get_pool)
     monkeypatch.setattr(analytics_mod, "fetch_post_analytics", _fake_fetch)
@@ -149,7 +149,7 @@ async def test_one_bad_fetch_does_not_kill_loop(sync_fn, monkeypatch):
 
     async def _fake_fetch(provider_post_id: str, platforms: list[str]) -> dict:
         if provider_post_id == "ayr-bad":
-            from autocontent.services.ayrshare_analytics import AyrshareAnalyticsError
+            from marketer.services.ayrshare_analytics import AyrshareAnalyticsError
             raise AyrshareAnalyticsError("simulated 429")
         return {**SAMPLE_RAW, "id": provider_post_id}
 
@@ -157,9 +157,9 @@ async def test_one_bad_fetch_does_not_kill_loop(sync_fn, monkeypatch):
         recorded.append(metrics)
         return metrics
 
-    import autocontent.db as db_mod
-    import autocontent.repos.post_metrics as pm_repo
-    import autocontent.services.ayrshare_analytics as analytics_mod
+    import marketer.db as db_mod
+    import marketer.repos.post_metrics as pm_repo
+    import marketer.services.ayrshare_analytics as analytics_mod
 
     monkeypatch.setattr(db_mod, "get_pool", _fake_get_pool)
     monkeypatch.setattr(analytics_mod, "fetch_post_analytics", _fake_fetch)
@@ -180,7 +180,7 @@ async def test_empty_job_list_returns_zero_counts(sync_fn, monkeypatch):
     async def _fake_get_pool():
         return pool
 
-    import autocontent.db as db_mod
+    import marketer.db as db_mod
     monkeypatch.setattr(db_mod, "get_pool", _fake_get_pool)
 
     result = await sync_fn()

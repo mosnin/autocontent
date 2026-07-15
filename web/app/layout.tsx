@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
+import { Geist, Geist_Mono } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+// One family everywhere (Apple's single-typeface discipline): Geist for text
+// and display, Geist Mono for data. Display presence comes from scale + tight
+// tracking + the gradient-text accent, not a novelty face.
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -17,15 +19,8 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Display face: headlines only. Characterful grotesque that gives titles
-// real presence; Geist stays for body (readability) and mono for data.
-const bricolage = Bricolage_Grotesque({
-  variable: "--font-bricolage",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "autocontent",
+  title: "marketer.sh",
   description: "Autonomous short-form content creation",
 };
 
@@ -35,11 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
       <html
         lang="en"
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable}`}
+        className={`${geistSans.variable} ${geistMono.variable}`}
       >
         <body className="min-h-screen bg-background font-sans text-foreground antialiased">
           <ThemeProvider
@@ -55,6 +49,5 @@ export default function RootLayout({
           </ThemeProvider>
         </body>
       </html>
-    </ClerkProvider>
   );
 }

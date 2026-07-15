@@ -6,7 +6,7 @@
 // GET /api/v1/niches/{id}/performance response.
 
 import * as React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ScatterChart,
   Scatter,
@@ -109,6 +109,7 @@ function CustomScatterTooltip({
 }
 
 export function PerformanceCard({ performance }: Props) {
+  const router = useRouter();
   const [sortKey, setSortKey] = React.useState<SortKey>("views");
   const [sortDir, setSortDir] = React.useState<SortDir>("desc");
 
@@ -204,8 +205,35 @@ export function PerformanceCard({ performance }: Props) {
   });
 
   function SortIcon({ k }: { k: SortKey }) {
-    if (sortKey !== k) return <span className="text-muted-foreground/40"> ↕</span>;
-    return <span>{sortDir === "asc" ? " ↑" : " ↓"}</span>;
+    if (sortKey !== k)
+      return (
+        <span aria-hidden className="text-muted-foreground/40">
+          {" "}
+          ↕
+        </span>
+      );
+    return <span aria-hidden>{sortDir === "asc" ? " ↑" : " ↓"}</span>;
+  }
+
+  function ariaSort(k: SortKey): "ascending" | "descending" | "none" {
+    if (sortKey !== k) return "none";
+    return sortDir === "asc" ? "ascending" : "descending";
+  }
+
+  function SortHeader({ k, label }: { k: SortKey; label: string }) {
+    return (
+      <TableHead className="w-[90px] text-right" aria-sort={ariaSort(k)}>
+        <button
+          type="button"
+          onClick={() => toggleSort(k)}
+          className="ml-auto flex select-none items-center justify-end tabular-nums hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          aria-label={`Sort by ${label}`}
+        >
+          {label}
+          <SortIcon k={k} />
+        </button>
+      </TableHead>
+    );
   }
 
   return (
@@ -299,24 +327,9 @@ export function PerformanceCard({ performance }: Props) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Hook</TableHead>
-                  <TableHead
-                    className="w-[90px] cursor-pointer select-none text-right"
-                    onClick={() => toggleSort("views")}
-                  >
-                    Views<SortIcon k="views" />
-                  </TableHead>
-                  <TableHead
-                    className="w-[90px] cursor-pointer select-none text-right"
-                    onClick={() => toggleSort("cost_usd")}
-                  >
-                    Cost<SortIcon k="cost_usd" />
-                  </TableHead>
-                  <TableHead
-                    className="w-[90px] cursor-pointer select-none text-right"
-                    onClick={() => toggleSort("cpp")}
-                  >
-                    $/1k<SortIcon k="cpp" />
-                  </TableHead>
+                  <SortHeader k="views" label="Views" />
+                  <SortHeader k="cost_usd" label="Cost" />
+                  <SortHeader k="cpp" label="$/1k" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -325,10 +338,17 @@ export function PerformanceCard({ performance }: Props) {
                   return (
                     <TableRow
                       key={job.job_id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => {
-                        window.location.href = `/queue/${job.job_id}`;
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/queue/${job.job_id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          router.push(`/queue/${job.job_id}`);
+                        }
                       }}
+                      aria-label={`Open job ${job.job_id.slice(0, 8)}`}
+                      className="cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                     >
                       <TableCell className="max-w-[180px]">
                         {job.hook ? (

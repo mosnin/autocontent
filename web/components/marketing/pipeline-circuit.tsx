@@ -16,7 +16,7 @@ import { CircuitBoard } from "@/components/ui/circuit-board";
 import { cn } from "@/lib/utils";
 
 /**
- * The autocontent pipeline rendered as a live circuit. This is the product
+ * The marketer.sh pipeline rendered as a live circuit. This is the product
  * diagram: idea -> script -> keyframes -> motion -> voice -> mix -> post,
  * with the analytics trace feeding back into ideation (the closed loop).
  *
@@ -62,7 +62,7 @@ export function PipelineCircuit({ className }: { className?: string }) {
           Edge-fade masks so the pan reads as intentional. */}
       <div className="overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:overflow-x-visible [mask-image:linear-gradient(to_right,transparent,black_2rem,black_calc(100%-2rem),transparent)] md:[mask-image:none]">
         <CircuitBoard
-          aria-label="The autocontent pipeline: ideate, script, keyframes, animate, voice, mix, post — with analytics feeding back into ideation"
+          aria-label="The marketer.sh pipeline: ideate, script, keyframes, animate, voice, mix, post — with analytics feeding back into ideation"
           className="mx-auto"
           connections={FULL_CONNECTIONS}
           height={400}

@@ -8,9 +8,9 @@
 Critical checks (failures → 503):
   db         — asyncpg pool fetchval("select 1") with a 2 s timeout.
   clerk_jwks — HTTP HEAD to the configured JWKS URL with a 2 s timeout
-               (skipped when AUTOCONTENT_CLERK_JWKS_URL is unset).
+               (skipped when MARKETER_CLERK_JWKS_URL is unset).
   migrations — pending migration count via yoyo; pending > 0 means the
-               deploy was not preceded by ``autocontent-migrate up`` and
+               deploy was not preceded by ``marketer-migrate up`` and
                is treated as a configuration error (503).
 
 Informational checks (non-critical, never affect the HTTP status):
@@ -26,8 +26,8 @@ import httpx
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from autocontent.config import settings
-from autocontent.db import get_pool
+from marketer.config import settings
+from marketer.db import get_pool
 
 router = APIRouter()
 
@@ -70,7 +70,7 @@ async def healthz_deep() -> JSONResponse:
             checks["clerk_jwks"] = {"ok": False, "latency_ms": latency_ms, "error": str(exc)}
             all_critical_ok = False
     else:
-        checks["clerk_jwks"] = {"ok": False, "error": "AUTOCONTENT_CLERK_JWKS_URL not set"}
+        checks["clerk_jwks"] = {"ok": False, "error": "MARKETER_CLERK_JWKS_URL not set"}
         all_critical_ok = False
 
     # ── Migration status check ────────────────────────────────────────────────

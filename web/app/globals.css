@@ -64,7 +64,19 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-display: var(--font-bricolage);
+  /* Unified on Geist — headlines get presence from scale + tracking, not a
+     separate novelty face. */
+  --font-display: var(--font-geist-sans);
+
+  /* Warm brand gradient (amber → rose), used for hero display text and the
+     occasional accent. The single sanctioned gradient — no rainbow soup.
+     Stops are deep enough that gradient TEXT clears WCAG AA large-text
+     contrast on the light canvas (the orange end is the limiting one). */
+  --gradient-warm: linear-gradient(
+    100deg,
+    hsl(20 90% 45%),
+    hsl(345 80% 50%)
+  );
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -117,12 +129,13 @@
   --cat-blue: 217 89% 55%;
   --cat-purple: 255 70% 62%;
   --cat-navy: 222 35% 22%;
-  /* chart palette */
-  --chart-1: 221.2 83.2% 53.3%;
-  --chart-2: 212 95% 68%;
-  --chart-3: 216 92% 60%;
-  --chart-4: 210 98% 78%;
-  --chart-5: 212 97% 87%;
+  /* chart palette — full colors (unlike the bare HSL triples above)
+     because chart components consume these directly via var(). */
+  --chart-1: hsl(221.2 83.2% 53.3%);
+  --chart-2: hsl(212 95% 68%);
+  --chart-3: hsl(216 92% 60%);
+  --chart-4: hsl(210 98% 78%);
+  --chart-5: hsl(212 97% 87%);
   --chart-background: oklch(1 0 0);
   --chart-foreground: oklch(0.145 0.004 285);
   --chart-foreground-muted: oklch(0.55 0.014 260);
@@ -182,12 +195,12 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 240 4.9% 83.9%;
-  /* chart palette (dark) */
-  --chart-1: 221.2 83.2% 53.3%;
-  --chart-2: 212 95% 68%;
-  --chart-3: 216 92% 60%;
-  --chart-4: 210 98% 78%;
-  --chart-5: 212 97% 87%;
+  /* chart palette (dark) — full colors, see the light palette note. */
+  --chart-1: hsl(221.2 83.2% 53.3%);
+  --chart-2: hsl(212 95% 68%);
+  --chart-3: hsl(216 92% 60%);
+  --chart-4: hsl(210 98% 78%);
+  --chart-5: hsl(212 97% 87%);
   --chart-background: oklch(0.145 0 0);
   --chart-foreground: oklch(0.45 0 0);
   --chart-foreground-muted: oklch(0.65 0.01 260);
@@ -221,6 +234,11 @@
   }
   h1, h2, h3 {
     font-family: var(--font-display), var(--font-geist-sans), sans-serif;
+    /* Apple-tight display tracking; slightly tighter still on large sizes. */
+    letter-spacing: -0.021em;
+  }
+  h1 {
+    letter-spacing: -0.032em;
   }
 
 @keyframes show-top-mask {
@@ -272,6 +290,19 @@
     initial-value: 64px;
 }
 
+/* Warm gradient display text — for the one or two hero words that carry the
+   page. Falls back to a solid warm tone where background-clip:text is
+   unsupported. Keep it rare: gradient text loses impact if everything is one. */
+@utility text-gradient {
+    background-image: var(--gradient-warm);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Solid fallback (no background-clip support) — the darker orange keeps
+       AA large-text contrast on light. */
+    color: hsl(20 90% 42%);
+}
+
 @utility scroll-fade-effect-y {
     --mask-height: 64px;
     --mask-offset-top: 0px;
@@ -305,33 +336,33 @@
 }
 
 @theme inline {
-  --color-line: color-mix(in oklab, var(--border) 64%, var(--background));
-  --color-chart-scale-pattern-color: var(----chart-scale-pattern-color);
-  --color-chart-scale-05: var(----chart-scale-05);
-  --color-chart-scale-04: var(----chart-scale-04);
-  --color-chart-scale-03: var(----chart-scale-03);
-  --color-chart-scale-02: var(----chart-scale-02);
-  --color-chart-scale-01: var(----chart-scale-01);
-  --color-chart-label: var(----chart-label);
-  --color-chart-marker-foreground: var(----chart-marker-foreground);
-  --color-chart-marker-border: var(----chart-marker-border);
-  --color-chart-marker-background: var(----chart-marker-background);
-  --color-chart-tooltip-muted: var(----chart-tooltip-muted);
-  --color-chart-tooltip-foreground: var(----chart-tooltip-foreground);
-  --color-chart-tooltip-background: var(----chart-tooltip-background);
-  --chart-brush-border: var(----chart-brush-border);
-  --color-chart-grid: var(----chart-grid);
-  --color-chart-crosshair: var(----chart-crosshair);
-  --chart-line-secondary: var(----chart-line-secondary);
-  --chart-line-primary: var(----chart-line-primary);
-  --color-chart-foreground-muted: var(----chart-foreground-muted);
-  --color-chart-foreground: var(----chart-foreground);
-  --color-chart-background: var(----chart-background);
-  --color-chart-5: var(----chart-5);
-  --color-chart-4: var(----chart-4);
-  --color-chart-3: var(----chart-3);
-  --color-chart-2: var(----chart-2);
-  --color-chart-1: var(----chart-1);
+  --color-line: color-mix(in oklab, hsl(var(--border)) 64%, hsl(var(--background)));
+  --color-chart-scale-pattern-color: var(--chart-scale-pattern-color);
+  --color-chart-scale-05: var(--chart-scale-05);
+  --color-chart-scale-04: var(--chart-scale-04);
+  --color-chart-scale-03: var(--chart-scale-03);
+  --color-chart-scale-02: var(--chart-scale-02);
+  --color-chart-scale-01: var(--chart-scale-01);
+  --color-chart-label: var(--chart-label);
+  --color-chart-marker-foreground: var(--chart-marker-foreground);
+  --color-chart-marker-border: var(--chart-marker-border);
+  --color-chart-marker-background: var(--chart-marker-background);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --color-chart-brush-border: var(--chart-brush-border);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-crosshair: var(--chart-crosshair);
+  --color-chart-line-secondary: var(--chart-line-secondary);
+  --color-chart-line-primary: var(--chart-line-primary);
+  --color-chart-foreground-muted: var(--chart-foreground-muted);
+  --color-chart-foreground: var(--chart-foreground);
+  --color-chart-background: var(--chart-background);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
   --animate-expand: expand 0.2s ease-out;
   --animate-collapse: collapse 0.2s ease-out;
   --color-warning-foreground: var(--warning-foreground);

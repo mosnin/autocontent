@@ -12,8 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autocontent.agents.ideation import build_ideation_prompt, _PERF_PREAMBLE
-from autocontent.models import Idea
+from marketer.agents.ideation import build_ideation_prompt, _PERF_PREAMBLE
+from marketer.models import Idea
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ async def test_run_ideation_no_perf_sends_simple_prompt(monkeypatch):
         captured.append(input)
         return fake_result
 
-    import autocontent.orchestrator as _orch
+    import marketer.orchestrator as _orch
     from agents import Runner
 
     monkeypatch.setattr(Runner, "run", fake_run)
@@ -104,7 +104,7 @@ async def test_run_ideation_with_perf_injects_context_into_prompt(monkeypatch):
         captured.append(input)
         return fake_result
 
-    import autocontent.orchestrator as _orch
+    import marketer.orchestrator as _orch
     from agents import Runner
 
     monkeypatch.setattr(Runner, "run", fake_run)
@@ -140,7 +140,7 @@ async def test_run_ideation_default_kwarg_is_empty(monkeypatch):
         captured.append(input)
         return fake_result
 
-    import autocontent.orchestrator as _orch
+    import marketer.orchestrator as _orch
     from agents import Runner
 
     monkeypatch.setattr(Runner, "run", fake_run)

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from autocontent.services import ffmpeg
+from marketer.services import ffmpeg
 
 
 @pytest.fixture

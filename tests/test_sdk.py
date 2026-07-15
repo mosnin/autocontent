@@ -9,15 +9,15 @@ from uuid import uuid4
 import httpx
 import pytest
 
-from autocontent.models import NicheCreatePayload, PostingWindow
-from autocontent.sdk import AutoContentClient, AutoContentError
+from marketer.models import NicheCreatePayload, PostingWindow
+from marketer.sdk import MarketerClient, MarketerError
 
 
-def _client(handler) -> AutoContentClient:
+def _client(handler) -> MarketerClient:
     transport = httpx.MockTransport(handler)
-    return AutoContentClient(
+    return MarketerClient(
         base_url="https://api.test.local",
-        token="act_testtoken12345",
+        token="mkt_testtoken12345",
         transport=transport,
     )
 
@@ -65,9 +65,9 @@ def _job_row(*, job_id=None) -> dict:
 
 
 async def test_env_var_fallback(monkeypatch):
-    monkeypatch.setenv("AUTOCONTENT_API_BASE_URL", "https://from-env.local")
-    monkeypatch.setenv("AUTOCONTENT_API_TOKEN", "act_envtoken12345")
-    c = AutoContentClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
+    monkeypatch.setenv("MARKETER_API_BASE_URL", "https://from-env.local")
+    monkeypatch.setenv("MARKETER_API_TOKEN", "mkt_envtoken12345")
+    c = MarketerClient(transport=httpx.MockTransport(lambda r: httpx.Response(200, json=[])))
     try:
         assert c._base_url == "https://from-env.local"
     finally:
@@ -75,10 +75,10 @@ async def test_env_var_fallback(monkeypatch):
 
 
 async def test_missing_env_raises(monkeypatch):
-    monkeypatch.delenv("AUTOCONTENT_API_BASE_URL", raising=False)
-    monkeypatch.delenv("AUTOCONTENT_API_TOKEN", raising=False)
-    with pytest.raises(RuntimeError, match="AUTOCONTENT_API_BASE_URL"):
-        AutoContentClient()
+    monkeypatch.delenv("MARKETER_API_BASE_URL", raising=False)
+    monkeypatch.delenv("MARKETER_API_TOKEN", raising=False)
+    with pytest.raises(RuntimeError, match="MARKETER_API_BASE_URL"):
+        MarketerClient()
 
 
 async def test_list_niches_happy_path():
@@ -94,7 +94,7 @@ async def test_list_niches_happy_path():
         out = await c.list_niches()
     assert len(out) == 1
     assert out[0].title == "duck explains macro"
-    assert captured["headers"]["authorization"] == "Bearer act_testtoken12345"
+    assert captured["headers"]["authorization"] == "Bearer mkt_testtoken12345"
     assert captured["url"].endswith("/api/v1/niches")
 
 
@@ -103,7 +103,7 @@ async def test_get_niche_404_raises():
         return httpx.Response(404, json={"detail": "not found"})
 
     async with _client(handler) as c:
-        with pytest.raises(AutoContentError) as ei:
+        with pytest.raises(MarketerError) as ei:
             await c.get_niche(uuid4())
     assert ei.value.status_code == 404
 
@@ -218,12 +218,12 @@ async def test_ayrshare_status():
 async def test_create_token_returns_plaintext_and_info():
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(201, json={
-            "token": "act_freshplaintext1234567",
+            "token": "mkt_freshplaintext1234567",
             "info": {
                 "id": str(uuid4()),
                 "user_id": "user_abc",
                 "name": "ci",
-                "prefix": "act_fres",
+                "prefix": "mkt_fres",
                 "last_used_at": None,
                 "created_at": datetime.now(timezone.utc).isoformat(),
                 "expires_at": None,
@@ -232,8 +232,8 @@ async def test_create_token_returns_plaintext_and_info():
 
     async with _client(handler) as c:
         info, pt = await c.create_token(name="ci")
-    assert pt.startswith("act_")
-    assert info.prefix == "act_fres"
+    assert pt.startswith("mkt_")
+    assert info.prefix == "mkt_fres"
 
 
 async def test_list_tokens_happy_path():
@@ -262,7 +262,84 @@ async def test_server_error_surfaces_text_when_not_json():
         return httpx.Response(500, text="boom")
 
     async with _client(handler) as c:
-        with pytest.raises(AutoContentError) as ei:
+        with pytest.raises(MarketerError) as ei:
             await c.list_niches()
     assert ei.value.status_code == 500
     assert "boom" in ei.value.message
+
+
+# --------------------------------------------------------------------------- ads
+
+async def test_create_ad_campaign_posts_draft():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["body"] = json.loads(req.content)
+        return httpx.Response(201, json={"id": "c1", "status": "draft"})
+
+    async with _client(handler) as c:
+        out = await c.create_ad_campaign(
+            ad_account_id="a1", name="Launch", daily_budget_usd="20"
+        )
+    assert out["status"] == "draft"
+    assert captured["url"].endswith("/api/v1/ads/campaigns")
+    assert captured["body"]["ad_account_id"] == "a1"
+
+
+async def test_change_ad_budget_surfaces_402_deny():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(402, json={"detail": "account kill-switch is engaged"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.change_ad_budget("c1", "100")
+    assert ei.value.status_code == 402
+    assert "kill-switch" in ei.value.message
+
+
+async def test_change_ad_budget_pending_approval_passthrough():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"status": "pending_approval", "approval_id": "ap1"})
+
+    async with _client(handler) as c:
+        out = await c.change_ad_budget("c1", "100")
+    assert out["status"] == "pending_approval"
+
+
+async def test_connect_ad_account_returns_redirect():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert json.loads(req.content)["platform"] == "google_ads"
+        return httpx.Response(200, json={"redirect_url": "https://auth/x", "account_id": "a1"})
+
+    async with _client(handler) as c:
+        out = await c.connect_ad_account("google_ads")
+    assert out["redirect_url"].startswith("https://")
+
+
+# --------------------------------------------------------------------------- x402
+
+async def test_x402_buy_credits_returns_402_envelope():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert "x-payment" not in {k.lower() for k in req.headers}
+        return httpx.Response(402, json={"x402Version": 1, "accepts": [{"scheme": "exact"}]})
+
+    async with _client(handler) as c:
+        out = await c.x402_buy_credits("10")
+    assert out["status"] == "payment_required"
+    assert out["requirements"]["accepts"][0]["scheme"] == "exact"
+
+
+async def test_x402_buy_credits_credited_with_payment():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert req.headers.get("x-payment") == "base64payload"
+        return httpx.Response(
+            200, json={"credited_usd": "10.00", "balance_usd": "10.00"},
+            headers={"X-PAYMENT-RESPONSE": "resp64"},
+        )
+
+    async with _client(handler) as c:
+        out = await c.x402_buy_credits("10", payment_header="base64payload")
+    assert out["status"] == "credited"
+    assert out["credited_usd"] == "10.00"
+    assert out["payment_response"] == "resp64"

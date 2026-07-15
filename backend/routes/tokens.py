@@ -13,8 +13,8 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
-from autocontent.models import PersonalAccessToken
-from autocontent.repos import tokens as tokens_repo
+from marketer.models import PersonalAccessToken
+from marketer.repos import tokens as tokens_repo
 
 from ..auth import AuthCtx, CurrentUser
 from ..rate_limit import limiter

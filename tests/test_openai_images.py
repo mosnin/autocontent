@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from autocontent.services import openai_images
+from marketer.services import openai_images
 
 
 PNG_BYTES = (
@@ -48,7 +48,7 @@ async def test_generate_keyframe_no_reference(tmp_path: Path, fake_client, fake_
     assert len(rec.entries) == 1
     entry = rec.entries[0]
     assert entry.sku == "gpt-image-1"
-    assert entry.cost_usd == Decimal("0.042")
+    assert entry.cost_usd == Decimal("0.063")
     assert entry.units == Decimal(1)
 
 
@@ -68,7 +68,7 @@ async def test_generate_keyframe_with_reference(tmp_path: Path, fake_client, fak
 
     fake_client.images.edit.assert_awaited_once()
     fake_client.images.generate.assert_not_called()
-    assert rec.entries[0].cost_usd == Decimal("0.042")
+    assert rec.entries[0].cost_usd == Decimal("0.063")
 
 
 async def test_no_spend_recorded_without_context(tmp_path: Path, fake_client):

@@ -6,9 +6,9 @@ from uuid import UUID
 
 import pytest
 
-from autocontent.config import settings
-from autocontent.models import Niche, PostingWindow
-from autocontent.services import character_sheet, openai_images
+from marketer.config import settings
+from marketer.models import Niche, PostingWindow
+from marketer.services import character_sheet, openai_images
 
 
 def _niche(niche_id: UUID) -> Niche:

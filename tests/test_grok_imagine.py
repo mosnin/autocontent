@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from autocontent.services import grok_imagine
+from marketer.services import grok_imagine
 
 
 PNG = (
@@ -45,7 +45,7 @@ def _make_handler(*, poll_sequence: list[str], record: dict) -> httpx.MockTransp
 
 @pytest.fixture(autouse=True)
 def _patch_xai_key(monkeypatch):
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "xai_api_key", "xai-test")
 
 

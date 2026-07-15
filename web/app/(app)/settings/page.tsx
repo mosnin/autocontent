@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Coins, Gauge, KeyRound, Link2 } from "lucide-react";
+import { Bell, ChevronRight, Coins, Gauge, KeyRound, Link2, Palette, ShieldCheck, Webhook } from "lucide-react";
 
 import {
   Card,
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { User } from "@/lib/types";
 import { SpendCapForm } from "./SpendCapForm";
+import { NotificationsForm } from "./NotificationsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,24 @@ const AREAS = [
     icon: KeyRound,
     title: "Personal access tokens",
     description: "For the CLI, MCP server, and external agents.",
+  },
+  {
+    href: "/settings/brand",
+    icon: Palette,
+    title: "Brand kit",
+    description: "A reusable identity that seeds every new channel draft.",
+  },
+  {
+    href: "/settings/webhooks",
+    icon: Webhook,
+    title: "Webhooks",
+    description: "Signed real-time events for agents and automation.",
+  },
+  {
+    href: "/settings/privacy",
+    icon: ShieldCheck,
+    title: "Data & privacy",
+    description: "Export everything we hold, or delete your account.",
   },
 ] as const;
 
@@ -59,7 +78,7 @@ export default async function SettingsPage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           Spend caps, authentication, and per-account config for your
-          autocontent workspace.
+          marketer.sh workspace.
         </p>
       </header>
 
@@ -82,6 +101,24 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <SpendCapForm initialCap={user?.global_daily_cap_usd ?? null} />
+        </CardContent>
+      </Card>
+
+      {/* Notifications — inline toggle, saves optimistically. */}
+      <Card className="border-border/60 bg-card/40">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
+            <CardTitle className="text-base font-semibold">
+              Notifications
+            </CardTitle>
+          </div>
+          <CardDescription>
+            Control the emails marketer.sh sends you at the end of a run.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <NotificationsForm initialEnabled={user?.email_notifications ?? true} />
         </CardContent>
       </Card>
 

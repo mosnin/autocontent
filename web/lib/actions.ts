@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { api } from "./api";
 import type { ActionState } from "./action-state";
 import type {
+  Article,
   AyrshareConnectResponse,
   Job,
   Niche,
@@ -193,6 +194,9 @@ export async function enqueueJobAction(
   }
   revalidatePath("/queue");
   revalidatePath("/dashboard");
+  // A new job also changes the niche's recent-jobs table + the niches list.
+  revalidatePath("/niches/[id]", "page");
+  revalidatePath("/niches");
   return { ok: true };
 }
 
@@ -208,6 +212,7 @@ export async function approveJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
   return { ok: true };
 }
 
@@ -223,6 +228,7 @@ export async function rejectJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
   return { ok: true };
 }
 
@@ -238,6 +244,45 @@ export async function retryJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
+  return { ok: true };
+}
+
+export async function createArticleAction(
+  _prev: ActionState & { article?: Article },
+  formData: FormData,
+): Promise<ActionState & { article?: Article }> {
+  const niche_id = String(formData.get("niche_id") || "").trim();
+  if (!niche_id) return { ok: false, error: "niche_id required" };
+  // Topic is optional — the pipeline picks one from the niche when omitted.
+  const topic = String(formData.get("topic") || "").trim();
+  let article: Article;
+  try {
+    article = await api<Article>("/api/v1/articles", {
+      method: "POST",
+      body: JSON.stringify(topic ? { niche_id, topic } : { niche_id }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/articles");
+  return { ok: true, article };
+}
+
+export async function retryArticleAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const article_id = String(formData.get("article_id"));
+  if (!article_id) return { ok: false, error: "article_id required" };
+  try {
+    await api<Article>(`/api/v1/articles/${article_id}/retry`, {
+      method: "POST",
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/articles");
   return { ok: true };
 }
 
@@ -253,13 +298,15 @@ export async function archiveNicheAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/dashboard");
+  revalidatePath("/niches");
+  revalidatePath("/niches/[id]", "page");
   return { ok: true };
 }
 
 export async function createTokenAction(
-  _prev: ActionState,
+  _prev: ActionState & { token?: string },
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState & { token?: string }> {
   const name = String(formData.get("name") || "").trim();
   if (!name) return { ok: false, error: "name required" };
   const expRaw = String(formData.get("expires_in_days") || "").trim();
@@ -280,9 +327,10 @@ export async function createTokenAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/settings/tokens");
-  // The plaintext is shown exactly once via the query param. We could
-  // use cookies but they leak via cache; the URL is fine for a short hop.
-  redirect(`/settings/tokens?just_created=${encodeURIComponent(plaintext)}`);
+  // The plaintext is returned in the action state and rendered
+  // client-side exactly once — it must never enter the URL, logs, or
+  // browser history.
+  return { ok: true, token: plaintext };
 }
 
 export async function revokeTokenAction(
@@ -343,6 +391,23 @@ export async function updateUserSettingsAction(
     return { ok: false, error: errorMessage(e) };
   }
 
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function updateEmailNotificationsAction(
+  enabled: boolean,
+): Promise<ActionState> {
+  // Sends only the email_notifications key so the PATCH never touches the
+  // user's spend-cap safety net (the backend changes only keys present).
+  try {
+    await api<User>("/api/v1/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ email_notifications: enabled }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
   revalidatePath("/settings");
   return { ok: true };
 }

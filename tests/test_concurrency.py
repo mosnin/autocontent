@@ -1,4 +1,4 @@
-"""Tests for autocontent.services.concurrency.
+"""Tests for marketer.services.concurrency.
 
 All tests mock the asyncpg pool/connection layer so no live Postgres is
 required in CI.  The mock faithfully implements try-lock / unlock
@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent.services.concurrency import (
+from marketer.services.concurrency import (
     _niche_key,
     _user_slot_key,
     niche_lock,
@@ -64,7 +64,7 @@ class FakePool:
 def _make_pool_patch(pool: FakePool):
     """Return a context manager that patches get_pool to return *pool*."""
     return patch(
-        "autocontent.services.concurrency.get_pool",
+        "marketer.services.concurrency.get_pool",
         new=AsyncMock(return_value=pool),
     )
 

@@ -15,10 +15,18 @@ import { Reveal } from "@/components/marketing/reveal";
  */
 const SOURCES = ["/showcase/demo-1.mp4", "/showcase/demo-2.mp4", "/showcase/demo-3.mp4"];
 
+/**
+ * The demo files are not checked in (web/public/showcase/ only holds a
+ * README), so probing for them fires three 404s on every marketing-page
+ * visit. Flip this to `true` once real demo videos are installed at the
+ * SOURCES paths above.
+ */
+const SHOWCASE_ENABLED = false;
+
 export function Showcase() {
   const [alive, setAlive] = React.useState<string[]>(SOURCES);
 
-  if (alive.length === 0) return null;
+  if (!SHOWCASE_ENABLED || alive.length === 0) return null;
 
   return (
     <section className="border-y border-border/60 bg-card/20">

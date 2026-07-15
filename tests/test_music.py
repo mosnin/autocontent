@@ -1,4 +1,4 @@
-"""Tests for autocontent.services.music.
+"""Tests for marketer.services.music.
 
 Covers:
 - local library hit (query-token match + duration range)
@@ -12,8 +12,8 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from autocontent.services import music
-from autocontent.services.pixabay_music import Track
+from marketer.services import music
+from marketer.services.pixabay_music import Track
 
 
 def _make_track(
@@ -116,9 +116,9 @@ async def test_remote_fallback_on_empty_library(tmp_path: Path, monkeypatch):
         dest.write_bytes(b"\x00")
         return dest
 
-    monkeypatch.setattr("autocontent.services.music.settings.pixabay_api_key", "test-key")
-    with patch("autocontent.services.music.pixabay_music.search", new=AsyncMock(side_effect=fake_search)):
-        with patch("autocontent.services.music.pixabay_music.download", new=AsyncMock(side_effect=fake_download)):
+    monkeypatch.setattr("marketer.services.music.settings.pixabay_api_key", "test-key")
+    with patch("marketer.services.music.pixabay_music.search", new=AsyncMock(side_effect=fake_search)):
+        with patch("marketer.services.music.pixabay_music.download", new=AsyncMock(side_effect=fake_download)):
             result = await music.pick_track(
                 query="upbeat educational",
                 target_duration_sec=90,
@@ -154,9 +154,9 @@ async def test_remote_fallback_reuses_cached_file(tmp_path: Path, monkeypatch):
         download_called["count"] += 1
         return dest
 
-    monkeypatch.setattr("autocontent.services.music.settings.pixabay_api_key", "test-key")
-    with patch("autocontent.services.music.pixabay_music.search", new=AsyncMock(side_effect=fake_search)):
-        with patch("autocontent.services.music.pixabay_music.download", new=AsyncMock(side_effect=fake_download)):
+    monkeypatch.setattr("marketer.services.music.settings.pixabay_api_key", "test-key")
+    with patch("marketer.services.music.pixabay_music.search", new=AsyncMock(side_effect=fake_search)):
+        with patch("marketer.services.music.pixabay_music.download", new=AsyncMock(side_effect=fake_download)):
             result = await music.pick_track(
                 query="chill",
                 target_duration_sec=90,
@@ -175,7 +175,7 @@ async def test_no_key_and_no_local_returns_none(tmp_path: Path, monkeypatch):
     """Without a Pixabay key and with an empty library, pick_track returns None."""
     lib = tmp_path / "music"
     lib.mkdir()
-    monkeypatch.setattr("autocontent.services.music.settings.pixabay_api_key", "")
+    monkeypatch.setattr("marketer.services.music.settings.pixabay_api_key", "")
 
     result = await music.pick_track(
         query="upbeat", target_duration_sec=60, library_dir=lib,
@@ -187,7 +187,7 @@ async def test_use_remote_false_returns_none_on_empty_library(tmp_path: Path, mo
     """use_remote=False skips Pixabay even when key is present."""
     lib = tmp_path / "music"
     lib.mkdir()
-    monkeypatch.setattr("autocontent.services.music.settings.pixabay_api_key", "test-key")
+    monkeypatch.setattr("marketer.services.music.settings.pixabay_api_key", "test-key")
 
     result = await music.pick_track(
         query="upbeat", target_duration_sec=60, library_dir=lib, use_remote=False,
@@ -198,7 +198,7 @@ async def test_use_remote_false_returns_none_on_empty_library(tmp_path: Path, mo
 async def test_missing_library_returns_none(tmp_path: Path, monkeypatch):
     """A missing library_dir is handled gracefully — returns None."""
     missing = tmp_path / "does_not_exist"
-    monkeypatch.setattr("autocontent.services.music.settings.pixabay_api_key", "")
+    monkeypatch.setattr("marketer.services.music.settings.pixabay_api_key", "")
 
     result = await music.pick_track(
         query="upbeat", target_duration_sec=30, library_dir=missing,
@@ -208,16 +208,16 @@ async def test_missing_library_returns_none(tmp_path: Path, monkeypatch):
 
 async def test_pixabay_error_returns_none(tmp_path: Path, monkeypatch):
     """A PixabayError during search should log a warning and return None."""
-    from autocontent.services.pixabay_music import PixabayError
+    from marketer.services.pixabay_music import PixabayError
 
     lib = tmp_path / "music"
     lib.mkdir()
-    monkeypatch.setattr("autocontent.services.music.settings.pixabay_api_key", "bad-key")
+    monkeypatch.setattr("marketer.services.music.settings.pixabay_api_key", "bad-key")
 
     async def raise_error(*args, **kwargs):
         raise PixabayError(401, "invalid API key")
 
-    with patch("autocontent.services.music.pixabay_music.search", new=AsyncMock(side_effect=raise_error)):
+    with patch("marketer.services.music.pixabay_music.search", new=AsyncMock(side_effect=raise_error)):
         result = await music.pick_track(
             query="upbeat", target_duration_sec=60, library_dir=lib,
         )

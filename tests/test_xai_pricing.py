@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from autocontent.services.xai_pricing import imagine_video_cost
+from marketer.services.xai_pricing import imagine_video_cost
 
 
 def test_imagine_video_cost_per_second():

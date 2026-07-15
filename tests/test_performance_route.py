@@ -17,7 +17,7 @@ from decimal import Decimal
 from uuid import UUID
 
 
-from autocontent.models import (
+from marketer.models import (
     Job,
     JobStatus,
     Niche,
@@ -115,7 +115,7 @@ def _reset_limiter():
 
 def _make_authed_client(monkeypatch):
     from fastapi.testclient import TestClient
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
@@ -153,10 +153,10 @@ def test_performance_returns_200_with_merged_data(monkeypatch):
     """3 jobs, 2 with metrics → summary aggregates correctly, all 3 in list."""
     _reset_limiter()
 
-    import autocontent.repos.niches as niches_repo
-    import autocontent.repos.jobs as jobs_repo
-    import autocontent.repos.spend as spend_repo
-    import autocontent.repos.post_metrics as post_metrics_repo
+    import marketer.repos.niches as niches_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.spend as spend_repo
+    import marketer.repos.post_metrics as post_metrics_repo
 
     fake_jobs = _make_jobs()
     fake_niche = _make_niche()
@@ -194,7 +194,7 @@ def test_performance_returns_200_with_merged_data(monkeypatch):
 
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}/performance",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
 
     assert resp.status_code == 200
@@ -243,10 +243,10 @@ def test_performance_days_param_filters_window(monkeypatch):
     """days=1 excludes jobs older than 1 day."""
     _reset_limiter()
 
-    import autocontent.repos.niches as niches_repo
-    import autocontent.repos.jobs as jobs_repo
-    import autocontent.repos.spend as spend_repo
-    import autocontent.repos.post_metrics as post_metrics_repo
+    import marketer.repos.niches as niches_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.spend as spend_repo
+    import marketer.repos.post_metrics as post_metrics_repo
 
     now = datetime.now(timezone.utc)
     recent_job = Job(
@@ -286,7 +286,7 @@ def test_performance_days_param_filters_window(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}/performance?days=1",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -301,7 +301,7 @@ def test_performance_invalid_days_returns_422(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}/performance?days=0",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 422
 
@@ -312,7 +312,7 @@ def test_performance_negative_days_returns_422(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}/performance?days=-5",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 422
 
@@ -321,7 +321,7 @@ def test_performance_other_users_niche_returns_404(monkeypatch):
     """Niche owned by a different user → 404."""
     _reset_limiter()
 
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     async def _get_niche(niche_id, *, user_id):
         # Simulate ownership isolation — return None for any request.
@@ -332,7 +332,7 @@ def test_performance_other_users_niche_returns_404(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}/performance",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 404
 
@@ -341,8 +341,8 @@ def test_performance_empty_niche_returns_empty_summary(monkeypatch):
     """Niche with no jobs in window → empty jobs list and zero summary."""
     _reset_limiter()
 
-    import autocontent.repos.niches as niches_repo
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    import marketer.repos.jobs as jobs_repo
 
     async def _get_niche(niche_id, *, user_id):
         return _make_niche()
@@ -356,7 +356,7 @@ def test_performance_empty_niche_returns_empty_summary(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}/performance",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     data = resp.json()

@@ -4,6 +4,8 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
+  Coins,
+  FileText,
   KeyRound,
   LayoutDashboard,
   Link2,
@@ -77,11 +79,17 @@ export function CommandPalette() {
           <CommandItem onSelect={() => go("/queue")}>
             <ListChecks className="text-muted-foreground" /> Queue
           </CommandItem>
+          <CommandItem onSelect={() => go("/articles")}>
+            <FileText className="text-muted-foreground" /> Articles
+          </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
             <Link2 className="text-muted-foreground" /> Connect socials
           </CommandItem>
-          <CommandItem onSelect={() => go("/settings/tokens")}>
+          <CommandItem onSelect={() => go("/settings")}>
             <Settings className="text-muted-foreground" /> Settings
+          </CommandItem>
+          <CommandItem onSelect={() => go("/settings/billing")}>
+            <Coins className="text-muted-foreground" /> Billing
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
             <KeyRound className="text-muted-foreground" /> Tokens
@@ -93,6 +101,9 @@ export function CommandPalette() {
         <CommandGroup heading="Actions" className={KICKER}>
           <CommandItem onSelect={() => go("/onboarding")}>
             <Plus className="text-muted-foreground" /> Create niche
+          </CommandItem>
+          <CommandItem onSelect={() => go("/articles?new=1")}>
+            <FileText className="text-muted-foreground" /> New article
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
             <Link2 className="text-muted-foreground" /> Connect socials
@@ -136,7 +147,7 @@ export function CommandPalette() {
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
             <span className="relative inline-flex size-2 rounded-full bg-brand" />
           </span>
-          autocontent
+          marketer.sh
         </span>
       </div>
     </CommandDialog>

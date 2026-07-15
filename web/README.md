@@ -1,6 +1,6 @@
 # web
 
-Next.js (App Router) UI for autocontent. Clerk handles auth and forwards
+Next.js (App Router) UI for marketer. Clerk handles auth and forwards
 the session JWT to the Modal-hosted FastAPI backend.
 
 ## Setup

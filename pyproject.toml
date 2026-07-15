@@ -1,5 +1,5 @@
 [project]
-name = "autocontent"
+name = "marketer-sh"
 version = "0.1.0"
 description = "Autonomous short-form content creation system"
 requires-python = ">=3.11"
@@ -31,9 +31,9 @@ dependencies = [
 ]
 
 [project.scripts]
-autocontent = "autocontent.cli:main"
-autocontent-mcp = "autocontent.mcp_server:main"
-autocontent-migrate = "scripts.migrate:main"
+marketer = "marketer.cli:main"
+marketer-mcp = "marketer.mcp_server:main"
+marketer-migrate = "scripts.migrate:main"
 
 [project.optional-dependencies]
 dev = [
@@ -53,7 +53,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src", "."]
-include = ["autocontent*", "scripts*"]
+include = ["marketer*", "scripts*"]
 
 [tool.ruff]
 line-length = 100

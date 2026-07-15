@@ -11,7 +11,7 @@ from uuid import UUID
 
 from fastapi.testclient import TestClient
 
-from autocontent.models import Niche, PostingWindow
+from marketer.models import Niche, PostingWindow
 
 # ---------------------------------------------------------------------------
 # Constants / helpers shared across tests
@@ -63,7 +63,7 @@ def _reset_limiter():
 
 
 def _make_authed_client(monkeypatch) -> TestClient:
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -85,7 +85,7 @@ def _make_authed_client(monkeypatch) -> TestClient:
 def test_list_niches_returns_200_empty(monkeypatch):
     """Empty list is a valid response."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     async def _list(user_id: str):
         return []
@@ -93,7 +93,7 @@ def test_list_niches_returns_200_empty(monkeypatch):
     monkeypatch.setattr(niches_repo, "list_for_user", _list)
 
     client = _make_authed_client(monkeypatch)
-    resp = client.get("/api/v1/niches", headers={"Authorization": "Bearer act_tok"})
+    resp = client.get("/api/v1/niches", headers={"Authorization": "Bearer mkt_tok"})
     assert resp.status_code == 200
     assert resp.json() == []
 
@@ -101,7 +101,7 @@ def test_list_niches_returns_200_empty(monkeypatch):
 def test_list_niches_returns_owned_niches(monkeypatch):
     """Returns niches owned by the authenticated user."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     niche = _make_niche()
 
@@ -112,7 +112,7 @@ def test_list_niches_returns_owned_niches(monkeypatch):
     monkeypatch.setattr(niches_repo, "list_for_user", _list)
 
     client = _make_authed_client(monkeypatch)
-    resp = client.get("/api/v1/niches", headers={"Authorization": "Bearer act_tok"})
+    resp = client.get("/api/v1/niches", headers={"Authorization": "Bearer mkt_tok"})
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 1
@@ -122,7 +122,7 @@ def test_list_niches_returns_owned_niches(monkeypatch):
 def test_list_niches_without_auth_returns_401(monkeypatch):
     """No auth header → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -139,7 +139,7 @@ def test_list_niches_without_auth_returns_401(monkeypatch):
 def test_create_niche_returns_201(monkeypatch):
     """Valid payload → 201 with returned niche fields."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     async def _create(user_id: str, **kwargs) -> Niche:
         return _make_niche()
@@ -150,7 +150,7 @@ def test_create_niche_returns_201(monkeypatch):
     resp = client.post(
         "/api/v1/niches",
         json=_VALID_PAYLOAD,
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 201
     data = resp.json()
@@ -167,7 +167,36 @@ def test_create_niche_missing_field_returns_422(monkeypatch):
     resp = client.post(
         "/api/v1/niches",
         json=bad_payload,
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+
+
+def test_create_niche_rejects_non_positive_cap(monkeypatch):
+    """A zero/negative daily cap is refused — it would trip the spend guard
+    on the first metered call and fail every run for the niche."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+
+    for bad in ("0", "0.00", "-1"):
+        payload = {**_VALID_PAYLOAD, "daily_spend_cap_usd": bad}
+        resp = client.post(
+            "/api/v1/niches",
+            json=payload,
+            headers={"Authorization": "Bearer mkt_tok"},
+        )
+        assert resp.status_code == 422, bad
+
+
+def test_update_niche_rejects_non_positive_cap(monkeypatch):
+    """Partial update path enforces the same positive-cap invariant."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+
+    resp = client.put(
+        f"/api/v1/niches/{_NICHE_ID}",
+        json={"daily_spend_cap_usd": "0"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 422
 
@@ -175,7 +204,7 @@ def test_create_niche_missing_field_returns_422(monkeypatch):
 def test_create_niche_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -192,7 +221,7 @@ def test_create_niche_without_auth_returns_401(monkeypatch):
 def test_get_niche_returns_200_for_owned(monkeypatch):
     """Niche owned by user → 200."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     niche = _make_niche()
 
@@ -206,7 +235,7 @@ def test_get_niche_returns_200_for_owned(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     assert resp.json()["id"] == str(_NICHE_ID)
@@ -215,7 +244,7 @@ def test_get_niche_returns_200_for_owned(monkeypatch):
 def test_get_niche_returns_404_for_other_user(monkeypatch):
     """Niche owned by another user → 404 (scope isolation)."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     # Repo returns None when user_id doesn't match (ownership check).
     async def _get(niche_id: UUID, *, user_id: str) -> Niche | None:
@@ -226,7 +255,7 @@ def test_get_niche_returns_404_for_other_user(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/niches/{_NICHE_ID}",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 404
 
@@ -234,7 +263,7 @@ def test_get_niche_returns_404_for_other_user(monkeypatch):
 def test_get_niche_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -251,7 +280,7 @@ def test_get_niche_without_auth_returns_401(monkeypatch):
 def test_update_niche_changes_title(monkeypatch):
     """PUT with only title returns updated niche; other fields preserved."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     updated = _make_niche()
     updated.title = "Updated Title"
@@ -266,7 +295,7 @@ def test_update_niche_changes_title(monkeypatch):
     resp = client.put(
         f"/api/v1/niches/{_NICHE_ID}",
         json={"title": "Updated Title"},
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     assert resp.json()["title"] == "Updated Title"
@@ -275,7 +304,7 @@ def test_update_niche_changes_title(monkeypatch):
 def test_update_niche_returns_404_when_not_found(monkeypatch):
     """PUT on non-owned niche → 404."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     async def _update(niche_id: UUID, *, user_id: str, **fields) -> Niche | None:
         return None
@@ -286,7 +315,7 @@ def test_update_niche_returns_404_when_not_found(monkeypatch):
     resp = client.put(
         f"/api/v1/niches/{_NICHE_ID}",
         json={"title": "x"},
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 404
 
@@ -298,7 +327,7 @@ def test_update_niche_returns_404_when_not_found(monkeypatch):
 def test_delete_niche_returns_204(monkeypatch):
     """DELETE returns 204 No Content."""
     _reset_limiter()
-    import autocontent.repos.niches as niches_repo
+    import marketer.repos.niches as niches_repo
 
     archived: list[UUID] = []
 
@@ -310,7 +339,7 @@ def test_delete_niche_returns_204(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.delete(
         f"/api/v1/niches/{_NICHE_ID}",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 204
     assert _NICHE_ID in archived
@@ -319,7 +348,7 @@ def test_delete_niche_returns_204(monkeypatch):
 def test_delete_niche_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 

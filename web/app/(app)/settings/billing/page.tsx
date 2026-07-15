@@ -1,3 +1,6 @@
+import { AlertTriangle } from "lucide-react";
+
+import { Card, CardContent } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { BillingBalance } from "@/lib/types";
 import { BillingClient } from "./BillingClient";
@@ -5,7 +8,14 @@ import { BillingClient } from "./BillingClient";
 export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
-  const balance = await api<BillingBalance>("/api/v1/billing/balance");
+  // Best-effort: a backend 5xx must not throw the whole route to the error
+  // boundary — render an in-page fallback instead.
+  let balance: BillingBalance | null = null;
+  try {
+    balance = await api<BillingBalance>("/api/v1/billing/balance");
+  } catch {
+    // fall through to the graceful fallback below
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
@@ -16,15 +26,39 @@ export default async function BillingPage() {
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
           Pipeline credits
         </h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Videos draw down prepaid credit at provider cost plus a{" "}
-          {Math.round((balance.margin - 1) * 100)}% infrastructure margin.
-          The spend guard refuses any call your balance can&apos;t cover —
-          you can never owe us money.
-        </p>
+        {balance ? (
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Videos draw down prepaid credit at provider cost plus a{" "}
+            {Math.round((balance.margin - 1) * 100)}% infrastructure margin.
+            The spend guard refuses any call your balance can&apos;t cover —
+            you can never owe us money.
+          </p>
+        ) : (
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Videos draw down prepaid credit; the spend guard refuses any call
+            your balance can&apos;t cover.
+          </p>
+        )}
       </div>
 
-      <BillingClient initial={balance} />
+      {balance ? (
+        <BillingClient initial={balance} />
+      ) : (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex items-start gap-3 pt-6">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <div className="font-medium">
+                Couldn&apos;t load your billing right now
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                We hit a problem reaching the billing service. Your credit is
+                safe — refresh in a moment to try again.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

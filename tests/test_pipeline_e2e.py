@@ -16,9 +16,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent import pipeline
-from autocontent.agents.qa import QAReport
-from autocontent.models import (
+from marketer import pipeline
+from marketer.agents.qa import QAReport
+from marketer.models import (
     Idea,
     Job,
     JobStatus,
@@ -28,7 +28,7 @@ from autocontent.models import (
     Script,
     User,
 )
-from autocontent.repos.spend import SpendCapExceeded
+from marketer.repos.spend import SpendCapExceeded
 
 USER_ID = "user_e2e"
 NICHE_ID = UUID("00000000-0000-0000-0000-000000000abc")
@@ -113,7 +113,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
     monkeypatch.setattr(pipeline.spend_repo, "assert_within_cap", fake_assert_within_cap)
 
     # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
 
     async def fake_users_get(user_id: str):
@@ -144,20 +144,20 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context=""):
+    async def fake_ideation(title, *, performance_context="", spend=None):
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style):
+    async def fake_visual_director(script, *, visual_style, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 
@@ -291,17 +291,20 @@ async def test_scriptwriter_failure_marks_job_failed(monkeypatch, stub_all):
         raise RuntimeError("scriptwriter exploded")
     monkeypatch.setattr(pipeline, "run_scriptwriter", boom)
 
-    with pytest.raises(RuntimeError, match="scriptwriter exploded"):
-        await pipeline.run_job(
-            user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
-        )
+    # The terminal backstop converts unhandled stage exceptions into a
+    # failed job (no more unretryable zombie rows stuck mid-status).
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.failed
+    assert "scriptwriter exploded" in (job.error or "")
 
-    # The job snapshot taken right before the failing call should still
-    # have been persisted; check the last saved state.
+    # The terminal state must also be what was persisted — a failed job
+    # the queue can retry, not a row stranded at `scripting`.
     saved = stub_all["saved"]
     final_state = next(iter(saved.values()))
-    # Last persisted status before exception was `scripting`.
-    assert final_state.status == JobStatus.scripting
+    assert final_state.status == JobStatus.failed
+    assert "scriptwriter exploded" in (final_state.error or "")
 
 
 async def test_spend_cap_overshoot_during_fan_out(monkeypatch, stub_all, stage_log):
@@ -331,7 +334,7 @@ async def test_spend_cap_overshoot_during_fan_out(monkeypatch, stub_all, stage_l
 
 
 async def test_qa_failure_marks_job_failed(monkeypatch, stub_all):
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(
             passed=False, issues=["off-topic", "low energy"],
             suggested_action="regenerate_script",
@@ -385,3 +388,43 @@ async def test_approval_gate_parks_job_before_scheduling(stub_all, stage_log):
     assert job.provider_post_id is None  # scheduler never ran
     assert "scheduling" not in stage_log
     assert "awaiting_approval" in stage_log
+
+
+# --------------------------------------------------------------------------- notifications
+
+async def test_notify_respects_email_optout(monkeypatch):
+    """_notify sends when the user is opted in, and stays silent when they've
+    turned email notifications off — without ever touching job state."""
+    from datetime import datetime, timezone
+
+    import marketer.repos.users as _users_repo
+    from marketer.services import email as email_svc
+
+    sent: list[str] = []
+
+    async def fake_send_email(*, to, subject, html):
+        sent.append(subject)
+        return True
+
+    monkeypatch.setattr(email_svc, "send_email", fake_send_email)
+
+    job = Job(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+        status=JobStatus.failed,
+    )
+
+    async def opted_in(user_id):
+        return User(id=user_id, email="a@a.com", email_notifications=True,
+                    created_at=datetime.now(timezone.utc))
+
+    monkeypatch.setattr(_users_repo, "get", opted_in)
+    await pipeline._notify(job, kind="failed")
+    assert len(sent) == 1
+
+    async def opted_out(user_id):
+        return User(id=user_id, email="a@a.com", email_notifications=False,
+                    created_at=datetime.now(timezone.utc))
+
+    monkeypatch.setattr(_users_repo, "get", opted_out)
+    await pipeline._notify(job, kind="failed")
+    assert len(sent) == 1  # unchanged — opted-out user got nothing

@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { ArrowRight, Loader2, Pencil, Sparkles } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Power } from "@/components/marketing/power";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { draftNicheAction, type NicheDraft } from "@/lib/actions";
@@ -54,12 +53,9 @@ export function OnboardingEntry() {
     return (
       <div className="space-y-4">
         {prefill && (
-          <div className="flex items-center gap-2 rounded-lg border border-brand/30 bg-brand/5 px-4 py-2.5 text-sm">
-            <Sparkles className="size-4 shrink-0 text-brand" />
-            <span className="text-muted-foreground">
-              Drafted from your description — tweak anything, then set the
-              schedule and cap.
-            </span>
+          <div className="rounded-lg border border-border/60 bg-card/40 px-4 py-2.5 text-sm text-muted-foreground">
+            Drafted from your description — tweak anything, then set the schedule
+            and cap.
           </div>
         )}
         <OnboardingForm prefill={prefill} startStep={startStep} />
@@ -69,20 +65,16 @@ export function OnboardingEntry() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-border/60 bg-card/40 p-6 sm:p-8">
-        <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-          Start here
-        </p>
-        <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tight sm:text-3xl">
-          Describe your channel in <Power>one sentence</Power>.
-        </h2>
-        <p className="mt-2 max-w-lg text-sm text-muted-foreground">
-          The machine drafts the title, audience, visual style, voice, and
-          cadence. You review, set a budget, and launch.
-        </p>
-
+      <div className="rounded-2xl bg-card/40 p-6 sm:p-8">
+        <label
+          htmlFor="channel-sentence"
+          className="text-sm font-medium text-foreground"
+        >
+          Describe your channel in one sentence
+        </label>
         <Textarea
-          className="mt-6 min-h-24 resize-none text-base"
+          id="channel-sentence"
+          className="mt-3 min-h-24 resize-none text-base"
           disabled={drafting}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -114,10 +106,7 @@ export function OnboardingEntry() {
                 Drafting your channel…
               </>
             ) : (
-              <>
-                <Sparkles className="size-4" />
-                Draft my channel
-              </>
+              "Draft my channel"
             )}
           </Button>
           <Button
@@ -130,9 +119,7 @@ export function OnboardingEntry() {
             size="lg"
             variant="ghost"
           >
-            <Pencil className="size-4" />
             Fill it in myself
-            <ArrowRight className="size-4" />
           </Button>
         </div>
       </div>

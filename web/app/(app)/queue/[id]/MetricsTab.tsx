@@ -76,6 +76,28 @@ export function MetricsTab({ metrics, providerPostId }: Props) {
 
   const { latest, history } = metrics;
 
+  // Secondary engagement metrics the API returns but we don't front on
+  // the primary row. Only surface a tile when its value is present.
+  const extraTiles: { label: string; value: string }[] = [];
+  if (latest.comments !== null)
+    extraTiles.push({ label: "Comments", value: fmtNum(latest.comments) });
+  if (latest.shares !== null)
+    extraTiles.push({ label: "Shares", value: fmtNum(latest.shares) });
+  if (latest.saves !== null)
+    extraTiles.push({ label: "Saves", value: fmtNum(latest.saves) });
+  if (latest.reach !== null)
+    extraTiles.push({ label: "Reach", value: fmtNum(latest.reach) });
+  if (latest.impressions !== null)
+    extraTiles.push({
+      label: "Impressions",
+      value: fmtNum(latest.impressions),
+    });
+  if (latest.watch_time_sec !== null)
+    extraTiles.push({
+      label: "Total watch time",
+      value: fmtWatchTime(latest.watch_time_sec),
+    });
+
   // Build chart data from history (views over time, sorted ascending).
   const chartData = [...history]
     .sort((a, b) => a.sampled_at.localeCompare(b.sampled_at))
@@ -99,6 +121,15 @@ export function MetricsTab({ metrics, providerPostId }: Props) {
         />
         <StatTile label="Likes" value={fmtNum(latest.likes)} />
       </div>
+
+      {/* Secondary engagement — comments, shares, saves, reach, etc. */}
+      {extraTiles.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {extraTiles.map((tile) => (
+            <StatTile key={tile.label} label={tile.label} value={tile.value} />
+          ))}
+        </div>
+      )}
 
       {/* Views over time — animated line-chart engine, brand-lit line. */}
       {chartData.length > 1 && (

@@ -9,9 +9,9 @@ from unittest.mock import MagicMock, patch
 
 
 def _reset_logging_module():
-    """Reset the module-level flags in autocontent.logging so each test
+    """Reset the module-level flags in marketer.logging so each test
     starts from a clean slate."""
-    import autocontent.logging as _logging_mod
+    import marketer.logging as _logging_mod
 
     _logging_mod._configured = False
     _logging_mod._sentry_inited = False
@@ -19,13 +19,13 @@ def _reset_logging_module():
 
 def test_configure_with_empty_dsn_does_not_call_sentry_init(monkeypatch):
     """When sentry_dsn is empty, sentry_sdk.init must never be called."""
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "sentry_dsn", "")
     _reset_logging_module()
 
     mock_sentry = MagicMock()
     with patch.dict("sys.modules", {"sentry_sdk": mock_sentry}):
-        from autocontent import logging as _logging_mod
+        from marketer import logging as _logging_mod
         # Re-import to pick up the patched sys.modules path
         _logging_mod._configured = False
         _logging_mod._sentry_inited = False
@@ -37,7 +37,7 @@ def test_configure_with_empty_dsn_does_not_call_sentry_init(monkeypatch):
 def test_configure_with_dsn_calls_sentry_init_once(monkeypatch):
     """When sentry_dsn is set, sentry_sdk.init is called exactly once even
     if configure() is invoked multiple times."""
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "sentry_dsn", "https://key@sentry.io/123")
     monkeypatch.setattr(settings, "sentry_environment", "test")
     monkeypatch.setattr(settings, "sentry_traces_sample_rate", 0.0)
@@ -52,7 +52,7 @@ def test_configure_with_dsn_calls_sentry_init_once(monkeypatch):
         "sentry_sdk.integrations": mock_sentry.integrations,
         "sentry_sdk.integrations.logging": mock_sentry.integrations.logging,
     }):
-        import autocontent.logging as _logging_mod
+        import marketer.logging as _logging_mod
         _logging_mod._configured = False
         _logging_mod._sentry_inited = False
 
@@ -67,11 +67,11 @@ def test_configure_with_dsn_calls_sentry_init_once(monkeypatch):
 
 
 def test_fail_with_calls_capture_exception(monkeypatch):
-    """_fail_with should invoke sentry_sdk.capture_exception so failed job
-    pipeline stages are forwarded to Sentry."""
+    """_fail_with forwards failures to Sentry: capture_message when only a
+    string is known, capture_exception when the exception object is passed."""
     from uuid import uuid4, UUID
-    from autocontent.models import Job, JobStatus
-    from autocontent.config import settings
+    from marketer.models import Job, JobStatus
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "sentry_dsn", "https://key@sentry.io/123")
 
@@ -90,17 +90,20 @@ def test_fail_with_calls_capture_exception(monkeypatch):
     async def _noop(j: Job) -> None:
         pass
 
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
     monkeypatch.setattr(jobs_repo, "save_snapshot", _noop)
 
     import importlib
 
     with patch.dict("sys.modules", {"sentry_sdk": mock_sentry}):
         # Force pipeline to reload with the patched sentry_sdk
-        import autocontent.pipeline as pipeline_mod
+        import marketer.pipeline as pipeline_mod
         importlib.reload(pipeline_mod)
 
         import asyncio
         asyncio.run(pipeline_mod._fail_with(job, "test error"))
+        # With an exception object, capture_exception is used instead.
+        asyncio.run(pipeline_mod._fail_with(job, "boom", RuntimeError("boom")))
 
+    assert mock_sentry.capture_message.called
     assert mock_sentry.capture_exception.called

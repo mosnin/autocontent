@@ -23,9 +23,9 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.util._once import Once
 
-from autocontent import pipeline
-from autocontent.agents.qa import QAReport
-from autocontent.models import (
+from marketer import pipeline
+from marketer.agents.qa import QAReport
+from marketer.models import (
     Idea,
     Job,
     JobStatus,
@@ -140,9 +140,9 @@ def stub_pipeline(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline.spend_repo, "today_spend_total_usd", fake_today_total)
 
     # users_repo.get is called inside default_context to pull the global cap.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
-    from autocontent.models import User
+    from marketer.models import User
 
     async def fake_users_get(user_id: str):
         return User(
@@ -172,7 +172,7 @@ def stub_pipeline(monkeypatch, tmp_path: Path):
         return root
     monkeypatch.setattr(pipeline, "ensure_layout", fake_layout)
 
-    async def fake_ideation(title, *, performance_context: str = ""):
+    async def fake_ideation(title, *, performance_context: str = "", spend=None):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
@@ -180,15 +180,15 @@ def stub_pipeline(monkeypatch, tmp_path: Path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_perf_ctx)
 
-    async def fake_script(idea, *, scene_count, target_duration_sec):
+    async def fake_script(idea, *, scene_count, target_duration_sec, spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_script)
 
-    async def fake_vd(script, *, visual_style):
+    async def fake_vd(script, *, visual_style, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 
@@ -289,15 +289,15 @@ async def test_root_span_carries_job_attributes(in_memory_provider, stub_pipelin
     root = next(s for s in spans if s.name == "pipeline.run_job")
     attrs = dict(root.attributes or {})
 
-    assert attrs.get("autocontent.user_id") == USER_ID
-    assert attrs.get("autocontent.niche_id") == str(NICHE_ID)
-    assert attrs.get("autocontent.platform") == "tiktok"
-    assert "autocontent.job_id" in attrs
-    assert attrs.get("autocontent.job_status") == JobStatus.done.value
+    assert attrs.get("marketer.user_id") == USER_ID
+    assert attrs.get("marketer.niche_id") == str(NICHE_ID)
+    assert attrs.get("marketer.platform") == "tiktok"
+    assert "marketer.job_id" in attrs
+    assert attrs.get("marketer.job_status") == JobStatus.done.value
 
 
 async def test_stage_spans_carry_stage_attribute(in_memory_provider, stub_pipeline):
-    """Each pipeline.stage.* span must have autocontent.stage set."""
+    """Each pipeline.stage.* span must have marketer.stage set."""
     await pipeline.run_job(user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok")
 
     spans = in_memory_provider.get_finished_spans()
@@ -306,12 +306,12 @@ async def test_stage_spans_carry_stage_attribute(in_memory_provider, stub_pipeli
 
     for s in stage_spans:
         attrs = dict(s.attributes or {})
-        assert "autocontent.stage" in attrs, (
-            f"span {s.name!r} missing autocontent.stage attribute"
+        assert "marketer.stage" in attrs, (
+            f"span {s.name!r} missing marketer.stage attribute"
         )
         # Attribute value matches the suffix of the span name.
         expected_stage = s.name[len("pipeline.stage."):]
-        assert attrs["autocontent.stage"] == expected_stage
+        assert attrs["marketer.stage"] == expected_stage
 
 
 async def test_exception_in_stage_records_error_status(in_memory_provider, monkeypatch, stub_pipeline):
@@ -321,8 +321,9 @@ async def test_exception_in_stage_records_error_status(in_memory_provider, monke
 
     monkeypatch.setattr(pipeline, "run_scriptwriter", boom)
 
-    with pytest.raises(RuntimeError, match="scripting exploded"):
-        await pipeline.run_job(user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok")
+    job = await pipeline.run_job(user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok")
+    assert job.status.value == "failed"
+    assert "scripting exploded" in (job.error or "")
 
     spans = in_memory_provider.get_finished_spans()
     # Both the stage span and the root span should be ERROR.

@@ -9,8 +9,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent.agents.performance_context import build_performance_context
-from autocontent.models import Idea, Job, JobStatus, Script, Scene
+from marketer.agents.performance_context import build_performance_context
+from marketer.models import Idea, Job, JobStatus, Script, Scene
 
 
 # ---------------------------------------------------------------------------
@@ -75,8 +75,8 @@ async def test_renders_top_and_bottom_sections(monkeypatch):
             return _make_job(bottom_id, "Inflation basics 101", "inflation basics")
         return None
 
-    import autocontent.repos.post_metrics as _pm
-    import autocontent.repos.jobs as _jobs
+    import marketer.repos.post_metrics as _pm
+    import marketer.repos.jobs as _jobs
 
     monkeypatch.setattr(_pm, "top_performers_for_niche", fake_top)
     monkeypatch.setattr(_pm, "bottom_performers_for_niche", fake_bottom)
@@ -102,7 +102,7 @@ async def test_cold_start_returns_empty_string(monkeypatch):
     async def fake_bottom(niche_id, *, user_id, limit, days):
         return []
 
-    import autocontent.repos.post_metrics as _pm
+    import marketer.repos.post_metrics as _pm
 
     monkeypatch.setattr(_pm, "top_performers_for_niche", fake_top)
     monkeypatch.setattr(_pm, "bottom_performers_for_niche", fake_bottom)
@@ -129,8 +129,8 @@ async def test_missing_job_is_skipped_not_crashed(monkeypatch):
             return _make_job(real_id, "You're saving wrong", "savings psychology")
         return None  # ghost_id → not found
 
-    import autocontent.repos.post_metrics as _pm
-    import autocontent.repos.jobs as _jobs
+    import marketer.repos.post_metrics as _pm
+    import marketer.repos.jobs as _jobs
 
     monkeypatch.setattr(_pm, "top_performers_for_niche", fake_top)
     monkeypatch.setattr(_pm, "bottom_performers_for_niche", fake_bottom)
@@ -166,8 +166,8 @@ async def test_job_without_script_is_skipped(monkeypatch):
             script=None,
         )
 
-    import autocontent.repos.post_metrics as _pm
-    import autocontent.repos.jobs as _jobs
+    import marketer.repos.post_metrics as _pm
+    import marketer.repos.jobs as _jobs
 
     monkeypatch.setattr(_pm, "top_performers_for_niche", fake_top)
     monkeypatch.setattr(_pm, "bottom_performers_for_niche", fake_bottom)
@@ -194,8 +194,8 @@ async def test_section_ordering_and_numbering(monkeypatch):
         idx = ids.index(job_id)
         return _make_job(job_id, f"hook {idx}", f"topic {idx}")
 
-    import autocontent.repos.post_metrics as _pm
-    import autocontent.repos.jobs as _jobs
+    import marketer.repos.post_metrics as _pm
+    import marketer.repos.jobs as _jobs
 
     monkeypatch.setattr(_pm, "top_performers_for_niche", fake_top)
     monkeypatch.setattr(_pm, "bottom_performers_for_niche", fake_bottom)

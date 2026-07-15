@@ -8,11 +8,11 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from autocontent.config import settings
-from autocontent.logging import configure as _configure_logging
+from marketer.config import settings
+from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import billing, connect, healthz, jobs, metrics, niches, performance, spend, tokens, users, voices, webhooks
+from .routes import admin, ads, articles, billing, brand_kit, calendar, connect, healthz, jobs, metrics, niches, performance, spend, tokens, users, voices, webhook_endpoints, webhooks, x402
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def _parse_origins(raw: str) -> list[str]:
 def create_app() -> FastAPI:
     _configure_logging()
 
-    app = FastAPI(title="autocontent api", version="0.1.0")
+    app = FastAPI(title="marketer api", version="0.1.0")
 
     # ── Rate limiting (must be registered before CORS middleware) ─────────────
     app.state.limiter = limiter
@@ -37,7 +37,7 @@ def create_app() -> FastAPI:
         allow_credentials = True
     else:
         logger.warning(
-            "AUTOCONTENT_WEB_ORIGIN not set; falling back to '*' with "
+            "MARKETER_WEB_ORIGIN not set; falling back to '*' with "
             "allow_credentials=False. Configure for production."
         )
         allow_origins = ["*"]
@@ -56,6 +56,12 @@ def create_app() -> FastAPI:
     app.include_router(niches.router, prefix="/api/v1/niches", tags=["niches"])
     app.include_router(performance.router, prefix="/api/v1/niches", tags=["performance"])
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
+    app.include_router(articles.router, prefix="/api/v1/articles", tags=["articles"])
+    app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
+    app.include_router(ads.router, prefix="/api/v1/ads", tags=["ads"])
+    app.include_router(calendar.router, prefix="/api/v1/calendar", tags=["calendar"])
+    app.include_router(brand_kit.router, prefix="/api/v1/brand-kit", tags=["brand-kit"])
+    app.include_router(webhook_endpoints.router, prefix="/api/v1/webhook-endpoints", tags=["webhooks-out"])
     app.include_router(spend.router, prefix="/api/v1/spend", tags=["spend"])
     app.include_router(connect.router, prefix="/api/v1/connect", tags=["connect"])
     app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
@@ -63,6 +69,16 @@ def create_app() -> FastAPI:
     app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
     app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
     app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
+    app.include_router(x402.router, prefix="/api/v1/x402", tags=["x402"])
+
+    # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
+    # when enabled this serves the functions at /api/inngest.
+    try:
+        from marketer.services import inngest_app
+
+        inngest_app.mount(app)
+    except Exception:  # noqa: BLE001 — workflow wiring must never break boot
+        logger.warning("inngest mount skipped", exc_info=True)
 
     # ── OpenTelemetry FastAPI per-app instrumentation ──────────────────────
     # Called AFTER routes are registered so the instrumentor captures the

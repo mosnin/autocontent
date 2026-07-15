@@ -16,8 +16,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent import pipeline
-from autocontent.models import Job, JobStatus, Niche, PostingWindow
+from marketer import pipeline
+from marketer.models import Job, JobStatus, Niche, PostingWindow
 
 USER_ID = "user_skip_test"
 NICHE_ID = UUID("00000000-0000-0000-0000-000000000077")
@@ -134,8 +134,8 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
 
     # Minimal stubs so the pipeline body doesn't hit real providers.
     from decimal import Decimal
-    from autocontent.agents.qa import QAReport
-    from autocontent.models import (
+    from marketer.agents.qa import QAReport
+    from marketer.models import (
         Clip, Idea, Script, Scene,
     )
 
@@ -156,9 +156,9 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline.spend_repo, "record", fake_record)
 
     # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
-    from autocontent.models import User
+    from marketer.models import User
 
     async def fake_users_get(user_id: str):
         return User(
@@ -180,7 +180,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context=""):
+    async def fake_ideation(title, *, performance_context="", spend=None):
         return Idea(topic="t", angle="a", hook="h",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
@@ -200,11 +200,11 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_vd(script, *, visual_style):
+    async def fake_vd(script, *, visual_style, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 

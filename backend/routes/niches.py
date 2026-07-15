@@ -6,11 +6,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from autocontent.models import Niche, PostingWindow
-from autocontent.repos import niches as niches_repo
-from autocontent.services.character_sheet import sheet_path
+from marketer.models import Niche, PostingWindow
+from marketer.repos import niches as niches_repo
+from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -28,7 +28,8 @@ async def draft_niche_spec(
     """One sentence in, a full channel spec out. The onboarding front
     door: the client shows the returned fields on a review screen so the
     user launches instead of filling a 16-field form."""
-    from autocontent.agents.niche_draft import draft_niche
+    from marketer.agents.niche_draft import draft_niche
+    from marketer.repos import brand_kit as brand_kit_repo
 
     text = body.description.strip()
     if len(text) < 8:
@@ -36,8 +37,11 @@ async def draft_niche_spec(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="describe your channel in a sentence (at least a few words)",
         )
+    # Steer the draft with the user's brand kit when they have one.
+    kit = await brand_kit_repo.get(ctx.user_id)
+    brand_context = brand_kit_repo.as_prompt_context(kit)
     try:
-        draft = await draft_niche(text)
+        draft = await draft_niche(text, brand_context=brand_context)
     except Exception as e:  # noqa: BLE001 — surface as a clean 502
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
@@ -57,7 +61,9 @@ class NicheCreate(BaseModel):
     scene_count: int
     posting_windows: list[PostingWindow]
     platforms: list[Literal["tiktok", "reels", "shorts"]]
-    daily_spend_cap_usd: Decimal
+    # Strictly positive: a zero/negative cap would trip the spend guard on
+    # the very first metered call, failing every run for the niche.
+    daily_spend_cap_usd: Decimal = Field(gt=0)
     image_quality: Literal["low", "medium", "high"] = "medium"
     video_resolution: Literal["480p", "720p"] = "480p"
     scene_max_duration_sec: int = 5
@@ -83,7 +89,7 @@ class NicheUpdate(BaseModel):
     scene_count: int | None = None
     posting_windows: list[PostingWindow] | None = None
     platforms: list[Literal["tiktok", "reels", "shorts"]] | None = None
-    daily_spend_cap_usd: Decimal | None = None
+    daily_spend_cap_usd: Decimal | None = Field(default=None, gt=0)
     image_quality: Literal["low", "medium", "high"] | None = None
     video_resolution: Literal["480p", "720p"] | None = None
     scene_max_duration_sec: int | None = None

@@ -1,5 +1,6 @@
-import { CheckCircle2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
+import { Card, CardContent } from "@/components/ui/card";
 import { connectAyrshareAction } from "@/lib/actions";
 import { api } from "@/lib/api";
 import type { AyrshareConnectStatus } from "@/lib/types";
@@ -19,9 +20,22 @@ function maskKey(key: string): string {
 }
 
 export default async function ConnectPage() {
-  const status = await api<AyrshareConnectStatus>(
-    "/api/v1/connect/ayrshare/status",
-  );
+  // Best-effort: a backend 5xx must not throw the whole route to the error
+  // boundary — render an in-page fallback instead.
+  let status: AyrshareConnectStatus | null = null;
+  try {
+    status = await api<AyrshareConnectStatus>(
+      "/api/v1/connect/ayrshare/status",
+    );
+  } catch {
+    // fall through to the graceful fallback below
+  }
+
+  // What the backend actually knows is whether a posting profile
+  // (profile_key) exists — NOT which individual socials are linked. That
+  // lives in Ayrshare's hosted chooser. So we speak in terms of "profile
+  // created", never per-platform "ready".
+  const profileCreated = status?.connected ?? false;
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
@@ -33,43 +47,72 @@ export default async function ConnectPage() {
           Connect your socials
         </h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          Scheduling posts requires an Ayrshare User Profile linked to the
-          platforms you want the pipeline to publish to.
+          Scheduling posts requires an Ayrshare posting profile. Once it&apos;s
+          created, you link and manage individual platforms inside
+          Ayrshare&apos;s hosted chooser.
         </p>
       </div>
 
-      <ConnectCard
-        action={connectAyrshareAction}
-        connected={status.connected}
-        maskedKey={
-          status.connected && status.profile_key
-            ? maskKey(status.profile_key)
-            : null
-        }
-      />
+      {status === null ? (
+        <Card className="border-destructive/40 bg-destructive/5">
+          <CardContent className="flex items-start gap-3 pt-6">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <div>
+              <div className="font-medium">
+                Couldn&apos;t load your connection right now
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                We hit a problem reaching the distribution service. Refresh in a
+                moment to try again.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <ConnectCard
+            action={connectAyrshareAction}
+            connected={profileCreated}
+            maskedKey={
+              profileCreated && status.profile_key
+                ? maskKey(status.profile_key)
+                : null
+            }
+          />
 
-      <ul className="grid grid-cols-3 gap-3">
-        {PLATFORMS.map((p) => (
-          <li
-            className="flex flex-col items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-4 text-center"
-            key={p.key}
-          >
-            <span
-              className={
-                status.connected
-                  ? "flex size-8 items-center justify-center rounded-full bg-brand/10 text-brand"
-                  : "flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground"
-              }
-            >
-              <CheckCircle2 className="size-4" />
-            </span>
-            <span className="text-xs font-medium">{p.label}</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {status.connected ? "ready" : "pending"}
-            </span>
-          </li>
-        ))}
-      </ul>
+          <div className="space-y-3">
+            <ul className="grid grid-cols-3 gap-3">
+              {PLATFORMS.map((p) => (
+                <li
+                  className="flex flex-col items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-4 text-center"
+                  key={p.key}
+                >
+                  <span
+                    className={
+                      profileCreated
+                        ? "flex size-8 items-center justify-center rounded-full bg-brand/10 text-brand"
+                        : "flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                    }
+                  >
+                    <span className="text-xs font-semibold">
+                      {p.label.charAt(0)}
+                    </span>
+                  </span>
+                  <span className="text-xs font-medium">{p.label}</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    {profileCreated ? "in Ayrshare" : "needs profile"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            <p className="text-center text-xs text-muted-foreground">
+              {profileCreated
+                ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare — open the chooser above to add or revoke a platform."
+                : "Create a posting profile above, then link each platform in Ayrshare's chooser."}
+            </p>
+          </div>
+        </>
+      )}
     </div>
   );
 }

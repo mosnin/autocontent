@@ -11,9 +11,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent import pipeline
-from autocontent.agents.qa import QAReport
-from autocontent.models import (
+from marketer import pipeline
+from marketer.agents.qa import QAReport
+from marketer.models import (
     Idea,
     Job,
     JobStatus,
@@ -97,7 +97,7 @@ def stub_no_music(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline.spend_repo, "record", fake_record)
 
     # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
 
     async def fake_users_get(user_id: str):
@@ -120,19 +120,19 @@ def stub_no_music(monkeypatch, tmp_path: Path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context=""):
+    async def fake_ideation(title, *, performance_context="", spend=None):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style):
+    async def fake_visual_director(script, *, visual_style, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 

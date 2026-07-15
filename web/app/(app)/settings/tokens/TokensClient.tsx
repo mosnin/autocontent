@@ -38,15 +38,24 @@ import type { PersonalAccessToken } from "@/lib/types";
 
 interface Props {
   tokens: PersonalAccessToken[];
-  freshToken: string | null;
 }
 
-export function TokensClient({ tokens, freshToken }: Props) {
-  const [createState, createFormAction] = useActionState<ActionState, FormData>(
-    createTokenAction,
-    EMPTY_STATE,
-  );
+type CreateTokenState = ActionState & { token?: string };
+
+export function TokensClient({ tokens }: Props) {
+  const [createState, createFormAction] = useActionState<
+    CreateTokenState,
+    FormData
+  >(createTokenAction, EMPTY_STATE);
   const [open, setOpen] = React.useState(false);
+
+  // The plaintext token lives only in the action state — never in the
+  // URL — and is rendered once here after a successful create.
+  const freshToken = createState.ok ? (createState.token ?? null) : null;
+
+  React.useEffect(() => {
+    if (createState.ok && createState.token) setOpen(false);
+  }, [createState]);
 
   async function copy(text: string) {
     try {
@@ -82,7 +91,7 @@ export function TokensClient({ tokens, freshToken }: Props) {
             <p className="text-xs text-muted-foreground">
               Copy it into{" "}
               <code className="rounded bg-muted px-1">
-                AUTOCONTENT_API_TOKEN
+                MARKETER_API_TOKEN
               </code>{" "}
               now — we don&apos;t store the plaintext and can&apos;t recover it.
             </p>
@@ -154,7 +163,7 @@ export function TokensClient({ tokens, freshToken }: Props) {
             <h3 className="text-lg font-semibold">No tokens</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               Create a token to authenticate the CLI, MCP server, or any
-              external agent driving autocontent.
+              external agent driving marketer.sh.
             </p>
             <Button onClick={() => setOpen(true)}>
               <Plus className="h-4 w-4" />

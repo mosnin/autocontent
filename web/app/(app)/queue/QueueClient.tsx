@@ -24,7 +24,7 @@ import {
   retryJobAction,
 } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
-import { StatusBadge } from "@/lib/status-badge";
+import { jobStatusLabel, StatusBadge } from "@/lib/status-badge";
 import type { Job, JobStatus } from "@/lib/types";
 
 const POLL_MS = 5000;
@@ -311,7 +311,8 @@ function JobRow({
   return (
     <TableRow
       onClick={onClick}
-      className="group cursor-pointer transition-colors hover:bg-muted/40"
+      role="button"
+      className="group cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
       tabIndex={0}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -319,7 +320,7 @@ function JobRow({
           onClick();
         }
       }}
-      aria-label={`Job ${job.id.slice(0, 8)}, status ${job.status}`}
+      aria-label={`Open job ${job.id.slice(0, 8)}, status ${jobStatusLabel(job.status)}`}
     >
       <TableCell>
         <StatusBadge status={job.status} />

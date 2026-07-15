@@ -74,9 +74,13 @@ async function fetchTodaySpend(): Promise<TodaySpend> {
   }
 }
 
+const RECENT_JOBS_LIMIT = 20;
+
 async function fetchRecentJobs(nicheId: string): Promise<Job[]> {
   try {
-    return await api<Job[]>(`/api/v1/jobs?niche_id=${nicheId}&limit=20`);
+    return await api<Job[]>(
+      `/api/v1/jobs?niche_id=${nicheId}&limit=${RECENT_JOBS_LIMIT}`,
+    );
   } catch {
     return [];
   }
@@ -118,9 +122,22 @@ export default async function NichePage({
   const todayUsd = Number(todaySpend.by_niche[niche.id] ?? "0");
   const total30dUsd = Number(spendHistory.total_usd);
 
-  // Avg cost = 30d spend / count of done jobs in the last 30 jobs
+  // Avg cost / video = 30-day spend ÷ jobs completed in that same 30-day
+  // window. The numerator is a true 30-day figure, so the denominator must
+  // be too — count only done jobs created within the window (not "the last
+  // 20 done jobs ever", which over/under-counts and skews the average).
+  const windowCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const doneJobs = recentJobs.filter((j) => j.status === "done");
-  const avgCostUsd = doneJobs.length > 0 ? total30dUsd / doneJobs.length : 0;
+  const windowDoneJobs = doneJobs.filter(
+    (j) => new Date(j.created_at).getTime() >= windowCutoff,
+  );
+  // If we fetched the maximum page, older in-window jobs may exist that we
+  // didn't see — the denominator is then a lower bound, so the average is an
+  // upper bound. Flag it approximate rather than presenting a precise-looking
+  // but inflated number.
+  const jobsTruncated = recentJobs.length >= RECENT_JOBS_LIMIT;
+  const avgCostUsd =
+    windowDoneJobs.length > 0 ? total30dUsd / windowDoneJobs.length : 0;
 
   // "hot" when today's spend is within striking distance of the cap.
   const capPct = cap > 0 ? todayUsd / cap : 0;
@@ -211,8 +228,16 @@ export default async function NichePage({
           />
           <StatCard
             label="Avg cost / video"
-            value={doneJobs.length > 0 ? formatUsd(avgCostUsd) : "—"}
-            sub={`${doneJobs.length} completed job${doneJobs.length !== 1 ? "s" : ""}`}
+            value={
+              windowDoneJobs.length > 0
+                ? `${jobsTruncated ? "~" : ""}${formatUsd(avgCostUsd)}`
+                : "—"
+            }
+            sub={
+              windowDoneJobs.length > 0
+                ? `${jobsTruncated ? "≥" : ""}${windowDoneJobs.length} completed · 30d`
+                : "no completed runs yet"
+            }
           />
         </div>
       </Reveal>
