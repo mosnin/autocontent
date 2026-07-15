@@ -103,10 +103,32 @@ async def _emit_webhook(article: Article, event: str) -> None:
         log.warning("webhook emit failed", extra={"error": str(e)})
 
 
+async def _notify(article: Article, *, kind: str) -> None:
+    """Email the operator when an article reaches a terminal state. Fail-open
+    and gated on the user's email-notification preference — matches the video
+    pipeline so both content types notify consistently."""
+    try:
+        from ..repos import users as users_repo
+        from ..services import email as email_svc
+
+        user = await users_repo.get(article.user_id)
+        if user is None or not user.email or not user.email_notifications:
+            return
+        title = article.title or article.topic or None
+        if kind == "failed":
+            subject, html = email_svc.render_article_failed(str(article.id), title)
+        else:
+            subject, html = email_svc.render_article_done(str(article.id), title)
+        await email_svc.send_email(to=user.email, subject=subject, html=html)
+    except Exception as e:  # noqa: BLE001 — never let email break the pipeline
+        log.warning("article notification failed", extra={"error": str(e)})
+
+
 async def _fail_with(article: Article, error: str, exc: BaseException | None = None) -> Article:
     article.status = ArticleStatus.failed
     article.error = error
     await articles_repo.save(article)
+    await _notify(article, kind="failed")
     await _emit_webhook(article, "article.failed")
     try:
         import sentry_sdk
@@ -326,5 +348,6 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
     article.error = None
     await articles_repo.save(article)
     log.info("article done", extra={"article_id": str(article.id)})
+    await _notify(article, kind="done")
     await _emit_webhook(article, "article.done")
     return article

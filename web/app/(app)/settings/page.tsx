@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Coins, Gauge, KeyRound, Link2, Palette, ShieldCheck, Webhook } from "lucide-react";
+import { Bell, ChevronRight, Coins, Gauge, KeyRound, Link2, Palette, ShieldCheck, Webhook } from "lucide-react";
 
 import {
   Card,
@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { User } from "@/lib/types";
 import { SpendCapForm } from "./SpendCapForm";
+import { NotificationsForm } from "./NotificationsForm";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,24 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <SpendCapForm initialCap={user?.global_daily_cap_usd ?? null} />
+        </CardContent>
+      </Card>
+
+      {/* Notifications — inline toggle, saves optimistically. */}
+      <Card className="border-border/60 bg-card/40">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
+            <CardTitle className="text-base font-semibold">
+              Notifications
+            </CardTitle>
+          </div>
+          <CardDescription>
+            Control the emails marketer.sh sends you at the end of a run.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <NotificationsForm initialEnabled={user?.email_notifications ?? true} />
         </CardContent>
       </Card>
 

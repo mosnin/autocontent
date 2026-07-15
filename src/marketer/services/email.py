@@ -91,3 +91,52 @@ def render_video_scheduled(job_id: str, hook: str | None) -> tuple[str, str]:
         f"<p style='margin-top:24px'>{_button(f'{base}/queue/{job_id}', 'Watch it')}</p>"
     )
     return subject, html
+
+
+def render_video_failed(job_id: str, hook: str | None) -> tuple[str, str]:
+    """Subject + HTML for a failed-video notification."""
+    base = settings.app_url.rstrip("/") or "http://localhost:3000"
+    hook_line = f"<p style='font-style:italic'>&ldquo;{hook}&rdquo;</p>" if hook else ""
+    subject = "A video run needs your attention"
+    html = _shell(
+        "<h2 style='margin:0 0 12px'>A video run didn&rsquo;t finish</h2>"
+        f"{hook_line}"
+        "<p>One of your runs hit an error before it could ship. Open it to see "
+        "what happened — you can retry it in a click, and you weren&rsquo;t "
+        "charged for the stages that didn&rsquo;t complete.</p>"
+        f"<p style='margin-top:24px'>{_button(f'{base}/queue/{job_id}', 'See what happened')}</p>"
+    )
+    return subject, html
+
+
+def render_article_done(article_id: str, title: str | None) -> tuple[str, str]:
+    """Subject + HTML for a finished-article notification."""
+    base = settings.app_url.rstrip("/") or "http://localhost:3000"
+    title_line = (
+        f"<p style='font-weight:600'>{title}</p>" if title else ""
+    )
+    subject = "Your article is ready"
+    html = _shell(
+        "<h2 style='margin:0 0 12px'>A new article just finished</h2>"
+        f"{title_line}"
+        "<p>Researched, written, QA&rsquo;d, and packaged with SEO metadata and "
+        "a hero image. Review it, tweak anything, and publish when you&rsquo;re "
+        "ready.</p>"
+        f"<p style='margin-top:24px'>{_button(f'{base}/articles/{article_id}', 'Read the article')}</p>"
+    )
+    return subject, html
+
+
+def render_article_failed(article_id: str, title: str | None) -> tuple[str, str]:
+    """Subject + HTML for a failed-article notification."""
+    base = settings.app_url.rstrip("/") or "http://localhost:3000"
+    title_line = f"<p style='font-weight:600'>{title}</p>" if title else ""
+    subject = "An article run needs your attention"
+    html = _shell(
+        "<h2 style='margin:0 0 12px'>An article run didn&rsquo;t finish</h2>"
+        f"{title_line}"
+        "<p>The run hit an error before completing. Open it to see the details "
+        "and retry — you were only charged for the stages that finished.</p>"
+        f"<p style='margin-top:24px'>{_button(f'{base}/articles/{article_id}', 'See what happened')}</p>"
+    )
+    return subject, html

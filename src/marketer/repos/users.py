@@ -10,7 +10,8 @@ from ..models import User
 # and no role regardless of the row (prior audit M14).
 _COLS = (
     "id, email, ayrshare_profile_key, global_daily_cap_usd, "
-    "credit_balance_usd, role, suspended_at, suspended_reason, created_at"
+    "credit_balance_usd, role, suspended_at, suspended_reason, "
+    "email_notifications, created_at"
 )
 
 
@@ -54,6 +55,7 @@ async def update_settings(
     user_id: str,
     *,
     global_daily_cap_usd: Decimal | None = ...,  # type: ignore[assignment]
+    email_notifications: bool = ...,  # type: ignore[assignment]
 ) -> User:
     """Partial-update user settings. Only fields explicitly passed are updated.
 
@@ -66,6 +68,8 @@ async def update_settings(
     updates: dict[str, object] = {}
     if global_daily_cap_usd is not _UNSET:
         updates["global_daily_cap_usd"] = global_daily_cap_usd
+    if email_notifications is not _UNSET:
+        updates["email_notifications"] = email_notifications
 
     if not updates:
         # Nothing to update — just return current state.

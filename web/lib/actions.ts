@@ -394,3 +394,20 @@ export async function updateUserSettingsAction(
   revalidatePath("/settings");
   return { ok: true };
 }
+
+export async function updateEmailNotificationsAction(
+  enabled: boolean,
+): Promise<ActionState> {
+  // Sends only the email_notifications key so the PATCH never touches the
+  // user's spend-cap safety net (the backend changes only keys present).
+  try {
+    await api<User>("/api/v1/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ email_notifications: enabled }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/settings");
+  return { ok: true };
+}

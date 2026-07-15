@@ -30,29 +30,40 @@ def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = N
     from datetime import datetime, timezone
 
     _current_cap: dict[str, Decimal | None] = {"value": global_daily_cap_usd}
+    _emails: dict[str, bool] = {"value": True}
 
     async def _fake_require_user():
         return AuthCtx(user_id="user_test", email="t@t.com")
+
+    async def _fake_get(user_id: str) -> User:
+        return User(
+            id=user_id,
+            email="t@t.com",
+            global_daily_cap_usd=_current_cap["value"],
+            email_notifications=_emails["value"],
+            created_at=datetime.now(timezone.utc),
+        )
 
     async def _fake_upsert(user_id: str, email: str) -> User:
         return User(
             id=user_id,
             email=email,
             global_daily_cap_usd=_current_cap["value"],
+            email_notifications=_emails["value"],
             created_at=datetime.now(timezone.utc),
         )
 
-    async def _fake_update_settings(user_id: str, *, global_daily_cap_usd=...) -> User:
+    async def _fake_update_settings(
+        user_id: str, *, global_daily_cap_usd=..., email_notifications=...
+    ) -> User:
         if global_daily_cap_usd is not ...:
             _current_cap["value"] = global_daily_cap_usd
-        return User(
-            id=user_id,
-            email="t@t.com",
-            global_daily_cap_usd=_current_cap["value"],
-            created_at=datetime.now(timezone.utc),
-        )
+        if email_notifications is not ...:
+            _emails["value"] = email_notifications
+        return await _fake_get(user_id)
 
     import marketer.repos.users as users_repo
+    monkeypatch.setattr(users_repo, "get", _fake_get)
     monkeypatch.setattr(users_repo, "upsert", _fake_upsert)
     monkeypatch.setattr(users_repo, "update_settings", _fake_update_settings)
 
@@ -157,3 +168,51 @@ def test_patch_me_zero_cap_is_valid(monkeypatch):
     assert resp.status_code == 200
     data = resp.json()
     assert data["global_daily_cap_usd"] == "0.00"
+
+
+def test_patch_me_toggles_email_notifications(monkeypatch):
+    """PATCH /me with email_notifications=false stores the opt-out."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+
+    resp = client.patch(
+        "/api/v1/users/me",
+        json={"email_notifications": False},
+        headers={"Authorization": "Bearer mkt_testtoken"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["email_notifications"] is False
+
+
+def test_patch_me_email_pref_does_not_clobber_cap(monkeypatch):
+    """Sending only email_notifications must leave the spend-cap untouched —
+    the sentinel-based repo update forwards only the keys present."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch, global_daily_cap_usd=Decimal("7.50"))
+
+    resp = client.patch(
+        "/api/v1/users/me",
+        json={"email_notifications": False},
+        headers={"Authorization": "Bearer mkt_testtoken"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email_notifications"] is False
+    # The cap safety net survives — it wasn't in the request body.
+    assert data["global_daily_cap_usd"] == "7.50"
+
+
+def test_patch_me_empty_body_is_noop(monkeypatch):
+    """PATCH {} changes nothing and returns current state (200)."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch, global_daily_cap_usd=Decimal("5.00"))
+
+    resp = client.patch(
+        "/api/v1/users/me",
+        json={},
+        headers={"Authorization": "Bearer mkt_testtoken"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["global_daily_cap_usd"] == "5.00"
+    assert data["email_notifications"] is True

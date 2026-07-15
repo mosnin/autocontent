@@ -147,16 +147,19 @@ async def _ensure_cap(job: Job, niche: Niche) -> bool:
 
 async def _notify(job: Job, *, kind: str) -> None:
     """Email the operator at a terminal moment. Fail-open: notification
-    problems never affect job state."""
+    problems never affect job state. Skips silently when the user has opted
+    out of email notifications."""
     try:
         from .repos import users as users_repo
 
         user = await users_repo.get(job.user_id)
-        if user is None or not user.email:
+        if user is None or not user.email or not user.email_notifications:
             return
         hook = job.script.idea.hook if job.script else None
         if kind == "review":
             subject, html = email_svc.render_ready_for_review(str(job.id), hook)
+        elif kind == "failed":
+            subject, html = email_svc.render_video_failed(str(job.id), hook)
         else:
             subject, html = email_svc.render_video_scheduled(str(job.id), hook)
         await email_svc.send_email(to=user.email, subject=subject, html=html)
@@ -192,6 +195,7 @@ async def _fail_with(job: Job, error: str, exc: BaseException | None = None) -> 
     job.status = JobStatus.failed
     job.error = error
     await _persist(job)
+    await _notify(job, kind="failed")
     await _emit_webhook(job, "job.failed")
     try:
         import sentry_sdk

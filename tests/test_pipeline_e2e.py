@@ -388,3 +388,43 @@ async def test_approval_gate_parks_job_before_scheduling(stub_all, stage_log):
     assert job.provider_post_id is None  # scheduler never ran
     assert "scheduling" not in stage_log
     assert "awaiting_approval" in stage_log
+
+
+# --------------------------------------------------------------------------- notifications
+
+async def test_notify_respects_email_optout(monkeypatch):
+    """_notify sends when the user is opted in, and stays silent when they've
+    turned email notifications off — without ever touching job state."""
+    from datetime import datetime, timezone
+
+    import marketer.repos.users as _users_repo
+    from marketer.services import email as email_svc
+
+    sent: list[str] = []
+
+    async def fake_send_email(*, to, subject, html):
+        sent.append(subject)
+        return True
+
+    monkeypatch.setattr(email_svc, "send_email", fake_send_email)
+
+    job = Job(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+        status=JobStatus.failed,
+    )
+
+    async def opted_in(user_id):
+        return User(id=user_id, email="a@a.com", email_notifications=True,
+                    created_at=datetime.now(timezone.utc))
+
+    monkeypatch.setattr(_users_repo, "get", opted_in)
+    await pipeline._notify(job, kind="failed")
+    assert len(sent) == 1
+
+    async def opted_out(user_id):
+        return User(id=user_id, email="a@a.com", email_notifications=False,
+                    created_at=datetime.now(timezone.utc))
+
+    monkeypatch.setattr(_users_repo, "get", opted_out)
+    await pipeline._notify(job, kind="failed")
+    assert len(sent) == 1  # unchanged — opted-out user got nothing

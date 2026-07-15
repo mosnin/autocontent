@@ -50,8 +50,10 @@ async def update_me(
 ) -> User:
     """Update mutable user settings.
 
-    Currently supports ``global_daily_cap_usd`` only. Pass ``null`` to
-    clear an existing cap. Rejects negative values with 422.
+    Supports ``global_daily_cap_usd`` (pass ``null`` to clear; negatives are
+    rejected with 422) and ``email_notifications`` (opt out of terminal-state
+    emails). All fields optional — only keys present in the request are
+    changed.
     """
     if (
         body.global_daily_cap_usd is not None
@@ -67,16 +69,16 @@ async def update_me(
     # Only forward fields the client actually sent: the repo's `...`
     # sentinel distinguishes "omitted" from "explicit null". Without this,
     # PATCH {} would silently clear the user's spend-cap safety net.
-    if "global_daily_cap_usd" not in body.model_fields_set:
-        from marketer.repos.users import get as get_user
+    kwargs: dict[str, object] = {}
+    if "global_daily_cap_usd" in body.model_fields_set:
+        kwargs["global_daily_cap_usd"] = body.global_daily_cap_usd
+    if "email_notifications" in body.model_fields_set:
+        kwargs["email_notifications"] = body.email_notifications
 
-        current = await get_user(ctx.user_id)
+    if not kwargs:
+        current = await users_repo.get(ctx.user_id)
         if current is None:
             raise HTTPException(status_code=404, detail="user not found")
         return current
 
-    updated = await users_repo.update_settings(
-        ctx.user_id,
-        global_daily_cap_usd=body.global_daily_cap_usd,
-    )
-    return updated
+    return await users_repo.update_settings(ctx.user_id, **kwargs)

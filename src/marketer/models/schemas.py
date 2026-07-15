@@ -80,13 +80,17 @@ class User(BaseModel):
     role: str = "user"  # 'user' | 'admin'
     suspended_at: datetime | None = None
     suspended_reason: str | None = None
+    # Opt-out of terminal-state email notifications. Defaults on.
+    email_notifications: bool = True
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class UserSettingsUpdate(BaseModel):
-    """Body for PATCH /api/v1/users/me — all fields optional."""
+    """Body for PATCH /api/v1/users/me — all fields optional (only the keys
+    present are changed)."""
 
     global_daily_cap_usd: Decimal | None = None
+    email_notifications: bool | None = None
 
     model_config = {"extra": "forbid"}
 

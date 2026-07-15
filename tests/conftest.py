@@ -9,6 +9,24 @@ from marketer.models import SpendEntry
 from marketer.services.spend_context import SpendContext
 
 
+@pytest.fixture(autouse=True)
+def _reset_db_pool():
+    """Drop the cached asyncpg pool before every test.
+
+    pytest-asyncio gives each test its own event loop. A pool created in one
+    test is bound to that (now-closed) loop, so any later test that reused the
+    cached ``db._pool`` failed with "Event loop is closed". Clearing the module
+    global before each test forces a fresh, correctly-bound pool per test and
+    keeps unit tests hermetic regardless of run order. We don't await close():
+    the old loop is already gone, and the orphaned pool is garbage-collected.
+    """
+    from marketer import db
+
+    db._pool = None
+    yield
+    db._pool = None
+
+
 @dataclass
 class FakeRecorder:
     entries: list[SpendEntry] = field(default_factory=list)

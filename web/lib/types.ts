@@ -101,6 +101,7 @@ export interface User {
   email: string;
   ayrshare_profile_key: string | null;
   global_daily_cap_usd: string | null;
+  email_notifications: boolean;
   created_at: string;
 }
 
