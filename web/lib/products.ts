@@ -1,48 +1,69 @@
-// The marketer.sh "suite" model: several distinct products (like the apps in
-// a Google Workspace) that share one shell but each own a focused dashboard
-// and sidebar. The sidebar renders ONLY the active product's nav — products
-// are never mashed together into one long list.
-//
-// Nav is text-first (no per-item icons — type and space carry the hierarchy);
-// each product keeps one glyph for the app switcher and the /home launcher.
+// The marketer.sh "suite" model: distinct products sharing one shell. The
+// sidebar is a dual-rail: a narrow icon rail where EVERY product is always
+// visible (no dropdown switching), and a panel showing only the active
+// product's nav — top-level rows carry an icon, collapsible groups hang
+// text-only sub-items off a tree line.
 //
 // Pure + client-safe: no server-only imports, no React hooks.
 
 import {
+  BarChart3,
+  CalendarDays,
   FileText,
   Film,
+  LayoutDashboard,
+  Layers,
+  Link2,
+  ListChecks,
   Megaphone,
+  Palette,
   Settings,
+  ShieldCheck,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
 export type ProductId = "studio" | "press" | "ads" | "suite";
 
-export interface NavItem {
+/** A text-only row inside a collapsible group (reference: no icons on subs). */
+export interface NavSubItem {
   href: string;
   label: string;
   /** Not yet built — rendered disabled with a "Soon" hint. */
   soon?: boolean;
 }
 
-export interface NavGroup {
+/** A top-level row: icon + label. */
+export interface NavLeaf {
+  kind: "item";
+  href: string;
   label: string;
-  items: NavItem[];
+  icon: LucideIcon;
 }
+
+/** A collapsible section: icon + label parent with tree-lined sub-items. */
+export interface NavSection {
+  kind: "group";
+  label: string;
+  icon: LucideIcon;
+  items: NavSubItem[];
+}
+
+export type NavEntry = NavLeaf | NavSection;
 
 export interface Product {
   id: ProductId;
   label: string;
-  /** One-line description for the launcher card + switcher. */
+  /** One-line description for the launcher card + rail tooltip. */
   tagline: string;
   icon: LucideIcon;
-  /** A category tint token (bg-cat-*) so each product reads as its own tile. */
+  /** A category tint token (bg-cat-*) for the /home launcher tile. */
   accent: "navy" | "blue" | "orange" | "green" | "purple";
   /** Landing route when you switch into this product. */
   home: string;
   /** Path prefixes that belong to this product (for active detection). */
   match: string[];
-  groups: NavGroup[];
+  nav: NavEntry[];
 }
 
 // ---------------------------------------------------------------- products
@@ -55,16 +76,11 @@ const STUDIO: Product = {
   accent: "navy",
   home: "/dashboard",
   match: ["/dashboard", "/niches", "/queue", "/calendar", "/onboarding"],
-  groups: [
-    {
-      label: "Operate",
-      items: [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: "/niches", label: "Niches" },
-        { href: "/queue", label: "Queue" },
-        { href: "/calendar", label: "Calendar" },
-      ],
-    },
+  nav: [
+    { kind: "item", href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { kind: "item", href: "/niches", label: "Niches", icon: Layers },
+    { kind: "item", href: "/queue", label: "Queue", icon: ListChecks },
+    { kind: "item", href: "/calendar", label: "Calendar", icon: CalendarDays },
   ],
 };
 
@@ -76,25 +92,17 @@ const PRESS: Product = {
   accent: "blue",
   home: "/press",
   match: ["/press", "/articles"],
-  groups: [
+  nav: [
+    { kind: "item", href: "/press", label: "Overview", icon: LayoutDashboard },
+    { kind: "item", href: "/articles", label: "Articles", icon: FileText },
+    { kind: "item", href: "/calendar", label: "Calendar", icon: CalendarDays },
+    { kind: "item", href: "/settings/brand", label: "Brand voice", icon: Palette },
     {
-      label: "Content",
+      kind: "group",
+      label: "SEO",
+      icon: BarChart3,
       items: [
-        { href: "/press", label: "Overview" },
-        { href: "/articles", label: "Articles" },
-        { href: "/calendar", label: "Calendar" },
-      ],
-    },
-    {
-      label: "Craft",
-      items: [
-        { href: "/settings/brand", label: "Brand voice" },
         { href: "/press/seo", label: "SEO toolkit", soon: true },
-      ],
-    },
-    {
-      label: "Performance",
-      items: [
         { href: "/press/search", label: "Search Console", soon: true },
         { href: "/press/keywords", label: "Keyword tracking", soon: true },
       ],
@@ -110,22 +118,21 @@ const ADS: Product = {
   accent: "orange",
   home: "/ads",
   match: ["/ads"],
-  groups: [
+  nav: [
+    { kind: "item", href: "/ads", label: "Overview", icon: BarChart3 },
     {
+      kind: "group",
       label: "Campaigns",
+      icon: Megaphone,
       items: [
-        { href: "/ads", label: "Overview" },
-        { href: "/ads/campaigns", label: "Campaigns" },
+        { href: "/ads/campaigns", label: "All campaigns" },
         { href: "/ads/approvals", label: "Approvals" },
         { href: "/ads/activity", label: "Activity" },
         { href: "/ads/insights", label: "Insights", soon: true },
         { href: "/ads/creatives", label: "Creatives", soon: true },
       ],
     },
-    {
-      label: "Setup",
-      items: [{ href: "/ads/connect", label: "Ad accounts" }],
-    },
+    { kind: "item", href: "/ads/connect", label: "Ad accounts", icon: Link2 },
   ],
 };
 
@@ -137,25 +144,26 @@ const SUITE: Product = {
   accent: "purple",
   home: "/settings",
   match: ["/settings", "/connect", "/admin"],
-  groups: [
+  nav: [
+    { kind: "item", href: "/settings", label: "Settings", icon: Settings },
+    { kind: "item", href: "/connect", label: "Connect socials", icon: Link2 },
     {
+      kind: "group",
       label: "Account",
+      icon: Wallet,
       items: [
-        { href: "/settings", label: "Settings" },
         { href: "/settings/brand", label: "Brand kit" },
-        { href: "/connect", label: "Connect socials" },
         { href: "/settings/tokens", label: "Tokens" },
         { href: "/settings/billing", label: "Billing" },
+        { href: "/settings/webhooks", label: "Webhooks" },
+        { href: "/settings/privacy", label: "Data & privacy" },
       ],
     },
-    {
-      label: "Admin",
-      items: [{ href: "/admin", label: "Admin console" }],
-    },
+    { kind: "item", href: "/admin", label: "Admin console", icon: ShieldCheck },
   ],
 };
 
-/** Ordered for the launcher + switcher. Suite is intentionally last. */
+/** Ordered for the rail + launcher. Suite is intentionally last. */
 export const PRODUCTS: Product[] = [STUDIO, PRESS, ADS, SUITE];
 
 /** The three "content" products shown as primary tiles on the launcher. */
@@ -185,7 +193,7 @@ export function productForPath(pathname: string): Product {
   return best;
 }
 
-/** Accent tile background class for a product's app-switcher/launcher glyph. */
+/** Accent tile background class for a product's /home launcher glyph. */
 export function productAccentClass(accent: Product["accent"]): string {
   return {
     navy: "bg-cat-navy",

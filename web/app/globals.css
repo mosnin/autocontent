@@ -290,6 +290,14 @@
     initial-value: 64px;
 }
 
+/* The floating sidebar card and the inset content card must read as twins:
+   same radius, same hairline, same shadow scale. The primitive hardcodes
+   rounded-lg on the floating inner — align it with the content's 2xl. */
+[data-variant="floating"] [data-slot="sidebar-inner"] {
+  border-radius: var(--radius-2xl, 1rem);
+  border-color: hsl(var(--border) / 0.5);
+}
+
 /* Warm gradient display text — for the one or two hero words that carry the
    page. Falls back to a solid warm tone where background-clip:text is
    unsupported. Keep it rare: gradient text loses impact if everything is one. */

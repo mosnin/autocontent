@@ -21,9 +21,19 @@ import { productForPath } from "@/lib/products";
  */
 export function SiteShell({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider className="bg-page">
+    <SidebarProvider
+      className="bg-page"
+      style={
+        {
+          // Dual-rail: 3.5rem icon rail + nav panel when expanded; the
+          // floating variant adds 0.5rem padding around the card.
+          "--sidebar-width": "19rem",
+          "--sidebar-width-icon": "4.5rem",
+        } as React.CSSProperties
+      }
+    >
       <AppSidebar />
-      <SidebarInset className="flex min-h-svh flex-1 flex-col overflow-hidden">
+      <SidebarInset className="flex min-h-svh flex-1 flex-col overflow-hidden bg-card md:my-2 md:me-2 md:ms-0 md:rounded-2xl md:border md:border-border/50 md:shadow-sm">
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/50 px-4">
           <SidebarTrigger aria-label="Toggle sidebar" />
           <Separator className="mr-1 h-4" orientation="vertical" />
