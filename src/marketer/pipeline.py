@@ -164,10 +164,35 @@ async def _notify(job: Job, *, kind: str) -> None:
         log.warning("notification failed", extra={"error": str(e)})
 
 
+async def _emit_webhook(job: Job, event: str) -> None:
+    """Fire an outbound webhook for a job terminal state. Fail-open."""
+    try:
+        import time as _time
+
+        from .services import webhook_delivery
+
+        await webhook_delivery.emit(
+            job.user_id, event,
+            {
+                "job_id": str(job.id),
+                "niche_id": str(job.niche_id),
+                "platform": job.platform,
+                "status": job.status.value,
+                "scheduled_for": job.scheduled_for.isoformat() if job.scheduled_for else None,
+                "provider_post_id": job.provider_post_id,
+                "error": job.error,
+            },
+            timestamp=int(_time.time()),
+        )
+    except Exception as e:  # noqa: BLE001 — never let a webhook break a job
+        log.warning("webhook emit failed", extra={"error": str(e)})
+
+
 async def _fail_with(job: Job, error: str, exc: BaseException | None = None) -> Job:
     job.status = JobStatus.failed
     job.error = error
     await _persist(job)
+    await _emit_webhook(job, "job.failed")
     try:
         import sentry_sdk
         if exc is not None:
@@ -436,6 +461,7 @@ async def _run_job_inner(
         await _persist(job)
         log.info("awaiting approval", extra={"job_id": str(job.id)})
         await _notify(job, kind="review")
+        await _emit_webhook(job, "job.awaiting_approval")
         return job
 
     # 10. Schedule via Ayrshare (per-user profile)
@@ -466,6 +492,7 @@ async def _schedule_stage(job: Job, niche: Niche) -> Job:
         job.status = JobStatus.done
         await _persist(job)
     await _notify(job, kind="scheduled")
+    await _emit_webhook(job, "job.done")
     return job
 
 

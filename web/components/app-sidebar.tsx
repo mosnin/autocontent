@@ -8,6 +8,7 @@ import {
   FileText,
   KeyRound,
   LayoutDashboard,
+  CalendarDays,
   Layers,
   Link2,
   ListChecks,
@@ -46,6 +47,7 @@ const OPERATE: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/niches", label: "Niches", icon: Layers },
   { href: "/queue", label: "Queue", icon: ListChecks },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
   { href: "/articles", label: "Articles", icon: FileText },
 ];
 

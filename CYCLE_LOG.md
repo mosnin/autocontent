@@ -45,3 +45,15 @@
     rendered via the new endpoint, command palette entries.
   - Verified: tsc clean, next build compiles all admin routes, 374 pytest
     green, ruff clean.
+- Cycles 15-20: ICP features — calendar, GDPR UI, outbound webhooks.
+  - Content calendar UI (/calendar, agenda layout, range switcher) wiring
+    the calendar endpoint; sidebar Calendar entry.
+  - Data & privacy settings page: GDPR export download + styled delete-
+    account flow (type email/DELETE to confirm, Clerk sign-out); settings
+    AREAS card.
+  - Outbound webhooks (agent/agency ICP): 0012 migration, webhook_endpoints
+    repo, HMAC-SHA256 signed delivery service (fail-open per-endpoint),
+    management routes (register w/ one-time secret, list, delete, send-test),
+    and emit wired into job (done/failed/awaiting_approval) + article
+    (done/failed) pipeline terminal states.
+  - 381 pytest green, ruff clean, web build compiles all routes.

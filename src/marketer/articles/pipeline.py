@@ -63,10 +63,34 @@ async def _set_status(article: Article, status: ArticleStatus) -> None:
     await articles_repo.save(article)
 
 
+async def _emit_webhook(article: Article, event: str) -> None:
+    """Outbound webhook for an article terminal state. Fail-open."""
+    try:
+        import time as _time
+
+        from ..services import webhook_delivery
+
+        await webhook_delivery.emit(
+            article.user_id, event,
+            {
+                "article_id": str(article.id),
+                "niche_id": str(article.niche_id),
+                "status": article.status.value,
+                "title": article.title,
+                "slug": article.slug,
+                "error": article.error,
+            },
+            timestamp=int(_time.time()),
+        )
+    except Exception as e:  # noqa: BLE001 — never let a webhook break the pipeline
+        log.warning("webhook emit failed", extra={"error": str(e)})
+
+
 async def _fail_with(article: Article, error: str, exc: BaseException | None = None) -> Article:
     article.status = ArticleStatus.failed
     article.error = error
     await articles_repo.save(article)
+    await _emit_webhook(article, "article.failed")
     try:
         import sentry_sdk
         if exc is not None:
@@ -284,4 +308,5 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
     article.error = None
     await articles_repo.save(article)
     log.info("article done", extra={"article_id": str(article.id)})
+    await _emit_webhook(article, "article.done")
     return article

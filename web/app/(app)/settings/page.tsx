@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Coins, Gauge, KeyRound, Link2 } from "lucide-react";
+import { ChevronRight, Coins, Gauge, KeyRound, Link2, ShieldCheck } from "lucide-react";
 
 import {
   Card,
@@ -34,6 +34,12 @@ const AREAS = [
     icon: KeyRound,
     title: "Personal access tokens",
     description: "For the CLI, MCP server, and external agents.",
+  },
+  {
+    href: "/settings/privacy",
+    icon: ShieldCheck,
+    title: "Data & privacy",
+    description: "Export everything we hold, or delete your account.",
   },
 ] as const;
 
