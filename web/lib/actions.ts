@@ -117,6 +117,11 @@ export async function createNicheAction(
     return { ok: false, error: errorMessage(e) };
   }
 
+  // Creating a channel IS completing onboarding — set the durable flag +
+  // device cookie so the middleware gate never re-fires.
+  const { markOnboardedInline } = await import("./onboarding");
+  await markOnboardedInline();
+
   revalidatePath("/dashboard");
   redirect("/dashboard");
 }

@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { completeOnboardingAction } from "@/lib/onboarding";
 import { OnboardingEntry } from "./OnboardingEntry";
 
 // An Apple-grade first run: a calm, full-bleed welcome that gives the moment
@@ -10,10 +11,36 @@ import { OnboardingEntry } from "./OnboardingEntry";
 // type, space, and one clear action at a time.
 export function OnboardingExperience({
   connected,
+  alreadyComplete = false,
 }: {
   connected: boolean | null;
+  alreadyComplete?: boolean;
 }) {
   const [started, setStarted] = React.useState(false);
+  const [skipping, setSkipping] = React.useState(false);
+
+  // Self-heal: a user who already onboarded (metadata says so) landed here
+  // only because this device lacks the mirror cookie — restore it and bounce
+  // out without showing the welcome again.
+  React.useEffect(() => {
+    if (alreadyComplete) void completeOnboardingAction("/home");
+  }, [alreadyComplete]);
+
+  async function onSkip() {
+    setSkipping(true);
+    try {
+      await completeOnboardingAction("/home");
+    } catch {
+      // redirect() throws internally on success; a real failure just
+      // re-enables the link.
+      setSkipping(false);
+    }
+  }
+
+  if (alreadyComplete) {
+    // One quiet beat while the self-heal redirect runs.
+    return <div className="min-h-[70vh]" aria-busy />;
+  }
 
   if (started) {
     return (
@@ -51,6 +78,14 @@ export function OnboardingExperience({
           <Button size="xl" pill onClick={() => setStarted(true)}>
             Create your first channel
           </Button>
+          <button
+            type="button"
+            onClick={onSkip}
+            disabled={skipping}
+            className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-60"
+          >
+            {skipping ? "One moment…" : "Skip for now — explore the suite"}
+          </button>
           {connected === false && (
             <p className="text-sm text-muted-foreground">
               Heads up — scheduled posts won&apos;t ship until you{" "}
