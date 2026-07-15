@@ -35,31 +35,39 @@ function PlatformIcon({ platform }: { platform: string }) {
   return null;
 }
 
+const KIND_META: Record<
+  CalendarItem["kind"],
+  { label: string; dot: string }
+> = {
+  video: { label: "Video", dot: "bg-brand" },
+  article: { label: "Article", dot: "bg-cat-navy/60" },
+  ad: { label: "Ad", dot: "bg-cat-orange" },
+};
+
 function KindChip({ kind }: { kind: CalendarItem["kind"] }) {
-  const isVideo = kind === "video";
+  const meta = KIND_META[kind];
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-      <span
-        aria-hidden
-        className={cn(
-          "size-1.5 rounded-full",
-          isVideo ? "bg-brand" : "bg-cat-navy/60",
-        )}
-      />
-      {isVideo ? "Video" : "Article"}
+      <span aria-hidden className={cn("size-1.5 rounded-full", meta.dot)} />
+      {meta.label}
     </span>
   );
 }
 
 function statusText(item: CalendarItem): string {
-  return item.kind === "video"
-    ? jobStatusLabel(item.status as JobStatus)
-    : articleStatusLabel(item.status as ArticleStatus);
+  if (item.kind === "video") return jobStatusLabel(item.status as JobStatus);
+  if (item.kind === "ad") return item.status;
+  return articleStatusLabel(item.status as ArticleStatus);
+}
+
+function itemHref(item: CalendarItem): string {
+  if (item.kind === "video") return `/queue/${item.id}`;
+  if (item.kind === "ad") return `/ads/campaigns/${item.id}`;
+  return `/articles/${item.id}`;
 }
 
 function AgendaItem({ item }: { item: CalendarItem }) {
-  const href =
-    item.kind === "video" ? `/queue/${item.id}` : `/articles/${item.id}`;
+  const href = itemHref(item);
   const time = formatTime(item.at);
   const platformLabel =
     item.platform != null
@@ -70,7 +78,7 @@ function AgendaItem({ item }: { item: CalendarItem }) {
     <li>
       <Link
         href={href}
-        aria-label={`${item.kind === "video" ? "Video" : "Article"}: ${
+        aria-label={`${KIND_META[item.kind].label}: ${
           item.title
         } — ${statusText(item)}, scheduled ${time}`}
         className="group flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40"
@@ -93,8 +101,12 @@ function AgendaItem({ item }: { item: CalendarItem }) {
         )}
         {item.kind === "video" ? (
           <StatusBadge status={item.status as JobStatus} />
-        ) : (
+        ) : item.kind === "article" ? (
           <ArticleStatusBadge status={item.status as ArticleStatus} />
+        ) : (
+          <span className="rounded-md border border-cat-orange/40 bg-cat-orange/10 px-2 py-0.5 text-xs font-medium capitalize text-cat-orange">
+            {item.status}
+          </span>
         )}
       </Link>
     </li>

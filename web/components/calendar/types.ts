@@ -4,7 +4,7 @@
 // (JobStatus for videos, ArticleStatus for articles) which we humanize
 // via the shared status-badge helpers.
 export interface CalendarItem {
-  kind: "video" | "article";
+  kind: "video" | "article" | "ad";
   id: string;
   niche_id: string;
   title: string;

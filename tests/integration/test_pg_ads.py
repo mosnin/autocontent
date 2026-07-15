@@ -199,3 +199,26 @@ async def test_action_log_is_append_and_scoped(pool):
     # Cross-tenant: another user sees nothing.
     other = await _mkuser(pool)
     assert await ad_actions.list_(user_id=other) == []
+
+
+# --------------------------------------------------------------------------- calendar
+
+async def test_campaign_appears_in_calendar(pool):
+    from datetime import datetime, timedelta, timezone
+
+    from marketer.repos import ads, calendar
+
+    uid = await _mkuser(pool)
+    acc = await ads.create_account(user_id=uid, platform="meta_ads")
+    camp = await ads.create_campaign(
+        user_id=uid, ad_account_id=acc.id, name="Spring Launch", status="active"
+    )
+    now = datetime.now(timezone.utc)
+    items = await calendar.items_for_user(
+        uid, start=now - timedelta(days=1), end=now + timedelta(days=1)
+    )
+    ad_items = [i for i in items if i.kind == "ad"]
+    assert len(ad_items) == 1
+    assert ad_items[0].id == str(camp.id)
+    assert ad_items[0].title == "Spring Launch"
+    assert ad_items[0].platform == "meta_ads"

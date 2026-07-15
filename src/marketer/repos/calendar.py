@@ -11,13 +11,13 @@ from ..db import get_pool
 
 
 class CalendarItem(BaseModel):
-    kind: str  # 'video' | 'article'
+    kind: str  # 'video' | 'article' | 'ad'
     id: str
     niche_id: str
     title: str
     status: str
     platform: str | None = None
-    at: datetime  # scheduled_for for video, created_at for article
+    at: datetime  # scheduled_for for video, created_at for article/ad
 
 
 async def items_for_user(
@@ -43,6 +43,13 @@ async def items_for_user(
                null as platform, created_at as at
           from articles
          where user_id = $1 and created_at >= $2 and created_at < $3
+        union all
+        select 'ad' as kind, c.id::text,
+               coalesce(c.niche_id::text, '') as niche_id,
+               coalesce(nullif(c.name, ''), 'Campaign') as title,
+               c.status::text as status, a.platform, c.created_at as at
+          from ad_campaigns c join ad_accounts a on a.id = c.ad_account_id
+         where c.user_id = $1 and c.created_at >= $2 and c.created_at < $3
          order by at
         """,
         user_id, start, end,

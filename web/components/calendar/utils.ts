@@ -96,13 +96,21 @@ export function formatTime(iso: string): string {
 export function summarize(items: CalendarItem[]): {
   videos: number;
   articles: number;
+  ads: number;
   phrase: string;
 } {
   const videos = items.filter((i) => i.kind === "video").length;
-  const articles = items.length - videos;
+  const articles = items.filter((i) => i.kind === "article").length;
+  const ads = items.filter((i) => i.kind === "ad").length;
   const parts: string[] = [];
   if (videos > 0) parts.push(`${videos} ${videos === 1 ? "video" : "videos"}`);
   if (articles > 0)
     parts.push(`${articles} ${articles === 1 ? "article" : "articles"}`);
-  return { videos, articles, phrase: parts.join(" and ") };
+  if (ads > 0) parts.push(`${ads} ${ads === 1 ? "campaign" : "campaigns"}`);
+  // Join with commas + a trailing "and" for 3+ parts, "and" for 2.
+  const phrase =
+    parts.length <= 1
+      ? parts.join("")
+      : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+  return { videos, articles, ads, phrase };
 }
