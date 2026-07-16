@@ -14,7 +14,6 @@ import {
   EASE,
   GradientScene,
   Kicker,
-  LogoRow,
   MockChat,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
@@ -214,15 +213,10 @@ export function Hero() {
               </CtaPill>
             </FadeUp>
             <FadeUp delay={0.85}>
-              <LogoRow
-                className="mt-12"
-                names={[
-                  "Northbeam Studio",
-                  "Halide Labs",
-                  "Fern & Field",
-                  "Copperline",
-                ]}
-              />
+              <p className="mt-11 max-w-md text-[13px] leading-relaxed text-zinc-500">
+                You set the daily spend cap. Review every post before it ships,
+                or let it run fully on its own.
+              </p>
             </FadeUp>
           </div>
         </motion.div>
