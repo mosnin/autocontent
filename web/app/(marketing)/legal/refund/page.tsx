@@ -18,7 +18,7 @@ export default function RefundPage() {
         Paid usage runs on prepaid credits you purchase in advance. Credits are
         consumed as the platform meters spend on generation and other billable
         actions, at the rates shown in-product at the time of use. Your balance
-        and every charge — down to the individual API call — are visible in{" "}
+        and every charge, down to the individual API call, are visible in{" "}
         <a href="/settings/billing">Settings → Billing</a>.
       </p>
 
@@ -33,17 +33,17 @@ export default function RefundPage() {
       <h2>Refunds</h2>
       <ul>
         <li>
-          <strong>Unused balance</strong> — you may request a refund of your
+          <strong>Unused balance</strong>: you may request a refund of your
           remaining, unused prepaid balance within 30 days of purchase. We refund
           to the original payment method.
         </li>
         <li>
-          <strong>Consumed credits</strong> — credits already spent on completed
+          <strong>Consumed credits</strong>: credits already spent on completed
           generation or third-party costs are non-refundable, because the
           underlying provider work has been performed.
         </li>
         <li>
-          <strong>Billing errors</strong> — if you were charged in error or a
+          <strong>Billing errors</strong>: if you were charged in error or a
           run failed and still consumed credits due to our fault, we will credit
           you back. Reach us and we will make it right.
         </li>

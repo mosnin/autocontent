@@ -146,7 +146,7 @@ export function UserDetailClient({
             <div className="text-sm">
               <span className="font-medium">Suspended</span>{" "}
               <span className="text-muted-foreground">
-                {formatDateTime(user.suspended_at as string)} —{" "}
+                {formatDateTime(user.suspended_at as string)}:{" "}
                 {user.suspended_reason}
               </span>
             </div>
@@ -350,7 +350,7 @@ function SuspendDialog({
               id="suspend-reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Abuse report #1234 — pending review"
+              placeholder="e.g. Abuse report #1234, pending review"
               maxLength={500}
               autoFocus
             />
@@ -601,7 +601,7 @@ function CreditsDialog({
                 id="credit-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. Goodwill credit — support ticket #987"
+                placeholder="e.g. Goodwill credit, support ticket #987"
                 maxLength={200}
               />
             </div>

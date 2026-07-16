@@ -14,10 +14,10 @@ const DESCRIPTION =
   "Give every product line its own channel: hook-driven demo shorts plus SEO buying guides that rank, produced from one brief under hard daily spend caps.";
 
 export const metadata: Metadata = {
-  title: "Ecommerce — marketer.sh",
+  title: "Ecommerce | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Ecommerce — marketer.sh",
+    title: "Ecommerce | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

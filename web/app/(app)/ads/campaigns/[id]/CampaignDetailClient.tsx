@@ -58,7 +58,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     try {
       const res = await changeBudget(id, budget || "0");
       if (res.status === "pending_approval") {
-        toast.message("Budget change needs approval — sent to your inbox.");
+        toast.message("Budget change needs approval. Sent to your inbox.");
       } else {
         toast.success("Budget updated");
       }
@@ -153,7 +153,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
         <Stat label="Spend" value={formatUsd(totals.spend)} />
         <Stat
           label="ROAS"
-          value={roas === null ? "—" : `${roas.toFixed(2)}×`}
+          value={roas === null ? "-" : `${roas.toFixed(2)}×`}
         />
         <Stat label="Clicks" value={totals.clicks.toLocaleString()} />
         <Stat label="Impressions" value={totals.impressions.toLocaleString()} />

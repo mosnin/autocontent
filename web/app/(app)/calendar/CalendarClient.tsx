@@ -96,7 +96,7 @@ export function CalendarClient({ initial }: { initial: CalendarItem[] }) {
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused: {error.message ?? "fetch failed"}
         </p>
       )}
 

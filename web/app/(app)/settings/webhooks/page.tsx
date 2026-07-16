@@ -18,7 +18,7 @@ export default async function WebhooksPage() {
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Webhooks</h1>
         <p className="text-sm text-muted-foreground">
           Register HTTPS endpoints to receive signed, real-time events when jobs
-          and articles finish, fail, or need approval — the hook agents and
+          and articles finish, fail, or need approval: the hook agents and
           automation use to react without polling. Every delivery is signed with
           a per-endpoint secret so you can verify it came from marketer.sh.
         </p>

@@ -174,8 +174,10 @@
   --cat-green: 152 52% 48%;
   --cat-orange: 24 90% 58%;
   --cat-blue: 217 90% 62%;
-  --cat-purple: 255 75% 70%;
-  --cat-navy: 222 30% 70%;
+  /* Kept saturated enough that the white AppIcon glyph stays legible on the
+     tile in dark mode. The old 70% lightness washed the glyph out. */
+  --cat-purple: 255 62% 62%;
+  --cat-navy: 222 24% 46%;
   --card: 240 10% 5.5%;
   --card-foreground: 0 0% 98%;
   --popover: 240 10% 3.9%;

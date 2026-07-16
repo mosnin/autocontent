@@ -95,7 +95,7 @@ export function LatestVideos() {
                 <span className="font-mono tabular-nums">
                   {summary.sampled_videos}
                 </span>{" "}
-                {summary.sampled_videos === 1 ? "video" : "videos"} — last{" "}
+                {summary.sampled_videos === 1 ? "video" : "videos"}, last{" "}
                 {summary.days} days.
               </p>
               {summary.best_views !== null && summary.best_job_id && (
@@ -175,7 +175,7 @@ export function LatestVideos() {
               Your machine shipped its first video
             </DialogTitle>
             <DialogDescription>
-              Ideated, written, animated, voiced, and mixed — start to finish,
+              Ideated, written, animated, voiced, and mixed. Start to finish,
               no hands on the wheel.
             </DialogDescription>
           </DialogHeader>

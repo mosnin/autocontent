@@ -91,7 +91,7 @@ export function SpendCapForm({ initialCap }: Props) {
           </Label>
           <p className="max-w-md text-xs text-muted-foreground">
             An account-wide ceiling across every niche. Checked before each
-            job runs — anything that would push the day&apos;s spend over the
+            job runs. Anything that would push the day&apos;s spend over the
             cap is refused, not truncated.
           </p>
         </div>

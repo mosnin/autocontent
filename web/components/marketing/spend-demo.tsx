@@ -40,7 +40,7 @@ export function SpendDemo() {
               Your budget, enforced
             </p>
             <h2 className="mt-3 max-w-xl text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-              Set the ceiling. The machine runs under it — or{" "}
+              Set the ceiling. The machine runs under it, or{" "}
               <Power>not at all</Power>.
             </h2>
           </Reveal>
@@ -48,7 +48,7 @@ export function SpendDemo() {
           <Reveal delay={0.1}>
             <p className="mt-6 max-w-md text-sm leading-relaxed text-muted-foreground">
               No surprise invoices, no runaway loops. Pick a daily cap and the
-              pipeline plans its output to fit — more headroom buys more videos,
+              pipeline plans its output to fit: more headroom buys more videos,
               a tighter budget simply slows the cadence.
             </p>
 
@@ -61,7 +61,7 @@ export function SpendDemo() {
                 <span className="font-medium text-foreground">
                   before every API call
                 </span>
-                . A job that would breach the ceiling is refused mid-flight —
+                . A job that would breach the ceiling is refused mid-flight,
                 not explained afterward.
               </p>
             </div>

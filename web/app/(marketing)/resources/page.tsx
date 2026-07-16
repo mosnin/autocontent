@@ -19,10 +19,10 @@ const DESCRIPTION =
   "Docs, guides, and references for marketer.sh: the quickstart, the API, SDK, CLI and MCP surfaces, launch guides, the changelog, and answers to common questions.";
 
 export const metadata: Metadata = {
-  title: "Resources — marketer.sh",
+  title: "Resources | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Resources — marketer.sh",
+    title: "Resources | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

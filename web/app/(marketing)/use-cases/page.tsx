@@ -8,10 +8,10 @@ const DESCRIPTION =
   "Six ways teams run marketer.sh: solo creators, ecommerce, SaaS teams, agencies, local businesses, and AI agents. Same pipelines, same spend caps, your job.";
 
 export const metadata: Metadata = {
-  title: "Use cases — marketer.sh",
+  title: "Use cases (marketer.sh)",
   description: DESCRIPTION,
   openGraph: {
-    title: "Use cases — marketer.sh",
+    title: "Use cases (marketer.sh)",
     description: DESCRIPTION,
     type: "website",
   },

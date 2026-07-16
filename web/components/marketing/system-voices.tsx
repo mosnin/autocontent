@@ -23,21 +23,21 @@ const VOICES = [
     system: "The Loop",
     file: "performance_context.py",
     quote:
-      "I read your last thirty days — winners and flops — and brief the ideation agent before it writes a single word. Your best hook is my training data.",
+      "I read your last thirty days (winners and flops) and brief the ideation agent before it writes a single word. Your best hook is my training data.",
   },
   {
     icon: Timer,
     system: "Scheduler",
     file: "scheduler.py",
     quote:
-      "You pick the posting window once. I hit it every day, in your timezone, across every platform you enabled — and I tell you if a post bounces.",
+      "You pick the posting window once. I hit it every day, in your timezone, across every platform you enabled, and I tell you if a post bounces.",
   },
   {
     icon: Bot,
     system: "Agent Surface",
     file: "mcp_server.py",
     quote:
-      "Dashboards are optional. Hand any agent a token and it can create niches, enqueue runs, and read the ledger — same API, same guardrails.",
+      "Dashboards are optional. Hand any agent a token and it can create niches, enqueue runs, and read the ledger. Same API, same guardrails.",
   },
 ];
 

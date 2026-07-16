@@ -41,7 +41,7 @@ export function AppIcon({
     <span
       aria-hidden
       className={cn(
-        "inline-flex shrink-0 items-center justify-center text-white shadow-sm",
+        "inline-flex shrink-0 items-center justify-center text-white shadow-sm ring-1 ring-inset ring-white/10",
         TINT[color],
         SIZE[size],
         className,

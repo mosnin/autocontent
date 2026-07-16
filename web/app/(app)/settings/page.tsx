@@ -22,7 +22,7 @@ const AREAS = [
     href: "/settings/billing",
     icon: Coins,
     title: "Pipeline credits",
-    description: "Balance, top-ups, and every charge — down to the API call.",
+    description: "Balance, top-ups, and every charge: down to the API call.",
   },
   {
     href: "/connect",

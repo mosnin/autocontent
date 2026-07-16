@@ -18,7 +18,7 @@ const DESCRIPTION =
 const URL = "https://marketer.sh/resources/guides/agent-driven-marketing";
 
 export const metadata: Metadata = {
-  title: `${TITLE} — marketer.sh`,
+  title: `${TITLE} | marketer.sh`,
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION, type: "article" },
   alternates: { canonical: URL },

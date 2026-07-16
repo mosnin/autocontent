@@ -25,7 +25,7 @@ export function TerminalVignette({ className }: { className?: string }) {
         <span className="size-2 rounded-full bg-white/15" />
         <span className="size-2 rounded-full bg-white/15" />
         <span className="ml-auto font-mono text-[10px] text-zinc-500">
-          marketer — zsh
+          marketer - zsh
         </span>
       </div>
       <div className="mt-3 space-y-1.5 font-mono text-[11px] leading-relaxed">

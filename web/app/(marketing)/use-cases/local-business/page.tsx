@@ -14,10 +14,10 @@ const DESCRIPTION =
   "Show up in local search and on social every week without a marketing hire. A plain-language brief, one weekly review, and spend capped in plain dollars.";
 
 export const metadata: Metadata = {
-  title: "Local business — marketer.sh",
+  title: "Local business | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Local business — marketer.sh",
+    title: "Local business | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

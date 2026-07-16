@@ -155,7 +155,7 @@ export function JobDetailClient({
               {inProgress && (
                 <span className="inline-flex items-center gap-1.5 font-medium text-brand">
                   <RecordingDot />
-                  In progress — updates every {POLL_MS / 1000}s
+                  In progress. Updates every {POLL_MS / 1000}s
                 </span>
               )}
               <span className="tabular-nums">
@@ -388,7 +388,7 @@ function CostsPanel({
         </TableBody>
       </Table>
       <p className="text-xs text-muted-foreground">
-        Estimated from the niche&apos;s current config — the actual run is
+        Estimated from the niche&apos;s current config. The actual run is
         billed from real provider invoices.
       </p>
     </div>

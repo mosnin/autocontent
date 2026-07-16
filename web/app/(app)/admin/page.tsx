@@ -147,8 +147,8 @@ export default async function AdminOverviewPage() {
             <div>
               <div className="text-sm font-medium">Audit trail</div>
               <p className="text-sm text-muted-foreground">
-                Every privileged action — suspensions, role changes, credit
-                grants — is written to an append-only log for SOC 2 evidence.
+                Every privileged action (suspensions, role changes, credit
+                grants) is written to an append-only log for SOC 2 evidence.
               </p>
             </div>
           </div>

@@ -39,7 +39,7 @@ export default async function AdsOverviewPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Ads</h1>
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Create, manage, and scale paid campaigns across Google and Meta —
+            Create, manage, and scale paid campaigns across Google and Meta,
             driven by agents, governed by hard budget guardrails.
           </p>
         </div>
@@ -114,7 +114,7 @@ function ConnectCallout() {
         </div>
         <h2 className="text-lg font-semibold">Connect an ad account to begin</h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          Link Google Ads or Meta Ads. Connecting only grants access — nothing
+          Link Google Ads or Meta Ads. Connecting only grants access. Nothing
           can spend until you set a budget and approve it.
         </p>
         <Button asChild>

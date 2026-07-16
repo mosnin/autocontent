@@ -34,7 +34,7 @@ export default async function PressOverviewPage() {
         <div className="space-y-1.5">
           <h1 className="text-3xl font-semibold tracking-tight">Press</h1>
           <p className="max-w-xl text-[15px] text-muted-foreground">
-            Long-form articles, researched and written for search — SEO
+            Long-form articles, researched and written for search: SEO
             metadata, structured data, and internal links included.
           </p>
         </div>
@@ -52,7 +52,7 @@ export default async function PressOverviewPage() {
         />
         <Stat
           label="Avg quality"
-          value={avgQuality === null ? "—" : `${Math.round(avgQuality * 100)}%`}
+          value={avgQuality === null ? "-" : `${Math.round(avgQuality * 100)}%`}
         />
       </div>
 
@@ -72,7 +72,7 @@ export default async function PressOverviewPage() {
             <CardContent className="flex flex-col items-center gap-3 py-16 text-center">
               <h3 className="text-lg font-semibold">No articles yet</h3>
               <p className="max-w-sm text-sm text-muted-foreground">
-                Generate your first SEO article — pick a channel and the
+                Generate your first SEO article. Pick a channel and the
                 pipeline researches, outlines, writes, and scores it.
               </p>
               <Button asChild size="sm">
@@ -108,7 +108,7 @@ export default async function PressOverviewPage() {
 
       {failed.length > 0 && (
         <p className="text-sm text-muted-foreground">
-          {failed.length} article{failed.length === 1 ? "" : "s"} failed —{" "}
+          {failed.length} article{failed.length === 1 ? "" : "s"} failed:{" "}
           <Link
             href="/articles"
             className="font-medium text-foreground underline underline-offset-4"

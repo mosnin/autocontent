@@ -80,7 +80,7 @@ function AgendaItem({ item }: { item: CalendarItem }) {
         href={href}
         aria-label={`${KIND_META[item.kind].label}: ${
           item.title
-        } — ${statusText(item)}, scheduled ${time}`}
+        }, ${statusText(item)}, scheduled ${time}`}
         className="group flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand/40"
       >
         <time

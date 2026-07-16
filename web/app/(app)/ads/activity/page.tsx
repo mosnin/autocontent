@@ -47,7 +47,7 @@ export default async function AdsActivityPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
         <p className="text-sm text-muted-foreground">
-          Append-only log of every ads action — by agents and by you. This is
+          Append-only log of every ads action, by agents and by you. This is
           the audit trail for spend.
         </p>
       </div>
@@ -95,7 +95,7 @@ export default async function AdsActivityPage() {
                     <TableCell className="text-right font-mono tabular-nums">
                       {Number(a.dollar_delta_usd) !== 0
                         ? formatUsd(a.dollar_delta_usd)
-                        : "—"}
+                        : "-"}
                     </TableCell>
                     <TableCell className="tabular-nums text-muted-foreground">
                       {new Date(a.created_at).toLocaleDateString(undefined, {

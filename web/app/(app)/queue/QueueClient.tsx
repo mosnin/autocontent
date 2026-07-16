@@ -134,7 +134,7 @@ export function QueueClient({ initial }: { initial: Job[] }) {
     fd.set("job_id", job.id);
     const res = await approveJobAction({ ok: false }, fd);
     if (res.ok) {
-      toast.success("Approved — scheduling the post now");
+      toast.success("Approved. Scheduling the post now");
       void mutate();
     } else {
       toast.error(res.error ?? "Approve failed");
@@ -147,7 +147,7 @@ export function QueueClient({ initial }: { initial: Job[] }) {
     fd.set("job_id", job.id);
     const res = await rejectJobAction({ ok: false }, fd);
     if (res.ok) {
-      toast.success("Rejected — it will not post");
+      toast.success("Rejected. It will not post");
       void mutate();
     } else {
       toast.error(res.error ?? "Reject failed");
@@ -165,7 +165,7 @@ export function QueueClient({ initial }: { initial: Job[] }) {
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused: {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -342,7 +342,7 @@ function JobRow({
             &ldquo;{job.script.idea.hook}&rdquo;
           </span>
         ) : (
-          <span className="text-muted-foreground">—</span>
+          <span className="text-muted-foreground">-</span>
         )}
       </TableCell>
       <TableCell className="tabular-nums text-muted-foreground">
@@ -356,7 +356,7 @@ function JobRow({
               hour: "2-digit",
               minute: "2-digit",
             })
-          : "—"}
+          : "-"}
       </TableCell>
       <TableCell className="text-right">
         {job.status === "failed" && (

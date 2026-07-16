@@ -11,13 +11,13 @@ export default function TermsPage() {
   return (
     <LegalDoc
       title="Terms of Service"
-      intro="These terms are a binding agreement between you and marketer.sh. By creating an account or using the platform — including through an AI agent acting on your behalf — you agree to them."
+      intro="These terms are a binding agreement between you and marketer.sh. By creating an account or using the platform, including through an AI agent acting on your behalf, you agree to them."
     >
       <h2>1. The service</h2>
       <p>
         marketer.sh is a marketing platform that produces, publishes, and helps
-        manage content — short-form video, long-form articles, and paid ad
-        campaigns — on your behalf and, where you authorize it, on behalf of AI
+        manage content (short-form video, long-form articles, and paid ad
+        campaigns) on your behalf and, where you authorize it, on behalf of AI
         agents you operate. We provide the software, the pipelines, and the
         agent surfaces (REST API, SDK, CLI, and MCP server); you provide the
         direction, the connected accounts, and the funds to run them.
@@ -39,7 +39,7 @@ export default function TermsPage() {
         You retain ownership of the briefs, brand assets, and other materials
         you provide (&ldquo;Your Content&rdquo;) and of the outputs the platform
         generates for you. You grant us a limited license to host, process, and
-        transmit Your Content solely to operate the service — for example, to
+        transmit Your Content solely to operate the service: for example, to
         run a pipeline, publish a post, or serve an ad. You represent that you
         have the rights to Your Content and that it, and the outputs you choose
         to publish, do not infringe others&rsquo; rights or violate our{" "}
@@ -62,7 +62,7 @@ export default function TermsPage() {
         paid plans, billed against prepaid credits. Each niche carries a daily
         spend cap and you may set an account-wide cap; we check these before
         spending. Paid ad campaigns spend real money on third-party ad
-        platforms from budgets you set — those budgets pass a fail-closed guard
+        platforms from budgets you set. Those budgets pass a fail-closed guard
         and, above your threshold, require your approval, but you remain
         responsible for the amounts you authorize. Billing and refunds are
         described in our <a href="/legal/refund">Refund Policy</a>.
@@ -80,7 +80,7 @@ export default function TermsPage() {
 
       <h2>7. Third-party services</h2>
       <p>
-        The platform connects to third parties you authorize — social networks,
+        The platform connects to third parties you authorize: social networks,
         ad platforms, payment facilitators, and model providers. Your use of
         those services is governed by their terms, and we are not responsible
         for their acts or omissions. See our{" "}

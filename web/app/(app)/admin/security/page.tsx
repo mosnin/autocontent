@@ -36,13 +36,13 @@ const CONTROLS: Control[] = [
     icon: <ShieldCheck />,
     color: "navy",
     title: "Role-based access control",
-    body: "Administrative routes are gated on an explicit admin role and follow least-privilege — a non-admin caller receives HTTP 403 from every /admin endpoint, and the admin UI reveals nothing behind a clean 'not authorized' state.",
+    body: "Administrative routes are gated on an explicit admin role and follow least-privilege. A non-admin caller receives HTTP 403 from every /admin endpoint, and the admin UI reveals nothing behind a clean 'not authorized' state.",
   },
   {
     icon: <ScrollText />,
     color: "blue",
     title: "Append-only audit trail",
-    body: "Every privileged action — suspensions, role changes, credit adjustments — is written to an append-only log capturing the actor, their IP and user agent, the target, and structured metadata. Entries are never mutated or deleted.",
+    body: "Every privileged action (suspensions, role changes, credit adjustments) is written to an append-only log capturing the actor, their IP and user agent, the target, and structured metadata. Entries are never mutated or deleted.",
     link: { href: "/admin/audit", label: "Open audit log" },
   },
   {
@@ -56,7 +56,7 @@ const CONTROLS: Control[] = [
     icon: <Lock />,
     color: "green",
     title: "Encryption at rest",
-    body: "Application data lives in a managed Postgres database with encryption at rest. Provider secrets and API keys are supplied through environment configuration and a managed secret store — never committed to source.",
+    body: "Application data lives in a managed Postgres database with encryption at rest. Provider secrets and API keys are supplied through environment configuration and a managed secret store, never committed to source.",
   },
   {
     icon: <KeyRound />,

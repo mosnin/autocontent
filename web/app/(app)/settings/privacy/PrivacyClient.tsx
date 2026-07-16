@@ -184,7 +184,7 @@ export function PrivacyClient({ email }: Props) {
       {/* Delete ------------------------------------------------------ */}
       <DangerZone
         title="Delete account"
-        description="Permanently erase your account and everything tied to it. This is your GDPR right to erasure — and it can't be undone."
+        description="Permanently erase your account and everything tied to it. This is your GDPR right to erasure, and it can't be undone."
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="max-w-md text-sm text-muted-foreground">

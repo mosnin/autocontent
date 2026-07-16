@@ -15,10 +15,10 @@ const DESCRIPTION =
   "marketer.sh gives AI agents a full marketing department: MCP tools with cost-aware descriptions, PAT auth, and hard spend caps so agents cannot overspend.";
 
 export const metadata: Metadata = {
-  title: "AI agents — marketer.sh",
+  title: "AI agents | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "AI agents — marketer.sh",
+    title: "AI agents | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

@@ -40,7 +40,7 @@ export function Showcase() {
           </h2>
           <p className="mt-3 max-w-lg text-sm text-muted-foreground">
             Every one of these was ideated, written, animated, voiced, mixed,
-            and captioned by the machine — no human in the loop.
+            and captioned by the machine. No human in the loop.
           </p>
         </Reveal>
 

@@ -16,7 +16,6 @@ import {
   Link2,
   ListChecks,
   Megaphone,
-  Palette,
   Settings,
   ShieldCheck,
   Wallet,
@@ -78,7 +77,7 @@ const STUDIO: Product = {
   match: ["/dashboard", "/niches", "/queue", "/calendar", "/onboarding"],
   nav: [
     { kind: "item", href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { kind: "item", href: "/niches", label: "Niches", icon: Layers },
+    { kind: "item", href: "/niches", label: "Channels", icon: Layers },
     { kind: "item", href: "/queue", label: "Queue", icon: ListChecks },
     { kind: "item", href: "/calendar", label: "Calendar", icon: CalendarDays },
   ],
@@ -95,8 +94,6 @@ const PRESS: Product = {
   nav: [
     { kind: "item", href: "/press", label: "Overview", icon: LayoutDashboard },
     { kind: "item", href: "/articles", label: "Articles", icon: FileText },
-    { kind: "item", href: "/calendar", label: "Calendar", icon: CalendarDays },
-    { kind: "item", href: "/settings/brand", label: "Brand voice", icon: Palette },
     {
       kind: "group",
       label: "SEO",

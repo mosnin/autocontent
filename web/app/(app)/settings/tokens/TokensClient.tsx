@@ -73,7 +73,7 @@ export function TokensClient({ tokens }: Props) {
           <CardContent className="space-y-3 pt-6">
             <div className="flex items-center gap-2 text-sm font-medium">
               <KeyRound className="h-4 w-4 text-success" />
-              New token — shown once
+              New token, shown once
             </div>
             <div className="flex items-center gap-2 rounded-md border bg-background p-2">
               <code className="flex-1 overflow-x-auto font-mono text-xs">
@@ -93,7 +93,7 @@ export function TokensClient({ tokens }: Props) {
               <code className="rounded bg-muted px-1">
                 MARKETER_API_TOKEN
               </code>{" "}
-              now — we don&apos;t store the plaintext and can&apos;t recover it.
+              now. We don&apos;t store the plaintext and can&apos;t recover it.
             </p>
           </CardContent>
         </Card>
@@ -218,7 +218,7 @@ function TokenRow({ token }: { token: PersonalAccessToken }) {
         {new Date(token.created_at).toLocaleString()}
       </TableCell>
       <TableCell className="text-muted-foreground">
-        {token.expires_at ? new Date(token.expires_at).toLocaleString() : "—"}
+        {token.expires_at ? new Date(token.expires_at).toLocaleString() : "-"}
       </TableCell>
       <TableCell className="text-muted-foreground">
         {token.last_used_at

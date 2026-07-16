@@ -385,7 +385,7 @@ function StepIdentity() {
               />
             </FormControl>
             <FormDescription>
-              Who each video should speak to — tone follows the audience.
+              Who each video should speak to. Tone follows the audience.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -546,7 +546,7 @@ function StepCreative() {
                 <VoicePreviewButton voice={field.value} />
               </div>
               <FormDescription>
-                Hit play — never pick a voice blind.
+                Hit play. Never pick a voice blind.
               </FormDescription>
               <FormMessage />
             </FormItem>

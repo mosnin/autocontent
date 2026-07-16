@@ -25,32 +25,32 @@ export default function PrivacyPage() {
       <h3>You give us</h3>
       <ul>
         <li>
-          <strong>Account data</strong> — your email and authentication
+          <strong>Account data</strong>: your email and authentication
           identity (via our auth provider), and team membership.
         </li>
         <li>
-          <strong>Content and configuration</strong> — niches, briefs, brand
+          <strong>Content and configuration</strong>: niches, briefs, brand
           kits, and the outputs generated for you.
         </li>
         <li>
-          <strong>Connections</strong> — tokens and account identifiers for the
+          <strong>Connections</strong>: tokens and account identifiers for the
           social, ad, and payment services you link. Provider secrets are stored
           server-side and never exposed to the browser.
         </li>
         <li>
-          <strong>Billing</strong> — prepaid credit balance and transaction
+          <strong>Billing</strong>: prepaid credit balance and transaction
           history. Card details are handled by our payment processor, not by us.
         </li>
       </ul>
       <h3>We collect automatically</h3>
       <ul>
         <li>
-          <strong>Usage and diagnostics</strong> — request metadata, spend
+          <strong>Usage and diagnostics</strong>: request metadata, spend
           ledger entries, and an audit log of privileged and spend-affecting
           actions (actor, IP, and user agent) for security and accounting.
         </li>
         <li>
-          <strong>Cookies</strong> — a small set described in our{" "}
+          <strong>Cookies</strong>: a small set described in our{" "}
           <a href="/legal/cookies">Cookie Policy</a>.
         </li>
       </ul>
@@ -103,11 +103,11 @@ export default function PrivacyPage() {
       </p>
       <ul>
         <li>
-          <strong>Export</strong> — download everything we hold from{" "}
+          <strong>Export</strong>: download everything we hold from{" "}
           <a href="/settings/privacy">Settings → Data &amp; privacy</a>.
         </li>
         <li>
-          <strong>Deletion</strong> — erase your account and data from the same
+          <strong>Deletion</strong>: erase your account and data from the same
           screen; deletion cascades across your records.
         </li>
       </ul>

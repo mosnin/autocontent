@@ -14,10 +14,10 @@ const DESCRIPTION =
   "Per-post views, watch time, and completion feed the next ideation round. Every model call is metered to a ledger with hard caps that fail closed, not open.";
 
 export const metadata: Metadata = {
-  title: "Analytics & spend — marketer.sh",
+  title: "Analytics & spend | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Analytics & spend — marketer.sh",
+    title: "Analytics & spend | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

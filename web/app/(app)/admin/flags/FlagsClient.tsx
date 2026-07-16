@@ -103,7 +103,7 @@ export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
           },
         );
         toast.success(
-          `“${flag.key}” ${nextEnabled ? "enabled" : "disabled"} — change audited`,
+          `“${flag.key}” ${nextEnabled ? "enabled" : "disabled"}. Change audited.`,
         );
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Update failed");
@@ -133,7 +133,7 @@ export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused: {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -290,7 +290,7 @@ function AddFlagDialog({
         enabled,
         description: description.trim(),
       });
-      toast.success(`Flag “${created.key}” created — change audited`);
+      toast.success(`Flag “${created.key}” created. Change audited.`);
       onCreated(created);
       onOpenChange(false);
     } catch (err) {

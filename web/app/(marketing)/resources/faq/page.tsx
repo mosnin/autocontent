@@ -9,10 +9,10 @@ const DESCRIPTION =
   "Straight answers about marketer.sh: how spend caps work, what happens at the limit, approval gates, supported platforms, content ownership, refunds, and data handling.";
 
 export const metadata: Metadata = {
-  title: "FAQ — marketer.sh",
+  title: "FAQ | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "FAQ — marketer.sh",
+    title: "FAQ | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

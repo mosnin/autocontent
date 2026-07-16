@@ -12,6 +12,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
+import { motion, useReducedMotion } from "motion/react";
 import { ChevronDown, MonitorIcon, MoonIcon, Search, SunIcon } from "lucide-react";
 
 import {
@@ -50,6 +51,7 @@ function RailIcon({
   active: boolean;
 }) {
   const Icon = product.icon;
+  const reduced = useReducedMotion();
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -58,13 +60,23 @@ function RailIcon({
           aria-label={product.label}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "flex size-9 items-center justify-center rounded-lg transition-colors",
+            "relative flex size-9 items-center justify-center rounded-lg transition-colors",
             active
-              ? "bg-muted text-foreground"
+              ? "text-foreground"
               : "text-muted-foreground/70 hover:bg-muted/60 hover:text-foreground",
           )}
         >
-          <Icon className="size-[17px]" aria-hidden />
+          {/* A single shared highlight that slides between products as the
+              active one changes — the rail's signature bit of life. */}
+          {active && (
+            <motion.span
+              aria-hidden
+              layoutId={reduced ? undefined : "rail-active"}
+              className="absolute inset-0 rounded-lg bg-muted"
+              transition={{ type: "spring", stiffness: 520, damping: 40 }}
+            />
+          )}
+          <Icon className="relative size-[17px]" aria-hidden />
         </Link>
       </TooltipTrigger>
       <TooltipContent side="right">{product.label}</TooltipContent>
@@ -109,7 +121,7 @@ function Rail({ active }: { active: Product }) {
       {/* Logo mark → the suite launcher. */}
       <Link
         href="/home"
-        aria-label="marketer.sh — all products"
+        aria-label="marketer.sh: all products"
         className="flex size-9 items-center justify-center rounded-[10px] transition-opacity hover:opacity-80"
         style={{ background: "var(--gradient-warm)" }}
       >
@@ -278,6 +290,7 @@ function GroupRows({
 
 function Panel({ product }: { product: Product }) {
   const pathname = usePathname();
+  const reduced = useReducedMotion();
   const { isMobile, setOpenMobile } = useSidebar();
   const onNavigate = React.useCallback(() => {
     if (isMobile) setOpenMobile(false);
@@ -292,6 +305,14 @@ function Panel({ product }: { product: Product }) {
         <SearchField />
       </div>
       <SidebarContent className="px-2 pb-4">
+        {/* Re-key on the product so switching apps softly fades the nav in,
+            reinforcing that each product is its own space. */}
+        <motion.div
+          key={product.id}
+          initial={reduced ? false : { opacity: 0, x: 6 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={reduced ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
         <SidebarMenu className="gap-0.5">
           {product.nav.map((entry: NavEntry) =>
             entry.kind === "item" ? (
@@ -324,6 +345,7 @@ function Panel({ product }: { product: Product }) {
             ),
           )}
         </SidebarMenu>
+        </motion.div>
       </SidebarContent>
     </div>
   );

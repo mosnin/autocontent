@@ -4,12 +4,17 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
+  BarChart3,
+  CalendarDays,
   Coins,
   FileText,
+  Home,
   KeyRound,
+  Layers,
   LayoutDashboard,
   Link2,
   ListChecks,
+  Megaphone,
   Play,
   Plus,
   Settings,
@@ -73,14 +78,32 @@ export function CommandPalette() {
       <CommandList>
         <CommandEmpty>No results.</CommandEmpty>
         <CommandGroup heading="Pages" className={KICKER}>
+          <CommandItem onSelect={() => go("/home")}>
+            <Home className="text-muted-foreground" /> Home
+          </CommandItem>
           <CommandItem onSelect={() => go("/dashboard")}>
             <LayoutDashboard className="text-muted-foreground" /> Dashboard
+          </CommandItem>
+          <CommandItem onSelect={() => go("/niches")}>
+            <Layers className="text-muted-foreground" /> Channels
           </CommandItem>
           <CommandItem onSelect={() => go("/queue")}>
             <ListChecks className="text-muted-foreground" /> Queue
           </CommandItem>
+          <CommandItem onSelect={() => go("/calendar")}>
+            <CalendarDays className="text-muted-foreground" /> Calendar
+          </CommandItem>
+          <CommandItem onSelect={() => go("/press")}>
+            <FileText className="text-muted-foreground" /> Press
+          </CommandItem>
           <CommandItem onSelect={() => go("/articles")}>
             <FileText className="text-muted-foreground" /> Articles
+          </CommandItem>
+          <CommandItem onSelect={() => go("/ads")}>
+            <Megaphone className="text-muted-foreground" /> Ads
+          </CommandItem>
+          <CommandItem onSelect={() => go("/ads/campaigns")}>
+            <BarChart3 className="text-muted-foreground" /> Campaigns
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
             <Link2 className="text-muted-foreground" /> Connect socials

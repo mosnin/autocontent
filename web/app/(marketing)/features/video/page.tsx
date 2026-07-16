@@ -16,10 +16,10 @@ const DESCRIPTION =
   "Ideation, scene-by-scene scripts, on-model keyframes, voiceover, karaoke captions, QA, and scheduled publishing to TikTok, Reels, and Shorts. One brief in.";
 
 export const metadata: Metadata = {
-  title: "Video pipeline — marketer.sh",
+  title: "Video pipeline | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Video pipeline — marketer.sh",
+    title: "Video pipeline | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

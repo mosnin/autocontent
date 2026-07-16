@@ -18,24 +18,24 @@ interface Props {
 }
 
 function fmtNum(n: number | null): string {
-  if (n === null) return "—";
+  if (n === null) return "-";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
 }
 
 function fmtWatchTime(s: string | null): string {
-  if (!s) return "—";
+  if (!s) return "-";
   const sec = Number(s);
-  if (isNaN(sec)) return "—";
+  if (isNaN(sec)) return "-";
   if (sec >= 60) return `${(sec / 60).toFixed(1)}m`;
   return `${sec.toFixed(0)}s`;
 }
 
 function fmtCompletion(r: string | null): string {
-  if (!r) return "—";
+  if (!r) return "-";
   const n = Number(r);
-  if (isNaN(n)) return "—";
+  if (isNaN(n)) return "-";
   return `${(n * 100).toFixed(1)}%`;
 }
 

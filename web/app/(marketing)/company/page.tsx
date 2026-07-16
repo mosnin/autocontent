@@ -14,10 +14,10 @@ const DESCRIPTION =
   "Why marketer.sh exists: marketing should compound while you build. We make autonomous pipelines that ship daily, spend honestly, and always leave the veto with you.";
 
 export const metadata: Metadata = {
-  title: "Company — marketer.sh",
+  title: "Company | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Company — marketer.sh",
+    title: "Company | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

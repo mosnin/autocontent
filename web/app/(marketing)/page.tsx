@@ -15,10 +15,10 @@ const DESCRIPTION =
   "The autonomous marketing platform. One brief in, video and SEO articles ideated, produced, published, and improved, with hard caps on every dollar spent.";
 
 export const metadata: Metadata = {
-  title: "marketer.sh — Marketing that runs itself",
+  title: "marketer.sh: Marketing that runs itself",
   description: DESCRIPTION,
   openGraph: {
-    title: "marketer.sh — Marketing that runs itself",
+    title: "marketer.sh: Marketing that runs itself",
     description: DESCRIPTION,
     type: "website",
   },

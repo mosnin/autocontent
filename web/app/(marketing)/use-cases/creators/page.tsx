@@ -14,10 +14,10 @@ const DESCRIPTION =
   "Turn one brief into daily TikToks, Reels, and Shorts. A character sheet keeps your face and world consistent, and an approval gate reviews every post.";
 
 export const metadata: Metadata = {
-  title: "Creators — marketer.sh",
+  title: "Creators | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Creators — marketer.sh",
+    title: "Creators | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

@@ -26,7 +26,7 @@ const FEATURES: Feature[] = [
   {
     icon: Sparkles,
     title: "Autonomous niches",
-    body: "Each niche is a self-contained pipeline — ideation, scripting, keyframes, motion, voice, captions, scheduling. Define it once; it runs daily without you.",
+    body: "Each niche is a self-contained pipeline: ideation, scripting, keyframes, motion, voice, captions, scheduling. Define it once; it runs daily without you.",
     span: "lg:col-span-2",
   },
   {
@@ -48,7 +48,7 @@ const FEATURES: Feature[] = [
   {
     icon: Layers,
     title: "On-model characters",
-    body: "A per-niche character sheet keeps every scene visually consistent across every video — one identity, hundreds of posts.",
+    body: "A per-niche character sheet keeps every scene visually consistent across every video: one identity, hundreds of posts.",
   },
   {
     icon: Landmark,

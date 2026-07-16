@@ -13,10 +13,10 @@ const DESCRIPTION =
   "REST API, typed Python SDK, the marketer CLI, and an MCP server with cost-aware tools. Agents create niches, enqueue videos, and publish inside your caps.";
 
 export const metadata: Metadata = {
-  title: "Automation & agents — marketer.sh",
+  title: "Automation & agents | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Automation & agents — marketer.sh",
+    title: "Automation & agents | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

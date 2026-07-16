@@ -193,7 +193,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               footLink={cap === null ? { href: "/settings", label: "Set a cap" } : undefined}
               icon={<Wallet />}
               title="Cap remaining"
-              value={remaining !== null ? formatUsd(remaining) : "—"}
+              value={remaining !== null ? formatUsd(remaining) : "-"}
             />
             <KpiCard
               color="navy"
@@ -214,7 +214,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               value={
                 metricsSummary
                   ? fmtCompact(metricsSummary.total_views)
-                  : "—"
+                  : "-"
               }
             />
           </div>
@@ -246,7 +246,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
       {hasError && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused —{" "}
+          Live updates paused:{" "}
           {(nichesError ?? spendError)?.message ?? "fetch failed"}
         </p>
       )}

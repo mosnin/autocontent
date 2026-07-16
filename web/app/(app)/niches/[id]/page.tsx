@@ -231,7 +231,7 @@ export default async function NichePage({
             value={
               windowDoneJobs.length > 0
                 ? `${jobsTruncated ? "~" : ""}${formatUsd(avgCostUsd)}`
-                : "—"
+                : "-"
             }
             sub={
               windowDoneJobs.length > 0

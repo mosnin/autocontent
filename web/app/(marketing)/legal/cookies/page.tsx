@@ -11,7 +11,7 @@ export default function CookiesPage() {
   return (
     <LegalDoc
       title="Cookie Policy"
-      intro="We keep cookies to a minimum. The platform runs on a small set of essential cookies and local storage — we do not use advertising or cross-site tracking cookies."
+      intro="We keep cookies to a minimum. The platform runs on a small set of essential cookies and local storage. We do not use advertising or cross-site tracking cookies."
     >
       <h2>Essential</h2>
       <p>
@@ -19,11 +19,11 @@ export default function CookiesPage() {
       </p>
       <ul>
         <li>
-          <strong>Authentication</strong> — session cookies set by our auth
+          <strong>Authentication</strong>: session cookies set by our auth
           provider to keep you signed in and protect against request forgery.
         </li>
         <li>
-          <strong>Security and load</strong> — cookies used for rate limiting
+          <strong>Security and load</strong>: cookies used for rate limiting
           and to route requests safely.
         </li>
       </ul>

@@ -47,7 +47,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
     const params = new URLSearchParams(window.location.search);
     const outcome = params.get("purchase");
     if (outcome === "success") {
-      toast.success("Payment received — credit lands as soon as Stripe confirms");
+      toast.success("Payment received. Credit lands as soon as Stripe confirms");
       window.history.replaceState({}, "", "/settings/billing");
     } else if (outcome === "cancelled") {
       toast("Checkout cancelled");
@@ -72,7 +72,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Billing is not enabled on this deployment — you&apos;re running on
+          Billing is not enabled on this deployment. You&apos;re running on
           your own API keys, and the only limits are the spend caps you set.
         </CardContent>
       </Card>
@@ -99,7 +99,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
             </p>
             {low && (
               <p className="text-xs text-brand">
-                Running low — the pipeline pauses at zero.
+                Running low. The pipeline pauses at zero.
               </p>
             )}
           </div>

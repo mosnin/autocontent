@@ -8,10 +8,10 @@ const DESCRIPTION =
   "Two production pipelines from one niche brief: short-form video and SEO articles, plus an agent surface and spend controls that keep every dollar capped.";
 
 export const metadata: Metadata = {
-  title: "Features — marketer.sh",
+  title: "Features | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Features — marketer.sh",
+    title: "Features | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

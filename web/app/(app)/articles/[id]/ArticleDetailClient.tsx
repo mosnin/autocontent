@@ -102,7 +102,7 @@ export function ArticleDetailClient({
             {inProgress && (
               <span className="inline-flex items-center gap-1.5 font-medium text-brand">
                 <RecordingDot />
-                In progress — updates every {POLL_MS / 1000}s
+                In progress. Updates every {POLL_MS / 1000}s
               </span>
             )}
             {nicheTitle && <span>Niche: {nicheTitle}</span>}
@@ -199,7 +199,7 @@ export function ArticleDetailClient({
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
               <MetaRow label="Focus keyword">
-                {article.focus_keyword || "—"}
+                {article.focus_keyword || "-"}
               </MetaRow>
               <Separator />
               <MetaRow label="Slug">
@@ -208,7 +208,7 @@ export function ArticleDetailClient({
                     /{article.slug}
                   </code>
                 ) : (
-                  "—"
+                  "-"
                 )}
               </MetaRow>
               <Separator />
@@ -224,7 +224,7 @@ export function ArticleDetailClient({
                     {article.meta_description}
                   </span>
                 ) : (
-                  "—"
+                  "-"
                 )}
               </MetaRow>
               <Separator />
@@ -238,7 +238,7 @@ export function ArticleDetailClient({
                     ))}
                   </span>
                 ) : (
-                  "—"
+                  "-"
                 )}
               </MetaRow>
 
@@ -406,7 +406,7 @@ function StatTile({ label, value }: { label: string; value: string }) {
 }
 
 function fmtScore(n: number): string {
-  if (!Number.isFinite(n)) return "—";
+  if (!Number.isFinite(n)) return "-";
   return Number.isInteger(n) ? String(n) : n.toFixed(2);
 }
 
@@ -467,7 +467,7 @@ function RepurposeCard({ articleId }: { articleId: string }) {
       const data = (await res.json()) as { snippets: Snippet[] };
       setSnippets(data.snippets);
       if (data.snippets.length === 0) {
-        toast.message("No posts came back — try different platforms.");
+        toast.message("No posts came back. Try different platforms.");
       } else {
         const n = data.snippets.length;
         toast.success(`Generated ${n} social ${n === 1 ? "post" : "posts"}`);

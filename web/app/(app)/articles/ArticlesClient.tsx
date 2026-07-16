@@ -164,7 +164,7 @@ export function ArticlesClient({
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused: {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -346,10 +346,10 @@ function ArticleRow({
         )}
       </TableCell>
       <TableCell className="max-w-[160px] truncate text-muted-foreground">
-        {nicheTitle ?? "—"}
+        {nicheTitle ?? "-"}
       </TableCell>
       <TableCell className="text-right tabular-nums text-muted-foreground">
-        {article.word_count != null ? article.word_count.toLocaleString() : "—"}
+        {article.word_count != null ? article.word_count.toLocaleString() : "-"}
       </TableCell>
       <TableCell className="tabular-nums text-muted-foreground">
         {relative(article.created_at)}
@@ -404,7 +404,7 @@ function NewArticleDialog({
     const res = await createArticleAction({ ok: false }, fd);
     setSubmitting(false);
     if (res.ok && res.article) {
-      toast.success("Article enqueued — the pipeline is on it");
+      toast.success("Article enqueued. The pipeline is on it");
       onOpenChange(false);
       setTopic("");
       onCreated(res.article);

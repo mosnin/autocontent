@@ -102,7 +102,7 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused: {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -143,7 +143,7 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
       {rows.length > 0 && (
         <div className="flex items-center justify-between">
           <p className="text-xs tabular-nums text-muted-foreground">
-            Showing {rangeStart}–{rangeEnd}
+            Showing {rangeStart}-{rangeEnd}
           </p>
           <div className="flex items-center gap-2">
             <Button

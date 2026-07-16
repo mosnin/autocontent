@@ -14,10 +14,10 @@ const DESCRIPTION =
   "Run every client as its own niche, with per-niche daily caps, approval gates per client, and a spend ledger that turns month-end billing into an export.";
 
 export const metadata: Metadata = {
-  title: "Agencies — marketer.sh",
+  title: "Agencies | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Agencies — marketer.sh",
+    title: "Agencies | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

@@ -40,13 +40,13 @@ export function OnboardingEntry() {
     const res = await draftNicheAction(description);
     setDrafting(false);
     if (!res.ok) {
-      toast.error(res.error || "Couldn't draft a channel — try the manual form");
+      toast.error(res.error || "Couldn't draft a channel. Try the manual form");
       return;
     }
     setPrefill(toPrefill(res.draft));
     setStartStep(3); // creative fields are filled; land on schedule + cap
     setMode("wizard");
-    toast.success("Drafted your channel — review and launch");
+    toast.success("Drafted your channel. Review and launch");
   }
 
   if (mode === "wizard") {
@@ -54,7 +54,7 @@ export function OnboardingEntry() {
       <div className="space-y-4">
         {prefill && (
           <div className="rounded-lg border border-border/60 bg-card/40 px-4 py-2.5 text-sm text-muted-foreground">
-            Drafted from your description — tweak anything, then set the schedule
+            Drafted from your description. Tweak anything, then set the schedule
             and cap.
           </div>
         )}

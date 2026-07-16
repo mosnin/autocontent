@@ -99,10 +99,10 @@ export function CampaignsClient({
                       <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {c.objective || "—"}
+                      {c.objective || "-"}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
-                      {c.daily_budget_usd ? formatUsd(c.daily_budget_usd) : "—"}
+                      {c.daily_budget_usd ? formatUsd(c.daily_budget_usd) : "-"}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -143,7 +143,7 @@ function EmptyNoCampaigns() {
         </div>
         <h3 className="text-lg font-semibold">No campaigns yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Create a draft campaign — it won&apos;t spend until you set a budget
+          Create a draft campaign. It won&apos;t spend until you set a budget
           and activate it.
         </p>
         <Button asChild>

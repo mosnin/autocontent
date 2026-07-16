@@ -11,10 +11,10 @@ const DESCRIPTION =
   "What shipped in marketer.sh and when: the articles pipeline, agent surfaces, prepaid credits, approval gates, performance-fed ideation, and more, newest first.";
 
 export const metadata: Metadata = {
-  title: "Changelog — marketer.sh",
+  title: "Changelog | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Changelog — marketer.sh",
+    title: "Changelog | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

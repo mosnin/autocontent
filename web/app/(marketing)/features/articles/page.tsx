@@ -13,10 +13,10 @@ const DESCRIPTION =
   "Live SERP research, structured outlines, sections written in parallel under E-E-A-T rules, QA scoring, full SEO metadata, JSON-LD, and internal links.";
 
 export const metadata: Metadata = {
-  title: "Articles & SEO — marketer.sh",
+  title: "Articles & SEO | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Articles & SEO — marketer.sh",
+    title: "Articles & SEO | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

@@ -30,8 +30,8 @@ export default async function BillingPage() {
           <p className="mt-1.5 text-sm text-muted-foreground">
             Videos draw down prepaid credit at provider cost plus a{" "}
             {Math.round((balance.margin - 1) * 100)}% infrastructure margin.
-            The spend guard refuses any call your balance can&apos;t cover —
-            you can never owe us money.
+            The spend guard refuses any call your balance can&apos;t cover.
+            You can never owe us money.
           </p>
         ) : (
           <p className="mt-1.5 text-sm text-muted-foreground">
@@ -53,7 +53,7 @@ export default async function BillingPage() {
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
                 We hit a problem reaching the billing service. Your credit is
-                safe — refresh in a moment to try again.
+                safe. Refresh in a moment to try again.
               </p>
             </div>
           </CardContent>

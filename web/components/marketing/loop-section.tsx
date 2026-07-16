@@ -8,7 +8,7 @@ const PHASES = [
   {
     n: "01",
     title: "Research & angles",
-    body: "Ideation reads the last 30 days of your niche — which hooks earned views, which flopped — and aims the next idea at proven ground plus one adjacent bet.",
+    body: "Ideation reads the last 30 days of your niche (which hooks earned views, which flopped) and aims the next idea at proven ground plus one adjacent bet.",
   },
   {
     n: "02",
@@ -18,7 +18,7 @@ const PHASES = [
   {
     n: "03",
     title: "The assembly line",
-    body: "Keyframes render, motion animates, the voice tracks over word-level captions, music beds in, ffmpeg mixes the master — every stage spend-checked and resumable.",
+    body: "Keyframes render, motion animates, the voice tracks over word-level captions, music beds in, ffmpeg mixes the master, every stage spend-checked and resumable.",
   },
   {
     n: "04",

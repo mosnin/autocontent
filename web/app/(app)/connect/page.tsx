@@ -107,7 +107,7 @@ export default async function ConnectPage() {
             </ul>
             <p className="text-center text-xs text-muted-foreground">
               {profileCreated
-                ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare — open the chooser above to add or revoke a platform."
+                ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare. Open the chooser above to add or revoke a platform."
                 : "Create a posting profile above, then link each platform in Ayrshare's chooser."}
             </p>
           </div>

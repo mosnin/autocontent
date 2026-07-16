@@ -110,7 +110,7 @@ function SigningHelp() {
             X-Marketer-Signature
           </code>{" "}
           header. Recompute the HMAC over the raw request body and compare in
-          constant time — reject if it doesn&apos;t match or the timestamp is
+          constant time. Reject if it doesn&apos;t match or the timestamp is
           stale.
         </p>
         <pre className="overflow-x-auto rounded-md border bg-background p-3 text-xs leading-relaxed">
@@ -141,7 +141,7 @@ function SecretReveal({
       <CardContent className="space-y-3 pt-6">
         <div className="flex items-center gap-2 text-sm font-medium">
           <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" />
-          Signing secret — shown once
+          Signing secret, shown once
         </div>
         <p className="text-xs text-muted-foreground">
           Endpoint{" "}
@@ -417,7 +417,7 @@ function DeleteDialog({
             <code className="break-all rounded bg-muted px-1 py-0.5 text-xs">
               {target?.url}
             </code>
-            . This can&apos;t be undone — you&apos;ll need to re-add it (with a
+            . This can&apos;t be undone. You&apos;ll need to re-add it (with a
             new secret) to resume delivery.
           </DialogDescription>
         </DialogHeader>
@@ -467,11 +467,11 @@ function EndpointCard({
     try {
       const res = await testWebhook(endpoint.id);
       if (res.delivered && res.status_code != null) {
-        toast.success(`Test delivered — HTTP ${res.status_code}`);
+        toast.success(`Test delivered: HTTP ${res.status_code}`);
       } else if (res.status_code != null) {
-        toast.error(`Test failed — HTTP ${res.status_code}`);
+        toast.error(`Test failed: HTTP ${res.status_code}`);
       } else {
-        toast.error("Test failed — no response");
+        toast.error("Test failed: no response");
       }
       onTested();
     } catch (err) {
@@ -680,7 +680,7 @@ export function WebhooksClient({ initial }: { initial: WebhookEndpoint[] }) {
             <h3 className="text-lg font-semibold">No webhooks yet</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               Register an HTTPS endpoint to get signed, real-time events when
-              jobs and articles finish, fail, or need approval — so agents and
+              jobs and articles finish, fail, or need approval, so agents and
               automation can react without polling.
             </p>
             <Button onClick={() => setAddOpen(true)}>

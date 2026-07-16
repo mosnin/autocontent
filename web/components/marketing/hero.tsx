@@ -42,7 +42,7 @@ export function Hero() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-2 py-0.5 font-medium text-brand"><span aria-hidden className="size-1.5 animate-pulse rounded-full bg-brand" />
             New
           </span>
-          Closed-loop optimization is live — every video tunes the next one
+          Closed-loop optimization is live: every video tunes the next one
           <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
         </Link>
 
@@ -69,7 +69,7 @@ export function Hero() {
             {["TikTok", "Instagram Reels", "YouTube Shorts"]}
           </TextFlip>
           <p className="text-balance">
-            — under a spend cap you set, tuned by the numbers it earns.
+            under a spend cap you set, tuned by the numbers it earns.
           </p>
         </div>
 
@@ -102,7 +102,7 @@ export function Hero() {
       <div className="mx-auto w-full max-w-6xl px-6 pb-20">
         <PipelineCircuit />
         <p className="mt-2 text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          One niche in — daily videos out. Analytics close the loop.
+          One niche in, daily videos out. Analytics close the loop.
         </p>
       </div>
     </section>

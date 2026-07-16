@@ -18,10 +18,10 @@ const DESCRIPTION =
   "Prepaid credit packs from $5, no subscription. Every video and article is metered against your balance, and hard daily caps make overruns impossible by design.";
 
 export const metadata: Metadata = {
-  title: "Pricing — marketer.sh",
+  title: "Pricing | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Pricing — marketer.sh",
+    title: "Pricing | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
