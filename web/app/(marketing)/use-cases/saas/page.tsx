@@ -14,10 +14,10 @@ const DESCRIPTION =
   "A content engine for growth teams: educational shorts up the funnel, comparison articles with FAQ JSON-LD at the bottom, and metrics that feed ideation.";
 
 export const metadata: Metadata = {
-  title: "SaaS (marketer.sh)",
+  title: "SaaS | marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "SaaS (marketer.sh)",
+    title: "SaaS | marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
