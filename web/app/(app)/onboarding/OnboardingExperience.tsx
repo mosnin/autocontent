@@ -3,6 +3,7 @@
 import * as React from "react";
 
 import { Button } from "@/components/ui/button";
+import { GradientText } from "@/components/ui/gradient-text";
 import { completeOnboardingAction } from "@/lib/onboarding";
 import { OnboardingEntry } from "./OnboardingEntry";
 
@@ -47,11 +48,11 @@ export function OnboardingExperience({
       <div className="mx-auto w-full max-w-2xl animate-in fade-in slide-in-from-bottom-2 duration-500">
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Design your <span className="text-gradient">first channel</span>
+            Design your <GradientText>first channel</GradientText>
           </h1>
           <p className="mx-auto mt-3 max-w-md text-[15px] leading-relaxed text-muted-foreground">
-            A sentence is enough — the machine drafts the rest. You review, set
-            a budget, and launch.
+            A sentence is enough. The machine drafts the rest; you review, set a
+            budget, and launch.
           </p>
         </div>
         <OnboardingEntry />
@@ -66,11 +67,11 @@ export function OnboardingExperience({
           Welcome to marketer.sh
         </p>
         <h1 className="mx-auto mt-6 max-w-3xl text-balance text-4xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
-          Marketing that <span className="text-gradient">runs itself</span>.
+          Marketing that <GradientText>runs itself</GradientText>.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
           Describe a channel in a sentence. We&apos;ll produce the video, write
-          the articles, and — when you&apos;re ready — run the ads. Every dollar
+          the articles, and when you&apos;re ready, run the ads. Every dollar
           stays under a cap you set.
         </p>
 
@@ -84,11 +85,11 @@ export function OnboardingExperience({
             disabled={skipping}
             className="text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline disabled:opacity-60"
           >
-            {skipping ? "One moment…" : "Skip for now — explore the suite"}
+            {skipping ? "One moment…" : "Skip for now and explore the suite"}
           </button>
           {connected === false && (
             <p className="text-sm text-muted-foreground">
-              Heads up — scheduled posts won&apos;t ship until you{" "}
+              Heads up: scheduled posts won&apos;t ship until you{" "}
               <a
                 href="/connect"
                 className="font-medium text-foreground underline underline-offset-4"

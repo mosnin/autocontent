@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { GradientText } from "@/components/ui/gradient-text";
 import {
   PRODUCTS,
   productAccentClass,
@@ -24,10 +25,10 @@ export default function HomePage() {
           marketer.sh
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">
-          Your marketing suite
+          Your marketing <GradientText>suite</GradientText>
         </h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
-          One workspace, distinct products. Pick where you want to work — each
+          One workspace, distinct products. Pick where you want to work and each
           opens its own dashboard. Agents, spend controls, and your brand kit
           carry across all of them.
         </p>

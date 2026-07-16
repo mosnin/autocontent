@@ -16,6 +16,7 @@ import {
   Kicker,
   MockChat,
 } from "@/components/marketing/system";
+import { GradientText } from "@/components/ui/gradient-text";
 import { cn } from "@/lib/utils";
 
 const HEADLINE_LINES = [
@@ -39,7 +40,7 @@ function StagedLine({
     <span className="block overflow-hidden pb-[0.08em]">
       <motion.span
         animate={{ y: 0 }}
-        className={cn("block", accent && "text-gradient")}
+        className="block"
         initial={reduced ? false : { y: "110%" }}
         transition={
           reduced
@@ -47,7 +48,7 @@ function StagedLine({
             : { duration: 0.8, ease: EASE, delay: 0.25 + index * 0.12 }
         }
       >
-        {line}
+        {accent ? <GradientText className="block">{line}</GradientText> : line}
       </motion.span>
     </span>
   );
