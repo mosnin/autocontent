@@ -21,6 +21,7 @@ import {
   type AdMetricsDaily,
 } from "@/lib/ads-client";
 import { statusVariant } from "../CampaignsClient";
+import { adStatusLabel, objectiveLabel } from "@/lib/ads-format";
 
 interface Detail {
   campaign: AdCampaign;
@@ -75,7 +76,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     setBusy(status);
     try {
       await changeCampaignStatus(id, status);
-      toast.success(`Campaign ${status}`);
+      toast.success(`Campaign ${adStatusLabel(status).toLowerCase()}`);
       void mutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";
@@ -102,11 +103,11 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               {campaign.name}
             </h1>
             <Badge variant={statusVariant(campaign.status)}>
-              {campaign.status}
+              {adStatusLabel(campaign.status)}
             </Badge>
           </div>
-          <p className="text-sm capitalize text-muted-foreground">
-            {campaign.objective || "no objective"}
+          <p className="text-sm text-muted-foreground">
+            {campaign.objective ? objectiveLabel(campaign.objective) : "no objective"}
           </p>
         </div>
         <div className="flex items-center gap-2">

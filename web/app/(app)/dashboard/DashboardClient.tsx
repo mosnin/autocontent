@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/tooltip";
 import { LatestVideos } from "@/components/latest-videos";
 import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
@@ -117,15 +118,20 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     }
   }, [hasError, nichesError, spendError]);
 
+  const confirm = useConfirm();
   const nichesList = niches ?? [];
   const spendData = spend ?? { by_niche: {}, total_usd: "0" };
   const showAyrshareBanner =
     ayrshare !== undefined && ayrshare.connected === false;
 
   async function handleArchive(niche: Niche) {
-    if (!confirm(`Archive niche "${niche.title}"? This will stop new posts.`)) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Archive ${niche.title}?`,
+      description: "This stops new posts for this channel. You can restore it later.",
+      confirmText: "Archive",
+      destructive: true,
+    });
+    if (!ok) return;
 
     // Optimistically remove the niche from the list.
     const prevNiches = niches ?? [];
@@ -153,9 +159,9 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Channels</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
           <p className="text-sm text-muted-foreground">
-            Each channel is its own self-driving pipeline.
+            Your channels and today&apos;s spend at a glance.
           </p>
         </div>
         <Button asChild>
@@ -199,7 +205,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               color="navy"
               foot="each on its own cap"
               icon={<Layers />}
-              title="Active niches"
+              title="Active channels"
               value={String(nichesList.length)}
             />
             <KpiCard

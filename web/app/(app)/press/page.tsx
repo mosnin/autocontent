@@ -39,7 +39,7 @@ export default async function PressOverviewPage() {
           </p>
         </div>
         <Button asChild size="sm">
-          <Link href="/articles">New article</Link>
+          <Link href="/articles?new=1">New article</Link>
         </Button>
       </header>
 
@@ -76,7 +76,7 @@ export default async function PressOverviewPage() {
                 pipeline researches, outlines, writes, and scores it.
               </p>
               <Button asChild size="sm">
-                <Link href="/articles">Write the first one</Link>
+                <Link href="/articles?new=1">Write the first one</Link>
               </Button>
             </CardContent>
           </Card>

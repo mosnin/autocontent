@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { SiteShell } from "@/components/site-shell";
 import { CommandPalette } from "@/components/command-palette";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 import { RunConfirmProvider } from "@/components/run-confirm-dialog";
 
 // Every protected page renders Clerk's <UserButton /> in the sidebar
@@ -14,10 +15,12 @@ export const dynamic = "force-dynamic";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
-    <RunConfirmProvider>
-      <SiteShell>{children}</SiteShell>
-      <CommandPalette />
-    </RunConfirmProvider>
+    <ConfirmProvider>
+      <RunConfirmProvider>
+        <SiteShell>{children}</SiteShell>
+        <CommandPalette />
+      </RunConfirmProvider>
+    </ConfirmProvider>
     </ClerkProvider>
   );
 }

@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useConfirm } from "@/components/confirm-dialog";
 import { createTokenAction, revokeTokenAction } from "@/lib/actions";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import type { PersonalAccessToken } from "@/lib/types";
@@ -199,8 +200,15 @@ export function TokensClient({ tokens }: Props) {
 }
 
 function TokenRow({ token }: { token: PersonalAccessToken }) {
+  const confirm = useConfirm();
   async function onRevoke() {
-    if (!confirm(`Revoke token "${token.name}"? This can't be undone.`)) return;
+    const ok = await confirm({
+      title: `Revoke ${token.name}?`,
+      description: "Any client using this token stops working immediately. This can't be undone.",
+      confirmText: "Revoke",
+      destructive: true,
+    });
+    if (!ok) return;
     const fd = new FormData();
     fd.set("token_id", token.id);
     const res = await revokeTokenAction({ ok: false }, fd);

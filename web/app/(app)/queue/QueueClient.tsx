@@ -23,6 +23,7 @@ import {
   rejectJobAction,
   retryJobAction,
 } from "@/lib/actions";
+import { useConfirm } from "@/components/confirm-dialog";
 import { clientFetch } from "@/lib/client-fetcher";
 import { jobStatusLabel, StatusBadge } from "@/lib/status-badge";
 import type { Job, JobStatus } from "@/lib/types";
@@ -77,6 +78,7 @@ export function QueueClient({ initial }: { initial: Job[] }) {
   const [filter, setFilter] = React.useState<Filter>(
     FILTERS.includes(requested as Filter) ? (requested as Filter) : "all",
   );
+  const confirm = useConfirm();
 
   const { data, error, mutate } = useSWR<Job[]>(
     "/api/v1/jobs?limit=100",
@@ -142,7 +144,13 @@ export function QueueClient({ initial }: { initial: Job[] }) {
   }
 
   async function handleReject(job: Job) {
-    if (!confirm("Reject this video? It will never post.")) return;
+    const ok = await confirm({
+      title: "Reject this video?",
+      description: "It will never post. This can't be undone.",
+      confirmText: "Reject",
+      destructive: true,
+    });
+    if (!ok) return;
     const fd = new FormData();
     fd.set("job_id", job.id);
     const res = await rejectJobAction({ ok: false }, fd);

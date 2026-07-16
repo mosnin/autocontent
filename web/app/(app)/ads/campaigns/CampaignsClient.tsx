@@ -19,6 +19,7 @@ import {
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { adsKeys, type AdCampaign } from "@/lib/ads-client";
+import { adStatusLabel, objectiveLabel } from "@/lib/ads-format";
 
 export function statusVariant(status: string): BadgeVariant {
   switch (status) {
@@ -96,10 +97,12 @@ export function CampaignsClient({
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={statusVariant(c.status)}>{c.status}</Badge>
+                      <Badge variant={statusVariant(c.status)}>
+                        {adStatusLabel(c.status)}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {c.objective || "-"}
+                      {c.objective ? objectiveLabel(c.objective) : "-"}
                     </TableCell>
                     <TableCell className="text-right font-mono tabular-nums">
                       {c.daily_budget_usd ? formatUsd(c.daily_budget_usd) : "-"}

@@ -8,23 +8,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createCampaign, type AdAccount } from "@/lib/ads-client";
+import {
+  AD_OBJECTIVES,
+  adPlatformLabel,
+  objectiveLabel,
+} from "@/lib/ads-format";
 
-const OBJECTIVES = [
-  "conversions",
-  "traffic",
-  "awareness",
-  "leads",
-  "app_installs",
-  "sales",
-];
+const OBJECTIVES = [...AD_OBJECTIVES];
 
 export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
   const router = useRouter();
   const active = accounts.filter((a) => a.status === "active");
   const [accountId, setAccountId] = React.useState(active[0]?.id ?? "");
   const [name, setName] = React.useState("");
-  const [objective, setObjective] = React.useState(OBJECTIVES[0]);
+  const [objective, setObjective] = React.useState<string>(OBJECTIVES[0]);
   const [budget, setBudget] = React.useState("");
   const [busy, setBusy] = React.useState(false);
 
@@ -65,20 +70,27 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-1.5">
               <Label htmlFor="account">Ad account</Label>
-              <select
-                id="account"
+              <Select
                 value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus-visible:border-primary focus-visible:outline-none"
+                onValueChange={setAccountId}
+                disabled={active.length === 0}
               >
-                {active.length === 0 && <option value="">No active accounts</option>}
-                {active.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.platform.replace("_", " ")}:{" "}
-                    {a.name || a.external_account_id || a.id.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="account" className="w-full">
+                  <SelectValue
+                    placeholder={
+                      active.length === 0 ? "No active accounts" : "Select an account"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {active.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {adPlatformLabel(a.platform)}:{" "}
+                      {a.name || a.external_account_id || a.id.slice(0, 8)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -94,18 +106,18 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
 
             <div className="space-y-1.5">
               <Label htmlFor="objective">Objective</Label>
-              <select
-                id="objective"
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm capitalize focus-visible:border-primary focus-visible:outline-none"
-              >
-                {OBJECTIVES.map((o) => (
-                  <option key={o} value={o}>
-                    {o.replace("_", " ")}
-                  </option>
-                ))}
-              </select>
+              <Select value={objective} onValueChange={setObjective}>
+                <SelectTrigger id="objective" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {OBJECTIVES.map((o) => (
+                    <SelectItem key={o} value={o}>
+                      {objectiveLabel(o)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
