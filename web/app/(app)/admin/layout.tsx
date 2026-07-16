@@ -2,6 +2,7 @@ import { Lock, ShieldCheck } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchAdminOverview, isForbidden } from "@/lib/admin-server";
+import { AdminNav } from "./AdminNav";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ export default async function AdminLayout({
           Platform administration · every action here is audited
         </span>
       </div>
+      <AdminNav />
       {children}
     </div>
   );
