@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { CreditChip } from "@/components/credit-chip";
 import {
   SidebarInset,
   SidebarProvider,
@@ -38,6 +39,9 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           <SidebarTrigger aria-label="Toggle sidebar" />
           <Separator className="mr-1 h-4" orientation="vertical" />
           <ProductCrumb />
+          <div className="ml-auto flex items-center gap-2">
+            <CreditChip />
+          </div>
         </header>
         <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8 md:py-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

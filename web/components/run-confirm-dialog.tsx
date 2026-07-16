@@ -8,6 +8,7 @@
 // the app root.
 
 import * as React from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +29,7 @@ import { clientFetch } from "@/lib/client-fetcher";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Niche, Platform, TodaySpend } from "@/lib/types";
+import type { BillingBalance, Niche, Platform, TodaySpend } from "@/lib/types";
 
 interface OpenArgs {
   nicheId: string;
@@ -98,6 +99,11 @@ function RunConfirmDialog({
     enabled ? "/api/v1/spend/today" : null,
     clientFetch,
   );
+  const { data: billing } = useSWR<BillingBalance>(
+    enabled ? "/api/v1/billing/balance" : null,
+    clientFetch,
+    { shouldRetryOnError: false },
+  );
 
   const niche = niches?.find((n) => n.id === args?.nicheId);
   const [submitting, setSubmitting] = React.useState(false);
@@ -122,6 +128,14 @@ function RunConfirmDialog({
   const tight =
     !!breakdown && cap > 0 && breakdown.total > remaining - breakdown.total;
   const overCap = !!breakdown && cap > 0 && breakdown.total > remaining;
+
+  // Money made visible before the click: if billing is on and the balance
+  // can't cover this run, we show it and block the button rather than let
+  // the enqueue fail with a 402 the user never saw coming.
+  const billingOn = billing?.billing_enabled ?? false;
+  const balance = billing ? Number(billing.balance_usd) : null;
+  const unaffordable =
+    billingOn && balance !== null && !!breakdown && balance < breakdown.total;
 
   async function onConfirm() {
     if (!args) return;
@@ -195,6 +209,33 @@ function RunConfirmDialog({
                   </p>
                 ) : null}
               </div>
+
+              {billingOn && balance !== null ? (
+                <div className="mt-4 flex items-baseline justify-between border-t border-border/60 pt-3 text-xs">
+                  <span className="text-muted-foreground">Credit balance</span>
+                  <span
+                    className={cn(
+                      "font-mono tabular-nums",
+                      unaffordable ? "text-brand" : "text-foreground",
+                    )}
+                  >
+                    {formatUsd(balance)}
+                  </span>
+                </div>
+              ) : null}
+
+              {unaffordable ? (
+                <p className="mt-2 text-xs text-brand">
+                  This run costs more than your credit balance.{" "}
+                  <Link
+                    href="/settings/billing"
+                    className="font-medium underline underline-offset-2"
+                  >
+                    Add credit
+                  </Link>{" "}
+                  to continue.
+                </p>
+              ) : null}
             </div>
 
             {/* Line-item breakdown */}
@@ -247,18 +288,27 @@ function RunConfirmDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onConfirm} disabled={!niche || submitting}>
-            {submitting ? (
-              <>
-                <RecordingDot />
-                Working…
-              </>
-            ) : breakdown ? (
-              `Run for ${formatUsd(breakdown.total)}`
-            ) : (
-              "Run"
-            )}
-          </Button>
+          {unaffordable ? (
+            <Button asChild>
+              <Link href="/settings/billing">Add credit</Link>
+            </Button>
+          ) : (
+            <Button
+              onClick={onConfirm}
+              disabled={!niche || submitting}
+            >
+              {submitting ? (
+                <>
+                  <RecordingDot />
+                  Working…
+                </>
+              ) : breakdown ? (
+                `Run for ${formatUsd(breakdown.total)}`
+              ) : (
+                "Run"
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

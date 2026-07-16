@@ -41,9 +41,40 @@ function splitCsv(raw: string | null): string[] {
     .filter(Boolean);
 }
 
+// Pull the useful sentence out of a FastAPI error body, if it is JSON.
+function extractDetail(body: string): string | null {
+  try {
+    const parsed = JSON.parse(body) as {
+      detail?: string | Array<{ msg?: string }>;
+    };
+    if (typeof parsed.detail === "string") return parsed.detail;
+    if (Array.isArray(parsed.detail) && parsed.detail[0]?.msg) {
+      return parsed.detail[0].msg ?? null;
+    }
+  } catch {
+    // Not JSON — fall through.
+  }
+  return null;
+}
+
+// The API layer throws `Error("<status> <body>")`. Turn the cases a user can
+// actually hit into plain language so nobody ever sees a raw JSON 402 or 500.
 function errorMessage(e: unknown): string {
-  if (e instanceof Error) return e.message;
-  return String(e);
+  const raw = e instanceof Error ? e.message : String(e);
+  const m = raw.match(/^(\d{3})\s+([\s\S]*)$/);
+  if (!m) return raw;
+  const status = Number(m[1]);
+  const body = m[2] ?? "";
+  if (status === 402 || /insufficient|balance|credit/i.test(body)) {
+    return "You're out of credit for this. Add credit in billing settings to continue.";
+  }
+  if (status === 429) {
+    return "Too many requests right now. Give it a moment, then try again.";
+  }
+  if (status >= 500) {
+    return "Something went wrong on our end. Try again in a moment.";
+  }
+  return extractDetail(body) ?? raw;
 }
 
 export interface NicheDraft {
