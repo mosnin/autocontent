@@ -16,6 +16,7 @@ import {
   Kicker,
   MockChat,
 } from "@/components/marketing/system";
+import { Aurora } from "@/components/ui/aurora";
 import { GradientText } from "@/components/ui/gradient-text";
 import { cn } from "@/lib/utils";
 
@@ -226,22 +227,33 @@ export function Hero() {
         <motion.div style={reduced ? undefined : { y: yRight }}>
           <GradientScene
             className="relative flex min-h-[32rem] items-center justify-center rounded-[2rem] border border-zinc-900/[0.05] p-6 lg:min-h-full"
-            variant="sky"
+            variant="pearl"
           >
+            {/* Living backdrop: a warm aurora in brand colors, in place of the
+                old static sky gradient. Degrades to a CSS wash and holds a
+                single frame under reduced motion. */}
+            <Aurora
+              className="absolute inset-0"
+              colorStops={["#fbbf24", "#f43f5e", "#f97316"]}
+              amplitude={1.0}
+              blend={0.6}
+              speed={0.35}
+            />
+
             {/* Depth layer: large soft blooms drifting behind the cards */}
             <BloomOrb
               className="-top-28 -right-24 size-[26rem]"
               drift={16}
               duration={18}
               parallax={reduced ? undefined : yOrbA}
-              toneClassName="bg-[radial-gradient(circle_at_center,rgba(96,165,250,0.30),transparent_65%)] blur-2xl"
+              toneClassName="bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.28),transparent_65%)] blur-2xl"
             />
             <BloomOrb
               className="-bottom-32 -left-28 size-[28rem]"
               drift={12}
               duration={22}
               parallax={reduced ? undefined : yOrbB}
-              toneClassName="bg-[radial-gradient(circle_at_center,rgba(129,140,248,0.22),transparent_65%)] blur-2xl"
+              toneClassName="bg-[radial-gradient(circle_at_center,rgba(251,113,133,0.20),transparent_65%)] blur-2xl"
             />
             <BloomOrb
               className="top-1/3 -left-12 size-56"
