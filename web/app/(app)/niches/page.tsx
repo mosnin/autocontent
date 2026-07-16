@@ -34,15 +34,15 @@ export default async function NichesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Niches</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Channels</h1>
           <p className="text-sm text-muted-foreground">
-            Every niche you run, each its own self-driving pipeline.
+            Every channel you run, each its own self-driving pipeline.
           </p>
         </div>
         <Button asChild>
-          <Link href="/onboarding">
+          <Link href="/niches/new">
             <Plus className="h-4 w-4" />
-            New niche
+            New channel
           </Link>
         </Button>
       </div>
@@ -65,15 +65,15 @@ function EmptyState() {
     <Card>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
         <LoopCircuit className="scale-75 opacity-90" />
-        <h3 className="text-lg font-semibold">No niches yet</h3>
+        <h3 className="text-lg font-semibold">No channels yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create one to start the pipeline. You can have as many as you want;
           each runs under its own daily spend cap.
         </p>
         <Button asChild>
-          <Link href="/onboarding">
+          <Link href="/niches/new">
             <Plus className="h-4 w-4" />
-            Create your first niche
+            Create your first channel
           </Link>
         </Button>
       </CardContent>

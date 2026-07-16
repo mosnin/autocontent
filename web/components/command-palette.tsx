@@ -99,8 +99,8 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Actions" className={KICKER}>
-          <CommandItem onSelect={() => go("/onboarding")}>
-            <Plus className="text-muted-foreground" /> Create niche
+          <CommandItem onSelect={() => go("/niches/new")}>
+            <Plus className="text-muted-foreground" /> Create channel
           </CommandItem>
           <CommandItem onSelect={() => go("/articles?new=1")}>
             <FileText className="text-muted-foreground" /> New article

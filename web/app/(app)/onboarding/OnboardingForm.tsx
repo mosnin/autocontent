@@ -194,7 +194,11 @@ export function OnboardingForm({
       posting_hour: 9,
       posting_minute: 0,
       tz: defaultTz(),
-      platforms: [],
+      // A drafted channel lands straight on step 3, so pre-select every
+      // platform: the "one sentence is enough" path is then one click from
+      // launch. The cold manual wizard still starts empty so the choice is
+      // deliberate.
+      platforms: prefill ? [...PLATFORMS] : [],
       daily_spend_cap_usd: 5,
       approve_before_post: true,
     },
@@ -237,7 +241,7 @@ export function OnboardingForm({
     // failure (when ok=false with an error message).
     setSubmitting(false);
     if (res.ok) {
-      toast.success("Niche created");
+      toast.success("Channel created");
       router.push("/dashboard");
     } else if (res.error) {
       toast.error(res.error);
@@ -322,7 +326,7 @@ export function OnboardingForm({
           ) : (
             <Button type="submit" disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create niche
+              Create channel
             </Button>
           )}
         </div>
@@ -344,7 +348,7 @@ function StepIdentity() {
               <Input placeholder="Claymation econ teacher" {...field} />
             </FormControl>
             <FormDescription>
-              Short, human name for this niche — shown across your dashboard.
+              Short, human name for this channel. Shown across your dashboard.
             </FormDescription>
             <FormMessage />
           </FormItem>
