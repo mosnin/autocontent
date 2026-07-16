@@ -42,7 +42,7 @@ export function actionTone(action: string): BadgeVariant {
 /** Short relative time, e.g. "3m ago". */
 export function relativeTime(iso: string): string {
   const then = new Date(iso).getTime();
-  if (!Number.isFinite(then)) return "—";
+  if (!Number.isFinite(then)) return "-";
   const sec = Math.round((Date.now() - then) / 1000);
   if (sec < 60) return `${Math.max(sec, 0)}s ago`;
   const min = Math.round(sec / 60);
@@ -56,7 +56,7 @@ export function relativeTime(iso: string): string {
 /** Absolute, locale-formatted timestamp for tooltips / detail rows. */
 export function formatDateTime(iso: string): string {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   return d.toLocaleString(undefined, {
     year: "numeric",
     month: "short",
