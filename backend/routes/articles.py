@@ -6,6 +6,7 @@ authenticated user, same contract as /jobs.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from uuid import UUID
 
 import os
@@ -27,6 +28,10 @@ class ArticleEnqueue(BaseModel):
     # Optional: omit to let the pipeline pick the next best topic for the
     # niche (deduped against recent articles).
     topic: str = Field(default="", max_length=500)
+    # Optional: when set, this is when the piece should PUBLISH (not when
+    # it's generated — generation still happens immediately). Lets the
+    # calendar show it as a scheduled item ahead of its publish date.
+    scheduled_at: datetime | None = None
 
 
 @router.get("", response_model=list[Article])
@@ -70,20 +75,16 @@ async def get_article_markdown(
 async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> Article:
     """Create the article row and spawn the Modal pipeline against it.
     Poll GET /{article_id} for status."""
-    import modal
-
     from marketer.repos import niches as niches_repo
 
     niche = await niches_repo.get(body.niche_id, user_id=ctx.user_id)
     if niche is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
 
-    article = await articles_repo.create(
-        user_id=ctx.user_id, niche_id=body.niche_id, topic=body.topic
+    return await articles_repo.create_and_spawn(
+        user_id=ctx.user_id, niche_id=body.niche_id, topic=body.topic,
+        scheduled_at=body.scheduled_at,
     )
-    fn = modal.Function.from_name("marketer-sh", "run_article_pipeline")
-    fn.spawn(ctx.user_id, str(body.niche_id), str(article.id), body.topic)
-    return article
 
 
 class SocialRepurposeBody(BaseModel):
@@ -164,3 +165,19 @@ async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article
     fn = modal.Function.from_name("marketer-sh", "run_article_pipeline")
     fn.spawn(ctx.user_id, str(article.niche_id), str(article.id), article.topic)
     return article
+
+
+@router.get("/{article_id}/research")
+async def get_article_research(article_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+    """The research surface for one article: the cached SERP analysis from
+    the pipeline's research stage, its internal-link suggestions, and its
+    QA quality score — everything the pipeline computed but that otherwise
+    only lives inside article_markdown."""
+    article = await articles_repo.get(article_id, user_id=ctx.user_id)
+    if article is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    return {
+        "serp_analysis": article.serp_analysis,
+        "link_suggestions": [s.model_dump() for s in article.link_suggestions],
+        "quality": article.quality.model_dump() if article.quality else None,
+    }

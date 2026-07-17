@@ -132,7 +132,7 @@ def test_enqueue_article_202_and_spawns_with_article_id(monkeypatch):
 
     art = _make_article()
 
-    async def _create(*, user_id, niche_id, topic=""):
+    async def _create(*, user_id, niche_id, topic="", focus_keyword="", scheduled_at=None):
         assert user_id == _USER_ID
         return art
 

@@ -70,3 +70,31 @@ def test_calendar_rejects_huge_window(monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 422
+
+
+def test_calendar_marks_scheduled_articles(monkeypatch):
+    """A scheduled-but-not-yet-published article carries scheduled=True so
+    the UI can tell it apart from an in-progress/published one."""
+    _reset_limiter()
+    import marketer.repos.calendar as cal
+
+    async def _items(uid, *, start, end):
+        return [
+            CalendarItem(
+                kind="article", id="a1", niche_id="n1", title="future post",
+                status="queued", at=datetime(2026, 8, 1, tzinfo=timezone.utc),
+                scheduled=True,
+            ),
+            CalendarItem(
+                kind="article", id="a2", niche_id="n1", title="already written",
+                status="done", at=datetime.now(timezone.utc), scheduled=False,
+            ),
+        ]
+
+    monkeypatch.setattr(cal, "items_for_user", _items)
+    client = _client(monkeypatch)
+    resp = client.get("/api/v1/calendar?days=60", headers={"Authorization": "Bearer mkt_x"})
+    assert resp.status_code == 200
+    body = {i["id"]: i for i in resp.json()}
+    assert body["a1"]["scheduled"] is True
+    assert body["a2"]["scheduled"] is False

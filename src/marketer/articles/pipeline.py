@@ -247,6 +247,9 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             # Degraded mode: no SERP provider configured/reachable. The
             # outline prompt still works from model knowledge.
             serp = SerpAnalysis()
+        # Cache the research so GET /articles/{id}/research can serve it
+        # straight from the row; persisted on the next _set_status() save.
+        article.serp_analysis = serp.model_dump()
 
     # 2. Outline
     with _stage(ArticleStatus.outlining.value):

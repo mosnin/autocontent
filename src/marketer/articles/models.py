@@ -55,6 +55,28 @@ class TopicPick(BaseModel):
     rationale: str = ""
 
 
+class TopicProposalPick(BaseModel):
+    """One candidate topic in a `propose_topics` batch — same shape as
+    TopicPick plus a 0-1 confidence score, since proposals sit in an
+    approval queue rather than being picked and run immediately."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    title: str
+    focusKeyword: str
+    rationale: str = ""
+    score: float = Field(default=0.5, ge=0.0, le=1.0)
+
+
+class TopicProposalBatch(BaseModel):
+    """Wrapper so `propose_topics` can request N proposals from a single
+    structured-output call (OpenAI's parse() needs a top-level object)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    proposals: list[TopicProposalPick] = Field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # Outline
 # ---------------------------------------------------------------------------
@@ -150,6 +172,25 @@ class SocialSnippetSet(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Publishing
+# ---------------------------------------------------------------------------
+
+
+class ArticlePublish(BaseModel):
+    """One publish attempt (article_publishes row)."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: UUID
+    article_id: UUID
+    target_id: UUID
+    status: str = "pending"  # 'pending' | 'ok' | 'failed'
+    external_url: str = ""
+    error: str = ""
+    created_at: datetime | None = None
+
+
+# ---------------------------------------------------------------------------
 # DB row model
 # ---------------------------------------------------------------------------
 
@@ -187,5 +228,12 @@ class Article(BaseModel):
     link_suggestions: list[InterlinkSuggestion] = Field(default_factory=list)
     word_count: int | None = None
     error: str | None = None
+    # When set, the piece's intended publish date (autopilot cadence or a
+    # manual schedule). Generation still happens at enqueue time; this is
+    # when it should go out the door, not when it was written.
+    scheduled_at: datetime | None = None
+    # Cached SerpAnalysis.model_dump() from the research stage, so
+    # GET /articles/{id}/research can serve it straight from the row.
+    serp_analysis: dict | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None

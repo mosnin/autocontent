@@ -26,6 +26,8 @@ from .models import (
     SerpAnalysis,
     SocialSnippet,
     TopicPick,
+    TopicProposalBatch,
+    TopicProposalPick,
 )
 
 _client: openai.AsyncOpenAI | None = None
@@ -146,6 +148,56 @@ async def pick_topic(
         model=settings.agent_model, system=system, user=user,
         response_format=TopicPick, temperature=0.8, spend=spend,
     )
+
+
+async def propose_topics(
+    niche,
+    brand,
+    recent_titles: list[str],
+    n: int,
+    *,
+    spend: SpendContext | None = None,
+) -> list[TopicProposalPick]:
+    """Propose `n` candidate article topics for a niche's approval queue.
+
+    Unlike `pick_topic` (which picks ONE topic and hands it straight to the
+    pipeline), this seeds the human approval loop: every candidate gets a
+    focus keyword, a one-line rationale, and a 0-1 confidence score so an
+    operator can triage the batch at a glance.
+
+    `niche` and `brand` are duck-typed (same contract the pipeline already
+    relies on via niches_repo.get / brand_kit_repo.get) rather than typed
+    imports, so this module stays decoupled from the repo layer — `niche`
+    needs `.title`/`.description`, `brand` (optional, may be None) needs
+    `.tone_of_voice`.
+    """
+    niche_title = getattr(niche, "title", "") or ""
+    niche_description = getattr(niche, "description", "") or ""
+    tone = (getattr(brand, "tone_of_voice", "") or "") if brand is not None else ""
+
+    system = (
+        "You are an SEO content strategist building a topic backlog for "
+        "editorial approval. Given a content niche, propose distinct "
+        "article topics with specific, winnable long-tail focus keywords. "
+        "Each proposal needs a one-sentence rationale (why this topic, why "
+        "now) and a 0-1 score reflecting how strong the opportunity is "
+        "(search intent match, ranking difficulty, audience fit). Avoid "
+        "topics that duplicate the recent titles provided, and avoid "
+        "duplicating each other. Never use em-dashes or en-dashes."
+    )
+    user = (
+        f"Niche: {niche_title}\n"
+        f"Description: {niche_description}\n"
+        f"Brand voice: {tone or 'none specified'}\n\n"
+        f"Recent article titles (avoid duplicating):\n"
+        + "\n".join(f"- {t}" for t in recent_titles[:25])
+        + f"\n\nPropose exactly {n} distinct topic proposals."
+    )
+    batch: TopicProposalBatch = await _parse_call(
+        model=settings.agent_model, system=system, user=user,
+        response_format=TopicProposalBatch, temperature=0.8, spend=spend,
+    )
+    return batch.proposals[:n]
 
 
 # ---------------------------------------------------------------------------
