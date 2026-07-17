@@ -151,11 +151,22 @@ class Job(BaseModel):
     scheduled_for: datetime | None = None
     provider_post_id: str | None = None
     error: str | None = None
+    # Revision jobs (scene reroll / revoice) are ordinary Job rows tagged
+    # with these fields instead of a separate table — they persist through
+    # the same schemaless `payload` column, so no migration is needed.
+    # None on every regular pipeline job.
+    revision_of: UUID | None = None
+    revision_mode: Literal["reroll", "revoice"] | None = None
+    revision_scene_index: int | None = None
+    revision_direction: str | None = None
+    revision_voice: str | None = None
 
 
 class SpendEntry(BaseModel):
     user_id: str
-    niche_id: UUID
+    # None for Content Studio spend that isn't attributed to any niche
+    # (e.g. a stand-alone media-library edit run outside a pipeline job).
+    niche_id: UUID | None
     job_id: UUID | None
     article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
     provider: str  # "openai" | "xai" | "ayrshare"
@@ -217,7 +228,7 @@ class TodaySpend(BaseModel):
 
 class SpendHistoryRow(BaseModel):
     day: date
-    niche_id: UUID
+    niche_id: UUID | None  # None groups Content Studio spend with no niche
     cost_usd: Decimal
 
 
@@ -225,6 +236,30 @@ class SpendHistory(BaseModel):
     rows: list[SpendHistoryRow]
     days: int
     total_usd: Decimal
+
+
+class MediaAsset(BaseModel):
+    """A row in the Content Studio media library — pipeline output
+    (source='pipeline') or a fal.ai studio edit (source='studio')."""
+
+    id: UUID
+    user_id: str
+    niche_id: UUID | None = None
+    job_id: UUID | None = None
+    article_id: UUID | None = None
+    kind: Literal["image", "video", "audio"]
+    source: Literal["pipeline", "studio"]
+    path: str = ""  # volume-relative path on the artifacts volume
+    url: str = ""   # remote URL, when the asset isn't (only) on the volume
+    mime: str = ""
+    meta: dict = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    deleted_at: datetime | None = None
+
+
+class MediaAssetPage(BaseModel):
+    items: list[MediaAsset]
+    next_cursor: UUID | None = None
 
 
 class AyrshareConnectResponse(BaseModel):

@@ -113,6 +113,93 @@ async def _persist(job: Job) -> None:
     await jobs_repo.save_snapshot(job)
 
 
+async def _register_media(job: Job) -> None:
+    """Insert a media_assets row for the job's rendered video.
+
+    Fail-open by design: the video is already rendered (and possibly
+    already scheduled) regardless of whether the media-library bookkeeping
+    succeeds, so an insert failure here must never fail the job — it's
+    logged and swallowed."""
+    if job.rendered is None:
+        return
+    try:
+        from .repos import media as media_repo
+
+        await media_repo.insert(
+            user_id=job.user_id,
+            niche_id=job.niche_id,
+            job_id=job.id,
+            kind="video",
+            source="pipeline",
+            path=job.rendered.path,
+            mime="video/mp4",
+            meta={"platform": job.platform, "duration_sec": job.rendered.duration_sec},
+        )
+    except Exception as e:  # noqa: BLE001 — media bookkeeping must never fail a job
+        log.warning("media registration failed", extra={"job_id": str(job.id), "error": str(e)})
+
+
+async def _assemble_and_caption(
+    job: Job,
+    niche: Niche,
+    script: Script,
+    clips: list[Clip],
+    vo_path: Path,
+    root: Path,
+    spend: SpendContext,
+) -> tuple[AudioTrack, RenderedVideo, list[dict]]:
+    """Music pick -> concat -> mix -> transcribe -> burn captions -> final.mp4.
+
+    This IS the main pipeline's stages 5-7 (music/edit/captioning),
+    extracted verbatim so it can be reused by scene/voice revision without
+    duplicating — or drifting from — the render logic. Same stage names,
+    same log lines, same status transitions as before the extraction; the
+    only thing that moved is the SpendCapExceeded handling around the
+    whisper call, which callers now do around the whole helper (concat/mix
+    never spend, so this is behaviorally identical for the main pipeline).
+    """
+    music_query = niche.title
+    music_path = await music.pick_track(
+        query=music_query,
+        target_duration_sec=int(script.total_duration_sec),
+        library_dir=Path(settings.assets_dir) / "music",
+        cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
+    )
+    audio = AudioTrack(
+        voiceover_path=str(vo_path),
+        music_path=str(music_path) if music_path is not None else None,
+    )
+
+    with _stage(JobStatus.editing.value):
+        job.status = JobStatus.editing
+        await _persist(job)
+        silent_video = root / "output" / "silent.mp4"
+        ffmpeg.concat_clips(
+            [Path(c.video_path) for c in clips], silent_video, aspect=settings.aspect
+        )
+        mixed = root / "output" / "mixed.mp4"
+        ffmpeg.mix_audio(
+            silent_video, vo_path, music_path, mixed,
+            music_gain_db=audio.music_gain_db,
+        )
+
+    with _stage(JobStatus.captioning.value):
+        job.status = JobStatus.captioning
+        await _persist(job)
+        words = await openai_whisper.transcribe_word_level(vo_path, spend=spend)
+        ass_path = root / "captions" / "subs.ass"
+        subtitle.words_to_ass(words, ass_path)
+        final = root / "output" / "final.mp4"
+        ffmpeg.burn_subtitles(mixed, ass_path, final)
+        rendered = RenderedVideo(
+            path=str(final),
+            duration_sec=script.total_duration_sec,
+            captions_path=str(ass_path),
+        )
+
+    return audio, rendered, words
+
+
 async def _ensure_cap(job: Job, niche: Niche) -> bool:
     try:
         await spend_repo.assert_within_cap(
@@ -390,60 +477,22 @@ async def _run_job_inner(
                 pass
             return await _fail_with(job, str(e))
 
-    # 5. Music
-    # Derive a search query from existing Niche fields — no schema change needed.
-    # `niche.title` (e.g. "claymation econ explainers") + `niche.visual_style`
-    # (e.g. "claymation, warm palette") give Pixabay enough signal to find
-    # thematically appropriate background music. We take just the title to keep
-    # the query short and searchable; visual_style tends to be image-specific.
-    music_query = niche.title
-    music_path = await music.pick_track(
-        query=music_query,
-        target_duration_sec=int(script.total_duration_sec),
-        library_dir=Path(settings.assets_dir) / "music",
-        cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
-    )
-    job.audio = AudioTrack(
-        voiceover_path=str(vo_path),
-        music_path=str(music_path) if music_path is not None else None,
-    )
-
-    # 6. Edit (concat + mix)
-    with _stage(JobStatus.editing.value):
-        job.status = JobStatus.editing
-        await _persist(job)
-        silent_video = root / "output" / "silent.mp4"
-        ffmpeg.concat_clips(
-            [Path(c.video_path) for c in job.clips], silent_video, aspect=settings.aspect
+    # 5-7. Music -> edit (concat+mix) -> captions. Factored into
+    # `_assemble_and_caption` (see its docstring) so scene/voice revision
+    # can reuse this exact sequence instead of duplicating it. Only the
+    # whisper call inside can raise SpendCapExceeded (concat/mix never
+    # spend), so wrapping the whole call preserves the original handling.
+    try:
+        job.audio, job.rendered, words = await _assemble_and_caption(
+            job, niche, script, job.clips, vo_path, root, spend,
         )
-        mixed = root / "output" / "mixed.mp4"
-        ffmpeg.mix_audio(
-            silent_video, vo_path, music_path, mixed,
-            music_gain_db=job.audio.music_gain_db if job.audio else -18.0,
-        )
-
-    # 7. Captions
-    with _stage(JobStatus.captioning.value):
-        job.status = JobStatus.captioning
-        await _persist(job)
+    except spend_repo.SpendCapExceeded as e:
         try:
-            words = await openai_whisper.transcribe_word_level(vo_path, spend=spend)
-        except spend_repo.SpendCapExceeded as e:
-            try:
-                import sentry_sdk
-                sentry_sdk.capture_exception(e)
-            except Exception:
-                pass
-            return await _fail_with(job, str(e))
-        ass_path = root / "captions" / "subs.ass"
-        subtitle.words_to_ass(words, ass_path)
-        final = root / "output" / "final.mp4"
-        ffmpeg.burn_subtitles(mixed, ass_path, final)
-        job.rendered = RenderedVideo(
-            path=str(final),
-            duration_sec=script.total_duration_sec,
-            captions_path=str(ass_path),
-        )
+            import sentry_sdk
+            sentry_sdk.capture_exception(e)
+        except Exception:
+            pass
+        return await _fail_with(job, str(e))
 
     # 8. QA (strict — only path to scheduling)
     with _stage(JobStatus.qa.value):
@@ -495,6 +544,7 @@ async def _schedule_stage(job: Job, niche: Niche) -> Job:
         job.provider_post_id = post_id
         job.status = JobStatus.done
         await _persist(job)
+        await _register_media(job)
     await _notify(job, kind="scheduled")
     await _emit_webhook(job, "job.done")
     return job
@@ -548,3 +598,128 @@ def _next_posting_slot(niche: Niche) -> datetime:
         # than silently scheduling in the past.
         raise ValueError("niche posting windows produced no future slots")
     return min(future)
+
+
+async def run_revision(*, user_id: str, original_job_id: UUID, revision_job_id: UUID) -> Job:
+    """Scene reroll ("make scene 3 darker") or full re-voice, without
+    re-rolling the whole video from scratch.
+
+    `revision_job_id` is a Job row already created by
+    `jobs_repo.create_revision` (tagged with `revision_mode` and either
+    `revision_scene_index`/`revision_direction` or `revision_voice`).
+    Reuses the original job's persisted script and every clip that isn't
+    being regenerated; only the stages that actually changed are re-run
+    and metered through `SpendContext`, same as the main pipeline.
+
+    Spawned by the Modal `run_revision` function, itself spawned by
+    `POST /jobs/{id}/scenes/{index}/reroll` and `POST /jobs/{id}/revoice`
+    — both of which already verified the original job's assets are still
+    on the volume before enqueuing (a 409 short-circuits otherwise), so
+    a missing-assets failure here would only happen on a race (GC ran
+    between the check and this call).
+    """
+    original = await jobs_repo.get(original_job_id, user_id=user_id)
+    revision = await jobs_repo.get(revision_job_id, user_id=user_id)
+    if original is None or revision is None:
+        raise ValueError("job not found")
+    if original.script is None or not original.clips or original.rendered is None:
+        return await _fail_with(revision, "source assets expired; use retry")
+
+    niche = await niches_repo.get(original.niche_id, user_id=user_id)
+    if niche is None:
+        raise ValueError(f"niche {original.niche_id} not found for user {user_id}")
+
+    root = ensure_layout(f"{user_id}/{revision.id}")
+    spend = await default_context(
+        user_id=user_id,
+        niche_id=original.niche_id,
+        job_id=revision.id,
+        cap_usd=niche.daily_spend_cap_usd,
+    )
+
+    with job_context(job_id=revision.id, user_id=user_id, niche_id=original.niche_id):
+        try:
+            script = original.script
+            clips = list(original.clips)
+            vo_path = (
+                Path(original.audio.voiceover_path)
+                if original.audio is not None
+                else root / "audio" / "voiceover.wav"
+            )
+
+            if revision.revision_mode == "reroll":
+                index = revision.revision_scene_index
+                if index is None or not (0 <= index < len(script.scenes)):
+                    return await _fail_with(revision, "invalid scene index")
+                scene = script.scenes[index]
+                direction = (revision.revision_direction or "").strip()
+                revised_scene = scene.model_copy(
+                    update={
+                        "visual_prompt": (
+                            f"{scene.visual_prompt}. {direction}" if direction
+                            else scene.visual_prompt
+                        )
+                    }
+                )
+                reference = await character_sheet.get_or_create(
+                    niche, quality=niche.image_quality, spend=spend
+                )
+                with _stage(JobStatus.generating_images.value):
+                    revision.status = JobStatus.generating_images
+                    await _persist(revision)
+                    try:
+                        new_clip = await _generate_scene_assets(
+                            revised_scene, root, niche=niche,
+                            reference_image=reference, spend=spend,
+                        )
+                    except spend_repo.SpendCapExceeded as e:
+                        return await _fail_with(revision, str(e))
+                with _stage(JobStatus.animating.value):
+                    revision.status = JobStatus.animating
+                    await _persist(revision)
+                clips = [new_clip if c.scene_index == index else c for c in clips]
+                script = script.model_copy(
+                    update={
+                        "scenes": [
+                            revised_scene if s.index == index else s
+                            for s in script.scenes
+                        ]
+                    }
+                )
+            elif revision.revision_mode == "revoice":
+                voice = revision.revision_voice or niche.voice
+                narration = " ".join(s.narration for s in script.scenes)
+                vo_path = root / "audio" / "voiceover.wav"
+                with _stage(JobStatus.voicing.value):
+                    revision.status = JobStatus.voicing
+                    await _persist(revision)
+                    try:
+                        await openai_tts.synthesize(
+                            narration, vo_path,
+                            voice=voice,
+                            style_directions=niche.tts_style_directions,
+                            spend=spend,
+                        )
+                    except spend_repo.SpendCapExceeded as e:
+                        return await _fail_with(revision, str(e))
+            else:
+                return await _fail_with(
+                    revision, f"unknown revision mode {revision.revision_mode!r}"
+                )
+
+            revision.script = script
+            revision.clips = clips
+
+            try:
+                revision.audio, revision.rendered, _words = await _assemble_and_caption(
+                    revision, niche, script, clips, vo_path, root, spend,
+                )
+            except spend_repo.SpendCapExceeded as e:
+                return await _fail_with(revision, str(e))
+
+            revision.status = JobStatus.done
+            await _persist(revision)
+            await _register_media(revision)
+            return revision
+        except Exception as exc:
+            return await _fail_with(revision, f"{type(exc).__name__}: {exc}", exc)

@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from marketer.models import Job, JobStatus, PostMetrics
 from marketer.repos import jobs as jobs_repo
@@ -20,6 +20,30 @@ router = APIRouter()
 class JobEnqueue(BaseModel):
     niche_id: UUID
     platform: Literal["tiktok", "reels", "shorts"]
+
+
+class RerollBody(BaseModel):
+    direction: str = Field(min_length=1, max_length=500)
+
+
+class RevoiceBody(BaseModel):
+    voice: str = Field(min_length=1, max_length=100)
+
+
+def _assets_available(job: Job) -> bool:
+    """True if everything scene/voice revision needs is still readable on
+    the artifacts volume: the rendered final.mp4, the voiceover, and every
+    scene clip. Any of those missing means retention GC (or a bad volume
+    mount) already reclaimed the job's working files — the revision would
+    fail partway through, so we refuse it up front with a clear 409
+    instead of enqueueing a doomed Modal run."""
+    if job.rendered is None or not os.path.exists(job.rendered.path):
+        return False
+    if job.audio is None or not os.path.exists(job.audio.voiceover_path):
+        return False
+    if not job.clips or any(not os.path.exists(c.video_path) for c in job.clips):
+        return False
+    return True
 
 
 @router.get("", response_model=list[Job])
@@ -171,3 +195,70 @@ async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     # Reuse the job's own row: the retried id is the id that progresses.
     fn.spawn(ctx.user_id, str(job.niche_id), job.platform, str(job.id))
     return job
+
+
+@router.post(
+    "/{job_id}/scenes/{index}/reroll", response_model=Job, status_code=status.HTTP_202_ACCEPTED
+)
+async def reroll_scene(
+    job_id: UUID, index: int, body: RerollBody, ctx: AuthCtx = CurrentUser
+) -> Job:
+    """Regenerate one scene's keyframe + clip ("make scene 3 darker")
+    without re-rolling the whole video. Every other scene's clip is kept
+    as-is; only the affected stages are re-metered.
+
+    Requires the original job to still have a persisted script and every
+    asset (final video, voiceover, all scene clips) on the artifacts
+    volume — once retention GC reclaims them a scene reroll can't work,
+    so this 409s with a clear message pointing at `/retry` instead."""
+    import modal
+
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
+    if job.script is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="job has no persisted script to revise"
+        )
+    if not (0 <= index < len(job.script.scenes)):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail="scene index out of range"
+        )
+    if not _assets_available(job):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="source assets expired; use retry"
+        )
+
+    revision = await jobs_repo.create_revision(
+        original=job, mode="reroll", scene_index=index, direction=body.direction,
+    )
+    fn = modal.Function.from_name("marketer-sh", "run_revision")
+    fn.spawn(ctx.user_id, str(job_id), str(revision.id))
+    return revision
+
+
+@router.post("/{job_id}/revoice", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
+async def revoice_job(job_id: UUID, body: RevoiceBody, ctx: AuthCtx = CurrentUser) -> Job:
+    """Re-synthesize the whole voiceover with a different voice, then
+    re-run assembly (music/mix/captions) — the video clips are untouched.
+
+    Same asset-availability requirement as scene reroll: 409s pointing at
+    `/retry` when the original job's files are no longer on the volume."""
+    import modal
+
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
+    if job.script is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="job has no persisted script to revise"
+        )
+    if not _assets_available(job):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="source assets expired; use retry"
+        )
+
+    revision = await jobs_repo.create_revision(original=job, mode="revoice", voice=body.voice)
+    fn = modal.Function.from_name("marketer-sh", "run_revision")
+    fn.spawn(ctx.user_id, str(job_id), str(revision.id))
+    return revision

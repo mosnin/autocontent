@@ -40,14 +40,14 @@ class SpendRecorder(Protocol):
 
 
 class TodaySpendReader(Protocol):
-    async def __call__(self, *, user_id: str, niche_id: UUID) -> Decimal: ...
+    async def __call__(self, *, user_id: str, niche_id: UUID | None) -> Decimal: ...
 
 
 class TotalSpendReader(Protocol):
     async def __call__(self, *, user_id: str) -> Decimal: ...
 
 
-async def _default_today_spend(*, user_id: str, niche_id: UUID) -> Decimal:
+async def _default_today_spend(*, user_id: str, niche_id: UUID | None) -> Decimal:
     from ..repos import spend as spend_repo
 
     return await spend_repo.today_spend_usd(user_id=user_id, niche_id=niche_id)
@@ -62,7 +62,9 @@ async def _default_today_total_spend(*, user_id: str) -> Decimal:
 @dataclass
 class SpendContext:
     user_id: str
-    niche_id: UUID
+    # None for Content Studio calls with no niche in scope — cap_usd must
+    # also be None in that case (there is no niche to check a cap against).
+    niche_id: UUID | None
     job_id: UUID | None
     record: SpendRecorder
     article_id: UUID | None = None
@@ -234,7 +236,7 @@ async def _default_record(entry: SpendEntry) -> None:
 async def default_context(
     *,
     user_id: str,
-    niche_id: UUID,
+    niche_id: UUID | None,
     job_id: UUID | None,
     article_id: UUID | None = None,
     cap_usd: Decimal | None = None,

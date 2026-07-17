@@ -102,6 +102,34 @@ async def finish_scheduling(user_id: str, job_id: str) -> dict:
 
 
 @app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 20,
+)
+async def run_revision(user_id: str, original_job_id: str, revision_job_id: str) -> dict:
+    """Scene reroll or re-voice for an already-rendered job — regenerates
+    only the changed pieces (one scene's keyframe+clip, or the voiceover)
+    and re-runs assembly, instead of re-rolling the whole video.
+
+    Spawned by `POST /jobs/{id}/scenes/{index}/reroll` and
+    `POST /jobs/{id}/revoice`, which already created the revision Job row
+    and verified the original job's assets are still on the volume."""
+    from uuid import UUID
+    from marketer.pipeline import run_revision as _run_revision
+    from marketer.services.otel import force_flush
+
+    try:
+        job = await _run_revision(
+            user_id=user_id,
+            original_job_id=UUID(original_job_id),
+            revision_job_id=UUID(revision_job_id),
+        )
+        artifacts.commit()
+        return job.model_dump(mode="json")
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
     volumes={"/assets": assets},
     timeout=60 * 5,
 )

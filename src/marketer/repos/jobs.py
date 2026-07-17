@@ -29,6 +29,45 @@ async def create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     return job
 
 
+async def create_revision(
+    *,
+    original: Job,
+    mode: str,
+    scene_index: int | None = None,
+    direction: str | None = None,
+    voice: str | None = None,
+) -> Job:
+    """Create a lightweight revision Job row (scene reroll / revoice) that
+    reuses `original`'s niche/platform. It's a normal `jobs` row — just
+    tagged with `revision_*` fields inside the payload — so it shows up in
+    the queue like any other job and `run_revision` can resume it the same
+    way `run_pipeline` resumes a reused row."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        insert into jobs (user_id, niche_id, platform, payload)
+        values ($1, $2, $3, '{}'::jsonb)
+        returning id, created_at
+        """,
+        original.user_id, original.niche_id, original.platform,
+    )
+    job = Job(
+        id=row["id"],
+        user_id=original.user_id,
+        niche_id=original.niche_id,
+        platform=original.platform,
+        status=JobStatus.queued,
+        created_at=row["created_at"],
+        revision_of=original.id,
+        revision_mode=mode,  # type: ignore[arg-type]
+        revision_scene_index=scene_index,
+        revision_direction=direction,
+        revision_voice=voice,
+    )
+    await save_snapshot(job)
+    return job
+
+
 async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
     """Reset a failed job back to `queued` and clear `error`. Returns the
     fresh Job snapshot. Returns None if the job isn't owned by the user

@@ -100,6 +100,23 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
         stage_log.append(job.status.value)
     monkeypatch.setattr(pipeline.jobs_repo, "save_snapshot", fake_save_snapshot)
 
+    async def fake_jobs_get(job_id, *, user_id):
+        return saved.get(job_id)
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_jobs_get)
+
+    media_inserts: list[dict] = []
+
+    async def fake_media_insert(**kwargs):
+        media_inserts.append(kwargs)
+        from marketer.models import MediaAsset
+        return MediaAsset(
+            id=uuid4(), user_id=kwargs["user_id"], niche_id=kwargs.get("niche_id"),
+            job_id=kwargs.get("job_id"), kind=kwargs["kind"], source=kwargs["source"],
+            path=kwargs.get("path", ""), meta=kwargs.get("meta") or {},
+        )
+    import marketer.repos.media as media_repo
+    monkeypatch.setattr(media_repo, "insert", fake_media_insert)
+
     async def fake_today_spend(*, user_id, niche_id):
         return Decimal("0.00")
     monkeypatch.setattr(pipeline.spend_repo, "today_spend_usd", fake_today_spend)
@@ -247,7 +264,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
         return "post-id-xyz"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
 
-    return {"saved": saved, "niche_holder": niche_holder}
+    return {"saved": saved, "niche_holder": niche_holder, "media_inserts": media_inserts}
 
 
 async def test_happy_path_runs_all_stages(stub_all, stage_log):
@@ -284,6 +301,65 @@ async def test_happy_path_runs_all_stages(stub_all, stage_log):
         if not deduped or deduped[-1] != s:
             deduped.append(s)
     assert deduped == expected_subseq
+
+
+# --------------------------------------------------------------------------- media library registration
+
+async def test_completed_job_registers_media_row(stub_all):
+    """A finished job's final.mp4 is registered into the media library —
+    kind=video, source=pipeline, attributed to the job/niche — right after
+    it's persisted as `done`."""
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+
+    inserts = stub_all["media_inserts"]
+    assert len(inserts) == 1
+    row = inserts[0]
+    assert row["kind"] == "video"
+    assert row["source"] == "pipeline"
+    assert row["user_id"] == USER_ID
+    assert row["niche_id"] == NICHE_ID
+    assert row["job_id"] == job.id
+    assert row["path"] == job.rendered.path
+
+
+async def test_media_registration_failure_does_not_fail_job(monkeypatch, stub_all):
+    """Media-library bookkeeping is fail-open: an insert error must never
+    take down an otherwise-successful job."""
+    import marketer.repos.media as media_repo
+
+    async def boom(**kwargs):
+        raise RuntimeError("db is on fire")
+    monkeypatch.setattr(media_repo, "insert", boom)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert job.error is None
+
+
+async def test_approval_gated_job_registers_media_only_after_approval(stub_all):
+    """A job parked at `awaiting_approval` hasn't been scheduled yet — no
+    media row until the operator approves and `_schedule_stage` actually
+    runs (matches "after the final render is persisted as done")."""
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"approve_before_post": True}
+    )
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=niche.id, platform="tiktok"
+    )
+    assert job.status == JobStatus.awaiting_approval
+    assert stub_all["media_inserts"] == []
+
+    approved = await pipeline.schedule_approved_job(user_id=USER_ID, job_id=job.id)
+    assert approved.status == JobStatus.done
+    assert len(stub_all["media_inserts"]) == 1
+    assert stub_all["media_inserts"][0]["job_id"] == job.id
 
 
 async def test_scriptwriter_failure_marks_job_failed(monkeypatch, stub_all):
