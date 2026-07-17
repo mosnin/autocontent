@@ -9,15 +9,18 @@ import {
   Coins,
   FileText,
   Home,
+  Image as ImageIcon,
   KeyRound,
   Layers,
   LayoutDashboard,
+  Lightbulb,
   Link2,
   ListChecks,
   Megaphone,
   Play,
   Plus,
   Settings,
+  Sparkles,
 } from "lucide-react";
 
 import {
@@ -90,6 +93,12 @@ export function CommandPalette() {
           <CommandItem onSelect={() => go("/queue")}>
             <ListChecks className="text-muted-foreground" /> Queue
           </CommandItem>
+          <CommandItem onSelect={() => go("/studio")}>
+            <Sparkles className="text-muted-foreground" /> Studio
+          </CommandItem>
+          <CommandItem onSelect={() => go("/library")}>
+            <ImageIcon className="text-muted-foreground" /> Library
+          </CommandItem>
           <CommandItem onSelect={() => go("/calendar")}>
             <CalendarDays className="text-muted-foreground" /> Calendar
           </CommandItem>
@@ -98,6 +107,12 @@ export function CommandPalette() {
           </CommandItem>
           <CommandItem onSelect={() => go("/articles")}>
             <FileText className="text-muted-foreground" /> Articles
+          </CommandItem>
+          <CommandItem onSelect={() => go("/press/topics")}>
+            <Lightbulb className="text-muted-foreground" /> Topics
+          </CommandItem>
+          <CommandItem onSelect={() => go("/press/publishing")}>
+            <Link2 className="text-muted-foreground" /> Publishing
           </CommandItem>
           <CommandItem onSelect={() => go("/ads")}>
             <Megaphone className="text-muted-foreground" /> Ads
