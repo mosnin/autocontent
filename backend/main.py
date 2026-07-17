@@ -12,7 +12,7 @@ from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import admin, ads, articles, billing, brand_kit, calendar, connect, healthz, jobs, metrics, niches, performance, spend, tokens, users, voices, webhook_endpoints, webhooks, x402
+from .routes import admin, ads, articles, billing, brand_kit, calendar, connect, healthz, jobs, media, metrics, niches, performance, press, spend, studio, tokens, users, voices, webhook_endpoints, webhooks, x402
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,9 @@ def create_app() -> FastAPI:
     app.include_router(articles.router, prefix="/api/v1/articles", tags=["articles"])
     app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
     app.include_router(ads.router, prefix="/api/v1/ads", tags=["ads"])
+    app.include_router(studio.router, prefix="/api/v1/studio", tags=["studio"])
+    app.include_router(media.router, prefix="/api/v1/media", tags=["media"])
+    app.include_router(press.router, prefix="/api/v1/press", tags=["press"])
     app.include_router(calendar.router, prefix="/api/v1/calendar", tags=["calendar"])
     app.include_router(brand_kit.router, prefix="/api/v1/brand-kit", tags=["brand-kit"])
     app.include_router(webhook_endpoints.router, prefix="/api/v1/webhook-endpoints", tags=["webhooks-out"])

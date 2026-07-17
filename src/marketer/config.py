@@ -126,6 +126,43 @@ class Settings(BaseSettings):
     resend_api_key: str = ""
     email_from: str = "marketer <notifications@marketer.dev>"
 
+    # --- Content Studio (fal.ai) --------------------------------------
+    # AI image/video editing tools. Empty key = studio endpoints return 503
+    # with a clear "configure MARKETER_FAL_API_KEY" message; nothing breaks.
+    fal_api_key: str = ""
+    # Default model ids per tool kind; overridable per request. Kept in
+    # config so a fal model deprecation is an env change, not a deploy.
+    fal_image_model: str = "fal-ai/flux/dev"
+    fal_image_edit_model: str = "fal-ai/flux-pro/v1/fill"
+    fal_upscale_model: str = "fal-ai/clarity-upscaler"
+    fal_video_model: str = "fal-ai/kling-video/v1.5/standard/image-to-video"
+    fal_remove_bg_model: str = "fal-ai/birefnet"
+    # Flat per-call cost estimates (USD) used for spend metering + caps.
+    fal_image_cost_usd: float = 0.05
+    fal_video_cost_usd: float = 0.35
+
+    # --- Press planner + publishing -----------------------------------
+    # Max topic proposals generated per request.
+    press_topic_batch: int = 5
+    # When true the scheduler enqueues article generation from approved
+    # topic proposals on each niche's cadence.
+    press_autopilot_enabled: bool = True
+
+    # --- Ads platform execution ---------------------------------------
+    # Composio tool slugs for platform mutations/reports. Overridable per
+    # deploy because Composio renames actions; empty string disables that
+    # specific operation (fail-closed).
+    composio_googleads_create_campaign_tool: str = "GOOGLEADS_CREATE_CAMPAIGN"
+    composio_googleads_set_status_tool: str = "GOOGLEADS_UPDATE_CAMPAIGN_STATUS"
+    composio_googleads_set_budget_tool: str = "GOOGLEADS_UPDATE_CAMPAIGN_BUDGET"
+    composio_googleads_metrics_tool: str = "GOOGLEADS_RUN_REPORT"
+    composio_metaads_create_campaign_tool: str = "METAADS_CREATE_CAMPAIGN"
+    composio_metaads_set_status_tool: str = "METAADS_UPDATE_CAMPAIGN"
+    composio_metaads_set_budget_tool: str = "METAADS_UPDATE_CAMPAIGN_BUDGET"
+    composio_metaads_metrics_tool: str = "METAADS_GET_INSIGHTS"
+    # Model for the ads strategist agent (governed recommendations).
+    ads_strategist_model: str = "gpt-5.4-mini"
+
     # OpenTelemetry tracing. Leave otel_exporter_otlp_endpoint empty to
     # disable OTEL entirely (all instrumentation becomes a no-op).
     # Example endpoints:
