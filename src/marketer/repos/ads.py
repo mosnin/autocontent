@@ -157,6 +157,16 @@ async def list_accounts(user_id: str) -> list[AdAccount]:
     return [AdAccount(**dict(r)) for r in rows]
 
 
+async def list_user_ids_with_active_accounts() -> list[str]:
+    """Distinct user_ids with at least one ACTIVE ad account — the fan-out set
+    for the hourly metrics-sync cron (replaces a hardcoded event payload)."""
+    pool = await get_pool()
+    rows = await pool.fetch(
+        "select distinct user_id from ad_accounts where status = 'active'"
+    )
+    return [r["user_id"] for r in rows]
+
+
 async def get_account(account_id: UUID, *, user_id: str) -> AdAccount | None:
     pool = await get_pool()
     row = await pool.fetchrow(

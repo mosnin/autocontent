@@ -72,6 +72,26 @@ async def test_account_create_upsert_and_governance(pool):
     assert await ads.set_account_status(acc.id, user_id=other, status="paused") is None
 
 
+async def test_list_user_ids_with_active_accounts(pool):
+    """The hourly metrics-sync fan-out set: only users with an ACTIVE ad
+    account, deduped, never a hardcoded/static list."""
+    from marketer.repos import ads
+
+    active_uid = await _mkuser(pool)
+    pending_uid = await _mkuser(pool)
+    await ads.create_account(user_id=active_uid, platform="google_ads", status="active")
+    # A second active account for the same user must not duplicate them.
+    await ads.create_account(
+        user_id=active_uid, platform="meta_ads", external_account_id="act_2",
+        status="active",
+    )
+    await ads.create_account(user_id=pending_uid, platform="google_ads", status="pending")
+
+    ids = await ads.list_user_ids_with_active_accounts()
+    assert ids.count(active_uid) == 1
+    assert pending_uid not in ids
+
+
 async def test_unknown_platform_rejected(pool):
     from marketer.repos import ads
 

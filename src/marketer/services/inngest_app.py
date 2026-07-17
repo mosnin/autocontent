@@ -70,14 +70,32 @@ def _build_functions(inngest, client) -> list:
         trigger=inngest.TriggerCron(cron="0 * * * *"),  # hourly
     )
     async def metrics_sync(ctx) -> dict:  # pragma: no cover - runtime wrapper
-        async def _run():
-            # Fan out over accounts the platform knows about. In production this
-            # would page all active users; kept minimal here.
-            user_ids = ctx.event.data.get("user_ids", []) if ctx.event else []
-            return await ad_workflows.sync_all_accounts_metrics(user_ids=user_ids)
+        async def _run() -> dict:
+            # Fan out over users with an active connected ad account (queried
+            # fresh each run — never a static/hardcoded list).
+            user_ids = await ad_workflows.active_user_ids()
+            written = await ad_workflows.sync_all_accounts_metrics(user_ids=user_ids)
+            targets = await ad_workflows.active_optimize_targets(user_ids)
+            return {
+                "written": written,
+                "targets": [(uid, str(cid)) for uid, cid in targets],
+            }
 
-        written = await ctx.step.run("sync", _run)
-        return {"rows_written": written}
+        result = await ctx.step.run("sync", _run)
+
+        # Trigger the optimizer for every active campaign synced above — one
+        # event per campaign, batched into a single send_event call.
+        targets = result["targets"]
+        if targets:
+            events = [
+                inngest.Event(
+                    name=EVENT_OPTIMIZE, data={"user_id": uid, "campaign_id": cid}
+                )
+                for uid, cid in targets
+            ]
+            await ctx.step.send_event("trigger-optimize", events)
+
+        return {"rows_written": result["written"], "optimize_triggered": len(targets)}
 
     @client.create_function(
         fn_id="ads-optimize",

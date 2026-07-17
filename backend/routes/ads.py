@@ -1,10 +1,12 @@
-"""Ads REST surface: connected accounts, governance, campaigns (read),
-approvals, and the action log. Spend-affecting mutations flow through the
-safe-execute layer (added in a later phase); this module exposes the read/
-manage surface plus the OAuth connect flow.
+"""Ads REST surface: connected accounts, governance, campaigns, creatives,
+approvals, and the action log. Every spend-affecting mutation (budget change,
+activate, pause/end, approval execution) flows through the safe-execute layer
+in services/ad_actions_exec.py — guarded, approval-gated, audited, and (when
+the campaign is live on a platform) applied there too.
 
-Every route is user_id-scoped. Composio calls can raise AdsDisabled, which we
-surface as 409 (feature off / not configured), never a 500.
+Every route is user_id-scoped. Composio calls can raise AdsDisabled (feature
+off/misconfigured -> 409) or ComposioCallError (the platform call executed
+but failed -> 502); neither is ever swallowed into a fake success.
 """
 from __future__ import annotations
 
@@ -18,9 +20,16 @@ from pydantic import BaseModel, Field
 from marketer.repos import ad_actions, ad_approvals
 from marketer.repos import ads as ads_repo
 from marketer.services import ad_connections
-from marketer.services.ad_actions_exec import AdSpendDenied, propose_budget_change
+from marketer.services.ad_actions_exec import (
+    AdSpendDenied,
+    activate_campaign,
+    apply_status_change,
+    execute_approved_activation,
+    execute_approved_budget_change,
+    propose_budget_change,
+)
 from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_budget_action
-from marketer.services.composio_client import AdsDisabled
+from marketer.services.composio_client import AdsDisabled, ComposioCallError
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -155,7 +164,12 @@ async def change_budget(
     campaign_id: UUID, body: BudgetBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     """Change a campaign's daily budget through the safe-execute layer:
-    guarded, approval-gated for large deltas, and audited. 402 on a hard deny."""
+    guarded, approval-gated for large deltas, and audited. 402 on a hard
+    deny. When the campaign is live on a platform (has an external id) on an
+    actively-connected account, the change is ALSO applied there (see
+    ad_actions_exec.resolve_apply_fn — propose_budget_change resolves it
+    internally per-campaign); campaigns without an external id remain local
+    drafts (no platform call)."""
     try:
         return await propose_budget_change(
             user_id=ctx.user_id, campaign_id=campaign_id,
@@ -164,18 +178,28 @@ async def change_budget(
         )
     except AdSpendDenied as e:
         raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+    except AdsDisabled as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
+    except ComposioCallError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
 
 
 class StatusBody(BaseModel):
     status: str  # 'active' | 'paused' | 'ended'
 
 
-@router.post("/campaigns/{campaign_id}/status", response_model=ads_repo.AdCampaign)
+@router.post("/campaigns/{campaign_id}/status")
 async def change_status(
     campaign_id: UUID, body: StatusBody, ctx: AuthCtx = CurrentUser
-) -> ads_repo.AdCampaign:
+) -> dict:
     """Activate / pause / end a campaign. Activation is spend-affecting and
-    passes the guard's non-budget check; pausing/ending always allowed."""
+    passes the guard's non-budget check first (account health/kill-switch,
+    unconditional); a campaign with no external id yet is then ALSO guarded
+    on its daily budget (approval threshold applies) before it's created on
+    the platform — see ad_actions_exec.activate_campaign. Pausing/ending
+    always passes the coarse gate and propagates to the platform when the
+    campaign has an external id. Returns either the updated campaign or
+    ``{"status": "pending_approval", "approval_id": ...}``."""
     if body.status not in {"active", "paused", "ended"}:
         raise HTTPException(422, "status must be active, paused, or ended")
     camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
@@ -196,16 +220,85 @@ async def change_status(
     if not decision.allowed:
         raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, decision.reason)
 
-    updated = await ads_repo.update_campaign(
-        campaign_id, user_id=ctx.user_id, status=body.status
-    )
-    await ad_actions.record(
-        user_id=ctx.user_id, actor="user", actor_email=ctx.email,
-        action=action, platform=account.platform if account else "",
-        target_type="ad_campaign", target_id=str(campaign_id),
-        after={"status": body.status},
-    )
-    return updated or camp
+    try:
+        if body.status == "active" and not camp.external_campaign_id:
+            result = await activate_campaign(
+                user_id=ctx.user_id, campaign=camp, account=account,
+                actor="user", actor_email=ctx.email,
+            )
+            if result["status"] == "pending_approval":
+                return result
+            return result["campaign"]
+        updated = await apply_status_change(
+            campaign=camp, account=account, new_status=body.status,
+            actor="user", actor_email=ctx.email,
+        )
+        return updated.model_dump(mode="json")
+    except AdSpendDenied as e:
+        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+    except AdsDisabled as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
+    except ComposioCallError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+
+
+class CreativesBody(BaseModel):
+    count: int = Field(default=3, ge=1, le=10)
+
+
+@router.post("/campaigns/{campaign_id}/creatives", response_model=list[ads_repo.AdCreative],
+             status_code=201)
+async def generate_creatives(
+    campaign_id: UUID, body: CreativesBody = CreativesBody(), ctx: AuthCtx = CurrentUser
+) -> list[ads_repo.AdCreative]:
+    """Generate N ad-copy variants for a campaign via the LLM (no image
+    generation — another team owns fal), steered by the campaign's linked
+    niche and the user's brand kit when present, and store them."""
+    camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
+    if camp is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "campaign not found")
+
+    from marketer.agents.ads_strategist import run_ad_copywriter
+    from marketer.repos import brand_kit as brand_kit_repo
+    from marketer.repos import niches as niches_repo
+
+    niche_context = ""
+    if camp.niche_id is not None:
+        niche = await niches_repo.get(camp.niche_id, user_id=ctx.user_id)
+        if niche is not None:
+            niche_context = (
+                f"Niche: {niche.title} — {niche.description}\n"
+                f"Audience: {niche.target_audience}"
+            )
+    brand_context = brand_kit_repo.as_prompt_context(await brand_kit_repo.get(ctx.user_id))
+
+    try:
+        batch = await run_ad_copywriter(
+            campaign_name=camp.name, objective=camp.objective,
+            niche_context=niche_context, brand_context=brand_context, count=body.count,
+        )
+    except Exception as e:  # noqa: BLE001 — surface as a clean 502
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, f"could not generate ad copy: {e}"
+        ) from e
+
+    return [
+        await ads_repo.create_creative(
+            user_id=ctx.user_id, campaign_id=camp.id, kind="text",
+            headline=v.headline, body=v.body, cta=v.cta,
+        )
+        for v in batch.variants
+    ]
+
+
+@router.get("/campaigns/{campaign_id}/creatives", response_model=list[ads_repo.AdCreative])
+async def list_creatives(
+    campaign_id: UUID, ctx: AuthCtx = CurrentUser
+) -> list[ads_repo.AdCreative]:
+    camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
+    if camp is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "campaign not found")
+    return await ads_repo.list_creatives(ctx.user_id, campaign_id=campaign_id)
 
 
 @router.get("/campaigns/{campaign_id}")
@@ -237,6 +330,13 @@ class DecideBody(BaseModel):
 async def decide_approval(
     approval_id: UUID, body: DecideBody, ctx: AuthCtx = CurrentUser
 ) -> ad_approvals.AdApproval:
+    """Approve or reject a pending spend action. An APPROVED decision is
+    immediately executed here — re-guarded at execution time and applied to
+    the platform — so "approve" is a single, complete human action rather
+    than a decision that silently waits for some other process to run it.
+    A failure to execute (denied on re-guard, Composio unconfigured/failed)
+    is surfaced as an error; the approval itself stays 'approved' (not
+    'executed'), so the human sees the failure and can retry."""
     if body.decision not in {"approved", "rejected"}:
         raise HTTPException(422, "decision must be 'approved' or 'rejected'")
     decided = await ad_approvals.decide(
@@ -252,6 +352,22 @@ async def decide_approval(
         action=f"approval.{body.decision}", target_type="ad_approval",
         target_id=str(decided.id), dollar_delta_usd=decided.dollar_delta_usd,
     )
+    if body.decision == "approved":
+        try:
+            if decided.action == "budget.change":
+                await execute_approved_budget_change(
+                    user_id=ctx.user_id, approval_id=decided.id, actor_email=ctx.email,
+                )
+            elif decided.action == "campaign.activate":
+                await execute_approved_activation(
+                    user_id=ctx.user_id, approval_id=decided.id, actor_email=ctx.email,
+                )
+        except AdSpendDenied as e:
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+        except AdsDisabled as e:
+            raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
+        except ComposioCallError as e:
+            raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
     return decided
 
 
