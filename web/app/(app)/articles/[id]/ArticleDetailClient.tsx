@@ -8,18 +8,54 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowLeft, Copy, Download, ImageIcon, RefreshCw, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  ExternalLink,
+  ImageIcon,
+  RefreshCw,
+  Rocket,
+  Search,
+} from "lucide-react";
 
 import { ArticleMarkdown } from "@/components/article-markdown";
+import { RepurposeCard } from "@/components/repurpose-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { retryArticleAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
+import {
+  humanizePressError,
+  pressKeys,
+  publishArticle,
+  researchFetcher,
+  targetsFetcher,
+} from "@/lib/press-client";
 import { ARTICLE_IN_PROGRESS, ArticleStatusBadge } from "@/lib/status-badge";
-import type { Article } from "@/lib/types";
+import type { Article, ArticleResearch, PublishTarget } from "@/lib/types";
 
 const POLL_MS = 10_000;
 
@@ -141,6 +177,7 @@ export function ArticleDetailClient({
               </a>
             </Button>
           )}
+          <PublishButton article={article} />
         </div>
       </div>
 
@@ -280,6 +317,8 @@ export function ArticleDetailClient({
             </CardContent>
           </Card>
 
+          {article.status === "done" && <ResearchCard articleId={article.id} />}
+
           {article.link_suggestions.length > 0 && (
             <Card>
               <CardHeader>
@@ -418,176 +457,308 @@ function prettyJson(raw: string): string {
   }
 }
 
-const SOCIAL_PLATFORMS = [
-  { key: "twitter", label: "X / Twitter" },
-  { key: "linkedin", label: "LinkedIn" },
-  { key: "instagram", label: "Instagram" },
-  { key: "facebook", label: "Facebook" },
-  { key: "newsletter", label: "Newsletter" },
-] as const;
+// Publish the finished article to a configured publish target
+// (POST /api/v1/press/articles/{id}/publish). Disabled with a tooltip until
+// the article is done; pick a target from /press/targets and show the
+// resulting external URL or error inline.
+function PublishButton({ article }: { article: Article }) {
+  const [open, setOpen] = React.useState(false);
+  const { data: targets } = useSWR<PublishTarget[]>(
+    pressKeys.targets(),
+    targetsFetcher,
+    { revalidateOnFocus: false },
+  );
+  const enabledTargets = (targets ?? []).filter((t) => !t.disabled);
 
-type Snippet = { platform: string; body: string; hashtags: string[] };
+  const [targetId, setTargetId] = React.useState<string>("");
+  const [publishing, setPublishing] = React.useState(false);
+  const [result, setResult] = React.useState<{
+    ok: boolean;
+    externalUrl?: string;
+    message?: string;
+  } | null>(null);
 
-// Repurpose a finished article into platform-native social posts via
-// POST /articles/{id}/social (one metered LLM call). Lets the user pick
-// platforms, generates, and copies each result.
-function RepurposeCard({ articleId }: { articleId: string }) {
-  const [selected, setSelected] = React.useState<string[]>([
-    "twitter",
-    "linkedin",
-  ]);
-  const [loading, setLoading] = React.useState(false);
-  const [snippets, setSnippets] = React.useState<Snippet[] | null>(null);
+  React.useEffect(() => {
+    if (open) {
+      setTargetId((prev) => prev || enabledTargets[0]?.id || "");
+      setResult(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, targets]);
 
-  const toggle = (key: string) =>
-    setSelected((s) =>
-      s.includes(key) ? s.filter((k) => k !== key) : [...s, key],
-    );
+  const ready = article.status === "done" && !!article.article_markdown;
 
-  async function generate() {
-    setLoading(true);
+  async function onPublish() {
+    if (!targetId) return;
+    setPublishing(true);
+    setResult(null);
     try {
-      const res = await fetch(
-        `/api/proxy/api/v1/articles/${articleId}/social`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ platforms: selected }),
-          cache: "no-store",
-        },
-      );
-      if (!res.ok) {
-        const detail = await res.text();
-        throw new Error(
-          res.status === 402
-            ? "Daily spend cap reached for this channel."
-            : `Couldn't generate posts (${res.status}). ${detail.slice(0, 120)}`,
-        );
-      }
-      const data = (await res.json()) as { snippets: Snippet[] };
-      setSnippets(data.snippets);
-      if (data.snippets.length === 0) {
-        toast.message("No posts came back. Try different platforms.");
+      const pub = await publishArticle(article.id, targetId);
+      if (pub.status === "ok") {
+        setResult({ ok: true, externalUrl: pub.external_url });
+        toast.success("Published");
       } else {
-        const n = data.snippets.length;
-        toast.success(`Generated ${n} social ${n === 1 ? "post" : "posts"}`);
+        setResult({ ok: false, message: pub.error || "Publish did not complete" });
+        toast.error(pub.error || "Publish did not complete");
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Generation failed");
+      const message = humanizePressError(err);
+      setResult({ ok: false, message });
+      toast.error(message);
     } finally {
-      setLoading(false);
+      setPublishing(false);
     }
   }
 
-  async function copy(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Copied");
-    } catch {
-      toast.error("Couldn't copy");
-    }
+  const trigger = (
+    <Button
+      variant="outline"
+      onClick={() => setOpen(true)}
+      disabled={!ready}
+      aria-disabled={!ready}
+    >
+      <Rocket className="h-4 w-4" aria-hidden="true" />
+      Publish
+    </Button>
+  );
+
+  return (
+    <>
+      {ready ? (
+        trigger
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex">{trigger}</span>
+          </TooltipTrigger>
+          <TooltipContent>Finish the article before publishing.</TooltipContent>
+        </Tooltip>
+      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Publish this article</DialogTitle>
+            <DialogDescription>
+              Send the finished piece to a connected WordPress site or
+              webhook.
+            </DialogDescription>
+          </DialogHeader>
+
+          {enabledTargets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No publish targets yet.{" "}
+              <Link
+                href="/press/publishing"
+                className="font-medium text-foreground underline underline-offset-4"
+              >
+                Add one
+              </Link>{" "}
+              to publish this article.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              <Select value={targetId} onValueChange={setTargetId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pick a publish target" />
+                </SelectTrigger>
+                <SelectContent>
+                  {enabledTargets.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name} ({t.kind})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {result && (
+                <div
+                  className={`rounded-md border p-3 text-sm ${
+                    result.ok
+                      ? "border-success/30 bg-success/5 text-success"
+                      : "border-destructive/30 bg-destructive/5 text-destructive"
+                  }`}
+                >
+                  {result.ok ? (
+                    <span className="flex items-center gap-1.5">
+                      Published.
+                      {result.externalUrl && (
+                        <a
+                          href={result.externalUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 underline underline-offset-4"
+                        >
+                          View live <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                    </span>
+                  ) : (
+                    result.message
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+              Close
+            </Button>
+            {enabledTargets.length > 0 && (
+              <Button
+                type="button"
+                onClick={onPublish}
+                disabled={!targetId || publishing}
+                isLoading={publishing}
+              >
+                Publish
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// The research surface for this article — the cached SERP analysis, so
+// the reader who wrote nothing but a topic can see what the pipeline
+// actually looked at before writing.
+function ResearchCard({ articleId }: { articleId: string }) {
+  const { data, isLoading } = useSWR<ArticleResearch>(
+    pressKeys.research(articleId),
+    researchFetcher,
+    { revalidateOnFocus: false },
+  );
+
+  const serp = data?.serp_analysis;
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Research</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!serp) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Search className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            Research
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            No SERP research was stored for this article. It was likely
+            generated before research persistence was added.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <div className="min-w-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-brand" aria-hidden="true" />
-            Repurpose to social
-          </CardTitle>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Turn this article into platform-native posts. One metered
-            generation, charged to this channel&apos;s cap.
-          </p>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Search className="h-4 w-4 text-brand" aria-hidden="true" />
+          Research
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div
-          className="flex flex-wrap gap-2"
-          role="group"
-          aria-label="Platforms"
-        >
-          {SOCIAL_PLATFORMS.map((p) => {
-            const on = selected.includes(p.key);
-            return (
-              <button
-                key={p.key}
-                type="button"
-                aria-pressed={on}
-                onClick={() => toggle(p.key)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                  on
-                    ? "border-brand/40 bg-brand/10 text-brand"
-                    : "border-border/60 bg-card/40 text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
-        <Button
-          onClick={generate}
-          disabled={loading || selected.length === 0}
-          className="w-full sm:w-auto"
-        >
-          <Sparkles
-            className={`h-4 w-4 ${loading ? "animate-pulse" : ""}`}
-            aria-hidden="true"
+      <CardContent className="space-y-4 text-sm">
+        <div className="grid grid-cols-2 gap-3">
+          <StatTile
+            label="Avg word count"
+            value={serp.avgWordCount ? serp.avgWordCount.toLocaleString() : "-"}
           />
-          {loading ? "Generating…" : "Generate social posts"}
-        </Button>
+          <StatTile
+            label="Recommended"
+            value={
+              serp.recommendedWordCount
+                ? serp.recommendedWordCount.toLocaleString()
+                : "-"
+            }
+          />
+        </div>
 
-        {snippets && snippets.length === 0 && (
-          <div className="rounded-lg border border-dashed border-border/60 bg-card/30 p-4 text-center text-sm text-muted-foreground">
-            No posts came back for the selected platforms. Try a different mix
-            and generate again.
+        {serp.topDomains.length > 0 && (
+          <div>
+            <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Top domains
+            </h4>
+            <div className="flex flex-wrap gap-1.5">
+              {serp.topDomains.map((d) => (
+                <Badge key={d} variant="outline" className="font-normal">
+                  {d}
+                </Badge>
+              ))}
+            </div>
           </div>
         )}
 
-        {snippets && snippets.length > 0 && (
-          <ul className="space-y-3">
-            {snippets.map((s, i) => {
-              const full =
-                s.body +
-                (s.hashtags.length ? `\n\n${s.hashtags.join(" ")}` : "");
-              const label =
-                SOCIAL_PLATFORMS.find((p) => p.key === s.platform)?.label ??
-                s.platform;
-              return (
-                <li
-                  key={`${s.platform}-${i}`}
-                  className="rounded-lg border border-border/60 bg-card/40 p-3"
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <Badge variant="outline" className="font-normal">
-                      {label}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copy(full)}
-                      aria-label={`Copy ${label} post`}
-                    >
-                      <Copy className="h-3.5 w-3.5" aria-hidden="true" />
-                      Copy
-                    </Button>
-                  </div>
-                  <p className="whitespace-pre-wrap text-sm text-foreground/90">
-                    {s.body}
+        {serp.commonHeadings.length > 0 && (
+          <div>
+            <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Common headings
+            </h4>
+            <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+              {serp.commonHeadings.slice(0, 8).map((h, i) => (
+                <li key={i}>{h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {serp.questionsAnswered.length > 0 && (
+          <div>
+            <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Questions answered
+            </h4>
+            <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+              {serp.questionsAnswered.slice(0, 8).map((q, i) => (
+                <li key={i}>{q}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {serp.topResults.length > 0 && (
+          <div>
+            <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Top results
+            </h4>
+            <ul className="space-y-2">
+              {serp.topResults.slice(0, 5).map((r, i) => (
+                <li key={i} className="rounded-md border p-2.5">
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block truncate font-medium text-brand hover:underline"
+                  >
+                    {r.title}
+                  </a>
+                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                    {r.domain}
+                    {r.wordCountEstimate ? ` · ${r.wordCountEstimate.toLocaleString()} words` : ""}
                   </p>
-                  {s.hashtags.length > 0 && (
-                    <p className="mt-2 text-sm text-brand">
-                      {s.hashtags.join(" ")}
-                    </p>
-                  )}
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+          </div>
         )}
       </CardContent>
     </Card>
   );
 }
+

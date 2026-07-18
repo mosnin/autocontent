@@ -251,3 +251,82 @@ export interface TokenCreateResponse {
   token: string;
   info: PersonalAccessToken;
 }
+
+// --- Press: topic proposals, publish targets, publishing --------------
+// Manual TS mirrors of src/marketer/repos/{topic_proposals,publish_targets}.py
+// and src/marketer/articles/models.py (ArticlePublish, SerpAnalysis).
+
+export type TopicStatus = "pending" | "approved" | "rejected";
+
+export interface TopicProposal {
+  id: string;
+  user_id: string;
+  niche_id: string;
+  title: string;
+  focus_keyword: string;
+  rationale: string;
+  score: number;
+  status: TopicStatus;
+  created_at: string;
+  decided_at: string | null;
+}
+
+export type PublishTargetKind = "wordpress" | "webhook";
+
+export interface PublishTarget {
+  id: string;
+  user_id: string;
+  kind: PublishTargetKind;
+  name: string;
+  base_url: string;
+  username: string;
+  disabled: boolean;
+  created_at: string;
+}
+
+export type ArticlePublishStatus = "pending" | "ok" | "failed";
+
+export interface ArticlePublish {
+  id: string;
+  article_id: string;
+  target_id: string;
+  status: ArticlePublishStatus;
+  external_url: string;
+  error: string;
+  created_at: string | null;
+}
+
+/** SERP result inside a SerpAnalysis (src/marketer/articles/models.py). */
+export interface SerpResult {
+  title: string;
+  url: string;
+  domain: string;
+  wordCountEstimate: number | null;
+  highlights: string[];
+}
+
+/** Cached research from the pipeline's research stage. */
+export interface SerpAnalysis {
+  topResults: SerpResult[];
+  avgWordCount: number;
+  commonHeadings: string[];
+  commonTopics: string[];
+  questionsAnswered: string[];
+  recommendedWordCount: number;
+  topDomains: string[];
+}
+
+/** GET /api/v1/articles/{id}/research response. */
+export interface ArticleResearch {
+  serp_analysis: SerpAnalysis | null;
+  link_suggestions: ArticleLinkSuggestion[];
+  quality: ArticleQuality | null;
+}
+
+/** One row of GET /api/v1/press/links: an article's still-valid internal
+ *  link suggestions. */
+export interface LinkOpportunity {
+  article_id: string;
+  title: string;
+  suggestions: ArticleLinkSuggestion[];
+}
