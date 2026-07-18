@@ -104,6 +104,7 @@ const schema = z.object({
   video_resolution: z.enum(["480p", "720p"]),
   scene_max_duration_sec: z.coerce.number().int().min(1).max(15),
   tts_style_directions: z.string(),
+  character_description: z.string(),
 
   // Step 3
   posting_hour: z.coerce.number().int().min(0).max(23),
@@ -162,6 +163,7 @@ export interface NicheDraftPrefill {
   video_resolution?: Values["video_resolution"];
   scene_max_duration_sec?: number;
   tts_style_directions?: string;
+  character_description?: string;
 }
 
 export function OnboardingForm({
@@ -191,6 +193,7 @@ export function OnboardingForm({
       video_resolution: prefill?.video_resolution ?? "480p",
       scene_max_duration_sec: prefill?.scene_max_duration_sec ?? 5,
       tts_style_directions: prefill?.tts_style_directions ?? "",
+      character_description: prefill?.character_description ?? "",
       posting_hour: 9,
       posting_minute: 0,
       tz: defaultTz(),
@@ -225,6 +228,7 @@ export function OnboardingForm({
     fd.set("video_resolution", values.video_resolution);
     fd.set("scene_max_duration_sec", String(values.scene_max_duration_sec));
     fd.set("tts_style_directions", values.tts_style_directions);
+    fd.set("character_description", values.character_description);
     fd.set("posting_hour", String(values.posting_hour));
     fd.set("posting_minute", String(values.posting_minute));
     fd.set("tz", values.tz);
@@ -657,6 +661,25 @@ function StepCreative() {
               />
             </FormControl>
             <FormDescription>Optional · passed verbatim to TTS</FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        name="character_description"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Custom characters</FormLabel>
+            <FormControl>
+              <Input
+                placeholder="a grumpy clay llama named Sol wearing a tiny lab coat"
+                {...field}
+              />
+            </FormControl>
+            <FormDescription>
+              Optional · recurring cast rendered in every video
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}

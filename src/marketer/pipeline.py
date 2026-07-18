@@ -45,6 +45,7 @@ from .services import (
     otel,
     scheduler,
     subtitle,
+    video_qa,
 )
 from .services.concurrency import niche_lock, user_lock
 from .services.spend_context import SpendContext, default_context
@@ -208,6 +209,17 @@ async def _fail_with(job: Job, error: str, exc: BaseException | None = None) -> 
     return job
 
 
+# Failure prefixes that mean the *content* was rejected — resuming the same
+# script/clips would just fail QA again, so a retry regenerates from scratch.
+_CONTENT_REJECTION_PREFIXES = ("content QA failed", "render QA failed")
+
+
+def _wipe_pipeline_state(job: Job) -> None:
+    job.script = None
+    job.clips = []
+    job.audio = None
+
+
 async def _obtain_job(
     *, user_id: str, niche_id: UUID, platform: str, job_id: UUID | None
 ) -> Job:
@@ -215,16 +227,19 @@ async def _obtain_job(
     retry pass it through), else create one. Reusing keeps the id the API
     handed to the client as the id that actually progresses — previously
     the pipeline always created a second row and the first sat `queued`
-    forever."""
+    forever.
+
+    Retries RESUME rather than restart: persisted script/clips survive so
+    a transient failure at (say) captioning doesn't re-buy ideation, six
+    images, six animations, and TTS. The only exception is a QA content
+    rejection — there the artifacts *are* the problem, so they're wiped."""
     if job_id is not None:
         job = await jobs_repo.get(job_id, user_id=user_id)
         if job is not None:
-            # Restart from a clean slate: a retried job carries stale
-            # script/clip state from the failed attempt.
+            if job.error and job.error.startswith(_CONTENT_REJECTION_PREFIXES):
+                _wipe_pipeline_state(job)
             job.status = JobStatus.queued
             job.error = None
-            job.script = None
-            job.clips = []
             job.rendered = None
             job.scheduled_for = None
             job.provider_post_id = None
@@ -306,34 +321,44 @@ async def _run_job_inner(
     if not await _ensure_cap(job, niche):
         return job
 
-    # 1. Ideation
-    with _stage(JobStatus.ideating.value):
-        job.status = JobStatus.ideating
-        await _persist(job)
-        perf_ctx = await build_performance_context(
-            niche_id=niche.id,
-            user_id=job.user_id,
-            lookback_days=30,
-        )
-        idea = await run_ideation(
-            niche.title, performance_context=perf_ctx, spend=spend
-        )
+    # Stage resume: a retried job that still carries a script from the
+    # failed attempt reuses it (and any per-scene/VO artifacts below)
+    # instead of re-spending. Content-rejected retries arrive wiped.
+    resumed = job.script is not None
 
-    # 2. Script + visual direction
-    with _stage(JobStatus.scripting.value):
-        job.status = JobStatus.scripting
-        await _persist(job)
-        script: Script = await run_scriptwriter(
-            idea,
-            scene_count=niche.scene_count,
-            target_duration_sec=niche.target_duration_sec,
-            spend=spend,
-        )
-        script = await run_visual_director(
-            script, visual_style=niche.visual_style, spend=spend
-        )
-        job.script = script
+    if resumed:
+        script: Script = job.script
+        log.info("resume: reusing script from prior attempt")
         (root / "script.json").write_text(script.model_dump_json(indent=2))
+    else:
+        # 1. Ideation
+        with _stage(JobStatus.ideating.value):
+            job.status = JobStatus.ideating
+            await _persist(job)
+            perf_ctx = await build_performance_context(
+                niche_id=niche.id,
+                user_id=job.user_id,
+                lookback_days=30,
+            )
+            idea = await run_ideation(
+                niche.title, performance_context=perf_ctx, spend=spend
+            )
+
+        # 2. Script + visual direction
+        with _stage(JobStatus.scripting.value):
+            job.status = JobStatus.scripting
+            await _persist(job)
+            script = await run_scriptwriter(
+                idea,
+                scene_count=niche.scene_count,
+                target_duration_sec=niche.target_duration_sec,
+                spend=spend,
+            )
+            script = await run_visual_director(
+                script, visual_style=niche.visual_style, spend=spend
+            )
+            job.script = script
+            (root / "script.json").write_text(script.model_dump_json(indent=2))
 
     # 3. Images + animation (fan-out per scene)
     if not await _ensure_cap(job, niche):
@@ -344,10 +369,26 @@ async def _run_job_inner(
         reference = await character_sheet.get_or_create(
             niche, quality=niche.image_quality, spend=spend
         )
+        # Per-scene resume: clips from the failed attempt whose files are
+        # still on the volume are reused; only the missing scenes re-spend.
+        prior_clips: dict[int, Clip] = {}
+        if resumed:
+            prior_clips = {
+                c.scene_index: c
+                for c in job.clips
+                if Path(c.video_path).exists() and Path(c.keyframe_path).exists()
+            }
+            if prior_clips:
+                log.info(
+                    "resume: reusing %d/%d scene clips", len(prior_clips), len(script.scenes)
+                )
         try:
             sem = asyncio.Semaphore(settings.scene_fanout_limit)
 
             async def _bounded(s: Scene) -> Clip:
+                cached = prior_clips.get(s.index)
+                if cached is not None:
+                    return cached
                 async with sem:
                     return await _generate_scene_assets(
                         s, root, niche=niche, reference_image=reference, spend=spend,
@@ -375,13 +416,19 @@ async def _run_job_inner(
         await _persist(job)
         vo_path = root / "audio" / "voiceover.wav"
         narration = " ".join(s.narration for s in script.scenes)
+        # Same script as the failed attempt means the VO on the volume is
+        # still the right narration — skip the re-synth.
+        reuse_vo = resumed and vo_path.exists()
+        if reuse_vo:
+            log.info("resume: reusing voiceover from prior attempt")
         try:
-            await openai_tts.synthesize(
-                narration, vo_path,
-                voice=niche.voice,
-                style_directions=niche.tts_style_directions,
-                spend=spend,
-            )
+            if not reuse_vo:
+                await openai_tts.synthesize(
+                    narration, vo_path,
+                    voice=niche.voice,
+                    style_directions=niche.tts_style_directions,
+                    spend=spend,
+                )
         except spend_repo.SpendCapExceeded as e:
             try:
                 import sentry_sdk
@@ -397,12 +444,13 @@ async def _run_job_inner(
     # thematically appropriate background music. We take just the title to keep
     # the query short and searchable; visual_style tends to be image-specific.
     music_query = niche.title
-    music_path = await music.pick_track(
-        query=music_query,
-        target_duration_sec=int(script.total_duration_sec),
-        library_dir=Path(settings.assets_dir) / "music",
-        cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
-    )
+    with _stage("music"):
+        music_path = await music.pick_track(
+            query=music_query,
+            target_duration_sec=int(script.total_duration_sec),
+            library_dir=Path(settings.assets_dir) / "music",
+            cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
+        )
     job.audio = AudioTrack(
         voiceover_path=str(vo_path),
         music_path=str(music_path) if music_path is not None else None,
@@ -439,22 +487,46 @@ async def _run_job_inner(
         subtitle.words_to_ass(words, ass_path)
         final = root / "output" / "final.mp4"
         ffmpeg.burn_subtitles(mixed, ass_path, final)
-        job.rendered = RenderedVideo(
-            path=str(final),
-            duration_sec=script.total_duration_sec,
-            captions_path=str(ass_path),
-        )
 
-    # 8. QA (strict — only path to scheduling)
+    # 8. QA (strict — only path to scheduling).
+    # Two gates: a deterministic ffprobe pass on the actual rendered file
+    # (duration covers VO, streams present, not silent, fits the upload
+    # limit — re-encoding when it doesn't), then the LLM content pass.
     with _stage(JobStatus.qa.value):
         job.status = JobStatus.qa
         await _persist(job)
+        render_report = video_qa.check_render(
+            final,
+            voiceover_path=vo_path,
+            target_duration_sec=niche.target_duration_sec,
+        )
+        # Record what was actually rendered (real probed duration, and the
+        # re-encoded file when the original blew the upload budget).
+        job.rendered = RenderedVideo(
+            path=render_report.final_path,
+            duration_sec=render_report.duration_sec or script.total_duration_sec,
+            captions_path=str(ass_path),
+        )
+        await _persist(job)
+        if not render_report.passed:
+            return await _fail_with(
+                job, "render QA failed: " + "; ".join(render_report.issues)
+            )
         transcript = " ".join(w["word"] for w in words)
         report = await run_qa(
-            script, transcript, script.total_duration_sec, niche=niche, spend=spend
+            script,
+            transcript,
+            # Judge the real rendered duration, not the script's claim.
+            render_report.duration_sec or script.total_duration_sec,
+            niche=niche,
+            spend=spend,
         )
         if not report.passed:
-            return await _fail_with(job, "; ".join(report.issues))
+            # Prefix matters: _obtain_job wipes state on retry for content
+            # rejections so the same script isn't re-judged to death.
+            return await _fail_with(
+                job, "content QA failed: " + "; ".join(report.issues)
+            )
 
     # 9. Approval gate — the trust ramp. When the niche requires sign-off,
     # a fully rendered + QA-passed video parks here instead of posting.

@@ -117,7 +117,7 @@ async def test_skipped_job_does_no_provider_work(stub_db, niche_lock_false, monk
     assert called == []
 
 
-async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
+async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passing_render_qa):
     """When niche_lock yields True the job runs normally (smoke check)."""
 
     @asynccontextmanager

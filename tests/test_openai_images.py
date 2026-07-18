@@ -76,3 +76,97 @@ async def test_no_spend_recorded_without_context(tmp_path: Path, fake_client):
     await openai_images.generate_keyframe("clay test", out, quality="low")
     # no spend ctx -> nothing logged; call still succeeded
     assert out.exists()
+
+
+# --------------------------------------------------------------------------- retry policy
+
+def _policy_error() -> Exception:
+    import httpx
+    from openai import BadRequestError
+
+    resp = httpx.Response(
+        400,
+        request=httpx.Request("POST", "https://api.openai.com/v1/images"),
+        json={"error": {"code": "moderation_blocked",
+                        "message": "rejected by the safety system"}},
+    )
+    return BadRequestError(
+        "Your request was rejected by the safety system",
+        response=resp,
+        body=resp.json(),
+    )
+
+
+async def test_content_policy_refusal_retries_softened_once(
+    tmp_path: Path, fake_client
+):
+    """First call refused -> exactly one softened re-prompt, no blind retries."""
+    fake_client.images.generate.side_effect = [
+        _policy_error(),
+        _fake_image_response(),
+    ]
+
+    out = tmp_path / "kf.png"
+    result = await openai_images.generate_keyframe("gory battle", out, quality="low")
+
+    assert result == out and out.exists()
+    assert fake_client.images.generate.await_count == 2
+    softened_prompt = fake_client.images.generate.await_args_list[1].kwargs["prompt"]
+    assert softened_prompt.startswith(openai_images.SAFE_PROMPT_PREFIX)
+    assert "gory battle" in softened_prompt
+
+
+async def test_content_policy_refusal_twice_raises(tmp_path: Path, fake_client):
+    fake_client.images.generate.side_effect = [_policy_error(), _policy_error()]
+
+    from openai import BadRequestError
+
+    with pytest.raises(BadRequestError):
+        await openai_images.generate_keyframe("bad", tmp_path / "kf.png", quality="low")
+    assert fake_client.images.generate.await_count == 2
+
+
+async def test_non_transient_error_not_retried(tmp_path: Path, fake_client):
+    """A plain 400 (not policy) must fail fast — one attempt only."""
+    import httpx
+    from openai import BadRequestError
+
+    resp = httpx.Response(
+        400,
+        request=httpx.Request("POST", "https://api.openai.com/v1/images"),
+        json={"error": {"code": "invalid_request", "message": "bad size"}},
+    )
+    fake_client.images.generate.side_effect = BadRequestError(
+        "bad size", response=resp, body=resp.json()
+    )
+
+    with pytest.raises(BadRequestError):
+        await openai_images.generate_keyframe("x", tmp_path / "kf.png", quality="low")
+    assert fake_client.images.generate.await_count == 1
+
+
+async def test_transient_500_is_retried(tmp_path: Path, fake_client, monkeypatch):
+    import httpx
+    from openai import InternalServerError
+
+    # collapse the exponential backoff so the test is instant
+    import tenacity
+
+    monkeypatch.setattr(
+        openai_images._call_api.retry, "wait", tenacity.wait_none(), raising=False
+    )
+
+    resp = httpx.Response(
+        500,
+        request=httpx.Request("POST", "https://api.openai.com/v1/images"),
+        json={"error": {"message": "boom"}},
+    )
+    fake_client.images.generate.side_effect = [
+        InternalServerError("boom", response=resp, body=None),
+        _fake_image_response(),
+    ]
+
+    out = tmp_path / "kf.png"
+    await openai_images.generate_keyframe("x", out, quality="low")
+    assert out.exists()
+    assert fake_client.images.generate.await_count == 2

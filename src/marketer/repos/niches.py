@@ -33,6 +33,7 @@ async def create(
     scene_max_duration_sec: int = 5,
     tts_style_directions: str | None = None,
     approve_before_post: bool = False,
+    character_description: str | None = None,
 ) -> Niche:
     pool = await get_pool()
     row = await pool.fetchrow(
@@ -42,9 +43,9 @@ async def create(
             visual_style, voice, target_duration_sec, scene_count,
             posting_windows, platforms, daily_spend_cap_usd,
             image_quality, video_resolution, scene_max_duration_sec,
-            tts_style_directions, approve_before_post
+            tts_style_directions, approve_before_post, character_description
         )
-        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18)
         returning *
         """,
         user_id, title, description, target_audience, hashtags,
@@ -52,7 +53,7 @@ async def create(
         json.dumps([w.model_dump() for w in posting_windows]),
         platforms, daily_spend_cap_usd,
         image_quality, video_resolution, scene_max_duration_sec,
-        tts_style_directions, approve_before_post,
+        tts_style_directions, approve_before_post, character_description,
     )
     return _row_to_niche(row)
 
@@ -98,7 +99,7 @@ async def update(
         "visual_style", "voice", "target_duration_sec", "scene_count",
         "posting_windows", "platforms", "daily_spend_cap_usd",
         "image_quality", "video_resolution", "scene_max_duration_sec",
-        "tts_style_directions", "approve_before_post",
+        "tts_style_directions", "approve_before_post", "character_description",
     }
 
     sets: list[str] = []
@@ -107,7 +108,7 @@ async def update(
     for key, val in fields.items():
         if key not in allowed:
             continue
-        if val is None and key not in {"tts_style_directions"}:
+        if val is None and key not in {"tts_style_directions", "character_description"}:
             # Treat None on non-nullable columns as "don't touch".
             continue
         if key == "posting_windows":

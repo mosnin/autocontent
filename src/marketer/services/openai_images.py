@@ -21,11 +21,22 @@ from pathlib import Path
 
 from openai import AsyncOpenAI
 from opentelemetry import trace
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
+from ..logging import get_logger
 from .openai_pricing import image_cost
+from .retry_policy import is_content_policy_error, is_transient_openai_error
 from .spend_context import SpendContext
+
+log = get_logger(__name__)
+
+# One softened re-prompt when the safety system refuses a scene prompt.
+# Scene prompts are LLM-written; an occasional trip is expected and should
+# not kill a job that already paid for ideation + scripting.
+SAFE_PROMPT_PREFIX = (
+    "Family-friendly, brand-safe, non-violent, fully-clothed illustration. "
+)
 
 PROVIDER = "openai"
 SKU = "gpt-image-1"
@@ -51,7 +62,7 @@ def _decode_b64_to(path: Path, b64: str) -> Path:
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type(Exception),
+    retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_api(
     prompt: str,
@@ -93,9 +104,24 @@ async def generate_keyframe(
     it as an input so the model preserves the established look."""
     if spend is not None:
         await spend.ensure_can_spend(image_cost(quality, size=size))
-    result = await _call_api(
-        prompt, quality=quality, size=size, reference_image_path=reference_image_path
-    )
+    try:
+        result = await _call_api(
+            prompt, quality=quality, size=size, reference_image_path=reference_image_path
+        )
+    except Exception as e:
+        if not is_content_policy_error(e):
+            raise
+        # Safety refusal: soften once instead of failing the whole job.
+        log.warning(
+            "image prompt refused by safety system; retrying softened",
+            extra={"error": str(e)},
+        )
+        result = await _call_api(
+            SAFE_PROMPT_PREFIX + prompt,
+            quality=quality,
+            size=size,
+            reference_image_path=reference_image_path,
+        )
 
     # The API charged us the moment the call above succeeded — record the
     # spend before decoding so a local failure can't undercount the ledger.

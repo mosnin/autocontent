@@ -284,6 +284,19 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           />
         </Labelled>
 
+        <Labelled
+          label="Custom characters"
+          hint="Optional — recurring cast rendered in every video. Editing regenerates the reference sheet on the next job."
+          htmlFor="niche-character_description"
+        >
+          <Input
+            id="niche-character_description"
+            name="character_description"
+            defaultValue={niche.character_description ?? ""}
+            placeholder="a grumpy clay llama named Sol wearing a tiny lab coat"
+          />
+        </Labelled>
+
         {/* Live estimate — mirrors the onboarding wizard's readout. */}
         <Card className="border-border/60 bg-muted/30">
           <CardContent className="flex items-baseline justify-between p-4">

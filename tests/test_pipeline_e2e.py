@@ -74,7 +74,7 @@ def stage_log() -> list[str]:
 
 
 @pytest.fixture
-def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str]):
+def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_qa):
     """Monkeypatch every external dependency `pipeline.run_job` reaches."""
     # --- DB layer ----------------------------------------------------------
     niche_holder = {"niche": _make_niche()}
@@ -428,3 +428,142 @@ async def test_notify_respects_email_optout(monkeypatch):
     monkeypatch.setattr(_users_repo, "get", opted_out)
     await pipeline._notify(job, kind="failed")
     assert len(sent) == 1  # unchanged — opted-out user got nothing
+
+
+# --------------------------------------------------------------------------- stage resume
+
+def _seed_failed_job_artifacts(tmp_path: Path, job_id: UUID) -> tuple[Path, list]:
+    """Materialize the on-volume artifacts a failed attempt left behind."""
+    from marketer.models import Clip
+
+    script = _make_script()
+    root = tmp_path / USER_ID / str(job_id)
+    clips = []
+    for s in script.scenes:
+        kf = root / "keyframes" / f"scene_{s.index}.png"
+        cp = root / "clips" / f"scene_{s.index}.mp4"
+        kf.parent.mkdir(parents=True, exist_ok=True)
+        cp.parent.mkdir(parents=True, exist_ok=True)
+        kf.write_bytes(b"PNG")
+        cp.write_bytes(b"MP4")
+        clips.append(Clip(scene_index=s.index, keyframe_path=str(kf),
+                          video_path=str(cp), duration_sec=5))
+    vo = root / "audio" / "voiceover.wav"
+    vo.parent.mkdir(parents=True, exist_ok=True)
+    vo.write_bytes(b"WAV")
+    return root, clips
+
+
+def _counting_provider_stubs(monkeypatch) -> dict[str, int]:
+    """Re-patch the expensive stages with counters on top of stub_all."""
+    calls = {"ideation": 0, "keyframe": 0, "tts": 0}
+
+    async def counting_ideation(title, *, performance_context="", spend=None):
+        calls["ideation"] += 1
+        return Idea(topic="t", angle="a", hook="hook",
+                    target_audience="x", why_it_works="y")
+    monkeypatch.setattr(pipeline, "run_ideation", counting_ideation)
+
+    async def counting_keyframe(prompt, out_path, *, quality,
+                                reference_image_path=None, spend=None):
+        calls["keyframe"] += 1
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"PNG")
+        return out_path
+    monkeypatch.setattr(pipeline.openai_images, "generate_keyframe",
+                        counting_keyframe)
+
+    async def counting_tts(text, out_path, *, voice, style_directions=None,
+                           spend=None):
+        calls["tts"] += 1
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"WAV")
+        return out_path
+    monkeypatch.setattr(pipeline.openai_tts, "synthesize", counting_tts)
+    return calls
+
+
+async def test_retry_after_transient_failure_resumes_without_respending(
+    monkeypatch, stub_all, tmp_path: Path
+):
+    """A job that failed mid-run keeps its script/clips/VO on retry —
+    ideation, keyframes, and TTS must not be re-bought."""
+    job_id = uuid4()
+    _, clips = _seed_failed_job_artifacts(tmp_path, job_id)
+    failed = Job(
+        id=job_id, user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+        status=JobStatus.failed, error="GrokImagineError: 500 mid-poll",
+        script=_make_script(), clips=clips,
+    )
+
+    async def fake_get(jid, *, user_id):
+        return failed.model_copy(deep=True)
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_get)
+
+    calls = _counting_provider_stubs(monkeypatch)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok", job_id=job_id,
+    )
+
+    assert job.status == JobStatus.done
+    assert calls == {"ideation": 0, "keyframe": 0, "tts": 0}
+
+
+async def test_retry_regenerates_only_missing_scene(
+    monkeypatch, stub_all, tmp_path: Path
+):
+    """Per-scene resume: when one clip file is gone, only that scene
+    re-spends."""
+    job_id = uuid4()
+    _, clips = _seed_failed_job_artifacts(tmp_path, job_id)
+    Path(clips[1].video_path).unlink()  # scene 1's clip was lost
+
+    failed = Job(
+        id=job_id, user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+        status=JobStatus.failed, error="GrokImagineError: timeout",
+        script=_make_script(), clips=clips,
+    )
+
+    async def fake_get(jid, *, user_id):
+        return failed.model_copy(deep=True)
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_get)
+
+    calls = _counting_provider_stubs(monkeypatch)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok", job_id=job_id,
+    )
+
+    assert job.status == JobStatus.done
+    assert calls["keyframe"] == 1  # only the missing scene
+    assert calls["ideation"] == 0 and calls["tts"] == 0
+
+
+async def test_content_rejection_retry_regenerates_everything(
+    monkeypatch, stub_all, tmp_path: Path
+):
+    """A QA content rejection means the artifacts are the problem — the
+    retry must start from scratch."""
+    job_id = uuid4()
+    _, clips = _seed_failed_job_artifacts(tmp_path, job_id)
+    failed = Job(
+        id=job_id, user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+        status=JobStatus.failed, error="content QA failed: weak hook",
+        script=_make_script(), clips=clips,
+    )
+
+    async def fake_get(jid, *, user_id):
+        return failed.model_copy(deep=True)
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_get)
+
+    calls = _counting_provider_stubs(monkeypatch)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok", job_id=job_id,
+    )
+
+    assert job.status == JobStatus.done
+    assert calls["ideation"] == 1
+    assert calls["keyframe"] == 2  # both scenes regenerated
+    assert calls["tts"] == 1

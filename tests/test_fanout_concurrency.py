@@ -67,7 +67,7 @@ def _make_script() -> Script:
     )
 
 
-async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path):
+async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path, passing_render_qa):
     """Max concurrent _generate_scene_assets calls must not exceed FANOUT_LIMIT."""
     peak = {"concurrent": 0, "max_concurrent": 0}
 

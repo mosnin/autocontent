@@ -29,6 +29,7 @@ export interface Niche {
   video_resolution: VideoResolution;
   scene_max_duration_sec: number;
   tts_style_directions: string | null;
+  character_description: string | null;
   posting_windows: PostingWindow[];
   platforms: Platform[];
   daily_spend_cap_usd: string;

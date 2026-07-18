@@ -119,6 +119,11 @@ class Niche(BaseModel):
     target_duration_sec: int
     scene_count: int
 
+    # Optional recurring-cast description ("a grumpy clay llama named Sol
+    # wearing a tiny lab coat"). Steers the character reference sheet, and
+    # through it every scene keyframe. None = model invents the cast.
+    character_description: str | None = None
+
     # Per-niche overrides for provider behavior.
     image_quality: Literal["low", "medium", "high"] = "medium"
     video_resolution: Literal["480p", "720p"] = "480p"
@@ -206,6 +211,7 @@ class NicheCreatePayload(BaseModel):
     video_resolution: Literal["480p", "720p"] = "480p"
     scene_max_duration_sec: int = 5
     tts_style_directions: str | None = None
+    character_description: str | None = None
 
 
 class TodaySpend(BaseModel):

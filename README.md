@@ -28,8 +28,17 @@ surfaces (REST API, Python SDK, CLI, MCP server).
 6. **Music** — background track is picked + ducked under VO
 7. **Edit** — clips, VO, music are stitched with ffmpeg
 8. **Captions** — Whisper transcribes the VO; captions are burned in
-9. **QA** — automated checks on duration, audio levels, caption sync
+9. **QA** — two gates: a deterministic ffprobe pass on the rendered file
+   (real duration covers the narration, streams present, audio not silent,
+   fits the upload size limit — auto re-encoded when it doesn't) and an
+   LLM content pass (hook strength, niche drift)
 10. **Publish** — schedule to TikTok / Reels / Shorts
+
+Scene keyframes are steered by a per-niche character/style reference
+sheet; set a niche's `character_description` to cast your own recurring
+characters (the sheet regenerates whenever the style or cast is edited).
+Failed jobs **resume** on retry — a transient provider error keeps the
+already-paid script/clips/voiceover; only QA content rejections start over.
 
 ## Article pipeline
 

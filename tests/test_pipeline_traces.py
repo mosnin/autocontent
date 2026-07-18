@@ -106,7 +106,7 @@ def _make_script() -> Script:
 
 
 @pytest.fixture()
-def stub_pipeline(monkeypatch, tmp_path: Path):
+def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
     """Minimal stubs — same shape as test_pipeline_e2e, trimmed for brevity."""
     async def fake_niches_get(niche_id: Any, *, user_id: Any):
         return _make_niche()
