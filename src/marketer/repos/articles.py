@@ -194,6 +194,46 @@ async def recent_titles_for_niche(niche_id: UUID, *, user_id: str, limit: int = 
     return [r["t"] for r in rows if r["t"]]
 
 
+# ---------------------------------------------------------------------------
+# Content-intelligence helper (Team Content-Intel) — read-only.
+#
+# A slim projection for corpus audit / cannibalization scanning: quality,
+# keywords, and link data, without the (potentially large) markdown body
+# every other list_* helper here carries.
+# ---------------------------------------------------------------------------
+
+
+async def list_for_intel(
+    user_id: str, *, status: ArticleStatus | None = None, limit: int = 500
+) -> list[dict]:
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select id, title, topic, focus_keyword, keywords, meta_description,
+               hero_image_path, quality, link_suggestions, word_count,
+               status, created_at
+          from articles
+         where user_id = $1
+           and ($2::article_status is null or status = $2)
+         order by created_at desc
+         limit $3
+        """,
+        user_id,
+        status.value if status is not None else None,
+        limit,
+    )
+    out: list[dict] = []
+    for r in rows:
+        d = dict(r)
+        for key in ("quality", "link_suggestions"):
+            if isinstance(d.get(key), str):
+                d[key] = json.loads(d[key])
+        d["keywords"] = list(d.get("keywords") or [])
+        d["link_suggestions"] = d.get("link_suggestions") or []
+        out.append(d)
+    return out
+
+
 async def reap_stale(*, older_than_minutes: int = 120) -> int:
     """Fail articles stuck in a non-terminal status with no progress —
     same contract as jobs.reap_stale."""
