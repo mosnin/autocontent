@@ -257,6 +257,44 @@ async def reap_stale_jobs() -> dict:
 
 
 @app.function(
+    schedule=modal.Cron("45 * * * *"),  # hourly, offset from batch + reaper
+    timeout=60 * 10,
+)
+async def press_growth_cron() -> dict:
+    """Hourly Press growth pass: article autopilot plus the growth scans
+    (GSC sync, competitor watch, newsletter digests, performance alerts).
+    Every sub-task is independently fail-soft: one failing scan must never
+    starve the others, and each module no-ops when its feature is
+    disabled or unconfigured."""
+    import logging
+
+    from marketer.services import (
+        alert_scan,
+        competitor_watch,
+        gsc_sync,
+        newsletter_cron,
+        scheduler as scheduler_svc,
+    )
+
+    log = logging.getLogger(__name__)
+    results: dict = {}
+    tasks = {
+        "autopilot": scheduler_svc.run_press_autopilot,
+        "gsc_sync": gsc_sync.run,
+        "competitor_watch": competitor_watch.run,
+        "newsletters": newsletter_cron.run,
+        "alerts": alert_scan.run,
+    }
+    for name, fn in tasks.items():
+        try:
+            results[name] = await fn()
+        except Exception:  # noqa: BLE001 — isolation between scans is the contract
+            log.exception("press growth cron: %s failed", name)
+            results[name] = {"error": True}
+    return results
+
+
+@app.function(
     volumes={"/artifacts": artifacts},
     timeout=60 * 30,
 )

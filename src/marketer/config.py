@@ -148,6 +148,29 @@ class Settings(BaseSettings):
     # topic proposals on each niche's cadence.
     press_autopilot_enabled: bool = True
 
+    # --- Google Search Console (Press analytics) ----------------------
+    # OAuth client for the GSC connection. Empty = GSC surfaces render a
+    # clean "connect Search Console" disabled state; nothing breaks.
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+
+    # --- Press growth tools -------------------------------------------
+    # Newsletter digests (sent through the existing Resend key).
+    newsletters_enabled: bool = True
+    # Competitor monitoring + performance alert scans (run from the
+    # nightly scheduler; each degrades to a no-op when unconfigured).
+    competitor_watch_enabled: bool = True
+    performance_alerts_enabled: bool = True
+
+    # --- Media uploads -------------------------------------------------
+    # Max accepted upload size for library files, in MB.
+    upload_max_mb: int = 50
+
+    # --- Ads experiments (A/B + budget ramps) -------------------------
+    # Local experiment orchestration; every mutation still flows through
+    # the safe-execute guard + approvals like any other ads action.
+    ads_experiments_enabled: bool = True
+
     # --- Ads platform execution ---------------------------------------
     # Composio tool slugs for platform mutations/reports. Overridable per
     # deploy because Composio renames actions; empty string disables that
