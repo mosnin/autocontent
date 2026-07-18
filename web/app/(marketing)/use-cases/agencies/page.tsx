@@ -11,7 +11,7 @@ import {
 } from "@/components/marketing/use-cases/template";
 
 const DESCRIPTION =
-  "Run every client as its own niche, with per-niche daily caps, approval gates per client, and a spend ledger that turns month-end billing into an export.";
+  "Run every client as its own channel, with per-channel daily caps, approval gates per client, and a spend ledger that turns month-end billing into an export.";
 
 export const metadata: Metadata = {
   title: "Agencies | marketer.sh",
@@ -30,7 +30,7 @@ export default function AgenciesPage() {
       <UseCaseHero
         headline={["Every client, run like", "your only client."]}
         kicker="For agencies"
-        lede="One niche per client. Its own brief, its own daily cap, its own approval gate, its own line in the ledger. Ten accounts feel like one."
+        lede="One channel per client. Its own brief, its own daily cap, its own approval gate, its own line in the ledger. Ten accounts feel like one."
         scene="steel"
       />
       <PainBand
@@ -52,25 +52,25 @@ export default function AgenciesPage() {
         ]}
       />
       <StepsBand
-        heading="One niche per client. Walls included."
+        heading="One channel per client. Walls included."
         steps={[
           {
-            title: "Spin up a niche per client",
+            title: "Spin up a channel per client",
             copy: "Brief, voice, and channels per account. Clients stay cleanly separated by construction, not by discipline.",
           },
           {
             title: "Cap and gate each one",
-            copy: "A daily cap per niche and a global cap over everything. Approval gates per client, strict for new ones, open for trusted ones.",
+            copy: "A daily cap per channel and a global cap over everything. Approval gates per client, strict for new ones, open for trusted ones.",
           },
           {
             title: "Bill from the ledger",
-            copy: "Every render and post is logged against its niche. Month-end is an export, not an investigation.",
+            copy: "Every render and post is logged against its channel. Month-end is an export, not an investigation.",
           },
         ]}
       />
       <MockBand
         bullets={[
-          "Per-niche daily caps, so budgets cannot bleed across clients",
+          "Per-channel daily caps, so budgets cannot bleed across clients",
           "A global cap over the whole book of business",
           "Per-client spend ledger, exportable for billing",
         ]}
@@ -85,7 +85,7 @@ export default function AgenciesPage() {
       <OutcomesBand
         heading="Margin that survives client ten."
         stats={[
-          { value: 2, label: "cap layers: per niche and global" },
+          { value: 2, label: "cap layers: per channel and global" },
           { value: 1, label: "ledger line per client, export-ready" },
           {
             value: 0,
@@ -97,7 +97,7 @@ export default function AgenciesPage() {
       <SectionCta
         headline="Onboard the next client in an afternoon."
         kicker="Get started"
-        sub="Create a niche, paste the brief, set the cap and the gate. That's the whole setup."
+        sub="Create a channel, paste the brief, set the cap and the gate. That's the whole setup."
       />
     </main>
   );

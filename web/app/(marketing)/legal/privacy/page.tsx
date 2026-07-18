@@ -29,7 +29,7 @@ export default function PrivacyPage() {
           identity (via our auth provider), and team membership.
         </li>
         <li>
-          <strong>Content and configuration</strong>: niches, briefs, brand
+          <strong>Content and configuration</strong>: channels, briefs, brand
           kits, and the outputs generated for you.
         </li>
         <li>

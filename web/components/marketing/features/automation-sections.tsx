@@ -63,7 +63,7 @@ export function SurfaceCards() {
           Whatever your agent speaks, it&apos;s covered.
         </DisplayHeading>
         <Lede className="mt-5">
-          Agents can create niches, enqueue videos, generate articles, and
+          Agents can create channels, enqueue videos, generate articles, and
           check spend, from whichever surface fits the stack.
         </Lede>
       </Reveal>
@@ -145,7 +145,7 @@ export function WindowsBand() {
               The schedule runs itself.
             </DisplayHeading>
             <Lede className="mt-5">
-              Each niche has posting windows. When one opens, the pipeline
+              Each channel has posting windows. When one opens, the pipeline
               produces, checks, and publishes without anyone at the
               keyboard. Your approval gate, if you set one, still applies.
             </Lede>
@@ -162,7 +162,7 @@ export function WindowsBand() {
             <ProofList
               className="mt-8"
               items={[
-                "Windows are per niche, tuned to when that audience actually watches.",
+                "Windows are per channel, tuned to when that audience actually watches.",
                 "Agents can add or move windows through any surface.",
                 "Caps are checked before each run, so autopilot can't outspend you.",
               ]}

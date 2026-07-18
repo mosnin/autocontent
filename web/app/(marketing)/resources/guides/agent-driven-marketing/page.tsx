@@ -45,7 +45,7 @@ function SampleConversation() {
     },
     {
       from: "agent",
-      text: "today_spend: $2.10 of the $10 cap used. The home-espresso niche has one video slot left today and no article since Friday.",
+      text: "today_spend: $2.10 of the $10 cap used. The home-espresso channel has one video slot left today and no article since Friday.",
     },
     {
       from: "agent",
@@ -168,7 +168,7 @@ const SECTIONS: GuideSection[] = [
     body: (
       <>
         <GuideP>
-          The per-niche daily cap and the global cap are what make agent
+          The per-channel daily cap and the global cap are what make agent
           autonomy boring, in the good sense. Every call the agent makes is
           pre-checked against both; a job that would cross either is{" "}
           <GuideStrong>refused before any money moves</GuideStrong>. The agent
@@ -209,7 +209,7 @@ const SECTIONS: GuideSection[] = [
     body: (
       <>
         <GuideP>
-          Autonomy should be earned per niche and per format, on evidence you
+          Autonomy should be earned per channel and per format, on evidence you
           can point to. A reasonable bar: two weeks of transcripts with no
           surprising tool calls, an approval rate above 90 percent, and zero
           cap refusals you did not expect. Then widen one notch at a time,

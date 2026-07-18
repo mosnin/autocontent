@@ -37,7 +37,7 @@ const VOICES = [
     system: "Agent Surface",
     file: "mcp_server.py",
     quote:
-      "Dashboards are optional. Hand any agent a token and it can create niches, enqueue runs, and read the ledger. Same API, same guardrails.",
+      "Dashboards are optional. Hand any agent a token and it can create channels, enqueue runs, and read the ledger. Same API, same guardrails.",
   },
 ];
 

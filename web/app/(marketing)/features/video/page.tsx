@@ -32,7 +32,7 @@ export default function VideoFeaturePage() {
       <FeatureHero
         illustration={<VideoPipelineIllustration />}
         kicker="Short-form video"
-        lede="Give it a niche brief. It writes the script, generates the frames, voices the lines, cuts the edit, and posts on schedule. You review the result, not the work."
+        lede="Give it a channel brief. It writes the script, generates the frames, voices the lines, cuts the edit, and posts on schedule. You review the result, not the work."
         title={
           <>
             One brief in.
@@ -50,7 +50,7 @@ export default function VideoFeaturePage() {
       <SectionCta
         headline="Ship your first short today."
         kicker="Get started"
-        sub="Describe your niche once. The pipeline handles the other ten stages."
+        sub="Describe your channel once. The pipeline handles the other ten stages."
       />
     </main>
   );

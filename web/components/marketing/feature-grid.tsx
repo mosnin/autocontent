@@ -25,14 +25,14 @@ interface Feature {
 const FEATURES: Feature[] = [
   {
     icon: Sparkles,
-    title: "Autonomous niches",
-    body: "Each niche is a self-contained pipeline: ideation, scripting, keyframes, motion, voice, captions, scheduling. Define it once; it runs daily without you.",
+    title: "Autonomous channels",
+    body: "Each channel is a self-contained pipeline: ideation, scripting, keyframes, motion, voice, captions, scheduling. Define it once; it runs daily without you.",
     span: "lg:col-span-2",
   },
   {
     icon: ShieldCheck,
     title: "Hard spend caps",
-    body: "Per-niche and per-account daily ceilings, enforced before every API call. A runaway job gets refused mid-flight, not explained afterwards.",
+    body: "Per-channel and per-account daily ceilings, enforced before every API call. A runaway job gets refused mid-flight, not explained afterwards.",
   },
   {
     icon: BarChart3,
@@ -48,7 +48,7 @@ const FEATURES: Feature[] = [
   {
     icon: Layers,
     title: "On-model characters",
-    body: "A per-niche character sheet keeps every scene visually consistent across every video: one identity, hundreds of posts.",
+    body: "A per-channel character sheet keeps every scene visually consistent across every video: one identity, hundreds of posts.",
   },
   {
     icon: Landmark,

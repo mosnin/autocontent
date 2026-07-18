@@ -49,7 +49,7 @@ export default function ArticlesFeaturePage() {
       <SectionCta
         headline="Publish your first ranked page."
         kicker="Get started"
-        sub="Pick a niche. The pipeline researches, writes, scores, and hands you a ship-ready article."
+        sub="Pick a channel. The pipeline researches, writes, scores, and hands you a ship-ready article."
       />
     </main>
   );

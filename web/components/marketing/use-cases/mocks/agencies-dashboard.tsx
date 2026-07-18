@@ -45,7 +45,7 @@ export function AgenciesDashboardMock({ className }: { className?: string }) {
     <GlassPanel className={cn("w-full max-w-sm p-5", className)}>
       <MockHeader
         chip={<MiniPill>Global cap $40/day</MiniPill>}
-        title="Client niches"
+        title="Client channels"
       />
       <ul className="mt-4 space-y-2">
         {CLIENTS.map((c, i) => (

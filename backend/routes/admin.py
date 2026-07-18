@@ -193,6 +193,81 @@ async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
     return {"db_ok": db_ok, "stuck_jobs": stuck, "failed_jobs_24h": failed_24h}
 
 
+# --------------------------------------------------------------------------- integrations
+
+class IntegrationStatus(BaseModel):
+    """Presence-only status for one provider. Never carries the key value."""
+
+    configured: bool
+
+
+class IntegrationsStatus(BaseModel):
+    """Go-live checklist: which provider keys are set, booleans only.
+
+    Every field is derived from `marketer.config.settings`; no secret value
+    is ever read into a response.
+    """
+
+    openai: IntegrationStatus
+    xai: IntegrationStatus
+    ayrshare: IntegrationStatus
+    pixabay: IntegrationStatus
+    exa: IntegrationStatus
+    fal: IntegrationStatus
+    composio: IntegrationStatus
+    google_oauth: IntegrationStatus
+    resend: IntegrationStatus
+    stripe: IntegrationStatus
+    inngest: IntegrationStatus
+    sentry: IntegrationStatus
+
+    # Master flags that gate whole products/features regardless of keys.
+    ads_enabled: bool
+    billing_enabled: bool
+    press_autopilot_enabled: bool
+    newsletters_enabled: bool
+    x402_enabled: bool
+
+
+@router.get("/integrations", response_model=IntegrationsStatus)
+async def integrations_status(ctx: AdminCtx = CurrentAdmin) -> IntegrationsStatus:
+    """Read-only go-live checklist: presence booleans for every external
+    provider key plus the master feature flags, so an operator can see at a
+    glance what still needs to be configured before flipping a flag on."""
+    from marketer.config import settings
+
+    def present(value: str) -> IntegrationStatus:
+        return IntegrationStatus(configured=bool(value))
+
+    result = IntegrationsStatus(
+        openai=present(settings.openai_api_key),
+        xai=present(settings.xai_api_key),
+        ayrshare=present(settings.ayrshare_api_key),
+        pixabay=present(settings.pixabay_api_key),
+        exa=present(settings.exa_api_key),
+        fal=present(settings.fal_api_key),
+        composio=present(settings.composio_api_key),
+        google_oauth=IntegrationStatus(
+            configured=bool(
+                settings.google_oauth_client_id and settings.google_oauth_client_secret
+            )
+        ),
+        resend=present(settings.resend_api_key),
+        stripe=present(settings.stripe_secret_key),
+        inngest=IntegrationStatus(
+            configured=bool(settings.inngest_signing_key and settings.inngest_event_key)
+        ),
+        sentry=present(settings.sentry_dsn),
+        ads_enabled=settings.ads_enabled,
+        billing_enabled=settings.billing_enabled,
+        press_autopilot_enabled=settings.press_autopilot_enabled,
+        newsletters_enabled=settings.newsletters_enabled,
+        x402_enabled=settings.x402_enabled,
+    )
+    await _audit(ctx, "integrations.view", target_type="system")
+    return result
+
+
 # --------------------------------------------------------------------------- audit log
 
 @router.get("/audit-log", response_model=list[admin_audit.AuditEntry])

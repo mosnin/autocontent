@@ -30,7 +30,7 @@ export default function EcommercePage() {
       <UseCaseHero
         headline={["Every product,", "its own channel."]}
         kicker="For ecommerce"
-        lede="One niche per product line. Hook-driven demo shorts for the feed, buying guides that rank for the search, both from the brief you already wrote for the listing."
+        lede="One channel per product line. Hook-driven demo shorts for the feed, buying guides that rank for the search, both from the brief you already wrote for the listing."
         scene="mint"
       />
       <PainBand
@@ -56,7 +56,7 @@ export default function EcommercePage() {
         steps={[
           {
             title: "Brief the product line",
-            copy: "What it is, who buys it, what beats it. Each line gets its own niche with its own daily cap.",
+            copy: "What it is, who buys it, what beats it. Each line gets its own channel with its own daily cap.",
           },
           {
             title: "Demos and guides ship together",
@@ -86,7 +86,7 @@ export default function EcommercePage() {
         heading="A catalog that markets itself."
         stats={[
           { value: 2, label: "formats from every product brief" },
-          { value: 1, label: "niche and daily cap per product line" },
+          { value: 1, label: "channel and daily cap per product line" },
           {
             value: 0,
             prefix: "$",

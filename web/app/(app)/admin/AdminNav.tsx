@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/admin", label: "Overview" },
   { href: "/admin/users", label: "Users" },
   { href: "/admin/flags", label: "Feature flags" },
+  { href: "/admin/integrations", label: "Integrations" },
   { href: "/admin/health", label: "Health" },
   { href: "/admin/security", label: "Security" },
   { href: "/admin/audit", label: "Audit log" },

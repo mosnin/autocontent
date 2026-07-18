@@ -31,8 +31,8 @@ const PACKS = [
   {
     label: "Studio",
     amount: 50,
-    blurb: "Several niches at once",
-    points: ["≈ 90-125 videos", "Per-niche spend caps", "API + MCP access"],
+    blurb: "Several channels at once",
+    points: ["≈ 90-125 videos", "Per-channel spend caps", "API + MCP access"],
   },
 ];
 
@@ -113,7 +113,7 @@ export function Pricing() {
 
         <Reveal delay={0.15}>
           <p className="mt-8 text-center text-xs text-muted-foreground">
-            Video estimates assume default niche settings (~$0.40-$0.55 per
+            Video estimates assume default channel settings (~$0.40-$0.55 per
             video, margin included). Self-hosting on your own API keys is free
             forever:{" "}
             <a

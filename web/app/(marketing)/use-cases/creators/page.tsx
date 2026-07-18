@@ -56,7 +56,7 @@ export default function CreatorsPage() {
         steps={[
           {
             title: "Brief your channel",
-            copy: "Niche, tone, and a character sheet: face, wardrobe, world. It locks, so video forty matches video four.",
+            copy: "Channel, tone, and a character sheet: face, wardrobe, world. It locks, so video forty matches video four.",
           },
           {
             title: "The pipeline produces",

@@ -5,7 +5,7 @@ import { HubBands } from "@/components/marketing/features/hub-bands";
 import { SectionCta } from "@/components/marketing/system";
 
 const DESCRIPTION =
-  "Two production pipelines from one niche brief: short-form video and SEO articles, plus an agent surface and spend controls that keep every dollar capped.";
+  "Two production pipelines from one channel brief: short-form video and SEO articles, plus an agent surface and spend controls that keep every dollar capped.";
 
 export const metadata: Metadata = {
   title: "Features | marketer.sh",
@@ -23,7 +23,7 @@ export default function FeaturesPage() {
     <main>
       <FeatureHero
         kicker="Features"
-        lede="One niche brief drives two production pipelines, an agent surface, and a ledger that watches every dollar. Nothing to stitch together, nothing to babysit."
+        lede="One channel brief drives two production pipelines, an agent surface, and a ledger that watches every dollar. Nothing to stitch together, nothing to babysit."
         title={
           <>
             Everything the campaign needs.

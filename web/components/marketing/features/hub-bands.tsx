@@ -38,9 +38,9 @@ const BANDS: Band[] = [
     title: "A finished short from a single brief.",
     lede: "Ideation, a scene-by-scene script, keyframes, animation, voice, music, edit, captions, QA, publish. Ten stages, no hand-offs, no timeline to babysit.",
     bullets: [
-      "Keyframes stay on-model. Every frame is generated against a per-niche character sheet.",
+      "Keyframes stay on-model. Every frame is generated against a per-channel character sheet.",
       "Voiceover with steerable delivery, music ducked underneath, word-level karaoke captions.",
-      "Posts land on TikTok, Reels, and Shorts in the posting windows you set per niche.",
+      "Posts land on TikTok, Reels, and Shorts in the posting windows you set per channel.",
     ],
     href: "/features/video",
     linkLabel: "Explore video",
@@ -69,7 +69,7 @@ const BANDS: Band[] = [
     title: "Your agents run the whole thing.",
     lede: "REST API, a typed Python SDK, the marketer CLI, and an MCP server with cost-aware tool descriptions. Everything a person can do, an agent can do.",
     bullets: [
-      "Agents create niches, enqueue videos, generate articles, and check spend.",
+      "Agents create channels, enqueue videos, generate articles, and check spend.",
       "Scheduled posting windows fire on their own. Nobody has to be at the keyboard.",
       "Retry and reaping keep the queue honest when a worker dies mid-job.",
     ],
@@ -86,7 +86,7 @@ const BANDS: Band[] = [
     bullets: [
       "Top and bottom performers are attributed, so winning angles repeat and losers retire.",
       "Every LLM, image, video, and TTS call is metered to a ledger as it happens.",
-      "Per-niche daily caps, a global cap, and prepaid credits. A tripped cap stops the job.",
+      "Per-channel daily caps, a global cap, and prepaid credits. A tripped cap stops the job.",
     ],
     href: "/features/analytics",
     linkLabel: "Explore analytics",

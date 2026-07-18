@@ -52,7 +52,7 @@ const CARDS = [
     category: "Guide",
     title: "Launch your first channel in an afternoon",
     description:
-      "Framing a niche, writing the one-sentence brief, choosing a voice, and earning trust with approval mode.",
+      "Framing a channel, writing the one-sentence brief, choosing a voice, and earning trust with approval mode.",
     href: "/resources/guides/first-channel",
     scene: "pearl",
     vignette: <AgentChatVignette />,
@@ -61,7 +61,7 @@ const CARDS = [
     category: "Guide",
     title: "Rank with articles your agents write",
     description:
-      "How the article pipeline researches, outlines, and writes, and how to set up internal links and cadence per niche.",
+      "How the article pipeline researches, outlines, and writes, and how to set up internal links and cadence per channel.",
     href: "/resources/guides/seo-articles",
     scene: "mist",
     vignette: <ArticleSeoVignette />,

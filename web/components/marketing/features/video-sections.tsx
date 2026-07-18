@@ -47,7 +47,7 @@ export function QueueMoment() {
             <ProofList
               className="mt-8"
               items={[
-                "Posting windows are set per niche, so posts land when your audience is watching.",
+                "Posting windows are set per channel, so posts land when your audience is watching.",
                 "Publishing to TikTok, Reels, and Shorts happens from one queue, not three tabs.",
                 "Engagement metrics flow back in and steer the next ideation round.",
               ]}
@@ -194,7 +194,7 @@ export function CharacterBand() {
               The same face in video one and video forty.
             </DisplayHeading>
             <Lede className="mt-5">
-              Each niche gets a character sheet: who fronts the videos, how
+              Each channel gets a character sheet: who fronts the videos, how
               they look, how they hold the frame. Every gpt-image-1 keyframe
               is generated against it.
             </Lede>
@@ -236,7 +236,7 @@ export function ApprovalGateBand() {
               items={[
                 "Approval on: finished cuts wait in the queue until you say so.",
                 "Approval off: QA still gates every cut before it can go out.",
-                "Change your mind per niche, any time. The queue adjusts.",
+                "Change your mind per channel, any time. The queue adjusts.",
               ]}
             />
           </Reveal>
@@ -273,7 +273,7 @@ const PLATFORMS: Array<{
   },
   {
     name: "Instagram Reels",
-    note: "Same cut, Reels-ready. Scheduled into the windows your niche sets.",
+    note: "Same cut, Reels-ready. Scheduled into the windows your channel sets.",
     scene: "dawn",
     wash: "bg-[linear-gradient(160deg,#fbcfe8,#fde68a)]",
     caption: ["steam", "silky", "milk"],
@@ -334,7 +334,7 @@ export function PlatformRow() {
           Posted where short-form lives.
         </DisplayHeading>
         <Lede className="mt-5">
-          One render, three destinations. Posting windows are set per niche,
+          One render, three destinations. Posting windows are set per channel,
           mornings for coffee, evenings for gaming, and the queue hits them
           without you.
         </Lede>

@@ -39,7 +39,7 @@ const HOW_IT_WORKS = [
   },
   {
     title: "Caps stop overruns",
-    copy: "Per-niche daily budgets plus a global cap, checked before every job. Work that would cross a cap is refused, not billed. The system fails closed.",
+    copy: "Per-channel daily budgets plus a global cap, checked before every job. Work that would cross a cap is refused, not billed. The system fails closed.",
   },
 ];
 
@@ -163,10 +163,10 @@ export default function PricingPage() {
                   Agents &amp; teams
                 </p>
                 <h3 className="mt-3 font-display text-xl font-semibold tracking-tight text-white md:text-2xl">
-                  Running many niches, or a fleet of agents?
+                  Running many channels, or a fleet of agents?
                 </h3>
                 <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-zinc-400">
-                  The Studio pack covers most of it: per-niche caps, API and
+                  The Studio pack covers most of it: per-channel caps, API and
                   MCP access, several channels in parallel. If your setup is
                   bigger or stranger than that, talk to us and we&apos;ll make
                   it work.

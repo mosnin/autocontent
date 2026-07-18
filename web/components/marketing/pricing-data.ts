@@ -32,7 +32,7 @@ export const PACKS: Pack[] = [
   {
     label: "Studio",
     amount: 50,
-    blurb: "Several niches at once",
-    points: ["≈ 90-125 videos", "Per-niche spend caps", "API + MCP access"],
+    blurb: "Several channels at once",
+    points: ["≈ 90-125 videos", "Per-channel spend caps", "API + MCP access"],
   },
 ];

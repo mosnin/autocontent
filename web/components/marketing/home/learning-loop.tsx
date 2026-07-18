@@ -35,7 +35,7 @@ export function LearningLoop() {
             </Lede>
             <ul className="mt-8 space-y-3">
               {[
-                "Every post is scored against its niche baseline",
+                "Every post is scored against its channel baseline",
                 "Winning hooks and formats are promoted automatically",
                 "Underperformers are retired, not repeated",
               ].map((point) => (

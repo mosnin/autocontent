@@ -10,7 +10,7 @@ import { AgentGridIllustration } from "@/components/marketing/illustrations";
 import { SectionCta } from "@/components/marketing/system";
 
 const DESCRIPTION =
-  "REST API, typed Python SDK, the marketer CLI, and an MCP server with cost-aware tools. Agents create niches, enqueue videos, and publish inside your caps.";
+  "REST API, typed Python SDK, the marketer CLI, and an MCP server with cost-aware tools. Agents create channels, enqueue videos, and publish inside your caps.";
 
 export const metadata: Metadata = {
   title: "Automation & agents | marketer.sh",

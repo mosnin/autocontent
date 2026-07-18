@@ -13,7 +13,7 @@ import { SectionCta } from "@/components/marketing/system";
 
 const TITLE = "Launch your first channel in an afternoon";
 const DESCRIPTION =
-  "A practical guide to your first marketer.sh channel: framing a niche, writing the one-sentence brief, choosing voice and style, and building trust with approval mode.";
+  "A practical guide to your first marketer.sh channel: framing a channel, writing the one-sentence brief, choosing voice and style, and building trust with approval mode.";
 const URL = "https://marketer.sh/resources/guides/first-channel";
 
 export const metadata: Metadata = {
@@ -38,12 +38,12 @@ const JSON_LD = {
 const SECTIONS: GuideSection[] = [
   {
     id: "frame-the-niche",
-    heading: "Frame the niche, not the brand",
+    heading: "Frame the channel, not the brand",
     body: (
       <>
         <GuideP>
           The most common first-channel mistake is briefing the system on your
-          company instead of your audience. A niche in marketer.sh is not
+          company instead of your audience. A channel in marketer.sh is not
           &ldquo;our brand&rsquo;s social presence.&rdquo; It is a{" "}
           <GuideStrong>repeatable editorial beat</GuideStrong>: one audience,
           one promise, one recognizable angle, delivered daily.
@@ -51,7 +51,7 @@ const SECTIONS: GuideSection[] = [
         <GuideP>
           &ldquo;Content about our productivity app&rdquo; is a brand. &ldquo;Two-minute
           fixes for people who abandon their to-do lists by Thursday&rdquo; is a
-          niche. The second version tells the ideation engine who it is talking
+          channel. The second version tells the ideation engine who it is talking
           to, what problem recurs, and what a good topic looks like. It also
           tells the viewer, in the first second, whether this video is for
           them.
@@ -71,7 +71,7 @@ const SECTIONS: GuideSection[] = [
       <>
         <GuideP>
           Onboarding asks for a single sentence, and the AI drafts the full
-          niche from it: audience, tone, topic pillars, posting plan. The
+          channel from it: audience, tone, topic pillars, posting plan. The
           sentence is doing a lot of work, so make it concrete. A useful
           template:
         </GuideP>
@@ -112,7 +112,7 @@ const SECTIONS: GuideSection[] = [
     body: (
       <>
         <GuideP>
-          The niche draft comes with a proposed narration voice and visual
+          The channel draft comes with a proposed narration voice and visual
           style. Preview the voice before accepting it; you can audition
           options right in the review screen. Two rules of thumb serve most
           channels well.
@@ -121,7 +121,7 @@ const SECTIONS: GuideSection[] = [
           First, <GuideStrong>match energy to platform norms in your
           topic</GuideStrong>, not to your own taste. Finance and how-to
           content sustains a calm, mid-pace voice. Fitness and food reward
-          brighter, faster reads. Watch three top posts in your niche and pick
+          brighter, faster reads. Watch three top posts in your channel and pick
           the voice that would not feel out of place among them.
         </GuideP>
         <GuideP>
@@ -140,7 +140,7 @@ const SECTIONS: GuideSection[] = [
     body: (
       <>
         <GuideP>
-          Before anything renders, set the niche&apos;s daily cap. For a first
+          Before anything renders, set the channel&apos;s daily cap. For a first
           channel, $5 to $10 a day is plenty: enough for a daily video, an
           article, and some ideation, with room to spare. The cap is a hard
           limit, not a target. A job that would pass it is refused before any
@@ -160,7 +160,7 @@ const SECTIONS: GuideSection[] = [
     body: (
       <>
         <GuideP>
-          Every niche starts in <GuideStrong>review-before-post</GuideStrong>{" "}
+          Every channel starts in <GuideStrong>review-before-post</GuideStrong>{" "}
           mode: the pipeline produces, you approve, then it publishes. Treat
           the first two weeks as a deliberate ramp rather than a chore.
         </GuideP>
@@ -169,7 +169,7 @@ const SECTIONS: GuideSection[] = [
             <>
               <GuideStrong>Days 1 to 3:</GuideStrong> review everything.
               Reject freely and note why. Rejections teach you what to fix in
-              the niche settings, usually the tone or the topic pillars.
+              the channel settings, usually the tone or the topic pillars.
             </>,
             <>
               <GuideStrong>Days 4 to 10:</GuideStrong> your approval rate
@@ -180,7 +180,7 @@ const SECTIONS: GuideSection[] = [
               <GuideStrong>After two weeks:</GuideStrong> widen autonomy for
               the formats you trust. Many people keep articles on review and
               let video publish on schedule, or the reverse. Autonomy is per
-              niche and reversible.
+              channel and reversible.
             </>,
           ]}
         />
@@ -206,12 +206,12 @@ const SECTIONS: GuideSection[] = [
             </>,
             <>
               <GuideStrong>Spread between your best and worst
-              post.</GuideStrong> A wide spread means the niche has a hit
+              post.</GuideStrong> A wide spread means the channel has a hit
               pattern to find. A flat, low spread usually means the framing is
               too broad.
             </>,
             <>
-              <GuideStrong>The 30-day view, weekly.</GuideStrong> The niche
+              <GuideStrong>The 30-day view, weekly.</GuideStrong> The channel
               performance card ranks top and bottom performers; ideation reads
               the same list. Check it weekly, not hourly.
             </>,
@@ -235,7 +235,7 @@ export default function FirstChannelGuidePage() {
         type="application/ld+json"
       />
       <GuideLayout
-        lede="You need one honest sentence, a spending cap, and an afternoon. This guide covers the judgment calls the quickstart skips: how to frame a niche, what makes a brief generative, and how to ramp from reviewing everything to approving almost nothing."
+        lede="You need one honest sentence, a spending cap, and an afternoon. This guide covers the judgment calls the quickstart skips: how to frame a channel, what makes a brief generative, and how to ramp from reviewing everything to approving almost nothing."
         readingTime="5 min read"
         sections={SECTIONS}
         title={TITLE}

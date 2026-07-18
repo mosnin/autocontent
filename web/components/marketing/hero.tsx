@@ -102,7 +102,7 @@ export function Hero() {
       <div className="mx-auto w-full max-w-6xl px-6 pb-20">
         <PipelineCircuit />
         <p className="mt-2 text-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
-          One niche in, daily videos out. Analytics close the loop.
+          One channel in, daily videos out. Analytics close the loop.
         </p>
       </div>
     </section>

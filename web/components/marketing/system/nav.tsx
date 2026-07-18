@@ -314,7 +314,7 @@ function FeaturesPanel({ onNavigate }: { onNavigate: () => void }) {
           What&apos;s new
         </span>
         <span className="mt-3 text-[14px] font-medium leading-snug text-zinc-900">
-          Per-niche autopilot caps
+          Per-channel autopilot caps
         </span>
         <span className="mt-1 text-[12.5px] leading-snug text-zinc-500">
           Set a daily budget per channel. The agent plans the queue around it.

@@ -1,6 +1,7 @@
 """Admin API: RBAC gate, audit recording, and cross-tenant ops."""
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -153,3 +154,75 @@ def test_grant_credits_rejects_nonpositive(monkeypatch):
         json={"amount_usd": "0"}, headers=_H,
     )
     assert resp.status_code == 422
+
+
+# --------------------------------------------------------------------------- integrations
+
+def test_integrations_status_booleans_only_and_audited(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "openai_api_key", "sk-super-secret-value")
+    monkeypatch.setattr(settings, "xai_api_key", "")
+    monkeypatch.setattr(settings, "ayrshare_api_key", "ayr-key")
+    monkeypatch.setattr(settings, "pixabay_api_key", "")
+    monkeypatch.setattr(settings, "exa_api_key", "exa-key")
+    monkeypatch.setattr(settings, "fal_api_key", "")
+    monkeypatch.setattr(settings, "composio_api_key", "composio-key")
+    monkeypatch.setattr(settings, "resend_api_key", "")
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk-stripe")
+    monkeypatch.setattr(settings, "sentry_dsn", "")
+    # google_oauth and inngest each require BOTH halves of the pair.
+    monkeypatch.setattr(settings, "google_oauth_client_id", "gcid")
+    monkeypatch.setattr(settings, "google_oauth_client_secret", "")
+    monkeypatch.setattr(settings, "inngest_signing_key", "sig")
+    monkeypatch.setattr(settings, "inngest_event_key", "evt")
+    monkeypatch.setattr(settings, "ads_enabled", True)
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "press_autopilot_enabled", True)
+    monkeypatch.setattr(settings, "newsletters_enabled", True)
+    monkeypatch.setattr(settings, "x402_enabled", False)
+
+    resp = client.get("/api/v1/admin/integrations", headers=_H)
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert body["openai"] == {"configured": True}
+    assert body["xai"] == {"configured": False}
+    assert body["ayrshare"] == {"configured": True}
+    assert body["pixabay"] == {"configured": False}
+    assert body["exa"] == {"configured": True}
+    assert body["fal"] == {"configured": False}
+    assert body["composio"] == {"configured": True}
+    assert body["resend"] == {"configured": False}
+    assert body["stripe"] == {"configured": True}
+    assert body["sentry"] == {"configured": False}
+    assert body["google_oauth"] == {"configured": False}  # missing secret half
+    assert body["inngest"] == {"configured": True}
+
+    assert body["ads_enabled"] is True
+    assert body["billing_enabled"] is False
+    assert body["press_autopilot_enabled"] is True
+    assert body["newsletters_enabled"] is True
+    assert body["x402_enabled"] is False
+
+    # Presence booleans only — no key material ever leaves the endpoint.
+    dumped = json.dumps(body)
+    assert "sk-super-secret-value" not in dumped
+    assert "ayr-key" not in dumped
+    assert "exa-key" not in dumped
+    assert "composio-key" not in dumped
+    assert "sk-stripe" not in dumped
+    assert "gcid" not in dumped
+    assert "sig" not in dumped
+    assert "evt" not in dumped
+
+    assert any(r["action"] == "integrations.view" for r in client._recorded)
+
+
+def test_integrations_status_requires_admin(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch, role="user")
+    resp = client.get("/api/v1/admin/integrations", headers=_H)
+    assert resp.status_code == 403

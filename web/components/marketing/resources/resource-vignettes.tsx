@@ -15,7 +15,7 @@ const PANEL =
 
 const RELEASES = [
   { date: "Jun 26", title: "MCP server v1", latest: true },
-  { date: "Jun 12", title: "Per-niche daily caps", latest: false },
+  { date: "Jun 12", title: "Per-channel daily caps", latest: false },
   { date: "May 30", title: "Article QA pass", latest: false },
 ];
 

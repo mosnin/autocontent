@@ -25,13 +25,13 @@ const ENTRIES: ChangelogEntry[] = [
   {
     date: "Jul 8, 2026",
     title: "Articles & SEO pipeline",
-    body: "marketer.sh now writes long-form too. A second pipeline runs SERP research, drafts an outline, writes sections in parallel, QA-checks the result, and ships every draft with metadata, Article JSON-LD, and a generated hero image. Articles share your niche's voice, caps, and approval gates.",
+    body: "marketer.sh now writes long-form too. A second pipeline runs SERP research, drafts an outline, writes sections in parallel, QA-checks the result, and ships every draft with metadata, Article JSON-LD, and a generated hero image. Articles share your channel's voice, caps, and approval gates.",
     tags: ["Articles", "Pipeline"],
   },
   {
     date: "Jun 22, 2026",
     title: "Voice previews and pre-warmed renders",
-    body: "Audition narration voices right in niche settings before committing, and the render path now pre-warms your chosen voice so first jobs start faster. Render-complete emails link straight to the approval queue.",
+    body: "Audition narration voices right in channel settings before committing, and the render path now pre-warms your chosen voice so first jobs start faster. Render-complete emails link straight to the approval queue.",
     tags: ["Video", "Quality of life"],
   },
   {
@@ -43,13 +43,13 @@ const ENTRIES: ChangelogEntry[] = [
   {
     date: "May 27, 2026",
     title: "One-sentence onboarding",
-    body: "Describe your channel in a single sentence and the AI drafts the entire niche: audience, tone, topic pillars, voice, visual style, and a starting posting plan. Everything is editable before the first render.",
+    body: "Describe your channel in a single sentence and the AI drafts the entire channel: audience, tone, topic pillars, voice, visual style, and a starting posting plan. Everything is editable before the first render.",
     tags: ["Onboarding"],
   },
   {
     date: "May 13, 2026",
     title: "Approval gates & the trust ramp",
-    body: "Every niche now starts in review-before-post mode. Approve or reject each draft with one click, then widen autonomy per niche and per format once the output earns it. Tighten back anytime.",
+    body: "Every channel now starts in review-before-post mode. Approve or reject each draft with one click, then widen autonomy per channel and per format once the output earns it. Tighten back anytime.",
     tags: ["Trust", "Publishing"],
   },
   {
@@ -60,14 +60,14 @@ const ENTRIES: ChangelogEntry[] = [
   },
   {
     date: "Apr 8, 2026",
-    title: "Post analytics & niche attribution",
-    body: "Views, watch time, and engagement flow back from TikTok, Reels, and Shorts into per-post metrics, with cost attributed per job and per niche. Every niche page gets a performance card with its best and worst recent posts.",
+    title: "Post analytics & channel attribution",
+    body: "Views, watch time, and engagement flow back from TikTok, Reels, and Shorts into per-post metrics, with cost attributed per job and per channel. Every channel page gets a performance card with its best and worst recent posts.",
     tags: ["Analytics"],
   },
   {
     date: "Mar 25, 2026",
     title: "Global daily cap",
-    body: "A second, account-wide cap on top of per-niche budgets. Run as many niches as you like; total daily spend stays under one number you set. Like all caps, it fails closed.",
+    body: "A second, account-wide cap on top of per-channel budgets. Run as many channels as you like; total daily spend stays under one number you set. Like all caps, it fails closed.",
     tags: ["Spend controls"],
   },
   {

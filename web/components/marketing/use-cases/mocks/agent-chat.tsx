@@ -31,7 +31,7 @@ const TURNS: Turn[] = [
   {
     kind: "bubble",
     from: "agent",
-    text: "Created niche, queued 3 videos + 2 articles. Est. $4.20, cap $10. Awaiting your approval gate.",
+    text: "Created channel, queued 3 videos + 2 articles. Est. $4.20, cap $10. Awaiting your approval gate.",
   },
 ];
 

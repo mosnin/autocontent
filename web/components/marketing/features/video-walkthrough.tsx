@@ -27,7 +27,7 @@ const STAGES: Array<{
 }> = [
   {
     label: "Ideation",
-    copy: "Angles picked for your niche, steered by what the last round earned.",
+    copy: "Angles picked for your channel, steered by what the last round earned.",
     tag: "metrics-fed",
     macro: 0,
   },
@@ -38,7 +38,7 @@ const STAGES: Array<{
   },
   {
     label: "Keyframes",
-    copy: "gpt-image-1 frames, kept on-model by the niche's character sheet.",
+    copy: "gpt-image-1 frames, kept on-model by the channel's character sheet.",
     tag: "gpt-image-1",
     macro: 2,
   },
@@ -75,7 +75,7 @@ const STAGES: Array<{
   },
   {
     label: "Publish",
-    copy: "Scheduled to TikTok, Reels, and Shorts in your niche's windows.",
+    copy: "Scheduled to TikTok, Reels, and Shorts in your channel's windows.",
     macro: 3,
   },
 ];

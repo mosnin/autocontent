@@ -28,7 +28,7 @@ export function FinalCta() {
         </TextBurnNeon>
         <Reveal delay={0.15}>
           <p className="mt-6 max-w-xl text-balance text-lg text-muted-foreground">
-            Your first niche takes three minutes to describe. The machine
+            Your first channel takes three minutes to describe. The machine
             handles every night after that.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">

@@ -13,7 +13,7 @@ import { SectionCta } from "@/components/marketing/system";
 
 const TITLE = "Rank with articles your agents write";
 const DESCRIPTION =
-  "How the marketer.sh article pipeline works, from SERP research to JSON-LD, and how to configure niches, internal links, and publishing cadence so articles actually rank.";
+  "How the marketer.sh article pipeline works, from SERP research to JSON-LD, and how to configure channels, internal links, and publishing cadence so articles actually rank.";
 const URL = "https://marketer.sh/resources/guides/seo-articles";
 
 export const metadata: Metadata = {
@@ -88,12 +88,12 @@ const SECTIONS: GuideSection[] = [
         <GuideP>
           Search engines reward experience, expertise, authority, and trust.
           A pipeline cannot fake your experience, but it can stop diluting it.
-          The niche settings are where you put the things only you know:
+          The channel settings are where you put the things only you know:
           your point of view, your terminology, the claims you will and will
           not make, the products you actually use.
         </GuideP>
         <GuideP>
-          The practical move is to treat the niche&apos;s tone and topic
+          The practical move is to treat the channel&apos;s tone and topic
           pillars as an <GuideStrong>editorial policy</GuideStrong>, not a
           style preference. &ldquo;We always state prices, we never say
           &lsquo;game-changer&rsquo;, we test before recommending&rdquo; is
@@ -110,18 +110,18 @@ const SECTIONS: GuideSection[] = [
   },
   {
     id: "per-niche-setup",
-    heading: "What to set per niche",
+    heading: "What to set per channel",
     body: (
       <>
         <GuideP>
-          Articles inherit the niche&apos;s audience and tone, but a few
+          Articles inherit the channel&apos;s audience and tone, but a few
           settings deserve their own pass before you turn the pipeline on:
         </GuideP>
         <GuideList
           items={[
             <>
               <GuideStrong>Topic pillars.</GuideStrong> Three to five themes
-              the niche owns. Ideation proposes topics inside the pillars, so
+              the channel owns. Ideation proposes topics inside the pillars, so
               tight pillars produce a coherent site section instead of a
               scattershot blog.
             </>,
@@ -134,7 +134,7 @@ const SECTIONS: GuideSection[] = [
             </>,
             <>
               <GuideStrong>The daily cap.</GuideStrong> Articles cost less
-              than videos, so a mixed niche needs headroom for both. Check{" "}
+              than videos, so a mixed channel needs headroom for both. Check{" "}
               <GuideCode>today_spend</GuideCode> or the dashboard strip if
               article jobs are getting refused late in the day.
             </>,
@@ -174,7 +174,7 @@ const SECTIONS: GuideSection[] = [
           Search engines index rhythm. Three articles a week for six months
           outperforms ninety articles in a burst followed by silence, both in
           crawling behavior and in your own ability to read results. Set the
-          niche&apos;s article cadence to something you can review
+          channel&apos;s article cadence to something you can review
           sustainably, then leave it alone.
         </GuideP>
         <GuideP>
@@ -201,7 +201,7 @@ const SECTIONS: GuideSection[] = [
         <GuideP>
           Intervene on inputs, not outputs. Editing one article by hand fixes
           one article; tightening a pillar, a policy line, or the intent mix
-          fixes every article the niche writes from then on. That is the
+          fixes every article the channel writes from then on. That is the
           entire trick of running an editorial machine: push your judgment up
           a level and let the pipeline propagate it.
         </GuideP>

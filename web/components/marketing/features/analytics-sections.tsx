@@ -134,7 +134,7 @@ export function SpendBand() {
             <ProofList
               className="mt-8"
               items={[
-                "Per-niche daily caps, so one channel can't eat the budget.",
+                "Per-channel daily caps, so one channel can't eat the budget.",
                 "A global cap over everything, plus prepaid credits. No surprise invoice.",
                 "When a cap trips, jobs fail closed. Spending stops, mid-pipeline if it must.",
               ]}

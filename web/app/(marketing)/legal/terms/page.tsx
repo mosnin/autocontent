@@ -59,7 +59,7 @@ export default function TermsPage() {
       <h2>5. Spend, credits, and paid campaigns</h2>
       <p>
         Content generation consumes provider resources that are metered and, on
-        paid plans, billed against prepaid credits. Each niche carries a daily
+        paid plans, billed against prepaid credits. Each channel carries a daily
         spend cap and you may set an account-wide cap; we check these before
         spending. Paid ad campaigns spend real money on third-party ad
         platforms from budgets you set. Those budgets pass a fail-closed guard

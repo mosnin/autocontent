@@ -98,7 +98,7 @@ function BriefMock() {
       </p>
       <div className="mt-3 flex items-center gap-2 text-[11px] text-zinc-500">
         <RecordingDot />
-        Drafting niche: audience, tone, topics, posting plan…
+        Drafting channel: audience, tone, topics, posting plan…
       </div>
     </GlassPanel>
   );
@@ -230,7 +230,7 @@ const STEPS: Array<{
   },
   {
     title: "Describe your channel in one sentence",
-    copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full niche from it: audience, tone, topic pillars, and a starting posting plan.",
+    copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full channel from it: audience, tone, topic pillars, and a starting posting plan.",
     mock: <BriefMock />,
     scene: "sky",
   },
@@ -248,7 +248,7 @@ const STEPS: Array<{
   },
   {
     title: "Add articles",
-    copy: "Turn on the SEO pipeline for the same niche. It researches the SERP, outlines, writes sections in parallel, then ships metadata, JSON-LD, and a hero image with every draft.",
+    copy: "Turn on the SEO pipeline for the same channel. It researches the SERP, outlines, writes sections in parallel, then ships metadata, JSON-LD, and a hero image with every draft.",
     mock: <ArticlesMock />,
     scene: "dusk",
   },

@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const STAGES = [
   {
     label: "Ideate",
-    copy: "Trends, questions, and angles picked for your niche.",
+    copy: "Trends, questions, and angles picked for your channel.",
   },
   { label: "Script", copy: "Hooks and beats written in your brand voice." },
   { label: "Render", copy: "Frames, motion, and voice mixed into a cut." },

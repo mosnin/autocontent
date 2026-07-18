@@ -15,11 +15,11 @@ import {
 const RULES = [
   {
     title: "Approval gates",
-    copy: "Review every draft, approve by channel, or let a niche run free once you trust it.",
+    copy: "Review every draft, approve by channel, or let a channel run free once you trust it.",
   },
   {
     title: "Hard spend caps",
-    copy: "Per-niche daily budgets. A call that would pass the cap is refused, not billed.",
+    copy: "Per-channel daily budgets. A call that would pass the cap is refused, not billed.",
   },
   {
     title: "Full audit trail",

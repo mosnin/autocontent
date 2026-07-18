@@ -27,7 +27,7 @@ export function SaasAnalyticsMock({ className }: { className?: string }) {
   const reduced = useReducedMotion();
   return (
     <GlassPanel className={cn("w-full max-w-sm p-5", className)}>
-      <MockHeader chip={<MiniPill>devtools niche</MiniPill>} title="Post performance" />
+      <MockHeader chip={<MiniPill>devtools channel</MiniPill>} title="Post performance" />
 
       <div className="mt-4 rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-3">
         <div className="flex items-center justify-between gap-3">

@@ -28,11 +28,11 @@ export const metadata: Metadata = {
 const FAQ_ITEMS: FaqItem[] = [
   {
     q: "How do agents authenticate?",
-    a: "With scoped personal access tokens. Mint a PAT, limit it to the niches an agent may touch, and use it across the API, TypeScript SDK, CLI, and MCP server.",
+    a: "With scoped personal access tokens. Mint a PAT, limit it to the channels an agent may touch, and use it across the API, TypeScript SDK, CLI, and MCP server.",
   },
   {
     q: "Can an agent overspend?",
-    a: "No. Per-niche daily caps and a global cap are enforced server-side, and everything runs on prepaid credits. A call that would pass a cap is refused before it costs anything, and every tool description states its cost up front so agents can plan.",
+    a: "No. Per-channel daily caps and a global cap are enforced server-side, and everything runs on prepaid credits. A call that would pass a cap is refused before it costs anything, and every tool description states its cost up front so agents can plan.",
   },
   {
     q: "Does anything post without review?",
@@ -98,7 +98,7 @@ export default function AiAgentsPage() {
           },
           {
             title: "Guardrails do the worrying",
-            copy: "Per-niche and global caps refuse overspend at the API. The approval gate holds publishing for a human until you lift it.",
+            copy: "Per-channel and global caps refuse overspend at the API. The approval gate holds publishing for a human until you lift it.",
           },
         ]}
       />

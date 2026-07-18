@@ -37,7 +37,7 @@ const PAT_POINTS = [
   },
   {
     title: "Bounded by your caps",
-    copy: "A token can never outspend you. Every call it makes runs through the same per-niche and global daily caps as the dashboard, and fails closed at the limit.",
+    copy: "A token can never outspend you. Every call it makes runs through the same per-channel and global daily caps as the dashboard, and fails closed at the limit.",
   },
 ];
 
