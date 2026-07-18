@@ -29,7 +29,9 @@ import { formatUsd } from "@/lib/format";
 import { StatusBadge } from "@/lib/status-badge";
 import type { Job, JobStatus, PostMetrics } from "@/lib/types";
 import { MetricsTab } from "./MetricsTab";
+import { RerollSceneButton } from "./RerollSceneButton";
 import { RetryButton } from "./RetryButton";
+import { RevoiceButton } from "./RevoiceButton";
 
 const POLL_MS = 5000;
 
@@ -124,6 +126,12 @@ export function JobDetailClient({
 
   const inProgress = IN_PROGRESS.has(job.status);
 
+  // Scene reroll / revoice need a persisted script and only make sense once
+  // the pipeline has stopped touching the job. The backend itself 409s with
+  // "source assets expired; use retry" once the working files are GC'd —
+  // we don't try to predict that here, just surface it when it happens.
+  const canRevise = (job.status === "done" || job.status === "failed") && !!job.script;
+
   return (
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
@@ -177,6 +185,7 @@ export function JobDetailClient({
                 }}
               />
             )}
+            {canRevise && <RevoiceButton jobId={job.id} />}
             {ayrshareUrl && (
               <Button asChild variant="outline">
                 <a href={ayrshareUrl} target="_blank" rel="noreferrer">
@@ -250,7 +259,11 @@ export function JobDetailClient({
 
                 <TabsContent value="scenes" className="m-0 p-6">
                   {fullScript?.scenes && fullScript.scenes.length > 0 ? (
-                    <ScenesPanel scenes={fullScript.scenes} />
+                    <ScenesPanel
+                      scenes={fullScript.scenes}
+                      jobId={job.id}
+                      canRevise={canRevise}
+                    />
                   ) : (
                     <Empty>No scenes yet</Empty>
                   )}
@@ -328,7 +341,15 @@ function ScriptPanel({ script }: { script: Script }) {
   );
 }
 
-function ScenesPanel({ scenes }: { scenes: Scene[] }) {
+function ScenesPanel({
+  scenes,
+  jobId,
+  canRevise,
+}: {
+  scenes: Scene[];
+  jobId: string;
+  canRevise: boolean;
+}) {
   return (
     <ol className="space-y-3 text-sm">
       {scenes.map((s) => (
@@ -345,6 +366,11 @@ function ScenesPanel({ scenes }: { scenes: Scene[] }) {
           <p className="mt-2 text-xs text-muted-foreground">
             <span className="font-medium">Motion:</span> {s.motion_prompt}
           </p>
+          {canRevise && (
+            <div className="mt-3">
+              <RerollSceneButton jobId={jobId} sceneIndex={s.index} />
+            </div>
+          )}
         </li>
       ))}
     </ol>
