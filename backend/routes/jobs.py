@@ -6,7 +6,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from marketer.models import Job, JobStatus, PostMetrics
 from marketer.repos import jobs as jobs_repo
@@ -20,6 +20,11 @@ router = APIRouter()
 class JobEnqueue(BaseModel):
     niche_id: UUID
     platform: Literal["tiktok", "reels", "shorts"]
+    # When true, the Modal entrypoint runs ONLY ideation + scriptwriting
+    # (metered as usual) and stops at `planned` — zero image/video/TTS
+    # spend. The user reviews/edits the storyboard via GET/PUT
+    # /jobs/{id}/plan, then continues via POST /jobs/{id}/render.
+    plan_only: bool = False
 
 
 class RerollBody(BaseModel):
@@ -28,6 +33,58 @@ class RerollBody(BaseModel):
 
 class RevoiceBody(BaseModel):
     voice: str = Field(min_length=1, max_length=100)
+
+
+class ScenePlanView(BaseModel):
+    """One scene as surfaced to the storyboard editor — same shape as
+    `marketer.models.Scene`, defined locally (rather than reusing Scene
+    as the response model) so the plan API's request/response contract
+    can evolve independently of the pipeline's internal script schema."""
+
+    index: int
+    narration: str
+    visual_prompt: str
+    motion_prompt: str
+    duration_sec: float
+
+
+class JobPlan(BaseModel):
+    """GET/PUT /jobs/{id}/plan response: the editable storyboard."""
+
+    job_id: UUID
+    status: JobStatus
+    hook: str
+    topic: str
+    voice: str
+    scenes: list[ScenePlanView]
+    total_duration_sec: float
+    cta: str | None = None
+
+
+class ScenePlanEdit(BaseModel):
+    """One scene edit in a PUT /jobs/{id}/plan body. `index` pins the
+    edit to the original scene it replaces — the full set of indices
+    submitted must exactly match the original scene count (see
+    `update_job_plan`'s validation). Narration/prompts are stripped and
+    must be non-empty after stripping, so whitespace-only edits are
+    rejected the same as truly empty ones."""
+
+    index: int
+    narration: str = Field(max_length=1000)
+    visual_prompt: str = Field(max_length=2000)
+    motion_prompt: str = Field(max_length=2000)
+
+    @field_validator("narration", "visual_prompt", "motion_prompt")
+    @classmethod
+    def _stripped_non_empty(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("must not be empty")
+        return v
+
+
+class PlanUpdateBody(BaseModel):
+    scenes: list[ScenePlanEdit]
 
 
 def _assets_available(job: Job) -> bool:
@@ -89,10 +146,136 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     job = await jobs_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, platform=body.platform
     )
-    fn = modal.Function.from_name("marketer-sh", "run_pipeline")
+    # plan_only routes to the plan-stage-only Modal entrypoint (ideation +
+    # scriptwriting, then park at `planned`); the default full pipeline
+    # runs straight through to scheduling as before.
+    fn_name = "run_plan" if body.plan_only else "run_pipeline"
+    fn = modal.Function.from_name("marketer-sh", fn_name)
     # Pass the job id so the pipeline reuses THIS row — otherwise the id
     # we just returned to the client never leaves `queued`.
     fn.spawn(ctx.user_id, str(body.niche_id), body.platform, str(job.id))
+    return job
+
+
+async def _job_plan_view(job: Job, *, user_id: str) -> JobPlan:
+    """Build the JobPlan response shape from a Job with a persisted
+    script. Shared by GET and PUT so both return the identical view."""
+    assert job.script is not None
+    from marketer.repos import niches as niches_repo
+
+    niche = await niches_repo.get(job.niche_id, user_id=user_id)
+    return JobPlan(
+        job_id=job.id,
+        status=job.status,
+        hook=job.script.idea.hook,
+        topic=job.script.idea.topic,
+        voice=niche.voice if niche is not None else "",
+        scenes=[
+            ScenePlanView(
+                index=s.index,
+                narration=s.narration,
+                visual_prompt=s.visual_prompt,
+                motion_prompt=s.motion_prompt,
+                duration_sec=s.duration_sec,
+            )
+            for s in job.script.scenes
+        ],
+        total_duration_sec=job.script.total_duration_sec,
+        cta=job.script.cta,
+    )
+
+
+@router.get("/{job_id}/plan", response_model=JobPlan)
+async def get_job_plan(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobPlan:
+    """The editable storyboard for a job: scenes' narration + visual/motion
+    prompts, plus the niche's voice for context. Available for any job
+    that has a persisted script (not only `planned` ones), so a plan can
+    still be inspected after render/approval."""
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
+    if job.script is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="job has no persisted script yet"
+        )
+    return await _job_plan_view(job, user_id=ctx.user_id)
+
+
+@router.put("/{job_id}/plan", response_model=JobPlan)
+async def update_job_plan(
+    job_id: UUID, body: PlanUpdateBody, ctx: AuthCtx = CurrentUser
+) -> JobPlan:
+    """Persist storyboard edits before any render spend happens. Only
+    valid while the job is `planned`: scene count must stay the same
+    (the render fan-out is sized off it) and every original scene index
+    must be covered exactly once. Non-empty text and length caps are
+    enforced by `ScenePlanEdit`'s validators."""
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
+    if job.status != JobStatus.planned:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=f"job is {job.status.value}, not planned",
+        )
+    if job.script is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="job has no persisted script"
+        )
+
+    original_scenes = job.script.scenes
+    if len(body.scenes) != len(original_scenes):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"scene count must not change: job has {len(original_scenes)} "
+                f"scenes, got {len(body.scenes)}"
+            ),
+        )
+    edits_by_index = {e.index: e for e in body.scenes}
+    expected_indices = set(range(len(original_scenes)))
+    if set(edits_by_index) != expected_indices:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"scene indices must be exactly 0..{len(original_scenes) - 1}, "
+            "each appearing once",
+        )
+
+    new_scenes = [
+        scene.model_copy(
+            update={
+                "narration": edits_by_index[scene.index].narration,
+                "visual_prompt": edits_by_index[scene.index].visual_prompt,
+                "motion_prompt": edits_by_index[scene.index].motion_prompt,
+            }
+        )
+        for scene in original_scenes
+    ]
+    job.script = job.script.model_copy(update={"scenes": new_scenes})
+    await jobs_repo.save_snapshot(job)
+    return await _job_plan_view(job, user_id=ctx.user_id)
+
+
+@router.post("/{job_id}/render", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
+async def render_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+    """Continue a `planned` job through rendering (images/video/TTS ->
+    assembly -> QA -> approval gate/scheduling), using the (possibly
+    edited) persisted script snapshot. Spawns the Modal `render_from_plan`
+    function. Atomically claims the row out of `planned` first so a
+    double click can't spawn two renders of the same script."""
+    import modal
+
+    job = await jobs_repo.claim_for_render(job_id, user_id=ctx.user_id)
+    if job is None:
+        existing = await jobs_repo.get(job_id, user_id=ctx.user_id)
+        if existing is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=f"job is {existing.status.value}, not planned",
+        )
+    fn = modal.Function.from_name("marketer-sh", "render_from_plan")
+    fn.spawn(ctx.user_id, str(job_id))
     return job
 
 

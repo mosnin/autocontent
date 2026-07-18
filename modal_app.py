@@ -83,6 +83,62 @@ async def run_pipeline(
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 10,
+    concurrency_limit=_settings.pipeline_global_concurrency,
+)
+async def run_plan(
+    user_id: str, niche_id: str, platform: str, job_id: str | None = None
+) -> dict:
+    """Plan-only entrypoint: ideation + scriptwriting, then park at
+    `planned` for storyboard review — zero image/video/TTS spend.
+
+    Spawned by `POST /api/v1/jobs` when `plan_only=true`. The user
+    reviews/edits the storyboard via GET/PUT `/jobs/{id}/plan`, then
+    continues via `POST /jobs/{id}/render` (-> `render_from_plan`)."""
+    from uuid import UUID
+    from marketer.pipeline import run_plan as _run_plan
+    from marketer.services.otel import force_flush
+
+    try:
+        job = await _run_plan(
+            user_id=user_id,
+            niche_id=UUID(niche_id),
+            platform=platform,
+            job_id=UUID(job_id) if job_id else None,
+        )
+        artifacts.commit()
+        return job.model_dump(mode="json")
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 60,
+    concurrency_limit=_settings.pipeline_global_concurrency,
+)
+async def render_from_plan(user_id: str, job_id: str) -> dict:
+    """Resume a `planned` job at rendering: image/video generation,
+    voiceover, assembly, QA, approval gate, scheduling.
+
+    Spawned by `POST /api/v1/jobs/{id}/render`, which already atomically
+    claimed the job out of `planned` before enqueuing us. Uses the job's
+    persisted script snapshot exactly as stored — including any edits
+    made through `PUT /jobs/{id}/plan`."""
+    from uuid import UUID
+    from marketer.pipeline import render_from_plan as _render_from_plan
+    from marketer.services.otel import force_flush
+
+    try:
+        job = await _render_from_plan(user_id=user_id, job_id=UUID(job_id))
+        artifacts.commit()
+        return job.model_dump(mode="json")
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 10,
 )
 async def finish_scheduling(user_id: str, job_id: str) -> dict:
     """Resume an operator-approved job at the scheduling stage.

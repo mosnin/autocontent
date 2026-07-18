@@ -64,6 +64,10 @@ class JobStatus(str, Enum):
     qa = "qa"
     scheduling = "scheduling"
     awaiting_approval = "awaiting_approval"
+    # A job that has run ideation + scriptwriting only, then parked for
+    # storyboard review before any image/video/TTS spend. Resumes at
+    # rendering via `POST /jobs/{id}/render` (pipeline.render_from_plan).
+    planned = "planned"
     done = "done"
     failed = "failed"
     skipped = "skipped"
@@ -240,7 +244,8 @@ class SpendHistory(BaseModel):
 
 class MediaAsset(BaseModel):
     """A row in the Content Studio media library — pipeline output
-    (source='pipeline') or a fal.ai studio edit (source='studio')."""
+    (source='pipeline'), a fal.ai studio edit (source='studio'), or a
+    user-uploaded file (source='upload', via POST /api/v1/uploads)."""
 
     id: UUID
     user_id: str
@@ -248,7 +253,7 @@ class MediaAsset(BaseModel):
     job_id: UUID | None = None
     article_id: UUID | None = None
     kind: Literal["image", "video", "audio"]
-    source: Literal["pipeline", "studio"]
+    source: Literal["pipeline", "studio", "upload"]
     path: str = ""  # volume-relative path on the artifacts volume
     url: str = ""   # remote URL, when the asset isn't (only) on the volume
     mime: str = ""

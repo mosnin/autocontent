@@ -161,6 +161,27 @@ async def claim_for_scheduling(job_id: UUID, *, user_id: str) -> Job | None:
     return Job.model_validate(json.loads(row["payload"])) if row else None
 
 
+async def claim_for_render(job_id: UUID, *, user_id: str) -> Job | None:
+    """Atomically move a `planned` job to `queued` so a double
+    `POST /{id}/render` can't spawn two render pipelines against the same
+    script snapshot (double image/video/TTS spend). Mirrors
+    `claim_for_scheduling`. Returns the claimed Job, or None if the job
+    wasn't claimable (not owned, not found, or not `planned`).
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        update jobs
+           set status = 'queued',
+               payload = jsonb_set(payload, '{status}', '"queued"')
+         where id = $1 and user_id = $2 and status = 'planned'
+        returning payload
+        """,
+        job_id, user_id,
+    )
+    return Job.model_validate(json.loads(row["payload"])) if row else None
+
+
 async def save_snapshot(job: Job) -> None:
     """Persist the in-memory Job to the row. Called after each pipeline stage."""
     pool = await get_pool()

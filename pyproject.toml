@@ -14,6 +14,10 @@ dependencies = [
     "tenacity>=8.3",
     "asyncpg>=0.29",
     "fastapi>=0.115",
+    # Multipart form parsing for POST /api/v1/uploads. Only a transitive dep
+    # of fastapi's "standard" extra otherwise, which the Modal image doesn't
+    # install — declare it directly so uploads work in production.
+    "python-multipart>=0.0.18",
     "uvicorn>=0.30",
     "pyjwt[crypto]>=2.9",
     "mcp[cli]>=1.2",

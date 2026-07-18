@@ -383,16 +383,90 @@ async def run_job(
                     return result
 
 
-async def _run_job_inner(
+async def run_plan(
+    *, user_id: str, niche_id: UUID, platform: str, job_id: UUID | None = None
+) -> Job:
+    """Plan-only entrypoint: ideation + scriptwriting, then park at
+    `planned` for storyboard review — zero image/video/TTS spend.
+
+    Mirrors `run_job`'s outer scaffolding (niche lock, per-user
+    concurrency, spend context, OTEL span) exactly; the only difference
+    is what runs inside it (`_run_ideation_and_script` alone, instead of
+    the full render sequence), and the terminal status is `planned`
+    instead of `done`/`awaiting_approval`. A user reviews/edits the
+    resulting storyboard via `PUT /jobs/{id}/plan`, then continues
+    rendering via `POST /jobs/{id}/render` (-> `render_from_plan`).
+
+    Spawned by the Modal `run_plan` function, itself spawned by
+    `POST /api/v1/jobs` when `plan_only=true`.
+    """
+    niche = await niches_repo.get(niche_id, user_id=user_id)
+    if niche is None:
+        raise ValueError(f"niche {niche_id} not found for user {user_id}")
+    if platform not in niche.platforms:
+        raise ValueError(f"platform {platform} not enabled for niche {niche_id}")
+
+    async with niche_lock(niche_id) as got_niche:
+        if not got_niche:
+            job = await _obtain_job(
+                user_id=user_id, niche_id=niche_id, platform=platform, job_id=job_id
+            )
+            job.status = JobStatus.skipped
+            job.error = "niche already running in another job"
+            await jobs_repo.save_snapshot(job)
+            log.info("skip: niche already running", extra={"niche_id": str(niche_id)})
+            return job
+
+        async with user_lock(
+            user_id, max_parallel=settings.pipeline_per_user_concurrency
+        ):
+            job = await _obtain_job(
+                user_id=user_id, niche_id=niche_id, platform=platform, job_id=job_id
+            )
+            root = ensure_layout(f"{user_id}/{job.id}")
+            spend = await default_context(
+                user_id=user_id,
+                niche_id=niche_id,
+                job_id=job.id,
+                cap_usd=niche.daily_spend_cap_usd,
+            )
+
+            tracer = otel.get_tracer(__name__)
+            with tracer.start_as_current_span("pipeline.run_plan") as span:
+                span.set_attribute("marketer.user_id", user_id)
+                span.set_attribute("marketer.niche_id", str(niche_id))
+                span.set_attribute("marketer.platform", platform)
+                span.set_attribute("marketer.job_id", str(job.id))
+                with job_context(job_id=job.id, user_id=user_id, niche_id=niche_id):
+                    try:
+                        if not await _ensure_cap(job, niche):
+                            return job
+                        await _run_ideation_and_script(job, niche, root, spend)
+                        job.status = JobStatus.planned
+                        await _persist(job)
+                        log.info("plan ready for review", extra={"job_id": str(job.id)})
+                        return job
+                    except Exception as exc:
+                        span.record_exception(exc)
+                        span.set_status(trace.StatusCode.ERROR, str(exc))
+                        return await _fail_with(
+                            job, f"{type(exc).__name__}: {exc}", exc
+                        )
+
+
+async def _run_ideation_and_script(
     job: Job,
     niche: Niche,
-    platform: str,
     root: Path,
     spend: SpendContext,
-) -> Job:
-    if not await _ensure_cap(job, niche):
-        return job
-
+) -> Script:
+    """Stages 1-2: ideation + script/visual-direction. This is exactly the
+    head of the pipeline that a plan-only run stops after — factored out
+    so `run_plan` and the full `run_job` share the identical ideation +
+    scriptwriter + visual-director sequence instead of two copies that
+    could drift. Persists `job.script` and the on-volume `script.json`
+    snapshot as a side effect, same as before extraction.
+    """
     # 1. Ideation
     with _stage(JobStatus.ideating.value):
         job.status = JobStatus.ideating
@@ -421,7 +495,30 @@ async def _run_job_inner(
         )
         job.script = script
         (root / "script.json").write_text(script.model_dump_json(indent=2))
+    return script
 
+
+async def _run_render_stages(
+    job: Job,
+    niche: Niche,
+    script: Script,
+    root: Path,
+    spend: SpendContext,
+) -> Job:
+    """Stages 3-10: images/animation -> voiceover -> assembly/captions ->
+    QA -> approval gate -> scheduling.
+
+    Factored out of `_run_job_inner` so both the straight-through pipeline
+    (called immediately after `_run_ideation_and_script`) and
+    `render_from_plan` (resuming a `planned` job, possibly with a
+    user-edited script) run this exact sequence — metering only ever
+    reflects the stages that actually execute in either caller, and there
+    is exactly one place that can drift.
+
+    `script` is passed explicitly (rather than read off `job.script`)
+    because the caller may be handing us an edited plan snapshot that
+    differs from whatever was last persisted before this call.
+    """
     # 3. Images + animation (fan-out per scene)
     if not await _ensure_cap(job, niche):
         return job
@@ -521,6 +618,19 @@ async def _run_job_inner(
     return await _schedule_stage(job, niche)
 
 
+async def _run_job_inner(
+    job: Job,
+    niche: Niche,
+    platform: str,
+    root: Path,
+    spend: SpendContext,
+) -> Job:
+    if not await _ensure_cap(job, niche):
+        return job
+    script = await _run_ideation_and_script(job, niche, root, spend)
+    return await _run_render_stages(job, niche, script, root, spend)
+
+
 async def _schedule_stage(job: Job, niche: Niche) -> Job:
     """Upload + schedule the rendered video, then mark the job done.
 
@@ -574,6 +684,80 @@ async def schedule_approved_job(*, user_id: str, job_id: UUID) -> Job:
             return await _schedule_stage(job, niche)
         except Exception as e:
             return await _fail_with(job, f"scheduling failed after approval: {e}")
+
+
+async def render_from_plan(*, user_id: str, job_id: UUID) -> Job:
+    """Resume a `planned` job at rendering: image/video generation,
+    voiceover, assembly, QA, approval gate, scheduling (stages 3-10).
+
+    Reuses the job's persisted script snapshot exactly as stored —
+    including any edits made through `PUT /jobs/{id}/plan` — so a render
+    triggered after storyboard edits uses the edited prompts/narration,
+    not the original plan. Shares `_run_render_stages` with the
+    straight-through pipeline, so a plan-then-render job runs the
+    identical render code path as `run_job`; only the stages this
+    function actually runs are metered.
+
+    Spawned by the Modal `render_from_plan` function, itself spawned by
+    `POST /api/v1/jobs/{id}/render` — which already atomically claimed
+    the job out of `planned` (into `queued`) before enqueuing, so a
+    double click can't spawn two renders of the same script.
+    """
+    job = await jobs_repo.get(job_id, user_id=user_id)
+    if job is None:
+        raise ValueError(f"job {job_id} not found for user {user_id}")
+    # The render endpoint atomically claims planned -> queued before
+    # spawning us; accept `planned` too for direct invocation (modal run
+    # / tests).
+    if job.status not in (JobStatus.planned, JobStatus.queued):
+        raise ValueError(f"job {job_id} is {job.status}, not planned")
+    if job.script is None:
+        raise ValueError(f"job {job_id} has no persisted script to render")
+
+    niche = await niches_repo.get(job.niche_id, user_id=user_id)
+    if niche is None:
+        raise ValueError(f"niche {job.niche_id} not found for user {user_id}")
+
+    async with niche_lock(job.niche_id) as got_niche:
+        if not got_niche:
+            job.status = JobStatus.skipped
+            job.error = "niche already running in another job"
+            await jobs_repo.save_snapshot(job)
+            log.info(
+                "skip: niche already running", extra={"niche_id": str(job.niche_id)}
+            )
+            return job
+
+        async with user_lock(
+            user_id, max_parallel=settings.pipeline_per_user_concurrency
+        ):
+            root = ensure_layout(f"{user_id}/{job.id}")
+            spend = await default_context(
+                user_id=user_id,
+                niche_id=job.niche_id,
+                job_id=job.id,
+                cap_usd=niche.daily_spend_cap_usd,
+            )
+
+            tracer = otel.get_tracer(__name__)
+            with tracer.start_as_current_span("pipeline.render_from_plan") as span:
+                span.set_attribute("marketer.user_id", user_id)
+                span.set_attribute("marketer.niche_id", str(job.niche_id))
+                span.set_attribute("marketer.platform", job.platform)
+                span.set_attribute("marketer.job_id", str(job.id))
+                with job_context(job_id=job.id, user_id=user_id, niche_id=job.niche_id):
+                    try:
+                        result = await _run_render_stages(
+                            job, niche, job.script, root, spend
+                        )
+                    except Exception as exc:
+                        span.record_exception(exc)
+                        span.set_status(trace.StatusCode.ERROR, str(exc))
+                        return await _fail_with(
+                            job, f"{type(exc).__name__}: {exc}", exc
+                        )
+                    span.set_attribute("marketer.job_status", result.status.value)
+                    return result
 
 
 def _next_posting_slot(niche: Niche) -> datetime:
