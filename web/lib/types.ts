@@ -39,6 +39,7 @@ export interface Niche {
 
 export type JobStatus =
   | "queued"
+  | "planned"
   | "ideating"
   | "scripting"
   | "generating_images"

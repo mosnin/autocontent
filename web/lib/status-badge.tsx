@@ -30,6 +30,7 @@ const IN_PROGRESS: Set<JobStatus> = new Set([
 // would actually say ("Generating images", not "generating_images").
 const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   queued: "Queued",
+  planned: "Awaiting your review",
   ideating: "Ideating",
   scripting: "Scripting",
   generating_images: "Generating images",
@@ -53,7 +54,7 @@ export function statusVariant(status: JobStatus): Variant {
   if (status === "done") return "success";
   if (status === "failed") return "destructive";
   if (status === "queued" || status === "skipped") return "secondary";
-  if (status === "awaiting_approval") return "outline";
+  if (status === "awaiting_approval" || status === "planned") return "outline";
   return "outline";
 }
 

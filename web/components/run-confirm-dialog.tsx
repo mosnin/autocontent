@@ -9,11 +9,13 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -88,6 +90,7 @@ function RunConfirmDialog({
   onOpenChange: (v: boolean) => void;
   args: OpenArgs | null;
 }) {
+  const router = useRouter();
   // Only fetch while we actually have something to confirm; the SWR
   // key flips to null otherwise so we don't poll on mount.
   const enabled = open && !!args;
@@ -107,6 +110,13 @@ function RunConfirmDialog({
 
   const niche = niches?.find((n) => n.id === args?.nicheId);
   const [submitting, setSubmitting] = React.useState(false);
+  const [planOnly, setPlanOnly] = React.useState(false);
+
+  // Reset the toggle each time a fresh confirmation opens so it never
+  // silently carries over from a previous run.
+  React.useEffect(() => {
+    if (open) setPlanOnly(false);
+  }, [open]);
 
   const breakdown = niche
     ? estimateVideoCostUsd({
@@ -136,6 +146,10 @@ function RunConfirmDialog({
   const balance = billing ? Number(billing.balance_usd) : null;
   const unaffordable =
     billingOn && balance !== null && !!breakdown && balance < breakdown.total;
+  // Plan-first stops at ideation + script — the image/video/TTS spend in
+  // `breakdown` hasn't happened yet, so an insufficient balance for the
+  // FULL run shouldn't block queuing a review-only storyboard.
+  const blockForBalance = unaffordable && !planOnly;
 
   async function onConfirm() {
     if (!args) return;
@@ -143,10 +157,21 @@ function RunConfirmDialog({
     const fd = new FormData();
     fd.set("niche_id", args.nicheId);
     fd.set("platform", args.platform);
+    if (planOnly) fd.set("plan_only", "on");
     const res = await enqueueJobAction({ ok: false }, fd);
     setSubmitting(false);
     if (res.ok) {
-      toast.success(`Run enqueued on ${args.platform}`);
+      if (planOnly && res.jobId) {
+        const jobId = res.jobId;
+        toast.success("Storyboard queued for review", {
+          action: {
+            label: "Open job",
+            onClick: () => router.push(`/queue/${jobId}`),
+          },
+        });
+      } else {
+        toast.success(`Run enqueued on ${args.platform}`);
+      }
       onOpenChange(false);
     } else {
       toast.error(res.error ?? "Failed to enqueue");
@@ -224,7 +249,7 @@ function RunConfirmDialog({
                 </div>
               ) : null}
 
-              {unaffordable ? (
+              {blockForBalance ? (
                 <p className="mt-2 text-xs text-brand">
                   This run costs more than your credit balance.{" "}
                   <Link
@@ -277,6 +302,30 @@ function RunConfirmDialog({
                 </li>
               </ul>
             </div>
+
+            {/* Plan-first: quiet, off by default. */}
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-2.5 rounded-md border p-3 transition-colors",
+                planOnly ? "border-brand/50 bg-brand/5" : "border-border/60",
+              )}
+            >
+              <Checkbox
+                checked={planOnly}
+                className="mt-0.5"
+                onCheckedChange={(details) => setPlanOnly(details.checked === true)}
+              />
+              <span>
+                <span className="block text-sm font-medium">
+                  Review storyboard before rendering
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Generates the hook and script only, then waits for you to
+                  edit and approve it. Image, video, and voice spend happens
+                  when you render.
+                </span>
+              </span>
+            </label>
           </div>
         ) : (
           <div className="flex h-24 items-center justify-center text-muted-foreground">
@@ -288,7 +337,7 @@ function RunConfirmDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          {unaffordable ? (
+          {blockForBalance ? (
             <Button asChild>
               <Link href="/settings/billing">Add credit</Link>
             </Button>
@@ -302,6 +351,8 @@ function RunConfirmDialog({
                   <RecordingDot />
                   Working…
                 </>
+              ) : planOnly ? (
+                "Queue for review"
               ) : breakdown ? (
                 `Run for ${formatUsd(breakdown.total)}`
               ) : (

@@ -24,7 +24,7 @@ from ..auth import AuthCtx, CurrentUser
 router = APIRouter()
 
 _ALLOWED_KINDS = {"image", "video", "audio"}
-_ALLOWED_SOURCES = {"pipeline", "studio"}
+_ALLOWED_SOURCES = {"pipeline", "studio", "upload"}
 _DEFAULT_MIME = {"image": "image/png", "video": "video/mp4", "audio": "audio/mpeg"}
 
 

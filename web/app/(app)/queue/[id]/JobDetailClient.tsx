@@ -32,6 +32,7 @@ import { MetricsTab } from "./MetricsTab";
 import { RerollSceneButton } from "./RerollSceneButton";
 import { RetryButton } from "./RetryButton";
 import { RevoiceButton } from "./RevoiceButton";
+import { StoryboardPanel } from "./StoryboardPanel";
 
 const POLL_MS = 5000;
 
@@ -132,6 +133,15 @@ export function JobDetailClient({
   // we don't try to predict that here, just surface it when it happens.
   const canRevise = (job.status === "done" || job.status === "failed") && !!job.script;
 
+  // The backend added a `planned` job status for the plan-first storyboard
+  // flow (POST /jobs?plan_only=true stops here for review before any
+  // render spend). `web/lib/types.ts`'s JobStatus union is out of this
+  // team's owned-files list, so it hasn't been widened to include it —
+  // compare against the raw string rather than the typed enum so this
+  // still type-checks. See the final report for the follow-up needed on
+  // lib/types.ts and lib/status-badge.tsx.
+  const isPlanned = (job.status as string) === "planned";
+
   return (
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
@@ -148,7 +158,14 @@ export function JobDetailClient({
               Job
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <StatusBadge status={job.status} />
+              {isPlanned ? (
+                <Badge className="gap-1.5 border-brand/50 font-mono text-brand" variant="outline">
+                  <span aria-hidden className="size-2 rounded-full bg-brand" />
+                  Awaiting your review
+                </Badge>
+              ) : (
+                <StatusBadge status={job.status} />
+              )}
               <code className="font-mono text-sm tabular-nums text-muted-foreground">
                 {job.id}
               </code>
@@ -198,6 +215,18 @@ export function JobDetailClient({
         </div>
       </Reveal>
 
+      {isPlanned && (
+        <Reveal delay={0.05}>
+          <StoryboardPanel
+            jobId={job.id}
+            breakdown={breakdown}
+            onRendered={() => {
+              void mutate();
+            }}
+          />
+        </Reveal>
+      )}
+
       <Reveal delay={0.05}>
         <div className="flex flex-col gap-6 lg:flex-row">
           <Card className="lg:w-1/2">
@@ -221,14 +250,16 @@ export function JobDetailClient({
                   <div className="mb-3 flex items-center gap-2">
                     <RecordingDot />
                     <span className="text-xs font-medium uppercase tracking-[0.2em] text-brand">
-                      {job.status === "failed" ? "No render" : "Rendering"}
+                      {job.status === "failed" ? "No render" : isPlanned ? "Awaiting review" : "Rendering"}
                     </span>
                   </div>
                   <Skeleton className="aspect-[9/16] w-full rounded-md" />
                   <p className="mt-3 text-xs text-muted-foreground">
                     {job.status === "failed"
                       ? "The pipeline failed before a video was produced."
-                      : "The video appears here as soon as the pipeline finishes editing and captioning."}
+                      : isPlanned
+                        ? "Review the storyboard above, then render when you're ready."
+                        : "The video appears here as soon as the pipeline finishes editing and captioning."}
                   </p>
                 </div>
               )}

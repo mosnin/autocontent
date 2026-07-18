@@ -48,6 +48,7 @@ import {
   type MediaKind,
   type MediaSource,
 } from "@/lib/studio-client";
+import { UploadButton } from "./UploadButton";
 
 type KindFilter = "all" | "image" | "video";
 type SourceFilter = "all" | "pipeline" | "studio";
@@ -121,6 +122,9 @@ function useLibraryPages(
     hasMore,
     error,
     loadMore: () => void fetchPage(false),
+    // Re-fetches the first page under the current filter. Used after a
+    // successful upload so the new asset shows up without a full reload.
+    refresh: () => void fetchPage(true),
     removeItem: (id: string) => setItems((prev) => prev.filter((i) => i.id !== id)),
   };
 }
@@ -133,7 +137,7 @@ export function LibraryClient({ initialPage }: { initialPage: MediaAssetPage | n
   const [sourceFilter, setSourceFilter] = React.useState<SourceFilter>("all");
   const [viewing, setViewing] = React.useState<MediaAsset | null>(null);
 
-  const { items, loading, loadingMore, hasMore, error, loadMore, removeItem } =
+  const { items, loading, loadingMore, hasMore, error, loadMore, refresh, removeItem } =
     useLibraryPages(
       kindFilter === "all" ? undefined : kindFilter,
       sourceFilter === "all" ? undefined : sourceFilter,
@@ -182,11 +186,14 @@ export function LibraryClient({ initialPage }: { initialPage: MediaAssetPage | n
 
   return (
     <div className="space-y-8">
-      <div className="space-y-1.5">
-        <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
-        <p className="max-w-xl text-[15px] text-muted-foreground">
-          Every render and Content Studio result, in one place.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-1.5">
+          <h1 className="text-3xl font-semibold tracking-tight">Library</h1>
+          <p className="max-w-xl text-[15px] text-muted-foreground">
+            Every render, Content Studio result, and upload, in one place.
+          </p>
+        </div>
+        <UploadButton onUploaded={refresh} />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">

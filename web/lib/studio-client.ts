@@ -13,7 +13,7 @@ const STUDIO = "/api/v1/studio";
 const MEDIA = "/api/v1/media";
 
 export type MediaKind = "image" | "video" | "audio";
-export type MediaSource = "pipeline" | "studio";
+export type MediaSource = "pipeline" | "studio" | "upload";
 
 export interface MediaAssetMeta {
   model?: string;
@@ -78,7 +78,7 @@ export function fetchMediaAsset(id: string): Promise<MediaAsset> {
 
 async function proxyMutate<T>(
   path: string,
-  method: "POST" | "DELETE",
+  method: "POST" | "PUT" | "DELETE",
   body?: unknown,
 ): Promise<T> {
   const res = await fetch(`/api/proxy${path}`, {
@@ -100,6 +100,45 @@ async function proxyMutate<T>(
 
 export function deleteMedia(id: string): Promise<void> {
   return proxyMutate<void>(`${MEDIA}/${encodeURIComponent(id)}`, "DELETE");
+}
+
+// --- Uploads ------------------------------------------------------------
+
+const UPLOADS = "/api/v1/uploads";
+
+/** Upload a file (image/video/audio) into the media library. Uses
+ *  XMLHttpRequest (not fetch) so we can report real upload progress via
+ *  `onProgress`. Goes through the same /api/proxy passthrough as every
+ *  other write, so the Clerk JWT is attached server-side and the
+ *  multipart body (with its boundary) is forwarded byte-for-byte. */
+export function uploadMedia(
+  file: File,
+  onProgress?: (pct: number) => void,
+): Promise<MediaAsset> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api/proxy${UPLOADS}`);
+    xhr.upload.onprogress = (e) => {
+      if (onProgress && e.lengthComputable) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as MediaAsset);
+        } catch {
+          reject(new ApiError(xhr.status, "bad response"));
+        }
+      } else {
+        reject(new ApiError(xhr.status, xhr.responseText || `${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new ApiError(0, "network error"));
+    const fd = new FormData();
+    fd.append("file", file);
+    xhr.send(fd);
+  });
 }
 
 // --- Model registries -------------------------------------------------
@@ -251,6 +290,12 @@ export function humanizeStudioError(e: unknown): string {
     if (e.status === 409) {
       return extractDetail(body) ?? "That can't be done right now.";
     }
+    if (e.status === 413) {
+      return extractDetail(body) ?? "That file is too large.";
+    }
+    if (e.status === 415) {
+      return extractDetail(body) ?? "That file type isn't supported.";
+    }
     if (e.status >= 500) {
       return "Something went wrong on our end. Try again in a moment.";
     }
@@ -312,4 +357,57 @@ export function revoiceJob(jobId: string, voice: string): Promise<Job> {
   return proxyMutate<Job>(`/api/v1/jobs/${encodeURIComponent(jobId)}/revoice`, "POST", {
     voice,
   });
+}
+
+// --- Plan-first storyboard (queue job detail, "planned" status) --------
+// Mirrors JobPlan/ScenePlanView/PlanUpdateBody in backend/routes/jobs.py.
+
+export interface ScenePlan {
+  index: number;
+  narration: string;
+  visual_prompt: string;
+  motion_prompt: string;
+  duration_sec: number;
+}
+
+export interface JobPlan {
+  job_id: string;
+  status: string;
+  hook: string;
+  topic: string;
+  voice: string;
+  scenes: ScenePlan[];
+  total_duration_sec: number;
+  cta: string | null;
+}
+
+export interface ScenePlanEditInput {
+  index: number;
+  narration: string;
+  visual_prompt: string;
+  motion_prompt: string;
+}
+
+/** SWR key for a job's editable storyboard. */
+export function jobPlanKey(jobId: string): string {
+  return `/api/v1/jobs/${encodeURIComponent(jobId)}/plan`;
+}
+
+/** Persist storyboard edits. Only valid while the job is `planned`; the
+ *  full set of original scene indices must be submitted exactly once
+ *  each. 409 = job isn't planned (or has no script); 422 = scene count
+ *  mismatch or an empty field after trimming. */
+export function updateJobPlan(
+  jobId: string,
+  scenes: ScenePlanEditInput[],
+): Promise<JobPlan> {
+  return proxyMutate<JobPlan>(jobPlanKey(jobId), "PUT", { scenes });
+}
+
+/** Continue a `planned` job into rendering using the (possibly edited)
+ *  persisted script. Returns the job (202); its status flips off
+ *  `planned` almost immediately as the Modal run picks it up. 409 = the
+ *  job isn't `planned` (e.g. a double click already claimed it). */
+export function renderJob(jobId: string): Promise<Job> {
+  return proxyMutate<Job>(`/api/v1/jobs/${encodeURIComponent(jobId)}/render`, "POST");
 }

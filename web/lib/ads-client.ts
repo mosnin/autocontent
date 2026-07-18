@@ -87,6 +87,60 @@ export interface AdCreative {
   updated_at: string;
 }
 
+// --- Ads experiments (creative A/B tests + governed budget ramps) ------
+// Manual TS mirrors of src/marketer/repos/ad_experiments.py's AdExperiment
+// / AdExperimentArm and backend/routes/experiments.py's response shapes.
+
+export type ExperimentKind = "creative_ab" | "budget_ramp";
+export type ExperimentStatus = "draft" | "running" | "completed" | "cancelled";
+
+export interface CreativeAbConfig {
+  creative_ids: string[];
+  window_days: number;
+}
+
+export interface BudgetRampConfig {
+  target_daily_usd: string;
+  step_pct: string;
+  interval_days: number;
+}
+
+export interface AdExperiment {
+  id: string;
+  user_id: string;
+  campaign_id: string;
+  kind: string; // ExperimentKind on the wire; kept loose like AdCampaign.status
+  status: string; // ExperimentStatus
+  config: Partial<CreativeAbConfig & BudgetRampConfig> & Record<string, unknown>;
+  result: Record<string, unknown>;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export interface AdExperimentArm {
+  id: string;
+  experiment_id: string;
+  creative_id: string | null;
+  label: string;
+  metrics: {
+    impressions?: number;
+    clicks?: number;
+    spend_usd?: string;
+    conversions?: string;
+    revenue_usd?: string;
+    days_attributed?: number;
+    [key: string]: unknown;
+  };
+  is_winner: boolean;
+  created_at: string;
+}
+
+export interface AdExperimentDetail {
+  experiment: AdExperiment;
+  arms: AdExperimentArm[];
+}
+
 export const adsKeys = {
   overview: () => `${ADS}/overview`,
   accounts: () => `${ADS}/accounts`,
@@ -97,6 +151,9 @@ export const adsKeys = {
     `${ADS}/approvals${status ? `?status_filter=${status}` : ""}`,
   actions: () => `${ADS}/actions`,
   creatives: (campaignId: string) => `${ADS}/campaigns/${campaignId}/creatives`,
+  experiments: (campaignId?: string) =>
+    `${ADS}/experiments${campaignId ? `?campaign_id=${campaignId}` : ""}`,
+  experiment: (id: string) => `${ADS}/experiments/${id}`,
 };
 
 async function proxy<T>(
@@ -190,4 +247,40 @@ export function generateCreatives(
   count = 3,
 ): Promise<AdCreative[]> {
   return proxy("POST", `${ADS}/campaigns/${campaignId}/creatives`, { count });
+}
+
+/** Create a DRAFT experiment. No spend happens until start()/advance().
+ *  Rejects with a 422 message on a bad config shape (wrong creative count,
+ *  step_pct over the 20% cap, etc) or 404 when the campaign (or a
+ *  referenced creative) isn't found. */
+export function createExperiment(body: {
+  campaign_id: string;
+  kind: ExperimentKind;
+  config: CreativeAbConfig | BudgetRampConfig;
+}): Promise<AdExperiment> {
+  return proxy("POST", `${ADS}/experiments`, body);
+}
+
+/** Move a draft experiment to running. Requires the campaign to be active. */
+export function startExperiment(id: string): Promise<AdExperiment> {
+  return proxy("POST", `${ADS}/experiments/${id}/start`);
+}
+
+/** Budget ramps only: compute + submit the next step through the governed
+ *  safe-execute layer. Idempotent — safe to call repeatedly, including
+ *  while a previous step awaits approval. Rejects with a 402 message when
+ *  the spend guard refuses the step. */
+export function advanceExperiment(id: string): Promise<AdExperiment> {
+  return proxy("POST", `${ADS}/experiments/${id}/advance`);
+}
+
+/** Creative A/B only: attribute newly-synced metrics and pick a winner once
+ *  the minimum window is met. Idempotent — safe to call repeatedly. */
+export function evaluateExperiment(id: string): Promise<AdExperiment> {
+  return proxy("POST", `${ADS}/experiments/${id}/evaluate`);
+}
+
+/** Cancel an experiment. Idempotent on an already-finished one. */
+export function cancelExperiment(id: string): Promise<AdExperiment> {
+  return proxy("POST", `${ADS}/experiments/${id}/cancel`);
 }

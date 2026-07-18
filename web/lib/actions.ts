@@ -212,18 +212,22 @@ export async function updateNicheAction(
 }
 
 export async function enqueueJobAction(
-  _prev: ActionState,
+  _prev: ActionState & { jobId?: string },
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState & { jobId?: string }> {
   const niche_id = String(formData.get("niche_id"));
   const platform = String(formData.get("platform")) as Platform;
+  // Plan-first: stop at `planned` (ideation + script only, zero
+  // image/video/TTS spend) for the operator to review before rendering.
+  const plan_only = formData.get("plan_only") === "on";
   if (!niche_id || !platform) {
     return { ok: false, error: "niche_id and platform required" };
   }
+  let job: Job;
   try {
-    await api<Job>("/api/v1/jobs", {
+    job = await api<Job>("/api/v1/jobs", {
       method: "POST",
-      body: JSON.stringify({ niche_id, platform }),
+      body: JSON.stringify({ niche_id, platform, ...(plan_only ? { plan_only: true } : {}) }),
     });
   } catch (e) {
     return { ok: false, error: errorMessage(e) };
@@ -233,7 +237,7 @@ export async function enqueueJobAction(
   // A new job also changes the niche's recent-jobs table + the niches list.
   revalidatePath("/niches/[id]", "page");
   revalidatePath("/niches");
-  return { ok: true };
+  return { ok: true, jobId: job.id };
 }
 
 export async function approveJobAction(
