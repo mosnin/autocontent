@@ -27,6 +27,12 @@ export default async function AdsOverviewPage() {
   }
 
   const hasAccounts = (ov?.accounts ?? 0) > 0;
+  const noSpendSynced =
+    hasAccounts &&
+    ov !== null &&
+    Number(ov.spend_today_usd) === 0 &&
+    Number(ov.spend_30d_usd) === 0 &&
+    ov.campaigns > 0;
 
   return (
     <div className="space-y-8">
@@ -82,6 +88,17 @@ export default async function AdsOverviewPage() {
         </div>
       ) : (
         <ConnectCallout />
+      )}
+
+      {noSpendSynced && (
+        <p className="text-sm text-muted-foreground">
+          Metrics sync hourly from connected accounts. Nothing has synced
+          yet, so spend reads zero rather than reflecting real activity.{" "}
+          <Link href="/ads/insights" className="underline underline-offset-4">
+            See insights
+          </Link>
+          .
+        </p>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

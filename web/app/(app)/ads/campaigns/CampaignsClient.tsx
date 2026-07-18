@@ -5,7 +5,7 @@ import Link from "next/link";
 import useSWR from "swr";
 import { Megaphone, Plus } from "lucide-react";
 
-import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -19,22 +19,12 @@ import {
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { adsKeys, type AdCampaign } from "@/lib/ads-client";
-import { adStatusLabel, objectiveLabel } from "@/lib/ads-format";
+import { adStatusLabel, adStatusVariant, objectiveLabel } from "@/lib/ads-format";
 
-export function statusVariant(status: string): BadgeVariant {
-  switch (status) {
-    case "active":
-      return "success";
-    case "paused":
-      return "warning";
-    case "failed":
-      return "destructive";
-    case "draft":
-      return "secondary";
-    default:
-      return "outline";
-  }
-}
+// Re-exported for existing client-side consumers (e.g. CampaignDetailClient).
+// The canonical definition lives in ads-format.ts, a plain module safe to
+// import from server components too (insights/page.tsx uses it directly).
+export const statusVariant = adStatusVariant;
 
 export function CampaignsClient({
   initial,

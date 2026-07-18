@@ -72,6 +72,21 @@ export interface AdMetricsDaily {
   revenue_usd: string;
 }
 
+export interface AdCreative {
+  id: string;
+  user_id: string;
+  campaign_id: string | null;
+  external_id: string;
+  kind: string;
+  headline: string;
+  body: string;
+  media_path: string;
+  cta: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const adsKeys = {
   overview: () => `${ADS}/overview`,
   accounts: () => `${ADS}/accounts`,
@@ -81,6 +96,7 @@ export const adsKeys = {
   approvals: (status?: string) =>
     `${ADS}/approvals${status ? `?status_filter=${status}` : ""}`,
   actions: () => `${ADS}/actions`,
+  creatives: (campaignId: string) => `${ADS}/campaigns/${campaignId}/creatives`,
 };
 
 async function proxy<T>(
@@ -163,4 +179,15 @@ export function changeCampaignStatus(
   status: "active" | "paused" | "ended",
 ): Promise<AdCampaign> {
   return proxy("POST", `${ADS}/campaigns/${id}/status`, { status });
+}
+
+/** Generate n ad-copy variants for a campaign via the LLM copywriter and
+ *  persist them. Rejects with a 409 message when Ads/Composio isn't enabled
+ *  (still applies here since the same feature gate covers the account) and
+ *  a 502 message when the LLM call itself fails. */
+export function generateCreatives(
+  campaignId: string,
+  count = 3,
+): Promise<AdCreative[]> {
+  return proxy("POST", `${ADS}/campaigns/${campaignId}/creatives`, { count });
 }

@@ -4,7 +4,16 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowLeft, Pause, Play, Square } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckSquare,
+  Link2,
+  Pause,
+  Play,
+  ScrollText,
+  Sparkles,
+  Square,
+} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,11 +26,18 @@ import {
   adsKeys,
   changeBudget,
   changeCampaignStatus,
+  generateCreatives,
   type AdCampaign,
+  type AdCreative,
   type AdMetricsDaily,
 } from "@/lib/ads-client";
-import { statusVariant } from "../CampaignsClient";
-import { adStatusLabel, objectiveLabel } from "@/lib/ads-format";
+import {
+  adStatusLabel,
+  adStatusVariant as statusVariant,
+  describeAdsError,
+  objectiveLabel,
+} from "@/lib/ads-format";
+import { CreativeCard } from "../../creatives/CreativeCard";
 
 interface Detail {
   campaign: AdCampaign;
@@ -41,6 +57,12 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     campaign.daily_budget_usd ?? "",
   );
   const [busy, setBusy] = React.useState<string | null>(null);
+
+  const { data: creatives, mutate: mutateCreatives } = useSWR<AdCreative[]>(
+    adsKeys.creatives(id),
+    clientFetch,
+  );
+  const [generating, setGenerating] = React.useState(false);
 
   const totals = metrics.reduce(
     (acc, m) => ({
@@ -86,6 +108,21 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     }
   }
 
+  async function onGenerateCreatives() {
+    setGenerating(true);
+    try {
+      const created = await generateCreatives(id, 3);
+      toast.success(
+        `${created.length} creative${created.length === 1 ? "" : "s"} generated`,
+      );
+      void mutateCreatives();
+    } catch (err) {
+      toast.error(describeAdsError(err));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Link
@@ -105,10 +142,34 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
             <Badge variant={statusVariant(campaign.status)}>
               {adStatusLabel(campaign.status)}
             </Badge>
+            {campaign.external_campaign_id ? (
+              <Badge variant="success">
+                <Link2 className="size-3" aria-hidden />
+                Linked on platform
+              </Badge>
+            ) : (
+              <Badge variant="secondary">Draft, not yet on platform</Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {campaign.objective ? objectiveLabel(campaign.objective) : "no objective"}
           </p>
+          <div className="flex items-center gap-3 text-xs">
+            <Link
+              href="/ads/approvals"
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <CheckSquare className="size-3" aria-hidden />
+              Approvals
+            </Link>
+            <Link
+              href="/ads/activity"
+              className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <ScrollText className="size-3" aria-hidden />
+              Activity log
+            </Link>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {campaign.status !== "active" && campaign.status !== "ended" && (
@@ -191,6 +252,48 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
           </form>
         </CardContent>
       </Card>
+
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Creatives</h2>
+            <p className="text-sm text-muted-foreground">
+              Ad copy variants generated for this campaign.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onGenerateCreatives}
+              disabled={generating}
+              isLoading={generating}
+            >
+              <Sparkles className="size-3.5" aria-hidden />
+              Generate 3
+            </Button>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/ads/creatives">Open studio</Link>
+            </Button>
+          </div>
+        </div>
+
+        {creatives && creatives.length > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {creatives.map((cr) => (
+              <CreativeCard key={cr.id} creative={cr} />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+              <p className="text-sm text-muted-foreground">
+                No creatives yet. Generate some ad copy for this campaign.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
