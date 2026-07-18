@@ -102,6 +102,21 @@ async def finish_scheduling(user_id: str, job_id: str) -> dict:
 
 
 @app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 15,
+)
+async def render_composition(user_id: str, composition_id: str) -> dict:
+    """Render a library composition (remix of existing clips) to a new
+    video. Spawned by `POST /api/v1/library/compositions`."""
+    from uuid import UUID
+    from marketer.services.compose import render_composition as _render
+
+    comp = await _render(user_id=user_id, composition_id=UUID(composition_id))
+    artifacts.commit()
+    return comp.model_dump(mode="json")
+
+
+@app.function(
     volumes={"/assets": assets},
     timeout=60 * 5,
 )

@@ -97,8 +97,19 @@ def _resolve_dims(aspect: str) -> tuple[int, int]:
         raise ValueError(f"unsupported aspect {aspect!r}") from e
 
 
-def concat_clips(clip_paths: list[Path], out_path: Path, aspect: str = "9:16") -> Path:
-    """Scale+pad every input to `aspect` and concat into one silent mp4."""
+def concat_clips(
+    clip_paths: list[Path],
+    out_path: Path,
+    aspect: str = "9:16",
+    *,
+    keep_audio: bool = False,
+) -> Path:
+    """Scale+pad every input to `aspect` and concat into one mp4.
+
+    Default is a silent concat (the pipeline mixes VO/music later).
+    `keep_audio=True` interleaves the inputs' audio too — used by library
+    compositions when every source clip carries an audio stream.
+    """
     if not clip_paths:
         raise ValueError("concat_clips requires at least one clip")
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -115,15 +126,23 @@ def concat_clips(clip_paths: list[Path], out_path: Path, aspect: str = "9:16") -
             f"[{i}:v]scale={w}:{h}:force_original_aspect_ratio=decrease,"
             f"pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,setsar=1[v{i}]"
         )
-    concat_inputs = "".join(f"[v{i}]" for i in range(n))
-    chains.append(f"{concat_inputs}concat=n={n}:v=1:a=0[out]")
+    if keep_audio:
+        pair_inputs = "".join(f"[v{i}][{i}:a]" for i in range(n))
+        chains.append(f"{pair_inputs}concat=n={n}:v=1:a=1[out][aout]")
+        maps = ["-map", "[out]", "-map", "[aout]"]
+        audio_args = ["-c:a", "aac", "-b:a", "192k"]
+    else:
+        concat_inputs = "".join(f"[v{i}]" for i in range(n))
+        chains.append(f"{concat_inputs}concat=n={n}:v=1:a=0[out]")
+        maps = ["-map", "[out]"]
+        audio_args = ["-an"]
     filter_complex = ";".join(chains)
 
     _ffmpeg([
         *inputs,
         "-filter_complex", filter_complex,
-        "-map", "[out]",
-        "-an",
+        *maps,
+        *audio_args,
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",

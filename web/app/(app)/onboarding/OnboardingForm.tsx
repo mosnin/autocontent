@@ -12,6 +12,8 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFormContext } from "react-hook-form";
+
+import { StylePresetPicker } from "@/components/style-preset-picker";
 import { Loader2, Play, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -482,6 +484,7 @@ function HashtagsFieldInner({
 }
 
 function StepCreative() {
+  const form = useFormContext<Values>();
   const watch = useFormWatch();
   const breakdown = estimateVideoCostUsd({
     scene_count: Number(watch.scene_count) || 1,
@@ -517,6 +520,16 @@ function StepCreative() {
                 </button>
               ))}
             </div>
+            <StylePresetPicker
+              className="pt-2"
+              onApply={(preset) => {
+                field.onChange(preset.visual_style);
+                const current = form.getValues("character_description");
+                if (!current && preset.character_suggestion) {
+                  form.setValue("character_description", preset.character_suggestion);
+                }
+              }}
+            />
             <FormMessage />
           </FormItem>
         )}

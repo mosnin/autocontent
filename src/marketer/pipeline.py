@@ -34,6 +34,7 @@ from .repos import jobs as jobs_repo
 from .repos import niches as niches_repo
 from .repos import spend as spend_repo
 from .services import email as email_svc
+from .services import media_archive
 from .services import (
     character_sheet,
     ffmpeg,
@@ -528,7 +529,13 @@ async def _run_job_inner(
                 job, "content QA failed: " + "; ".join(report.issues)
             )
 
-    # 9. Approval gate — the trust ramp. When the niche requires sign-off,
+    # 9. Archive — mirror clips/keyframes/VO/final into the media library
+    # (Wasabi when configured, volume-indexed otherwise). Fail-open: a
+    # storage hiccup never fails a QA-passed video.
+    with _stage("archiving"):
+        await media_archive.archive_job_media(job, niche)
+
+    # 10. Approval gate — the trust ramp. When the niche requires sign-off,
     # a fully rendered + QA-passed video parks here instead of posting.
     # The operator approves via the API, which resumes at the scheduling
     # stage through `schedule_approved_job`.
@@ -540,7 +547,7 @@ async def _run_job_inner(
         await _emit_webhook(job, "job.awaiting_approval")
         return job
 
-    # 10. Schedule via Ayrshare (per-user profile)
+    # 11. Schedule via Ayrshare (per-user profile)
     return await _schedule_stage(job, niche)
 
 

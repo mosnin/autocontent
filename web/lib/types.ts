@@ -252,3 +252,46 @@ export interface TokenCreateResponse {
   token: string;
   info: PersonalAccessToken;
 }
+
+// ---------------------------------------------------------------- media library
+
+export type MediaKind = "clip" | "keyframe" | "voiceover" | "final" | "composition";
+
+export interface MediaAsset {
+  id: string;
+  user_id: string;
+  niche_id: string | null;
+  job_id: string | null;
+  kind: MediaKind;
+  scene_index: number | null;
+  storage: "wasabi" | "volume";
+  object_key: string;
+  content_type: string;
+  size_bytes: number;
+  duration_sec: string | null;
+  title: string;
+  created_at: string;
+}
+
+export interface Composition {
+  id: string;
+  user_id: string;
+  title: string;
+  clip_asset_ids: string[];
+  audio_mode: "keep" | "mute";
+  status: "queued" | "rendering" | "done" | "failed";
+  output_asset_id: string | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StylePreset {
+  id: string;
+  name: string;
+  tagline: string;
+  visual_style: string;
+  character_suggestion: string;
+  reference_video_url: string | null;
+  swatch: string;
+}
