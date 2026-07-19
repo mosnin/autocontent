@@ -40,7 +40,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HubHeading, Rise, hubCardClass } from "@/components/hub/primitives";
+import {
+  BannerCard,
+  DashHeading,
+  DashPanel,
+  DashRise,
+} from "@/components/hub/dashboard-kit";
+import { hubCardClass } from "@/components/hub/primitives";
 import { cn } from "@/lib/utils";
 import { createArticleAction, retryArticleAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
@@ -150,29 +156,92 @@ export function ArticlesClient({
   }
 
   return (
-    <div className="space-y-6">
-      <Rise>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <HubHeading as="h1">Articles</HubHeading>
-            <p className="mt-1.5 text-sm text-muted-foreground">
-              SEO-optimized written content. Updates every {POLL_MS / 1000}s.
-            </p>
-          </div>
+    <div className="space-y-10">
+      <DashHeading
+        as="h1"
+        sub={`SEO-optimized written content — updates every ${POLL_MS / 1000}s.`}
+      >
+        Bring any keyword to page one
+      </DashHeading>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <DashRise delay={0.08}>
+          <BannerCard
+            href="#articles"
+            media={
+              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
+                {[
+                  "Pick the niche",
+                  "Pipeline researches & outlines",
+                  "Writes, QAs, publishes",
+                ].map((step, i) => (
+                  <div
+                    className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px]"
+                    key={step}
+                  >
+                    <span className="flex size-5 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-semibold text-white">
+                      {i + 1}
+                    </span>
+                    <span className="font-medium">{step}</span>
+                  </div>
+                ))}
+              </div>
+            }
+            tagline="From topic to published draft, hands-off"
+            title="New article"
+          />
+        </DashRise>
+        <DashRise delay={0.16}>
+          <BannerCard
+            badge="SERP"
+            href="/resources/guides/seo-articles"
+            media={
+              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
+                {[
+                  { kw: "best budget espresso machines", pos: "#3", delta: "up 4" },
+                  { kw: "espresso grinder guide", pos: "#7", delta: "up 2" },
+                  { kw: "latte art at home", pos: "#12", delta: "new" },
+                ].map((row) => (
+                  <div
+                    className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px]"
+                    key={row.kw}
+                  >
+                    <span className="truncate font-medium">{row.kw}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <span className="rounded-full bg-zinc-900/5 px-2 py-0.5 font-mono text-[11px] tabular-nums">
+                        {row.pos}
+                      </span>
+                      <span className="text-[11px] font-medium text-emerald-600">
+                        {row.delta}
+                      </span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            }
+            tagline="Where your pieces land, and why"
+            title="SERP research"
+          />
+        </DashRise>
+      </div>
+
+      <section className="scroll-mt-24" id="articles">
+      <DashPanel
+        actions={
           <Button onClick={() => setNewOpen(true)}>
             <Plus className="h-4 w-4" aria-hidden="true" />
             New article
           </Button>
-        </div>
-      </Rise>
-
+        }
+        delay={0.1}
+        title="All articles"
+      >
       {error && (
-        <p className="text-sm text-muted-foreground">
+        <p className="mb-4 text-sm text-muted-foreground">
           Live updates paused — {error.message ?? "fetch failed"}
         </p>
       )}
 
-      <Rise delay={0.08}>
       <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
         <ScrollArea>
           <TabsList className="w-max">
@@ -243,7 +312,8 @@ export function ArticlesClient({
           )}
         </TabsContent>
       </Tabs>
-      </Rise>
+      </DashPanel>
+      </section>
 
       <NewArticleDialog
         open={newOpen}
