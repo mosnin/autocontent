@@ -90,23 +90,60 @@ def _roas(campaign_metrics: list) -> Decimal | None:
 
 
 def recommend_daily_budget(
-    campaign: AdCampaign, campaign_metrics: list, *, target_roas: Decimal = Decimal("2")
+    campaign: AdCampaign,
+    campaign_metrics: list,
+    *,
+    target_roas: Decimal = Decimal("2"),
+    scale_up_pct: Decimal = Decimal("20"),
+    scale_down_pct: Decimal = Decimal("20"),
+    max_daily_budget_usd: Decimal | None = None,
 ) -> Decimal | None:
-    """A simple, transparent policy: scale a strong performer up 20% and a weak
-    one down 20%, bounded. Returns the recommended new daily budget, or None
+    """A simple, transparent policy: scale a strong performer up and a weak
+    one down, bounded. Returns the recommended new daily budget, or None
     when there's not enough signal or no change is warranted. The recommendation
-    is only ever a PROPOSAL — the guard + approval gate decide if it happens."""
+    is only ever a PROPOSAL — the guard + approval gate decide if it happens.
+
+    The knobs come from the user's ad kit (their scaling strategy); the
+    kit can only shape *proposals* — the fail-closed spend guard still
+    rules every execution."""
     roas = _roas(campaign_metrics)
     current = campaign.daily_budget_usd
     if roas is None or current is None or current <= 0:
         return None
     if roas >= target_roas:
-        proposed = (current * Decimal("1.2")).quantize(Decimal("0.01"))
+        factor = Decimal("1") + (scale_up_pct / Decimal("100"))
+        proposed = (current * factor).quantize(Decimal("0.01"))
     elif roas < target_roas / 2:
-        proposed = (current * Decimal("0.8")).quantize(Decimal("0.01"))
+        factor = Decimal("1") - (scale_down_pct / Decimal("100"))
+        proposed = (current * factor).quantize(Decimal("0.01"))
     else:
         return None
+    if max_daily_budget_usd is not None and proposed > max_daily_budget_usd:
+        proposed = max_daily_budget_usd
+    if proposed <= 0:
+        return None
     return proposed if proposed != current else None
+
+
+def _kit_knobs(rules: dict) -> dict:
+    """Extract the scaling knobs an ad kit may define. Unknown keys are
+    ignored; bad values fall back to defaults rather than breaking runs."""
+    def _dec(key: str, default=None):
+        try:
+            return Decimal(str(rules[key])) if key in rules else default
+        except Exception:  # noqa: BLE001
+            return default
+
+    knobs: dict = {}
+    if _dec("target_roas") is not None:
+        knobs["target_roas"] = _dec("target_roas")
+    if _dec("scale_up_pct") is not None:
+        knobs["scale_up_pct"] = _dec("scale_up_pct")
+    if _dec("scale_down_pct") is not None:
+        knobs["scale_down_pct"] = _dec("scale_down_pct")
+    if _dec("max_daily_budget_usd") is not None:
+        knobs["max_daily_budget_usd"] = _dec("max_daily_budget_usd")
+    return knobs
 
 
 async def optimize_campaign(
@@ -129,9 +166,17 @@ async def optimize_campaign(
         for m in await ads_repo.campaign_metrics(campaign_id, user_id=user_id)
         if m.date >= cutoff
     ]
-    recommended = recommend_daily_budget(
-        campaign, metrics, target_roas=target_roas
-    )
+    # The user's ad kit (their scaling strategy) shapes the proposal.
+    knobs: dict = {"target_roas": target_roas}
+    try:
+        from ..repos import kits as kits_repo
+
+        kit = await kits_repo.resolve(user_id=user_id, kind="ad", kit_id=None)
+        if kit is not None:
+            knobs.update(_kit_knobs(kit.rules))
+    except Exception:  # noqa: BLE001 — kit lookup must never block optimization
+        pass
+    recommended = recommend_daily_budget(campaign, metrics, **knobs)
     if recommended is None:
         return {"status": "no_change"}
     try:

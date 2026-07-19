@@ -106,6 +106,15 @@ class Settings(BaseSettings):
     inngest_event_key: str = ""
     inngest_dev: bool = False
 
+    # --- Pluggable providers ------------------------------------------
+    # Fal-hosted image-to-video models (per-niche alternative to Grok
+    # Imagine). Empty key = provider unavailable; niches selecting it
+    # fail with a clear error instead of silently falling back.
+    fal_api_key: str = ""
+    # OpenRouter (per-niche scriptwriter model choice). Empty = the stock
+    # OpenAI agent_model writes every script.
+    openrouter_api_key: str = ""
+
     # --- Wasabi S3 object storage (media library) ---------------------
     # Durable, S3-compatible home for every produced media artifact (scene
     # clips, keyframes, voiceovers, final videos). Off by default: without

@@ -35,6 +35,11 @@ interface NicheCreatePayload {
   character_description: string | null;
   approve_before_post: boolean;
   creative_brief?: CreativeBrief;
+  video_provider?: "grok" | "fal";
+  fal_model?: string;
+  script_model?: string;
+  design_kit_id?: string | null;
+  writing_kit_id?: string | null;
 }
 
 function splitCsv(raw: string | null): string[] {
@@ -42,6 +47,23 @@ function splitCsv(raw: string | null): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** Provider + kit selections (present only when the form renders them,
+ *  so onboarding submissions leave existing values untouched). */
+function providerFieldsFromForm(formData: FormData): Partial<NicheCreatePayload> {
+  if (formData.get("providers_present") !== "1") return {};
+  const videoChoice = String(formData.get("video_model_choice") || "grok:");
+  const [provider, ...rest] = videoChoice.split(":");
+  const designKit = String(formData.get("design_kit_id") || "");
+  const writingKit = String(formData.get("writing_kit_id") || "");
+  return {
+    video_provider: provider === "fal" ? "fal" : "grok",
+    fal_model: provider === "fal" ? rest.join(":") : "",
+    script_model: String(formData.get("script_model") || ""),
+    design_kit_id: designKit || null,
+    writing_kit_id: writingKit || null,
+  };
 }
 
 /** Assemble a CreativeBrief from the edit form's brief_* fields. Returns
@@ -167,6 +189,7 @@ export async function createNicheAction(
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
     character_description: characterRaw ? characterRaw : null,
     creative_brief: briefFromForm(formData),
+    ...providerFieldsFromForm(formData),
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 
@@ -223,6 +246,7 @@ export async function updateNicheAction(
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
     character_description: characterRaw ? characterRaw : null,
     creative_brief: briefFromForm(formData),
+    ...providerFieldsFromForm(formData),
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 

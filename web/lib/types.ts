@@ -31,6 +31,11 @@ export interface Niche {
   tts_style_directions: string | null;
   character_description: string | null;
   creative_brief: CreativeBrief;
+  video_provider: "grok" | "fal";
+  fal_model: string;
+  script_model: string;
+  design_kit_id: string | null;
+  writing_kit_id: string | null;
   posting_windows: PostingWindow[];
   platforms: Platform[];
   daily_spend_cap_usd: string;
@@ -350,3 +355,38 @@ export const HOOK_MECHANISMS = [
   "bold_result",
   "myth_bust",
 ] as const;
+
+// ---------------------------------------------------------------- providers & kits
+
+export interface VideoModelOption {
+  provider: "grok" | "fal";
+  model_id: string;
+  name: string;
+  tagline: string;
+  usd_per_second: string;
+  available: boolean;
+}
+
+export interface ScriptModelOption {
+  model_id: string;
+  name: string;
+  tagline: string;
+  usd_per_m_input: string;
+  usd_per_m_output: string;
+  available: boolean;
+}
+
+export type KitKind = "design" | "ad" | "writing";
+
+export interface Kit {
+  id: string;
+  user_id: string;
+  kind: KitKind;
+  name: string;
+  description: string;
+  content: string;
+  rules: Record<string, unknown>;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}

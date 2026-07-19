@@ -136,6 +136,18 @@ class Niche(BaseModel):
     scene_max_duration_sec: int = Field(default=5, ge=1, le=15)
     tts_style_directions: str | None = None
 
+    # Animation backend: 'grok' (default) or 'fal' + a model id from the
+    # curated fal registry. Scriptwriter LLM: OpenRouter model id, empty
+    # = stock agent_model.
+    video_provider: Literal["grok", "fal"] = "grok"
+    fal_model: str = ""
+    script_model: str = ""
+
+    # Kits: reusable user-level skills injected at runtime. None = the
+    # user's default kit of that kind (or nothing).
+    design_kit_id: UUID | None = None
+    writing_kit_id: UUID | None = None
+
     posting_windows: list[PostingWindow]
     platforms: list[Literal["tiktok", "reels", "shorts"]]
     daily_spend_cap_usd: Decimal
@@ -219,6 +231,11 @@ class NicheCreatePayload(BaseModel):
     tts_style_directions: str | None = None
     character_description: str | None = None
     creative_brief: CreativeBrief | None = None
+    video_provider: Literal["grok", "fal"] = "grok"
+    fal_model: str = ""
+    script_model: str = ""
+    design_kit_id: UUID | None = None
+    writing_kit_id: UUID | None = None
 
 
 class TodaySpend(BaseModel):
@@ -248,6 +265,29 @@ class AyrshareConnectResponse(BaseModel):
 class AyrshareConnectStatus(BaseModel):
     connected: bool
     profile_key: str | None = None
+
+
+class Kit(BaseModel):
+    """A user-level reusable skill injected into agent runtimes.
+
+    kind='design'  -> video direction (scriptwriter + visual director)
+    kind='writing' -> article pipeline voice/style
+    kind='ad'      -> ads optimization proposer (propose-only; the
+                      fail-closed spend guard is never relaxed by a kit)
+    """
+
+    id: UUID
+    user_id: str
+    kind: Literal["design", "ad", "writing"]
+    name: str
+    description: str = ""
+    # The skill itself: instructions the agent receives verbatim.
+    content: str = ""
+    # Structured knobs (ad kits: e.g. {"target_roas": 2.5, "max_cpa_usd": 30}).
+    rules: dict = Field(default_factory=dict)
+    is_default: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class MediaAsset(BaseModel):

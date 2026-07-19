@@ -12,9 +12,22 @@ from ..models import Script
 
 VISUAL_DIRECTOR_INSTRUCTIONS = """You are a visual director.
 Input is JSON: {"style": "<style brief>", "character": "<canonical cast or empty>",
-"script": <Script>, "creative_brief": <optional constraints>}.
+"script": <Script>, "creative_brief": <optional constraints>,
+"design_kit": <optional direction system>}.
+
+When `design_kit` is present it is the creator's personal direction
+system — shot grammar, transitions, framing habits, signature touches.
+Apply it to every scene as if the creator were directing over your
+shoulder. On conflict: design_kit > creative_brief > these defaults.
 
 When `creative_brief` is present, obey every key it contains:
+- `cast_mode: "none"`: this video has NO characters at all. Never
+  introduce a person, mascot, or creature. Instead, pick the video's
+  SUBJECT (the object/environment the idea is about — e.g. "a single
+  white paper airplane with a creased left wing") and repeat that exact
+  subject description verbatim in every scene so the subject stays
+  identical across shots. Continuity lives in the subject, light, and
+  palette, not a cast.
 - `camera_language`: the ONLY camera moves allowed in motion_prompts.
 - `lighting` / `color_palette`: bake into every visual_prompt verbatim.
 - `never_show`: hard bans — rewrite any scene that would show one.

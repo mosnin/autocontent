@@ -71,6 +71,11 @@ class NicheCreate(BaseModel):
     approve_before_post: bool = False
     character_description: str | None = None
     creative_brief: CreativeBrief | None = None
+    video_provider: Literal["grok", "fal"] = "grok"
+    fal_model: str = ""
+    script_model: str = ""
+    design_kit_id: UUID | None = None
+    writing_kit_id: UUID | None = None
 
 
 class NicheUpdate(BaseModel):
@@ -99,6 +104,11 @@ class NicheUpdate(BaseModel):
     approve_before_post: bool | None = None
     character_description: str | None = None
     creative_brief: CreativeBrief | None = None
+    video_provider: Literal["grok", "fal"] | None = None
+    fal_model: str | None = None
+    script_model: str | None = None
+    design_kit_id: UUID | None = None
+    writing_kit_id: UUID | None = None
 
 
 @router.get("", response_model=list[Niche])

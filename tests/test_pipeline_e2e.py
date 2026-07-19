@@ -149,11 +149,11 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style, character_description="", brief=None, spend=None):
+    async def fake_visual_director(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
@@ -599,7 +599,8 @@ async def test_qa_regenerate_script_retries_once_then_succeeds(monkeypatch, stub
     script_calls = {"n": 0}
 
     async def counting_scriptwriter(idea, *, scene_count, target_duration_sec,
-                                    audience_context="", brief=None, spend=None):
+                                    audience_context="", brief=None,
+                                    script_model="", spend=None):
         script_calls["n"] += 1
         return _make_script()
 
@@ -795,3 +796,77 @@ async def test_creative_brief_music_mood_overrides_query(monkeypatch, stub_all):
     )
     assert job.status == JobStatus.done
     assert seen["query"] == "lofi calm"  # not the niche title
+
+
+# --------------------------------------------------------------------------- providers + subject mode
+
+async def test_subject_mode_skips_character_sheet(monkeypatch, stub_all):
+    """cast_mode='none' -> no character sheet call, keyframes get no
+    reference image."""
+    from marketer.models import CreativeBrief
+
+    brief = CreativeBrief.model_validate({"visual": {"cast_mode": "none"}})
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"creative_brief": brief}
+    )
+
+    sheet = {"called": False}
+
+    async def fake_sheet(niche, *, quality, spend):
+        sheet["called"] = True
+        raise AssertionError("character sheet must not be generated")
+
+    monkeypatch.setattr(pipeline.character_sheet, "get_or_create", fake_sheet)
+
+    refs = []
+
+    async def fake_keyframe(prompt, out_path, *, quality,
+                            reference_image_path=None, spend=None):
+        refs.append(reference_image_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"PNG")
+        return out_path
+
+    monkeypatch.setattr(pipeline.openai_images, "generate_keyframe", fake_keyframe)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert sheet["called"] is False
+    assert refs and all(r is None for r in refs)
+
+
+async def test_fal_provider_dispatches_to_fal(monkeypatch, stub_all):
+    """video_provider='fal' + model -> fal_video.animate renders scenes;
+    grok is never called."""
+    from marketer.services import fal_video
+
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(update={
+        "video_provider": "fal",
+        "fal_model": "fal-ai/kling-video/v2.1/standard/image-to-video",
+    })
+
+    fal_calls = []
+
+    async def fake_fal_animate(keyframe, motion_prompt, out_path, *,
+                               model_id, duration_sec, spend=None):
+        fal_calls.append(model_id)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"MP4")
+        return out_path
+
+    monkeypatch.setattr(fal_video, "animate", fake_fal_animate)
+
+    async def grok_must_not_run(*a, **k):
+        raise AssertionError("grok called despite fal provider")
+
+    monkeypatch.setattr(pipeline.grok_imagine, "animate", grok_must_not_run)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert fal_calls == ["fal-ai/kling-video/v2.1/standard/image-to-video"] * 2

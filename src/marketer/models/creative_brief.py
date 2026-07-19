@@ -95,6 +95,14 @@ class NarrativeBrief(BaseModel):
 class VisualBrief(BaseModel):
     model_config = {"extra": "forbid"}
 
+    # What carries visual continuity across scenes:
+    # - "auto": a recurring character/cast (reference sheet generated) —
+    #   the classic mascot/host format.
+    # - "none": NO characters. The video is about a subject, object, or
+    #   environment ("a paper airplane flying through a city"); the
+    #   character sheet is skipped and the visual director enforces
+    #   SUBJECT continuity instead of cast continuity.
+    cast_mode: Literal["auto", "none"] = "auto"
     camera_language: str = ""   # e.g. "slow push-ins only, no whip pans"
     lighting: str = ""          # e.g. "golden hour, soft shadows"
     color_palette: str = ""     # e.g. "warm terracotta + cream, no neon"
@@ -210,6 +218,8 @@ class CreativeBrief(BaseModel):
         dropped so the model never sees blank constraints)."""
         v = self.visual
         out: dict = {}
+        if v.cast_mode == "none":
+            out["cast_mode"] = "none"
         if v.camera_language:
             out["camera_language"] = v.camera_language
         if v.lighting:

@@ -36,6 +36,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 
 import { StylePresetPicker } from "@/components/style-preset-picker";
+import { clientFetch } from "@/lib/client-fetcher";
 import { updateNicheAction } from "@/lib/actions";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
@@ -46,7 +47,10 @@ import {
   QUALITIES,
   RESOLUTIONS,
   type ImageQuality,
+  type Kit,
   type Niche,
+  type ScriptModelOption,
+  type VideoModelOption,
   type VideoResolution,
 } from "@/lib/types";
 
@@ -91,6 +95,22 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
   const [visualStyle, setVisualStyle] = React.useState(niche.visual_style);
 
   const brief = niche.creative_brief;
+
+  // Provider catalogs + kits for the "Models & kits" selectors.
+  const [videoModels, setVideoModels] = React.useState<VideoModelOption[]>([]);
+  const [scriptModels, setScriptModels] = React.useState<ScriptModelOption[]>([]);
+  const [kits, setKits] = React.useState<Kit[]>([]);
+  React.useEffect(() => {
+    clientFetch<VideoModelOption[]>("/api/v1/providers/video-models")
+      .then(setVideoModels)
+      .catch(() => {});
+    clientFetch<ScriptModelOption[]>("/api/v1/providers/script-models")
+      .then(setScriptModels)
+      .catch(() => {});
+    clientFetch<Kit[]>("/api/v1/kits").then(setKits).catch(() => {});
+  }, []);
+  const videoChoice =
+    niche.video_provider === "fal" ? `fal:${niche.fal_model}` : "grok:";
 
   // Live cost-estimate mirror. Uncontrolled inputs still own the truth
   // for submission; this only feeds the readout.
@@ -322,6 +342,98 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             </span>
           </CardContent>
         </Card>
+      </SectionCard>
+
+      <SectionCard
+        kicker="Models & kits"
+        title="Engine room"
+        description="Which models render and write, and which of your kits ride along."
+      >
+        <input type="hidden" name="providers_present" value="1" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Labelled
+            label="Video model"
+            hint="Price shown per rendered second"
+            htmlFor="niche-video_model"
+          >
+            <select
+              id="niche-video_model"
+              name="video_model_choice"
+              defaultValue={videoChoice}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {(videoModels.length
+                ? videoModels
+                : [{ provider: "grok", model_id: "", name: "Grok Imagine (default)", tagline: "", usd_per_second: "0.050", available: true } as VideoModelOption]
+              ).map((m) => (
+                <option
+                  key={`${m.provider}:${m.model_id}`}
+                  value={`${m.provider}:${m.model_id}`}
+                  disabled={!m.available}
+                >
+                  {m.name} — ${m.usd_per_second}/s{m.available ? "" : " (key not configured)"}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled
+            label="Scriptwriter model"
+            hint="Prices per 1M tokens (in / out)"
+            htmlFor="niche-script_model"
+          >
+            <select
+              id="niche-script_model"
+              name="script_model"
+              defaultValue={niche.script_model}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {(scriptModels.length
+                ? scriptModels
+                : [{ model_id: "", name: "Platform default", tagline: "", usd_per_m_input: "-", usd_per_m_output: "-", available: true } as ScriptModelOption]
+              ).map((m) => (
+                <option key={m.model_id} value={m.model_id} disabled={!m.available}>
+                  {m.name}
+                  {m.model_id ? ` — $${m.usd_per_m_input}/$${m.usd_per_m_output}` : ""}
+                  {m.available ? "" : " (key not configured)"}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled
+            label="Design kit"
+            hint="Your direction system — manage in Suite → Kits"
+            htmlFor="niche-design_kit"
+          >
+            <select
+              id="niche-design_kit"
+              name="design_kit_id"
+              defaultValue={niche.design_kit_id ?? ""}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Default design kit (or none)</option>
+              {kits.filter((k) => k.kind === "design").map((k) => (
+                <option key={k.id} value={k.id}>{k.name}</option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled
+            label="Writing kit"
+            hint="Article voice — used by Press for this niche"
+            htmlFor="niche-writing_kit"
+          >
+            <select
+              id="niche-writing_kit"
+              name="writing_kit_id"
+              defaultValue={niche.writing_kit_id ?? ""}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="">Default writing kit (or none)</option>
+              {kits.filter((k) => k.kind === "writing").map((k) => (
+                <option key={k.id} value={k.id}>{k.name}</option>
+              ))}
+            </select>
+          </Labelled>
+        </div>
       </SectionCard>
 
       <SectionCard

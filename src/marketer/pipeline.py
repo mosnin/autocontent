@@ -84,7 +84,7 @@ async def _generate_scene_assets(
     root: Path,
     *,
     niche: Niche,
-    reference_image: Path,
+    reference_image: Path | None,
     spend: SpendContext,
 ) -> Clip:
     keyframe = root / "keyframes" / f"scene_{scene.index}.png"
@@ -97,12 +97,22 @@ async def _generate_scene_assets(
         spend=spend,
     )
     clip_duration = min(scene.duration_sec, niche.scene_max_duration_sec)
-    await grok_imagine.animate(
-        keyframe, scene.motion_prompt, clip,
-        duration_sec=clip_duration,
-        resolution=niche.video_resolution,
-        spend=spend,
-    )
+    if niche.video_provider == "fal" and niche.fal_model:
+        from .services import fal_video
+
+        await fal_video.animate(
+            keyframe, scene.motion_prompt, clip,
+            model_id=niche.fal_model,
+            duration_sec=clip_duration,
+            spend=spend,
+        )
+    else:
+        await grok_imagine.animate(
+            keyframe, scene.motion_prompt, clip,
+            duration_sec=clip_duration,
+            resolution=niche.video_resolution,
+            spend=spend,
+        )
     return Clip(
         scene_index=scene.index,
         keyframe_path=str(keyframe),
@@ -145,6 +155,20 @@ async def _ensure_cap(job: Job, niche: Niche) -> bool:
             return False
 
     return True
+
+
+async def _load_design_kit(user_id: str, niche: Niche) -> str:
+    """The design kit content that applies to this niche (pinned kit, else
+    the user's default design kit). Fail-open: kits season, never block."""
+    try:
+        from .repos import kits as kits_repo
+
+        kit = await kits_repo.resolve(
+            user_id=user_id, kind="design", kit_id=niche.design_kit_id
+        )
+        return kit.content if kit is not None else ""
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
@@ -379,12 +403,19 @@ async def _run_job_inner(
             audience_ctx = f"Audience: {niche.target_audience}. Platform: {platform}."
             if brand_voice:
                 audience_ctx += f" Brand voice: {brand_voice}."
+            design_kit_content = await _load_design_kit(job.user_id, niche)
+            if design_kit_content:
+                audience_ctx += (
+                    "\nDesign kit — the creator's direction system, follow "
+                    f"it throughout:\n{design_kit_content}"
+                )
             script = await run_scriptwriter(
                 idea,
                 scene_count=niche.scene_count,
                 target_duration_sec=niche.target_duration_sec,
                 audience_context=audience_ctx,
                 brief=niche.creative_brief,
+                script_model=niche.script_model,
                 spend=spend,
             )
             script = await run_visual_director(
@@ -392,6 +423,7 @@ async def _run_job_inner(
                 visual_style=niche.visual_style,
                 character_description=niche.character_description or "",
                 brief=niche.creative_brief,
+                design_kit=design_kit_content,
                 spend=spend,
             )
             job.script = script
@@ -403,9 +435,15 @@ async def _run_job_inner(
     with _stage(JobStatus.generating_images.value):
         job.status = JobStatus.generating_images
         await _persist(job)
-        reference = await character_sheet.get_or_create(
-            niche, quality=niche.image_quality, spend=spend
-        )
+        if niche.creative_brief.visual.cast_mode == "none":
+            # Subject-mode video (an object/environment carries the video,
+            # not a cast): no character sheet, no reference image — style
+            # cohesion is enforced by the visual director's prompts alone.
+            reference = None
+        else:
+            reference = await character_sheet.get_or_create(
+                niche, quality=niche.image_quality, spend=spend
+            )
         # Per-scene resume: clips from the failed attempt whose files are
         # still on the volume are reused; only the missing scenes re-spend.
         prior_clips: dict[int, Clip] = {}

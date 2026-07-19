@@ -40,6 +40,11 @@ async def create(
     approve_before_post: bool = False,
     character_description: str | None = None,
     creative_brief: CreativeBrief | None = None,
+    video_provider: str = "grok",
+    fal_model: str = "",
+    script_model: str = "",
+    design_kit_id=None,
+    writing_kit_id=None,
 ) -> Niche:
     pool = await get_pool()
     row = await pool.fetchrow(
@@ -50,9 +55,10 @@ async def create(
             posting_windows, platforms, daily_spend_cap_usd,
             image_quality, video_resolution, scene_max_duration_sec,
             tts_style_directions, approve_before_post, character_description,
-            creative_brief
+            creative_brief, video_provider, fal_model, script_model,
+            design_kit_id, writing_kit_id
         )
-        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb,$20,$21,$22,$23,$24)
         returning *
         """,
         user_id, title, description, target_audience, hashtags,
@@ -67,6 +73,7 @@ async def create(
             # Route handlers pass model_dump() dicts; coerce + validate.
             else CreativeBrief.model_validate(creative_brief or {})
         ).model_dump_json(),
+        video_provider, fal_model, script_model, design_kit_id, writing_kit_id,
     )
     return _row_to_niche(row)
 
@@ -113,7 +120,8 @@ async def update(
         "posting_windows", "platforms", "daily_spend_cap_usd",
         "image_quality", "video_resolution", "scene_max_duration_sec",
         "tts_style_directions", "approve_before_post", "character_description",
-        "creative_brief",
+        "creative_brief", "video_provider", "fal_model", "script_model",
+        "design_kit_id", "writing_kit_id",
     }
 
     sets: list[str] = []
@@ -122,7 +130,7 @@ async def update(
     for key, val in fields.items():
         if key not in allowed:
             continue
-        if val is None and key not in {"tts_style_directions", "character_description"}:
+        if val is None and key not in {"tts_style_directions", "character_description", "design_kit_id", "writing_kit_id"}:
             # Treat None on non-nullable columns as "don't touch".
             continue
         if key == "posting_windows":

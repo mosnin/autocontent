@@ -124,11 +124,11 @@ def stub_no_music(monkeypatch, tmp_path: Path, passing_render_qa):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style, character_description="", brief=None, spend=None):
+    async def fake_visual_director(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 

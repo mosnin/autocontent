@@ -8,6 +8,7 @@
 // launcher can consume one registry.
 
 import {
+  Boxes,
   Clapperboard,
   BarChart3,
   CalendarDays,
@@ -142,6 +143,7 @@ const SUITE: Product = {
       items: [
         { href: "/settings", label: "Settings", icon: Settings },
         { href: "/settings/brand", label: "Brand kit", icon: Palette },
+        { href: "/settings/kits", label: "Kits", icon: Boxes },
         { href: "/connect", label: "Connect socials", icon: Link2 },
         { href: "/settings/tokens", label: "Tokens", icon: KeyRound },
         { href: "/settings/billing", label: "Billing", icon: Wallet },

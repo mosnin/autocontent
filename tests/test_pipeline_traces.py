@@ -180,11 +180,11 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_perf_ctx)
 
-    async def fake_script(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, spend=None):
+    async def fake_script(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_script)
 
-    async def fake_vd(script, *, visual_style, character_description="", brief=None, spend=None):
+    async def fake_vd(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 

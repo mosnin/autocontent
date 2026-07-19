@@ -196,11 +196,11 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
             total_duration_sec=5,
         )
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_vd(script, *, visual_style, character_description="", brief=None, spend=None):
+    async def fake_vd(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
