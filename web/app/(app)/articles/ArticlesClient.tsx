@@ -40,6 +40,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { HubHeading, Rise, hubCardClass } from "@/components/hub/primitives";
+import { cn } from "@/lib/utils";
 import { createArticleAction, retryArticleAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import {
@@ -149,18 +151,20 @@ export function ArticlesClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Articles</h1>
-          <p className="text-sm text-muted-foreground">
-            SEO-optimized written content. Updates every {POLL_MS / 1000}s.
-          </p>
+      <Rise>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <HubHeading as="h1">Articles</HubHeading>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              SEO-optimized written content. Updates every {POLL_MS / 1000}s.
+            </p>
+          </div>
+          <Button onClick={() => setNewOpen(true)}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            New article
+          </Button>
         </div>
-        <Button onClick={() => setNewOpen(true)}>
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          New article
-        </Button>
-      </div>
+      </Rise>
 
       {error && (
         <p className="text-sm text-muted-foreground">
@@ -168,6 +172,7 @@ export function ArticlesClient({
         </p>
       )}
 
+      <Rise delay={0.08}>
       <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
         <ScrollArea>
           <TabsList className="w-max">
@@ -206,7 +211,7 @@ export function ArticlesClient({
             <EmptyState filter={filter} onNew={() => setNewOpen(true)} />
           ) : (
             <div className="overflow-x-auto">
-              <Card className="min-w-[640px]">
+              <Card className={cn(hubCardClass, "min-w-[640px] overflow-hidden")}>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -239,6 +244,7 @@ export function ArticlesClient({
           )}
         </TabsContent>
       </Tabs>
+      </Rise>
 
       <NewArticleDialog
         open={newOpen}
@@ -266,7 +272,7 @@ function EmptyState({
       : `No ${filter.replace("_", " ")} articles`;
 
   return (
-    <Card>
+    <Card className={hubCardClass}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
         <div className="rounded-full bg-muted p-3">
           <FileText className="h-6 w-6 text-muted-foreground" />
