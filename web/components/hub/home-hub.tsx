@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
 import TextType from "@/components/reactbits/TextType";
+import { BannerCard, MediaCard } from "@/components/hub/dashboard-kit";
 import { productById } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
@@ -33,66 +34,6 @@ function Rise({
       transition={{ duration: reduced ? 0.15 : 0.6, ease: EASE, delay }}
     >
       {children}
-    </motion.div>
-  );
-}
-
-/** Card chrome shared by every hub tile: rounded panel, top-right arrow,
- *  soft hover lift — the reference's card language in light mode. */
-function HubCard({
-  href,
-  title,
-  desc,
-  badge,
-  children,
-  className,
-}: {
-  href: string;
-  title: string;
-  desc?: string;
-  badge?: string;
-  children?: React.ReactNode;
-  className?: string;
-}) {
-  const reduced = useReducedMotion();
-  return (
-    <motion.div
-      className={cn("h-full", className)}
-      whileHover={reduced ? undefined : { y: -4 }}
-      transition={{ type: "spring", stiffness: 380, damping: 26 }}
-    >
-      <Link
-        className={cn(
-          "group flex h-full flex-col rounded-3xl border border-border/70 bg-card p-5",
-          "shadow-[0_1px_2px_rgb(0_0_0/0.03),0_10px_32px_-20px_rgb(0_0_0/0.18)]",
-          "transition-shadow hover:shadow-[0_2px_4px_rgb(0_0_0/0.04),0_20px_48px_-20px_rgb(0_0_0/0.25)]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-        href={href}
-      >
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2.5 gap-y-1">
-            <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
-            {badge ? (
-              <span className="rounded-full border border-border/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                {badge}
-              </span>
-            ) : null}
-            {desc ? (
-              <p className="w-full truncate text-sm text-muted-foreground sm:w-auto">
-                {desc}
-              </p>
-            ) : null}
-          </div>
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border/70 text-muted-foreground transition-all group-hover:border-foreground group-hover:text-foreground">
-            <ArrowUpRight
-              aria-hidden
-              className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-            />
-          </span>
-        </div>
-        {children}
-      </Link>
     </motion.div>
   );
 }
@@ -126,12 +67,7 @@ function VignetteFrame({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "relative mt-auto overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(135deg,#fafafa,#f2f4f8)] p-4",
-        className,
-      )}
-    >
+    <div className={cn("relative flex h-full flex-col justify-center p-4", className)}>
       {children}
     </div>
   );
@@ -306,18 +242,21 @@ export function HomeHub() {
         </div>
         <div className="grid gap-5 lg:grid-cols-2">
           <Rise delay={stagger(1)}>
-            <HubCard
-              desc={campaigns.tagline}
+            <BannerCard
               href={campaigns.home}
+              media={<CampaignsVignette />}
+              tagline={campaigns.tagline}
               title="Campaigns"
-            >
-              <CampaignsVignette />
-            </HubCard>
+            />
           </Rise>
           <Rise delay={stagger(2)}>
-            <HubCard badge="Studio" desc={content.tagline} href={content.home} title="Content">
-              <ContentVignette />
-            </HubCard>
+            <BannerCard
+              badge="Studio"
+              href={content.home}
+              media={<ContentVignette />}
+              tagline={content.tagline}
+              title="Content"
+            />
           </Rise>
         </div>
       </section>
@@ -327,19 +266,28 @@ export function HomeHub() {
         <SectionHeading delay={stagger(3)}>Work in every surface</SectionHeading>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <Rise delay={stagger(4)}>
-            <HubCard badge="Press" desc="Articles & search" href={seo.home} title="SEO">
-              <SeoVignette />
-            </HubCard>
+            <MediaCard
+              foot="Press — articles & search"
+              href={seo.home}
+              media={<SeoVignette />}
+              title="SEO"
+            />
           </Rise>
           <Rise delay={stagger(5)}>
-            <HubCard desc="Paid campaigns, capped" href={ads.home} title="Ads">
-              <AdsVignette />
-            </HubCard>
+            <MediaCard
+              foot="Paid campaigns, capped"
+              href={ads.home}
+              media={<AdsVignette />}
+              title="Ads"
+            />
           </Rise>
           <Rise delay={stagger(6)}>
-            <HubCard desc="Account, brand, admin" href={suite.home} title="Suite">
-              <SuiteVignette />
-            </HubCard>
+            <MediaCard
+              foot="Account, brand, admin"
+              href={suite.home}
+              media={<SuiteVignette />}
+              title="Suite"
+            />
           </Rise>
         </div>
       </section>

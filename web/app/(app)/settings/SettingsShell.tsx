@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { Bell, ChevronRight, Coins, Gauge, KeyRound, Link2, Palette, ShieldCheck, Webhook } from "lucide-react";
+import { Bell, Gauge } from "lucide-react";
 
 import {
   Card,
@@ -11,56 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  HoverLift,
-  HubHeading,
-  HubSection,
-  Rise,
-  hubCardClass,
-  hubCardHoverClass,
-} from "@/components/hub/primitives";
+  BannerCard,
+  DashHeading,
+  DashPanel,
+  DashRise,
+  MediaCard,
+} from "@/components/hub/dashboard-kit";
+import { hubCardClass } from "@/components/hub/primitives";
 import { cn } from "@/lib/utils";
 import { SpendCapForm } from "./SpendCapForm";
 import { NotificationsForm } from "./NotificationsForm";
-
-// Linked settings areas that live on their own routes.
-const AREAS = [
-  {
-    href: "/settings/billing",
-    icon: Coins,
-    title: "Pipeline credits",
-    description: "Balance, top-ups, and every charge — down to the API call.",
-  },
-  {
-    href: "/connect",
-    icon: Link2,
-    title: "Connect socials",
-    description: "Link Ayrshare so scheduled posts actually ship.",
-  },
-  {
-    href: "/settings/tokens",
-    icon: KeyRound,
-    title: "Personal access tokens",
-    description: "For the CLI, MCP server, and external agents.",
-  },
-  {
-    href: "/settings/brand",
-    icon: Palette,
-    title: "Brand kit",
-    description: "A reusable identity that seeds every new channel draft.",
-  },
-  {
-    href: "/settings/webhooks",
-    icon: Webhook,
-    title: "Webhooks",
-    description: "Signed real-time events for agents and automation.",
-  },
-  {
-    href: "/settings/privacy",
-    icon: ShieldCheck,
-    title: "Data & privacy",
-    description: "Export everything we hold, or delete your account.",
-  },
-] as const;
 
 export function SettingsShell({
   initialCap,
@@ -70,100 +29,226 @@ export function SettingsShell({
   initialNotifications: boolean;
 }) {
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <Rise>
-        <header className="space-y-1.5">
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-            Settings
-          </p>
-          <HubHeading as="h1">Connections &amp; account</HubHeading>
-          <p className="text-sm text-muted-foreground">
-            Spend caps, authentication, and per-account config for your
-            marketer.sh workspace.
-          </p>
-        </header>
-      </Rise>
+    <div className="space-y-10">
+      <DashHeading
+        as="h1"
+        sub="Spend caps, authentication, and per-account config for your marketer.sh workspace."
+      >
+        Everything behind the scenes
+      </DashHeading>
 
-      {/* Spend caps — an inline form, not a nav target. */}
-      <Rise delay={0.08}>
-        <Card className={hubCardClass}>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Gauge
-                className="size-4 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <CardTitle className="text-base font-semibold">
-                Spend caps
-              </CardTitle>
-            </div>
-            <CardDescription>
-              Set a global daily limit across all niches. Leave blank for no
-              global cap (each niche still has its own per-niche cap).
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SpendCapForm initialCap={initialCap} />
-          </CardContent>
-        </Card>
-      </Rise>
-
-      {/* Notifications — inline toggle, saves optimistically. */}
-      <Rise delay={0.16}>
-        <Card className={hubCardClass}>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
-              <CardTitle className="text-base font-semibold">
-                Notifications
-              </CardTitle>
-            </div>
-            <CardDescription>
-              Control the emails marketer.sh sends you at the end of a run.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <NotificationsForm initialEnabled={initialNotifications} />
-          </CardContent>
-        </Card>
-      </Rise>
-
-      <HubSection index={3} title="Workspace">
-        <div className="grid gap-4 sm:grid-cols-2">
-          {AREAS.map((area) => {
-            const Icon = area.icon;
-            return (
-              <HoverLift key={area.href}>
-                <Link
-                  href={area.href}
-                  className={cn(
-                    hubCardClass,
-                    hubCardHoverClass,
-                    "group flex h-full items-start gap-4 p-5",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
-                  )}
-                >
-                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background text-muted-foreground transition-colors group-hover:border-brand/30 group-hover:text-brand">
-                    <Icon className="size-4" aria-hidden="true" />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <DashRise delay={0.08}>
+          <BannerCard
+            href="/settings/brand"
+            media={
+              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
+                <div className="flex gap-2">
+                  {["#18181b", "#f59e0b", "#f43f5e", "#fafafa"].map((c) => (
+                    <span
+                      className="size-8 rounded-lg border border-border/60"
+                      key={c}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px]">
+                  <span className="font-semibold">Voice: </span>
+                  <span className="text-muted-foreground">
+                    direct, a little dry, never salesy
                   </span>
-                  <span className="min-w-0 flex-1 space-y-1">
-                    <span className="block text-sm font-semibold leading-none">
-                      {area.title}
+                </div>
+                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px] text-muted-foreground">
+                  Seeds every new channel draft automatically.
+                </div>
+              </div>
+            }
+            tagline="One identity behind every draft"
+            title="Brand kit"
+          />
+        </DashRise>
+        <DashRise delay={0.16}>
+          <BannerCard
+            href="/settings/billing"
+            media={
+              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
+                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5">
+                  <div className="flex items-center justify-between text-[13px]">
+                    <span className="font-medium">Pipeline credits</span>
+                    <span className="font-mono text-[12px] text-muted-foreground">
+                      62% left
                     </span>
-                    <span className="block text-sm text-muted-foreground">
-                      {area.description}
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-900/10">
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,#f59e0b,#f43f5e)]"
+                      style={{ width: "62%" }}
+                    />
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px] text-muted-foreground">
+                  Balance, top-ups, and every charge — down to the API call.
+                </div>
+              </div>
+            }
+            tagline="Balance, top-ups, every charge"
+            title="Billing & credits"
+          />
+        </DashRise>
+      </div>
+
+      <DashPanel delay={0.1} title="Workspace">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <MediaCard
+            foot="Reusable presets for channels and drafts"
+            href="/settings/kits"
+            media={
+              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
+                {["Launch kit", "Evergreen kit", "UGC kit"].map((k) => (
+                  <div
+                    className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-medium"
+                    key={k}
+                  >
+                    {k}
+                  </div>
+                ))}
+              </div>
+            }
+            title="Kits"
+          />
+          <MediaCard
+            foot="Link Ayrshare so scheduled posts actually ship"
+            href="/connect"
+            media={
+              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
+                {[
+                  ["TikTok", "linked"],
+                  ["YouTube", "linked"],
+                  ["X", "not linked"],
+                ].map(([name, state]) => (
+                  <div
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-card px-2.5 py-1.5"
+                    key={name}
+                  >
+                    <span className="font-medium">{name}</span>
+                    <span
+                      className={cn(
+                        "ml-2",
+                        state === "linked"
+                          ? "font-medium text-amber-600"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {state}
                     </span>
-                  </span>
-                  <ChevronRight
-                    className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-all group-hover:translate-x-0.5 group-hover:text-brand"
-                    aria-hidden="true"
-                  />
-                </Link>
-              </HoverLift>
-            );
-          })}
+                  </div>
+                ))}
+              </div>
+            }
+            title="Connect socials"
+          />
+          <MediaCard
+            foot="For the CLI, MCP server, and external agents"
+            href="/settings/tokens"
+            media={
+              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4">
+                <div className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
+                  mk_live_••••••••7f2a
+                </div>
+                <div className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
+                  mk_live_••••••••c914
+                </div>
+                <p className="px-0.5 pt-1 text-[11.5px] text-muted-foreground">
+                  Scoped, revocable, audit-logged.
+                </p>
+              </div>
+            }
+            title="Tokens"
+          />
+          <MediaCard
+            foot="Signed real-time events for agents and automation"
+            href="/settings/webhooks"
+            media={
+              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
+                {[
+                  ["run.completed", "200"],
+                  ["post.published", "200"],
+                  ["cap.reached", "200"],
+                ].map(([event, code]) => (
+                  <div
+                    className="flex items-center justify-between rounded-lg border border-border/60 bg-card px-2.5 py-1.5"
+                    key={event}
+                  >
+                    <span className="truncate font-mono text-[10.5px]">
+                      {event}
+                    </span>
+                    <span className="ml-2 shrink-0 font-mono text-[10.5px] font-semibold text-amber-600">
+                      {code}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            }
+            title="Webhooks"
+          />
+          <MediaCard
+            foot="Export everything we hold, or delete your account"
+            href="/settings/privacy"
+            media={
+              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
+                <div className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-medium">
+                  Export my data
+                </div>
+                <div className="rounded-lg border border-dashed border-border/70 bg-card/60 px-2.5 py-1.5 text-muted-foreground">
+                  Delete account — yours to pull, any time
+                </div>
+              </div>
+            }
+            title="Privacy"
+          />
         </div>
-      </HubSection>
+      </DashPanel>
+
+      <DashPanel delay={0.12} title="Account controls">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className={hubCardClass}>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Gauge
+                  className="size-4 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <CardTitle className="text-base font-semibold">
+                  Spend caps
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Set a global daily limit across all niches. Leave blank for no
+                global cap (each niche still has its own per-niche cap).
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SpendCapForm initialCap={initialCap} />
+            </CardContent>
+          </Card>
+          <Card className={hubCardClass}>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
+                <CardTitle className="text-base font-semibold">
+                  Notifications
+                </CardTitle>
+              </div>
+              <CardDescription>
+                Control the emails marketer.sh sends you at the end of a run.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <NotificationsForm initialEnabled={initialNotifications} />
+            </CardContent>
+          </Card>
+        </div>
+      </DashPanel>
     </div>
   );
 }
