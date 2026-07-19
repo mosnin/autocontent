@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 
-import { AgentsBand } from "@/components/marketing/home/agents-band";
-import { Formats } from "@/components/marketing/home/formats";
+import { AutopilotPanel } from "@/components/marketing/home/autopilot-panel";
+import { ClosingCta } from "@/components/marketing/home/closing-cta";
+import { Converged } from "@/components/marketing/home/converged";
+import { Enterprise } from "@/components/marketing/home/enterprise";
 import { Hero } from "@/components/marketing/home/hero";
-import { LearningLoop } from "@/components/marketing/home/learning-loop";
-import { NightShift } from "@/components/marketing/home/night-shift";
-import { PipelineStory } from "@/components/marketing/home/pipeline-story";
-import { PricingTeaser } from "@/components/marketing/home/pricing-teaser";
-import { Stats } from "@/components/marketing/home/stats";
-import { TrustBand } from "@/components/marketing/home/trust-band";
-import { SectionCta } from "@/components/marketing/system";
+import { LogoBand } from "@/components/marketing/home/logo-band";
+import { Loved } from "@/components/marketing/home/loved";
+import { Roi } from "@/components/marketing/home/roi";
+import { Sprawl } from "@/components/marketing/home/sprawl";
+import { SuperAgents } from "@/components/marketing/home/super-agents";
+import { Teams } from "@/components/marketing/home/teams";
 
 const DESCRIPTION =
   "The autonomous marketing platform. One brief in, video and SEO articles ideated, produced, published, and improved, with hard caps on every dollar spent.";
@@ -49,23 +50,16 @@ export default function HomePage() {
         type="application/ld+json"
       />
       <Hero />
-      <NightShift />
-      <Formats />
-      <PipelineStory />
-      <AgentsBand />
-      <Stats />
-      <LearningLoop />
-      <TrustBand />
-      <PricingTeaser />
-      <SectionCta
-        headline="Put your marketing on autopilot."
-        kicker="Get started"
-        primaryHref="/sign-up"
-        primaryLabel="Start creating"
-        secondaryHref="/pricing"
-        secondaryLabel="See pricing"
-        sub="Five dollars of credit. A cap you set. A gate you hold. Your first short ships today."
-      />
+      <LogoBand />
+      <Sprawl />
+      <Converged />
+      <SuperAgents />
+      <AutopilotPanel />
+      <Teams />
+      <Roi />
+      <Loved />
+      <Enterprise />
+      <ClosingCta />
     </main>
   );
 }

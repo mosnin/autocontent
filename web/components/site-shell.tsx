@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AppSidebar } from "@/components/app-sidebar";
+import { DashboardSwitcher } from "@/components/dashboard-switcher";
 import {
   SidebarInset,
   SidebarProvider,
@@ -24,10 +25,14 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <AppSidebar />
       <SidebarInset className="bg-page">
         <div className="flex min-h-svh flex-1 flex-col overflow-hidden border-border/70 bg-card md:m-2 md:ml-0 md:rounded-2xl md:border md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-16px_rgb(0_0_0/0.12)]">
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-4">
+          <header className="relative flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-4">
             <SidebarTrigger aria-label="Toggle sidebar" />
             <Separator className="mr-1 h-4" orientation="vertical" />
             <ProductCrumb />
+            {/* Center pill switcher — the suite's five dashboards, one hop apart. */}
+            <div className="pointer-events-none absolute inset-x-0 hidden justify-center lg:flex">
+              <DashboardSwitcher className="pointer-events-auto" />
+            </div>
             <span className="ml-auto hidden text-xs text-muted-foreground sm:inline">
               <kbd className="rounded border border-border/70 bg-muted px-1.5 py-0.5 font-mono text-[10px]">
                 ⌘B

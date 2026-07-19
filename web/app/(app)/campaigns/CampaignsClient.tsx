@@ -20,6 +20,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  HoverLift,
+  HubHeading,
+  HubSection,
+  Rise,
+  hubCardClass,
+  hubCardHoverClass,
+} from "@/components/hub/primitives";
+import { cn } from "@/lib/utils";
 import type { Campaign, Niche } from "@/lib/types";
 
 export function statusBadge(status: Campaign["status"]) {
@@ -75,16 +84,17 @@ export function CampaignsClient({
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+    <div className="space-y-8">
+      <Rise>
+        <HubHeading as="h1">Campaigns</HubHeading>
+        <p className="mt-1.5 text-sm text-muted-foreground">
           Pull content, SEO, and ads into one push — set a budget, set a
           window, let it run.
         </p>
-      </div>
+      </Rise>
 
-      <Card className="border-dashed">
+      <Rise delay={0.08}>
+      <Card className={cn(hubCardClass, "border-dashed")}>
         <CardHeader>
           <CardTitle className="text-base">New campaign</CardTitle>
           <CardDescription>
@@ -128,26 +138,36 @@ export function CampaignsClient({
           )}
         </CardContent>
       </Card>
+      </Rise>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        {initial.map((c) => (
-          <Link key={c.id} href={`/campaigns/${c.id}`}>
-            <Card className="transition-colors hover:border-brand/40">
-              <CardHeader className="flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base">{c.name}</CardTitle>
-                {statusBadge(c.status)}
-              </CardHeader>
-              <CardContent className="text-sm text-muted-foreground">
-                Budget ${Number(c.budget_usd).toFixed(2)}
-                {c.ends_at
-                  ? ` · ends ${new Date(c.ends_at).toLocaleDateString()}`
-                  : " · open-ended"}
-                {c.objective ? ` · ${c.objective}` : ""}
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      <HubSection index={2} title="Your campaigns">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {initial.map((c) => (
+            <HoverLift key={c.id}>
+              <Link className="block h-full" href={`/campaigns/${c.id}`}>
+                <Card className={cn(hubCardClass, hubCardHoverClass, "h-full")}>
+                  <CardHeader className="flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-base">{c.name}</CardTitle>
+                    {statusBadge(c.status)}
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    Budget ${Number(c.budget_usd).toFixed(2)}
+                    {c.ends_at
+                      ? ` · ends ${new Date(c.ends_at).toLocaleDateString()}`
+                      : " · open-ended"}
+                    {c.objective ? ` · ${c.objective}` : ""}
+                  </CardContent>
+                </Card>
+              </Link>
+            </HoverLift>
+          ))}
+          {initial.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No campaigns yet — create one above and press start.
+            </p>
+          )}
+        </div>
+      </HubSection>
     </div>
   );
 }

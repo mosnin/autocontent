@@ -43,7 +43,6 @@ function EmptyMetrics({ providerPostId }: { providerPostId: string | null }) {
   return (
     <div className="flex flex-col items-center gap-3 rounded-lg border border-border/60 bg-card/40 px-6 py-10 text-center">
       <span aria-hidden className="relative flex size-2">
-        <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
         <span className="relative inline-flex size-2 rounded-full bg-brand" />
       </span>
       <div className="space-y-1">

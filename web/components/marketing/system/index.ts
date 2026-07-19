@@ -28,4 +28,5 @@ export {
   warmDotFill,
 } from "./accent";
 export { MockDashboard, MockChat } from "./mock-cards";
+export { ImagePlaceholder } from "./image-placeholder";
 export { EASE, VIEWPORT, REVEAL_DURATION } from "./motion";

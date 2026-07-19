@@ -150,3 +150,34 @@ moments use the warm gradient accent: `linear-gradient(135deg, #f59e0b,
 (`.accent-warm-bg`, `.accent-warm-text` via bg-clip-text). Small
 "pass/ok" dots use solid amber-500; the brand recording-light orange
 remains the live-pulse accent (they are family). Never green.
+
+## Amendment 3 — Reference redesign (binding, supersedes conflicts)
+
+The logged-out surface now follows the converged-platform reference:
+
+- **Canvas** is pure white; alternating sections may use `#f5f6f8`.
+  The floating pill nav is retired: the site chrome is a black
+  announcement banner + sticky full-width white bar (border-b hairline,
+  `backdrop-blur`) with columned mega-menu panels (kicker heading per
+  column, pastel icon tiles + title + desc rows, plain-link right
+  column) and Contact sales / Login / Sign up on the right.
+- **Buttons** are rounded-xl blocks (`rounded-xl bg-zinc-900 text-white`),
+  not pills. Secondary: `bg-zinc-100` block.
+- **Kickers** are Geist Mono uppercase (`font-mono tracking-[0.18em]`).
+- **Dark panels**: one `bg-zinc-950 rounded-[2.5rem]` mega-panel per page
+  max (the autopilot section), hand-built UI mocks only.
+- **Warm gradient** (amber→rose) remains the sole accent family; the
+  closing CTA is the full-bleed warm-gradient rounded panel.
+- **Imagery**: real screenshots/photos render via the shared
+  `<ImagePlaceholder label file>` frame until assets are uploaded; swap
+  by replacing the element with `<Image>`.
+
+## Amendment 4 — Logged-in hub language (binding for (app) surfaces)
+
+Product dashboards (Campaigns, Content, SEO, Ads, Suite — that order)
+share the hub language in `web/components/hub/primitives.tsx`: sparkle
+`HubHeading`, cascading `HubSection` rise-ins, `hubCardClass` rounded-3xl
+light cards, `HoverLift` spring hovers, `VignetteFrame` mini previews.
+The shell header carries the center pill `DashboardSwitcher` whose active
+pill glides via shared-layout spring. All motion honors
+`useReducedMotion`.

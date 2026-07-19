@@ -44,7 +44,6 @@ export function ConnectCard({
           {connected && (
             <span
               aria-hidden
-              className="absolute inline-flex size-3 animate-ping rounded-full bg-brand opacity-60 [inset-block-start:0.35rem] [inset-inline-end:0.35rem]"
             />
           )}
           <Link2 className="size-6" />
