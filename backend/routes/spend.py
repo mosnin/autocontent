@@ -17,7 +17,9 @@ router = APIRouter()
 @router.get("/today", response_model=TodaySpend)
 async def today_spend(ctx: AuthCtx = CurrentUser) -> TodaySpend:
     rows = await spend_repo.today_spend_by_niche(user_id=ctx.user_id)
-    by_niche = {str(k): v for k, v in rows.items()}
+    # Niche-less spend (e.g. template remixes) buckets under "other"
+    # instead of the stringified-None pseudo-key.
+    by_niche = {("other" if k is None else str(k)): v for k, v in rows.items()}
     return TodaySpend(by_niche=by_niche, total_usd=sum(rows.values(), Decimal(0)))
 
 

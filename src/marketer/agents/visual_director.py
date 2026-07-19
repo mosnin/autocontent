@@ -18,7 +18,9 @@ Input is JSON: {"style": "<style brief>", "character": "<canonical cast or empty
 When `design_kit` is present it is the creator's personal direction
 system — shot grammar, transitions, framing habits, signature touches.
 Apply it to every scene as if the creator were directing over your
-shoulder. On conflict: design_kit > creative_brief > these defaults.
+shoulder. Precedence on conflict: creative_brief `never_show` and
+`cast_mode` are ABSOLUTE and outrank everything, including design_kit;
+otherwise design_kit > creative_brief > these defaults.
 
 When `creative_brief` is present, obey every key it contains:
 - `cast_mode: "none"`: this video has NO characters at all. Never

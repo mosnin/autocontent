@@ -128,16 +128,18 @@ async def list_items(campaign_id: UUID, *, user_id: str) -> list[CampaignItem]:
 
 
 async def set_item_enabled(
-    item_id: UUID, *, user_id: str, enabled: bool
+    item_id: UUID, *, user_id: str, enabled: bool,
+    campaign_id: UUID | None = None,
 ) -> CampaignItem | None:
     pool = await get_pool()
     row = await pool.fetchrow(
         """
         update campaign_items set enabled = $3
         where id = $1 and user_id = $2
+          and ($4::uuid is null or campaign_id = $4)
         returning *
         """,
-        item_id, user_id, enabled,
+        item_id, user_id, enabled, campaign_id,
     )
     return _row_to_item(row) if row else None
 
@@ -181,7 +183,9 @@ async def work_counts(campaign_id: UUID, *, user_id: str) -> dict:
         select niche_id, count(*) as total,
                count(*) filter (where created_at > now() - interval '7 days') as last7,
                max(created_at) as last_at
-        from jobs where campaign_id = $1 and user_id = $2
+        from jobs
+        where campaign_id = $1 and user_id = $2
+          and status not in ('failed', 'skipped')
         group by niche_id
         """,
         campaign_id, user_id,
@@ -191,7 +195,9 @@ async def work_counts(campaign_id: UUID, *, user_id: str) -> dict:
         select niche_id, count(*) as total,
                count(*) filter (where created_at > now() - interval '7 days') as last7,
                max(created_at) as last_at
-        from articles where campaign_id = $1 and user_id = $2
+        from articles
+        where campaign_id = $1 and user_id = $2
+          and status <> 'failed'
         group by niche_id
         """,
         campaign_id, user_id,
@@ -201,7 +207,9 @@ async def work_counts(campaign_id: UUID, *, user_id: str) -> dict:
         select niche_id, count(*) as total,
                count(*) filter (where created_at > now() - interval '7 days') as last7,
                max(created_at) as last_at
-        from image_posts where campaign_id = $1 and user_id = $2
+        from image_posts
+        where campaign_id = $1 and user_id = $2
+          and status <> 'failed'
         group by niche_id
         """,
         campaign_id, user_id,
@@ -220,3 +228,25 @@ async def work_counts(campaign_id: UUID, *, user_id: str) -> dict:
             for r in articles
         },
     }
+
+
+async def pending_work_count(campaign_id: UUID, *, user_id: str) -> int:
+    """In-flight (non-terminal) work attributed to the campaign — used to
+    project unlanded spend before spawning more."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        select
+          (select count(*) from jobs
+            where campaign_id = $1 and user_id = $2
+              and status not in ('done', 'failed', 'skipped')) +
+          (select count(*) from articles
+            where campaign_id = $1 and user_id = $2
+              and status not in ('done', 'failed')) +
+          (select count(*) from image_posts
+            where campaign_id = $1 and user_id = $2
+              and status not in ('done', 'failed')) as pending
+        """,
+        campaign_id, user_id,
+    )
+    return int(row["pending"])

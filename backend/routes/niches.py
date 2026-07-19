@@ -116,8 +116,27 @@ async def list_niches(ctx: AuthCtx = CurrentUser) -> list[Niche]:
     return await niches_repo.list_for_user(ctx.user_id)
 
 
+async def _validate_kit_refs(
+    user_id: str, design_kit_id, writing_kit_id
+) -> None:
+    """Reject wrong-kind or foreign kit ids loudly — resolve() would
+    otherwise silently substitute the default kit."""
+    from marketer.repos import kits as kits_repo
+
+    for kit_id, kind in ((design_kit_id, "design"), (writing_kit_id, "writing")):
+        if kit_id is None:
+            continue
+        kit = await kits_repo.get(kit_id, user_id=user_id)
+        if kit is None or kit.kind != kind:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"{kind}_kit_id does not reference your {kind} kit",
+            )
+
+
 @router.post("", response_model=Niche, status_code=status.HTTP_201_CREATED)
 async def create_niche(body: NicheCreate, ctx: AuthCtx = CurrentUser) -> Niche:
+    await _validate_kit_refs(ctx.user_id, body.design_kit_id, body.writing_kit_id)
     return await niches_repo.create(ctx.user_id, **body.model_dump())
 
 
@@ -139,6 +158,9 @@ async def update_niche(
     # exclude_unset so omitted JSON keys (vs. explicit nulls) don't
     # clobber existing values.
     fields = body.model_dump(exclude_unset=True)
+    await _validate_kit_refs(
+        ctx.user_id, fields.get("design_kit_id"), fields.get("writing_kit_id")
+    )
     n = await niches_repo.update(niche_id, user_id=ctx.user_id, **fields)
     if n is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

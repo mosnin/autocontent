@@ -42,13 +42,18 @@ async def run_remix(
     if ref is not None and ref.exists():
         references.append(ref)
     product = Path(product_path) if product_path else None
-    if product is not None and product.exists():
+    product_attached = product is not None and product.exists()
+    if product is not None and not product_attached:
+        # The caller uploaded a product but this container can't see it —
+        # fail loudly instead of silently producing template-only images.
+        return {"status": "failed", "error": "uploaded product image not found"}
+    if product_attached:
         references.append(product)
     if not references:
         return {"status": "failed", "error": "no reference images available"}
 
     prompt = template.prompt
-    if product is not None:
+    if product_attached:
         prompt += (
             "\nReplace the featured product/subject with the product from "
             "the LAST reference image, keeping the aesthetic, lighting, "

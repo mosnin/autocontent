@@ -51,8 +51,15 @@ class FalVideoModel(BaseModel):
     tagline: str
     usd_per_second: Decimal
     max_duration_sec: int = 10
+    # Durations the endpoint actually accepts (enum on most fal models);
+    # requests snap to the nearest allowed value.
+    allowed_durations: tuple[int, ...] = (5, 10)
     # Extra request fields some models require.
     extra_body: dict[str, Any] = {}
+
+
+def snap_duration(model: "FalVideoModel", requested_sec: float) -> int:
+    return min(model.allowed_durations, key=lambda d: abs(d - requested_sec))
 
 
 # Curated image-to-video models. Prices are per rendered second.
@@ -62,6 +69,7 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         name="Kling 2.1 Standard",
         tagline="Great motion coherence, strong price/quality",
         usd_per_second=Decimal("0.05"),
+        allowed_durations=(5, 10),
         max_duration_sec=10,
     ),
     FalVideoModel(
@@ -69,6 +77,7 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         name="Kling 2.1 Pro",
         tagline="Sharper detail and camera control",
         usd_per_second=Decimal("0.09"),
+        allowed_durations=(5, 10),
         max_duration_sec=10,
     ),
     FalVideoModel(
@@ -76,6 +85,7 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         name="Hailuo 02 Standard",
         tagline="Expressive character/subject motion",
         usd_per_second=Decimal("0.045"),
+        allowed_durations=(6, 10),
         max_duration_sec=10,
     ),
     FalVideoModel(
@@ -83,6 +93,7 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         name="Luma Ray 2",
         tagline="Cinematic physics and lighting",
         usd_per_second=Decimal("0.18"),
+        allowed_durations=(5, 9),
         max_duration_sec=9,
     ),
     FalVideoModel(
@@ -90,6 +101,7 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         name="OmniHuman (UGC avatar)",
         tagline="Talking-head/spokesperson from a single portrait — UGC mode",
         usd_per_second=Decimal("0.16"),
+        allowed_durations=(5, 10, 15),
         max_duration_sec=15,
     ),
     FalVideoModel(
@@ -97,6 +109,7 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         name="Wan 2.2 (14B)",
         tagline="Budget open-weights option",
         usd_per_second=Decimal("0.04"),
+        allowed_durations=(5, 8),
         max_duration_sec=8,
     ),
 ]
@@ -209,7 +222,9 @@ async def animate(
     if model is None:
         raise FalVideoError(f"unknown fal model {model_id!r}")
 
-    duration = max(1, min(model.max_duration_sec, int(round(duration_sec))))
+    # Snap to the model's accepted duration enum — arbitrary integers 400
+    # on most fal endpoints, killing the job after the keyframe was paid for.
+    duration = snap_duration(model, duration_sec)
     if spend is not None:
         await spend.ensure_can_spend(video_cost(model, duration))
 
@@ -233,11 +248,14 @@ async def animate(
         await _download(client, video_url, out_path)
 
     if spend is not None:
-        cost = video_cost(model, duration)
+        # Bill the seconds fal actually rendered when reported (some
+        # models return slightly different durations than requested).
+        billed = float(video.get("duration") or duration)
+        cost = video_cost(model, billed)
         await spend.log(
             provider=PROVIDER,
             sku=model.id,
-            units=Decimal(duration),
+            units=Decimal(str(billed)),
             cost_usd=cost,
         )
     return out_path

@@ -134,15 +134,24 @@ def _kit_knobs(rules: dict) -> dict:
         except Exception:  # noqa: BLE001
             return default
 
+    def _bounded(key: str, lo: Decimal, hi: Decimal):
+        val = _dec(key)
+        if val is None:
+            return None
+        return min(max(val, lo), hi)
+
     knobs: dict = {}
-    if _dec("target_roas") is not None:
-        knobs["target_roas"] = _dec("target_roas")
-    if _dec("scale_up_pct") is not None:
-        knobs["scale_up_pct"] = _dec("scale_up_pct")
-    if _dec("scale_down_pct") is not None:
-        knobs["scale_down_pct"] = _dec("scale_down_pct")
-    if _dec("max_daily_budget_usd") is not None:
-        knobs["max_daily_budget_usd"] = _dec("max_daily_budget_usd")
+    # Bounds keep a mistyped kit from inverting the policy (target_roas=0
+    # scales every campaign up) or proposing runaway jumps. Proposals are
+    # still guarded + approval-gated downstream; these are sanity rails.
+    if (v := _bounded("target_roas", Decimal("0.1"), Decimal("100"))) is not None:
+        knobs["target_roas"] = v
+    if (v := _bounded("scale_up_pct", Decimal("0"), Decimal("100"))) is not None:
+        knobs["scale_up_pct"] = v
+    if (v := _bounded("scale_down_pct", Decimal("0"), Decimal("90"))) is not None:
+        knobs["scale_down_pct"] = v
+    if (v := _dec("max_daily_budget_usd")) is not None and v > 0:
+        knobs["max_daily_budget_usd"] = v
     return knobs
 
 

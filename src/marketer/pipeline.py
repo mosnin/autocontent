@@ -418,10 +418,17 @@ async def _run_job_inner(
                 script_model=niche.script_model,
                 spend=spend,
             )
+            # cast_mode 'none' means NO characters — a lingering
+            # character_description must not resurrect the cast.
+            cast = (
+                ""
+                if niche.creative_brief.visual.cast_mode == "none"
+                else (niche.character_description or "")
+            )
             script = await run_visual_director(
                 script,
                 visual_style=niche.visual_style,
-                character_description=niche.character_description or "",
+                character_description=cast,
                 brief=niche.creative_brief,
                 design_kit=design_kit_content,
                 spend=spend,

@@ -248,7 +248,8 @@ class TodaySpend(BaseModel):
 
 class SpendHistoryRow(BaseModel):
     day: date
-    niche_id: UUID
+    # None = niche-less spend (e.g. template remixes).
+    niche_id: UUID | None
     cost_usd: Decimal
 
 

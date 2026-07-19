@@ -14,7 +14,7 @@ or their ad campaign) — no cross-tenant references.
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
@@ -66,12 +66,19 @@ async def list_campaigns(ctx: AuthCtx = CurrentUser) -> list[Campaign]:
 async def create_campaign(
     body: CampaignCreate, ctx: AuthCtx = CurrentUser
 ) -> Campaign:
-    if body.ends_at is not None and body.starts_at is not None \
-            and body.ends_at <= body.starts_at:
+    # Normalize naive datetimes to UTC so mixed aware/naive input can't
+    # TypeError inside the comparison (a 500) or skew the runner's gates.
+    data = body.model_dump()
+    for key in ("starts_at", "ends_at"):
+        dt = data[key]
+        if dt is not None and dt.tzinfo is None:
+            data[key] = dt.replace(tzinfo=timezone.utc)
+    if data["ends_at"] is not None and data["starts_at"] is not None \
+            and data["ends_at"] <= data["starts_at"]:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail="ends_at must be after starts_at"
         )
-    return await campaigns_repo.create(user_id=ctx.user_id, **body.model_dump())
+    return await campaigns_repo.create(user_id=ctx.user_id, **data)
 
 
 @router.get("/{campaign_id}", response_model=CampaignOverview)
@@ -154,10 +161,13 @@ async def add_item(
 async def patch_item(
     campaign_id: UUID, item_id: UUID, body: ItemPatch, ctx: AuthCtx = CurrentUser
 ) -> CampaignItem:
+    # Scoped in SQL: a wrong-campaign item id must not be mutated and
+    # then 404'd — the WHERE clause rejects it before any state change.
     item = await campaigns_repo.set_item_enabled(
-        item_id, user_id=ctx.user_id, enabled=body.enabled
+        item_id, user_id=ctx.user_id, enabled=body.enabled,
+        campaign_id=campaign_id,
     )
-    if item is None or item.campaign_id != campaign_id:
+    if item is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     return item
 

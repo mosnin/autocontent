@@ -36,6 +36,19 @@ log = get_logger(__name__)
 
 MAX_SLIDES = 10
 
+# Ayrshare can't post still images to YouTube ("shorts"); pick the first
+# platform that supports image posts so we fail BEFORE spending, not after.
+_IMAGE_CAPABLE = ("reels", "tiktok")
+
+
+def image_platform(niche: Niche, override: str | None = None) -> str | None:
+    if override and override in _IMAGE_CAPABLE:
+        return override
+    for p in niche.platforms:
+        if p in _IMAGE_CAPABLE:
+            return p
+    return None
+
 
 async def _plan(
     *, topic: str, kind: str, slide_count: int, niche: Niche, spend: SpendContext
@@ -43,6 +56,7 @@ async def _plan(
     brief_lines = (
         niche.creative_brief.ideation_lines()
         + niche.creative_brief.scriptwriter_lines()
+        + niche.creative_brief.image_lines()
     )
     payload = {
         "topic": topic,
@@ -57,7 +71,13 @@ async def _plan(
         build_carousel_agent(), json.dumps(payload), spend=spend
     )
     plan = result.final_output_as(CarouselPlan)
-    plan.slides = plan.slides[: (1 if kind == "single" else MAX_SLIDES)]
+    # Normalize: sort by claimed index then reindex 0..n-1 so duplicate or
+    # gapped planner indices can't overwrite slide files.
+    ordered = sorted(plan.slides, key=lambda sl: sl.index)
+    plan.slides = [
+        sl.model_copy(update={"index": i})
+        for i, sl in enumerate(ordered[: (1 if kind == "single" else MAX_SLIDES)])
+    ]
     return plan
 
 
@@ -73,6 +93,13 @@ async def run_image_post(
     if niche is None:
         return await image_posts_repo.fail(
             image_post_id, user_id=user_id, error="niche not found"
+        )
+
+    if image_platform(niche, post["payload"].get("platform")) is None:
+        return await image_posts_repo.fail(
+            image_post_id, user_id=user_id,
+            error="no image-capable platform on this niche (YouTube/shorts "
+                  "can't take still-image posts) — add reels or tiktok",
         )
 
     spend = await default_context(
@@ -169,23 +196,32 @@ async def schedule_image_post(
             image_post_id, user_id=user_id, error="nothing generated to post"
         )
 
-    await image_posts_repo.set_status(image_post_id, user_id=user_id, status="scheduling")
-    caption = post["payload"].get("caption", "")
-    hashtags = post["payload"].get("hashtags", [])
-    platform = post["payload"].get("platform") or (
-        list(niche.platforms)[0] if niche.platforms else "reels"
-    )
-    when = datetime.now(timezone.utc)
+    try:
+        await image_posts_repo.set_status(image_post_id, user_id=user_id, status="scheduling")
+        caption = post["payload"].get("caption", "")
+        hashtags = post["payload"].get("hashtags", [])
+        platform = image_platform(niche, post["payload"].get("platform")) or "reels"
+        when = datetime.now(timezone.utc)
 
-    poster = apply_schedule or scheduler.schedule_image_post
-    provider_post_id = await poster(
-        image_paths=[Path(s["path"]) for s in slides],
-        caption=caption,
-        hashtags=hashtags,
-        platform=platform,
-        scheduled_for=when,
-        user_id=user_id,
-    )
-    return await image_posts_repo.complete(
-        image_post_id, user_id=user_id, provider_post_id=provider_post_id
-    )
+        poster = apply_schedule or scheduler.schedule_image_post
+        provider_post_id = await poster(
+            image_paths=[Path(s["path"]) for s in slides],
+            caption=caption,
+            hashtags=hashtags,
+            platform=platform,
+            scheduled_for=when,
+            user_id=user_id,
+        )
+        return await image_posts_repo.complete(
+            image_post_id, user_id=user_id, provider_post_id=provider_post_id
+        )
+    except Exception as e:  # noqa: BLE001 — terminal backstop: the approval
+        # resume path has no outer catcher, and a row stuck in 'scheduling'
+        # can never be re-approved.
+        log.warning(
+            "image post scheduling failed",
+            extra={"image_post_id": str(image_post_id), "error": str(e)},
+        )
+        return await image_posts_repo.fail(
+            image_post_id, user_id=user_id, error=f"{type(e).__name__}: {e}"
+        )

@@ -291,14 +291,21 @@ async def reap_stale_jobs() -> dict:
     from marketer.repos import articles as articles_repo
     from marketer.repos import jobs as jobs_repo
 
+    from marketer.repos import image_posts as image_posts_repo
+
     reaped = await jobs_repo.reap_stale(older_than_minutes=120)
     reaped_articles = await articles_repo.reap_stale(older_than_minutes=120)
-    if reaped or reaped_articles:
+    reaped_images = await image_posts_repo.reap_stale(older_than_minutes=120)
+    if reaped or reaped_articles or reaped_images:
         logging.getLogger(__name__).error(
-            "reaped %d stale job(s) and %d stale article(s) — a container died or timed out mid-run",
-            reaped, reaped_articles,
+            "reaped %d stale job(s), %d article(s), %d image post(s) — a container died or timed out mid-run",
+            reaped, reaped_articles, reaped_images,
         )
-    return {"reaped": reaped, "reaped_articles": reaped_articles}
+    return {
+        "reaped": reaped,
+        "reaped_articles": reaped_articles,
+        "reaped_images": reaped_images,
+    }
 
 
 @app.function(

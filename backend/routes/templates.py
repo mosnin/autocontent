@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -32,6 +32,36 @@ from ..auth import AuthCtx, CurrentUser, require_admin
 router = APIRouter()
 
 MAX_IMAGE_B64 = 8 * 1024 * 1024  # ~6MB binary
+# Whole-request ceiling: image b64 + prompt + slack. Checked from the
+# Content-Length header BEFORE the JSON body is parsed, so an oversized
+# upload is rejected without buffering it.
+MAX_BODY_BYTES = 12 * 1024 * 1024
+
+
+async def _bounded_body(request: Request) -> None:
+    length = request.headers.get("content-length")
+    if length is None or not length.isdigit():
+        raise HTTPException(
+            status.HTTP_411_LENGTH_REQUIRED, detail="Content-Length required"
+        )
+    if int(length) > MAX_BODY_BYTES:
+        raise HTTPException(
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="request too large"
+        )
+
+
+def _commit_artifacts() -> None:
+    """Publish volume writes so freshly spawned workers see the file.
+
+    The API and workers share the Modal artifacts volume; without a
+    commit, a worker container starting right after the spawn can attach
+    a snapshot that predates the upload."""
+    try:
+        import modal
+
+        modal.Volume.from_name("marketer-artifacts").commit()
+    except Exception:  # noqa: BLE001 — local dev / tests have no volume
+        pass
 
 
 def _decode_image(b64: str, dest: Path) -> Path:
@@ -83,7 +113,7 @@ async def list_templates(
 @router.get("/{template_id}/reference")
 async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
     template = await templates_repo.get(template_id)
-    if template is None or not template.reference_key:
+    if template is None or not template.is_published or not template.reference_key:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     path = Path(template.reference_key)
     if not path.exists():
@@ -93,7 +123,8 @@ async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
 
 @router.post("/{template_id}/remix", status_code=status.HTTP_202_ACCEPTED)
 async def remix_template(
-    template_id: UUID, body: RemixRequest, ctx: AuthCtx = CurrentUser
+    template_id: UUID, body: RemixRequest, ctx: AuthCtx = CurrentUser,
+    _size_ok: None = Depends(_bounded_body),
 ) -> dict:
     template = await templates_repo.get(template_id)
     if template is None or not template.is_published:
@@ -111,6 +142,7 @@ async def remix_template(
             / f"product_{uuid4().hex[:10]}.png"
         )
         _decode_image(body.product_image_b64, dest)
+        _commit_artifacts()
         product_path = str(dest)
 
     import modal
@@ -126,7 +158,10 @@ async def remix_template(
 # --------------------------------------------------------------------------- admin
 
 @router.post("", response_model=Template, status_code=status.HTTP_201_CREATED)
-async def create_template(body: TemplateCreate, admin=Depends(require_admin)) -> Template:
+async def create_template(
+    body: TemplateCreate, admin=Depends(require_admin),
+    _size_ok: None = Depends(_bounded_body),
+) -> Template:
     reference_key = ""
     if body.reference_image_b64:
         dest = (
@@ -134,6 +169,7 @@ async def create_template(body: TemplateCreate, admin=Depends(require_admin)) ->
             / f"{uuid4().hex}.png"
         )
         _decode_image(body.reference_image_b64, dest)
+        _commit_artifacts()
         reference_key = str(dest)
     return await templates_repo.create(
         created_by=admin.user_id,

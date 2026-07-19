@@ -26,6 +26,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
+from decimal import Decimal
+
+from ..config import settings
 from ..logging import get_logger
 from ..models import Campaign
 from ..repos import campaigns as campaigns_repo
@@ -102,6 +105,11 @@ async def run_campaign_tick(
     now = now or datetime.now(timezone.utc)
     uid = campaign.user_id
 
+    if campaign.starts_at is not None and now < campaign.starts_at:
+        # Scheduled but not open yet — stay running, spawn nothing.
+        return {"campaign_id": str(campaign.id), "action": "waiting",
+                "reason": "window not open yet"}
+
     if campaign.ends_at is not None and now >= campaign.ends_at:
         await campaigns_repo.set_status(campaign.id, user_id=uid, status="completed")
         return {"campaign_id": str(campaign.id), "action": "completed", "reason": "window ended"}
@@ -117,8 +125,18 @@ async def run_campaign_tick(
     items = [i for i in await campaigns_repo.list_items(campaign.id, user_id=uid) if i.enabled]
     counts = await campaigns_repo.work_counts(campaign.id, user_id=uid)
 
+    # Budget projection: landed spend + in-flight pieces (whose spend
+    # hasn't hit the ledger yet) at the configured per-piece estimate.
+    # Without this, every lane could spawn once per tick right up to the
+    # ledger catching up — overshooting the budget by lanes x cost.
+    est = Decimal(str(settings.campaign_est_cost_per_piece_usd))
+    pending = await campaigns_repo.pending_work_count(campaign.id, user_id=uid)
+    projected = spent + est * pending
+
     spawned: list[str] = []
     for item in items:
+        if projected + est > campaign.budget_usd:
+            break  # no headroom for another piece
         if item.kind == "video":
             if not _due(counts["video"].get(item.ref_id), item.cadence_per_week, now):
                 continue
@@ -129,6 +147,7 @@ async def run_campaign_tick(
             total = (counts["video"].get(item.ref_id) or {"total": 0})["total"]
             platform = list(niche.platforms)[total % len(niche.platforms)]
             await spawn_video(uid, niche.id, platform, campaign.id)
+            projected += est
             spawned.append(f"video:{niche.id}:{platform}")
         elif item.kind == "image":
             if not _due(counts.get("image", {}).get(item.ref_id), item.cadence_per_week, now):
@@ -137,6 +156,7 @@ async def run_campaign_tick(
             if niche is None:
                 continue
             await spawn_image(uid, niche.id, campaign.id)
+            projected += est
             spawned.append(f"image:{niche.id}")
         elif item.kind == "article":
             if not _due(counts["article"].get(item.ref_id), item.cadence_per_week, now):
@@ -145,6 +165,7 @@ async def run_campaign_tick(
             if niche is None:
                 continue
             await spawn_article(uid, niche.id, campaign.id)
+            projected += est
             spawned.append(f"article:{niche.id}")
         # kind == "ad": linked for reporting; lifecycle stays in the
         # governed ads layer.

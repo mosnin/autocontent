@@ -180,7 +180,12 @@ async def run_ideation(
         )
 
     if n == 1:
-        result = await run_metered(agent, _prompt(""), spend=spend)
+        # Honor the creator's preferred hook mechanism even without a
+        # tournament: single-shot uses their first lens.
+        solo_lens = (brief.candidate_lenses() if brief else [])
+        result = await run_metered(
+            agent, _prompt(solo_lens[0] if solo_lens else ""), spend=spend
+        )
         return result.final_output_as(Idea)
 
     # A brief with preferred hook mechanisms replaces the stock lens set —

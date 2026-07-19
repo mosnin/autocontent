@@ -113,7 +113,9 @@ class VisualBrief(BaseModel):
 class CaptionStyle(BaseModel):
     model_config = {"extra": "forbid"}
 
-    font: str = "Arial Black"
+    # Letters/digits/space/hyphen only — the font lands inside the
+    # comma-delimited ASS Style line, so free text would corrupt it.
+    font: str = Field(default="Arial Black", pattern=r"^[A-Za-z0-9 \-]{1,60}$")
     font_size: int = Field(default=96, ge=40, le=160)
     # RRGGBB hex (no '#'), converted to ASS BGR at render time.
     text_hex: str = Field(default="FFFFFF", pattern=r"^[0-9a-fA-F]{6}$")
@@ -231,6 +233,23 @@ class CreativeBrief(BaseModel):
         if self.prompt_overrides.visual_director:
             out["extra_instructions"] = self.prompt_overrides.visual_director
         return out
+
+    def image_lines(self) -> list[str]:
+        """Constraints for still-image/carousel planning (visual brief has
+        no dedicated agent payload there — it rides as prompt lines)."""
+        v = self.visual
+        lines: list[str] = []
+        if v.cast_mode == "none":
+            lines.append("Never include people, characters, or mascots in any slide.")
+        if v.lighting:
+            lines.append(f"Lighting (every slide): {v.lighting}.")
+        if v.color_palette:
+            lines.append(f"Color palette (every slide, verbatim): {v.color_palette}.")
+        if v.negative_visuals:
+            lines.append(
+                "HARD bans — never show: " + ", ".join(v.negative_visuals)
+            )
+        return lines
 
     def qa_lines(self) -> list[str]:
         lines: list[str] = []

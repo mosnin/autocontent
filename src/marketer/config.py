@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     # winner). 1 = single-shot, no judge call.
     ideation_candidates: int = 3
 
+    # Campaign budget projection: assumed cost of one in-flight piece
+    # (video/article/image) whose spend hasn't landed in the ledger yet.
+    # Conservative-high keeps campaigns from overshooting their budget.
+    campaign_est_cost_per_piece_usd: float = 2.50
+
     # Maximum number of scene-asset tasks running concurrently.
     # Lower values reduce peak spend rate and provider rate-limit exposure.
     scene_fanout_limit: int = 4

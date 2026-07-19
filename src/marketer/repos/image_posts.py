@@ -124,3 +124,25 @@ async def claim_for_scheduling(image_post_id: UUID, *, user_id: str) -> bool:
         image_post_id, user_id,
     )
     return row is not None
+
+
+_REAPABLE_STATUSES = ("queued", "planning", "generating", "scheduling")
+_REAP_ERROR = "reaped: no progress (container died or timed out mid-run)"
+
+
+async def reap_stale(*, older_than_minutes: int = 120) -> int:
+    """Fail image posts stuck in a non-terminal status with no progress —
+    crashed/timed-out containers strand them there, invisible to the user
+    and silently consuming campaign cadence. awaiting_approval is parking,
+    not staleness, so it is exempt."""
+    pool = await get_pool()
+    result = await pool.execute(
+        """
+        update image_posts
+           set status = 'failed', error = $2, updated_at = now()
+         where status = any($1::text[])
+           and updated_at < now() - make_interval(mins => $3)
+        """,
+        list(_REAPABLE_STATUSES), _REAP_ERROR, older_than_minutes,
+    )
+    return int(result.split()[-1])

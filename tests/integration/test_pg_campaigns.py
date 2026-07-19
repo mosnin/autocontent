@@ -178,3 +178,50 @@ async def test_templates_crud_and_publish_filter(pool):
     assert [x.id for x in published] == [t.id]
     assert await templates.delete(t.id)
     assert await templates.get(t.id) is None
+
+
+async def test_image_post_reaper_and_quota_filters(pool):
+    from decimal import Decimal as D
+
+    from marketer.repos import campaigns, image_posts, jobs as jobs_repo
+
+    uid = await _mkuser(pool)
+    niche_id = await _mkniche(pool, uid)
+    c = await campaigns.create(user_id=uid, name="reap", budget_usd=D("10"))
+
+    # stale generating post -> reaped to failed
+    post = await image_posts.create(
+        user_id=uid, niche_id=niche_id, campaign_id=c.id,
+    )
+    await image_posts.set_status(post["id"], user_id=uid, status="generating")
+    await pool.execute(
+        "update image_posts set updated_at = now() - interval '3 hours' where id = $1",
+        post["id"],
+    )
+    assert await image_posts.reap_stale(older_than_minutes=120) == 1
+    reaped = await image_posts.get(post["id"], user_id=uid)
+    assert reaped["status"] == "failed" and "reaped" in reaped["error"]
+
+    # awaiting_approval is parking, never reaped
+    parked = await image_posts.create(user_id=uid, niche_id=niche_id)
+    await image_posts.set_status(parked["id"], user_id=uid, status="awaiting_approval")
+    await pool.execute(
+        "update image_posts set updated_at = now() - interval '3 hours' where id = $1",
+        parked["id"],
+    )
+    assert await image_posts.reap_stale(older_than_minutes=120) == 0
+
+    # failed/skipped work no longer consumes cadence quota
+    job = await jobs_repo.create(
+        user_id=uid, niche_id=niche_id, platform="tiktok", campaign_id=c.id,
+    )
+    await pool.execute(
+        "update jobs set status = 'failed' where id = $1", job.id
+    )
+    counts = await campaigns.work_counts(c.id, user_id=uid)
+    assert niche_id not in counts["video"]  # failed job filtered out
+    # the reaped image post is likewise filtered
+    assert niche_id not in counts["image"] or counts["image"][niche_id]["total"] == 1
+
+    # pending_work_count sees only in-flight work
+    assert await campaigns.pending_work_count(c.id, user_id=uid) == 0
