@@ -12,7 +12,7 @@ from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import admin, ads, articles, billing, brand_kit, calendar, connect, healthz, jobs, metrics, niches, performance, spend, tokens, users, voices, webhook_endpoints, webhooks, x402
+from .routes import admin, ads, articles, billing, brand_kit, calendar, connect, healthz, jobs, library, metrics, niches, performance, spend, style_presets, tokens, users, voices, webhook_endpoints, webhooks, x402
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,8 @@ def create_app() -> FastAPI:
     app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
     app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])
     app.include_router(x402.router, prefix="/api/v1/x402", tags=["x402"])
+    app.include_router(library.router, prefix="/api/v1/library", tags=["library"])
+    app.include_router(style_presets.router, prefix="/api/v1/style-presets", tags=["style-presets"])
 
     # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
     # when enabled this serves the functions at /api/inngest.

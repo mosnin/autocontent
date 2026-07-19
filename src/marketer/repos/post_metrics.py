@@ -126,7 +126,9 @@ async def top_performers_for_niche(
     limit: int = 5,
     days: int = 30,
 ) -> list[tuple[UUID, int]]:
-    """Return [(job_id, views), ...] for the top N jobs by views in window.
+    """Return [(job_id, views, completion_rate), ...] for the top N jobs,
+    ranked by completion rate (the quality signal) with views as the
+    fallback for unsampled completion.
 
     Uses each job's LATEST sample only (one row per job): metrics are
     sampled daily, so ranking raw rows lets a single viral job fill every
@@ -135,8 +137,8 @@ async def top_performers_for_niche(
     pool = await get_pool()
     rows = await pool.fetch(
         """
-        select job_id, views from (
-            select distinct on (pm.job_id) pm.job_id, pm.views
+        select job_id, views, completion_rate from (
+            select distinct on (pm.job_id) pm.job_id, pm.views, pm.completion_rate
               from post_metrics pm
               join jobs j on j.id = pm.job_id
              where j.niche_id = $1
@@ -145,7 +147,7 @@ async def top_performers_for_niche(
                and pm.sampled_at >= now() - ($3 || ' days')::interval
              order by pm.job_id, pm.sampled_at desc
         ) latest
-        order by views desc
+        order by coalesce(completion_rate, -1) desc, views desc
         limit $4
         """,
         niche_id,
@@ -153,7 +155,7 @@ async def top_performers_for_niche(
         str(days),
         limit,
     )
-    return [(r["job_id"], r["views"]) for r in rows]
+    return [(r["job_id"], r["views"], r["completion_rate"]) for r in rows]
 
 
 async def bottom_performers_for_niche(
@@ -163,7 +165,8 @@ async def bottom_performers_for_niche(
     limit: int = 5,
     days: int = 30,
 ) -> list[tuple[UUID, int]]:
-    """Return [(job_id, views), ...] for the bottom N jobs by views in window.
+    """Return [(job_id, views, completion_rate), ...] for the bottom N jobs,
+    worst completion rate first (unsampled completion sinks to views).
 
     Identical to ``top_performers_for_niche`` but ordered ascending. Using
     the latest sample per job matters even more here: raw rows would fill
@@ -173,8 +176,8 @@ async def bottom_performers_for_niche(
     pool = await get_pool()
     rows = await pool.fetch(
         """
-        select job_id, views from (
-            select distinct on (pm.job_id) pm.job_id, pm.views
+        select job_id, views, completion_rate from (
+            select distinct on (pm.job_id) pm.job_id, pm.views, pm.completion_rate
               from post_metrics pm
               join jobs j on j.id = pm.job_id
              where j.niche_id = $1
@@ -183,7 +186,7 @@ async def bottom_performers_for_niche(
                and pm.sampled_at >= now() - ($3 || ' days')::interval
              order by pm.job_id, pm.sampled_at desc
         ) latest
-        order by views asc
+        order by coalesce(completion_rate, 1e9) asc, views asc
         limit $4
         """,
         niche_id,
@@ -191,7 +194,7 @@ async def bottom_performers_for_niche(
         str(days),
         limit,
     )
-    return [(r["job_id"], r["views"]) for r in rows]
+    return [(r["job_id"], r["views"], r["completion_rate"]) for r in rows]
 
 
 # ---------------------------------------------------------------------------

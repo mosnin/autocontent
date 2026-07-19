@@ -6,10 +6,11 @@ from pathlib import Path
 
 from openai import AsyncOpenAI
 from opentelemetry import trace
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
 from .openai_pricing import whisper_cost
+from .retry_policy import is_transient_openai_error
 from .spend_context import SpendContext
 
 PROVIDER = "openai"
@@ -37,14 +38,15 @@ def _audio_duration_seconds(path: Path) -> float:
         return 0.0
 
 
-# Only the provider call is retried; the cap pre-flight and spend
-# recording run exactly once (retrying them re-spends or retries
-# SpendCapExceeded past the daily cap).
+# Only the provider call is retried, and only on transient errors
+# (connection/timeout/429/5xx); the cap pre-flight and spend recording
+# run exactly once (retrying them re-spends or retries SpendCapExceeded
+# past the daily cap).
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type(Exception),
+    retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_api(audio_path: Path):
     client = _get_client()

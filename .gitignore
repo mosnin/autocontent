@@ -24,3 +24,4 @@ artifacts/
 
 # Claude Code harness sub-agent worktrees (not project code)
 .claude/
+.coverage

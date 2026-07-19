@@ -86,12 +86,24 @@ async def _submit(client: httpx.AsyncClient, body: dict[str, Any]) -> str:
     return request_id
 
 
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=2, max=16),
+    retry=retry_if_exception_type((httpx.HTTPError,)),
+)
+async def _poll_once(client: httpx.AsyncClient, request_id: str) -> dict[str, Any]:
+    """One status GET, retried on transient transport/HTTP errors so a
+    blip mid-poll doesn't kill a job whose render is progressing fine."""
+    resp = await client.get(f"/videos/{request_id}")
+    resp.raise_for_status()
+    return resp.json()
+
+
 async def _poll(client: httpx.AsyncClient, request_id: str) -> dict[str, Any]:
     deadline = asyncio.get_event_loop().time() + POLL_TIMEOUT_SEC
     while True:
-        resp = await client.get(f"/videos/{request_id}")
-        resp.raise_for_status()
-        body = resp.json()
+        body = await _poll_once(client, request_id)
         status = body.get("status")
         if status == "done":
             return body
@@ -102,13 +114,23 @@ async def _poll(client: httpx.AsyncClient, request_id: str) -> dict[str, Any]:
         await asyncio.sleep(POLL_INTERVAL_SEC)
 
 
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=2, max=16),
+    retry=retry_if_exception_type((httpx.HTTPError,)),
+)
 async def _download(client: httpx.AsyncClient, url: str, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = out_path.with_suffix(out_path.suffix + ".part")
     async with client.stream("GET", url) as resp:
         resp.raise_for_status()
-        with out_path.open("wb") as fp:
+        with tmp_path.open("wb") as fp:
             async for chunk in resp.aiter_bytes():
                 fp.write(chunk)
+    # Atomic rename so a retried/interrupted download can never leave a
+    # truncated mp4 behind for the edit stage to concat.
+    tmp_path.replace(out_path)
 
 
 async def animate(

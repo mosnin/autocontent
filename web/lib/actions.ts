@@ -31,6 +31,7 @@ interface NicheCreatePayload {
   video_resolution: "480p" | "720p";
   scene_max_duration_sec: number;
   tts_style_directions: string | null;
+  character_description: string | null;
   approve_before_post: boolean;
 }
 
@@ -59,6 +60,7 @@ export interface NicheDraft {
   video_resolution: "480p" | "720p";
   scene_max_duration_sec: number;
   tts_style_directions: string;
+  character_description: string;
 }
 
 export async function draftNicheAction(
@@ -88,6 +90,7 @@ export async function createNicheAction(
   const postingMinute = Number(formData.get("posting_minute"));
   const tz = String(formData.get("tz") || "America/Los_Angeles");
   const ttsStyleRaw = String(formData.get("tts_style_directions") || "").trim();
+  const characterRaw = String(formData.get("character_description") || "").trim();
 
   const payload: NicheCreatePayload = {
     title: String(formData.get("title") || "").trim(),
@@ -105,6 +108,7 @@ export async function createNicheAction(
     video_resolution: (formData.get("video_resolution") as "480p" | "720p") || "480p",
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
+    character_description: characterRaw ? characterRaw : null,
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 
@@ -137,6 +141,7 @@ export async function updateNicheAction(
   const postingMinute = Number(formData.get("posting_minute"));
   const tz = String(formData.get("tz") || "America/Los_Angeles");
   const ttsStyleRaw = String(formData.get("tts_style_directions") || "").trim();
+  const characterRaw = String(formData.get("character_description") || "").trim();
 
   // Send the full payload (all fields optional on the backend), keeps
   // semantics symmetric with createNicheAction.
@@ -158,6 +163,7 @@ export async function updateNicheAction(
       (formData.get("video_resolution") as "480p" | "720p") || "480p",
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
+    character_description: characterRaw ? characterRaw : null,
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 

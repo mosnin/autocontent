@@ -11,10 +11,11 @@ from pathlib import Path
 
 from openai import AsyncOpenAI
 from opentelemetry import trace
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
 from .openai_pricing import tts_cost, tts_cost_estimated
+from .retry_policy import is_transient_openai_error
 from .spend_context import SpendContext
 
 PROVIDER = "openai"
@@ -41,19 +42,24 @@ def _wav_duration_seconds(path: Path) -> float:
         return frames / float(rate) if rate else 0.0
 
 
-# Only the provider call is retried; the cap pre-flight and spend
-# recording run exactly once (retrying them re-spends or retries
-# SpendCapExceeded past the daily cap).
+# Only the provider call is retried, and only on transient errors
+# (connection/timeout/429/5xx); the cap pre-flight and spend recording
+# run exactly once (retrying them re-spends or retries SpendCapExceeded
+# past the daily cap).
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type(Exception),
+    retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_api(out_path: Path, kwargs: dict) -> None:
     client = _get_client()
+    tmp_path = out_path.with_suffix(out_path.suffix + ".part")
     async with client.audio.speech.with_streaming_response.create(**kwargs) as response:
-        await response.stream_to_file(out_path)
+        await response.stream_to_file(tmp_path)
+    # Atomic rename so a killed container or exhausted retry can never
+    # leave a truncated voiceover.wav behind for stage-resume to reuse.
+    tmp_path.replace(out_path)
 
 
 async def synthesize(

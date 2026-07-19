@@ -11,15 +11,23 @@ from ..config import settings
 from ..models import Script
 
 VISUAL_DIRECTOR_INSTRUCTIONS = """You are a visual director.
-Input is JSON: {"style": "<style brief>", "script": <Script>}.
+Input is JSON: {"style": "<style brief>", "character": "<canonical cast or empty>",
+"script": <Script>}.
 
 Rewrite every scene's `visual_prompt` and `motion_prompt` so the resulting
 video has a SINGLE, COHESIVE look that matches the supplied style.
 
 Rules:
 - Prefix every visual_prompt with the supplied style verbatim.
-- If a recurring character appears, give them a fixed description repeated
-  verbatim every scene (clothing, hair, build) so DALL-E renders consistently.
+- When `character` is non-empty it is the CANONICAL cast (it matches a
+  reference sheet the image model receives): repeat that description
+  verbatim in every scene that shows a character. Never invent a
+  different protagonist or change their wardrobe/species/build.
+- When `character` is empty and a recurring character appears, write one
+  fixed description yourself and repeat it verbatim every scene.
+- NEVER request text, words, numbers, labels, signage, or captions inside
+  the image — captions are burned in separately and image models garble
+  text. Rewrite any such request into a purely pictorial equivalent.
 - Keep aspect ratio cues for 9:16 vertical.
 - motion_prompts should be short (under 20 words), avoid contradictory
   motion (no "fast" + "slow"), and prefer one camera move OR one subject

@@ -34,6 +34,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+
+import { StylePresetPicker } from "@/components/style-preset-picker";
 import { updateNicheAction } from "@/lib/actions";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
@@ -82,6 +84,10 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
     minute: 0,
     tz: "America/Los_Angeles",
   };
+
+  // Controlled so the preset picker can apply a style; still serialized
+  // through the native form via name="visual_style".
+  const [visualStyle, setVisualStyle] = React.useState(niche.visual_style);
 
   // Live cost-estimate mirror. Uncontrolled inputs still own the truth
   // for submission; this only feeds the readout.
@@ -164,9 +170,14 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           <Textarea
             id="niche-visual_style"
             name="visual_style"
-            defaultValue={niche.visual_style}
+            value={visualStyle}
+            onChange={(e) => setVisualStyle(e.target.value)}
             rows={3}
             required
+          />
+          <StylePresetPicker
+            className="pt-2"
+            onApply={(preset) => setVisualStyle(preset.visual_style)}
           />
         </Labelled>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -281,6 +292,19 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             name="tts_style_directions"
             defaultValue={niche.tts_style_directions ?? ""}
             placeholder="calm, conspiratorial narrator with deliberate pauses"
+          />
+        </Labelled>
+
+        <Labelled
+          label="Custom characters"
+          hint="Optional — recurring cast rendered in every video. Editing regenerates the reference sheet on the next job."
+          htmlFor="niche-character_description"
+        >
+          <Input
+            id="niche-character_description"
+            name="character_description"
+            defaultValue={niche.character_description ?? ""}
+            placeholder="a grumpy clay llama named Sol wearing a tiny lab coat"
           />
         </Labelled>
 

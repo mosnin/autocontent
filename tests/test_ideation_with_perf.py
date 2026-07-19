@@ -62,6 +62,8 @@ def test_empty_performance_context_falls_back_to_base():
 
 @pytest.mark.asyncio
 async def test_run_ideation_no_perf_sends_simple_prompt(monkeypatch):
+    from marketer.config import settings as _settings
+    monkeypatch.setattr(_settings, "ideation_candidates", 1)
     """Without performance context the prompt is 'Niche: <title>'."""
     captured: list[str] = []
 
@@ -90,6 +92,8 @@ async def test_run_ideation_no_perf_sends_simple_prompt(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_run_ideation_with_perf_injects_context_into_prompt(monkeypatch):
+    from marketer.config import settings as _settings
+    monkeypatch.setattr(_settings, "ideation_candidates", 1)
     """With performance context the prompt includes preamble + context block."""
     captured: list[str] = []
 
@@ -126,6 +130,8 @@ async def test_run_ideation_with_perf_injects_context_into_prompt(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_run_ideation_default_kwarg_is_empty(monkeypatch):
+    from marketer.config import settings as _settings
+    monkeypatch.setattr(_settings, "ideation_candidates", 1)
     """performance_context defaults to '' — existing callers need no changes."""
     captured: list[str] = []
 
@@ -149,3 +155,96 @@ async def test_run_ideation_default_kwarg_is_empty(monkeypatch):
     await _orch.run_ideation("my niche")
 
     assert captured[0] == "Niche: my niche"
+
+
+async def test_run_ideation_tournament_generates_n_plus_judge(monkeypatch):
+    """3 candidates -> 3 ideation calls + 1 judge call; judge's pick wins."""
+    from marketer.config import settings as _settings
+    from marketer.agents.ideation import IdeaVerdict
+    from marketer.models import Idea
+
+    monkeypatch.setattr(_settings, "ideation_candidates", 3)
+
+    ideas = [
+        Idea(topic=f"t{i}", angle="a", hook=f"hook {i}",
+             target_audience="x", why_it_works="y")
+        for i in range(3)
+    ]
+    calls = {"n": 0}
+
+    class _Result:
+        def __init__(self, output):
+            self._output = output
+            self.context_wrapper = type("W", (), {"usage": type(
+                "U", (), {"total_tokens": 10, "input_tokens": 5, "output_tokens": 5})()})()
+
+        def final_output_as(self, cls):
+            return self._output
+
+    async def fake_run(agent, *, input):  # noqa: A002
+        calls["n"] += 1
+        if agent.name == "IdeaJudge":
+            return _Result(IdeaVerdict(winner_index=2, reasoning="strongest hook"))
+        return _Result(ideas[min(calls["n"] - 1, 2)])
+
+    import marketer.orchestrator as _orch
+    from agents import Runner
+
+    monkeypatch.setattr(Runner, "run", fake_run)
+
+    idea = await _orch.run_ideation("claymation econ")
+    assert calls["n"] == 4  # 3 candidates + 1 judge
+    assert idea.topic == "t2"  # judge's pick
+
+
+async def test_run_ideation_tournament_judge_failure_falls_back(monkeypatch):
+    """A judge blow-up returns candidate 0 instead of failing the job."""
+    from marketer.config import settings as _settings
+    from marketer.models import Idea
+
+    monkeypatch.setattr(_settings, "ideation_candidates", 2)
+
+    first = Idea(topic="first", angle="a", hook="h",
+                 target_audience="x", why_it_works="y")
+
+    class _Result:
+        def __init__(self, output):
+            self._output = output
+            self.context_wrapper = type("W", (), {"usage": type(
+                "U", (), {"total_tokens": 10, "input_tokens": 5, "output_tokens": 5})()})()
+
+        def final_output_as(self, cls):
+            return self._output
+
+    async def fake_run(agent, *, input):  # noqa: A002
+        if agent.name == "IdeaJudge":
+            raise RuntimeError("judge exploded")
+        return _Result(first)
+
+    import marketer.orchestrator as _orch
+    from agents import Runner
+
+    monkeypatch.setattr(Runner, "run", fake_run)
+
+    idea = await _orch.run_ideation("niche")
+    assert idea.topic == "first"
+
+
+async def test_ideation_prompt_includes_full_brief_and_dedupe():
+    from marketer.agents.ideation import build_ideation_prompt
+
+    prompt = build_ideation_prompt(
+        "claymation econ",
+        niche_description="60s econ explainers",
+        target_audience="finance-curious zoomers",
+        platform="tiktok",
+        brand_voice="playful but precise",
+        banned_words=["synergy"],
+        recent_topics=["inflation basics (hook: why eggs cost more)"],
+    )
+    assert "About: 60s econ explainers" in prompt
+    assert "Audience: finance-curious zoomers" in prompt
+    assert "Platform: tiktok" in prompt
+    assert "Brand voice: playful but precise" in prompt
+    assert "synergy" in prompt
+    assert "Do-not-repeat" in prompt and "inflation basics" in prompt

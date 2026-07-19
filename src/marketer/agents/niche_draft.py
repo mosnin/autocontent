@@ -36,6 +36,9 @@ Guidance:
 - video_resolution: '720p' for anything cinematic, else '480p'.
 - tts_style_directions: a short delivery note matching the vibe
   (e.g. "calm and conspiratorial", "high-energy explainer").
+- character_description: when the niche benefits from a recurring cast
+  (mascot, host, ensemble), describe it concretely (names, species/look,
+  wardrobe). Leave empty for styles without characters.
 """
 
 
@@ -57,6 +60,7 @@ class NicheDraft(BaseModel):
     video_resolution: Literal["480p", "720p"] = "480p"
     scene_max_duration_sec: int = Field(default=5, ge=1, le=15)
     tts_style_directions: str = ""
+    character_description: str = ""
 
 
 def build_niche_draft_agent() -> Agent:

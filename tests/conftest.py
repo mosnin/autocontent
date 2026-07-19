@@ -55,3 +55,29 @@ def _stub_openai_key(monkeypatch):
 
     monkeypatch.setattr(settings, "openai_api_key", "sk-test")
     yield
+
+
+@pytest.fixture
+def passing_render_qa(monkeypatch):
+    """Stub the deterministic render gate with an always-green report.
+
+    Pipeline tests stub ffmpeg/providers with sentinel files that ffprobe
+    could never parse; this keeps them exercising pipeline control flow
+    rather than the gate itself (covered in test_video_qa.py).
+    """
+    from marketer.services import video_qa
+
+    def fake_check_render(
+        final_path, *, voiceover_path, target_duration_sec,
+        max_upload_bytes=video_qa.MAX_UPLOAD_BYTES,
+    ):
+        return video_qa.RenderReport(
+            passed=True,
+            issues=[],
+            final_path=str(final_path),
+            duration_sec=float(target_duration_sec or 10),
+            size_bytes=1024,
+        )
+
+    monkeypatch.setattr(video_qa, "check_render", fake_check_render)
+    return fake_check_render

@@ -69,6 +69,7 @@ class NicheCreate(BaseModel):
     scene_max_duration_sec: int = 5
     tts_style_directions: str | None = None
     approve_before_post: bool = False
+    character_description: str | None = None
 
 
 class NicheUpdate(BaseModel):
@@ -95,6 +96,7 @@ class NicheUpdate(BaseModel):
     scene_max_duration_sec: int | None = None
     tts_style_directions: str | None = None
     approve_before_post: bool | None = None
+    character_description: str | None = None
 
 
 @router.get("", response_model=list[Niche])

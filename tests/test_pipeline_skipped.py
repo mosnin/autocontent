@@ -117,7 +117,7 @@ async def test_skipped_job_does_no_provider_work(stub_db, niche_lock_false, monk
     assert called == []
 
 
-async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
+async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passing_render_qa):
     """When niche_lock yields True the job runs normally (smoke check)."""
 
     @asynccontextmanager
@@ -180,7 +180,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context="", spend=None):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
         return Idea(topic="t", angle="a", hook="h",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
@@ -196,11 +196,11 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
             total_duration_sec=5,
         )
 
-    async def fake_scriptwriter(*a, **kw):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_vd(script, *, visual_style, spend=None):
+    async def fake_vd(script, *, visual_style, character_description="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 

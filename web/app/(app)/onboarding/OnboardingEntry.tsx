@@ -141,5 +141,6 @@ function toPrefill(d: NicheDraft): NicheDraftPrefill {
     video_resolution: d.video_resolution,
     scene_max_duration_sec: d.scene_max_duration_sec,
     tts_style_directions: d.tts_style_directions,
+    character_description: d.character_description,
   };
 }

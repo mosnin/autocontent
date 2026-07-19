@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     artifacts_dir: str = "/artifacts"
     assets_dir: str = "/assets"
 
+    # Ideation tournament: candidates generated per video (judge picks the
+    # winner). 1 = single-shot, no judge call.
+    ideation_candidates: int = 3
+
     # Maximum number of scene-asset tasks running concurrently.
     # Lower values reduce peak spend rate and provider rate-limit exposure.
     scene_fanout_limit: int = 4
@@ -101,6 +105,21 @@ class Settings(BaseSettings):
     inngest_signing_key: str = ""
     inngest_event_key: str = ""
     inngest_dev: bool = False
+
+    # --- Wasabi S3 object storage (media library) ---------------------
+    # Durable, S3-compatible home for every produced media artifact (scene
+    # clips, keyframes, voiceovers, final videos). Off by default: without
+    # a bucket + keys the pipeline keeps working volume-only and the
+    # library simply has nothing indexed in object storage.
+    wasabi_enabled: bool = False
+    # e.g. https://s3.us-east-1.wasabisys.com (region-specific endpoint).
+    wasabi_endpoint_url: str = "https://s3.us-east-1.wasabisys.com"
+    wasabi_region: str = "us-east-1"
+    wasabi_bucket: str = ""
+    wasabi_access_key_id: str = ""
+    wasabi_secret_access_key: str = ""
+    # Presigned playback/download URL lifetime.
+    wasabi_presign_expiry_sec: int = 3600
 
     # --- x402 agent payments (HTTP 402, stablecoin) -------------------
     # Lets agents fund their own prepaid credit over HTTP 402. Off by default;

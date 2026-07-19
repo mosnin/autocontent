@@ -29,13 +29,33 @@ async def create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
     return job
 
 
+# Failure prefixes that mean QA rejected the *content* — resuming the same
+# script/clips would fail identically, so retries must regenerate. Lives
+# here (not pipeline.py) because the wipe has to happen wherever the
+# pre-reset error string is still visible.
+CONTENT_REJECTION_PREFIXES = ("content QA failed", "render QA failed")
+
+
+def wipe_pipeline_state(job: Job) -> None:
+    job.script = None
+    job.clips = []
+    job.audio = None
+
+
 async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
     """Reset a failed job back to `queued` and clear `error`. Returns the
     fresh Job snapshot. Returns None if the job isn't owned by the user
-    or isn't currently in a terminal state."""
+    or isn't currently in a terminal state.
+
+    Content/render QA rejections wipe the pipeline state HERE — the retry
+    route nulls `error` before the pipeline's _obtain_job ever sees it, so
+    deferring the check downstream would resume the rejected artifacts and
+    re-judge the same script to death."""
     job = await get(job_id, user_id=user_id)
     if job is None or job.status != JobStatus.failed:
         return None
+    if job.error and job.error.startswith(CONTENT_REJECTION_PREFIXES):
+        wipe_pipeline_state(job)
     job.status = JobStatus.queued
     job.error = None
     await save_snapshot(job)
@@ -202,3 +222,30 @@ async def get_by_provider_post_id(provider_post_id: str) -> Job | None:
         provider_post_id,
     )
     return Job.model_validate(json.loads(row["payload"])) if row else None
+
+
+async def recent_topics_for_niche(
+    niche_id: UUID, *, user_id: str, limit: int = 20
+) -> list[str]:
+    """Topics (with hooks) of the niche's most recent scripted jobs.
+
+    Fed to the ideation agent as a do-not-repeat list — the video
+    pipeline's equivalent of the article pipeline's topic dedupe."""
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select payload->'script'->'idea'->>'topic' as topic,
+               payload->'script'->'idea'->>'hook'  as hook
+          from jobs
+         where niche_id = $1
+           and user_id = $2
+           and payload->'script'->'idea'->>'topic' is not null
+         order by created_at desc
+         limit $3
+        """,
+        niche_id, user_id, limit,
+    )
+    return [
+        f"{r['topic']}" + (f" (hook: {r['hook']})" if r["hook"] else "")
+        for r in rows
+    ]

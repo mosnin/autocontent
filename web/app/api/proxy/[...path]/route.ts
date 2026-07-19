@@ -17,12 +17,20 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
   const headers: Record<string, string> = {};
   const ct = req.headers.get("content-type");
   if (ct) headers["content-type"] = ct;
+  // Forward Range so FastAPI FileResponse can serve 206 partial content —
+  // Safari refuses to play <video> sources that ignore Range.
+  const range = req.headers.get("range");
+  if (range) headers["range"] = range;
   if (token) headers["authorization"] = `Bearer ${token}`;
 
   const init: RequestInit = {
     method: req.method,
     headers,
     cache: "no-store",
+    // Pass redirects (e.g. the library's 307 to a presigned Wasabi URL)
+    // back to the browser so media streams directly from object storage
+    // instead of being piped through this function.
+    redirect: "manual",
   };
   if (req.method !== "GET" && req.method !== "HEAD") {
     // Binary-safe passthrough: forward the raw stream, don't decode as text.

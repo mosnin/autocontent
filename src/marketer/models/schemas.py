@@ -119,6 +119,11 @@ class Niche(BaseModel):
     target_duration_sec: int
     scene_count: int
 
+    # Optional recurring-cast description ("a grumpy clay llama named Sol
+    # wearing a tiny lab coat"). Steers the character reference sheet, and
+    # through it every scene keyframe. None = model invents the cast.
+    character_description: str | None = None
+
     # Per-niche overrides for provider behavior.
     image_quality: Literal["low", "medium", "high"] = "medium"
     video_resolution: Literal["480p", "720p"] = "480p"
@@ -206,6 +211,7 @@ class NicheCreatePayload(BaseModel):
     video_resolution: Literal["480p", "720p"] = "480p"
     scene_max_duration_sec: int = 5
     tts_style_directions: str | None = None
+    character_description: str | None = None
 
 
 class TodaySpend(BaseModel):
@@ -235,6 +241,40 @@ class AyrshareConnectResponse(BaseModel):
 class AyrshareConnectStatus(BaseModel):
     connected: bool
     profile_key: str | None = None
+
+
+class MediaAsset(BaseModel):
+    """One indexed media artifact: a scene clip, keyframe, voiceover,
+    final video, or a remixed composition output."""
+
+    id: UUID
+    user_id: str
+    niche_id: UUID | None = None
+    job_id: UUID | None = None
+    kind: Literal["clip", "keyframe", "voiceover", "final", "composition"]
+    scene_index: int | None = None
+    storage: Literal["wasabi", "volume"]
+    object_key: str
+    content_type: str = "video/mp4"
+    size_bytes: int = 0
+    duration_sec: Decimal | None = None
+    title: str = ""
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Composition(BaseModel):
+    """A remix: a new video assembled from existing library clips."""
+
+    id: UUID
+    user_id: str
+    title: str = ""
+    clip_asset_ids: list[UUID]
+    audio_mode: Literal["keep", "mute"] = "keep"
+    status: Literal["queued", "rendering", "done", "failed"] = "queued"
+    output_asset_id: UUID | None = None
+    error: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class PostMetrics(BaseModel):
