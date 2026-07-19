@@ -18,11 +18,23 @@ from ..services.spend_context import SpendContext
 PROVIDER = "openai"
 
 
-async def run_metered(agent: Agent, input: str, *, spend: SpendContext | None = None):
+async def run_metered(
+    agent: Agent,
+    input: str,
+    *,
+    spend: SpendContext | None = None,
+    provider: str = PROVIDER,
+    sku: str | None = None,
+    cost_fn=None,
+):
     """Run *agent* and log its token cost to *spend* (when provided).
 
     Returns the SDK ``RunResult`` — callers keep using
     ``result.final_output_as(...)`` exactly as before.
+
+    ``provider``/``sku``/``cost_fn`` support non-OpenAI backends (e.g. an
+    OpenRouter scriptwriter): cost_fn(input_tokens, output_tokens) prices
+    the call with that provider's real rates instead of the OpenAI table.
     """
     if spend is not None:
         await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
@@ -32,10 +44,15 @@ async def run_metered(agent: Agent, input: str, *, spend: SpendContext | None = 
     if spend is not None:
         usage = result.context_wrapper.usage
         model = agent.model if isinstance(agent.model, str) and agent.model else settings.agent_model
+        cost = (
+            cost_fn(usage.input_tokens, usage.output_tokens)
+            if cost_fn is not None
+            else llm_cost(model, usage.input_tokens, usage.output_tokens)
+        )
         await spend.log(
-            provider=PROVIDER,
-            sku=f"llm:{model}",
+            provider=provider,
+            sku=sku or f"llm:{model}",
             units=Decimal(usage.total_tokens),
-            cost_usd=llm_cost(model, usage.input_tokens, usage.output_tokens),
+            cost_usd=cost,
         )
     return result

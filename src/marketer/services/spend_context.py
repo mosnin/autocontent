@@ -62,10 +62,11 @@ async def _default_today_total_spend(*, user_id: str) -> Decimal:
 @dataclass
 class SpendContext:
     user_id: str
-    niche_id: UUID
+    niche_id: UUID | None
     job_id: UUID | None
     record: SpendRecorder
     article_id: UUID | None = None
+    image_post_id: UUID | None = None
     cap_usd: Decimal | None = None
     today_spend: TodaySpendReader = field(default=_default_today_spend)
     global_cap_usd: Decimal | None = None
@@ -154,6 +155,7 @@ class SpendContext:
                 niche_id=self.niche_id,
                 job_id=self.job_id,
                 article_id=self.article_id,
+                image_post_id=self.image_post_id,
                 provider=provider,
                 sku=sku,
                 units=units,
@@ -202,6 +204,7 @@ class SpendContext:
                 f"user {self.user_id} exhausted prepaid credit during job: "
                 f"balance ${new_balance} after {provider}/{sku}. Top up to continue.",
                 scope="credits",
+                after_spend=True,
             )
 
         if self.cap_usd is not None:
@@ -212,6 +215,7 @@ class SpendContext:
                     f"niche {self.niche_id} hit daily cap during job: "
                     f"${spent} >= ${self.cap_usd}",
                     scope="niche",
+                    after_spend=True,
                 )
 
         if self.global_cap_usd is not None and self.today_total_spend is not None:
@@ -222,6 +226,7 @@ class SpendContext:
                     f"user {self.user_id} hit global daily cap during job: "
                     f"${total_spent} >= ${self.global_cap_usd}",
                     scope="global",
+                    after_spend=True,
                 )
 
 
@@ -234,9 +239,10 @@ async def _default_record(entry: SpendEntry) -> None:
 async def default_context(
     *,
     user_id: str,
-    niche_id: UUID,
+    niche_id: UUID | None,
     job_id: UUID | None,
     article_id: UUID | None = None,
+    image_post_id: UUID | None = None,
     cap_usd: Decimal | None = None,
 ) -> SpendContext:
     """Build the canonical SpendContext for a pipeline job.
@@ -256,6 +262,7 @@ async def default_context(
         niche_id=niche_id,
         job_id=job_id,
         article_id=article_id,
+        image_post_id=image_post_id,
         record=_default_record,
         cap_usd=cap_usd,
         global_cap_usd=global_cap_usd,

@@ -8,6 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from .creative_brief import CreativeBrief
+
 
 class Idea(BaseModel):
     topic: str
@@ -124,11 +126,34 @@ class Niche(BaseModel):
     # through it every scene keyframe. None = model invents the cast.
     character_description: str | None = None
 
+    # Creative DNA: structured brief steering every agent prompt, music
+    # pick, and caption style. Defaults = stock platform behavior.
+    creative_brief: CreativeBrief = Field(default_factory=CreativeBrief)
+
     # Per-niche overrides for provider behavior.
     image_quality: Literal["low", "medium", "high"] = "medium"
     video_resolution: Literal["480p", "720p"] = "480p"
     scene_max_duration_sec: int = Field(default=5, ge=1, le=15)
     tts_style_directions: str | None = None
+
+    # Animation backend: 'grok' (default) or 'fal' + a model id from the
+    # curated fal registry. Scriptwriter LLM: OpenRouter model id, empty
+    # = stock agent_model.
+    video_provider: Literal["grok", "fal"] = "grok"
+    fal_model: str = ""
+    script_model: str = ""
+
+    # Audio providers: TTS engine (and voice) + music source. Defaults
+    # preserve stock behavior; 'auto' music upgrades to generated tracks
+    # only when the deploy has an ElevenLabs key.
+    voice_provider: Literal["openai", "elevenlabs"] = "openai"
+    elevenlabs_voice_id: str = ""
+    music_provider: Literal["auto", "library", "generated"] = "auto"
+
+    # Kits: reusable user-level skills injected at runtime. None = the
+    # user's default kit of that kind (or nothing).
+    design_kit_id: UUID | None = None
+    writing_kit_id: UUID | None = None
 
     posting_windows: list[PostingWindow]
     platforms: list[Literal["tiktok", "reels", "shorts"]]
@@ -160,9 +185,10 @@ class Job(BaseModel):
 
 class SpendEntry(BaseModel):
     user_id: str
-    niche_id: UUID
+    niche_id: UUID | None
     job_id: UUID | None
     article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
+    image_post_id: UUID | None = None  # set for image-post spend
     provider: str  # "openai" | "xai" | "ayrshare"
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
@@ -212,6 +238,15 @@ class NicheCreatePayload(BaseModel):
     scene_max_duration_sec: int = 5
     tts_style_directions: str | None = None
     character_description: str | None = None
+    creative_brief: CreativeBrief | None = None
+    video_provider: Literal["grok", "fal"] = "grok"
+    fal_model: str = ""
+    script_model: str = ""
+    voice_provider: Literal["openai", "elevenlabs"] = "openai"
+    elevenlabs_voice_id: str = ""
+    music_provider: Literal["auto", "library", "generated"] = "auto"
+    design_kit_id: UUID | None = None
+    writing_kit_id: UUID | None = None
 
 
 class TodaySpend(BaseModel):
@@ -223,7 +258,8 @@ class TodaySpend(BaseModel):
 
 class SpendHistoryRow(BaseModel):
     day: date
-    niche_id: UUID
+    # None = niche-less spend (e.g. template remixes).
+    niche_id: UUID | None
     cost_usd: Decimal
 
 
@@ -243,6 +279,84 @@ class AyrshareConnectStatus(BaseModel):
     profile_key: str | None = None
 
 
+class Template(BaseModel):
+    """Admin-curated remixable reference: an asset + the exact prompt that
+    produced its look. Users remix with their own product image and the
+    generation inherits the aesthetic."""
+
+    id: UUID
+    kind: Literal["video", "image", "carousel"]
+    name: str
+    description: str = ""
+    prompt: str
+    reference_key: str = ""
+    config: dict = Field(default_factory=dict)
+    is_published: bool = False
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Campaign(BaseModel):
+    """An orchestrated marketing push: content + SEO + ads lanes running
+    together against a time window and a content-credit budget."""
+
+    id: UUID
+    user_id: str
+    name: str
+    objective: str = ""
+    status: Literal["draft", "running", "paused", "completed"] = "draft"
+    starts_at: datetime = Field(default_factory=datetime.utcnow)
+    ends_at: datetime | None = None
+    # Cap on content-generation credit spend attributed to this campaign.
+    # Ad platform spend is governed separately (fail-closed AdSpendGuard).
+    budget_usd: Decimal
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CampaignItem(BaseModel):
+    """One lane in a campaign.
+
+    kind='video'   ref_id -> niche  (auto-generate + post to socials)
+    kind='article' ref_id -> niche  (SEO article cadence)
+    kind='ad'      ref_id -> ad campaign (linked; governed lifecycle)
+    """
+
+    id: UUID
+    campaign_id: UUID
+    user_id: str
+    kind: Literal["video", "article", "ad", "image"]
+    ref_id: UUID
+    enabled: bool = True
+    cadence_per_week: int = Field(default=3, ge=1, le=56)
+    config: dict = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Kit(BaseModel):
+    """A user-level reusable skill injected into agent runtimes.
+
+    kind='design'  -> video direction (scriptwriter + visual director)
+    kind='writing' -> article pipeline voice/style
+    kind='ad'      -> ads optimization proposer (propose-only; the
+                      fail-closed spend guard is never relaxed by a kit)
+    """
+
+    id: UUID
+    user_id: str
+    kind: Literal["design", "ad", "writing"]
+    name: str
+    description: str = ""
+    # The skill itself: instructions the agent receives verbatim.
+    content: str = ""
+    # Structured knobs (ad kits: e.g. {"target_roas": 2.5, "max_cpa_usd": 30}).
+    rules: dict = Field(default_factory=dict)
+    is_default: bool = False
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class MediaAsset(BaseModel):
     """One indexed media artifact: a scene clip, keyframe, voiceover,
     final video, or a remixed composition output."""
@@ -251,7 +365,7 @@ class MediaAsset(BaseModel):
     user_id: str
     niche_id: UUID | None = None
     job_id: UUID | None = None
-    kind: Literal["clip", "keyframe", "voiceover", "final", "composition"]
+    kind: Literal["clip", "keyframe", "voiceover", "final", "composition", "music"]
     scene_index: int | None = None
     storage: Literal["wasabi", "volume"]
     object_key: str

@@ -66,6 +66,36 @@ def test_words_to_ass_skips_blank_words(tmp_path: Path):
     assert dialogues[0].endswith(",hi")
 
 
-def test_words_to_ass_unknown_style_raises(tmp_path: Path):
-    with pytest.raises(ValueError):
-        subtitle.words_to_ass([], tmp_path / "out.ass", style="neon-glow")
+def test_caption_style_customizes_header_and_case(tmp_path: Path):
+    from marketer.models import CaptionStyle
+
+    style = CaptionStyle(
+        font="Impact", font_size=120, text_hex="ffe14d", outline_hex="1a1a2e",
+        uppercase=True, position="center",
+    )
+    out = tmp_path / "subs.ass"
+    subtitle.words_to_ass(
+        [{"word": "hello", "start": 0.0, "end": 0.5}], out, caption_style=style
+    )
+    body = out.read_text(encoding="utf-8")
+
+    assert "Style: Default,Impact,120" in body
+    # RRGGBB -> ASS BGR: ffe14d -> &H004DE1FF, 1a1a2e -> &H002E1A1A
+    assert "&H004DE1FF" in body
+    assert "&H002E1A1A" in body
+    # center position -> alignment 5, MarginV 0
+    assert ",5,60,60,0,1" in body
+    assert ",HELLO" in body  # uppercase applied
+
+
+def test_caption_style_validation_rejects_garbage():
+    from pydantic import ValidationError
+
+    from marketer.models import CaptionStyle
+
+    with pytest.raises(ValidationError):
+        CaptionStyle(text_hex="not-a-color")
+    with pytest.raises(ValidationError):
+        CaptionStyle(font_size=999)
+    with pytest.raises(ValidationError):
+        CaptionStyle(position="diagonal")

@@ -180,7 +180,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         return Idea(topic="t", angle="a", hook="h",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
@@ -196,11 +196,11 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
             total_duration_sec=5,
         )
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_vd(script, *, visual_style, character_description="", spend=None):
+    async def fake_vd(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
@@ -256,7 +256,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
         out.write_bytes(b"MP4")
     monkeypatch.setattr(pipeline.ffmpeg, "burn_subtitles", fake_burn)
 
-    def fake_words_to_ass(words, out, style="tiktok-bold"):
+    def fake_words_to_ass(words, out, caption_style=None):
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text("[Script Info]\n")
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)

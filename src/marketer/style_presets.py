@@ -113,6 +113,38 @@ PRESETS: list[StylePreset] = [
         swatch="linear-gradient(135deg, #e87fd9, #4ae8e0)",
     ),
     StylePreset(
+        id="ugc-spokesperson",
+        name="UGC spokesperson",
+        tagline="Authentic creator-to-camera energy",
+        visual_style=(
+            "authentic UGC smartphone footage, front-facing selfie camera "
+            "perspective, natural indoor lighting, slight handheld sway, "
+            "casual real-world background (car, kitchen, bedroom desk), "
+            "no studio polish, realistic skin texture"
+        ),
+        character_suggestion=(
+            "a relatable everyday creator in their 20s-30s, casual outfit, "
+            "speaking directly to camera with natural expressions"
+        ),
+        swatch="linear-gradient(135deg, #e8a87f, #7f9ce8)",
+    ),
+    StylePreset(
+        id="ugc-product-demo",
+        name="UGC product demo",
+        tagline="Hands-on product content that converts",
+        visual_style=(
+            "authentic UGC product video, handheld close-up of hands "
+            "holding and using the product, natural window light, shallow "
+            "phone-camera depth of field, lived-in home setting, honest "
+            "unpolished aesthetic"
+        ),
+        character_suggestion=(
+            "only hands and the product in frame — no faces; the product "
+            "is the hero of every shot"
+        ),
+        swatch="linear-gradient(135deg, #a8e87f, #4a8f5f)",
+    ),
+    StylePreset(
         id="macro-product",
         name="Macro product",
         tagline="Luxurious close-up detail",

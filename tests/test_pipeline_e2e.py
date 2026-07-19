@@ -144,16 +144,16 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style, character_description="", spend=None):
+    async def fake_visual_director(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
@@ -236,7 +236,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
         return out_path
     monkeypatch.setattr(pipeline.ffmpeg, "burn_subtitles", fake_burn)
 
-    def fake_words_to_ass(words, out_path, style="tiktok-bold"):
+    def fake_words_to_ass(words, out_path, caption_style=None):
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text("[Script Info]\n")
         return out_path
@@ -469,7 +469,7 @@ def _counting_provider_stubs(monkeypatch) -> dict[str, int]:
     """Re-patch the expensive stages with counters on top of stub_all."""
     calls = {"ideation": 0, "keyframe": 0, "tts": 0}
 
-    async def counting_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
+    async def counting_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         calls["ideation"] += 1
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
@@ -599,7 +599,8 @@ async def test_qa_regenerate_script_retries_once_then_succeeds(monkeypatch, stub
     script_calls = {"n": 0}
 
     async def counting_scriptwriter(idea, *, scene_count, target_duration_sec,
-                                    audience_context="", spend=None):
+                                    audience_context="", brief=None,
+                                    script_model="", spend=None):
         script_calls["n"] += 1
         return _make_script()
 
@@ -643,7 +644,8 @@ async def test_render_qa_failure_fails_job_before_archive_and_schedule(
     from marketer.services import video_qa
 
     def failing_check(final_path, *, voiceover_path, target_duration_sec,
-                      max_upload_bytes=video_qa.MAX_UPLOAD_BYTES):
+                      max_upload_bytes=video_qa.MAX_UPLOAD_BYTES,
+                      enforce_duration=True):
         return video_qa.RenderReport(
             passed=False,
             issues=["video (3.0s) ends before the voiceover (9.0s)"],
@@ -668,59 +670,153 @@ async def test_render_qa_failure_fails_job_before_archive_and_schedule(
     assert job.rendered is not None and job.rendered.duration_sec == 3.0
 
 
-async def test_content_qa_rejection_wipes_state_via_reset_for_retry(monkeypatch):
-    """reset_for_retry (the real retry route path) wipes script/clips/audio
-    for QA content rejections — the error string is nulled in the same
-    call, so the wipe must happen there, not later in the pipeline."""
-    from marketer.models import AudioTrack
-    from marketer.repos import jobs as jobs_repo
+# reset_for_retry is now an atomic single-statement SQL claim (to close a
+# double-spawn race), so its behavior — content-rejection wipe, transient
+# state-preservation, concurrent single-winner, tenant scoping — is verified
+# against real Postgres in tests/integration/test_pg_reset_retry.py rather
+# than with get/save_snapshot stubs that the atomic path bypasses.
 
-    rejected = Job(
-        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
-        status=JobStatus.failed, error="content QA failed: weak hook",
-        script=_make_script(),
-        clips=[],
-        audio=AudioTrack(voiceover_path="/tmp/vo.wav"),
+
+# --------------------------------------------------------------------------- creative brief
+
+async def test_creative_brief_steers_music_and_captions(monkeypatch, stub_all):
+    """music_enabled=False skips track selection entirely; the caption
+    style from the brief reaches the subtitle renderer."""
+    from marketer.models import CreativeBrief
+
+    brief = CreativeBrief.model_validate({
+        "audio": {
+            "music_enabled": False,
+            "caption_style": {"uppercase": True, "position": "top"},
+        },
+    })
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"creative_brief": brief}
     )
 
-    async def fake_get(job_id, *, user_id):
-        return rejected
+    picked = {"called": False}
 
-    saved: list[Job] = []
+    async def fake_pick(**kwargs):
+        picked["called"] = True
+        return None
 
-    async def fake_save(job):
-        saved.append(job)
+    monkeypatch.setattr(pipeline.music, "pick_track", fake_pick)
 
-    monkeypatch.setattr(jobs_repo, "get", fake_get)
-    monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
+    seen_style = {}
 
-    fresh = await jobs_repo.reset_for_retry(rejected.id, user_id=USER_ID)
+    def fake_ass(words, out_path, caption_style=None):
+        seen_style["style"] = caption_style
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text("[Script Info]\n")
+        return out_path
 
-    assert fresh is not None
-    assert fresh.status == JobStatus.queued and fresh.error is None
-    assert fresh.script is None and fresh.clips == [] and fresh.audio is None
-    assert saved and saved[0].script is None  # the wipe was persisted
+    monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_ass)
 
-
-async def test_transient_failure_reset_keeps_state_for_resume(monkeypatch):
-    """Non-QA failures keep script/clips through reset_for_retry so the
-    stage-resume path can reuse them."""
-    from marketer.repos import jobs as jobs_repo
-
-    failed = Job(
-        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
-        status=JobStatus.failed, error="GrokImagineError: 500 mid-poll",
-        script=_make_script(),
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
     )
 
-    async def fake_get(job_id, *, user_id):
-        return failed
+    assert job.status == JobStatus.done
+    assert picked["called"] is False  # music disabled -> no pick_track
+    assert job.audio is not None and job.audio.music_path is None
+    assert seen_style["style"].uppercase is True
+    assert seen_style["style"].position == "top"
 
-    async def fake_save(job):
-        pass
 
-    monkeypatch.setattr(jobs_repo, "get", fake_get)
-    monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
+async def test_creative_brief_music_mood_overrides_query(monkeypatch, stub_all):
+    from marketer.models import CreativeBrief
 
-    fresh = await jobs_repo.reset_for_retry(failed.id, user_id=USER_ID)
-    assert fresh is not None and fresh.script is not None  # state survives
+    brief = CreativeBrief.model_validate({"audio": {"music_mood": "lofi calm"}})
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"creative_brief": brief}
+    )
+
+    seen = {}
+
+    async def fake_pick(*, query, **kwargs):
+        seen["query"] = query
+        return None
+
+    monkeypatch.setattr(pipeline.music, "pick_track", fake_pick)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert seen["query"] == "lofi calm"  # not the niche title
+
+
+# --------------------------------------------------------------------------- providers + subject mode
+
+async def test_subject_mode_skips_character_sheet(monkeypatch, stub_all):
+    """cast_mode='none' -> no character sheet call, keyframes get no
+    reference image."""
+    from marketer.models import CreativeBrief
+
+    brief = CreativeBrief.model_validate({"visual": {"cast_mode": "none"}})
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"creative_brief": brief}
+    )
+
+    sheet = {"called": False}
+
+    async def fake_sheet(niche, *, quality, spend):
+        sheet["called"] = True
+        raise AssertionError("character sheet must not be generated")
+
+    monkeypatch.setattr(pipeline.character_sheet, "get_or_create", fake_sheet)
+
+    refs = []
+
+    async def fake_keyframe(prompt, out_path, *, quality,
+                            reference_image_path=None, spend=None):
+        refs.append(reference_image_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"PNG")
+        return out_path
+
+    monkeypatch.setattr(pipeline.openai_images, "generate_keyframe", fake_keyframe)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert sheet["called"] is False
+    assert refs and all(r is None for r in refs)
+
+
+async def test_fal_provider_dispatches_to_fal(monkeypatch, stub_all):
+    """video_provider='fal' + model -> fal_video.animate renders scenes;
+    grok is never called."""
+    from marketer.services import fal_video
+
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(update={
+        "video_provider": "fal",
+        "fal_model": "fal-ai/kling-video/v2.1/standard/image-to-video",
+    })
+
+    fal_calls = []
+
+    async def fake_fal_animate(keyframe, motion_prompt, out_path, *,
+                               model_id, duration_sec, spend=None):
+        fal_calls.append(model_id)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"MP4")
+        return out_path
+
+    monkeypatch.setattr(fal_video, "animate", fake_fal_animate)
+
+    async def grok_must_not_run(*a, **k):
+        raise AssertionError("grok called despite fal provider")
+
+    monkeypatch.setattr(pipeline.grok_imagine, "animate", grok_must_not_run)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert fal_calls == ["fal-ai/kling-video/v2.1/standard/image-to-video"] * 2

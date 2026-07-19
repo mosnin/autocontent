@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     # winner). 1 = single-shot, no judge call.
     ideation_candidates: int = 3
 
+    # Campaign budget projection: assumed cost of one in-flight piece
+    # (video/article/image) whose spend hasn't landed in the ledger yet.
+    # Conservative-high keeps campaigns from overshooting their budget.
+    campaign_est_cost_per_piece_usd: float = 2.50
+
     # Maximum number of scene-asset tasks running concurrently.
     # Lower values reduce peak spend rate and provider rate-limit exposure.
     scene_fanout_limit: int = 4
@@ -106,6 +111,49 @@ class Settings(BaseSettings):
     inngest_event_key: str = ""
     inngest_dev: bool = False
 
+    # --- Pluggable providers ------------------------------------------
+    # Fal-hosted image-to-video models (per-niche alternative to Grok
+    # Imagine). Empty key = provider unavailable; niches selecting it
+    # fail with a clear error instead of silently falling back.
+    fal_api_key: str = ""
+    # OpenRouter (per-niche scriptwriter model choice). Empty = the stock
+    # OpenAI agent_model writes every script.
+    openrouter_api_key: str = ""
+    # ElevenLabs: premium voiceover (per-niche voice choice) AND generative
+    # background music. Empty key = both features unavailable; niches
+    # selecting them fail loudly (voice) or fall back (music).
+    elevenlabs_api_key: str = ""
+    elevenlabs_model_id: str = "eleven_multilingual_v2"
+    # Fallback voice when a niche selects ElevenLabs without a voice id
+    # ("Rachel" — ElevenLabs' stock narrator).
+    elevenlabs_default_voice_id: str = "21m00Tcm4TlvDq8ikWAM"
+    # JSON dict of {fal_model_id: usd_per_second} correcting the pinned
+    # registry prices without a code deploy, e.g.
+    # '{"fal-ai/veo3/image-to-video": "0.45"}'.
+    fal_price_overrides: str = ""
+
+    # --- Per-provider concurrency backpressure (services/provider_limits.py) -
+    # Bounds how many in-flight calls to a given provider this PROCESS
+    # (one Modal container) makes at once, so many concurrent scenes/jobs
+    # fanning out never collectively hammer one vendor past its rate or
+    # concurrency cap. Process-local only — does not coordinate across
+    # containers; see provider_limits.py's docstring. Defaults are
+    # generous: they smooth bursts across MANY concurrent jobs, they do
+    # not throttle a single job (whose own peak concurrency per provider
+    # is bounded by scene_fanout_limit, well under every default below).
+    # Set a value to 0 to disable that provider's gate entirely (no-op).
+    fal_max_concurrency: int = 16
+    elevenlabs_max_concurrency: int = 8
+    openai_images_max_concurrency: int = 24
+    openai_tts_max_concurrency: int = 16
+    grok_max_concurrency: int = 8
+    # JSON map overriding any of the per-provider fields above (or adding
+    # a limit for a provider key with no dedicated field) without a code
+    # deploy, e.g. '{"fal": 8, "elevenlabs": 4}'. Same defensive-parse
+    # policy as fal_price_overrides: malformed JSON/values are dropped
+    # (never break rendering over a concurrency knob) but logged loudly.
+    provider_max_concurrency_overrides: str = ""
+
     # --- Wasabi S3 object storage (media library) ---------------------
     # Durable, S3-compatible home for every produced media artifact (scene
     # clips, keyframes, voiceovers, final videos). Off by default: without
@@ -159,6 +207,15 @@ class Settings(BaseSettings):
     #   x-axiom-dataset=marketer,authorization=Bearer <token>
     otel_exporter_otlp_headers: str = ""
     otel_traces_sample_rate: float = 1.0
+
+    # --- Boot-time config health (preflight) ---------------------------
+    # When True, a startup preflight check that finds any ERROR-level
+    # misconfiguration (e.g. a spend-affecting feature flag on with a
+    # required secret missing) raises and aborts boot. Default False:
+    # preflight is visibility-only so a bad config never takes prod down
+    # by itself — set True in environments where "fail loud at deploy" is
+    # preferred to "fail loud in logs but keep serving."
+    preflight_strict: bool = False
 
 
 settings = Settings()

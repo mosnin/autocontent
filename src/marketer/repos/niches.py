@@ -5,12 +5,17 @@ from decimal import Decimal
 from uuid import UUID
 
 from ..db import get_pool
-from ..models import Niche, PostingWindow
+from ..models import CreativeBrief, Niche, PostingWindow
 
 
 def _row_to_niche(row) -> Niche:
     d = dict(row)
     d["posting_windows"] = [PostingWindow(**w) for w in json.loads(d["posting_windows"])]
+    raw_brief = d.get("creative_brief")
+    if isinstance(raw_brief, str):
+        d["creative_brief"] = CreativeBrief.model_validate_json(raw_brief or "{}")
+    elif raw_brief is None:
+        d["creative_brief"] = CreativeBrief()
     return Niche(**d)
 
 
@@ -34,6 +39,15 @@ async def create(
     tts_style_directions: str | None = None,
     approve_before_post: bool = False,
     character_description: str | None = None,
+    creative_brief: CreativeBrief | None = None,
+    video_provider: str = "grok",
+    fal_model: str = "",
+    script_model: str = "",
+    voice_provider: str = "openai",
+    elevenlabs_voice_id: str = "",
+    music_provider: str = "auto",
+    design_kit_id=None,
+    writing_kit_id=None,
 ) -> Niche:
     pool = await get_pool()
     row = await pool.fetchrow(
@@ -43,9 +57,12 @@ async def create(
             visual_style, voice, target_duration_sec, scene_count,
             posting_windows, platforms, daily_spend_cap_usd,
             image_quality, video_resolution, scene_max_duration_sec,
-            tts_style_directions, approve_before_post, character_description
+            tts_style_directions, approve_before_post, character_description,
+            creative_brief, video_provider, fal_model, script_model,
+            voice_provider, elevenlabs_voice_id, music_provider,
+            design_kit_id, writing_kit_id
         )
-        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb,$20,$21,$22,$23,$24,$25,$26,$27)
         returning *
         """,
         user_id, title, description, target_audience, hashtags,
@@ -54,6 +71,15 @@ async def create(
         platforms, daily_spend_cap_usd,
         image_quality, video_resolution, scene_max_duration_sec,
         tts_style_directions, approve_before_post, character_description,
+        (
+            creative_brief
+            if isinstance(creative_brief, CreativeBrief)
+            # Route handlers pass model_dump() dicts; coerce + validate.
+            else CreativeBrief.model_validate(creative_brief or {})
+        ).model_dump_json(),
+        video_provider, fal_model, script_model,
+        voice_provider, elevenlabs_voice_id, music_provider,
+        design_kit_id, writing_kit_id,
     )
     return _row_to_niche(row)
 
@@ -100,6 +126,9 @@ async def update(
         "posting_windows", "platforms", "daily_spend_cap_usd",
         "image_quality", "video_resolution", "scene_max_duration_sec",
         "tts_style_directions", "approve_before_post", "character_description",
+        "creative_brief", "video_provider", "fal_model", "script_model",
+        "voice_provider", "elevenlabs_voice_id", "music_provider",
+        "design_kit_id", "writing_kit_id",
     }
 
     sets: list[str] = []
@@ -108,12 +137,16 @@ async def update(
     for key, val in fields.items():
         if key not in allowed:
             continue
-        if val is None and key not in {"tts_style_directions", "character_description"}:
+        if val is None and key not in {"tts_style_directions", "character_description", "design_kit_id", "writing_kit_id"}:
             # Treat None on non-nullable columns as "don't touch".
             continue
         if key == "posting_windows":
             sets.append(f"posting_windows = ${i}::jsonb")
             values.append(json.dumps([w.model_dump() for w in val]))
+        elif key == "creative_brief":
+            brief = val if isinstance(val, CreativeBrief) else CreativeBrief.model_validate(val)
+            sets.append(f"creative_brief = ${i}::jsonb")
+            values.append(brief.model_dump_json())
         else:
             sets.append(f"{key} = ${i}")
             values.append(val)

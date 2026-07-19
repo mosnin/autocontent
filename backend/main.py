@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +14,7 @@ from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import admin, ads, articles, billing, brand_kit, calendar, connect, healthz, jobs, library, metrics, niches, performance, spend, style_presets, tokens, users, voices, webhook_endpoints, webhooks, x402
+from .routes import admin, ads, articles, billing, brand_kit, calendar, campaigns, connect, failures, healthz, image_posts, jobs, kits, library, metrics, niches, ops, performance, providers, spend, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, x402
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +23,59 @@ def _parse_origins(raw: str) -> list[str]:
     return [o.strip() for o in raw.split(",") if o.strip()]
 
 
+def _run_boot_preflight() -> None:
+    """Run the config-health preflight and log the report at boot.
+
+    Non-fatal by default: a WARN/ERROR finding is visibility, not a
+    gate — misconfiguration must never take an otherwise-working API
+    down. When `settings.preflight_strict` is True, an ERROR-level
+    finding raises instead, so operators who want "fail loud at deploy"
+    can opt into it explicitly.
+    """
+    from marketer.services.preflight import run_preflight  # noqa: PLC0415
+
+    try:
+        report = run_preflight()
+    except Exception:  # noqa: BLE001 — preflight itself must never break boot
+        logger.error("preflight.crashed", exc_info=True)
+        return
+
+    for check in report.checks:
+        message = f"preflight.{check.capability}: {check.message}"
+        if check.status == "error":
+            logger.error(message, extra=check.details)
+        elif check.status == "warn":
+            logger.warning(message, extra=check.details)
+        else:
+            logger.info(message)
+
+    logger.info(
+        "preflight.summary",
+        extra={
+            "overall_status": report.overall_status,
+            "error_count": len(report.errors),
+            "warn_count": len(report.warnings),
+            "check_count": len(report.checks),
+        },
+    )
+
+    if settings.preflight_strict and report.errors:
+        names = ", ".join(c.capability for c in report.errors)
+        raise RuntimeError(
+            f"preflight_strict=True and config health report has ERROR(s): {names}"
+        )
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    _run_boot_preflight()
+    yield
+
+
 def create_app() -> FastAPI:
     _configure_logging()
 
-    app = FastAPI(title="marketer api", version="0.1.0")
+    app = FastAPI(title="marketer api", version="0.1.0", lifespan=_lifespan)
 
     # ── Rate limiting (must be registered before CORS middleware) ─────────────
     app.state.limiter = limiter
@@ -72,6 +123,13 @@ def create_app() -> FastAPI:
     app.include_router(x402.router, prefix="/api/v1/x402", tags=["x402"])
     app.include_router(library.router, prefix="/api/v1/library", tags=["library"])
     app.include_router(style_presets.router, prefix="/api/v1/style-presets", tags=["style-presets"])
+    app.include_router(kits.router, prefix="/api/v1/kits", tags=["kits"])
+    app.include_router(campaigns.router, prefix="/api/v1/campaigns", tags=["campaigns"])
+    app.include_router(image_posts.router, prefix="/api/v1/image-posts", tags=["image-posts"])
+    app.include_router(templates.router, prefix="/api/v1/templates", tags=["templates"])
+    app.include_router(providers.router, prefix="/api/v1/providers", tags=["providers"])
+    app.include_router(ops.router, prefix="/api/v1/ops", tags=["ops"])
+    app.include_router(failures.router, prefix="/api/v1/failures", tags=["failures"])
 
     # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
     # when enabled this serves the functions at /api/inngest.

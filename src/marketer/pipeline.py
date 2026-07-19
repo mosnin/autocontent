@@ -37,13 +37,17 @@ from .services import email as email_svc
 from .services import media_archive
 from .services import (
     character_sheet,
+    elevenlabs_tts,
     ffmpeg,
-    grok_imagine,
+    grok_imagine,  # noqa: F401 — kept for tests monkeypatching pipeline.grok_imagine
     music,
+    music_gen,
     openai_images,
-    openai_tts,
+    openai_tts,  # noqa: F401 — kept for tests monkeypatching pipeline.openai_tts
     openai_whisper,
     otel,
+    provider_fallback,
+    provider_limits,
     scheduler,
     subtitle,
     video_qa,
@@ -79,28 +83,83 @@ def _stage(name: str) -> Iterator[None]:
             log.info("stage.end", extra={"stage": name, "latency_ms": elapsed_ms})
 
 
+async def _synthesize_vo(
+    text: str,
+    out_path: Path,
+    *,
+    niche: Niche,
+    spend: SpendContext,
+) -> Path:
+    """Voiceover through the niche's chosen TTS engine, falling back
+    elevenlabs -> openai_tts on a persistent provider failure (see
+    services.provider_fallback). openai_tts is the stock engine and has
+    no further fallback of its own."""
+    return await provider_fallback.synthesize_vo_with_fallback(
+        text, out_path, niche=niche, spend=spend,
+    )
+
+
+def _avatar_model_id(niche: Niche) -> str | None:
+    """The fal avatar model id when this niche renders lip-synced UGC,
+    else None (normal keyframe-animation path)."""
+    if niche.video_provider != "fal" or not niche.fal_model:
+        return None
+    from .services import fal_video
+
+    model = fal_video.get_model(niche.fal_model)
+    if model is not None and model.kind == "avatar":
+        return model.id
+    return None
+
+
 async def _generate_scene_assets(
     scene: Scene,
     root: Path,
     *,
     niche: Niche,
-    reference_image: Path,
+    reference_image: Path | None,
     spend: SpendContext,
+    avatar_model_id: str | None = None,
 ) -> Clip:
     keyframe = root / "keyframes" / f"scene_{scene.index}.png"
     clip = root / "clips" / f"scene_{scene.index}.mp4"
-    await openai_images.generate_keyframe(
-        scene.visual_prompt,
-        keyframe,
-        quality=niche.image_quality,
-        reference_image_path=reference_image,
-        spend=spend,
-    )
+    async with provider_limits.slot("openai_images"):
+        await openai_images.generate_keyframe(
+            scene.visual_prompt,
+            keyframe,
+            quality=niche.image_quality,
+            reference_image_path=reference_image,
+            spend=spend,
+        )
+    if avatar_model_id:
+        # Lip-synced UGC: this scene's narration is synthesized first and
+        # DRIVES the render — the avatar model returns a clip of the cast
+        # actually speaking it, audio embedded. Clip length follows the
+        # audio, so scene_max_duration_sec doesn't apply here. A failed
+        # avatar render falls back to another avatar model (never to a
+        # plain i2v model — see services.provider_fallback).
+        scene_vo = root / "audio" / f"scene_{scene.index}.wav"
+        await _synthesize_vo(scene.narration, scene_vo, niche=niche, spend=spend)
+        await provider_fallback.render_avatar_scene(
+            keyframe, scene_vo, clip,
+            niche=niche,
+            avatar_model_id=avatar_model_id,
+            spend=spend,
+        )
+        return Clip(
+            scene_index=scene.index,
+            keyframe_path=str(keyframe),
+            video_path=str(clip),
+            duration_sec=ffmpeg.probe_duration(clip),
+        )
     clip_duration = min(scene.duration_sec, niche.scene_max_duration_sec)
-    await grok_imagine.animate(
+    # A persistent (non-transient) failure on the niche's chosen i2v
+    # provider falls back to a different provider — see
+    # services.provider_fallback for the chain policy.
+    await provider_fallback.render_i2v_scene(
         keyframe, scene.motion_prompt, clip,
+        niche=niche,
         duration_sec=clip_duration,
-        resolution=niche.video_resolution,
         spend=spend,
     )
     return Clip(
@@ -145,6 +204,20 @@ async def _ensure_cap(job: Job, niche: Niche) -> bool:
             return False
 
     return True
+
+
+async def _load_design_kit(user_id: str, niche: Niche) -> str:
+    """The design kit content that applies to this niche (pinned kit, else
+    the user's default design kit). Fail-open: kits season, never block."""
+    try:
+        from .repos import kits as kits_repo
+
+        kit = await kits_repo.resolve(
+            user_id=user_id, kind="design", kit_id=niche.design_kit_id
+        )
+        return kit.content if kit is not None else ""
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
@@ -335,6 +408,24 @@ async def _run_job_inner(
     if not await _ensure_cap(job, niche):
         return job
 
+    # Fail fast on a misconfigured/rotated ElevenLabs key — BEFORE any
+    # ideation/image/render spend. Without this, a niche whose
+    # voice_provider is 'elevenlabs' but whose key is missing/rotated only
+    # discovers the problem at the voicing stage, after script + all
+    # keyframes + all renders have already been bought. Left unchanged by
+    # provider fallback: this is a deploy-config guard (the key is simply
+    # absent, not a transient/persistent *provider* failure), and an
+    # operator who wants elevenlabs but forgot the key should see that
+    # immediately rather than have every job quietly render with the
+    # niche's non-chosen voice.
+    if niche.voice_provider == "elevenlabs" and not elevenlabs_tts.enabled():
+        return await _fail_with(
+            job,
+            "niche voice_provider is 'elevenlabs' but ELEVENLABS_API_KEY is "
+            "not configured — fix the niche's voice provider or the API key "
+            "before this job can spend anything",
+        )
+
     # Stage resume: a retried job that still carries a script from the
     # failed attempt reuses it (and any per-scene/VO artifacts below)
     # instead of re-spending. Content-rejected retries arrive wiped.
@@ -368,6 +459,7 @@ async def _run_job_inner(
                 brand_voice=brand_voice,
                 banned_words=banned_words,
                 recent_topics=recent,
+                brief=niche.creative_brief,
                 spend=spend,
             )
 
@@ -378,17 +470,34 @@ async def _run_job_inner(
             audience_ctx = f"Audience: {niche.target_audience}. Platform: {platform}."
             if brand_voice:
                 audience_ctx += f" Brand voice: {brand_voice}."
+            design_kit_content = await _load_design_kit(job.user_id, niche)
+            if design_kit_content:
+                audience_ctx += (
+                    "\nDesign kit — the creator's direction system, follow "
+                    f"it throughout:\n{design_kit_content}"
+                )
             script = await run_scriptwriter(
                 idea,
                 scene_count=niche.scene_count,
                 target_duration_sec=niche.target_duration_sec,
                 audience_context=audience_ctx,
+                brief=niche.creative_brief,
+                script_model=niche.script_model,
                 spend=spend,
+            )
+            # cast_mode 'none' means NO characters — a lingering
+            # character_description must not resurrect the cast.
+            cast = (
+                ""
+                if niche.creative_brief.visual.cast_mode == "none"
+                else (niche.character_description or "")
             )
             script = await run_visual_director(
                 script,
                 visual_style=niche.visual_style,
-                character_description=niche.character_description or "",
+                character_description=cast,
+                brief=niche.creative_brief,
+                design_kit=design_kit_content,
                 spend=spend,
             )
             job.script = script
@@ -400,18 +509,56 @@ async def _run_job_inner(
     with _stage(JobStatus.generating_images.value):
         job.status = JobStatus.generating_images
         await _persist(job)
-        reference = await character_sheet.get_or_create(
-            niche, quality=niche.image_quality, spend=spend
-        )
+        if niche.creative_brief.visual.cast_mode == "none":
+            # Subject-mode video (an object/environment carries the video,
+            # not a cast): no character sheet, no reference image — style
+            # cohesion is enforced by the visual director's prompts alone.
+            reference = None
+        else:
+            reference = await character_sheet.get_or_create(
+                niche, quality=niche.image_quality, spend=spend
+            )
         # Per-scene resume: clips from the failed attempt whose files are
         # still on the volume are reused; only the missing scenes re-spend.
+        # Mode-aware: avatar_model is derived from the CURRENT niche config,
+        # which may have changed between attempts (operator switched the
+        # fal model from an i2v model to the OmniHuman avatar, or back).
+        # Avatar clips carry embedded lip-synced audio; i2v/motion clips
+        # never do. In AVATAR mode specifically, reusing a clip with no
+        # embedded audio (a stale i2v-mode clip from before the switch)
+        # would crash concat(keep_audio=True) on a silent "avatar" clip —
+        # so avatar mode verifies audio presence and regenerates on a
+        # mismatch (an unprobeable/corrupt clip is treated the same way:
+        # regenerate rather than gamble on a broken render). The reverse
+        # direction — an avatar-audio clip reused in plain i2v mode — is
+        # harmless (concat without keep_audio simply drops the audio
+        # track), so plain mode skips the probe and keeps the legacy
+        # file-exists-only resume check.
+        avatar_model = _avatar_model_id(niche)
         prior_clips: dict[int, Clip] = {}
         if resumed:
-            prior_clips = {
-                c.scene_index: c
-                for c in job.clips
-                if Path(c.video_path).exists() and Path(c.keyframe_path).exists()
-            }
+            for c in job.clips:
+                video_path = Path(c.video_path)
+                if not (video_path.exists() and Path(c.keyframe_path).exists()):
+                    continue
+                if avatar_model:
+                    try:
+                        has_audio = ffmpeg.probe_has_audio(video_path)
+                    except Exception as e:  # noqa: BLE001 — unprobeable = unreusable
+                        log.info(
+                            "resume: scene %d clip unprobeable (%s) — regenerating",
+                            c.scene_index, e,
+                        )
+                        continue
+                    if not has_audio:
+                        log.info(
+                            "resume: scene %d clip has no embedded audio in "
+                            "avatar mode (stale i2v-mode clip?) — "
+                            "regenerating instead of reusing",
+                            c.scene_index,
+                        )
+                        continue
+                prior_clips[c.scene_index] = c
             if prior_clips:
                 log.info(
                     "resume: reusing %d/%d scene clips", len(prior_clips), len(script.scenes)
@@ -425,6 +572,7 @@ async def _run_job_inner(
             async with sem:
                 return await _generate_scene_assets(
                     s, root, niche=niche, reference_image=reference, spend=spend,
+                    avatar_model_id=avatar_model,
                 )
 
         # return_exceptions so completed clips are persisted even when a
@@ -462,26 +610,28 @@ async def _run_job_inner(
         await _persist(job)
         vo_path = root / "audio" / "voiceover.wav"
         narration = " ".join(s.narration for s in script.scenes)
-        # Same script as the failed attempt means the VO on the volume is
-        # still the right narration — skip the re-synth.
-        reuse_vo = resumed and vo_path.exists()
-        if reuse_vo:
-            log.info("resume: reusing voiceover from prior attempt")
-        try:
-            if not reuse_vo:
-                await openai_tts.synthesize(
-                    narration, vo_path,
-                    voice=niche.voice,
-                    style_directions=niche.tts_style_directions,
-                    spend=spend,
-                )
-        except spend_repo.SpendCapExceeded as e:
+        if avatar_model:
+            # Lip-synced UGC: the voiceover already lives inside each
+            # avatar clip (it drove the render). The standalone WAV that
+            # captions/QA need is extracted from the assembled video in
+            # the edit stage.
+            log.info("lip-sync mode: voiceover embedded in avatar clips")
+        else:
+            # Same script as the failed attempt means the VO on the volume
+            # is still the right narration — skip the re-synth.
+            reuse_vo = resumed and vo_path.exists()
+            if reuse_vo:
+                log.info("resume: reusing voiceover from prior attempt")
             try:
-                import sentry_sdk
-                sentry_sdk.capture_exception(e)
-            except Exception:
-                pass
-            return await _fail_with(job, str(e))
+                if not reuse_vo:
+                    await _synthesize_vo(narration, vo_path, niche=niche, spend=spend)
+            except spend_repo.SpendCapExceeded as e:
+                try:
+                    import sentry_sdk
+                    sentry_sdk.capture_exception(e)
+                except Exception:
+                    pass
+                return await _fail_with(job, str(e))
 
     # 5. Music
     # Derive a search query from existing Niche fields — no schema change needed.
@@ -489,14 +639,67 @@ async def _run_job_inner(
     # (e.g. "claymation, warm palette") give Pixabay enough signal to find
     # thematically appropriate background music. We take just the title to keep
     # the query short and searchable; visual_style tends to be image-specific.
-    music_query = niche.title
+    audio_brief = niche.creative_brief.audio
     with _stage("music"):
-        music_path = await music.pick_track(
-            query=music_query,
-            target_duration_sec=int(script.total_duration_sec),
-            library_dir=Path(settings.assets_dir) / "music",
-            cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
-        )
+        if not audio_brief.music_enabled:
+            log.info("music disabled by creative brief")
+            music_path = None
+        else:
+            music_path = None
+            # Generated score first when the niche wants it: 'generated'
+            # is explicit, 'auto' upgrades only when the deploy has the
+            # key. Any generation failure falls back to the stock library
+            # chain — music can never fail a video, but a spend-cap breach
+            # still ends the run (money safety beats soundtrack).
+            want_generated = niche.music_provider == "generated" or (
+                niche.music_provider == "auto" and music_gen.enabled()
+            )
+            if want_generated and music_gen.enabled():
+                generated_path = root / "audio" / "music_generated.mp3"
+                # Same script as the failed attempt means the same
+                # mood/duration, so the previously composed track is still
+                # the right one — skip the re-bill, mirroring reuse_vo.
+                reuse_music = resumed and generated_path.exists()
+                if reuse_music:
+                    log.info("resume: reusing generated music from prior attempt")
+                    music_path = generated_path
+                else:
+                    try:
+                        music_path = await music_gen.compose(
+                            mood=audio_brief.music_mood,
+                            duration_sec=int(script.total_duration_sec),
+                            out_path=generated_path,
+                            niche_title=niche.title,
+                            spend=spend,
+                        )
+                    except spend_repo.SpendCapExceeded as e:
+                        # compose() can raise a cap breach from two places:
+                        # the pre-flight ensure_can_spend (nothing spent) OR
+                        # the post-call spend.log re-check (the track was
+                        # already generated AND billed). `after_spend`
+                        # distinguishes them. A pre-flight breach is not a
+                        # reason to throw away the $3-5 of clips/VO already
+                        # bought this run — fall back to the free library
+                        # chain like MusicGenError does. A post-spend breach
+                        # is a real money event: fail the job here, at the
+                        # point of breach, with the correct root cause (never
+                        # silently discard an already-billed track and mask
+                        # the breach as a warning).
+                        if getattr(e, "after_spend", False):
+                            return await _fail_with(job, str(e))
+                        log.warning(
+                            "generated music pre-flight spend cap exceeded, "
+                            "falling back to library: %s", e,
+                        )
+                    except music_gen.MusicGenError as e:
+                        log.warning("generated music failed, falling back: %s", e)
+            if music_path is None:
+                music_path = await music.pick_track(
+                    query=audio_brief.music_mood or niche.title,
+                    target_duration_sec=int(script.total_duration_sec),
+                    library_dir=Path(settings.assets_dir) / "music",
+                    cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
+                )
     job.audio = AudioTrack(
         voiceover_path=str(vo_path),
         music_path=str(music_path) if music_path is not None else None,
@@ -507,14 +710,35 @@ async def _run_job_inner(
         job.status = JobStatus.editing
         await _persist(job)
         silent_video = root / "output" / "silent.mp4"
-        ffmpeg.concat_clips(
-            [Path(c.video_path) for c in job.clips], silent_video, aspect=settings.aspect
-        )
         mixed = root / "output" / "mixed.mp4"
-        ffmpeg.mix_audio(
-            silent_video, vo_path, music_path, mixed,
-            music_gain_db=job.audio.music_gain_db if job.audio else -18.0,
-        )
+        if avatar_model:
+            # Avatar clips carry their own lip-synced voiceover: concat
+            # WITH audio, extract the VO track (captions + QA need the
+            # standalone WAV), then duck music under the existing audio.
+            ffmpeg.concat_clips(
+                [Path(c.video_path) for c in job.clips], silent_video,
+                aspect=settings.aspect, keep_audio=True,
+            )
+            ffmpeg.extract_audio(silent_video, vo_path)
+            if music_path is not None:
+                ffmpeg.mix_music_over(
+                    silent_video, music_path, mixed,
+                    music_gain_db=job.audio.music_gain_db if job.audio else -18.0,
+                )
+            else:
+                import shutil
+
+                mixed.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(silent_video, mixed)
+        else:
+            ffmpeg.concat_clips(
+                [Path(c.video_path) for c in job.clips], silent_video,
+                aspect=settings.aspect,
+            )
+            ffmpeg.mix_audio(
+                silent_video, vo_path, music_path, mixed,
+                music_gain_db=job.audio.music_gain_db if job.audio else -18.0,
+            )
 
     # 7. Captions
     with _stage(JobStatus.captioning.value):
@@ -530,7 +754,9 @@ async def _run_job_inner(
                 pass
             return await _fail_with(job, str(e))
         ass_path = root / "captions" / "subs.ass"
-        subtitle.words_to_ass(words, ass_path)
+        subtitle.words_to_ass(
+            words, ass_path, caption_style=niche.creative_brief.audio.caption_style
+        )
         final = root / "output" / "final.mp4"
         ffmpeg.burn_subtitles(mixed, ass_path, final)
 
@@ -545,6 +771,13 @@ async def _run_job_inner(
             final,
             voiceover_path=vo_path,
             target_duration_sec=niche.target_duration_sec,
+            # Avatar mode's total duration is narration-driven, not a fixed
+            # niche target — skip ONLY the duration-drift gate for those
+            # jobs so a legitimate lip-sync render isn't rejected (and
+            # re-bought on retry) over a target it was never meant to hit.
+            # All other gates (streams, silence, VO coverage, size) still
+            # run unconditionally for every job.
+            enforce_duration=(avatar_model is None),
         )
         # Record what was actually rendered (real probed duration, and the
         # re-encoded file when the original blew the upload budget).

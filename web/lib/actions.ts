@@ -8,6 +8,7 @@ import type { ActionState } from "./action-state";
 import type {
   Article,
   AyrshareConnectResponse,
+  CreativeBrief,
   Job,
   Niche,
   Platform,
@@ -33,6 +34,15 @@ interface NicheCreatePayload {
   tts_style_directions: string | null;
   character_description: string | null;
   approve_before_post: boolean;
+  creative_brief?: CreativeBrief;
+  video_provider?: "grok" | "fal";
+  fal_model?: string;
+  script_model?: string;
+  voice_provider?: "openai" | "elevenlabs";
+  elevenlabs_voice_id?: string;
+  music_provider?: "auto" | "library" | "generated";
+  design_kit_id?: string | null;
+  writing_kit_id?: string | null;
 }
 
 function splitCsv(raw: string | null): string[] {
@@ -40,6 +50,86 @@ function splitCsv(raw: string | null): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** Provider + kit selections (present only when the form renders them,
+ *  so onboarding submissions leave existing values untouched). */
+function providerFieldsFromForm(formData: FormData): Partial<NicheCreatePayload> {
+  if (formData.get("providers_present") !== "1") return {};
+  const videoChoice = String(formData.get("video_model_choice") || "grok:");
+  const [provider, ...rest] = videoChoice.split(":");
+  const designKit = String(formData.get("design_kit_id") || "");
+  const writingKit = String(formData.get("writing_kit_id") || "");
+  const voiceProvider = String(formData.get("voice_provider") || "openai");
+  const musicProvider = String(formData.get("music_provider") || "auto");
+  return {
+    video_provider: provider === "fal" ? "fal" : "grok",
+    fal_model: provider === "fal" ? rest.join(":") : "",
+    script_model: String(formData.get("script_model") || ""),
+    voice_provider: voiceProvider === "elevenlabs" ? "elevenlabs" : "openai",
+    elevenlabs_voice_id: String(formData.get("elevenlabs_voice_id") || "").trim(),
+    music_provider:
+      musicProvider === "library" || musicProvider === "generated"
+        ? musicProvider
+        : "auto",
+    design_kit_id: designKit || null,
+    writing_kit_id: writingKit || null,
+  };
+}
+
+/** Assemble a CreativeBrief from the edit form's brief_* fields. Returns
+ *  undefined when the form carries no brief marker (e.g. onboarding), so
+ *  create/update leave the niche's brief untouched. */
+function briefFromForm(formData: FormData): CreativeBrief | undefined {
+  if (formData.get("brief_present") !== "1") return undefined;
+  const get = (k: string) => String(formData.get(k) || "").trim();
+  const lines = (k: string) =>
+    get(k).split("\n").map((l) => l.trim()).filter(Boolean);
+  const hex = (k: string, fallback: string) => {
+    const v = get(k).replace(/^#/, "");
+    return /^[0-9a-fA-F]{6}$/.test(v) ? v : fallback;
+  };
+  const pos = get("brief_caption_position");
+  return {
+    hooks: {
+      preferred_mechanisms: formData.getAll("brief_mechanisms").map(String),
+      banned_openers: splitCsv(get("brief_banned_openers")),
+      example_hooks: lines("brief_example_hooks").slice(0, 10),
+    },
+    narrative: {
+      language: get("brief_language"),
+      pov: get("brief_pov"),
+      pacing: get("brief_pacing"),
+      reading_level: get("brief_reading_level"),
+      cta_policy: get("brief_cta_policy"),
+      must_include: [],
+      must_avoid: splitCsv(get("brief_must_avoid")),
+    },
+    visual: {
+      camera_language: get("brief_camera_language"),
+      lighting: get("brief_lighting"),
+      color_palette: get("brief_color_palette"),
+      negative_visuals: splitCsv(get("brief_negative_visuals")),
+    },
+    audio: {
+      music_enabled: formData.get("brief_music_enabled") === "on",
+      music_mood: get("brief_music_mood"),
+      caption_style: {
+        font: get("brief_caption_font") || "Arial Black",
+        font_size: Number(get("brief_caption_size") || 96),
+        text_hex: hex("brief_caption_text_hex", "FFFFFF"),
+        outline_hex: hex("brief_caption_outline_hex", "000000"),
+        uppercase: formData.get("brief_caption_uppercase") === "on",
+        position: pos === "center" || pos === "top" ? pos : "bottom",
+      },
+    },
+    prompt_overrides: {
+      ideation: get("brief_extra_ideation"),
+      scriptwriter: get("brief_extra_script"),
+      visual_director: get("brief_extra_visual"),
+      qa: "",
+    },
+  };
 }
 
 function errorMessage(e: unknown): string {
@@ -109,6 +199,8 @@ export async function createNicheAction(
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
     character_description: characterRaw ? characterRaw : null,
+    creative_brief: briefFromForm(formData),
+    ...providerFieldsFromForm(formData),
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 
@@ -164,6 +256,8 @@ export async function updateNicheAction(
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
     character_description: characterRaw ? characterRaw : null,
+    creative_brief: briefFromForm(formData),
+    ...providerFieldsFromForm(formData),
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 

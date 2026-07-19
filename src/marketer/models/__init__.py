@@ -1,3 +1,4 @@
+from .creative_brief import CaptionStyle, CreativeBrief
 from .schemas import (
     AudioTrack,
     AyrshareConnectResponse,
@@ -14,8 +15,12 @@ from .schemas import (
     PersonalAccessToken,
     CreditTransaction,
     Composition,
+    Campaign,
+    CampaignItem,
+    Kit,
     MediaAsset,
     PostMetrics,
+    Template,
     PostingWindow,
     RenderedVideo,
     Scene,
@@ -29,6 +34,8 @@ from .schemas import (
 )
 
 __all__ = [
+    "CaptionStyle",
+    "CreativeBrief",
     "CreditTransaction",
     "AudioTrack",
     "AyrshareConnectResponse",
@@ -44,8 +51,12 @@ __all__ = [
     "PerformanceSummary",
     "PersonalAccessToken",
     "Composition",
+    "Campaign",
+    "CampaignItem",
+    "Kit",
     "MediaAsset",
     "PostMetrics",
+    "Template",
     "PostingWindow",
     "RenderedVideo",
     "Scene",

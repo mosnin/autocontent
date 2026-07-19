@@ -109,9 +109,21 @@ def concat_clips(
     Default is a silent concat (the pipeline mixes VO/music later).
     `keep_audio=True` interleaves the inputs' audio too — used by library
     compositions when every source clip carries an audio stream.
+
+    Raises `ValueError` when `keep_audio=True` and any input lacks an audio
+    stream: ffmpeg's `concat` demuxer/filter requires a uniform stream
+    layout across all segments, so one silent clip in the mix fails the
+    whole concat (or worse, desyncs it) rather than degrading gracefully.
     """
     if not clip_paths:
         raise ValueError("concat_clips requires at least one clip")
+    if keep_audio:
+        missing = [str(p) for p in clip_paths if not probe_has_audio(p)]
+        if missing:
+            raise ValueError(
+                "concat_clips(keep_audio=True) requires every input to have "
+                f"an audio stream; missing audio in: {missing}"
+            )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     w, h = _resolve_dims(aspect)
 
@@ -146,6 +158,77 @@ def concat_clips(
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
+        str(out_path),
+    ])
+    return out_path
+
+
+def extract_audio(video_path: Path, out_path: Path, *, sample_rate: int = 24_000) -> Path:
+    """Pull the audio track out of a video as mono 16-bit WAV.
+
+    Used in lip-synced UGC mode: the voiceover lives inside the avatar
+    clips, and captions/QA still need a standalone WAV to work on.
+
+    Raises `ValueError` when `video_path` has no audio stream at all —
+    ffmpeg's `-map`-less extraction would otherwise either fail with an
+    opaque error or (with certain inputs) silently produce an empty file,
+    and a missing WAV breaks captions/QA downstream in confusing ways."""
+    if not probe_has_audio(video_path):
+        raise ValueError(
+            f"extract_audio: {video_path} has no audio stream to extract"
+        )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    _ffmpeg([
+        "-i", str(video_path),
+        "-vn",
+        "-ac", "1",
+        "-ar", str(sample_rate),
+        "-c:a", "pcm_s16le",
+        str(out_path),
+    ])
+    return out_path
+
+
+def mix_music_over(
+    video_path: Path,
+    music_path: Path,
+    out_path: Path,
+    music_gain_db: float = -18.0,
+) -> Path:
+    """Duck background music under a video's OWN audio track.
+
+    The lip-synced UGC path: avatar clips already carry the voiceover, so
+    instead of muxing a separate VO we attenuate the music and sidechain-
+    compress it against the video's audio, exactly like `mix_audio` does
+    against a standalone VO. Video stream is copied untouched.
+
+    Duration correctness: the video's own audio (narration) is the source
+    of truth for length — music is only a script-estimate-length overlay
+    and is frequently shorter *or* longer than the narration. `amix` must
+    use `duration=longest` (not `first`, which resolved to the music-
+    derived `[mducked]` stream and silently truncated the output to
+    whichever of the two was shorter — usually the music, cutting the
+    narration's tail). The output is then hard-pinned to the video's own
+    duration with `-t` so it is exactly as long as the source video: never
+    short (narration always fully present) and never padded past the
+    video by a longer music bed."""
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    video_dur = probe_duration(video_path)
+    audio_filter = (
+        f"[1:a]volume={music_gain_db}dB[m];"
+        "[m][0:a]sidechaincompress=threshold=0.05:ratio=8:attack=20:release=250[mducked];"
+        "[mducked][0:a]amix=inputs=2:duration=longest:dropout_transition=0[a]"
+    )
+    _ffmpeg([
+        "-i", str(video_path),
+        "-i", str(music_path),
+        "-filter_complex", audio_filter,
+        "-map", "0:v",
+        "-map", "[a]",
+        "-c:v", "copy",
+        "-c:a", "aac",
+        "-b:a", "192k",
+        "-t", f"{video_dur:.3f}",
         str(out_path),
     ])
     return out_path

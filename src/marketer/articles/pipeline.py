@@ -222,6 +222,22 @@ async def run_article(
 async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
     brand = await brand_kit_repo.get(article.user_id)
     tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
+    # Writing kit: the user's reusable voice/style skill. Pinned on the
+    # niche, else their default writing kit. Fail-open.
+    try:
+        from ..repos import kits as kits_repo
+
+        writing_kit = await kits_repo.resolve(
+            user_id=article.user_id, kind="writing",
+            kit_id=getattr(niche, "writing_kit_id", None),
+        )
+        if writing_kit is not None and writing_kit.content:
+            tone = (
+                f"{tone}\nWriting kit — the author's voice & style system, "
+                f"follow it throughout:\n{writing_kit.content}"
+            )
+    except Exception:  # noqa: BLE001 — kits season, they never block
+        pass
     audience = niche.target_audience
 
     # 0. Topic — pick one when the caller didn't supply it.

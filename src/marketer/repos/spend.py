@@ -12,10 +12,11 @@ async def record(entry: SpendEntry) -> None:
     await pool.execute(
         """
         insert into spend_ledger
-            (user_id, niche_id, job_id, article_id, provider, sku, units, cost_usd)
-        values ($1, $2, $3, $4, $5, $6, $7, $8)
+            (user_id, niche_id, job_id, article_id, image_post_id, provider, sku, units, cost_usd)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """,
         entry.user_id, entry.niche_id, entry.job_id, entry.article_id,
+        entry.image_post_id,
         entry.provider, entry.sku, entry.units, entry.cost_usd,
     )
 
@@ -140,9 +141,18 @@ class SpendCapExceeded(Exception):
     backward compatibility with callers that don't pass the kwarg.
     """
 
-    def __init__(self, message: str = "", *, scope: str = "niche") -> None:
+    def __init__(
+        self, message: str = "", *, scope: str = "niche", after_spend: bool = False
+    ) -> None:
         super().__init__(message)
         self.scope = scope
+        # True when the breach was detected AFTER a real charge was already
+        # recorded (SpendContext.log's post-write re-check), vs. a pre-flight
+        # ensure_can_spend breach where nothing was spent. Lets callers that
+        # would otherwise fall back on a pre-flight breach (e.g. generated
+        # music -> free library) correctly FAIL the job on a real breach
+        # instead of discarding an already-billed artifact.
+        self.after_spend = after_spend
 
 
 async def assert_within_cap(*, user_id: str, niche_id: UUID, cap_usd: Decimal) -> None:

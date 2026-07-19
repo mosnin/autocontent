@@ -70,6 +70,7 @@ def passing_render_qa(monkeypatch):
     def fake_check_render(
         final_path, *, voiceover_path, target_duration_sec,
         max_upload_bytes=video_qa.MAX_UPLOAD_BYTES,
+        enforce_duration=True,
     ):
         return video_qa.RenderReport(
             passed=True,
