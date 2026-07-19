@@ -166,6 +166,18 @@ class Settings(BaseSettings):
     # Max accepted upload size for library files, in MB.
     upload_max_mb: int = 50
 
+    # --- Platform Operator (Kimi K3 via OpenRouter) -------------------
+    # The native orchestration agent. Fail-closed: no OpenRouter key and no
+    # OpenAI fallback = Operator endpoints 503 cleanly.
+    operator_enabled: bool = False
+    openrouter_api_key: str = ""
+    operator_model: str = "moonshotai/kimi-k3"
+    # Hard ceilings. A single run aborts when its metered LLM spend hits
+    # max_run_usd; the daily cap bounds all Operator inference per user.
+    operator_max_run_usd: float = 2.0
+    operator_daily_usd_cap: float = 10.0
+    operator_max_turns: int = 40
+
     # --- Ads experiments (A/B + budget ramps) -------------------------
     # Local experiment orchestration; every mutation still flows through
     # the safe-execute guard + approvals like any other ads action.

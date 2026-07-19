@@ -174,9 +174,10 @@ const SUITE: Product = {
   icon: Settings,
   accent: "purple",
   home: "/settings",
-  match: ["/settings", "/connect", "/admin"],
+  match: ["/settings", "/connect", "/admin", "/agents"],
   nav: [
     { kind: "item", href: "/settings", label: "Settings", icon: Settings },
+    { kind: "item", href: "/agents", label: "Operator", icon: Sparkles },
     { kind: "item", href: "/connect", label: "Connect socials", icon: Link2 },
     {
       kind: "group",

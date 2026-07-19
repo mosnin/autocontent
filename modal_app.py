@@ -351,6 +351,28 @@ async def press_growth_cron() -> dict:
 
 
 @app.function(
+    schedule=modal.Cron("30 * * * *"),  # hourly, offset from the other crons
+    timeout=60 * 10,
+)
+async def operator_heartbeat() -> dict:
+    """Hourly Operator wake: due schedules and event wakes (fresh alerts,
+    decided approvals, disapproved campaigns) spawn Operator runs. Cheap
+    no-op while the Operator is disabled."""
+    from marketer.services import operator_heartbeat as hb
+
+    return await hb.run()
+
+
+@app.function(timeout=60 * 20)
+async def run_operator(user_id: str, run_id: str) -> dict:
+    """Execute one Operator run to completion. Spawned by routes and by the
+    heartbeat; all state lives in agent_runs/agent_events."""
+    from marketer.services import operator_runtime
+
+    return await operator_runtime.start_run(user_id=user_id, run_id=run_id)
+
+
+@app.function(
     volumes={"/artifacts": artifacts},
     timeout=60 * 30,
 )
