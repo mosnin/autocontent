@@ -9,9 +9,9 @@ import { MarketingFooter, MarketingNav } from "@/components/marketing/system";
 export const dynamic = "force-dynamic";
 
 /**
- * Shell for every logged-out marketing page: floating pill nav on top,
- * sitemap footer below, cool near-white canvas behind everything
- * (spec: web/marketing/DESIGN_SPEC.md).
+ * Shell for every logged-out marketing page: announcement banner + sticky
+ * mega-menu nav on top, sitemap footer below, white canvas behind
+ * everything (spec: web/marketing/DESIGN_SPEC.md).
  */
 export default function MarketingLayout({
   children,
@@ -19,7 +19,7 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#f5f6f8] text-zinc-900">
+    <div className="min-h-screen bg-white text-zinc-900">
       <MarketingNav />
       {children}
       <MarketingFooter />
