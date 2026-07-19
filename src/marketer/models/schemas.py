@@ -178,9 +178,10 @@ class Job(BaseModel):
 
 class SpendEntry(BaseModel):
     user_id: str
-    niche_id: UUID
+    niche_id: UUID | None
     job_id: UUID | None
     article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
+    image_post_id: UUID | None = None  # set for image-post spend
     provider: str  # "openai" | "xai" | "ayrshare"
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
@@ -267,6 +268,24 @@ class AyrshareConnectStatus(BaseModel):
     profile_key: str | None = None
 
 
+class Template(BaseModel):
+    """Admin-curated remixable reference: an asset + the exact prompt that
+    produced its look. Users remix with their own product image and the
+    generation inherits the aesthetic."""
+
+    id: UUID
+    kind: Literal["video", "image", "carousel"]
+    name: str
+    description: str = ""
+    prompt: str
+    reference_key: str = ""
+    config: dict = Field(default_factory=dict)
+    is_published: bool = False
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Campaign(BaseModel):
     """An orchestrated marketing push: content + SEO + ads lanes running
     together against a time window and a content-credit budget."""
@@ -296,7 +315,7 @@ class CampaignItem(BaseModel):
     id: UUID
     campaign_id: UUID
     user_id: str
-    kind: Literal["video", "article", "ad"]
+    kind: Literal["video", "article", "ad", "image"]
     ref_id: UUID
     enabled: bool = True
     cadence_per_week: int = Field(default=3, ge=1, le=56)

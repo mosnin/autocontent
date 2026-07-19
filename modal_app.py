@@ -117,6 +117,52 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
 
 
 @app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 30,
+)
+async def run_image_post(user_id: str, image_post_id: str) -> dict:
+    """Drive one image post (still or carousel) to a terminal state."""
+    from uuid import UUID
+    from marketer.services.image_posts import run_image_post as _run
+
+    result = await _run(user_id=user_id, image_post_id=UUID(image_post_id))
+    artifacts.commit()
+    return {"status": result.get("status")}
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 10,
+)
+async def finish_image_post(user_id: str, image_post_id: str) -> dict:
+    """Resume an approved image post at the scheduling stage."""
+    from uuid import UUID
+    from marketer.services.image_posts import schedule_image_post as _schedule
+
+    result = await _schedule(user_id=user_id, image_post_id=UUID(image_post_id))
+    return {"status": result.get("status")}
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 15,
+)
+async def run_template_remix(
+    user_id: str, template_id: str, product_path: str, count: int, note: str
+) -> dict:
+    """Generate template-aesthetic remixes with the user's product."""
+    from uuid import UUID
+    from marketer.services.template_remix import run_remix
+
+    result = await run_remix(
+        user_id=user_id, template_id=UUID(template_id),
+        product_path=product_path, count=count, note=note,
+    )
+    artifacts.commit()
+    return result
+
+
+@app.function(
     volumes={"/assets": assets},
     timeout=60 * 5,
 )

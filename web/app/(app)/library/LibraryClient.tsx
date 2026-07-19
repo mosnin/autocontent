@@ -73,6 +73,11 @@ export function LibraryClient({
     clientFetch,
     { fallbackData: nicheFilter === "all" ? initialClips : undefined },
   );
+  const { data: images } = useSWR<MediaAsset[]>(
+    `/api/v1/library?kind=keyframe&limit=200${nicheQuery}`,
+    clientFetch,
+    { fallbackData: nicheFilter === "all" ? initialClips : undefined },
+  );
   const { data: compositions, mutate: mutateCompositions } = useSWR<Composition[]>(
     "/api/v1/library/compositions?limit=50",
     clientFetch,
@@ -153,6 +158,9 @@ export function LibraryClient({
             <Layers className="mr-1.5 size-3.5" aria-hidden />
             Clips
           </TabsTrigger>
+          <TabsTrigger value="images">
+            Images
+          </TabsTrigger>
           <TabsTrigger value="remixes">
             <Clapperboard className="mr-1.5 size-3.5" aria-hidden />
             Remixes
@@ -204,6 +212,45 @@ export function LibraryClient({
             selected={selected}
             onToggle={toggle}
             empty="No clips yet — every rendered scene is saved here automatically."
+          />
+        </TabsContent>
+        <TabsContent value="images" className="space-y-4 pt-4">
+          {selected.length > 0 && (
+            <Card className="border-primary/40">
+              <CardContent className="flex flex-wrap items-center gap-3 p-4">
+                <span className="text-sm font-medium">
+                  {selected.length} clip{selected.length === 1 ? "" : "s"} selected
+                </span>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Remix title (optional)"
+                  className="max-w-xs"
+                  aria-label="Remix title"
+                />
+                <Button onClick={createRemix} disabled={creating}>
+                  {creating ? "Queuing…" : "Create remix"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setSelected([])}
+                  disabled={creating}
+                >
+                  Clear
+                </Button>
+                <p className="w-full text-xs text-muted-foreground">
+                  Clips are stitched in the order you selected them.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+          <AssetGrid
+            assets={images ?? []}
+            nicheTitle={nicheTitle}
+            selectable
+            selected={selected}
+            onToggle={toggle}
+            empty="No images yet — every rendered scene is saved here automatically."
           />
         </TabsContent>
 

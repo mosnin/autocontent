@@ -8,6 +8,7 @@
 // launcher can consume one registry.
 
 import {
+  LayoutTemplate,
   Rocket,
   Boxes,
   Clapperboard,
@@ -70,7 +71,7 @@ const STUDIO: Product = {
   icon: Film,
   accent: "navy",
   home: "/dashboard",
-  match: ["/dashboard", "/niches", "/queue", "/calendar", "/library", "/onboarding"],
+  match: ["/dashboard", "/niches", "/queue", "/calendar", "/library", "/templates", "/onboarding"],
   groups: [
     {
       label: "Operate",
@@ -80,6 +81,7 @@ const STUDIO: Product = {
         { href: "/queue", label: "Queue", icon: ListChecks },
         { href: "/calendar", label: "Calendar", icon: CalendarDays },
         { href: "/library", label: "Library", icon: Clapperboard },
+        { href: "/templates", label: "Templates", icon: LayoutTemplate },
       ],
     },
   ],

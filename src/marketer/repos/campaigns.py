@@ -164,6 +164,7 @@ async def spent_usd(campaign_id: UUID, *, user_id: str) -> Decimal:
           and (
             sl.job_id in (select id from jobs where campaign_id = $1)
             or sl.article_id in (select id from articles where campaign_id = $1)
+            or sl.image_post_id in (select id from image_posts where campaign_id = $1)
           )
         """,
         campaign_id, user_id,
@@ -195,7 +196,21 @@ async def work_counts(campaign_id: UUID, *, user_id: str) -> dict:
         """,
         campaign_id, user_id,
     )
+    images = await pool.fetch(
+        """
+        select niche_id, count(*) as total,
+               count(*) filter (where created_at > now() - interval '7 days') as last7,
+               max(created_at) as last_at
+        from image_posts where campaign_id = $1 and user_id = $2
+        group by niche_id
+        """,
+        campaign_id, user_id,
+    )
     return {
+        "image": {
+            r["niche_id"]: {"total": r["total"], "last7": r["last7"], "last_at": r["last_at"]}
+            for r in images
+        },
         "video": {
             r["niche_id"]: {"total": r["total"], "last7": r["last7"], "last_at": r["last_at"]}
             for r in videos

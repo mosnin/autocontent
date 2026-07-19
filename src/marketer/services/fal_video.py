@@ -86,6 +86,13 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         max_duration_sec=9,
     ),
     FalVideoModel(
+        id="fal-ai/bytedance/omnihuman",
+        name="OmniHuman (UGC avatar)",
+        tagline="Talking-head/spokesperson from a single portrait — UGC mode",
+        usd_per_second=Decimal("0.16"),
+        max_duration_sec=15,
+    ),
+    FalVideoModel(
         id="fal-ai/wan/v2.2-a14b/image-to-video",
         name="Wan 2.2 (14B)",
         tagline="Budget open-weights option",

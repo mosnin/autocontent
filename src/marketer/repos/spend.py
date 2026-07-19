@@ -12,10 +12,11 @@ async def record(entry: SpendEntry) -> None:
     await pool.execute(
         """
         insert into spend_ledger
-            (user_id, niche_id, job_id, article_id, provider, sku, units, cost_usd)
-        values ($1, $2, $3, $4, $5, $6, $7, $8)
+            (user_id, niche_id, job_id, article_id, image_post_id, provider, sku, units, cost_usd)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         """,
         entry.user_id, entry.niche_id, entry.job_id, entry.article_id,
+        entry.image_post_id,
         entry.provider, entry.sku, entry.units, entry.cost_usd,
     )
 

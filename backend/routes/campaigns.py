@@ -40,7 +40,7 @@ class CampaignCreate(BaseModel):
 
 
 class ItemCreate(BaseModel):
-    kind: Literal["video", "article", "ad"]
+    kind: Literal["video", "article", "ad", "image"]
     ref_id: UUID
     cadence_per_week: int = Field(default=3, ge=1, le=56)
 
@@ -132,7 +132,7 @@ async def add_item(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     # Lane refs must belong to the caller.
-    if body.kind in ("video", "article"):
+    if body.kind in ("video", "article", "image"):
         if await niches_repo.get(body.ref_id, user_id=ctx.user_id) is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
     else:  # ad

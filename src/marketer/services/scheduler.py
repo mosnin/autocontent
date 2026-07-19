@@ -84,10 +84,13 @@ async def upload_media(video_path: Path, *, profile_key: str | None = None) -> s
         )
     async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
         with video_path.open("rb") as fp:
+            import mimetypes
+
+            mime = mimetypes.guess_type(video_path.name)[0] or "video/mp4"
             resp = await client.post(
                 "/media/upload",
                 headers=_headers(profile_key),
-                files={"file": (video_path.name, fp, "video/mp4")},
+                files={"file": (video_path.name, fp, mime)},
                 data={"fileName": video_path.name},
             )
     resp.raise_for_status()
@@ -95,6 +98,56 @@ async def upload_media(video_path: Path, *, profile_key: str | None = None) -> s
     if not url:
         raise AyrshareError(f"upload response missing url: {resp.text!r}")
     return url
+
+
+async def schedule_image_post(
+    *,
+    image_paths: list[Path],
+    caption: str,
+    hashtags: list[str],
+    platform: str,
+    scheduled_for: datetime,
+    user_id: str,
+    profile_key: str | None = None,
+) -> str:
+    """Upload every slide and schedule one multi-image post (a carousel
+    on platforms that support it). Returns the Ayrshare post id."""
+    if not image_paths:
+        raise AyrshareError("no images to post")
+    if profile_key is None:
+        user = await users_repo.get(user_id)
+        profile_key = user.ayrshare_profile_key if user else None
+    if not profile_key:
+        raise AyrshareError(
+            f"user {user_id} has no ayrshare_profile_key; complete connect flow first"
+        )
+    ayr_platform = PLATFORM_MAP.get(platform)
+    if not ayr_platform:
+        raise AyrshareError(f"unknown platform {platform!r}")
+
+    media_urls = [
+        await upload_media(p, profile_key=profile_key) for p in image_paths
+    ]
+    body = {
+        "post": _format_caption(caption, hashtags),
+        "platforms": [ayr_platform],
+        "mediaUrls": media_urls,
+        "scheduleDate": _iso_utc(scheduled_for),
+    }
+    async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
+        resp = await client.post(
+            "/post",
+            headers={**_headers(profile_key), "Content-Type": "application/json"},
+            json=body,
+        )
+    resp.raise_for_status()
+    body_out = resp.json()
+    if body_out.get("status") not in ("scheduled", "success"):
+        raise AyrshareError(f"unexpected response: {body_out!r}")
+    post_id = body_out.get("id")
+    if not post_id:
+        raise AyrshareError(f"schedule response missing id: {body_out!r}")
+    return post_id
 
 
 async def schedule_post(

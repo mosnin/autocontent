@@ -50,6 +50,19 @@ async def _default_spawn_video(user_id: str, niche_id: UUID, platform: str,
     fn.spawn(user_id, str(niche_id), platform, str(job.id))
 
 
+async def _default_spawn_image_post(user_id: str, niche_id: UUID,
+                                    campaign_id: UUID) -> None:
+    import modal
+
+    from ..repos import image_posts as image_posts_repo
+
+    post = await image_posts_repo.create(
+        user_id=user_id, niche_id=niche_id, campaign_id=campaign_id,
+    )
+    fn = modal.Function.from_name("marketer-sh", "run_image_post")
+    fn.spawn(user_id, str(post["id"]))
+
+
 async def _default_spawn_article(user_id: str, niche_id: UUID,
                                  campaign_id: UUID) -> None:
     import modal
@@ -82,6 +95,7 @@ async def run_campaign_tick(
     *,
     spawn_video=_default_spawn_video,
     spawn_article=_default_spawn_article,
+    spawn_image=_default_spawn_image_post,
     now: datetime | None = None,
 ) -> dict:
     """Advance one campaign by one tick. Returns a summary dict."""
@@ -116,6 +130,14 @@ async def run_campaign_tick(
             platform = list(niche.platforms)[total % len(niche.platforms)]
             await spawn_video(uid, niche.id, platform, campaign.id)
             spawned.append(f"video:{niche.id}:{platform}")
+        elif item.kind == "image":
+            if not _due(counts.get("image", {}).get(item.ref_id), item.cadence_per_week, now):
+                continue
+            niche = await niches_repo.get(item.ref_id, user_id=uid)
+            if niche is None:
+                continue
+            await spawn_image(uid, niche.id, campaign.id)
+            spawned.append(f"image:{niche.id}")
         elif item.kind == "article":
             if not _due(counts["article"].get(item.ref_id), item.cadence_per_week, now):
                 continue
@@ -140,6 +162,7 @@ async def tick_all(
     *,
     spawn_video=_default_spawn_video,
     spawn_article=_default_spawn_article,
+    spawn_image=_default_spawn_image_post,
 ) -> dict:
     """One cron pass over every running campaign. Per-campaign failures
     are contained — one broken campaign can't stall the fleet."""
@@ -149,6 +172,7 @@ async def tick_all(
         try:
             results.append(await run_campaign_tick(
                 campaign, spawn_video=spawn_video, spawn_article=spawn_article,
+                spawn_image=spawn_image,
             ))
         except Exception as e:  # noqa: BLE001
             errors += 1

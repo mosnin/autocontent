@@ -141,6 +141,58 @@ async def generate_keyframe(
     return out_path
 
 
+async def generate_remix(
+    prompt: str,
+    out_path: Path,
+    *,
+    reference_paths: list[Path],
+    quality: str = "medium",
+    size: str = "1024x1024",
+    spend: SpendContext | None = None,
+) -> Path:
+    """Template remix: regenerate the template's aesthetic around the
+    user's product. All references (template look + product shot) go to
+    gpt-image-1 edit together; the prompt is the template's own."""
+    if spend is not None:
+        await spend.ensure_can_spend(image_cost(quality, size=size))
+
+    files = [p.open("rb") for p in reference_paths]
+    try:
+        result = await _call_remix_api(prompt, files=files, quality=quality, size=size)
+    finally:
+        for fp in files:
+            fp.close()
+
+    cost = image_cost(quality, size=size)
+    if spend is not None:
+        await spend.log(
+            provider=PROVIDER,
+            sku=SKU,
+            units=Decimal(1),
+            cost_usd=cost,
+        )
+    _decode_b64_to(out_path, result.data[0].b64_json)
+    return out_path
+
+
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=2, max=16),
+    retry=retry_if_exception(is_transient_openai_error),
+)
+async def _call_remix_api(prompt: str, *, files: list, quality: str, size: str):
+    client = _get_client()
+    return await client.images.edit(
+        model=SKU,
+        image=files if len(files) > 1 else files[0],
+        prompt=prompt,
+        size=size,
+        quality=quality,
+        n=1,
+    )
+
+
 async def generate_reference(
     prompt: str,
     out_path: Path,

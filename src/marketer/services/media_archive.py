@@ -136,3 +136,41 @@ async def archive_job_media(job: Job, niche: Niche) -> int:
             extra={"job_id": str(job.id), "error": str(e)},
         )
     return archived
+
+
+async def archive_image_slides(
+    *,
+    user_id: str,
+    niche_id: UUID,
+    image_post_id: UUID,
+    slide_paths: list[Path],
+    title: str = "",
+) -> int:
+    """Index carousel/still slides as library keyframe assets (uploaded to
+    Wasabi when configured). Never raises."""
+    archived = 0
+    try:
+        for i, path in enumerate(slide_paths):
+            if not path.exists():
+                continue
+            if object_storage.enabled():
+                storage = "wasabi"
+                key = f"users/{user_id}/imageposts/{image_post_id}/slide_{i}.png"
+                await object_storage.upload_file(path, key)
+            else:
+                storage, key = "volume", str(path)
+            await media_repo.record_asset(
+                user_id=user_id,
+                niche_id=niche_id,
+                kind="keyframe",
+                scene_index=i,
+                storage=storage,
+                object_key=key,
+                content_type="image/png",
+                size_bytes=path.stat().st_size,
+                title=f"{title} — slide {i + 1}" if title else f"slide {i + 1}",
+            )
+            archived += 1
+    except Exception as e:  # noqa: BLE001
+        log.warning("image slide archive failed", extra={"error": str(e)})
+    return archived
