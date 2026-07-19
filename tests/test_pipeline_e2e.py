@@ -644,7 +644,8 @@ async def test_render_qa_failure_fails_job_before_archive_and_schedule(
     from marketer.services import video_qa
 
     def failing_check(final_path, *, voiceover_path, target_duration_sec,
-                      max_upload_bytes=video_qa.MAX_UPLOAD_BYTES):
+                      max_upload_bytes=video_qa.MAX_UPLOAD_BYTES,
+                      enforce_duration=True):
         return video_qa.RenderReport(
             passed=False,
             issues=["video (3.0s) ends before the voiceover (9.0s)"],

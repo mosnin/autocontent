@@ -1,6 +1,7 @@
 """Template library.
 
 - GET    /api/v1/templates                — published templates (any user)
+- GET    /api/v1/templates/admin/all      — every template, drafts included (ADMIN)
 - GET    /api/v1/templates/{id}/reference — the reference image
 - POST   /api/v1/templates/{id}/remix     — remix with your product (202)
 - POST   /api/v1/templates                — create (ADMIN)
@@ -64,6 +65,27 @@ def _commit_artifacts() -> None:
         pass
 
 
+# Magic-byte signatures for the image formats we actually serve back
+# (media_type="image/png" in the reference/remix routes, but admins may
+# upload any common still format as the source). A cheap sniff of the
+# decoded bytes — no Pillow dependency needed — is enough to reject an
+# arbitrary blob (a script, an HTML file, a zip bomb) uploaded through a
+# field that only ever claims to hold "image_b64".
+_IMAGE_SIGNATURES: tuple[bytes, ...] = (
+    b"\x89PNG\r\n\x1a\n",       # PNG
+    b"\xff\xd8\xff",             # JPEG
+    b"GIF87a",                    # GIF
+    b"GIF89a",                    # GIF
+    b"RIFF",                      # WEBP (RIFF....WEBP)
+)
+
+
+def _looks_like_image(raw: bytes) -> bool:
+    if raw.startswith(b"RIFF"):
+        return len(raw) >= 12 and raw[8:12] == b"WEBP"
+    return any(raw.startswith(sig) for sig in _IMAGE_SIGNATURES if sig != b"RIFF")
+
+
 def _decode_image(b64: str, dest: Path) -> Path:
     if len(b64) > MAX_IMAGE_B64:
         raise HTTPException(
@@ -74,6 +96,11 @@ def _decode_image(b64: str, dest: Path) -> Path:
     except (binascii.Error, ValueError):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail="invalid base64 image"
+        )
+    if not _looks_like_image(raw):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="decoded content is not a recognized image format",
         )
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(raw)
@@ -108,6 +135,18 @@ async def list_templates(
     ctx: AuthCtx = CurrentUser,
 ) -> list[Template]:
     return await templates_repo.list_templates(published_only=True, kind=kind)
+
+
+# Registered here — before any GET /{template_id}[...] dynamic route below —
+# so a literal two-segment path ("admin/all") can never be shadowed by a
+# dynamic single-segment match. FastAPI/Starlette tries routes in
+# registration order per method, and today no route matches a bare single
+# segment for GET, so this ordering is defense-in-depth rather than a
+# live bug; keep it first regardless so that stays true as routes evolve.
+@router.get("/admin/all", response_model=list[Template])
+async def list_all_templates(admin=Depends(require_admin)) -> list[Template]:
+    """Every template, drafts included — the admin curation view."""
+    return await templates_repo.list_templates(published_only=False)
 
 
 @router.get("/{template_id}/reference")
@@ -169,12 +208,6 @@ async def _mirror_reference(dest: Path) -> None:
             await object_storage.upload_file(dest, f"templates/{dest.name}")
     except Exception:  # noqa: BLE001
         pass
-
-
-@router.get("/admin/all", response_model=list[Template])
-async def list_all_templates(admin=Depends(require_admin)) -> list[Template]:
-    """Every template, drafts included — the admin curation view."""
-    return await templates_repo.list_templates(published_only=False)
 
 
 @router.post("", response_model=Template, status_code=status.HTTP_201_CREATED)

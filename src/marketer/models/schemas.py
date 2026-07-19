@@ -365,7 +365,7 @@ class MediaAsset(BaseModel):
     user_id: str
     niche_id: UUID | None = None
     job_id: UUID | None = None
-    kind: Literal["clip", "keyframe", "voiceover", "final", "composition"]
+    kind: Literal["clip", "keyframe", "voiceover", "final", "composition", "music"]
     scene_index: int | None = None
     storage: Literal["wasabi", "volume"]
     object_key: str

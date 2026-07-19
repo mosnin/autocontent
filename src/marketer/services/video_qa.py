@@ -51,11 +51,20 @@ def check_render(
     voiceover_path: Path,
     target_duration_sec: int,
     max_upload_bytes: int = MAX_UPLOAD_BYTES,
+    enforce_duration: bool = True,
 ) -> RenderReport:
     """Verify the rendered file; shrink it to the upload budget if needed.
 
     Returns a report whose `final_path` may point at a re-encoded file
     (`*_fit.mp4`) when the original exceeded `max_upload_bytes`.
+
+    `enforce_duration=False` skips ONLY the duration-drift-from-target gate
+    (all other gates — streams present, not silent, VO coverage, size
+    budget — still run). In lip-synced avatar mode the total length is
+    narration-driven rather than a fixed niche target, so drift from that
+    target is expected and not a defect; the pipeline passes
+    `enforce_duration=False` for those jobs so a legitimate lip-sync render
+    isn't rejected (and re-spent) over a target it was never meant to hit.
     """
     issues: list[str] = []
 
@@ -101,7 +110,7 @@ def check_render(
     except Exception as e:  # noqa: BLE001
         issues.append(f"could not probe voiceover for coverage check: {e}")
 
-    if target_duration_sec > 0:
+    if enforce_duration and target_duration_sec > 0:
         drift = abs(duration - target_duration_sec) / target_duration_sec
         if drift > DURATION_TOLERANCE:
             issues.append(

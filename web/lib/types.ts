@@ -264,7 +264,7 @@ export interface TokenCreateResponse {
 
 // ---------------------------------------------------------------- media library
 
-export type MediaKind = "clip" | "keyframe" | "voiceover" | "final" | "composition";
+export type MediaKind = "clip" | "keyframe" | "voiceover" | "final" | "composition" | "music";
 
 export interface MediaAsset {
   id: string;
@@ -381,11 +381,18 @@ export interface ScriptModelOption {
 
 export interface ImagePost {
   id: string;
+  user_id: string;
   niche_id: string;
+  campaign_id: string | null;
   kind: "single" | "carousel";
   topic: string;
-  slide_count: number;
+  // queued | planning | generating | awaiting_approval | scheduling | done | failed
   status: string;
+  // Plan/slide-path/caption snapshot. slide_count lives here (set at
+  // creation time), not as a top-level column — see
+  // marketer.repos.image_posts.create.
+  payload: { slide_count?: number; [key: string]: unknown };
+  provider_post_id: string | null;
   error: string | null;
   created_at: string;
   updated_at: string;

@@ -25,6 +25,20 @@ from . import object_storage
 log = get_logger(__name__)
 
 
+def _resolves_inside(path: Path, root: Path) -> bool:
+    """True if `path` lives inside `root` once both are resolved.
+
+    Used to tell a generated-in-job artifact (safe to mirror/bill as the
+    user's own paid asset) apart from a shared library/Pixabay pick that
+    merely happens to be referenced from the job (must never be uploaded
+    as if it were bespoke media)."""
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except ValueError:
+        return False
+
+
 async def _archive_one(
     local_path: Path,
     *,
@@ -117,6 +131,67 @@ async def archive_job_media(job: Job, niche: Niche) -> int:
                 title=f"{hook} — voiceover" if hook else "voiceover",
             )
             archived += asset is not None
+
+            # voiceover.wav always lives at <job_root>/audio/voiceover.wav
+            # (see storage/volume.py's layout), so its grandparent is the
+            # job root regardless of how the caller laid out user/job
+            # nesting above it — a stable anchor with no extra dependency.
+            job_root = Path(job.audio.voiceover_path).parent.parent
+
+            # Generated background score: an original ElevenLabs
+            # composition billed to the user (pipeline.py writes it to
+            # <job_root>/audio/music_generated.mp3). Only archive it when
+            # music_path resolves INSIDE the job root — a shared
+            # library/Pixabay track (served from settings.assets_dir) is
+            # never the user's bespoke media and must never be uploaded
+            # as if it were.
+            if job.audio.music_path:
+                music_path = Path(job.audio.music_path)
+                if _resolves_inside(music_path, job_root):
+                    asset = await _archive_one(
+                        music_path,
+                        user_id=job.user_id,
+                        job_id=job.id,
+                        niche_id=job.niche_id,
+                        kind="music",
+                        relative_key="audio/music_generated.mp3",
+                        content_type="audio/mpeg",
+                        title=f"{hook} — music" if hook else "music",
+                    )
+                    archived += asset is not None
+                else:
+                    log.info(
+                        "archive: music_path outside job root, "
+                        "shared library track — not archiving",
+                        extra={"job_id": str(job.id), "music_path": str(music_path)},
+                    )
+
+            # Per-scene ElevenLabs narration in avatar (lip-sync) mode:
+            # each scene's standalone WAV drives the avatar render and is
+            # separately billed, but only voiceover.wav (extracted from
+            # the assembled video) was ever archived. These files only
+            # exist for avatar-mode jobs, so a missing scene wav is
+            # expected and not logged as an anomaly.
+            for clip in job.clips:
+                scene_wav = job_root / "audio" / f"scene_{clip.scene_index}.wav"
+                if not scene_wav.exists():
+                    continue
+                asset = await _archive_one(
+                    scene_wav,
+                    user_id=job.user_id,
+                    job_id=job.id,
+                    niche_id=job.niche_id,
+                    kind="voiceover",
+                    relative_key=f"audio/scene_{clip.scene_index}.wav",
+                    scene_index=clip.scene_index,
+                    content_type="audio/wav",
+                    title=(
+                        f"{hook} — scene {clip.scene_index} voiceover"
+                        if hook
+                        else f"scene {clip.scene_index} voiceover"
+                    ),
+                )
+                archived += asset is not None
 
         if job.rendered is not None:
             asset = await _archive_one(

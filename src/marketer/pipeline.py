@@ -417,6 +417,19 @@ async def _run_job_inner(
     if not await _ensure_cap(job, niche):
         return job
 
+    # Fail fast on a misconfigured/rotated ElevenLabs key — BEFORE any
+    # ideation/image/render spend. Without this, a niche whose
+    # voice_provider is 'elevenlabs' but whose key is missing/rotated only
+    # discovers the problem at the voicing stage, after script + all
+    # keyframes + all renders have already been bought.
+    if niche.voice_provider == "elevenlabs" and not elevenlabs_tts.enabled():
+        return await _fail_with(
+            job,
+            "niche voice_provider is 'elevenlabs' but ELEVENLABS_API_KEY is "
+            "not configured — fix the niche's voice provider or the API key "
+            "before this job can spend anything",
+        )
+
     # Stage resume: a retried job that still carries a script from the
     # failed attempt reuses it (and any per-scene/VO artifacts below)
     # instead of re-spending. Content-rejected retries arrive wiped.
@@ -511,19 +524,50 @@ async def _run_job_inner(
             )
         # Per-scene resume: clips from the failed attempt whose files are
         # still on the volume are reused; only the missing scenes re-spend.
+        # Mode-aware: avatar_model is derived from the CURRENT niche config,
+        # which may have changed between attempts (operator switched the
+        # fal model from an i2v model to the OmniHuman avatar, or back).
+        # Avatar clips carry embedded lip-synced audio; i2v/motion clips
+        # never do. In AVATAR mode specifically, reusing a clip with no
+        # embedded audio (a stale i2v-mode clip from before the switch)
+        # would crash concat(keep_audio=True) on a silent "avatar" clip —
+        # so avatar mode verifies audio presence and regenerates on a
+        # mismatch (an unprobeable/corrupt clip is treated the same way:
+        # regenerate rather than gamble on a broken render). The reverse
+        # direction — an avatar-audio clip reused in plain i2v mode — is
+        # harmless (concat without keep_audio simply drops the audio
+        # track), so plain mode skips the probe and keeps the legacy
+        # file-exists-only resume check.
+        avatar_model = _avatar_model_id(niche)
         prior_clips: dict[int, Clip] = {}
         if resumed:
-            prior_clips = {
-                c.scene_index: c
-                for c in job.clips
-                if Path(c.video_path).exists() and Path(c.keyframe_path).exists()
-            }
+            for c in job.clips:
+                video_path = Path(c.video_path)
+                if not (video_path.exists() and Path(c.keyframe_path).exists()):
+                    continue
+                if avatar_model:
+                    try:
+                        has_audio = ffmpeg.probe_has_audio(video_path)
+                    except Exception as e:  # noqa: BLE001 — unprobeable = unreusable
+                        log.info(
+                            "resume: scene %d clip unprobeable (%s) — regenerating",
+                            c.scene_index, e,
+                        )
+                        continue
+                    if not has_audio:
+                        log.info(
+                            "resume: scene %d clip has no embedded audio in "
+                            "avatar mode (stale i2v-mode clip?) — "
+                            "regenerating instead of reusing",
+                            c.scene_index,
+                        )
+                        continue
+                prior_clips[c.scene_index] = c
             if prior_clips:
                 log.info(
                     "resume: reusing %d/%d scene clips", len(prior_clips), len(script.scenes)
                 )
         sem = asyncio.Semaphore(settings.scene_fanout_limit)
-        avatar_model = _avatar_model_id(niche)
 
         async def _bounded(s: Scene) -> Clip:
             cached = prior_clips.get(s.index)
@@ -615,18 +659,38 @@ async def _run_job_inner(
                 niche.music_provider == "auto" and music_gen.enabled()
             )
             if want_generated and music_gen.enabled():
-                try:
-                    music_path = await music_gen.compose(
-                        mood=audio_brief.music_mood,
-                        duration_sec=int(script.total_duration_sec),
-                        out_path=root / "audio" / "music_generated.mp3",
-                        niche_title=niche.title,
-                        spend=spend,
-                    )
-                except spend_repo.SpendCapExceeded as e:
-                    return await _fail_with(job, str(e))
-                except music_gen.MusicGenError as e:
-                    log.warning("generated music failed, falling back: %s", e)
+                generated_path = root / "audio" / "music_generated.mp3"
+                # Same script as the failed attempt means the same
+                # mood/duration, so the previously composed track is still
+                # the right one — skip the re-bill, mirroring reuse_vo.
+                reuse_music = resumed and generated_path.exists()
+                if reuse_music:
+                    log.info("resume: reusing generated music from prior attempt")
+                    music_path = generated_path
+                else:
+                    try:
+                        music_path = await music_gen.compose(
+                            mood=audio_brief.music_mood,
+                            duration_sec=int(script.total_duration_sec),
+                            out_path=generated_path,
+                            niche_title=niche.title,
+                            spend=spend,
+                        )
+                    except spend_repo.SpendCapExceeded as e:
+                        # music_gen.compose raises this from ensure_can_spend
+                        # BEFORE _call_api — i.e. nothing has been spent yet
+                        # at this call site. A pre-flight cap breach here is
+                        # not a reason to throw away the $3-5 of clips/VO
+                        # already bought this run; fall back to the free
+                        # library chain exactly like MusicGenError does.
+                        # (A cap breach reflecting money actually spent in a
+                        # later stage still fails the job, at that stage.)
+                        log.warning(
+                            "generated music pre-flight spend cap exceeded, "
+                            "falling back to library: %s", e,
+                        )
+                    except music_gen.MusicGenError as e:
+                        log.warning("generated music failed, falling back: %s", e)
             if music_path is None:
                 music_path = await music.pick_track(
                     query=audio_brief.music_mood or niche.title,
@@ -705,6 +769,13 @@ async def _run_job_inner(
             final,
             voiceover_path=vo_path,
             target_duration_sec=niche.target_duration_sec,
+            # Avatar mode's total duration is narration-driven, not a fixed
+            # niche target — skip ONLY the duration-drift gate for those
+            # jobs so a legitimate lip-sync render isn't rejected (and
+            # re-bought on retry) over a target it was never meant to hit.
+            # All other gates (streams, silence, VO coverage, size) still
+            # run unconditionally for every job.
+            enforce_duration=(avatar_model is None),
         )
         # Record what was actually rendered (real probed duration, and the
         # re-encoded file when the original blew the upload budget).

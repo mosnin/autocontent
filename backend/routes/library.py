@@ -32,7 +32,7 @@ MAX_COMPOSITION_CLIPS = 40
 
 @router.get("", response_model=list[MediaAsset])
 async def list_assets(
-    kind: Literal["clip", "keyframe", "voiceover", "final", "composition"] | None = None,
+    kind: Literal["clip", "keyframe", "voiceover", "final", "composition", "music"] | None = None,
     niche_id: UUID | None = None,
     job_id: UUID | None = None,
     limit: int = 50,

@@ -369,6 +369,8 @@ def test_extract_audio_argv(monkeypatch):
 
     calls: list[list[str]] = []
     monkeypatch.setattr(ffmpeg, "_ffmpeg", lambda args: calls.append(args))
+    # extract_audio now guards on a real audio stream before shelling out.
+    monkeypatch.setattr(ffmpeg, "probe_has_audio", lambda p: True)
     ffmpeg.extract_audio(Path("/v/in.mp4"), Path("/tmp/vo.wav"))
     argv = calls[0]
     assert "-vn" in argv and "pcm_s16le" in argv
@@ -380,6 +382,8 @@ def test_mix_music_over_argv(monkeypatch):
 
     calls: list[list[str]] = []
     monkeypatch.setattr(ffmpeg, "_ffmpeg", lambda args: calls.append(args))
+    # mix_music_over now pins output length to the probed video duration.
+    monkeypatch.setattr(ffmpeg, "probe_duration", lambda p: 12.0)
     ffmpeg.mix_music_over(
         Path("/v/in.mp4"), Path("/m/track.mp3"), Path("/tmp/out.mp4"),
         music_gain_db=-20.0,
@@ -391,6 +395,9 @@ def test_mix_music_over_argv(monkeypatch):
     # Video is stream-copied; the mixed audio is mapped in.
     assert argv[argv.index("-c:v") + 1] == "copy"
     assert "[a]" in argv
+    # Audio spans the whole video (no truncation to the music length).
+    assert "duration=longest" in fc
+    assert argv[argv.index("-t") + 1] == "12.000"
 
 
 # --------------------------------------------------------------------------- routes

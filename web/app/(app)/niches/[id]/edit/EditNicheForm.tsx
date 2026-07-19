@@ -98,11 +98,16 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
 
   const brief = niche.creative_brief;
 
-  // Provider catalogs + kits for the "Models & kits" selectors.
+  // Provider catalogs + kits for the "Models & kits" selectors. Each also
+  // gets a "did this fetch settle" flag — options length alone is an
+  // unreliable proxy (an account with zero kits would leave `kits`
+  // permanently empty, keeping the select's remount key stuck on
+  // "loading" and hiding a real load failure).
   const [videoModels, setVideoModels] = React.useState<VideoModelOption[]>([]);
   const [scriptModels, setScriptModels] = React.useState<ScriptModelOption[]>([]);
   const [audio, setAudio] = React.useState<AudioProviders | null>(null);
   const [kits, setKits] = React.useState<Kit[]>([]);
+  const [kitsLoaded, setKitsLoaded] = React.useState(false);
   React.useEffect(() => {
     clientFetch<VideoModelOption[]>("/api/v1/providers/video-models")
       .then(setVideoModels)
@@ -113,7 +118,10 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
     clientFetch<AudioProviders>("/api/v1/providers/audio")
       .then(setAudio)
       .catch(() => {});
-    clientFetch<Kit[]>("/api/v1/kits").then(setKits).catch(() => {});
+    clientFetch<Kit[]>("/api/v1/kits")
+      .then(setKits)
+      .catch(() => {})
+      .finally(() => setKitsLoaded(true));
   }, []);
   const videoChoice =
     niche.video_provider === "fal" ? `fal:${niche.fal_model}` : "grok:";
@@ -363,6 +371,15 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             htmlFor="niche-video_model"
           >
             <select
+              // Options arrive async (clientFetch resolves after first
+              // paint). An uncontrolled <select defaultValue> only
+              // applies its default at mount, so if the niche's saved
+              // choice isn't among the initial fallback options, the
+              // browser silently falls back to the first option and
+              // never re-syncs once the real list loads. Keying on
+              // whether the fetch has resolved forces a remount, so
+              // defaultValue is re-evaluated against the real options.
+              key={videoModels.length ? "loaded" : "loading"}
               id="niche-video_model"
               name="video_model_choice"
               defaultValue={videoChoice}
@@ -388,6 +405,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             htmlFor="niche-script_model"
           >
             <select
+              key={scriptModels.length ? "loaded" : "loading"}
               id="niche-script_model"
               name="script_model"
               defaultValue={niche.script_model}
@@ -411,6 +429,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             htmlFor="niche-voice_provider"
           >
             <select
+              key={audio ? "loaded" : "loading"}
               id="niche-voice_provider"
               name="voice_provider"
               defaultValue={niche.voice_provider ?? "openai"}
@@ -463,6 +482,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             htmlFor="niche-design_kit"
           >
             <select
+              key={kitsLoaded ? "loaded" : "loading"}
               id="niche-design_kit"
               name="design_kit_id"
               defaultValue={niche.design_kit_id ?? ""}
@@ -480,6 +500,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             htmlFor="niche-writing_kit"
           >
             <select
+              key={kitsLoaded ? "loaded" : "loading"}
               id="niche-writing_kit"
               name="writing_kit_id"
               defaultValue={niche.writing_kit_id ?? ""}

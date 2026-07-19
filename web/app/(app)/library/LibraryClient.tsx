@@ -77,7 +77,9 @@ function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string })
               {p.status.replaceAll("_", " ")}
             </Badge>
             <span className="font-medium">
-              {p.kind === "carousel" ? `Carousel (${p.slide_count})` : "Still"}
+              {p.kind === "carousel"
+                ? `Carousel (${p.payload?.slide_count ?? "?"})`
+                : "Still"}
             </span>
             <span className="text-muted-foreground">
               {p.topic || nicheTitle(p.niche_id)}
