@@ -362,7 +362,13 @@ def test_create_template_accepts_real_png(monkeypatch, tmp_path):
             created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc),
         )
 
+    from marketer.repos import admin_audit
+
+    async def _audit(**kw):
+        return None
+
     monkeypatch.setattr(templates_repo, "create", _create)
+    monkeypatch.setattr(admin_audit, "record", _audit)  # template mutations audited
     client = _make_admin_client(monkeypatch)
 
     # Minimal valid 1x1 PNG.

@@ -18,7 +18,13 @@ from pydantic import BaseModel, Field
 from marketer.repos import ad_actions, ad_approvals
 from marketer.repos import ads as ads_repo
 from marketer.services import ad_connections
-from marketer.services.ad_actions_exec import AdSpendDenied, propose_budget_change
+from marketer.services.ad_actions_exec import (
+    AdSpendDenied,
+    execute_approved_activation,
+    execute_approved_budget_change,
+    guard_activation,
+    propose_budget_change,
+)
 from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_budget_action
 from marketer.services.composio_client import AdsDisabled
 
@@ -170,12 +176,18 @@ class StatusBody(BaseModel):
     status: str  # 'active' | 'paused' | 'ended'
 
 
-@router.post("/campaigns/{campaign_id}/status", response_model=ads_repo.AdCampaign)
+@router.post("/campaigns/{campaign_id}/status")
 async def change_status(
     campaign_id: UUID, body: StatusBody, ctx: AuthCtx = CurrentUser
-) -> ads_repo.AdCampaign:
-    """Activate / pause / end a campaign. Activation is spend-affecting and
-    passes the guard's non-budget check; pausing/ending always allowed."""
+) -> dict:
+    """Activate / pause / end a campaign. Pausing/ending always allowed.
+    Activation is spend-affecting: it must pass BOTH the guard's non-budget
+    check (account status / kill-switch) AND the same budget guard
+    ``change_budget`` uses, evaluated against the campaign's own
+    ``daily_budget_usd`` against the account's caps — otherwise a large
+    draft budget could go live with zero cap check and zero approval. A
+    denial returns 402; a delta over the approval threshold parks an
+    approval and does NOT activate until it is approved."""
     if body.status not in {"active", "paused", "ended"}:
         raise HTTPException(422, "status must be active, paused, or ended")
     camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
@@ -196,6 +208,27 @@ async def change_status(
     if not decision.allowed:
         raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, decision.reason)
 
+    if body.status == "active":
+        try:
+            delta, requires_approval = await guard_activation(camp)
+        except AdSpendDenied as e:
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+        if requires_approval:
+            approval = await ad_approvals.create(
+                user_id=ctx.user_id, action="campaign.activate",
+                summary=f"Activate campaign with daily budget "
+                        f"${camp.daily_budget_usd or Decimal('0')}",
+                dollar_delta_usd=delta, ad_account_id=camp.ad_account_id,
+                campaign_id=camp.id, payload={}, requested_by="user",
+            )
+            await ad_actions.record(
+                user_id=ctx.user_id, actor="user", actor_email=ctx.email,
+                action="campaign.activate.approval_requested",
+                target_type="ad_campaign", target_id=str(campaign_id),
+                dollar_delta_usd=delta, after={"approval_id": str(approval.id)},
+            )
+            return {"status": "pending_approval", "approval_id": str(approval.id)}
+
     updated = await ads_repo.update_campaign(
         campaign_id, user_id=ctx.user_id, status=body.status
     )
@@ -205,7 +238,7 @@ async def change_status(
         target_type="ad_campaign", target_id=str(campaign_id),
         after={"status": body.status},
     )
-    return updated or camp
+    return (updated or camp).model_dump(mode="json")
 
 
 @router.get("/campaigns/{campaign_id}")
@@ -237,6 +270,14 @@ class DecideBody(BaseModel):
 async def decide_approval(
     approval_id: UUID, body: DecideBody, ctx: AuthCtx = CurrentUser
 ) -> ad_approvals.AdApproval:
+    """Decide a pending approval. Approving does not just flip the row to
+    'approved' — it also EXECUTES the underlying spend change (budget
+    change or campaign activation) through the safe-execute layer, so a
+    human's "yes" actually takes effect instead of dead-ending. Rejecting
+    never executes anything. If the re-guard at execution time denies (state
+    moved since the approval was granted), the approval row stays 'approved'
+    for a later retry and we surface a 402 with the reason — we never crash
+    or silently drop the approved-but-unexecuted change."""
     if body.decision not in {"approved", "rejected"}:
         raise HTTPException(422, "decision must be 'approved' or 'rejected'")
     decided = await ad_approvals.decide(
@@ -252,6 +293,20 @@ async def decide_approval(
         action=f"approval.{body.decision}", target_type="ad_approval",
         target_id=str(decided.id), dollar_delta_usd=decided.dollar_delta_usd,
     )
+    if body.decision == "approved":
+        execute = (
+            execute_approved_activation
+            if decided.action == "campaign.activate"
+            else execute_approved_budget_change
+        )
+        try:
+            await execute(
+                user_id=ctx.user_id, approval_id=decided.id,
+                actor_email=ctx.email or ctx.user_id,
+            )
+        except AdSpendDenied as e:
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+        decided = decided.model_copy(update={"status": "executed"})
     return decided
 
 

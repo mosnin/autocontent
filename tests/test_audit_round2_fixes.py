@@ -253,11 +253,16 @@ def test_template_admin_routes_reject_non_admin(monkeypatch):
 
 def test_template_admin_create_works_with_admin(monkeypatch):
     import marketer.repos.templates as templates_repo
+    from marketer.repos import admin_audit
 
     async def fake_create(**kwargs):
         return _fake_template(published=kwargs["is_published"])
 
+    async def fake_audit(**kw):
+        return None
+
     monkeypatch.setattr(templates_repo, "create", fake_create)
+    monkeypatch.setattr(admin_audit, "record", fake_audit)  # template mutations are audited
     client = _make_admin_client(monkeypatch)
     r = client.post("/api/v1/templates", json={
         "kind": "image", "name": "Desk", "prompt": "cozy desk",

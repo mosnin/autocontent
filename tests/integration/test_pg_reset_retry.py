@@ -158,3 +158,42 @@ async def test_reset_for_retry_foreign_user_denied(pool):
     assert await jobs_repo.reset_for_retry(jid, user_id=other) is None
     # Still failed / claimable by the real owner.
     assert await jobs_repo.reset_for_retry(jid, user_id=uid) is not None
+
+
+async def _mk_awaiting_job(pool, uid, niche_id):
+    from marketer.models import Job, JobStatus
+
+    jid = uuid4()
+    job = Job(id=jid, user_id=uid, niche_id=niche_id, platform="tiktok",
+              status=JobStatus.awaiting_approval)
+    await pool.execute(
+        """
+        insert into jobs (id, user_id, niche_id, platform, status, payload)
+        values ($1,$2,$3,'tiktok','awaiting_approval',$4::jsonb)
+        """,
+        jid, uid, niche_id, job.model_dump_json(),
+    )
+    return jid
+
+
+async def test_reject_is_atomic_vs_concurrent(pool):
+    """claim_for_rejection: concurrent rejects yield exactly one winner, and a
+    reject can't fire once the job has left awaiting_approval (the approve race)."""
+    from marketer.repos import jobs as jobs_repo
+
+    uid = await _mkuser(pool)
+    niche_id = await _mkniche(pool, uid)
+    jid = await _mk_awaiting_job(pool, uid, niche_id)
+
+    results = await asyncio.gather(
+        *[jobs_repo.claim_for_rejection(jid, user_id=uid) for _ in range(8)]
+    )
+    winners = [r for r in results if r is not None]
+    assert len(winners) == 1
+    assert winners[0].status.value == "failed"
+
+    # Simulate approve winning first on a fresh job: flip to scheduling, then
+    # reject must find nothing to claim (can't clobber a posting job).
+    jid2 = await _mk_awaiting_job(pool, uid, niche_id)
+    await pool.execute("update jobs set status='scheduling' where id=$1", jid2)
+    assert await jobs_repo.claim_for_rejection(jid2, user_id=uid) is None

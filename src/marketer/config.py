@@ -42,6 +42,12 @@ class Settings(BaseSettings):
     # When set, slowapi uses this Redis URL for distributed rate-limit storage.
     # Leave empty to fall back to in-process memory (fine for single-instance).
     rate_limit_redis_url: str = ""
+    # Number of trusted reverse proxies in front of the app that append to
+    # X-Forwarded-For (Modal ingress = 1). The client IP for rate limiting is
+    # read this many hops from the END of XFF, so a client-supplied leading
+    # value can't forge a fresh limiter identity. Raise it only if you add
+    # more trusted proxy layers.
+    trusted_proxy_hops: int = 1
 
     # Modal volume mount points.
     artifacts_dir: str = "/artifacts"

@@ -3,6 +3,7 @@ event notifications. Distinct from routes/webhooks.py (the inbound Ayrshare
 receiver)."""
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
@@ -10,6 +11,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from marketer.repos import webhooks_out
 from marketer.repos.webhooks_out import VALID_EVENTS, WebhookEndpoint
+from marketer.services import ssrf
 
 from ..auth import AuthCtx, CurrentUser
 
@@ -47,6 +49,11 @@ async def create_endpoint(body: WebhookCreate, ctx: AuthCtx = CurrentUser) -> We
     """Register an endpoint. The signing secret is returned exactly once in
     this response (never again) — the client must store it to verify
     signatures."""
+    # SSRF guard: reject URLs that resolve to internal/metadata addresses
+    # before we ever store (and later POST signed payloads to) them.
+    ok, reason = await asyncio.to_thread(ssrf.check_public_url, body.url)
+    if not ok:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"invalid url: {reason}")
     return await webhooks_out.create(
         user_id=ctx.user_id, url=body.url, events=body.events, description=body.description
     )
