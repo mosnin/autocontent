@@ -213,12 +213,19 @@ async def test_migration_0024_apply_rollback_reapply(pool):
     assert up1.returncode == 0, up1.stderr
     assert await _table_exists()
 
-    # Roll back one migration (0024, assuming it's the latest applied).
-    down = _run_migrate("down", "1")
-    assert down.returncode == 0, down.stderr
-    assert not await _table_exists()
+    # Roll back one migration at a time until 0024 (idempotency_keys) is
+    # undone. Robust to any later migrations (0025+) stacked on top of it,
+    # rather than assuming 0024 is the current head.
+    rolled_back = 0
+    for _ in range(10):
+        down = _run_migrate("down", "1")
+        assert down.returncode == 0, down.stderr
+        rolled_back += 1
+        if not await _table_exists():
+            break
+    assert not await _table_exists(), "idempotency_keys survived rollback"
 
-    # Reapply.
+    # Reapply everything we rolled back.
     up2 = _run_migrate("up")
     assert up2.returncode == 0, up2.stderr
     assert await _table_exists()

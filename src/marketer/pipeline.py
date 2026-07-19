@@ -47,6 +47,7 @@ from .services import (
     openai_whisper,
     otel,
     provider_fallback,
+    provider_limits,
     scheduler,
     subtitle,
     video_qa,
@@ -122,13 +123,14 @@ async def _generate_scene_assets(
 ) -> Clip:
     keyframe = root / "keyframes" / f"scene_{scene.index}.png"
     clip = root / "clips" / f"scene_{scene.index}.mp4"
-    await openai_images.generate_keyframe(
-        scene.visual_prompt,
-        keyframe,
-        quality=niche.image_quality,
-        reference_image_path=reference_image,
-        spend=spend,
-    )
+    async with provider_limits.slot("openai_images"):
+        await openai_images.generate_keyframe(
+            scene.visual_prompt,
+            keyframe,
+            quality=niche.image_quality,
+            reference_image_path=reference_image,
+            spend=spend,
+        )
     if avatar_model_id:
         # Lip-synced UGC: this scene's narration is synthesized first and
         # DRIVES the render — the avatar model returns a clip of the cast
@@ -671,14 +673,20 @@ async def _run_job_inner(
                             spend=spend,
                         )
                     except spend_repo.SpendCapExceeded as e:
-                        # music_gen.compose raises this from ensure_can_spend
-                        # BEFORE _call_api — i.e. nothing has been spent yet
-                        # at this call site. A pre-flight cap breach here is
-                        # not a reason to throw away the $3-5 of clips/VO
-                        # already bought this run; fall back to the free
-                        # library chain exactly like MusicGenError does.
-                        # (A cap breach reflecting money actually spent in a
-                        # later stage still fails the job, at that stage.)
+                        # compose() can raise a cap breach from two places:
+                        # the pre-flight ensure_can_spend (nothing spent) OR
+                        # the post-call spend.log re-check (the track was
+                        # already generated AND billed). `after_spend`
+                        # distinguishes them. A pre-flight breach is not a
+                        # reason to throw away the $3-5 of clips/VO already
+                        # bought this run — fall back to the free library
+                        # chain like MusicGenError does. A post-spend breach
+                        # is a real money event: fail the job here, at the
+                        # point of breach, with the correct root cause (never
+                        # silently discard an already-billed track and mask
+                        # the breach as a warning).
+                        if getattr(e, "after_spend", False):
+                            return await _fail_with(job, str(e))
                         log.warning(
                             "generated music pre-flight spend cap exceeded, "
                             "falling back to library: %s", e,

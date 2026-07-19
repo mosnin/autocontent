@@ -86,6 +86,28 @@ def _looks_like_image(raw: bytes) -> bool:
     return any(raw.startswith(sig) for sig in _IMAGE_SIGNATURES if sig != b"RIFF")
 
 
+def _sniff_content_type(path: Path) -> str:
+    """The real image MIME from the file's magic bytes.
+
+    References are stored under a ``.png`` name regardless of the uploaded
+    format, so the filename can't be trusted; serving the actual type keeps
+    strict consumers (CDNs, clients that trust Content-Type) correct instead
+    of labelling every reference ``image/png``."""
+    try:
+        head = path.read_bytes()[:12]
+    except OSError:
+        return "image/png"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if head.startswith(b"RIFF") and head[8:12] == b"WEBP":
+        return "image/webp"
+    return "application/octet-stream"
+
+
 def _decode_image(b64: str, dest: Path) -> Path:
     if len(b64) > MAX_IMAGE_B64:
         raise HTTPException(
@@ -157,7 +179,7 @@ async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
     path = Path(template.reference_key)
     if not path.exists():
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="reference missing")
-    return FileResponse(path, media_type="image/png")
+    return FileResponse(path, media_type=_sniff_content_type(path))
 
 
 @router.post("/{template_id}/remix", status_code=status.HTTP_202_ACCEPTED)

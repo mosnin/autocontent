@@ -157,7 +157,8 @@ export function LibraryClient({
   const { data: images } = useSWR<MediaAsset[]>(
     `/api/v1/library?kind=keyframe&limit=200${nicheQuery}`,
     clientFetch,
-    { fallbackData: nicheFilter === "all" ? initialClips : undefined },
+    // No server-side fallback: page.tsx doesn't prefetch keyframes, and
+    // seeding with clip data would briefly show videos mislabeled as images.
   );
   const { data: compositions, mutate: mutateCompositions } = useSWR<Composition[]>(
     "/api/v1/library/compositions?limit=50",
@@ -296,43 +297,15 @@ export function LibraryClient({
           />
         </TabsContent>
         <TabsContent value="images" className="space-y-4 pt-4">
+          {/* Images are stills (keyframes, carousel slides, remix outputs).
+              They are not video clips, so the clip-remix affordance does not
+              apply here — the compositions endpoint only accepts clip/final
+              assets and would 422 an image selection. Plain gallery. */}
           <ImagePostsPanel nicheTitle={nicheTitle} />
-          {selected.length > 0 && (
-            <Card className="border-primary/40">
-              <CardContent className="flex flex-wrap items-center gap-3 p-4">
-                <span className="text-sm font-medium">
-                  {selected.length} clip{selected.length === 1 ? "" : "s"} selected
-                </span>
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Remix title (optional)"
-                  className="max-w-xs"
-                  aria-label="Remix title"
-                />
-                <Button onClick={createRemix} disabled={creating}>
-                  {creating ? "Queuing…" : "Create remix"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setSelected([])}
-                  disabled={creating}
-                >
-                  Clear
-                </Button>
-                <p className="w-full text-xs text-muted-foreground">
-                  Clips are stitched in the order you selected them.
-                </p>
-              </CardContent>
-            </Card>
-          )}
           <AssetGrid
             assets={images ?? []}
             nicheTitle={nicheTitle}
-            selectable
-            selected={selected}
-            onToggle={toggle}
-            empty="No images yet — every rendered scene is saved here automatically."
+            empty="No images yet — carousel slides and image remixes land here."
           />
         </TabsContent>
 
@@ -369,13 +342,23 @@ function AssetGrid({
         return (
           <Card key={a.id} className="overflow-hidden">
             <div className="relative">
-              <video
-                src={mediaUrl(a.id)}
-                controls
-                preload="metadata"
-                playsInline
-                className="aspect-[9/16] w-full bg-black object-contain"
-              />
+              {a.kind === "keyframe" || a.content_type?.startsWith("image/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={mediaUrl(a.id)}
+                  alt={a.title || "image"}
+                  loading="lazy"
+                  className="aspect-[9/16] w-full bg-black object-contain"
+                />
+              ) : (
+                <video
+                  src={mediaUrl(a.id)}
+                  controls
+                  preload="metadata"
+                  playsInline
+                  className="aspect-[9/16] w-full bg-black object-contain"
+                />
+              )}
               {selectable && onToggle && (
                 <label className="absolute left-2 top-2 flex cursor-pointer items-center gap-1 rounded-md bg-background/85 px-2 py-1 backdrop-blur">
                   <Checkbox

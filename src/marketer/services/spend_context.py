@@ -204,6 +204,7 @@ class SpendContext:
                 f"user {self.user_id} exhausted prepaid credit during job: "
                 f"balance ${new_balance} after {provider}/{sku}. Top up to continue.",
                 scope="credits",
+                after_spend=True,
             )
 
         if self.cap_usd is not None:
@@ -214,6 +215,7 @@ class SpendContext:
                     f"niche {self.niche_id} hit daily cap during job: "
                     f"${spent} >= ${self.cap_usd}",
                     scope="niche",
+                    after_spend=True,
                 )
 
         if self.global_cap_usd is not None and self.today_total_spend is not None:
@@ -224,6 +226,7 @@ class SpendContext:
                     f"user {self.user_id} hit global daily cap during job: "
                     f"${total_spent} >= ${self.global_cap_usd}",
                     scope="global",
+                    after_spend=True,
                 )
 
 

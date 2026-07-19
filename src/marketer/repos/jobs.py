@@ -53,13 +53,40 @@ async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
     route nulls `error` before the pipeline's _obtain_job ever sees it, so
     deferring the check downstream would resume the rejected artifacts and
     re-judge the same script to death."""
-    job = await get(job_id, user_id=user_id)
-    if job is None or job.status != JobStatus.failed:
+    # Atomic failed->queued claim: the `and j.status = 'failed'` predicate is
+    # re-evaluated under a row lock at UPDATE time, so of two concurrent
+    # retries of the same job (double-click, or one from the Jobs page and
+    # one from the Failures inbox) exactly one matches a row and the other
+    # gets 0 rows -> None. Without this, both could pass a read-then-write
+    # check, both bump updated_at, and the two spawned containers would
+    # derive *different* idempotency keys — defeating the exactly-once guard
+    # and double-spending. `prev` captures the pre-update payload so we can
+    # still tell whether to wipe QA-rejected artifacts.
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        with prev as (
+            select id, payload from jobs
+             where id = $1 and user_id = $2 and status = 'failed'
+        )
+        update jobs j
+           set status = 'queued'::job_status, updated_at = now()
+          from prev
+         where j.id = prev.id and j.status = 'failed'
+        returning prev.payload as old_payload
+        """,
+        job_id, user_id,
+    )
+    if row is None:
         return None
+    job = Job.model_validate(json.loads(row["old_payload"]))
     if job.error and job.error.startswith(CONTENT_REJECTION_PREFIXES):
         wipe_pipeline_state(job)
     job.status = JobStatus.queued
     job.error = None
+    # Winner-only second write: reconciles the payload jsonb (and denormalized
+    # columns) with the claimed status. The loser already returned None above,
+    # so this never races a second reset.
     await save_snapshot(job)
     return job
 

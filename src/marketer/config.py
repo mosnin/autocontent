@@ -132,6 +132,28 @@ class Settings(BaseSettings):
     # '{"fal-ai/veo3/image-to-video": "0.45"}'.
     fal_price_overrides: str = ""
 
+    # --- Per-provider concurrency backpressure (services/provider_limits.py) -
+    # Bounds how many in-flight calls to a given provider this PROCESS
+    # (one Modal container) makes at once, so many concurrent scenes/jobs
+    # fanning out never collectively hammer one vendor past its rate or
+    # concurrency cap. Process-local only — does not coordinate across
+    # containers; see provider_limits.py's docstring. Defaults are
+    # generous: they smooth bursts across MANY concurrent jobs, they do
+    # not throttle a single job (whose own peak concurrency per provider
+    # is bounded by scene_fanout_limit, well under every default below).
+    # Set a value to 0 to disable that provider's gate entirely (no-op).
+    fal_max_concurrency: int = 16
+    elevenlabs_max_concurrency: int = 8
+    openai_images_max_concurrency: int = 24
+    openai_tts_max_concurrency: int = 16
+    grok_max_concurrency: int = 8
+    # JSON map overriding any of the per-provider fields above (or adding
+    # a limit for a provider key with no dedicated field) without a code
+    # deploy, e.g. '{"fal": 8, "elevenlabs": 4}'. Same defensive-parse
+    # policy as fal_price_overrides: malformed JSON/values are dropped
+    # (never break rendering over a concurrency knob) but logged loudly.
+    provider_max_concurrency_overrides: str = ""
+
     # --- Wasabi S3 object storage (media library) ---------------------
     # Durable, S3-compatible home for every produced media artifact (scene
     # clips, keyframes, voiceovers, final videos). Off by default: without

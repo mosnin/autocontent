@@ -141,9 +141,18 @@ class SpendCapExceeded(Exception):
     backward compatibility with callers that don't pass the kwarg.
     """
 
-    def __init__(self, message: str = "", *, scope: str = "niche") -> None:
+    def __init__(
+        self, message: str = "", *, scope: str = "niche", after_spend: bool = False
+    ) -> None:
         super().__init__(message)
         self.scope = scope
+        # True when the breach was detected AFTER a real charge was already
+        # recorded (SpendContext.log's post-write re-check), vs. a pre-flight
+        # ensure_can_spend breach where nothing was spent. Lets callers that
+        # would otherwise fall back on a pre-flight breach (e.g. generated
+        # music -> free library) correctly FAIL the job on a real breach
+        # instead of discarding an already-billed artifact.
+        self.after_spend = after_spend
 
 
 async def assert_within_cap(*, user_id: str, niche_id: UUID, cap_usd: Decimal) -> None:

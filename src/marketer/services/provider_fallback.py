@@ -58,7 +58,7 @@ from typing import Awaitable, Callable
 from ..logging import get_logger
 from ..models import Niche
 from ..repos.spend import SpendCapExceeded
-from . import elevenlabs_tts, grok_imagine, openai_tts
+from . import elevenlabs_tts, grok_imagine, openai_tts, provider_limits
 from .fal_video import FalVideoModel
 from .spend_context import SpendContext
 
@@ -168,15 +168,17 @@ async def _render_i2v_once(
     if provider == "fal":
         from . import fal_video
 
-        await fal_video.animate(
-            keyframe_path, motion_prompt, out_path,
-            model_id=model_id, duration_sec=duration_sec, spend=spend,
-        )
+        async with provider_limits.slot("fal"):
+            await fal_video.animate(
+                keyframe_path, motion_prompt, out_path,
+                model_id=model_id, duration_sec=duration_sec, spend=spend,
+            )
     else:
-        await grok_imagine.animate(
-            keyframe_path, motion_prompt, out_path,
-            duration_sec=duration_sec, resolution=niche.video_resolution, spend=spend,
-        )
+        async with provider_limits.slot("grok"):
+            await grok_imagine.animate(
+                keyframe_path, motion_prompt, out_path,
+                duration_sec=duration_sec, resolution=niche.video_resolution, spend=spend,
+            )
 
 
 async def render_i2v_scene(
@@ -263,9 +265,10 @@ async def render_avatar_scene(
     last_exc: BaseException | None = None
     for attempt, model_id in enumerate(chain, start=1):
         try:
-            await fal_video.animate_avatar(
-                keyframe_path, audio_path, out_path, model_id=model_id, spend=spend,
-            )
+            async with provider_limits.slot("fal"):
+                await fal_video.animate_avatar(
+                    keyframe_path, audio_path, out_path, model_id=model_id, spend=spend,
+                )
             if attempt > 1:
                 log.warning(
                     "avatar.fallback.succeeded",
@@ -303,21 +306,23 @@ async def synthesize_vo_with_fallback(
     stock engine and has no further fallback target of its own."""
     attempts: list[tuple[str, Callable[[], Awaitable[Path]]]] = []
 
-    def _openai_call() -> Awaitable[Path]:
-        return openai_tts.synthesize(
-            text, out_path,
-            voice=niche.voice,
-            style_directions=niche.tts_style_directions,
-            spend=spend,
-        )
+    async def _openai_call() -> Path:
+        async with provider_limits.slot("openai_tts"):
+            return await openai_tts.synthesize(
+                text, out_path,
+                voice=niche.voice,
+                style_directions=niche.tts_style_directions,
+                spend=spend,
+            )
+
+    async def _elevenlabs_call() -> Path:
+        async with provider_limits.slot("elevenlabs"):
+            return await elevenlabs_tts.synthesize(
+                text, out_path, voice_id=niche.elevenlabs_voice_id, spend=spend,
+            )
 
     if niche.voice_provider == "elevenlabs":
-        attempts.append((
-            "elevenlabs",
-            lambda: elevenlabs_tts.synthesize(
-                text, out_path, voice_id=niche.elevenlabs_voice_id, spend=spend,
-            ),
-        ))
+        attempts.append(("elevenlabs", _elevenlabs_call))
         if fallback_enabled(niche):
             attempts.append(("openai", _openai_call))
     else:

@@ -670,62 +670,11 @@ async def test_render_qa_failure_fails_job_before_archive_and_schedule(
     assert job.rendered is not None and job.rendered.duration_sec == 3.0
 
 
-async def test_content_qa_rejection_wipes_state_via_reset_for_retry(monkeypatch):
-    """reset_for_retry (the real retry route path) wipes script/clips/audio
-    for QA content rejections — the error string is nulled in the same
-    call, so the wipe must happen there, not later in the pipeline."""
-    from marketer.models import AudioTrack
-    from marketer.repos import jobs as jobs_repo
-
-    rejected = Job(
-        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
-        status=JobStatus.failed, error="content QA failed: weak hook",
-        script=_make_script(),
-        clips=[],
-        audio=AudioTrack(voiceover_path="/tmp/vo.wav"),
-    )
-
-    async def fake_get(job_id, *, user_id):
-        return rejected
-
-    saved: list[Job] = []
-
-    async def fake_save(job):
-        saved.append(job)
-
-    monkeypatch.setattr(jobs_repo, "get", fake_get)
-    monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
-
-    fresh = await jobs_repo.reset_for_retry(rejected.id, user_id=USER_ID)
-
-    assert fresh is not None
-    assert fresh.status == JobStatus.queued and fresh.error is None
-    assert fresh.script is None and fresh.clips == [] and fresh.audio is None
-    assert saved and saved[0].script is None  # the wipe was persisted
-
-
-async def test_transient_failure_reset_keeps_state_for_resume(monkeypatch):
-    """Non-QA failures keep script/clips through reset_for_retry so the
-    stage-resume path can reuse them."""
-    from marketer.repos import jobs as jobs_repo
-
-    failed = Job(
-        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
-        status=JobStatus.failed, error="GrokImagineError: 500 mid-poll",
-        script=_make_script(),
-    )
-
-    async def fake_get(job_id, *, user_id):
-        return failed
-
-    async def fake_save(job):
-        pass
-
-    monkeypatch.setattr(jobs_repo, "get", fake_get)
-    monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
-
-    fresh = await jobs_repo.reset_for_retry(failed.id, user_id=USER_ID)
-    assert fresh is not None and fresh.script is not None  # state survives
+# reset_for_retry is now an atomic single-statement SQL claim (to close a
+# double-spawn race), so its behavior — content-rejection wipe, transient
+# state-preservation, concurrent single-winner, tenant scoping — is verified
+# against real Postgres in tests/integration/test_pg_reset_retry.py rather
+# than with get/save_snapshot stubs that the atomic path bypasses.
 
 
 # --------------------------------------------------------------------------- creative brief
