@@ -186,5 +186,14 @@ class Settings(BaseSettings):
     otel_exporter_otlp_headers: str = ""
     otel_traces_sample_rate: float = 1.0
 
+    # --- Boot-time config health (preflight) ---------------------------
+    # When True, a startup preflight check that finds any ERROR-level
+    # misconfiguration (e.g. a spend-affecting feature flag on with a
+    # required secret missing) raises and aborts boot. Default False:
+    # preflight is visibility-only so a bad config never takes prod down
+    # by itself — set True in environments where "fail loud at deploy" is
+    # preferred to "fail loud in logs but keep serving."
+    preflight_strict: bool = False
+
 
 settings = Settings()

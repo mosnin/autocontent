@@ -52,6 +52,27 @@ secrets = [
 app = modal.App(APP_NAME, image=image, secrets=secrets)
 
 
+async def _job_attempt_at(job_id: str):
+    """Fetch a job row's own `updated_at`, fresh, for idempotency keying.
+
+    Deliberately a raw read here rather than a repos/jobs.py addition —
+    jobs.py is owned by another team this cycle. See
+    marketer.services.idempotency's module docstring for why keying off
+    the row's own updated_at (rather than job_id alone) is what lets a
+    legitimate retry get a fresh key while two spawns racing the *same*
+    attempt collide on the same one.
+    """
+    from uuid import UUID
+
+    from marketer.db import get_pool
+
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "select updated_at from jobs where id = $1", UUID(str(job_id))
+    )
+    return row["updated_at"] if row else None
+
+
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
@@ -62,7 +83,23 @@ async def run_pipeline(
 ) -> dict:
     from uuid import UUID
     from marketer.pipeline import run_job
+    from marketer.services import idempotency
     from marketer.services.otel import force_flush
+
+    # Idempotency guard: only meaningful when resuming an existing job row
+    # (retry_job / enqueue_job / campaign_runner all pass job_id). Closes
+    # the window where jobs_repo.reset_for_retry's non-atomic
+    # read-then-write lets a double-click on Retry spawn run_pipeline
+    # twice for the same attempt — see services/idempotency.py's
+    # docstring for the key scheme. A fresh CLI invocation with no job_id
+    # has no existing row to duplicate, so it's exempt.
+    guard_key: str | None = None
+    if job_id:
+        attempt_at = await _job_attempt_at(job_id)
+        if attempt_at is not None:
+            guard_key = idempotency.pipeline_key(job_id, attempt_at)
+            if not await idempotency.claim_spawn(guard_key):
+                return {"status": "skipped_duplicate", "job_id": job_id}
 
     try:
         job = await run_job(
@@ -72,6 +109,8 @@ async def run_pipeline(
             job_id=UUID(job_id) if job_id else None,
         )
         artifacts.commit()
+        if guard_key:
+            await idempotency.mark_done(guard_key, result={"status": job.status.value})
         return job.model_dump(mode="json")
     finally:
         # Flush the OTEL BatchSpanProcessor so the spans for this pipeline run
@@ -191,18 +230,32 @@ async def prewarm_voice_previews() -> dict:
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60 * 3,  # sequential platforms: up to 3 renders back-to-back
 )
-async def run_niche_window(user_id: str, niche_id: str, platforms: list[str]) -> list[dict]:
+async def run_niche_window(
+    user_id: str, niche_id: str, platforms: list[str], window_bucket: str | None = None
+) -> list[dict]:
     """Run one niche's posting window: every configured platform,
     sequentially, inside a single container.
 
     Sequential matters: the per-niche advisory lock means concurrent
     per-platform spawns would race it and mark all but one `skipped` —
     a multi-platform niche would silently post to a single platform
-    every window, forever.
+    every window, forever. That advisory lock (inside run_job) is what
+    protects against a *concurrent* duplicate spawn actually double-
+    rendering; `window_bucket` (set by `nightly_batch`, the 30-min slot
+    it decided was due) is a second, cheaper guard against the cron
+    itself firing twice for the same slot before the first spawn's job
+    row is visible to `has_active_for_niche` — belt and suspenders, not
+    a replacement for the advisory lock.
     """
     from uuid import UUID
     from marketer.pipeline import run_job
+    from marketer.services import idempotency
     from marketer.services.otel import force_flush
+
+    if window_bucket:
+        guard_key = idempotency.niche_window_key(niche_id, window_bucket)
+        if not await idempotency.claim_spawn(guard_key):
+            return [{"status": "skipped_duplicate", "niche_id": niche_id, "window_bucket": window_bucket}]
 
     results: list[dict] = []
     try:
@@ -212,6 +265,8 @@ async def run_niche_window(user_id: str, niche_id: str, platforms: list[str]) ->
             )
             results.append(job.model_dump(mode="json"))
         artifacts.commit()
+        if window_bucket:
+            await idempotency.mark_done(guard_key)
         return results
     finally:
         force_flush(timeout_ms=5000)
@@ -236,11 +291,16 @@ async def nightly_batch() -> dict:
     from marketer.db import get_pool
     from marketer.repos import jobs as jobs_repo
     from marketer.repos import niches as niches_repo
+    from marketer.services import idempotency
 
     pool = await get_pool()
     rows = await pool.fetch("select id from users")
     now = datetime.now(timezone.utc)
     horizon = now + timedelta(minutes=30)
+    # Bucketed once per tick (not per-niche) so every niche spawned by
+    # this invocation shares the identity of "this cron slot" — see
+    # run_niche_window's window_bucket param / services/idempotency.py.
+    window_bucket = idempotency.floor_bucket(now, minutes=30)
 
     spawned = 0
     skipped = 0
@@ -262,7 +322,9 @@ async def nightly_batch() -> dict:
             if await jobs_repo.has_active_for_niche(niche.id, within_minutes=45):
                 skipped += 1
                 continue
-            run_niche_window.spawn(user_id, str(niche.id), list(niche.platforms))
+            run_niche_window.spawn(
+                user_id, str(niche.id), list(niche.platforms), window_bucket
+            )
             spawned += 1
     return {"spawned": spawned, "skipped_active": skipped}
 
@@ -273,10 +335,29 @@ async def nightly_batch() -> dict:
 )
 async def campaign_tick() -> dict:
     """Advance every running campaign: enforce window/budget, spawn due
-    video/article work per lane cadence (campaign-attributed)."""
+    video/article work per lane cadence (campaign-attributed).
+
+    Idempotency-guarded per hour: `tick_all()` has no per-campaign
+    locking of its own (owned by another team this cycle), so if the
+    hourly cron ever fires twice for the same slot — an overlapping
+    schedule, a platform-level retry of this invocation — a second full
+    pass would re-evaluate cadence against not-yet-visible inserts from
+    the first pass and could double-spawn a lane. One key per hour-slot
+    is enough granularity: this entrypoint's unit of work *is* "the
+    hourly pass over every campaign."
+    """
+    from datetime import datetime, timezone
+    from marketer.services import idempotency
     from marketer.services.campaign_runner import tick_all
 
-    return await tick_all()
+    bucket = idempotency.floor_bucket(datetime.now(timezone.utc), minutes=60)
+    guard_key = idempotency.campaign_tick_key(bucket)
+    if not await idempotency.claim_spawn(guard_key):
+        return {"campaigns": 0, "errors": 0, "results": [], "skipped_duplicate": True}
+
+    result = await tick_all()
+    await idempotency.mark_done(guard_key)
+    return result
 
 
 @app.function(
@@ -289,6 +370,7 @@ async def reap_stale_jobs() -> dict:
     unretryable)."""
     import logging
     from marketer.repos import articles as articles_repo
+    from marketer.repos import idempotency as idempotency_repo
     from marketer.repos import jobs as jobs_repo
 
     from marketer.repos import image_posts as image_posts_repo
@@ -296,6 +378,10 @@ async def reap_stale_jobs() -> dict:
     reaped = await jobs_repo.reap_stale(older_than_minutes=120)
     reaped_articles = await articles_repo.reap_stale(older_than_minutes=120)
     reaped_images = await image_posts_repo.reap_stale(older_than_minutes=120)
+    # Idempotency claims expire on their own TTL (claim() treats an expired
+    # row as reclaimable), so this is pure disk cleanup, not a correctness
+    # dependency — safe to run on the same cadence as the other reapers.
+    reaped_idempotency_keys = await idempotency_repo.reap_expired()
     if reaped or reaped_articles or reaped_images:
         logging.getLogger(__name__).error(
             "reaped %d stale job(s), %d article(s), %d image post(s) — a container died or timed out mid-run",
@@ -305,6 +391,7 @@ async def reap_stale_jobs() -> dict:
         "reaped": reaped,
         "reaped_articles": reaped_articles,
         "reaped_images": reaped_images,
+        "reaped_idempotency_keys": reaped_idempotency_keys,
     }
 
 

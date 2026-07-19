@@ -226,6 +226,134 @@ async def get_by_provider_post_id(provider_post_id: str) -> Job | None:
     return Job.model_validate(json.loads(row["payload"])) if row else None
 
 
+# ---------------------------------------------------------------------------
+# Failures inbox — a consolidated, categorized view of terminal failures.
+#
+# No schema change: `error` is free text written by the pipeline (QA
+# rejection prefixes, `SpendCapExceeded` messages, provider exceptions,
+# the reap_stale timeout message, ...). `classify_failure` turns that raw
+# string into a coarse, actionable category so a failures inbox can group
+# and triage instead of dumping raw tracebacks. Kept as a pure function
+# (str | None -> str) so it's trivially unit-testable and reusable by any
+# other repo (image_posts, articles) that wants the same taxonomy.
+# ---------------------------------------------------------------------------
+
+FAILURE_CATEGORY_CONTENT_QA = "content_qa"
+FAILURE_CATEGORY_RENDER_QA = "render_qa"
+FAILURE_CATEGORY_SPEND_CAP = "spend_cap"
+FAILURE_CATEGORY_TIMEOUT_STUCK = "timeout_stuck"
+FAILURE_CATEGORY_PROVIDER_ERROR = "provider_error"
+FAILURE_CATEGORY_OTHER = "other"
+
+FAILURE_CATEGORIES = (
+    FAILURE_CATEGORY_CONTENT_QA,
+    FAILURE_CATEGORY_RENDER_QA,
+    FAILURE_CATEGORY_SPEND_CAP,
+    FAILURE_CATEGORY_TIMEOUT_STUCK,
+    FAILURE_CATEGORY_PROVIDER_ERROR,
+    FAILURE_CATEGORY_OTHER,
+)
+
+# Substrings pulled straight from the raising sites (spend_context.py,
+# spend.py: "hit daily cap", "hit global daily cap", "pre-flight ... cap
+# check", "exhausted prepaid credit", "spend aborted", "Top up to
+# continue"; pipeline.py: "spend_cap_exceeded during fan-out").
+_SPEND_CAP_MARKERS = (
+    "spend_cap_exceeded",
+    "spend aborted",
+    "daily cap",
+    "global cap",
+    "cap check",
+    "prepaid credit",
+    "top up to continue",
+)
+
+# Provider/transport failures: named third-party services and the
+# openai-sdk transient exception names retried by retry_policy.py before
+# they ever reach `error` (so seeing them here means retries were
+# exhausted), plus the fal/grok polling-timeout exceptions.
+_PROVIDER_ERROR_MARKERS = (
+    "fal request",
+    "fal video",
+    "grok",
+    "elevenlabs",
+    "openai",
+    "pixabay",
+    "ayrshare",
+    "apiconnectionerror",
+    "apitimeouterror",
+    "ratelimiterror",
+    "rate limit",
+    "timed out after",
+    "5xx",
+)
+
+
+def classify_failure(error: str | None) -> str:
+    """Map a job's raw `error` text to a coarse failure category.
+
+    Pure function over the string alone — order matters, most specific
+    first, so e.g. `reap_stale`'s message (which mentions no provider)
+    doesn't fall through to "other", and QA prefixes are checked before
+    the generic provider/timeout buckets in case an error happens to
+    mention a provider name in passing.
+    """
+    if not error:
+        return FAILURE_CATEGORY_OTHER
+    if error.startswith(CONTENT_REJECTION_PREFIXES):
+        if error.startswith("content QA failed"):
+            return FAILURE_CATEGORY_CONTENT_QA
+        return FAILURE_CATEGORY_RENDER_QA
+    lowered = error.lower()
+    if any(marker in lowered for marker in _SPEND_CAP_MARKERS):
+        return FAILURE_CATEGORY_SPEND_CAP
+    if error == _REAP_ERROR or "reaped:" in lowered or "no progress" in lowered:
+        return FAILURE_CATEGORY_TIMEOUT_STUCK
+    if any(marker in lowered for marker in _PROVIDER_ERROR_MARKERS):
+        return FAILURE_CATEGORY_PROVIDER_ERROR
+    return FAILURE_CATEGORY_OTHER
+
+
+async def failures_for_user(user_id: str, *, limit: int = 100) -> list[dict]:
+    """Recent failed jobs for *user_id*, categorized for a failures inbox.
+
+    Reads columns directly (not the jsonb `payload`) since `status`,
+    `error`, `niche_id`, and `created_at` are all real columns kept in
+    sync by `save_snapshot`/`reap_stale` — cheaper than parsing every
+    payload just to list a triage view. Joins `niches` for a human title;
+    `niches` has no soft-delete that would orphan the FK, and jobs are
+    `on delete cascade` from niches, so the join is safe by construction.
+    """
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select j.id, j.niche_id, j.platform, j.error, j.created_at,
+               n.title as niche_title
+          from jobs j
+          join niches n on n.id = j.niche_id
+         where j.user_id = $1
+           and j.status = 'failed'
+         order by j.created_at desc
+         limit $2
+        """,
+        user_id,
+        limit,
+    )
+    return [
+        {
+            "kind": "job",
+            "id": r["id"],
+            "niche_id": r["niche_id"],
+            "niche_title": r["niche_title"],
+            "platform": r["platform"],
+            "error": r["error"],
+            "category": classify_failure(r["error"]),
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
 async def recent_topics_for_niche(
     niche_id: UUID, *, user_id: str, limit: int = 20
 ) -> list[str]:

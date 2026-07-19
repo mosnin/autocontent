@@ -39,13 +39,14 @@ from .services import (
     character_sheet,
     elevenlabs_tts,
     ffmpeg,
-    grok_imagine,
+    grok_imagine,  # noqa: F401 — kept for tests monkeypatching pipeline.grok_imagine
     music,
     music_gen,
     openai_images,
-    openai_tts,
+    openai_tts,  # noqa: F401 — kept for tests monkeypatching pipeline.openai_tts
     openai_whisper,
     otel,
+    provider_fallback,
     scheduler,
     subtitle,
     video_qa,
@@ -88,18 +89,12 @@ async def _synthesize_vo(
     niche: Niche,
     spend: SpendContext,
 ) -> Path:
-    """Voiceover through the niche's chosen TTS engine."""
-    if niche.voice_provider == "elevenlabs":
-        return await elevenlabs_tts.synthesize(
-            text, out_path,
-            voice_id=niche.elevenlabs_voice_id,
-            spend=spend,
-        )
-    return await openai_tts.synthesize(
-        text, out_path,
-        voice=niche.voice,
-        style_directions=niche.tts_style_directions,
-        spend=spend,
+    """Voiceover through the niche's chosen TTS engine, falling back
+    elevenlabs -> openai_tts on a persistent provider failure (see
+    services.provider_fallback). openai_tts is the stock engine and has
+    no further fallback of its own."""
+    return await provider_fallback.synthesize_vo_with_fallback(
+        text, out_path, niche=niche, spend=spend,
     )
 
 
@@ -138,14 +133,15 @@ async def _generate_scene_assets(
         # Lip-synced UGC: this scene's narration is synthesized first and
         # DRIVES the render — the avatar model returns a clip of the cast
         # actually speaking it, audio embedded. Clip length follows the
-        # audio, so scene_max_duration_sec doesn't apply here.
-        from .services import fal_video
-
+        # audio, so scene_max_duration_sec doesn't apply here. A failed
+        # avatar render falls back to another avatar model (never to a
+        # plain i2v model — see services.provider_fallback).
         scene_vo = root / "audio" / f"scene_{scene.index}.wav"
         await _synthesize_vo(scene.narration, scene_vo, niche=niche, spend=spend)
-        await fal_video.animate_avatar(
+        await provider_fallback.render_avatar_scene(
             keyframe, scene_vo, clip,
-            model_id=avatar_model_id,
+            niche=niche,
+            avatar_model_id=avatar_model_id,
             spend=spend,
         )
         return Clip(
@@ -155,22 +151,15 @@ async def _generate_scene_assets(
             duration_sec=ffmpeg.probe_duration(clip),
         )
     clip_duration = min(scene.duration_sec, niche.scene_max_duration_sec)
-    if niche.video_provider == "fal" and niche.fal_model:
-        from .services import fal_video
-
-        await fal_video.animate(
-            keyframe, scene.motion_prompt, clip,
-            model_id=niche.fal_model,
-            duration_sec=clip_duration,
-            spend=spend,
-        )
-    else:
-        await grok_imagine.animate(
-            keyframe, scene.motion_prompt, clip,
-            duration_sec=clip_duration,
-            resolution=niche.video_resolution,
-            spend=spend,
-        )
+    # A persistent (non-transient) failure on the niche's chosen i2v
+    # provider falls back to a different provider — see
+    # services.provider_fallback for the chain policy.
+    await provider_fallback.render_i2v_scene(
+        keyframe, scene.motion_prompt, clip,
+        niche=niche,
+        duration_sec=clip_duration,
+        spend=spend,
+    )
     return Clip(
         scene_index=scene.index,
         keyframe_path=str(keyframe),
@@ -421,7 +410,12 @@ async def _run_job_inner(
     # ideation/image/render spend. Without this, a niche whose
     # voice_provider is 'elevenlabs' but whose key is missing/rotated only
     # discovers the problem at the voicing stage, after script + all
-    # keyframes + all renders have already been bought.
+    # keyframes + all renders have already been bought. Left unchanged by
+    # provider fallback: this is a deploy-config guard (the key is simply
+    # absent, not a transient/persistent *provider* failure), and an
+    # operator who wants elevenlabs but forgot the key should see that
+    # immediately rather than have every job quietly render with the
+    # niche's non-chosen voice.
     if niche.voice_provider == "elevenlabs" and not elevenlabs_tts.enabled():
         return await _fail_with(
             job,
