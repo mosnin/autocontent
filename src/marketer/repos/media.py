@@ -195,12 +195,19 @@ async def claim_composition_for_render(
     composition_id: UUID, *, user_id: str
 ) -> bool:
     """Atomic queued->rendering claim so a double-spawned worker can't
-    render the same composition twice."""
+    render the same composition twice.
+
+    A 'rendering' row older than 20 minutes is reclaimable: the Modal
+    render function times out at 15 minutes, so a claim that old belongs
+    to a dead container and would otherwise be stuck forever."""
     pool = await get_pool()
     row = await pool.fetchrow(
         """
         update compositions set status = 'rendering', updated_at = now()
-        where id = $1 and user_id = $2 and status = 'queued'
+        where id = $1 and user_id = $2
+          and (status = 'queued'
+               or (status = 'rendering'
+                   and updated_at < now() - interval '20 minutes'))
         returning id
         """,
         composition_id, user_id,

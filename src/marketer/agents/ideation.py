@@ -179,9 +179,35 @@ async def run_ideation(
 
     lenses = [CANDIDATE_LENSES[i % len(CANDIDATE_LENSES)] for i in range(n)]
     results = await asyncio.gather(
-        *[run_metered(agent, _prompt(lens), spend=spend) for lens in lenses]
+        *[run_metered(agent, _prompt(lens), spend=spend) for lens in lenses],
+        # Tolerate partial failure: one bad candidate must not abort the
+        # tournament while its awaited siblings' spend is already logged.
+        return_exceptions=True,
     )
-    candidates = [r.final_output_as(Idea) for r in results]
+    if any(isinstance(r, asyncio.CancelledError) for r in results):
+        raise asyncio.CancelledError
+
+    from ..repos.spend import SpendCapExceeded
+
+    errors = [r for r in results if isinstance(r, BaseException)]
+    # A cap breach anywhere ends the run — money safety beats tournament
+    # completeness, and the next stage would refuse to spend anyway.
+    for e in errors:
+        if isinstance(e, SpendCapExceeded):
+            raise e
+
+    candidates: list[Idea] = []
+    for r in results:
+        if isinstance(r, BaseException):
+            continue
+        try:
+            candidates.append(r.final_output_as(Idea))
+        except Exception:  # noqa: BLE001 — one malformed candidate is survivable
+            continue
+    if not candidates:
+        raise errors[0] if errors else RuntimeError("ideation produced no candidates")
+    if len(candidates) == 1:
+        return candidates[0]
 
     try:
         judge_payload = build_ideation_prompt(
@@ -198,6 +224,9 @@ async def run_ideation(
         verdict = verdict_result.final_output_as(IdeaVerdict)
         if 0 <= verdict.winner_index < len(candidates):
             return candidates[verdict.winner_index]
-    except Exception:  # noqa: BLE001 — tournament never becomes a failure mode
-        pass
+    except Exception as exc:  # noqa: BLE001 — tournament never becomes a failure mode
+        from ..repos.spend import SpendCapExceeded
+
+        if isinstance(exc, SpendCapExceeded):
+            raise  # cap breach must propagate; only judge failures fall back
     return candidates[0]

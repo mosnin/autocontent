@@ -144,16 +144,16 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, **kwargs):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, **kwargs):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, **kwargs):
+    async def fake_visual_director(script, *, visual_style, character_description="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
@@ -247,7 +247,16 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
         return "post-id-xyz"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
 
-    return {"saved": saved, "niche_holder": niche_holder}
+    # Record archiver invocations (and isolate tests from the live DB the
+    # real archiver would hit).
+    archive_calls: list[UUID] = []
+
+    async def fake_archive(job, niche):
+        archive_calls.append(job.id)
+        return 0
+    monkeypatch.setattr(pipeline.media_archive, "archive_job_media", fake_archive)
+
+    return {"saved": saved, "niche_holder": niche_holder, "archive_calls": archive_calls}
 
 
 async def test_happy_path_runs_all_stages(stub_all, stage_log):
@@ -258,6 +267,7 @@ async def test_happy_path_runs_all_stages(stub_all, stage_log):
     assert job.status == JobStatus.done
     assert job.provider_post_id == "post-id-xyz"
     assert job.error is None
+    assert stub_all["archive_calls"] == [job.id]  # library archiving ran
     assert job.script is not None
     assert len(job.clips) == 2
     assert job.audio is not None
@@ -386,6 +396,7 @@ async def test_approval_gate_parks_job_before_scheduling(stub_all, stage_log):
     assert job.status == JobStatus.awaiting_approval
     assert job.rendered is not None  # the video exists, it just didn't post
     assert job.provider_post_id is None  # scheduler never ran
+    assert stub_all["archive_calls"] == [job.id]  # archived even when parked
     assert "scheduling" not in stage_log
     assert "awaiting_approval" in stage_log
 
@@ -458,7 +469,7 @@ def _counting_provider_stubs(monkeypatch) -> dict[str, int]:
     """Re-patch the expensive stages with counters on top of stub_all."""
     calls = {"ideation": 0, "keyframe": 0, "tts": 0}
 
-    async def counting_ideation(title, **kwargs):
+    async def counting_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
         calls["ideation"] += 1
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
@@ -619,3 +630,97 @@ async def test_qa_regenerate_is_bounded_to_one_attempt(monkeypatch, stub_all):
     assert job.status == JobStatus.failed
     assert qa_calls["n"] == 2  # original + one regenerate, then stop
     assert "content QA failed" in (job.error or "")
+
+
+# --------------------------------------------------------------------------- render QA gate
+
+async def test_render_qa_failure_fails_job_before_archive_and_schedule(
+    monkeypatch, stub_all
+):
+    """The deterministic render gate failing must fail the job with the
+    'render QA failed' prefix (the retry-wipe contract) and never reach
+    archiving or scheduling."""
+    from marketer.services import video_qa
+
+    def failing_check(final_path, *, voiceover_path, target_duration_sec,
+                      max_upload_bytes=video_qa.MAX_UPLOAD_BYTES):
+        return video_qa.RenderReport(
+            passed=False,
+            issues=["video (3.0s) ends before the voiceover (9.0s)"],
+            final_path=str(final_path),
+            duration_sec=3.0,
+            size_bytes=1024,
+        )
+
+    # applied after the passing_render_qa fixture, so this wins
+    monkeypatch.setattr(video_qa, "check_render", failing_check)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+
+    assert job.status == JobStatus.failed
+    assert (job.error or "").startswith("render QA failed")
+    assert "ends before the voiceover" in job.error
+    assert stub_all["archive_calls"] == []  # never archived
+    assert job.provider_post_id is None  # never scheduled
+    # the report's probed reality was still recorded on the job
+    assert job.rendered is not None and job.rendered.duration_sec == 3.0
+
+
+async def test_content_qa_rejection_wipes_state_via_reset_for_retry(monkeypatch):
+    """reset_for_retry (the real retry route path) wipes script/clips/audio
+    for QA content rejections — the error string is nulled in the same
+    call, so the wipe must happen there, not later in the pipeline."""
+    from marketer.models import AudioTrack
+    from marketer.repos import jobs as jobs_repo
+
+    rejected = Job(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+        status=JobStatus.failed, error="content QA failed: weak hook",
+        script=_make_script(),
+        clips=[],
+        audio=AudioTrack(voiceover_path="/tmp/vo.wav"),
+    )
+
+    async def fake_get(job_id, *, user_id):
+        return rejected
+
+    saved: list[Job] = []
+
+    async def fake_save(job):
+        saved.append(job)
+
+    monkeypatch.setattr(jobs_repo, "get", fake_get)
+    monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
+
+    fresh = await jobs_repo.reset_for_retry(rejected.id, user_id=USER_ID)
+
+    assert fresh is not None
+    assert fresh.status == JobStatus.queued and fresh.error is None
+    assert fresh.script is None and fresh.clips == [] and fresh.audio is None
+    assert saved and saved[0].script is None  # the wipe was persisted
+
+
+async def test_transient_failure_reset_keeps_state_for_resume(monkeypatch):
+    """Non-QA failures keep script/clips through reset_for_retry so the
+    stage-resume path can reuse them."""
+    from marketer.repos import jobs as jobs_repo
+
+    failed = Job(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+        status=JobStatus.failed, error="GrokImagineError: 500 mid-poll",
+        script=_make_script(),
+    )
+
+    async def fake_get(job_id, *, user_id):
+        return failed
+
+    async def fake_save(job):
+        pass
+
+    monkeypatch.setattr(jobs_repo, "get", fake_get)
+    monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
+
+    fresh = await jobs_repo.reset_for_retry(failed.id, user_id=USER_ID)
+    assert fresh is not None and fresh.script is not None  # state survives

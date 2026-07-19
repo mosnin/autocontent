@@ -98,8 +98,17 @@ async def create_composition(
 
     import modal
 
-    fn = modal.Function.from_name("marketer-sh", "render_composition")
-    fn.spawn(ctx.user_id, str(comp.id))
+    try:
+        fn = modal.Function.from_name("marketer-sh", "render_composition")
+        fn.spawn(ctx.user_id, str(comp.id))
+    except Exception as e:  # noqa: BLE001 — a row stuck 'queued' forever is worse
+        await media_repo.set_composition_status(
+            comp.id, user_id=ctx.user_id, status="failed",
+            error=f"spawn failed: {e}",
+        )
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, detail="failed to start render"
+        )
     return comp
 
 

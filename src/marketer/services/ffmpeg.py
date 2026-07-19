@@ -183,10 +183,15 @@ def mix_audio(
         video_map = "[v]"
         # tpad forces a re-encode; stream-copy is only possible untouched.
         video_codec = ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart"]
+        # -shortest would trim the freeze-frame tail right back off (the
+        # original video stream is the shortest input); pin the output to
+        # the padded length instead.
+        dur_args = ["-t", f"{video_dur + pad_sec:.3f}"]
     else:
         video_filter = None
         video_map = "0:v"
         video_codec = ["-c:v", "copy"]
+        dur_args = ["-shortest"]
 
     if music_path is None:
         filters = [video_filter] if video_filter else []
@@ -203,7 +208,7 @@ def mix_audio(
             *video_codec,
             "-c:a", "aac",
             "-b:a", "192k",
-            "-shortest",
+            *dur_args,
             str(out_path),
         ])
     else:
@@ -225,7 +230,7 @@ def mix_audio(
             *video_codec,
             "-c:a", "aac",
             "-b:a", "192k",
-            "-shortest",
+            *dur_args,
             str(out_path),
         ])
     return out_path

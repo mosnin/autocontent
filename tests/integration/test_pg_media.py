@@ -114,3 +114,60 @@ async def test_composition_lifecycle_and_atomic_claim(pool):
 
     listed = await media.list_compositions(user_id=uid)
     assert [c.id for c in listed] == [comp.id]
+
+
+async def test_performers_ranked_by_completion_rate_with_views_fallback(pool):
+    """Views-order and completion-order disagree on purpose: completion
+    rate must win, NULL completion sinks (top) / floats (bottom)."""
+    import json
+    from datetime import datetime, timezone
+    from uuid import uuid4
+
+    from marketer.repos import post_metrics as pm_repo
+
+    uid = await _mkuser(pool)
+    niche = await pool.fetchrow(
+        """
+        insert into niches (user_id, title, description, target_audience,
+            visual_style, voice, target_duration_sec, scene_count,
+            posting_windows, platforms, daily_spend_cap_usd)
+        values ($1,'t','d','a','v','onyx',30,2,'[]'::jsonb,
+                '{tiktok}', 5.0)
+        returning id
+        """,
+        uid,
+    )
+    niche_id = niche["id"]
+
+    async def _mkjob_with_metrics(views: int, completion) -> None:
+        job_id = uuid4()
+        await pool.execute(
+            """
+            insert into jobs (id, user_id, niche_id, platform, status, payload)
+            values ($1, $2, $3, 'tiktok', 'done', $4::jsonb)
+            """,
+            job_id, uid, niche_id, json.dumps({"id": str(job_id)}),
+        )
+        await pool.execute(
+            """
+            insert into post_metrics (user_id, job_id, provider_post_id,
+                platform, sampled_at, views, completion_rate, raw)
+            values ($1, $2, $3, 'tiktok', $4, $5, $6, '{}'::jsonb)
+            """,
+            uid, job_id, f"post-{job_id}", datetime.now(timezone.utc),
+            views, completion,
+        )
+
+    await _mkjob_with_metrics(100, 0.9)    # A: few views, great completion
+    await _mkjob_with_metrics(1000, 0.2)   # B: most views, poor completion
+    await _mkjob_with_metrics(500, None)   # C: unsampled completion
+
+    top = await pm_repo.top_performers_for_niche(niche_id, user_id=uid, limit=3)
+    assert [t[1] for t in top] == [100, 1000, 500]  # A, B, C — completion wins
+
+    bottom = await pm_repo.bottom_performers_for_niche(niche_id, user_id=uid, limit=3)
+    assert [b[1] for b in bottom] == [1000, 100, 500]  # worst completion first, NULL last
+
+    await pool.execute("delete from post_metrics where user_id = $1", uid)
+    await pool.execute("delete from jobs where user_id = $1", uid)
+    await pool.execute("delete from niches where user_id = $1", uid)

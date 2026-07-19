@@ -172,7 +172,7 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
         return root
     monkeypatch.setattr(pipeline, "ensure_layout", fake_layout)
 
-    async def fake_ideation(title, **kwargs):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
@@ -180,11 +180,11 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_perf_ctx)
 
-    async def fake_script(idea, **kwargs):
+    async def fake_script(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_script)
 
-    async def fake_vd(script, **kwargs):
+    async def fake_vd(script, *, visual_style, character_description="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 

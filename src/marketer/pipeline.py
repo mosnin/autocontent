@@ -224,15 +224,12 @@ async def _fail_with(job: Job, error: str, exc: BaseException | None = None) -> 
     return job
 
 
-# Failure prefixes that mean the *content* was rejected — resuming the same
-# script/clips would just fail QA again, so a retry regenerates from scratch.
-_CONTENT_REJECTION_PREFIXES = ("content QA failed", "render QA failed")
-
-
-def _wipe_pipeline_state(job: Job) -> None:
-    job.script = None
-    job.clips = []
-    job.audio = None
+# Shared with repos.jobs — the retry route resets `error` before this
+# module ever sees the row, so the authoritative wipe-on-content-rejection
+# lives in jobs_repo.reset_for_retry; these aliases keep in-run paths
+# (auto-regenerate, direct invocations) on the same definitions.
+_CONTENT_REJECTION_PREFIXES = jobs_repo.CONTENT_REJECTION_PREFIXES
+_wipe_pipeline_state = jobs_repo.wipe_pipeline_state
 
 
 async def _obtain_job(
@@ -419,28 +416,40 @@ async def _run_job_inner(
                 log.info(
                     "resume: reusing %d/%d scene clips", len(prior_clips), len(script.scenes)
                 )
-        try:
-            sem = asyncio.Semaphore(settings.scene_fanout_limit)
+        sem = asyncio.Semaphore(settings.scene_fanout_limit)
 
-            async def _bounded(s: Scene) -> Clip:
-                cached = prior_clips.get(s.index)
-                if cached is not None:
-                    return cached
-                async with sem:
-                    return await _generate_scene_assets(
-                        s, root, niche=niche, reference_image=reference, spend=spend,
-                    )
+        async def _bounded(s: Scene) -> Clip:
+            cached = prior_clips.get(s.index)
+            if cached is not None:
+                return cached
+            async with sem:
+                return await _generate_scene_assets(
+                    s, root, niche=niche, reference_image=reference, spend=spend,
+                )
 
-            job.clips = list(await asyncio.gather(
-                *[_bounded(s) for s in script.scenes]
-            ))
-        except spend_repo.SpendCapExceeded as _exc:
+        # return_exceptions so completed clips are persisted even when a
+        # sibling scene fails — a retry then resumes per-scene instead of
+        # re-buying every image/animation that already succeeded.
+        results = await asyncio.gather(
+            *[_bounded(s) for s in script.scenes], return_exceptions=True
+        )
+        completed = {r.scene_index: r for r in results if isinstance(r, Clip)}
+        job.clips = [completed[s.index] for s in script.scenes if s.index in completed]
+        errors = [r for r in results if isinstance(r, BaseException)]
+        if errors:
+            await _persist(job)  # keep the paid clips for per-scene resume
+            exc = next(
+                (e for e in errors if isinstance(e, spend_repo.SpendCapExceeded)),
+                errors[0],
+            )
             try:
                 import sentry_sdk
-                sentry_sdk.capture_exception(_exc)
+                sentry_sdk.capture_exception(exc)
             except Exception:
                 pass
-            return await _fail_with(job, "spend_cap_exceeded during fan-out")
+            if isinstance(exc, spend_repo.SpendCapExceeded):
+                return await _fail_with(job, "spend_cap_exceeded during fan-out")
+            raise exc  # terminal backstop persists the failure
     with _stage(JobStatus.animating.value):
         job.status = JobStatus.animating
         await _persist(job)

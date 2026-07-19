@@ -13,8 +13,8 @@ _NICHE_ID = UUID("22222222-2222-2222-2222-222222222222")
 _USER_ID = "user_test"
 
 
-def _fake_row(job_id: UUID, views: int) -> dict:
-    return {"job_id": job_id, "views": views}
+def _fake_row(job_id: UUID, views: int, completion_rate=None) -> dict:
+    return {"job_id": job_id, "views": views, "completion_rate": completion_rate}
 
 
 @pytest.mark.asyncio

@@ -155,10 +155,7 @@ async def top_performers_for_niche(
         str(days),
         limit,
     )
-    return [
-        (r["job_id"], r["views"], dict(r).get("completion_rate"))
-        for r in rows
-    ]
+    return [(r["job_id"], r["views"], r["completion_rate"]) for r in rows]
 
 
 async def bottom_performers_for_niche(
@@ -197,10 +194,7 @@ async def bottom_performers_for_niche(
         str(days),
         limit,
     )
-    return [
-        (r["job_id"], r["views"], dict(r).get("completion_rate"))
-        for r in rows
-    ]
+    return [(r["job_id"], r["views"], r["completion_rate"]) for r in rows]
 
 
 # ---------------------------------------------------------------------------

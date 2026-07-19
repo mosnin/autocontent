@@ -54,8 +54,12 @@ def _wav_duration_seconds(path: Path) -> float:
 )
 async def _call_api(out_path: Path, kwargs: dict) -> None:
     client = _get_client()
+    tmp_path = out_path.with_suffix(out_path.suffix + ".part")
     async with client.audio.speech.with_streaming_response.create(**kwargs) as response:
-        await response.stream_to_file(out_path)
+        await response.stream_to_file(tmp_path)
+    # Atomic rename so a killed container or exhausted retry can never
+    # leave a truncated voiceover.wav behind for stage-resume to reuse.
+    tmp_path.replace(out_path)
 
 
 async def synthesize(

@@ -180,7 +180,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, **kwargs):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
         return Idea(topic="t", angle="a", hook="h",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
@@ -196,11 +196,11 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
             total_duration_sec=5,
         )
 
-    async def fake_scriptwriter(*a, **kw):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_vd(script, **kwargs):
+    async def fake_vd(script, *, visual_style, character_description="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
