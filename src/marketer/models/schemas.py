@@ -217,6 +217,10 @@ class PersonalAccessToken(BaseModel):
     last_used_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: datetime | None = None
+    # Least-privilege scope grant: "read", "write", "admin". Defaults to
+    # read+write for backward compat with tokens issued before scoping
+    # existed (see db/migrations/0026_pat_scopes.sql).
+    scopes: list[str] = Field(default_factory=lambda: ["read", "write"])
 
 
 class NicheCreatePayload(BaseModel):

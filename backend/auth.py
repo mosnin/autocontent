@@ -16,6 +16,31 @@ This ensures brute-force PAT enumeration is throttled even before any route
 decorator fires.  The bucket key is the client IP (first X-Forwarded-For hop behind the
 ingress, else the socket peer) so it cannot be
 bypassed by rotating bearer strings.
+
+Scopes (least-privilege PATs)
+------------------------------
+Every PAT now carries a ``scopes`` grant (read / write / admin — see
+``marketer.repos.tokens`` for the vocabulary and
+``db/migrations/0026_pat_scopes.sql`` for the column). ``AuthCtx.scopes`` is
+``None`` for a Clerk-JWT (web session) caller — those remain unscoped/full
+access exactly as before scoping existed. It is always a ``list[str]`` for a
+PAT caller, read fresh from the DB on every request (never trusted from
+client input past token issuance).
+
+``require_scope(scope)`` is a dependency factory routes can depend on
+directly, e.g. ``ctx: AuthCtx = require_scope("write")``. For blanket
+default enforcement (GET -> read, mutating method -> write) without
+annotating every individual route, ``enforce_method_scope`` /
+``RequireMethodScope`` implements the same check keyed off
+``request.method`` — wire it as a router-level dependency (see the
+docstring on ``enforce_method_scope`` for exactly how).
+
+Per-token rate limiting
+------------------------
+``token_or_ip_key`` is a slowapi ``key_func`` that buckets a PAT caller by
+token id (so one leaked/shared credential can't hammer the API regardless
+of source IP) and falls back to the existing XFF-hardened client IP for
+JWT/web callers. See its docstring for wiring instructions.
 """
 from __future__ import annotations
 
@@ -72,6 +97,10 @@ class AuthCtx:
     user_id: str
     email: str
     role: str = "user"
+    # ``None`` == unscoped/full access (Clerk-JWT / web session caller —
+    # preserved exactly as before scopes existed). A PAT caller always gets
+    # a concrete list (possibly empty), read fresh from the DB per request.
+    scopes: list[str] | None = None
 
 
 @dataclass
@@ -123,7 +152,23 @@ async def _resolve_pat(token: str, request: Request) -> AuthCtx:
         _consume_failure_token(request)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "token owner no longer exists")
     _reject_if_suspended(user)
-    return AuthCtx(user_id=pat.user_id, email=user.email, role=user.role)
+    # Stash the token id so a per-request rate-limit key_func (see
+    # token_or_ip_key) can bucket on the credential instead of the source IP,
+    # without needing to re-run auth resolution itself. `pat.id` is absent on
+    # some pre-scopes test doubles that only stub `user_id` — tolerate that
+    # (falls back to IP-keyed limiting for those, same as before this change).
+    pat_id = getattr(pat, "id", None)
+    if pat_id is not None and hasattr(request, "state"):
+        request.state.pat_id = str(pat_id)
+    # `scopes` is likewise absent on those same minimal test doubles (e.g. a
+    # bare SimpleNamespace(user_id=...)). A real PersonalAccessToken row
+    # always carries a concrete list (Pydantic field default + the 0026
+    # migration's column default), so this branch is only ever hit by a
+    # pre-scopes test fake — treat it exactly like a pre-scoping PAT always
+    # behaved: unscoped/full access, same as ctx.scopes=None for a JWT.
+    scopes = getattr(pat, "scopes", None)
+    scope_list = list(scopes) if scopes is not None else None
+    return AuthCtx(user_id=pat.user_id, email=user.email, role=user.role, scopes=scope_list)
 
 
 async def _resolve_clerk_jwt(token: str, request: Request) -> AuthCtx:
@@ -187,16 +232,26 @@ async def require_user(request: Request) -> AuthCtx:
     return await _resolve_clerk_jwt(token, request)
 
 
+CurrentUser = Depends(require_user)
+
+
 async def require_admin(request: Request) -> AdminCtx:
     """Privileged dependency: valid auth AND role == 'admin'.
 
     Returns an AdminCtx enriched with request metadata for the audit log.
     A non-admin gets 403 (not 404) — admins are a known, small set and the
     obfuscation buys nothing while complicating support. The role is read
-    from the DB on every call (no role claim is trusted from the token)."""
+    from the DB on every call (no role claim is trusted from the token).
+
+    A PAT caller additionally needs the 'admin' scope: role alone is
+    necessary but not sufficient for a scoped credential (an admin's
+    read/write-only token should not reach admin routes). A JWT/web session
+    is unscoped (ctx.scopes is None) and is unaffected — same behaviour as
+    before scoping existed."""
     ctx = await require_user(request)
     if ctx.role != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "admin access required")
+    _check_scope(ctx, "admin")
 
     from .rate_limit import client_ip
 
@@ -208,5 +263,105 @@ async def require_admin(request: Request) -> AdminCtx:
     )
 
 
-CurrentUser = Depends(require_user)
+def _check_scope(ctx: AuthCtx, scope: str) -> None:
+    """Enforce that ``ctx`` carries ``scope``.
+
+    ``ctx.scopes is None`` means an unscoped (Clerk-JWT / web session)
+    caller — full access, unaffected by PAT scoping. Otherwise ``scope``
+    must be present in the list read from the DB for this token; an
+    unknown/empty scope set fails closed (denies both reads and writes,
+    since 'read' itself would be absent)."""
+    if ctx.scopes is None:
+        return
+    if scope not in ctx.scopes:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            f"token is missing required scope: {scope!r}",
+        )
+
+
+def require_scope(scope: str):
+    """Dependency factory: ``ctx: AuthCtx = require_scope("write")``.
+
+    Resolves auth exactly like ``CurrentUser`` (the underlying
+    ``require_user`` call is cached per-request by FastAPI, so this does not
+    re-run auth resolution) and additionally enforces the given scope. Use
+    this on routes that need a scope other than the request's own HTTP
+    method would imply, or to be explicit at the call site.
+    """
+
+    async def _dep(ctx: AuthCtx = CurrentUser) -> AuthCtx:
+        _check_scope(ctx, scope)
+        return ctx
+
+    return Depends(_dep)
+
+
+def _method_scope(method: str) -> str:
+    return "read" if method.upper() in ("GET", "HEAD", "OPTIONS") else "write"
+
+
+async def enforce_method_scope(request: Request, ctx: AuthCtx = CurrentUser) -> AuthCtx:
+    """Default scope-by-HTTP-method enforcement: GET/HEAD/OPTIONS -> 'read',
+    anything else (POST/PUT/PATCH/DELETE) -> 'write'.
+
+    This lets the orchestrator apply blanket least-privilege enforcement to
+    a whole router *without* editing every individual route function: add it
+    as a router-level dependency, e.g.
+
+        router = APIRouter(dependencies=[RequireMethodScope])
+
+    or when including an existing router in main.py:
+
+        app.include_router(some_router, dependencies=[RequireMethodScope])
+
+    Routes that need a scope independent of their HTTP verb (e.g. a POST
+    that's semantically a read, or anything needing 'admin') should instead
+    depend on ``require_scope(...)`` explicitly and skip this one.
+    Unscoped (JWT/web) callers are unaffected, matching ``_check_scope``.
+    """
+    _check_scope(ctx, _method_scope(request.method))
+    return ctx
+
+
+def token_or_ip_key(request: Request) -> str:
+    """slowapi ``key_func``: bucket per-PAT rather than per-IP so a single
+    credential can't hammer the API from many source IPs (or from behind a
+    shared/rotating IP).
+
+    Requires ``request.state.pat_id`` to already be populated, which happens
+    inside ``_resolve_pat`` — i.e. some auth dependency (``CurrentUser``,
+    ``require_scope(...)``, ``enforce_method_scope``, ...) must run before
+    slowapi's own key_func does. In practice this is automatic: FastAPI
+    resolves a route's ``Depends()`` parameters (including auth) before
+    calling the route function, and slowapi's ``@limiter.limit(...)``
+    decorator wraps that route function, so its key_func always runs after
+    auth has had a chance to stash the token id.
+
+    Falls back to the existing XFF-hardened client IP (see
+    ``rate_limit.client_ip``) for JWT/web callers, and for any request where
+    no PAT-auth dependency ran (nothing to fall back on otherwise).
+
+    Wiring
+    ------
+    Per-route: ``@limiter.limit("60/minute", key_func=token_or_ip_key)``
+    alongside an auth dependency on the same route (as in
+    ``backend/routes/tokens.py``).
+
+    Global default: replace ``rate_limit._limit_key`` with a call to this
+    function so every limited route gets per-token buckets automatically —
+    that edit lives in ``backend/rate_limit.py`` / ``backend/main.py``,
+    outside this module's ownership this cycle; flagged for the
+    orchestrator to wire centrally if broader coverage is wanted.
+    """
+    pat_id = getattr(request.state, "pat_id", None)
+    if pat_id:
+        return f"pat:{pat_id}"
+
+    from .rate_limit import client_ip
+
+    return client_ip(request)
+
+
 CurrentAdmin = Depends(require_admin)
+RequireMethodScope = Depends(enforce_method_scope)

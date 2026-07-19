@@ -200,7 +200,7 @@ def test_create_niche_rejects_elevenlabs_when_disabled(monkeypatch):
         headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 422
-    assert "elevenlabs" in resp.json()["detail"].lower()
+    assert "elevenlabs" in resp.json()["error"]["message"].lower()
 
 
 def test_create_niche_allows_elevenlabs_when_enabled(monkeypatch):
@@ -343,7 +343,7 @@ def test_create_template_rejects_non_image_payload(monkeypatch, tmp_path):
         },
     )
     assert resp.status_code == 422
-    assert "image" in resp.json()["detail"].lower()
+    assert "image" in resp.json()["error"]["message"].lower()
 
 
 def test_create_template_accepts_real_png(monkeypatch, tmp_path):
