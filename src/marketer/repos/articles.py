@@ -27,15 +27,17 @@ def _row_to_model(row) -> Article:
     return Article.model_validate(d)
 
 
-async def create(*, user_id: str, niche_id: UUID, topic: str = "") -> Article:
+async def create(
+    *, user_id: str, niche_id: UUID, topic: str = "", campaign_id: UUID | None = None
+) -> Article:
     pool = await get_pool()
     row = await pool.fetchrow(
         f"""
-        insert into articles (user_id, niche_id, topic)
-        values ($1, $2, $3)
+        insert into articles (user_id, niche_id, topic, campaign_id)
+        values ($1, $2, $3, $4)
         returning {_COLS}
         """,
-        user_id, niche_id, topic,
+        user_id, niche_id, topic, campaign_id,
     )
     return _row_to_model(row)
 

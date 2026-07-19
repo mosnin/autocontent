@@ -222,6 +222,18 @@ async def nightly_batch() -> dict:
 
 
 @app.function(
+    schedule=modal.Cron("45 * * * *"),  # hourly, offset from other crons
+    timeout=60 * 10,
+)
+async def campaign_tick() -> dict:
+    """Advance every running campaign: enforce window/budget, spawn due
+    video/article work per lane cadence (campaign-attributed)."""
+    from marketer.services.campaign_runner import tick_all
+
+    return await tick_all()
+
+
+@app.function(
     schedule=modal.Cron("15 * * * *"),  # hourly, offset from other crons
     timeout=60 * 5,
 )

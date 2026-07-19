@@ -267,6 +267,43 @@ class AyrshareConnectStatus(BaseModel):
     profile_key: str | None = None
 
 
+class Campaign(BaseModel):
+    """An orchestrated marketing push: content + SEO + ads lanes running
+    together against a time window and a content-credit budget."""
+
+    id: UUID
+    user_id: str
+    name: str
+    objective: str = ""
+    status: Literal["draft", "running", "paused", "completed"] = "draft"
+    starts_at: datetime = Field(default_factory=datetime.utcnow)
+    ends_at: datetime | None = None
+    # Cap on content-generation credit spend attributed to this campaign.
+    # Ad platform spend is governed separately (fail-closed AdSpendGuard).
+    budget_usd: Decimal
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class CampaignItem(BaseModel):
+    """One lane in a campaign.
+
+    kind='video'   ref_id -> niche  (auto-generate + post to socials)
+    kind='article' ref_id -> niche  (SEO article cadence)
+    kind='ad'      ref_id -> ad campaign (linked; governed lifecycle)
+    """
+
+    id: UUID
+    campaign_id: UUID
+    user_id: str
+    kind: Literal["video", "article", "ad"]
+    ref_id: UUID
+    enabled: bool = True
+    cadence_per_week: int = Field(default=3, ge=1, le=56)
+    config: dict = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class Kit(BaseModel):
     """A user-level reusable skill injected into agent runtimes.
 

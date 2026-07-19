@@ -390,3 +390,40 @@ export interface Kit {
   created_at: string;
   updated_at: string;
 }
+
+// ---------------------------------------------------------------- campaigns
+
+export type CampaignStatus = "draft" | "running" | "paused" | "completed";
+
+export interface Campaign {
+  id: string;
+  user_id: string;
+  name: string;
+  objective: string;
+  status: CampaignStatus;
+  starts_at: string;
+  ends_at: string | null;
+  budget_usd: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignItem {
+  id: string;
+  campaign_id: string;
+  user_id: string;
+  kind: "video" | "article" | "ad";
+  ref_id: string;
+  enabled: boolean;
+  cadence_per_week: number;
+  config: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface CampaignOverview {
+  campaign: Campaign;
+  items: CampaignItem[];
+  spent_usd: string;
+  videos_total: number;
+  articles_total: number;
+}

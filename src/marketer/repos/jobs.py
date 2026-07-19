@@ -7,15 +7,17 @@ from ..db import get_pool
 from ..models import Job, JobStatus
 
 
-async def create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
+async def create(
+    *, user_id: str, niche_id: UUID, platform: str, campaign_id: UUID | None = None
+) -> Job:
     pool = await get_pool()
     row = await pool.fetchrow(
         """
-        insert into jobs (user_id, niche_id, platform, payload)
-        values ($1, $2, $3, '{}'::jsonb)
+        insert into jobs (user_id, niche_id, platform, payload, campaign_id)
+        values ($1, $2, $3, '{}'::jsonb, $4)
         returning id, created_at
         """,
-        user_id, niche_id, platform,
+        user_id, niche_id, platform, campaign_id,
     )
     job = Job(
         id=row["id"],
