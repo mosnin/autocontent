@@ -39,7 +39,7 @@ export function Hero() {
           className="group mb-8 inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/40 py-1 pl-1 pr-3 text-xs text-muted-foreground backdrop-blur transition-colors hover:border-brand/40 hover:text-foreground"
           href="/dashboard"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-2 py-0.5 font-medium text-brand"><span aria-hidden className="size-1.5 animate-pulse rounded-full bg-brand" />
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-2 py-0.5 font-medium text-brand"><span aria-hidden className="size-1.5 rounded-full bg-brand" />
             New
           </span>
           Closed-loop optimization is live — every video tunes the next one

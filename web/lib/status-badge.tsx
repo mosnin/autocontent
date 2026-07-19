@@ -75,7 +75,6 @@ export function StatusBadge({ status }: { status: JobStatus }) {
     <Badge className="gap-1.5 font-mono" variant={variant}>
       {recording && (
         <span aria-hidden className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
           <span className="relative inline-flex size-2 rounded-full bg-brand" />
         </span>
       )}
@@ -126,7 +125,6 @@ export function ArticleStatusBadge({ status }: { status: ArticleStatus }) {
     <Badge className="gap-1.5 font-mono" variant={variant}>
       {recording && (
         <span aria-hidden className="relative flex size-2">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
           <span className="relative inline-flex size-2 rounded-full bg-brand" />
         </span>
       )}

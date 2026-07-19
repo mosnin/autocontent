@@ -189,16 +189,6 @@ function StatusBanner({
           <span aria-hidden className="relative flex size-2.5">
             <span
               className={cn(
-                "absolute inline-flex size-full animate-ping rounded-full opacity-60",
-                accent === "destructive"
-                  ? "bg-destructive"
-                  : accent === "warning"
-                    ? "bg-warning"
-                    : "bg-success",
-              )}
-            />
-            <span
-              className={cn(
                 "relative inline-flex size-2.5 rounded-full",
                 accent === "destructive"
                   ? "bg-destructive"

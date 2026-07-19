@@ -1,7 +1,8 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { CountUp, Reveal, Stagger } from "@/components/marketing/system";
+import { Reveal, Stagger } from "@/components/marketing/system";
+import CountUp from "@/components/reactbits/CountUp";
 
 /** Product economics band — the reference's ROI columns, with numbers
  *  from how the pipeline actually prices, not invented customer studies. */
@@ -66,12 +67,9 @@ export function Roi() {
           {STATS.map((s) => (
             <div className="border-t-2 border-zinc-900 pt-6" key={s.title}>
               <p className="font-display text-5xl font-semibold tracking-tight text-zinc-950">
-                <CountUp
-                  decimals={s.decimals ?? 0}
-                  prefix={s.prefix ?? ""}
-                  suffix={s.suffix ?? ""}
-                  value={s.value}
-                />
+                {s.prefix ?? ""}
+                <CountUp duration={1.4} separator="," to={s.value} />
+                {s.suffix ?? ""}
               </p>
               <p className="mt-2 text-[15px] font-semibold text-zinc-900">
                 {s.title}

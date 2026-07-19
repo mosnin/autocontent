@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 
 import { ImagePlaceholder } from "@/components/marketing/system";
 import { EASE } from "@/components/marketing/system/motion";
+import RotatingText from "@/components/reactbits/RotatingText";
 
 /** Feature chip rows under the hero copy, like the reference's capability
  *  pills. First chip is highlighted; every chip links somewhere real. */
@@ -60,7 +61,19 @@ export function Hero() {
           >
             Maximize your
             <br />
-            marketing output.
+            <span className="flex flex-wrap items-center gap-x-3">
+              <RotatingText
+                auto={!reduced}
+                mainClassName="inline-flex overflow-hidden rounded-2xl bg-zinc-900 px-3 py-1 text-white md:px-4"
+                rotationInterval={2600}
+                splitLevelClassName="overflow-hidden pb-1"
+                staggerDuration={0.02}
+                staggerFrom="last"
+                texts={["marketing", "video", "article", "ad"]}
+                transition={{ type: "spring", damping: 30, stiffness: 400 }}
+              />
+              output.
+            </span>
           </motion.h1>
 
           <motion.p

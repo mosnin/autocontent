@@ -183,7 +183,6 @@ export function ArticlesClient({
             <TabsTrigger value="in_progress">
               {inProgressCount > 0 && (
                 <span aria-hidden className="relative mr-0.5 flex size-2">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
                   <span className="relative inline-flex size-2 rounded-full bg-brand" />
                 </span>
               )}

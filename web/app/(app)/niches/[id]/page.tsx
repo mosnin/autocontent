@@ -169,7 +169,6 @@ export default async function NichePage({
               {live && (
                 <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
                   <span aria-hidden className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
                     <span className="relative inline-flex size-2 rounded-full bg-brand" />
                   </span>
                   Live
@@ -316,7 +315,6 @@ function StatCard({
         <div className="flex items-center gap-1.5">
           {hot && (
             <span aria-hidden className="relative flex size-2">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
               <span className="relative inline-flex size-2 rounded-full bg-brand" />
             </span>
           )}

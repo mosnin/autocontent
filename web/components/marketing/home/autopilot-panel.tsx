@@ -4,7 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 
-import { CountUp, Stagger } from "@/components/marketing/system";
+import { Stagger } from "@/components/marketing/system";
+import CountUp from "@/components/reactbits/CountUp";
 import { EASE, VIEWPORT } from "@/components/marketing/system/motion";
 
 /* ------------------------------------------------------------------ */
@@ -28,7 +29,6 @@ function MockAutopilot() {
           {row.state === "live" && (
             <span className="flex items-center gap-1.5 text-rose-400">
               <span className="relative flex size-1.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-rose-400 opacity-60" />
                 <span className="relative inline-flex size-1.5 rounded-full bg-rose-400" />
               </span>
               live
@@ -162,12 +162,9 @@ export function AutopilotPanel() {
             {STATS.map((s) => (
               <div className="text-center" key={s.label}>
                 <p className="font-display text-4xl font-semibold tracking-tight text-white">
-                  <CountUp
-                    decimals={s.decimals ?? 0}
-                    prefix={s.prefix ?? ""}
-                    suffix={s.suffix ?? ""}
-                    value={s.value}
-                  />
+                  {s.prefix ?? ""}
+                  <CountUp duration={1.4} to={s.value} />
+                  {s.suffix ?? ""}
                 </p>
                 <p className="mt-1.5 text-sm text-zinc-500">{s.label}</p>
               </div>

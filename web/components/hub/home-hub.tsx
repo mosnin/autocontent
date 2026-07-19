@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
+import TextType from "@/components/reactbits/TextType";
 import { productById } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
@@ -191,7 +192,6 @@ function ContentVignette() {
       </div>
       <p className="mt-3 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
         <span className="relative flex size-1.5">
-          <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
           <span className="relative inline-flex size-1.5 rounded-full bg-brand" />
         </span>
         Rendering scene 4 of 6 — tonight&apos;s queue
@@ -287,7 +287,23 @@ export function HomeHub() {
     <div className="mx-auto max-w-6xl space-y-12">
       {/* Hero row: the two flagship dashboards */}
       <section aria-label="Start here" className="space-y-5">
-        <SectionHeading>Bring your next campaign to life</SectionHeading>
+        <div className="space-y-1.5">
+          <SectionHeading>Bring your next campaign to life</SectionHeading>
+          <Rise delay={reduced ? 0 : 0.05}>
+            <TextType
+              as="p"
+              className="text-sm text-muted-foreground"
+              cursorCharacter="▍"
+              pauseDuration={2200}
+              text={[
+                "What are we shipping today?",
+                "Queue a short. Draft an article. Cap the spend.",
+                "Your agents are on the clock.",
+              ]}
+              typingSpeed={40}
+            />
+          </Rise>
+        </div>
         <div className="grid gap-5 lg:grid-cols-2">
           <Rise delay={stagger(1)}>
             <HubCard

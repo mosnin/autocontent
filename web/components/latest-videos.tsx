@@ -169,7 +169,6 @@ export function LatestVideos() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span aria-hidden className="relative flex size-2.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
                 <span className="relative inline-flex size-2.5 rounded-full bg-brand" />
               </span>
               Your machine shipped its first video
