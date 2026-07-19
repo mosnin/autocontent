@@ -66,8 +66,8 @@ export interface Product {
 
 const STUDIO: Product = {
   id: "studio",
-  label: "Studio",
-  tagline: "Short-form video — TikTok, Reels, Shorts",
+  label: "Content",
+  tagline: "Short-form video content — TikTok, Reels, Shorts",
   icon: Film,
   accent: "navy",
   home: "/dashboard",
@@ -89,7 +89,7 @@ const STUDIO: Product = {
 
 const PRESS: Product = {
   id: "press",
-  label: "Press",
+  label: "SEO",
   tagline: "Long-form articles, SEO, and search performance",
   icon: FileText,
   accent: "blue",
@@ -177,12 +177,12 @@ const SUITE: Product = {
   ],
 };
 
-/** Ordered for the launcher + switcher. Suite is intentionally last. */
-export const PRODUCTS: Product[] = [STUDIO, PRESS, ADS,
-  CAMPAIGNS, SUITE];
+/** Ordered for the launcher + switcher: Campaigns, Content, SEO, Ads,
+ *  then Suite intentionally last. */
+export const PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS, SUITE];
 
-/** The three "content" products shown as primary tiles on the launcher. */
-export const PRIMARY_PRODUCTS: Product[] = [STUDIO, PRESS, ADS];
+/** The primary work products shown as hero tiles on the launcher. */
+export const PRIMARY_PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS];
 
 export function productById(id: ProductId): Product {
   return PRODUCTS.find((p) => p.id === id) ?? STUDIO;
