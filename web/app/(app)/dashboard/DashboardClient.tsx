@@ -44,6 +44,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  HoverLift,
+  HubHeading,
+  HubSection,
+  Rise,
+  hubCardClass,
+  hubCardHoverClass,
+} from "@/components/hub/primitives";
 import { LatestVideos } from "@/components/latest-videos";
 import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
@@ -151,21 +159,24 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Niches</h1>
-          <p className="text-sm text-muted-foreground">
-            Each niche is its own self-driving pipeline.
-          </p>
+      <Rise>
+        <div className="flex items-center justify-between">
+          <div>
+            <HubHeading as="h1">Niches</HubHeading>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              Each niche is its own self-driving pipeline.
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/onboarding">
+              <Plus className="h-4 w-4" />
+              New niche
+            </Link>
+          </Button>
         </div>
-        <Button asChild>
-          <Link href="/onboarding">
-            <Plus className="h-4 w-4" />
-            New niche
-          </Link>
-        </Button>
-      </div>
+      </Rise>
 
+      <Rise delay={0.08}>
       {(() => {
         const spent = Number(spendData.total_usd);
         const cap = globalCap !== null ? Number(globalCap) : null;
@@ -220,9 +231,11 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
           </div>
         );
       })()}
+      </Rise>
 
       {showAyrshareBanner && (
-        <Card className="border-destructive/50 bg-destructive/5">
+        <Rise delay={0.12}>
+        <Card className={cn(hubCardClass, "border-destructive/50 bg-destructive/5")}>
           <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
@@ -242,6 +255,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
             </Button>
           </CardContent>
         </Card>
+        </Rise>
       )}
 
       {hasError && (
@@ -251,29 +265,33 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         </p>
       )}
 
-      <LatestVideos />
+      <Rise delay={0.16}>
+        <LatestVideos />
+      </Rise>
 
-      {nichesList.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {nichesList.map((n) => (
-            <NicheCard
-              key={n.id}
-              niche={n}
-              spentToday={spendData.by_niche[n.id] ?? "0"}
-              onArchive={handleArchive}
-            />
-          ))}
-        </div>
-      )}
+      <HubSection index={3} title="Your niches">
+        {nichesList.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {nichesList.map((n) => (
+              <NicheCard
+                key={n.id}
+                niche={n}
+                spentToday={spendData.by_niche[n.id] ?? "0"}
+                onArchive={handleArchive}
+              />
+            ))}
+          </div>
+        )}
+      </HubSection>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <Card>
+    <Card className={cn(hubCardClass, "border-dashed")}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
         <LoopCircuit className="scale-75 opacity-90" />
         <h3 className="text-lg font-semibold">No niches yet</h3>
@@ -308,7 +326,14 @@ function NicheCard({
   const tooltipText = `${formatUsd(spent)} of ${formatUsd(cap)} used today`;
 
   return (
-    <Card className="group flex flex-col transition-colors duration-300 hover:border-brand/30">
+    <HoverLift className="h-full">
+    <Card
+      className={cn(
+        hubCardClass,
+        hubCardHoverClass,
+        "group flex h-full flex-col transition-colors duration-300 hover:border-brand/30",
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-lg font-semibold">
@@ -419,6 +444,7 @@ function NicheCard({
         </Button>
       </CardFooter>
     </Card>
+    </HoverLift>
   );
 }
 
@@ -448,7 +474,7 @@ function KpiCard({
   tone?: "warn";
 }) {
   return (
-    <Card className="shadow-sm">
+    <Card className={hubCardClass}>
       <CardContent className="space-y-3 pt-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
