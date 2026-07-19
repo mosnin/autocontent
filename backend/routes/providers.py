@@ -47,12 +47,46 @@ async def list_video_models(ctx: AuthCtx = CurrentUser) -> list[VideoModelOption
         )
     ]
     fal_ok = fal_video.enabled()
-    for m in fal_video.FAL_VIDEO_MODELS:
+    for m in fal_video.list_models():
         options.append(VideoModelOption(
             provider="fal", model_id=m.id, name=m.name, tagline=m.tagline,
             usd_per_second=str(m.usd_per_second), available=fal_ok,
         ))
     return options
+
+
+class VoiceProviderOption(BaseModel):
+    provider: str          # 'openai' | 'elevenlabs'
+    name: str
+    tagline: str
+    available: bool
+
+
+class AudioProviders(BaseModel):
+    voice_providers: list[VoiceProviderOption]
+    # Generative background music (ElevenLabs Music) availability.
+    generated_music_available: bool
+
+
+@router.get("/audio", response_model=AudioProviders)
+async def audio_providers(ctx: AuthCtx = CurrentUser) -> AudioProviders:
+    from marketer.services import elevenlabs_tts, music_gen
+
+    return AudioProviders(
+        voice_providers=[
+            VoiceProviderOption(
+                provider="openai", name="OpenAI TTS (default)",
+                tagline="gpt-4o-mini-tts — fast, steerable delivery",
+                available=bool(settings.openai_api_key),
+            ),
+            VoiceProviderOption(
+                provider="elevenlabs", name="ElevenLabs",
+                tagline="Premium voices — pick any voice id from your library",
+                available=elevenlabs_tts.enabled(),
+            ),
+        ],
+        generated_music_available=music_gen.enabled(),
+    )
 
 
 @router.get("/script-models", response_model=list[ScriptModelOption])

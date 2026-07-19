@@ -38,6 +38,9 @@ interface NicheCreatePayload {
   video_provider?: "grok" | "fal";
   fal_model?: string;
   script_model?: string;
+  voice_provider?: "openai" | "elevenlabs";
+  elevenlabs_voice_id?: string;
+  music_provider?: "auto" | "library" | "generated";
   design_kit_id?: string | null;
   writing_kit_id?: string | null;
 }
@@ -57,10 +60,18 @@ function providerFieldsFromForm(formData: FormData): Partial<NicheCreatePayload>
   const [provider, ...rest] = videoChoice.split(":");
   const designKit = String(formData.get("design_kit_id") || "");
   const writingKit = String(formData.get("writing_kit_id") || "");
+  const voiceProvider = String(formData.get("voice_provider") || "openai");
+  const musicProvider = String(formData.get("music_provider") || "auto");
   return {
     video_provider: provider === "fal" ? "fal" : "grok",
     fal_model: provider === "fal" ? rest.join(":") : "",
     script_model: String(formData.get("script_model") || ""),
+    voice_provider: voiceProvider === "elevenlabs" ? "elevenlabs" : "openai",
+    elevenlabs_voice_id: String(formData.get("elevenlabs_voice_id") || "").trim(),
+    music_provider:
+      musicProvider === "library" || musicProvider === "generated"
+        ? musicProvider
+        : "auto",
     design_kit_id: designKit || null,
     writing_kit_id: writingKit || null,
   };

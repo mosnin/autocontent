@@ -143,6 +143,13 @@ class Niche(BaseModel):
     fal_model: str = ""
     script_model: str = ""
 
+    # Audio providers: TTS engine (and voice) + music source. Defaults
+    # preserve stock behavior; 'auto' music upgrades to generated tracks
+    # only when the deploy has an ElevenLabs key.
+    voice_provider: Literal["openai", "elevenlabs"] = "openai"
+    elevenlabs_voice_id: str = ""
+    music_provider: Literal["auto", "library", "generated"] = "auto"
+
     # Kits: reusable user-level skills injected at runtime. None = the
     # user's default kit of that kind (or nothing).
     design_kit_id: UUID | None = None
@@ -235,6 +242,9 @@ class NicheCreatePayload(BaseModel):
     video_provider: Literal["grok", "fal"] = "grok"
     fal_model: str = ""
     script_model: str = ""
+    voice_provider: Literal["openai", "elevenlabs"] = "openai"
+    elevenlabs_voice_id: str = ""
+    music_provider: Literal["auto", "library", "generated"] = "auto"
     design_kit_id: UUID | None = None
     writing_kit_id: UUID | None = None
 

@@ -166,6 +166,25 @@ cd web && npm install && npm run dev
 
 See `db/README.md` for the full migration workflow (status, rollback, CI gate).
 
+### Optional provider keys
+
+Everything below ships dark: without the key the feature is disabled (or
+falls back) and the rest of the platform is unaffected. Set them as
+`MARKETER_*` env vars / Modal secrets:
+
+| Key | Unlocks |
+| --- | --- |
+| `MARKETER_FAL_API_KEY` | Fal video models (Kling, Veo 3, Sora 2, Hailuo, Luma, Pixverse, Wan) + OmniHuman lip-synced UGC avatars |
+| `MARKETER_OPENROUTER_API_KEY` | Per-niche scriptwriter model choice (Claude, GPT, Gemini, DeepSeek, Llama) |
+| `MARKETER_ELEVENLABS_API_KEY` | ElevenLabs voices (`voice_provider='elevenlabs'`) **and** generated background music (`music_provider='auto'/'generated'`) |
+| `MARKETER_PIXABAY_API_KEY` | Stock music fallback chain |
+| `MARKETER_WASABI_*` (`wasabi_enabled=true`, endpoint, region, bucket, keys) | Durable object storage for every produced artifact + template reference mirroring |
+| `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
+
+Deploy checklist when bumping to this version: `marketer-migrate up`
+(migrations through 0023), `modal deploy modal_app.py`, then set any new
+keys above.
+
 ## Platform surfaces
 
 Beyond the two content pipelines, the product ships:

@@ -43,6 +43,9 @@ async def create(
     video_provider: str = "grok",
     fal_model: str = "",
     script_model: str = "",
+    voice_provider: str = "openai",
+    elevenlabs_voice_id: str = "",
+    music_provider: str = "auto",
     design_kit_id=None,
     writing_kit_id=None,
 ) -> Niche:
@@ -56,9 +59,10 @@ async def create(
             image_quality, video_resolution, scene_max_duration_sec,
             tts_style_directions, approve_before_post, character_description,
             creative_brief, video_provider, fal_model, script_model,
+            voice_provider, elevenlabs_voice_id, music_provider,
             design_kit_id, writing_kit_id
         )
-        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb,$20,$21,$22,$23,$24)
+        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14,$15,$16,$17,$18,$19::jsonb,$20,$21,$22,$23,$24,$25,$26,$27)
         returning *
         """,
         user_id, title, description, target_audience, hashtags,
@@ -73,7 +77,9 @@ async def create(
             # Route handlers pass model_dump() dicts; coerce + validate.
             else CreativeBrief.model_validate(creative_brief or {})
         ).model_dump_json(),
-        video_provider, fal_model, script_model, design_kit_id, writing_kit_id,
+        video_provider, fal_model, script_model,
+        voice_provider, elevenlabs_voice_id, music_provider,
+        design_kit_id, writing_kit_id,
     )
     return _row_to_niche(row)
 
@@ -121,6 +127,7 @@ async def update(
         "image_quality", "video_resolution", "scene_max_duration_sec",
         "tts_style_directions", "approve_before_post", "character_description",
         "creative_brief", "video_provider", "fal_model", "script_model",
+        "voice_provider", "elevenlabs_voice_id", "music_provider",
         "design_kit_id", "writing_kit_id",
     }
 

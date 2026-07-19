@@ -46,12 +46,14 @@ import {
   PLATFORMS,
   QUALITIES,
   RESOLUTIONS,
+  type AudioProviders,
   type ImageQuality,
   type Kit,
   type Niche,
   type ScriptModelOption,
   type VideoModelOption,
   type VideoResolution,
+  type VoiceProviderOption,
 } from "@/lib/types";
 
 const VOICES = [
@@ -99,6 +101,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
   // Provider catalogs + kits for the "Models & kits" selectors.
   const [videoModels, setVideoModels] = React.useState<VideoModelOption[]>([]);
   const [scriptModels, setScriptModels] = React.useState<ScriptModelOption[]>([]);
+  const [audio, setAudio] = React.useState<AudioProviders | null>(null);
   const [kits, setKits] = React.useState<Kit[]>([]);
   React.useEffect(() => {
     clientFetch<VideoModelOption[]>("/api/v1/providers/video-models")
@@ -106,6 +109,9 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
       .catch(() => {});
     clientFetch<ScriptModelOption[]>("/api/v1/providers/script-models")
       .then(setScriptModels)
+      .catch(() => {});
+    clientFetch<AudioProviders>("/api/v1/providers/audio")
+      .then(setAudio)
       .catch(() => {});
     clientFetch<Kit[]>("/api/v1/kits").then(setKits).catch(() => {});
   }, []);
@@ -397,6 +403,58 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
                   {m.available ? "" : " (key not configured)"}
                 </option>
               ))}
+            </select>
+          </Labelled>
+          <Labelled
+            label="Voice engine"
+            hint="Who narrates — ElevenLabs needs a configured key"
+            htmlFor="niche-voice_provider"
+          >
+            <select
+              id="niche-voice_provider"
+              name="voice_provider"
+              defaultValue={niche.voice_provider ?? "openai"}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {(audio?.voice_providers ?? [
+                { provider: "openai", name: "OpenAI TTS (default)", tagline: "", available: true } as VoiceProviderOption,
+              ]).map((v) => (
+                <option key={v.provider} value={v.provider} disabled={!v.available}>
+                  {v.name}{v.available ? "" : " (key not configured)"}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled
+            label="ElevenLabs voice ID"
+            hint="Only used with the ElevenLabs engine — empty = deploy default"
+            htmlFor="niche-elevenlabs_voice_id"
+          >
+            <Input
+              id="niche-elevenlabs_voice_id"
+              name="elevenlabs_voice_id"
+              defaultValue={niche.elevenlabs_voice_id ?? ""}
+              placeholder="e.g. 21m00Tcm4TlvDq8ikWAM"
+            />
+          </Labelled>
+          <Labelled
+            label="Music source"
+            hint="Generated = an original score composed per video"
+            htmlFor="niche-music_provider"
+          >
+            <select
+              id="niche-music_provider"
+              name="music_provider"
+              defaultValue={niche.music_provider ?? "auto"}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="auto">
+                Auto{audio?.generated_music_available ? " (generated when available)" : " (library)"}
+              </option>
+              <option value="library">Library / Pixabay only</option>
+              <option value="generated" disabled={!audio?.generated_music_available}>
+                Generated score{audio?.generated_music_available ? "" : " (key not configured)"}
+              </option>
             </select>
           </Labelled>
           <Labelled

@@ -119,6 +119,18 @@ class Settings(BaseSettings):
     # OpenRouter (per-niche scriptwriter model choice). Empty = the stock
     # OpenAI agent_model writes every script.
     openrouter_api_key: str = ""
+    # ElevenLabs: premium voiceover (per-niche voice choice) AND generative
+    # background music. Empty key = both features unavailable; niches
+    # selecting them fail loudly (voice) or fall back (music).
+    elevenlabs_api_key: str = ""
+    elevenlabs_model_id: str = "eleven_multilingual_v2"
+    # Fallback voice when a niche selects ElevenLabs without a voice id
+    # ("Rachel" — ElevenLabs' stock narrator).
+    elevenlabs_default_voice_id: str = "21m00Tcm4TlvDq8ikWAM"
+    # JSON dict of {fal_model_id: usd_per_second} correcting the pinned
+    # registry prices without a code deploy, e.g.
+    # '{"fal-ai/veo3/image-to-video": "0.45"}'.
+    fal_price_overrides: str = ""
 
     # --- Wasabi S3 object storage (media library) ---------------------
     # Durable, S3-compatible home for every produced media artifact (scene

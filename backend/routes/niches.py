@@ -74,6 +74,9 @@ class NicheCreate(BaseModel):
     video_provider: Literal["grok", "fal"] = "grok"
     fal_model: str = ""
     script_model: str = ""
+    voice_provider: Literal["openai", "elevenlabs"] = "openai"
+    elevenlabs_voice_id: str = ""
+    music_provider: Literal["auto", "library", "generated"] = "auto"
     design_kit_id: UUID | None = None
     writing_kit_id: UUID | None = None
 
@@ -107,6 +110,9 @@ class NicheUpdate(BaseModel):
     video_provider: Literal["grok", "fal"] | None = None
     fal_model: str | None = None
     script_model: str | None = None
+    voice_provider: Literal["openai", "elevenlabs"] | None = None
+    elevenlabs_voice_id: str | None = None
+    music_provider: Literal["auto", "library", "generated"] | None = None
     design_kit_id: UUID | None = None
     writing_kit_id: UUID | None = None
 

@@ -29,12 +29,91 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { clientFetch } from "@/lib/client-fetcher";
-import type { Composition, MediaAsset, Niche } from "@/lib/types";
+import type { Composition, ImagePost, MediaAsset, Niche } from "@/lib/types";
 
 const POLL_MS = 5000;
 
 function mediaUrl(assetId: string): string {
   return `/api/proxy/api/v1/library/${assetId}/media`;
+}
+
+/** Ops strip for the carousel/still pipeline: live status per post plus
+ *  the two operator verbs — approve (awaiting_approval) and retry
+ *  (failed). Terminal successes disappear into the asset grid below. */
+function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string }) {
+  const { data: posts, mutate } = useSWR<ImagePost[]>(
+    "/api/v1/image-posts?limit=25",
+    clientFetch,
+    { refreshInterval: POLL_MS },
+  );
+  const [busy, setBusy] = React.useState<string | null>(null);
+
+  const act = async (post: ImagePost, verb: "approve" | "retry") => {
+    setBusy(post.id);
+    try {
+      await clientPost(`/api/v1/image-posts/${post.id}/${verb}`, {});
+      toast.success(verb === "approve" ? "Post approved" : "Retry queued");
+      await mutate();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : `could not ${verb}`);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const active = (posts ?? []).filter((p) => p.status !== "done");
+  if (active.length === 0) return null;
+
+  return (
+    <Card>
+      <CardContent className="space-y-2 p-4">
+        <p className="text-sm font-medium">Image post runs</p>
+        {active.map((p) => (
+          <div
+            key={p.id}
+            className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm"
+          >
+            <Badge variant={p.status === "failed" ? "destructive" : "secondary"}>
+              {p.status.replaceAll("_", " ")}
+            </Badge>
+            <span className="font-medium">
+              {p.kind === "carousel" ? `Carousel (${p.slide_count})` : "Still"}
+            </span>
+            <span className="text-muted-foreground">
+              {p.topic || nicheTitle(p.niche_id)}
+            </span>
+            {p.error ? (
+              <span className="w-full truncate text-xs text-destructive" title={p.error}>
+                {p.error}
+              </span>
+            ) : null}
+            <span className="ml-auto flex gap-2">
+              {p.status === "awaiting_approval" && (
+                <Button
+                  size="sm"
+                  disabled={busy === p.id}
+                  onClick={() => act(p, "approve")}
+                >
+                  Approve & post
+                </Button>
+              )}
+              {p.status === "failed" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={busy === p.id}
+                  onClick={() => act(p, "retry")}
+                >
+                  <RefreshCw className="mr-1.5 size-3.5" aria-hidden />
+                  Retry
+                </Button>
+              )}
+            </span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
 }
 
 async function clientPost<T>(path: string, body: unknown): Promise<T> {
@@ -215,6 +294,7 @@ export function LibraryClient({
           />
         </TabsContent>
         <TabsContent value="images" className="space-y-4 pt-4">
+          <ImagePostsPanel nicheTitle={nicheTitle} />
           {selected.length > 0 && (
             <Card className="border-primary/40">
               <CardContent className="flex flex-wrap items-center gap-3 p-4">

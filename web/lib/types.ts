@@ -34,6 +34,9 @@ export interface Niche {
   video_provider: "grok" | "fal";
   fal_model: string;
   script_model: string;
+  voice_provider: "openai" | "elevenlabs";
+  elevenlabs_voice_id: string;
+  music_provider: "auto" | "library" | "generated";
   design_kit_id: string | null;
   writing_kit_id: string | null;
   posting_windows: PostingWindow[];
@@ -374,6 +377,30 @@ export interface ScriptModelOption {
   usd_per_m_input: string;
   usd_per_m_output: string;
   available: boolean;
+}
+
+export interface ImagePost {
+  id: string;
+  niche_id: string;
+  kind: "single" | "carousel";
+  topic: string;
+  slide_count: number;
+  status: string;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VoiceProviderOption {
+  provider: "openai" | "elevenlabs";
+  name: string;
+  tagline: string;
+  available: boolean;
+}
+
+export interface AudioProviders {
+  voice_providers: VoiceProviderOption[];
+  generated_music_available: boolean;
 }
 
 export type KitKind = "design" | "ad" | "writing";

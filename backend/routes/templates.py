@@ -157,6 +157,26 @@ async def remix_template(
 
 # --------------------------------------------------------------------------- admin
 
+async def _mirror_reference(dest: Path) -> None:
+    """Durably mirror the reference image to object storage when enabled.
+
+    Best-effort: the volume copy is the serving copy; the mirror is
+    disaster recovery, never a reason an upload fails."""
+    try:
+        from marketer.services import object_storage
+
+        if object_storage.enabled():
+            await object_storage.upload_file(dest, f"templates/{dest.name}")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+@router.get("/admin/all", response_model=list[Template])
+async def list_all_templates(admin=Depends(require_admin)) -> list[Template]:
+    """Every template, drafts included — the admin curation view."""
+    return await templates_repo.list_templates(published_only=False)
+
+
 @router.post("", response_model=Template, status_code=status.HTTP_201_CREATED)
 async def create_template(
     body: TemplateCreate, admin=Depends(require_admin),
@@ -170,6 +190,7 @@ async def create_template(
         )
         _decode_image(body.reference_image_b64, dest)
         _commit_artifacts()
+        await _mirror_reference(dest)
         reference_key = str(dest)
     return await templates_repo.create(
         created_by=admin.user_id,

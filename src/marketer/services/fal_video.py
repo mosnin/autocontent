@@ -27,9 +27,10 @@ from __future__ import annotations
 
 import asyncio
 import base64
-from decimal import Decimal
+import json
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel
@@ -56,6 +57,9 @@ class FalVideoModel(BaseModel):
     allowed_durations: tuple[int, ...] = (5, 10)
     # Extra request fields some models require.
     extra_body: dict[str, Any] = {}
+    # 'i2v' animates a keyframe from a motion prompt; 'avatar' is
+    # audio-driven (image + voiceover in, lip-synced talking video out).
+    kind: Literal["i2v", "avatar"] = "i2v"
 
 
 def snap_duration(model: "FalVideoModel", requested_sec: float) -> int:
@@ -97,12 +101,55 @@ FAL_VIDEO_MODELS: list[FalVideoModel] = [
         max_duration_sec=9,
     ),
     FalVideoModel(
+        id="fal-ai/kling-video/v2.5-turbo/pro/image-to-video",
+        name="Kling 2.5 Turbo Pro",
+        tagline="Kling's latest — faster, sharper, stronger prompt adherence",
+        usd_per_second=Decimal("0.07"),
+        allowed_durations=(5, 10),
+        max_duration_sec=10,
+    ),
+    FalVideoModel(
+        id="fal-ai/veo3/fast/image-to-video",
+        name="Google Veo 3 Fast",
+        tagline="Veo 3 quality at speed — best realism per dollar",
+        usd_per_second=Decimal("0.10"),
+        allowed_durations=(8,),
+        max_duration_sec=8,
+        extra_body={"generate_audio": False},
+    ),
+    FalVideoModel(
+        id="fal-ai/veo3/image-to-video",
+        name="Google Veo 3",
+        tagline="State-of-the-art realism, physics, and cinematography",
+        usd_per_second=Decimal("0.40"),
+        allowed_durations=(8,),
+        max_duration_sec=8,
+        extra_body={"generate_audio": False},
+    ),
+    FalVideoModel(
+        id="fal-ai/sora-2/image-to-video",
+        name="OpenAI Sora 2",
+        tagline="Long coherent shots with strong scene understanding",
+        usd_per_second=Decimal("0.10"),
+        allowed_durations=(4, 8, 12),
+        max_duration_sec=12,
+    ),
+    FalVideoModel(
+        id="fal-ai/pixverse/v5/image-to-video",
+        name="Pixverse V5",
+        tagline="Punchy stylized motion — great for animated looks",
+        usd_per_second=Decimal("0.06"),
+        allowed_durations=(5, 8),
+        max_duration_sec=8,
+    ),
+    FalVideoModel(
         id="fal-ai/bytedance/omnihuman",
         name="OmniHuman (UGC avatar)",
-        tagline="Talking-head/spokesperson from a single portrait — UGC mode",
+        tagline="Lip-synced spokesperson from a single portrait — UGC mode",
         usd_per_second=Decimal("0.16"),
         allowed_durations=(5, 10, 15),
         max_duration_sec=15,
+        kind="avatar",
     ),
     FalVideoModel(
         id="fal-ai/wan/v2.2-a14b/image-to-video",
@@ -125,8 +172,45 @@ def enabled() -> bool:
     return bool(settings.fal_api_key)
 
 
+def _price_overrides() -> dict[str, Decimal]:
+    """Operator-supplied unit-price corrections, parsed per call.
+
+    `MARKETER_FAL_PRICE_OVERRIDES='{"fal-ai/veo3/image-to-video": "0.45"}'`
+    fixes registry drift against fal's published prices without a deploy
+    of new code. Malformed JSON or values are ignored (never break
+    rendering over a pricing knob)."""
+    raw = settings.fal_price_overrides
+    if not raw:
+        return {}
+    try:
+        parsed = json.loads(raw)
+        out: dict[str, Decimal] = {}
+        for key, val in parsed.items():
+            try:
+                price = Decimal(str(val))
+            except (InvalidOperation, ValueError):
+                continue
+            if price > 0:
+                out[str(key)] = price
+        return out
+    except (json.JSONDecodeError, AttributeError, TypeError):
+        return {}
+
+
 def get_model(model_id: str) -> FalVideoModel | None:
-    return _BY_ID.get(model_id)
+    model = _BY_ID.get(model_id)
+    if model is None:
+        return None
+    override = _price_overrides().get(model_id)
+    if override is not None and override != model.usd_per_second:
+        return model.model_copy(update={"usd_per_second": override})
+    return model
+
+
+def list_models() -> list[FalVideoModel]:
+    """The registry with price overrides applied — what the UI and
+    metering should see."""
+    return [get_model(m.id) or m for m in FAL_VIDEO_MODELS]
 
 
 def video_cost(model: FalVideoModel, seconds: float) -> Decimal:
@@ -144,6 +228,21 @@ def _image_to_data_uri(path: Path) -> str:
     suffix = path.suffix.lstrip(".").lower() or "png"
     mime = {"jpg": "jpeg"}.get(suffix, suffix)
     return f"data:image/{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
+
+
+def _audio_to_data_uri(path: Path) -> str:
+    suffix = path.suffix.lstrip(".").lower() or "wav"
+    mime = {"wav": "wav", "mp3": "mpeg", "m4a": "mp4"}.get(suffix, suffix)
+    return f"data:audio/{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
+
+
+def _wav_duration_seconds(path: Path) -> float:
+    import wave
+
+    with wave.open(str(path), "rb") as w:
+        frames = w.getnframes()
+        rate = w.getframerate()
+        return frames / float(rate) if rate else 0.0
 
 
 @retry(
@@ -257,5 +356,63 @@ async def animate(
             sku=model.id,
             units=Decimal(str(billed)),
             cost_usd=cost,
+        )
+    return out_path
+
+
+async def animate_avatar(
+    keyframe_path: Path,
+    audio_path: Path,
+    out_path: Path,
+    *,
+    model_id: str,
+    spend: SpendContext | None = None,
+) -> Path:
+    """Render a lip-synced talking clip: portrait keyframe + voiceover in,
+    a video of that person speaking the audio out.
+
+    Audio-driven models set their own output length from the voiceover, so
+    there is no duration knob — the pre-flight estimate and the billed
+    units both come from the audio (or the provider-reported render
+    duration when present)."""
+    if not enabled():
+        raise FalVideoError(
+            "fal video provider selected but MARKETER_FAL_API_KEY is not set"
+        )
+    model = get_model(model_id)
+    if model is None:
+        raise FalVideoError(f"unknown fal model {model_id!r}")
+    if model.kind != "avatar":
+        raise FalVideoError(f"{model_id!r} is not an audio-driven avatar model")
+
+    audio_sec = max(1.0, _wav_duration_seconds(audio_path))
+    if spend is not None:
+        await spend.ensure_can_spend(video_cost(model, audio_sec))
+
+    body = {
+        "image_url": _image_to_data_uri(keyframe_path),
+        "audio_url": _audio_to_data_uri(audio_path),
+        **model.extra_body,
+    }
+
+    async with _client() as client:
+        queued = await _submit(client, model.id, body)
+        await _await_completion(client, queued["status_url"])
+        resp = await client.get(queued["response_url"])
+        resp.raise_for_status()
+        result = resp.json()
+        video = result.get("video") or {}
+        video_url = video.get("url")
+        if not video_url:
+            raise FalVideoError(f"completed but no video.url: {result!r}")
+        await _download(client, video_url, out_path)
+
+    if spend is not None:
+        billed = float(video.get("duration") or audio_sec)
+        await spend.log(
+            provider=PROVIDER,
+            sku=model.id,
+            units=Decimal(str(billed)),
+            cost_usd=video_cost(model, billed),
         )
     return out_path

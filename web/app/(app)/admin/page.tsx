@@ -160,6 +160,24 @@ export default async function AdminOverviewPage() {
           </Link>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+          <div>
+            <div className="text-sm font-medium">Template library</div>
+            <p className="text-sm text-muted-foreground">
+              Curate reference looks + prompts that users remix with their
+              own products.
+            </p>
+          </div>
+          <Link
+            href="/admin/templates"
+            className="shrink-0 text-sm font-medium text-brand hover:underline"
+          >
+            Manage templates →
+          </Link>
+        </CardContent>
+      </Card>
     </div>
   );
 }

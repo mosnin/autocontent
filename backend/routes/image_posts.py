@@ -62,6 +62,24 @@ async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dic
     return post
 
 
+@router.post("/{image_post_id}/retry", status_code=status.HTTP_202_ACCEPTED)
+async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+    """Re-run a failed post from the top (fresh plan + renders)."""
+    if not await image_posts_repo.claim_for_retry(image_post_id, user_id=ctx.user_id):
+        existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
+        if existing is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=f"post is {existing['status']}, not failed",
+        )
+    import modal
+
+    fn = modal.Function.from_name("marketer-sh", "run_image_post")
+    fn.spawn(ctx.user_id, str(image_post_id))
+    return {"status": "queued"}
+
+
 @router.post("/{image_post_id}/approve", status_code=status.HTTP_202_ACCEPTED)
 async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Operator sign-off: atomically claim and resume at scheduling."""

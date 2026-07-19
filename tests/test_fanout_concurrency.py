@@ -75,7 +75,9 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path, pa
     monkeypatch.setattr(pipeline.settings, "scene_fanout_limit", FANOUT_LIMIT)
 
     # Patch the real _generate_scene_assets with a probe that records concurrency.
-    async def probed_generate(scene, root, *, niche, reference_image, spend):
+    async def probed_generate(
+        scene, root, *, niche, reference_image, spend, avatar_model_id=None
+    ):
         peak["concurrent"] += 1
         if peak["concurrent"] > peak["max_concurrent"]:
             peak["max_concurrent"] = peak["concurrent"]
