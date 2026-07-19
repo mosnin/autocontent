@@ -172,7 +172,7 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
         return root
     monkeypatch.setattr(pipeline, "ensure_layout", fake_layout)
 
-    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
@@ -180,11 +180,11 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_perf_ctx)
 
-    async def fake_script(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
+    async def fake_script(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_script)
 
-    async def fake_vd(script, *, visual_style, character_description="", spend=None):
+    async def fake_vd(script, *, visual_style, character_description="", brief=None, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
@@ -234,7 +234,7 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
         out_path.write_bytes(b"MP4")
     monkeypatch.setattr(pipeline.ffmpeg, "burn_subtitles", fake_burn)
 
-    def fake_words_to_ass(words, out_path, style="tiktok-bold"):
+    def fake_words_to_ass(words, out_path, caption_style=None):
         out_path.write_text("[Script Info]\n")
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)
 

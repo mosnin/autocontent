@@ -368,6 +368,7 @@ async def _run_job_inner(
                 brand_voice=brand_voice,
                 banned_words=banned_words,
                 recent_topics=recent,
+                brief=niche.creative_brief,
                 spend=spend,
             )
 
@@ -383,12 +384,14 @@ async def _run_job_inner(
                 scene_count=niche.scene_count,
                 target_duration_sec=niche.target_duration_sec,
                 audience_context=audience_ctx,
+                brief=niche.creative_brief,
                 spend=spend,
             )
             script = await run_visual_director(
                 script,
                 visual_style=niche.visual_style,
                 character_description=niche.character_description or "",
+                brief=niche.creative_brief,
                 spend=spend,
             )
             job.script = script
@@ -489,14 +492,18 @@ async def _run_job_inner(
     # (e.g. "claymation, warm palette") give Pixabay enough signal to find
     # thematically appropriate background music. We take just the title to keep
     # the query short and searchable; visual_style tends to be image-specific.
-    music_query = niche.title
+    audio_brief = niche.creative_brief.audio
     with _stage("music"):
-        music_path = await music.pick_track(
-            query=music_query,
-            target_duration_sec=int(script.total_duration_sec),
-            library_dir=Path(settings.assets_dir) / "music",
-            cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
-        )
+        if not audio_brief.music_enabled:
+            log.info("music disabled by creative brief")
+            music_path = None
+        else:
+            music_path = await music.pick_track(
+                query=audio_brief.music_mood or niche.title,
+                target_duration_sec=int(script.total_duration_sec),
+                library_dir=Path(settings.assets_dir) / "music",
+                cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
+            )
     job.audio = AudioTrack(
         voiceover_path=str(vo_path),
         music_path=str(music_path) if music_path is not None else None,
@@ -530,7 +537,9 @@ async def _run_job_inner(
                 pass
             return await _fail_with(job, str(e))
         ass_path = root / "captions" / "subs.ass"
-        subtitle.words_to_ass(words, ass_path)
+        subtitle.words_to_ass(
+            words, ass_path, caption_style=niche.creative_brief.audio.caption_style
+        )
         final = root / "output" / "final.mp4"
         ffmpeg.burn_subtitles(mixed, ass_path, final)
 

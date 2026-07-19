@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from marketer.models import Niche, PostingWindow
+from marketer.models import CreativeBrief, Niche, PostingWindow
 from marketer.repos import niches as niches_repo
 from marketer.services.character_sheet import sheet_path
 
@@ -70,6 +70,7 @@ class NicheCreate(BaseModel):
     tts_style_directions: str | None = None
     approve_before_post: bool = False
     character_description: str | None = None
+    creative_brief: CreativeBrief | None = None
 
 
 class NicheUpdate(BaseModel):
@@ -97,6 +98,7 @@ class NicheUpdate(BaseModel):
     tts_style_directions: str | None = None
     approve_before_post: bool | None = None
     character_description: str | None = None
+    creative_brief: CreativeBrief | None = None
 
 
 @router.get("", response_model=list[Niche])

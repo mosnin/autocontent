@@ -24,6 +24,7 @@ from agents import Agent
 from ..config import settings
 from .metered import run_metered
 from ..models import Idea
+from ..models.creative_brief import CreativeBrief
 from ..services.spend_context import SpendContext  # noqa: TC001 — used in signature
 
 IDEATION_INSTRUCTIONS = """You are an expert short-form content strategist.
@@ -109,6 +110,7 @@ def build_ideation_prompt(
     banned_words: list[str] | None = None,
     recent_topics: list[str] | None = None,
     lens: str = "",
+    brief: CreativeBrief | None = None,
 ) -> str:
     """Construct the user-turn prompt for the ideation agent.
 
@@ -134,6 +136,8 @@ def build_ideation_prompt(
         lines.append(
             "Do-not-repeat list (recent videos):\n- " + "\n- ".join(recent_topics)
         )
+    if brief is not None:
+        lines.extend(brief.ideation_lines())
     if lens:
         lines.append(lens)
     return "\n".join(lines)
@@ -149,6 +153,7 @@ async def run_ideation(
     brand_voice: str = "",
     banned_words: list[str] | None = None,
     recent_topics: list[str] | None = None,
+    brief: CreativeBrief | None = None,
     spend: "SpendContext | None" = None,
 ) -> Idea:
     """Generate `settings.ideation_candidates` ideas and return the winner.
@@ -171,13 +176,17 @@ async def run_ideation(
             banned_words=banned_words,
             recent_topics=recent_topics,
             lens=lens,
+            brief=brief,
         )
 
     if n == 1:
         result = await run_metered(agent, _prompt(""), spend=spend)
         return result.final_output_as(Idea)
 
-    lenses = [CANDIDATE_LENSES[i % len(CANDIDATE_LENSES)] for i in range(n)]
+    # A brief with preferred hook mechanisms replaces the stock lens set —
+    # candidates then compete inside the creator's own hook space.
+    lens_pool = (brief.candidate_lenses() if brief else []) or CANDIDATE_LENSES
+    lenses = [lens_pool[i % len(lens_pool)] for i in range(n)]
     results = await asyncio.gather(
         *[run_metered(agent, _prompt(lens), spend=spend) for lens in lenses],
         # Tolerate partial failure: one bad candidate must not abort the

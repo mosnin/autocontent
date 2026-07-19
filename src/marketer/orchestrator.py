@@ -26,6 +26,7 @@ from .agents import (
 from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
 from .agents.metered import run_metered
 from .models import Idea, Niche, Script
+from .models.creative_brief import CreativeBrief
 from .agents.qa import QAReport
 from .services.spend_context import SpendContext
 
@@ -36,6 +37,7 @@ async def run_scriptwriter(
     scene_count: int,
     target_duration_sec: int,
     audience_context: str = "",
+    brief: CreativeBrief | None = None,
     spend: SpendContext | None = None,
 ) -> Script:
     agent = build_scriptwriter_agent()
@@ -45,6 +47,9 @@ async def run_scriptwriter(
     )
     if audience_context:
         prompt += f"\n{audience_context}"
+    if brief is not None:
+        for line in brief.scriptwriter_lines():
+            prompt += f"\n{line}"
     result = await run_metered(agent, prompt, spend=spend)
     return result.final_output_as(Script)
 
@@ -54,6 +59,7 @@ async def run_visual_director(
     *,
     visual_style: str,
     character_description: str = "",
+    brief: CreativeBrief | None = None,
     spend: SpendContext | None = None,
 ) -> Script:
     agent = build_visual_director_agent()
@@ -62,6 +68,10 @@ async def run_visual_director(
         "character": character_description or "",
         "script": script.model_dump(),
     }
+    if brief is not None:
+        vd_brief = brief.visual_director_brief()
+        if vd_brief:
+            payload["creative_brief"] = vd_brief
     result = await run_metered(agent, json.dumps(payload), spend=spend)
     return result.final_output_as(Script)
 
@@ -82,6 +92,9 @@ async def run_qa(
         "target_duration_sec": niche.target_duration_sec,
         "niche": niche.title,
     }
+    qa_constraints = niche.creative_brief.qa_lines()
+    if qa_constraints:
+        payload["creative_constraints"] = qa_constraints
     result = await run_metered(agent, json.dumps(payload), spend=spend)
     return result.final_output_as(QAReport)
 

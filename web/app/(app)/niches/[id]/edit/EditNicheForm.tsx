@@ -41,6 +41,7 @@ import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
 import {
+  HOOK_MECHANISMS,
   PLATFORMS,
   QUALITIES,
   RESOLUTIONS,
@@ -88,6 +89,8 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
   // Controlled so the preset picker can apply a style; still serialized
   // through the native form via name="visual_style".
   const [visualStyle, setVisualStyle] = React.useState(niche.visual_style);
+
+  const brief = niche.creative_brief;
 
   // Live cost-estimate mirror. Uncontrolled inputs still own the truth
   // for submission; this only feeds the readout.
@@ -319,6 +322,183 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
             </span>
           </CardContent>
         </Card>
+      </SectionCard>
+
+      <SectionCard
+        kicker="Creative DNA"
+        title="Make it unmistakably yours"
+        description="Every field here steers the AI with precision — hooks, voice, visuals, music, captions. Empty fields use platform defaults."
+      >
+        <input type="hidden" name="brief_present" value="1" />
+
+        <div
+          className="space-y-2"
+          role="group"
+          aria-labelledby="brief-mechanisms-label"
+        >
+          <Label id="brief-mechanisms-label">Preferred hook styles</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {HOOK_MECHANISMS.map((m) => (
+              <label
+                key={m}
+                className="flex cursor-pointer items-center gap-2 rounded-md border p-3 text-sm transition-colors hover:bg-accent/30"
+              >
+                <input
+                  type="checkbox"
+                  name="brief_mechanisms"
+                  value={m}
+                  defaultChecked={brief.hooks.preferred_mechanisms.includes(m)}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                {m.replace(/_/g, " ")}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <Labelled
+          label="Hooks you love"
+          hint="One per line (max 10) — the AI matches their voice, never copies"
+          htmlFor="brief-example_hooks"
+        >
+          <Textarea
+            id="brief-example_hooks"
+            name="brief_example_hooks"
+            rows={3}
+            defaultValue={brief.hooks.example_hooks.join("\n")}
+            placeholder={"why your llama videos flop\nthe $3 mistake in every portfolio"}
+          />
+        </Labelled>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Labelled label="Language" hint="Narration + captions" htmlFor="brief-language">
+            <Input id="brief-language" name="brief_language"
+              defaultValue={brief.narrative.language} placeholder="English (default)" />
+          </Labelled>
+          <Labelled label="Pacing" htmlFor="brief-pacing">
+            <Input id="brief-pacing" name="brief_pacing"
+              defaultValue={brief.narrative.pacing} placeholder="rapid-fire / calm and deliberate" />
+          </Labelled>
+          <Labelled label="Point of view" htmlFor="brief-pov">
+            <Input id="brief-pov" name="brief_pov"
+              defaultValue={brief.narrative.pov} placeholder="first-person operator" />
+          </Labelled>
+          <Labelled label="CTA policy" htmlFor="brief-cta_policy">
+            <Input id="brief-cta_policy" name="brief_cta_policy"
+              defaultValue={brief.narrative.cta_policy} placeholder="never / only 'follow for part 2'" />
+          </Labelled>
+        </div>
+
+        <Labelled
+          label="Topics to avoid"
+          hint="Comma-separated hard bans"
+          htmlFor="brief-must_avoid"
+        >
+          <Input id="brief-must_avoid" name="brief_must_avoid"
+            defaultValue={brief.narrative.must_avoid.join(", ")}
+            placeholder="politics, crypto price predictions" />
+        </Labelled>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Labelled label="Camera language" htmlFor="brief-camera_language">
+            <Input id="brief-camera_language" name="brief_camera_language"
+              defaultValue={brief.visual.camera_language}
+              placeholder="slow push-ins only, no whip pans" />
+          </Labelled>
+          <Labelled label="Lighting" htmlFor="brief-lighting">
+            <Input id="brief-lighting" name="brief_lighting"
+              defaultValue={brief.visual.lighting} placeholder="golden hour, soft shadows" />
+          </Labelled>
+          <Labelled label="Color palette" htmlFor="brief-color_palette">
+            <Input id="brief-color_palette" name="brief_color_palette"
+              defaultValue={brief.visual.color_palette}
+              placeholder="warm terracotta + cream, no neon" />
+          </Labelled>
+          <Labelled label="Never show" hint="Comma-separated" htmlFor="brief-negative_visuals">
+            <Input id="brief-negative_visuals" name="brief_negative_visuals"
+              defaultValue={brief.visual.negative_visuals.join(", ")}
+              placeholder="logos, phones, crowds" />
+          </Labelled>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-input p-4 transition-colors hover:border-brand/30">
+            <input
+              className="mt-0.5 size-4 accent-[hsl(var(--brand))]"
+              defaultChecked={brief.audio.music_enabled}
+              name="brief_music_enabled"
+              type="checkbox"
+            />
+            <span>
+              <span className="block text-sm font-medium">Background music</span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Ducked under the narration automatically.
+              </span>
+            </span>
+          </label>
+          <Labelled label="Music mood" hint="Search phrase for the track" htmlFor="brief-music_mood">
+            <Input id="brief-music_mood" name="brief_music_mood"
+              defaultValue={brief.audio.music_mood} placeholder="lofi hip hop, calm" />
+          </Labelled>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-4">
+          <Labelled label="Caption font" htmlFor="brief-caption_font">
+            <Input id="brief-caption_font" name="brief_caption_font"
+              defaultValue={brief.audio.caption_style.font} />
+          </Labelled>
+          <Labelled label="Size" htmlFor="brief-caption_size">
+            <Input id="brief-caption_size" name="brief_caption_size" type="number"
+              min={40} max={160} defaultValue={brief.audio.caption_style.font_size} />
+          </Labelled>
+          <Labelled label="Text color" htmlFor="brief-caption_text_hex">
+            <Input id="brief-caption_text_hex" name="brief_caption_text_hex" type="color"
+              defaultValue={`#${brief.audio.caption_style.text_hex}`} className="h-10 p-1" />
+          </Labelled>
+          <Labelled label="Position" htmlFor="brief-caption_position">
+            <select
+              id="brief-caption_position"
+              name="brief_caption_position"
+              defaultValue={brief.audio.caption_style.position}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="bottom">Bottom</option>
+              <option value="center">Center</option>
+              <option value="top">Top</option>
+            </select>
+          </Labelled>
+        </div>
+        <input type="hidden" name="brief_caption_outline_hex"
+          defaultValue={brief.audio.caption_style.outline_hex} />
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" name="brief_caption_uppercase"
+            defaultChecked={brief.audio.caption_style.uppercase}
+            className="h-4 w-4 rounded border-input accent-primary" />
+          ALL-CAPS captions
+        </label>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Labelled
+            label="Extra script instructions"
+            hint="Appended verbatim to the scriptwriter"
+            htmlFor="brief-extra_script"
+          >
+            <Textarea id="brief-extra_script" name="brief_extra_script" rows={2}
+              defaultValue={brief.prompt_overrides.scriptwriter}
+              placeholder="always end scenes on a question" />
+          </Labelled>
+          <Labelled
+            label="Extra visual instructions"
+            hint="Appended verbatim to the visual director"
+            htmlFor="brief-extra_visual"
+          >
+            <Textarea id="brief-extra_visual" name="brief_extra_visual" rows={2}
+              defaultValue={brief.prompt_overrides.visual_director}
+              placeholder="every scene includes the studio's neon sign" />
+          </Labelled>
+        </div>
+        <input type="hidden" name="brief_extra_ideation"
+          defaultValue={brief.prompt_overrides.ideation} />
       </SectionCard>
 
       <SectionCard

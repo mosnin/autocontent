@@ -1,3 +1,4 @@
+from .creative_brief import CaptionStyle, CreativeBrief
 from .schemas import (
     AudioTrack,
     AyrshareConnectResponse,
@@ -29,6 +30,8 @@ from .schemas import (
 )
 
 __all__ = [
+    "CaptionStyle",
+    "CreativeBrief",
     "CreditTransaction",
     "AudioTrack",
     "AyrshareConnectResponse",

@@ -30,6 +30,7 @@ export interface Niche {
   scene_max_duration_sec: number;
   tts_style_directions: string | null;
   character_description: string | null;
+  creative_brief: CreativeBrief;
   posting_windows: PostingWindow[];
   platforms: Platform[];
   daily_spend_cap_usd: string;
@@ -295,3 +296,57 @@ export interface StylePreset {
   reference_video_url: string | null;
   swatch: string;
 }
+
+// ---------------------------------------------------------------- creative DNA
+
+export interface CaptionStyleBrief {
+  font: string;
+  font_size: number;
+  text_hex: string;
+  outline_hex: string;
+  uppercase: boolean;
+  position: "bottom" | "center" | "top";
+}
+
+export interface CreativeBrief {
+  hooks: {
+    preferred_mechanisms: string[];
+    banned_openers: string[];
+    example_hooks: string[];
+  };
+  narrative: {
+    language: string;
+    pov: string;
+    pacing: string;
+    reading_level: string;
+    cta_policy: string;
+    must_include: string[];
+    must_avoid: string[];
+  };
+  visual: {
+    camera_language: string;
+    lighting: string;
+    color_palette: string;
+    negative_visuals: string[];
+  };
+  audio: {
+    music_enabled: boolean;
+    music_mood: string;
+    caption_style: CaptionStyleBrief;
+  };
+  prompt_overrides: {
+    ideation: string;
+    scriptwriter: string;
+    visual_director: string;
+    qa: string;
+  };
+}
+
+export const HOOK_MECHANISMS = [
+  "curiosity_gap",
+  "contrarian",
+  "mistake_or_stakes",
+  "story_cold_open",
+  "bold_result",
+  "myth_bust",
+] as const;

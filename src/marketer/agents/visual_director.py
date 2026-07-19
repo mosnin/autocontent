@@ -12,7 +12,14 @@ from ..models import Script
 
 VISUAL_DIRECTOR_INSTRUCTIONS = """You are a visual director.
 Input is JSON: {"style": "<style brief>", "character": "<canonical cast or empty>",
-"script": <Script>}.
+"script": <Script>, "creative_brief": <optional constraints>}.
+
+When `creative_brief` is present, obey every key it contains:
+- `camera_language`: the ONLY camera moves allowed in motion_prompts.
+- `lighting` / `color_palette`: bake into every visual_prompt verbatim.
+- `never_show`: hard bans — rewrite any scene that would show one.
+- `extra_instructions`: verbatim directives from the creator; they win
+  over these defaults on any conflict.
 
 Rewrite every scene's `visual_prompt` and `motion_prompt` so the resulting
 video has a SINGLE, COHESIVE look that matches the supplied style.

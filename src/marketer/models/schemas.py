@@ -8,6 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from .creative_brief import CreativeBrief
+
 
 class Idea(BaseModel):
     topic: str
@@ -124,6 +126,10 @@ class Niche(BaseModel):
     # through it every scene keyframe. None = model invents the cast.
     character_description: str | None = None
 
+    # Creative DNA: structured brief steering every agent prompt, music
+    # pick, and caption style. Defaults = stock platform behavior.
+    creative_brief: CreativeBrief = Field(default_factory=CreativeBrief)
+
     # Per-niche overrides for provider behavior.
     image_quality: Literal["low", "medium", "high"] = "medium"
     video_resolution: Literal["480p", "720p"] = "480p"
@@ -212,6 +218,7 @@ class NicheCreatePayload(BaseModel):
     scene_max_duration_sec: int = 5
     tts_style_directions: str | None = None
     character_description: str | None = None
+    creative_brief: CreativeBrief | None = None
 
 
 class TodaySpend(BaseModel):

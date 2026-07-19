@@ -144,16 +144,16 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style, character_description="", spend=None):
+    async def fake_visual_director(script, *, visual_style, character_description="", brief=None, spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
@@ -236,7 +236,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
         return out_path
     monkeypatch.setattr(pipeline.ffmpeg, "burn_subtitles", fake_burn)
 
-    def fake_words_to_ass(words, out_path, style="tiktok-bold"):
+    def fake_words_to_ass(words, out_path, caption_style=None):
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text("[Script Info]\n")
         return out_path
@@ -469,7 +469,7 @@ def _counting_provider_stubs(monkeypatch) -> dict[str, int]:
     """Re-patch the expensive stages with counters on top of stub_all."""
     calls = {"ideation": 0, "keyframe": 0, "tts": 0}
 
-    async def counting_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, spend=None):
+    async def counting_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         calls["ideation"] += 1
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
@@ -599,7 +599,7 @@ async def test_qa_regenerate_script_retries_once_then_succeeds(monkeypatch, stub
     script_calls = {"n": 0}
 
     async def counting_scriptwriter(idea, *, scene_count, target_duration_sec,
-                                    audience_context="", spend=None):
+                                    audience_context="", brief=None, spend=None):
         script_calls["n"] += 1
         return _make_script()
 
@@ -724,3 +724,74 @@ async def test_transient_failure_reset_keeps_state_for_resume(monkeypatch):
 
     fresh = await jobs_repo.reset_for_retry(failed.id, user_id=USER_ID)
     assert fresh is not None and fresh.script is not None  # state survives
+
+
+# --------------------------------------------------------------------------- creative brief
+
+async def test_creative_brief_steers_music_and_captions(monkeypatch, stub_all):
+    """music_enabled=False skips track selection entirely; the caption
+    style from the brief reaches the subtitle renderer."""
+    from marketer.models import CreativeBrief
+
+    brief = CreativeBrief.model_validate({
+        "audio": {
+            "music_enabled": False,
+            "caption_style": {"uppercase": True, "position": "top"},
+        },
+    })
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"creative_brief": brief}
+    )
+
+    picked = {"called": False}
+
+    async def fake_pick(**kwargs):
+        picked["called"] = True
+        return None
+
+    monkeypatch.setattr(pipeline.music, "pick_track", fake_pick)
+
+    seen_style = {}
+
+    def fake_ass(words, out_path, caption_style=None):
+        seen_style["style"] = caption_style
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text("[Script Info]\n")
+        return out_path
+
+    monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_ass)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+
+    assert job.status == JobStatus.done
+    assert picked["called"] is False  # music disabled -> no pick_track
+    assert job.audio is not None and job.audio.music_path is None
+    assert seen_style["style"].uppercase is True
+    assert seen_style["style"].position == "top"
+
+
+async def test_creative_brief_music_mood_overrides_query(monkeypatch, stub_all):
+    from marketer.models import CreativeBrief
+
+    brief = CreativeBrief.model_validate({"audio": {"music_mood": "lofi calm"}})
+    niche = stub_all["niche_holder"]["niche"]
+    stub_all["niche_holder"]["niche"] = niche.model_copy(
+        update={"creative_brief": brief}
+    )
+
+    seen = {}
+
+    async def fake_pick(*, query, **kwargs):
+        seen["query"] = query
+        return None
+
+    monkeypatch.setattr(pipeline.music, "pick_track", fake_pick)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert seen["query"] == "lofi calm"  # not the niche title
