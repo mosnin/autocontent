@@ -53,7 +53,7 @@ Chains
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, TypeVar
 
 from ..logging import get_logger
 from ..models import Niche
@@ -63,6 +63,8 @@ from .fal_video import FalVideoModel
 from .spend_context import SpendContext
 
 log = get_logger(__name__)
+
+T = TypeVar("T")
 
 
 class VideoFallbackExhausted(RuntimeError):
@@ -77,6 +79,10 @@ class AvatarFallbackUnavailable(RuntimeError):
 
 class TTSFallbackExhausted(RuntimeError):
     """Every candidate provider in the TTS fallback chain failed."""
+
+
+class WriterFallbackExhausted(RuntimeError):
+    """Every candidate model in a text-generation fallback chain failed."""
 
 
 def fallback_enabled(niche: Niche) -> bool:
@@ -350,4 +356,77 @@ async def synthesize_vo_with_fallback(
             )
     raise TTSFallbackExhausted(
         f"all {len(attempts)} TTS provider(s) failed; last error: {last_exc}"
+    ) from last_exc
+
+
+# ---------------------------------------------------------------------------
+# Generic text-model fallback (article writer, and any future stock-model
+# text stage that wants the same "different model, not the same one twice"
+# guarantee without a bespoke chain like i2v/avatar/TTS above).
+# ---------------------------------------------------------------------------
+
+
+def writer_model_fallback_chain(primary_model: str) -> list[str]:
+    """Ordered writer-model candidates: the configured primary model
+    first, then the stock ``settings.agent_model`` default — but only
+    when it actually differs from the primary. A chain that repeats the
+    same model is not a fallback, it's a second call to an already-failed
+    provider; callers on a single-model config get a length-1 chain and
+    a persistent failure surfaces immediately, same as before this existed.
+    """
+    from ..config import settings
+
+    chain = [primary_model]
+    if settings.agent_model and settings.agent_model != primary_model:
+        chain.append(settings.agent_model)
+    return chain
+
+
+async def call_with_model_fallback(
+    call: Callable[[str], Awaitable[T]],
+    chain: list[str],
+    *,
+    log_event: str = "writer.fallback",
+) -> tuple[T, str]:
+    """Invoke ``call(model)`` for each model in ``chain`` in order, moving
+    to the next candidate on a persistent (non-transient — the caller's
+    own provider module already ran its transient retries) failure.
+
+    Mirrors the policy of the other fallback chains in this module:
+    * ``SpendCapExceeded`` always propagates untouched from any attempt —
+      never a reason to try the next model.
+    * Spend is metered under whichever model actually produced the
+      result, since each attempt performs its own pre-flight check and
+      its own ``spend.log`` inside ``call``.
+    * A length-1 chain (no real fallback target) surfaces the original
+      error untouched rather than wrapping a single failure.
+
+    Returns ``(result, model_used)`` so callers can log/attribute which
+    model actually wrote the content.
+    """
+    last_exc: BaseException | None = None
+    for attempt, model in enumerate(chain, start=1):
+        try:
+            result = await call(model)
+            if attempt > 1:
+                log.warning(
+                    f"{log_event}.succeeded",
+                    extra={"model": model, "attempt": attempt, "chain_len": len(chain)},
+                )
+            return result, model
+        except SpendCapExceeded:
+            raise
+        except Exception as exc:  # noqa: BLE001 — try the next model
+            last_exc = exc
+            log.warning(
+                f"{log_event}.attempt_failed",
+                extra={
+                    "model": model, "attempt": attempt,
+                    "chain_len": len(chain), "error": str(exc),
+                },
+            )
+            if len(chain) == 1:
+                raise
+    raise WriterFallbackExhausted(
+        f"all {len(chain)} model(s) failed; last error: {last_exc}"
     ) from last_exc

@@ -13,41 +13,52 @@ from typing import Any
 from ..db import get_pool
 
 
+# Column-name fragments whose values must never leave the system, even in a
+# data-portability export (hashes/secrets are not the user's data to receive
+# and are security-sensitive). Matched as substrings, case-insensitive.
+_SENSITIVE_COL_FRAGMENTS = ("token_hash", "secret", "password", "_hash", "signing")
+
+
+def _is_sensitive(col: str) -> bool:
+    c = col.lower()
+    return any(frag in c for frag in _SENSITIVE_COL_FRAGMENTS)
+
+
+def _scrub(d: dict) -> dict:
+    return {k: _json_safe(v) for k, v in d.items() if not _is_sensitive(k)}
+
+
 async def export_user(user_id: str) -> dict[str, Any]:
+    """Full data-portability export: the user row plus every row in every
+    per-user table. Tables are discovered dynamically (any public table with
+    a ``user_id`` column), so new per-user tables are covered automatically
+    instead of relying on a hand-maintained list that silently rots. Sensitive
+    columns (token hashes, signing secrets) are scrubbed."""
     pool = await get_pool()
     async with pool.acquire() as conn:
         user = await conn.fetchrow("select * from users where id = $1", user_id)
         if user is None:
             return {}
-        niches = await conn.fetch("select * from niches where user_id = $1", user_id)
-        jobs = await conn.fetch(
-            "select id, niche_id, status, platform, scheduled_for, provider_post_id, "
-            "created_at from jobs where user_id = $1 order by created_at", user_id,
+        tables = await conn.fetch(
+            """
+            select table_name from information_schema.columns
+             where table_schema = 'public' and column_name = 'user_id'
+             order by table_name
+            """
         )
-        articles = await conn.fetch(
-            "select id, niche_id, status, topic, title, slug, word_count, "
-            "created_at from articles where user_id = $1 order by created_at", user_id,
-        )
-        spend = await conn.fetch(
-            "select provider, sku, units, cost_usd, created_at from spend_ledger "
-            "where user_id = $1 order by created_at", user_id,
-        )
-        tokens = await conn.fetch(
-            "select prefix, name, created_at, expires_at, revoked_at "
-            "from personal_access_tokens where user_id = $1", user_id,
-        )
-
-    def rows(rs):
-        return [{k: _json_safe(v) for k, v in dict(r).items()} for r in rs]
+        per_table: dict[str, Any] = {}
+        for t in tables:
+            name = t["table_name"]
+            # Table name comes from the catalog (not user input); quote defensively.
+            rs = await conn.fetch(
+                f'select * from "{name}" where user_id = $1', user_id
+            )
+            per_table[name] = [_scrub(dict(r)) for r in rs]
 
     return {
         "exported_at": None,  # stamped by the route (Date unavailable in some contexts)
-        "user": {k: _json_safe(v) for k, v in dict(user).items()},
-        "niches": rows(niches),
-        "jobs": rows(jobs),
-        "articles": rows(articles),
-        "spend_ledger": rows(spend),
-        "personal_access_tokens": rows(tokens),  # prefixes only, never the secret
+        "user": _scrub(dict(user)),
+        **per_table,
     }
 
 

@@ -141,17 +141,18 @@ async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     """Operator veto on an `awaiting_approval` job. The rendered video
     stays on the volume (retention GC handles cleanup); the job is marked
     failed so it never posts."""
-    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    job = await jobs_repo.claim_for_rejection(job_id, user_id=ctx.user_id)
     if job is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
-    if job.status != JobStatus.awaiting_approval:
+        # Not owned/absent, or no longer awaiting_approval (e.g. a concurrent
+        # approve already claimed it) — atomic, so reject can't clobber a job
+        # that has already advanced toward posting.
+        existing = await jobs_repo.get(job_id, user_id=ctx.user_id)
+        if existing is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="job not found")
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            detail=f"job is {job.status.value}, not awaiting_approval",
+            detail=f"job is {existing.status.value}, not awaiting_approval",
         )
-    job.status = JobStatus.failed
-    job.error = "rejected by operator before posting"
-    await jobs_repo.save_snapshot(job)
     return job
 
 

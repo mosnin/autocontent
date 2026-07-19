@@ -38,6 +38,9 @@ async def test_deliver_one_signs_and_posts(monkeypatch):
             return _Resp()
 
     monkeypatch.setattr(webhook_delivery.httpx, "AsyncClient", _Client)
+    # This test exercises signing, not the SSRF guard; the .example host
+    # doesn't resolve, so stub the guard to allow it.
+    monkeypatch.setattr("marketer.services.ssrf.check_public_url", lambda url: (True, ""))
     code = await webhook_delivery.deliver_one(
         "https://hook.example/x", "whsec_abc",
         event="job.done", payload={"job_id": "j1"}, timestamp=111,
@@ -137,6 +140,9 @@ def test_create_returns_secret_once(monkeypatch):
         return ep
 
     monkeypatch.setattr(repo, "create", _create)
+    # SSRF guard is covered in test_phase4_fixes; stub it here (.example host
+    # doesn't resolve) so this test can exercise the secret-once behavior.
+    monkeypatch.setattr("marketer.services.ssrf.check_public_url", lambda url: (True, ""))
     client = _client(monkeypatch)
     resp = client.post(
         "/api/v1/webhook-endpoints",

@@ -363,20 +363,20 @@ def test_replay_image_post_delegates_to_claim_for_retry(monkeypatch):
     assert resp.json()["status"] == "queued"
 
 
-def test_replay_article_delegates_to_save(monkeypatch):
+def test_replay_article_delegates_to_atomic_claim(monkeypatch):
     from marketer.repos import articles as articles_repo
 
-    saved: list[Article] = []
+    claims: list[tuple] = []
 
-    async def _get(article_id: UUID, *, user_id: str):
-        assert user_id == _USER_ID
-        return _make_article()
+    async def _claim(article_id: UUID, *, user_id: str):
+        assert user_id == _USER_ID  # user-scoped
+        claims.append((article_id, user_id))
+        art = _make_article()
+        art.status = ArticleStatus.queued
+        art.error = None
+        return art
 
-    async def _save(article: Article) -> None:
-        saved.append(article)
-
-    monkeypatch.setattr(articles_repo, "get", _get)
-    monkeypatch.setattr(articles_repo, "save", _save)
+    monkeypatch.setattr(articles_repo, "claim_for_retry", _claim)
 
     class _FakeFn:
         def spawn(self, *args):
@@ -390,5 +390,4 @@ def test_replay_article_delegates_to_save(monkeypatch):
     client = _make_app(monkeypatch)
     resp = client.post(f"/api/v1/failures/replay/article/{_ARTICLE_ID}")
     assert resp.status_code == 202
-    assert saved[0].status == ArticleStatus.queued
-    assert saved[0].error is None
+    assert claims and claims[0][0] == _ARTICLE_ID

@@ -71,10 +71,19 @@ def _threshold() -> Decimal:
 
 
 async def _gather_and_guard(
-    campaign: AdCampaign, new_daily_budget_usd: Decimal
+    campaign: AdCampaign,
+    new_daily_budget_usd: Decimal,
+    *,
+    prev_daily_budget_usd: Decimal | None = None,
 ) -> tuple[Decimal, Decimal, str]:
     """Returns (dollar_delta, decision-ok requires_approval, reason) after
-    running the guard. Raises AdSpendDenied on a hard deny."""
+    running the guard. Raises AdSpendDenied on a hard deny.
+
+    ``prev_daily_budget_usd`` overrides what counts as the "previous" budget
+    when computing the delta — normally the campaign's currently-stored
+    budget (a budget change on an already-spending campaign), but callers
+    guarding an ACTIVATION pass 0 here: the campaign wasn't spending before,
+    so its whole stored budget is the delta coming online."""
     account = await ads_repo.get_account(
         campaign.ad_account_id, user_id=campaign.user_id
     )
@@ -101,7 +110,11 @@ async def _gather_and_guard(
         campaign.ad_account_id, user_id=campaign.user_id,
         start=today.replace(day=1), end=today,
     )
-    prev = campaign.daily_budget_usd or Decimal("0")
+    prev = (
+        campaign.daily_budget_usd or Decimal("0")
+        if prev_daily_budget_usd is None
+        else prev_daily_budget_usd
+    )
     delta = new_daily_budget_usd - prev
     decision = evaluate_budget_change(
         account=gov,
@@ -206,6 +219,64 @@ async def execute_approved_budget_change(
     )
     await ad_approvals.mark_executed(approval_id, user_id=user_id)
     return {"status": "executed", "campaign": updated.model_dump(mode="json")}
+
+
+async def guard_activation(campaign: AdCampaign) -> tuple[Decimal, bool]:
+    """Run the SAME budget guard ``propose_budget_change`` uses against a
+    campaign that is about to be ACTIVATED, using its stored
+    ``daily_budget_usd`` as the spend newly coming online (previous
+    contribution treated as zero, since a draft/paused campaign spends
+    nothing). Returns (dollar_delta, requires_approval). Raises
+    AdSpendDenied on a hard deny (over cap, kill-switch, inactive account,
+    …) — activation must never bypass the cap/approval checks that a budget
+    change would go through."""
+    budget = campaign.daily_budget_usd or Decimal("0")
+    delta, requires_approval, _ = await _gather_and_guard(
+        campaign, budget, prev_daily_budget_usd=Decimal("0"),
+    )
+    return delta, requires_approval
+
+
+async def execute_approved_activation(
+    *,
+    user_id: str,
+    approval_id: UUID,
+    actor_email: str = "",
+    apply_fn: ApplyFn | None = None,
+) -> dict:
+    """Run a campaign activation that a human already approved. Re-validates
+    the guard at execution time (state may have moved since the approval was
+    granted), applies (platform call + status flip), audits, and marks the
+    approval executed so it can't be replayed."""
+    approval = await ad_approvals.get(approval_id, user_id=user_id)
+    if approval is None or approval.status != "approved":
+        raise AdSpendDenied("approval is not in an approved state")
+    if approval.campaign_id is None:
+        raise AdSpendDenied("approval has no campaign")
+    campaign = await ads_repo.get_campaign(approval.campaign_id, user_id=user_id)
+    if campaign is None:
+        raise AdSpendDenied("campaign not found")
+
+    # Re-guard at execution time; a hard deny aborts and leaves the approval
+    # 'approved' so it can be retried once the blocker clears.
+    delta, _requires = await guard_activation(campaign)
+
+    budget = campaign.daily_budget_usd or Decimal("0")
+    fn = apply_fn or _noop_apply
+    result = await fn(campaign, budget)
+    updated = await ads_repo.update_campaign(
+        campaign.id, user_id=user_id, status="active"
+    )
+    await ad_actions.record(
+        user_id=user_id, actor="user", actor_email=actor_email,
+        action="campaign.activate", platform="",
+        target_type="ad_campaign", target_id=str(campaign.id),
+        dollar_delta_usd=delta,
+        before={"status": campaign.status},
+        after={"status": "active", "result": result},
+    )
+    await ad_approvals.mark_executed(approval_id, user_id=user_id)
+    return {"status": "executed", "campaign": (updated or campaign).model_dump(mode="json")}
 
 
 async def _apply_budget(

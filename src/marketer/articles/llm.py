@@ -14,6 +14,7 @@ from decimal import Decimal
 import openai
 
 from ..config import settings
+from ..services import provider_fallback
 from ..services.openai_pricing import LLM_CALL_ESTIMATE_USD, llm_cost
 from ..services.spend_context import SpendContext
 from .models import (
@@ -262,19 +263,30 @@ async def write_section(
         "appropriate). Do not include any other headings. Remember: no "
         "em-dashes or en-dashes anywhere."
     )
-    if spend is not None:
-        await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-    model = settings.article_writer_model
-    resp = await _oai().chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        temperature=0.7,
+    async def _call(model: str) -> str:
+        if spend is not None:
+            await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
+        resp = await _oai().chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.7,
+        )
+        await _log_usage(resp, model, spend)
+        return strip_ai_dashes((resp.choices[0].message.content or "").strip())
+
+    # A persistent failure of the configured writer model (rotated/expired
+    # key, deprecated model id, extended outage — the model's own transient
+    # retries already ran inside the OpenAI SDK) must not kill the whole
+    # article. Fall back to the stock agent_model, same philosophy as
+    # provider_fallback.synthesize_vo_with_fallback for video voiceover.
+    chain = provider_fallback.writer_model_fallback_chain(settings.article_writer_model)
+    text, _model_used = await provider_fallback.call_with_model_fallback(
+        _call, chain, log_event="article.writer.fallback",
     )
-    await _log_usage(resp, model, spend)
-    return strip_ai_dashes((resp.choices[0].message.content or "").strip())
+    return text
 
 
 # ---------------------------------------------------------------------------

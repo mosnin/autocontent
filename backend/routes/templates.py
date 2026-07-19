@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 
 from marketer.config import settings
 from marketer.models import Template
+from marketer.repos import admin_audit
 from marketer.repos import templates as templates_repo
 
 from ..auth import AuthCtx, CurrentUser, require_admin
@@ -247,7 +248,7 @@ async def create_template(
         _commit_artifacts()
         await _mirror_reference(dest)
         reference_key = str(dest)
-    return await templates_repo.create(
+    created = await templates_repo.create(
         created_by=admin.user_id,
         kind=body.kind,
         name=body.name,
@@ -256,17 +257,32 @@ async def create_template(
         reference_key=reference_key,
         is_published=body.is_published,
     )
+    await _audit_template(admin, "template.create", created.id,
+                          {"kind": body.kind, "published": body.is_published})
+    return created
+
+
+async def _audit_template(admin, action: str, template_id, metadata: dict) -> None:
+    """Every admin template mutation is append-only audited (SOC2: the
+    template library is globally visible, so create/update/delete must be
+    attributable)."""
+    await admin_audit.record(
+        actor_id=admin.user_id, actor_email=admin.email, action=action,
+        target_type="template", target_id=str(template_id),
+        ip=admin.ip, user_agent=admin.user_agent, metadata=metadata,
+    )
 
 
 @router.put("/{template_id}", response_model=Template)
 async def update_template(
     template_id: UUID, body: TemplateUpdate, admin=Depends(require_admin)
 ) -> Template:
-    template = await templates_repo.update(
-        template_id, **body.model_dump(exclude_unset=True)
-    )
+    fields = body.model_dump(exclude_unset=True)
+    template = await templates_repo.update(template_id, **fields)
     if template is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    await _audit_template(admin, "template.update", template_id,
+                          {"fields": sorted(fields.keys())})
     return template
 
 
@@ -274,3 +290,4 @@ async def update_template(
 async def delete_template(template_id: UUID, admin=Depends(require_admin)) -> None:
     if not await templates_repo.delete(template_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    await _audit_template(admin, "template.delete", template_id, {})

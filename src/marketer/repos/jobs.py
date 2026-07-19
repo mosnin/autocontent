@@ -91,6 +91,44 @@ async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
     return job
 
 
+async def claim_for_rejection(job_id: UUID, *, user_id: str) -> Job | None:
+    """Atomically mark an `awaiting_approval` job `failed` (operator veto).
+
+    Like reset_for_retry, the `and status = 'awaiting_approval'` predicate is
+    re-checked under a row lock at UPDATE time. This closes a race with
+    approve_job: without it, a plain read-then-write reject could read the
+    pre-claim `awaiting_approval` row, lose the race to an approval that then
+    posts the video, and blind-overwrite the resulting `done` row back to
+    `failed` — leaving the DB claiming rejected while content already posted
+    (and a later retry could double-post). The atomic claim means once
+    approve_job wins (flipping to `scheduling`), reject matches 0 rows -> None.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        with prev as (
+            select id, payload from jobs
+             where id = $1 and user_id = $2 and status = 'awaiting_approval'
+        )
+        update jobs j
+           set status = 'failed'::job_status,
+               error = 'rejected by operator before posting',
+               updated_at = now()
+          from prev
+         where j.id = prev.id and j.status = 'awaiting_approval'
+        returning prev.payload as old_payload
+        """,
+        job_id, user_id,
+    )
+    if row is None:
+        return None
+    job = Job.model_validate(json.loads(row["old_payload"]))
+    job.status = JobStatus.failed
+    job.error = "rejected by operator before posting"
+    await save_snapshot(job)
+    return job
+
+
 _REAPABLE_STATUSES = (
     "queued", "ideating", "scripting", "generating_images", "animating",
     "voicing", "editing", "captioning", "qa", "scheduling",

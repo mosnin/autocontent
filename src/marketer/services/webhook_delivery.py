@@ -8,6 +8,7 @@ Every event is signed so receivers can verify authenticity:
 """
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -17,6 +18,7 @@ import httpx
 
 from ..logging import get_logger
 from ..repos import webhooks_out
+from . import ssrf
 
 log = get_logger(__name__)
 
@@ -31,6 +33,13 @@ def sign(secret: str, timestamp: int, body: str) -> str:
 async def deliver_one(url: str, secret: str, *, event: str, payload: dict, timestamp: int) -> int | None:
     """POST one signed event. Returns the HTTP status, or None on transport
     error. Never raises."""
+    # Re-check the destination at delivery time too: a URL that resolved to a
+    # public IP at registration can be re-pointed at an internal address
+    # afterwards (DNS rebinding). Never POST a signed payload to a private host.
+    ok, reason = await asyncio.to_thread(ssrf.check_public_url, url)
+    if not ok:
+        log.warning("webhook delivery blocked (ssrf)", extra={"url": url, "reason": reason})
+        return None
     body = json.dumps({"event": event, "data": payload}, separators=(",", ":"))
     signature = sign(secret, timestamp, body)
     headers = {

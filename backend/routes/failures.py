@@ -167,18 +167,16 @@ async def replay_failure(
         fn.spawn(ctx.user_id, str(item_id))
         return {"kind": "image_post", "id": str(item_id), "status": "queued"}
 
-    # kind == "article"
-    article = await articles_repo.get(item_id, user_id=ctx.user_id)
+    # kind == "article" — atomic failed->queued claim (no double-spawn).
+    article = await articles_repo.claim_for_retry(item_id, user_id=ctx.user_id)
     if article is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
-    if article.status != ArticleStatus.failed:
+        existing = await articles_repo.get(item_id, user_id=ctx.user_id)
+        if existing is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            detail=f"article is {article.status.value}, not failed",
+            detail=f"article is {existing.status.value}, not failed",
         )
-    article.status = ArticleStatus.queued
-    article.error = None
-    await articles_repo.save(article)
     fn = modal.Function.from_name("marketer-sh", "run_article_pipeline")
     fn.spawn(ctx.user_id, str(article.niche_id), str(article.id), article.topic)
     return {"kind": "article", "id": str(article.id), "status": "queued"}

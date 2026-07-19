@@ -178,9 +178,13 @@ def test_retry_article_conflicts_when_not_failed(monkeypatch):
 
     art = _make_article(status=ArticleStatus.done)
 
-    async def _get(article_id, *, user_id):
-        return art
+    async def _claim(article_id, *, user_id):
+        return None  # not in failed state -> atomic claim matches nothing
 
+    async def _get(article_id, *, user_id):
+        return art  # exists but done -> 409
+
+    monkeypatch.setattr(articles_repo, "claim_for_retry", _claim)
     monkeypatch.setattr(articles_repo, "get", _get)
     client = _make_authed_client(monkeypatch)
     resp = client.post(
@@ -194,17 +198,15 @@ def test_retry_article_respawns_same_row(monkeypatch):
     _reset_limiter()
     import marketer.repos.articles as articles_repo
 
-    art = _make_article(status=ArticleStatus.failed)
-    saved: list[Article] = []
+    # The atomic claim returns the freshly-queued row (winner).
+    claimed = _make_article(status=ArticleStatus.queued)
+    claims: list[tuple] = []
 
-    async def _get(article_id, *, user_id):
-        return art
+    async def _claim(article_id, *, user_id):
+        claims.append((article_id, user_id))
+        return claimed
 
-    async def _save(a):
-        saved.append(a)
-
-    monkeypatch.setattr(articles_repo, "get", _get)
-    monkeypatch.setattr(articles_repo, "save", _save)
+    monkeypatch.setattr(articles_repo, "claim_for_retry", _claim)
 
     spawned: list[tuple] = []
     _stub_modal(monkeypatch, spawned)
@@ -215,5 +217,5 @@ def test_retry_article_respawns_same_row(monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 202
-    assert saved and saved[0].status == ArticleStatus.queued
+    assert claims and claims[0][0] == _ARTICLE_ID  # claimed atomically
     assert spawned[0][2] == str(_ARTICLE_ID)

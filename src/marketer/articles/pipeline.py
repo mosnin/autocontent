@@ -335,30 +335,44 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         )
         article.article_markdown = markdown
 
-    # 6. Hero image (optional) — reuses the video pipeline's gpt-image-1
-    # provider, so pricing/caps/ledger are identical.
+    # 6. Hero image (optional, non-essential) — reuses the video pipeline's
+    # gpt-image-1 provider, so pricing/caps/ledger are identical. An article
+    # is fully publishable without a hero image, so a failure here (content
+    # policy rejection, transient provider outage, malformed prompt payload)
+    # must DEGRADE — log and continue without one — rather than fail the
+    # whole article. A spend-cap breach is the one exception: that's a
+    # real-money guardrail, not a hero-image problem, so it still fails the
+    # article cleanly like every other metered stage.
     if settings.article_hero_image:
         with _stage(ArticleStatus.imaging.value):
             await _set_status(article, ArticleStatus.imaging)
-            prompt = await llm.generate_hero_prompt(
-                article.title or article.topic,
-                article.focus_keyword,
-                markdown,
-                spend=spend,
-            )
-            if prompt is not None:
-                hero = (
-                    Path(settings.artifacts_dir)
-                    / article.user_id
-                    / "articles"
-                    / str(article.id)
-                    / "hero.png"
+            try:
+                prompt = await llm.generate_hero_prompt(
+                    article.title or article.topic,
+                    article.focus_keyword,
+                    markdown,
+                    spend=spend,
                 )
-                await openai_images.generate_keyframe(
-                    prompt.prompt, hero, quality=niche.image_quality, spend=spend
+                if prompt is not None:
+                    hero = (
+                        Path(settings.artifacts_dir)
+                        / article.user_id
+                        / "articles"
+                        / str(article.id)
+                        / "hero.png"
+                    )
+                    await openai_images.generate_keyframe(
+                        prompt.prompt, hero, quality=niche.image_quality, spend=spend
+                    )
+                    article.hero_image_path = str(hero)
+                    article.hero_image_alt = prompt.altText
+            except spend_repo.SpendCapExceeded:
+                raise
+            except Exception as exc:  # noqa: BLE001 — hero image is non-essential
+                log.warning(
+                    "article hero image degraded; publishing without one",
+                    extra={"article_id": str(article.id), "error": str(exc)},
                 )
-                article.hero_image_path = str(hero)
-                article.hero_image_alt = prompt.altText
 
     article.status = ArticleStatus.done
     article.error = None

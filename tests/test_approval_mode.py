@@ -122,26 +122,28 @@ def test_approve_conflicts_when_not_awaiting(client, monkeypatch):
 
 
 def test_reject_marks_failed_without_posting(client, monkeypatch):
+    # reject is now an atomic claim (claim_for_rejection); the concurrency
+    # guarantee itself is covered in tests/integration/test_pg_reset_retry.py.
     job = _job()
-    saved: list[Job] = []
+    claimed: list = []
 
-    async def fake_get(job_id, *, user_id):
-        return job
-
-    async def fake_save(j):
-        saved.append(j)
+    async def fake_claim(job_id, *, user_id):
+        claimed.append((job_id, user_id))
+        j = job.model_copy(deep=True)
+        j.status = JobStatus.failed
+        j.error = "rejected by operator before posting"
+        return j
 
     from marketer.repos import jobs as jobs_repo
-    monkeypatch.setattr(jobs_repo, "get", fake_get)
-    monkeypatch.setattr(jobs_repo, "save_snapshot", fake_save)
+    monkeypatch.setattr(jobs_repo, "claim_for_rejection", fake_claim)
 
     resp = client.post(
         f"/api/v1/jobs/{job.id}/reject",
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 200
-    assert saved and saved[0].status == JobStatus.failed
-    assert "rejected" in (saved[0].error or "")
+    assert claimed and resp.json()["status"] == JobStatus.failed.value
+    assert "rejected" in (resp.json().get("error") or "")
 
 
 async def test_schedule_approved_job_rejects_wrong_status(monkeypatch):
