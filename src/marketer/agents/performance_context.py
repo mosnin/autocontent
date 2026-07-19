@@ -27,6 +27,7 @@ class WinnerLoser:
     hook: str
     topic: str
     views: int
+    completion_rate: float | None = None
 
 
 async def build_performance_context(
@@ -42,19 +43,22 @@ async def build_performance_context(
     Returns an empty string when no metrics are available yet (cold-start).
     Jobs that no longer exist or that were never scripted are silently skipped.
     """
-    top_pairs: list[tuple[UUID, int]] = await post_metrics.top_performers_for_niche(
+    top_pairs = await post_metrics.top_performers_for_niche(
         niche_id, user_id=user_id, limit=top_n, days=lookback_days
     )
-    bottom_pairs: list[tuple[UUID, int]] = await post_metrics.bottom_performers_for_niche(
+    bottom_pairs = await post_metrics.bottom_performers_for_niche(
         niche_id, user_id=user_id, limit=bottom_n, days=lookback_days
     )
 
     if not top_pairs and not bottom_pairs:
         return ""
 
-    async def _hydrate(pairs: list[tuple[UUID, int]]) -> list[WinnerLoser]:
+    async def _hydrate(pairs) -> list[WinnerLoser]:
+        # Tolerates (job_id, views) pairs and (job_id, views, completion)
+        # triples so older callers/fixtures keep working.
         results: list[WinnerLoser] = []
-        for job_id, views in pairs:
+        for job_id, views, *rest in pairs:
+            completion = rest[0] if rest else None
             job = await jobs_repo.get(job_id, user_id=user_id)
             if job is None:
                 continue
@@ -66,6 +70,7 @@ async def build_performance_context(
                     hook=job.script.idea.hook,
                     topic=job.script.idea.topic,
                     views=views,
+                    completion_rate=float(completion) if completion is not None else None,
                 )
             )
         return results
@@ -78,14 +83,24 @@ async def build_performance_context(
 
     lines: list[str] = []
 
+    def _fmt(w: WinnerLoser) -> str:
+        completion = (
+            f", completion: {w.completion_rate:.0%}"
+            if w.completion_rate is not None
+            else ""
+        )
+        return f'"{w.hook}" — topic: {w.topic}, views: {w.views:,}{completion}'
+
     if winners:
-        lines.append(f"## What's working in this niche (top performers, last {lookback_days} days)")
+        lines.append(
+            f"## What's working in this niche (top performers by completion, last {lookback_days} days)"
+        )
         for i, w in enumerate(winners, 1):
-            lines.append(f'{i}. "{w.hook}" — topic: {w.topic}, views: {w.views:,}')
+            lines.append(f"{i}. {_fmt(w)}")
 
     if losers:
         lines.append("## What's flopped (bottom performers)")
         for i, lo in enumerate(losers, 1):
-            lines.append(f'{i}. "{lo.hook}" — topic: {lo.topic}, views: {lo.views:,}')
+            lines.append(f"{i}. {_fmt(lo)}")
 
     return "\n".join(lines)

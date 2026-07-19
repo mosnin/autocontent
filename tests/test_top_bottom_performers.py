@@ -43,7 +43,7 @@ async def test_top_performers_returns_descending_order(monkeypatch):
 
     assert len(result) == 5
     # Verify descending order by views.
-    views_seq = [v for _, v in result]
+    views_seq = [v for _, v, _cr in result]
     assert views_seq == sorted(views_seq, reverse=True)
     # Highest should be first.
     assert result[0][1] == 750
@@ -73,7 +73,7 @@ async def test_bottom_performers_returns_ascending_order(monkeypatch):
     result = await pm_repo.bottom_performers_for_niche(_NICHE_ID, user_id=_USER_ID, limit=5)
 
     assert len(result) == 5
-    views_seq = [v for _, v in result]
+    views_seq = [v for _, v, _cr in result]
     assert views_seq == sorted(views_seq)
     assert result[0][1] == 50
 

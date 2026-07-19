@@ -35,6 +35,7 @@ async def run_scriptwriter(
     *,
     scene_count: int,
     target_duration_sec: int,
+    audience_context: str = "",
     spend: SpendContext | None = None,
 ) -> Script:
     agent = build_scriptwriter_agent()
@@ -42,6 +43,8 @@ async def run_scriptwriter(
         f"Idea:\n{idea.model_dump_json(indent=2)}\n\n"
         f"Target: {scene_count} scenes, {target_duration_sec}s total."
     )
+    if audience_context:
+        prompt += f"\n{audience_context}"
     result = await run_metered(agent, prompt, spend=spend)
     return result.final_output_as(Script)
 
@@ -50,10 +53,15 @@ async def run_visual_director(
     script: Script,
     *,
     visual_style: str,
+    character_description: str = "",
     spend: SpendContext | None = None,
 ) -> Script:
     agent = build_visual_director_agent()
-    payload = {"style": visual_style, "script": script.model_dump()}
+    payload = {
+        "style": visual_style,
+        "character": character_description or "",
+        "script": script.model_dump(),
+    }
     result = await run_metered(agent, json.dumps(payload), spend=spend)
     return result.final_output_as(Script)
 

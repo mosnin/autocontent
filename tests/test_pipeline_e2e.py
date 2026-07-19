@@ -144,16 +144,16 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context="", spend=None):
+    async def fake_ideation(title, **kwargs):
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, spend=None):
+    async def fake_scriptwriter(idea, **kwargs):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style, spend=None):
+    async def fake_visual_director(script, **kwargs):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
@@ -458,7 +458,7 @@ def _counting_provider_stubs(monkeypatch) -> dict[str, int]:
     """Re-patch the expensive stages with counters on top of stub_all."""
     calls = {"ideation": 0, "keyframe": 0, "tts": 0}
 
-    async def counting_ideation(title, *, performance_context="", spend=None):
+    async def counting_ideation(title, **kwargs):
         calls["ideation"] += 1
         return Idea(topic="t", angle="a", hook="hook",
                     target_audience="x", why_it_works="y")
@@ -567,3 +567,55 @@ async def test_content_rejection_retry_regenerates_everything(
     assert calls["ideation"] == 1
     assert calls["keyframe"] == 2  # both scenes regenerated
     assert calls["tts"] == 1
+
+
+# --------------------------------------------------------------------------- auto-regenerate
+
+async def test_qa_regenerate_script_retries_once_then_succeeds(monkeypatch, stub_all):
+    """QA rejecting the script with suggested_action=regenerate_script gets
+    exactly one fresh in-run attempt; second pass publishes."""
+    qa_calls = {"n": 0}
+
+    async def flaky_qa(script, transcript, dur, *, niche, spend=None):
+        qa_calls["n"] += 1
+        if qa_calls["n"] == 1:
+            return QAReport(passed=False, issues=["weak hook"],
+                            suggested_action="regenerate_script")
+        return QAReport(passed=True, issues=[], suggested_action="publish")
+
+    monkeypatch.setattr(pipeline, "run_qa", flaky_qa)
+
+    script_calls = {"n": 0}
+
+    async def counting_scriptwriter(idea, *, scene_count, target_duration_sec,
+                                    audience_context="", spend=None):
+        script_calls["n"] += 1
+        return _make_script()
+
+    monkeypatch.setattr(pipeline, "run_scriptwriter", counting_scriptwriter)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.done
+    assert qa_calls["n"] == 2
+    assert script_calls["n"] == 2  # regenerated once
+
+
+async def test_qa_regenerate_is_bounded_to_one_attempt(monkeypatch, stub_all):
+    """A script QA keeps rejecting fails after exactly one regenerate."""
+    qa_calls = {"n": 0}
+
+    async def always_reject(script, transcript, dur, *, niche, spend=None):
+        qa_calls["n"] += 1
+        return QAReport(passed=False, issues=["still weak"],
+                        suggested_action="regenerate_script")
+
+    monkeypatch.setattr(pipeline, "run_qa", always_reject)
+
+    job = await pipeline.run_job(
+        user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",
+    )
+    assert job.status == JobStatus.failed
+    assert qa_calls["n"] == 2  # original + one regenerate, then stop
+    assert "content QA failed" in (job.error or "")

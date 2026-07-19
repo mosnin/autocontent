@@ -147,6 +147,20 @@ async def _ensure_cap(job: Job, niche: Niche) -> bool:
     return True
 
 
+async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
+    """Account brand kit → (voice, banned words). Fail-open: brand kit is
+    seasoning, never a reason a video can't be made."""
+    try:
+        from .repos import brand_kit as brand_kit_repo
+
+        brand = await brand_kit_repo.get(user_id)
+        if brand is None:
+            return "", []
+        return brand.tone_of_voice or "", list(brand.banned_words or [])
+    except Exception:  # noqa: BLE001
+        return "", []
+
+
 async def _notify(job: Job, *, kind: str) -> None:
     """Email the operator at a terminal moment. Fail-open: notification
     problems never affect job state. Skips silently when the user has opted
@@ -318,6 +332,8 @@ async def _run_job_inner(
     platform: str,
     root: Path,
     spend: SpendContext,
+    *,
+    allow_regenerate: bool = True,
 ) -> Job:
     if not await _ensure_cap(job, niche):
         return job
@@ -332,7 +348,8 @@ async def _run_job_inner(
         log.info("resume: reusing script from prior attempt")
         (root / "script.json").write_text(script.model_dump_json(indent=2))
     else:
-        # 1. Ideation
+        # 1. Ideation — fed the full brief: niche description/audience,
+        # brand voice, recent-topic dedupe list, and performance context.
         with _stage(JobStatus.ideating.value):
             job.status = JobStatus.ideating
             await _persist(job)
@@ -341,22 +358,41 @@ async def _run_job_inner(
                 user_id=job.user_id,
                 lookback_days=30,
             )
+            brand_voice, banned_words = await _load_brand_voice(job.user_id)
+            recent = await jobs_repo.recent_topics_for_niche(
+                niche.id, user_id=job.user_id, limit=20
+            )
             idea = await run_ideation(
-                niche.title, performance_context=perf_ctx, spend=spend
+                niche.title,
+                performance_context=perf_ctx,
+                niche_description=niche.description,
+                target_audience=niche.target_audience,
+                platform=platform,
+                brand_voice=brand_voice,
+                banned_words=banned_words,
+                recent_topics=recent,
+                spend=spend,
             )
 
         # 2. Script + visual direction
         with _stage(JobStatus.scripting.value):
             job.status = JobStatus.scripting
             await _persist(job)
+            audience_ctx = f"Audience: {niche.target_audience}. Platform: {platform}."
+            if brand_voice:
+                audience_ctx += f" Brand voice: {brand_voice}."
             script = await run_scriptwriter(
                 idea,
                 scene_count=niche.scene_count,
                 target_duration_sec=niche.target_duration_sec,
+                audience_context=audience_ctx,
                 spend=spend,
             )
             script = await run_visual_director(
-                script, visual_style=niche.visual_style, spend=spend
+                script,
+                visual_style=niche.visual_style,
+                character_description=niche.character_description or "",
+                spend=spend,
             )
             job.script = script
             (root / "script.json").write_text(script.model_dump_json(indent=2))
@@ -523,6 +559,21 @@ async def _run_job_inner(
             spend=spend,
         )
         if not report.passed:
+            # One bounded in-run regenerate when QA says the *script* is
+            # the problem — a fresh script usually passes, and failing the
+            # job here wastes everything already rendered well. Spend caps
+            # still gate every call in the second attempt.
+            if allow_regenerate and report.suggested_action == "regenerate_script":
+                log.info(
+                    "qa rejected script; auto-regenerating once",
+                    extra={"issues": "; ".join(report.issues)},
+                )
+                _wipe_pipeline_state(job)
+                job.status = JobStatus.queued
+                await _persist(job)
+                return await _run_job_inner(
+                    job, niche, platform, root, spend, allow_regenerate=False
+                )
             # Prefix matters: _obtain_job wipes state on retry for content
             # rejections so the same script isn't re-judged to death.
             return await _fail_with(

@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     artifacts_dir: str = "/artifacts"
     assets_dir: str = "/assets"
 
+    # Ideation tournament: candidates generated per video (judge picks the
+    # winner). 1 = single-shot, no judge call.
+    ideation_candidates: int = 3
+
     # Maximum number of scene-asset tasks running concurrently.
     # Lower values reduce peak spend rate and provider rate-limit exposure.
     scene_fanout_limit: int = 4

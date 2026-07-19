@@ -202,3 +202,30 @@ async def get_by_provider_post_id(provider_post_id: str) -> Job | None:
         provider_post_id,
     )
     return Job.model_validate(json.loads(row["payload"])) if row else None
+
+
+async def recent_topics_for_niche(
+    niche_id: UUID, *, user_id: str, limit: int = 20
+) -> list[str]:
+    """Topics (with hooks) of the niche's most recent scripted jobs.
+
+    Fed to the ideation agent as a do-not-repeat list — the video
+    pipeline's equivalent of the article pipeline's topic dedupe."""
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select payload->'script'->'idea'->>'topic' as topic,
+               payload->'script'->'idea'->>'hook'  as hook
+          from jobs
+         where niche_id = $1
+           and user_id = $2
+           and payload->'script'->'idea'->>'topic' is not null
+         order by created_at desc
+         limit $3
+        """,
+        niche_id, user_id, limit,
+    )
+    return [
+        f"{r['topic']}" + (f" (hook: {r['hook']})" if r["hook"] else "")
+        for r in rows
+    ]

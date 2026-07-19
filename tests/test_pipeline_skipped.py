@@ -180,7 +180,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context="", spend=None):
+    async def fake_ideation(title, **kwargs):
         return Idea(topic="t", angle="a", hook="h",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
@@ -200,7 +200,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_vd(script, *, visual_style, spend=None):
+    async def fake_vd(script, **kwargs):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
