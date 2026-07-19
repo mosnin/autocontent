@@ -150,17 +150,17 @@ async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article
     """Re-run a failed article from scratch (same row, same topic)."""
     import modal
 
-    article = await articles_repo.get(article_id, user_id=ctx.user_id)
+    article = await articles_repo.claim_for_retry(article_id, user_id=ctx.user_id)
     if article is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
-    if article.status != ArticleStatus.failed:
+        # Either not owned/absent, or not in failed state (incl. a concurrent
+        # retry that already claimed it) — atomic, so no double-spawn.
+        existing = await articles_repo.get(article_id, user_id=ctx.user_id)
+        if existing is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            detail=f"article is {article.status.value}, not failed",
+            detail=f"article is {existing.status.value}, not failed",
         )
-    article.status = ArticleStatus.queued
-    article.error = None
-    await articles_repo.save(article)
     fn = modal.Function.from_name("marketer-sh", "run_article_pipeline")
     fn.spawn(ctx.user_id, str(article.niche_id), str(article.id), article.topic)
     return article

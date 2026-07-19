@@ -93,6 +93,28 @@ async def get(article_id: UUID, *, user_id: str) -> Article | None:
     return _row_to_model(row) if row else None
 
 
+async def claim_for_retry(article_id: UUID, *, user_id: str) -> Article | None:
+    """Atomic failed->queued retry claim (mirrors jobs.reset_for_retry).
+
+    The `and status = 'failed'` predicate is re-evaluated under a row lock at
+    UPDATE time, so of two concurrent retries of the same article (double
+    click, or one from the article page and one from the Failures inbox)
+    exactly one matches a row; the other gets None. Without this, both could
+    pass a read-then-write status check and both spawn run_article_pipeline —
+    double generation spend on one article."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        f"""
+        update articles
+           set status = 'queued'::article_status, error = null, updated_at = now()
+         where id = $1 and user_id = $2 and status = 'failed'
+        returning {_COLS}
+        """,
+        article_id, user_id,
+    )
+    return _row_to_model(row) if row else None
+
+
 async def list_for_user(
     user_id: str,
     *,
