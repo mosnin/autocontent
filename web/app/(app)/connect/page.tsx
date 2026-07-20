@@ -1,5 +1,3 @@
-import { AlertTriangle } from "lucide-react";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { connectAyrshareAction } from "@/lib/actions";
 import { api } from "@/lib/api";
@@ -55,17 +53,14 @@ export default async function ConnectPage() {
 
       {status === null ? (
         <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="flex items-start gap-3 pt-6">
-            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            <div>
-              <div className="font-medium">
-                Couldn&apos;t load your connection right now
-              </div>
-              <p className="mt-1 text-sm text-muted-foreground">
-                We hit a problem reaching the distribution service. Refresh in a
-                moment to try again.
-              </p>
+          <CardContent className="pt-6">
+            <div className="font-medium">
+              Couldn&apos;t load your connection right now
             </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              We hit a problem reaching the distribution service. Refresh in a
+              moment to try again.
+            </p>
           </CardContent>
         </Card>
       ) : (

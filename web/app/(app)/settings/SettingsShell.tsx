@@ -1,7 +1,5 @@
 "use client";
 
-import { Bell, Gauge } from "lucide-react";
-
 import {
   Card,
   CardContent,
@@ -213,15 +211,9 @@ export function SettingsShell({
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className={hubCardClass}>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Gauge
-                  className="size-4 text-muted-foreground"
-                  aria-hidden="true"
-                />
-                <CardTitle className="text-base font-semibold">
-                  Spend caps
-                </CardTitle>
-              </div>
+              <CardTitle className="text-base font-semibold">
+                Spend caps
+              </CardTitle>
               <CardDescription>
                 Set a global daily limit across all niches. Leave blank for no
                 global cap (each niche still has its own per-niche cap).
@@ -233,12 +225,9 @@ export function SettingsShell({
           </Card>
           <Card className={hubCardClass}>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Bell className="size-4 text-muted-foreground" aria-hidden="true" />
-                <CardTitle className="text-base font-semibold">
-                  Notifications
-                </CardTitle>
-              </div>
+              <CardTitle className="text-base font-semibold">
+                Notifications
+              </CardTitle>
               <CardDescription>
                 Control the emails marketer.sh sends you at the end of a run.
               </CardDescription>

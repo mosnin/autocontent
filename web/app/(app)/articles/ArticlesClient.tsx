@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { FileText, Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -343,9 +343,6 @@ function EmptyState({
   return (
     <Card className={hubCardClass}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <FileText className="h-6 w-6 text-muted-foreground" />
-        </div>
         <h3 className="text-lg font-semibold">{label}</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           {filter === "all"

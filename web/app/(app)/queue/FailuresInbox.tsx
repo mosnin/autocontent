@@ -20,11 +20,12 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { hubCardClass } from "@/components/hub/primitives";
 import { clientFetch } from "@/lib/client-fetcher";
 
 const POLL_MS = 15000;
@@ -187,12 +188,9 @@ export function FailuresInbox() {
 
   if (isLoading && !data) {
     return (
-      <Card>
+      <Card className={hubCardClass}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Failures inbox
-          </CardTitle>
+          <CardTitle>Failures inbox</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">Loading failures…</CardContent>
       </Card>
@@ -201,12 +199,9 @@ export function FailuresInbox() {
 
   if (error) {
     return (
-      <Card>
+      <Card className={hubCardClass}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            Failures inbox
-          </CardTitle>
+          <CardTitle>Failures inbox</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-destructive">
           Couldn&apos;t load failures: {error instanceof Error ? error.message : String(error)}
@@ -223,10 +218,9 @@ export function FailuresInbox() {
       : failures.filter((f) => f.category === activeCategory);
 
   return (
-    <Card>
+    <Card className={hubCardClass}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4" />
           Failures inbox
           {data && data.total > 0 && (
             <Badge variant="destructive">{data.total}</Badge>

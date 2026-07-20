@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Megaphone, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { hubCardClass } from "@/components/hub/primitives";
+import { cn } from "@/lib/utils";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { adsKeys, type AdCampaign } from "@/lib/ads-client";
@@ -74,7 +76,7 @@ export function CampaignsClient({
         <EmptyNoCampaigns />
       ) : (
         <div className="overflow-x-auto">
-          <Card className="min-w-[680px]">
+          <Card className={cn(hubCardClass, "min-w-[680px]")}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -117,11 +119,8 @@ export function CampaignsClient({
 
 function EmptyNoAccounts() {
   return (
-    <Card>
+    <Card className={hubCardClass}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <Megaphone className="size-6 text-muted-foreground" aria-hidden />
-        </div>
         <h3 className="text-lg font-semibold">Connect an account first</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Link Google Ads or Meta Ads before creating campaigns.
@@ -136,11 +135,8 @@ function EmptyNoAccounts() {
 
 function EmptyNoCampaigns() {
   return (
-    <Card>
+    <Card className={hubCardClass}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <Megaphone className="size-6 text-muted-foreground" aria-hidden />
-        </div>
         <h3 className="text-lg font-semibold">No campaigns yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create a draft campaign — it won&apos;t spend until you set a budget

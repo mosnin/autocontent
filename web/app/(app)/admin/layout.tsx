@@ -1,4 +1,4 @@
-import { Lock, ShieldCheck } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchAdminOverview, isForbidden } from "@/lib/admin-server";
@@ -58,9 +58,6 @@ function NotAuthorized() {
     <div className="flex min-h-[60vh] items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <div className="rounded-full bg-muted p-3">
-            <Lock className="h-6 w-6 text-muted-foreground" aria-hidden />
-          </div>
           <h1 className="text-lg font-semibold">Not authorized</h1>
           <p className="max-w-xs text-sm text-muted-foreground">
             You don&apos;t have access to this area. If you believe this is a

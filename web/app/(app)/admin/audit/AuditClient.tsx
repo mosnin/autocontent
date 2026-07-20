@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { ChevronDown, Filter, ScrollText, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 
 import {
   actionTone,
@@ -130,10 +130,7 @@ export function AuditClient({
       {/* filters */}
       <Card>
         <CardContent className="space-y-4 py-5">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Filter className="h-4 w-4 text-muted-foreground" aria-hidden />
-            Filters
-          </div>
+          <div className="text-sm font-medium">Filters</div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -358,9 +355,6 @@ function EmptyState({ loading }: { loading: boolean }) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <ScrollText className="h-6 w-6 text-muted-foreground" aria-hidden />
-        </div>
         <h3 className="text-lg font-semibold">
           {loading ? "Loading…" : "No entries"}
         </h3>

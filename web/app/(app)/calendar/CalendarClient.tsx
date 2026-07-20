@@ -4,12 +4,14 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { CalendarDays, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashHeading } from "@/components/hub/dashboard-kit";
+import { hubCardClass } from "@/components/hub/primitives";
 import { cn } from "@/lib/utils";
 import { AgendaList } from "@/components/calendar/AgendaList";
 import {
@@ -83,16 +85,16 @@ export function CalendarClient({ initial }: { initial: CalendarItem[] }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Calendar</h1>
-          <p className="text-sm text-muted-foreground">
-            {items.length === 0
-              ? `Nothing scheduled in the next ${range} days.`
-              : `${phrase} scheduled in the next ${range} days.`}
-          </p>
-        </div>
-      </div>
+      <DashHeading
+        as="h1"
+        sub={
+          items.length === 0
+            ? `Nothing scheduled in the next ${range} days.`
+            : `${phrase} scheduled in the next ${range} days.`
+        }
+      >
+        Calendar
+      </DashHeading>
 
       {error && (
         <p className="text-sm text-muted-foreground">
@@ -143,11 +145,8 @@ export function CalendarClient({ initial }: { initial: CalendarItem[] }) {
 
 function EmptyState({ range }: { range: CalendarRange }) {
   return (
-    <Card>
+    <Card className={hubCardClass}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <CalendarDays className="h-6 w-6 text-muted-foreground" aria-hidden />
-        </div>
         <h3 className="text-lg font-semibold">Nothing scheduled</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           No videos or articles are set to post in the next {range} days. Kick

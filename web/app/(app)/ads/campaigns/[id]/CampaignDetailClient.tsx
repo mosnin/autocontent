@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { hubCardClass } from "@/components/hub/primitives";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import {
@@ -159,7 +160,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
         <Stat label="Impressions" value={totals.impressions.toLocaleString()} />
       </div>
 
-      <Card>
+      <Card className={hubCardClass}>
         <CardContent className="pt-6">
           <form onSubmit={onBudget} className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
@@ -196,7 +197,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <Card className="shadow-sm">
+    <Card className={hubCardClass}>
       <CardContent className="space-y-1 pt-5">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}

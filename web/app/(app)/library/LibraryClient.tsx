@@ -13,7 +13,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Clapperboard, Film, Layers, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DashHeading } from "@/components/hub/dashboard-kit";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { Composition, ImagePost, MediaAsset, Niche } from "@/lib/types";
 
@@ -209,12 +210,9 @@ export function LibraryClient({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Library</h1>
-          <p className="text-sm text-muted-foreground">
-            Every video and clip you&apos;ve produced — play, sort, remix.
-          </p>
-        </div>
+        <DashHeading as="h1" sub="Every video and clip you've produced — play, sort, remix.">
+          Library
+        </DashHeading>
         <Select value={nicheFilter} onValueChange={setNicheFilter}>
           <SelectTrigger className="w-48" aria-label="Filter by niche">
             <SelectValue />
@@ -232,21 +230,10 @@ export function LibraryClient({
 
       <Tabs defaultValue="finals">
         <TabsList>
-          <TabsTrigger value="finals">
-            <Film className="mr-1.5 size-3.5" aria-hidden />
-            Final videos
-          </TabsTrigger>
-          <TabsTrigger value="clips">
-            <Layers className="mr-1.5 size-3.5" aria-hidden />
-            Clips
-          </TabsTrigger>
-          <TabsTrigger value="images">
-            Images
-          </TabsTrigger>
-          <TabsTrigger value="remixes">
-            <Clapperboard className="mr-1.5 size-3.5" aria-hidden />
-            Remixes
-          </TabsTrigger>
+          <TabsTrigger value="finals">Final videos</TabsTrigger>
+          <TabsTrigger value="clips">Clips</TabsTrigger>
+          <TabsTrigger value="images">Images</TabsTrigger>
+          <TabsTrigger value="remixes">Remixes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="finals" className="pt-4">

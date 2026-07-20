@@ -1,5 +1,3 @@
-import { ScrollText } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -10,6 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { hubCardClass } from "@/components/hub/primitives";
+import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
 
@@ -53,11 +53,8 @@ export default async function AdsActivityPage() {
       </div>
 
       {actions.length === 0 ? (
-        <Card>
+        <Card className={hubCardClass}>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <div className="rounded-full bg-muted p-3">
-              <ScrollText className="size-6 text-muted-foreground" aria-hidden />
-            </div>
             <h3 className="text-lg font-semibold">No activity yet</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               Every governance change, proposal, approval, and applied action
@@ -67,7 +64,7 @@ export default async function AdsActivityPage() {
         </Card>
       ) : (
         <div className="overflow-x-auto">
-          <Card className="min-w-[720px]">
+          <Card className={cn(hubCardClass, "min-w-[720px]")}>
             <Table>
               <TableHeader>
                 <TableRow>

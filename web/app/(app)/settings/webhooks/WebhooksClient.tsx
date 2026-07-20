@@ -3,17 +3,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  Copy,
-  Pause,
-  Play,
-  Plus,
-  Send,
-  ShieldCheck,
-  Trash2,
-  Webhook,
-} from "lucide-react";
+import { Copy, Pause, Play, Plus, Send, Trash2 } from "lucide-react";
 
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,10 +90,7 @@ function SigningHelp() {
   return (
     <Card className="border-border/60 bg-card/40">
       <CardContent className="space-y-3 pt-6 text-sm">
-        <div className="flex items-center gap-2 font-medium">
-          <ShieldCheck className="h-4 w-4 text-brand" aria-hidden="true" />
-          Verifying the signature
-        </div>
+        <div className="font-medium">Verifying the signature</div>
         <p className="text-muted-foreground">
           Every delivery carries an{" "}
           <code className="rounded bg-muted px-1 py-0.5 text-xs">
@@ -139,10 +126,7 @@ function SecretReveal({
   return (
     <Card className="border-success/40 bg-success/5">
       <CardContent className="space-y-3 pt-6">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <ShieldCheck className="h-4 w-4 text-success" aria-hidden="true" />
-          Signing secret — shown once
-        </div>
+        <div className="text-sm font-medium">Signing secret — shown once</div>
         <p className="text-xs text-muted-foreground">
           Endpoint{" "}
           <code className="rounded bg-muted px-1 py-0.5">{endpoint.url}</code>{" "}
@@ -656,12 +640,6 @@ export function WebhooksClient({ initial }: { initial: WebhookEndpoint[] }) {
       {showError ? (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-            <div className="rounded-full bg-destructive/10 p-3">
-              <AlertTriangle
-                className="h-6 w-6 text-destructive"
-                aria-hidden="true"
-              />
-            </div>
             <h3 className="text-lg font-semibold">Couldn&apos;t load webhooks</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               {errorMessage(error)}
@@ -674,9 +652,6 @@ export function WebhooksClient({ initial }: { initial: WebhookEndpoint[] }) {
       ) : endpoints.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <div className="rounded-full bg-muted p-3">
-              <Webhook className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-            </div>
             <h3 className="text-lg font-semibold">No webhooks yet</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               Register an HTTPS endpoint to get signed, real-time events when

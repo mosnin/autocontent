@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useClerk } from "@clerk/nextjs";
-import { Download, Loader2, ShieldCheck, Trash2 } from "lucide-react";
+import { Download, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -126,15 +126,9 @@ export function PrivacyClient({ email }: Props) {
       {/* Export ------------------------------------------------------ */}
       <Card className="border-border/60 bg-card/40">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <ShieldCheck
-              className="size-4 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <CardTitle className="text-base font-semibold">
-              Export your data
-            </CardTitle>
-          </div>
+          <CardTitle className="text-base font-semibold">
+            Export your data
+          </CardTitle>
           <CardDescription>
             Under the GDPR right to data portability, you can download a
             machine-readable copy of everything we hold about your account at

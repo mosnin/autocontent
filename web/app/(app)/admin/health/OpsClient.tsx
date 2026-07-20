@@ -5,17 +5,12 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  Banknote,
   CheckCircle2,
-  Gauge,
-  PauseCircle,
   RefreshCw,
-  ShieldAlert,
   XCircle,
 } from "lucide-react";
 
 import { AdminKpiCard } from "@/components/admin/kpi-card";
-import { AppIcon } from "@/components/ui/app-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -213,7 +208,6 @@ export function OpsClient({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <AdminKpiCard
               color="green"
-              icon={<Banknote />}
               title="Spend · 1h"
               value={usd(snap.spend_1h.total_usd)}
               foot={
@@ -224,7 +218,6 @@ export function OpsClient({
             />
             <AdminKpiCard
               color="blue"
-              icon={<Gauge />}
               title="Spend · 24h"
               value={usd(snap.spend_24h.total_usd)}
               foot={
@@ -235,7 +228,6 @@ export function OpsClient({
             />
             <AdminKpiCard
               color={snap.any_stuck ? "orange" : "navy"}
-              icon={<PauseCircle />}
               title="Stuck jobs"
               value={String(snap.stuck.jobs_stuck)}
               tone={snap.stuck.jobs_stuck > 0 ? "warn" : undefined}
@@ -247,7 +239,6 @@ export function OpsClient({
             />
             <AdminKpiCard
               color={snap.stuck.image_posts_stuck > 0 ? "orange" : "navy"}
-              icon={<PauseCircle />}
               title="Stuck image posts"
               value={String(snap.stuck.image_posts_stuck)}
               tone={snap.stuck.image_posts_stuck > 0 ? "warn" : undefined}
@@ -261,18 +252,13 @@ export function OpsClient({
 
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2.5">
-                <AppIcon color={snap.any_provider_warn ? "orange" : "green"}>
-                  <ShieldAlert />
-                </AppIcon>
-                <CardTitle>
-                  Provider error rates ·{" "}
-                  {snap.error_window_minutes >= 1440
-                    ? `${Math.round(snap.error_window_minutes / 1440)}d`
-                    : `${Math.round(snap.error_window_minutes / 60)}h`}{" "}
-                  window
-                </CardTitle>
-              </div>
+              <CardTitle>
+                Provider error rates ·{" "}
+                {snap.error_window_minutes >= 1440
+                  ? `${Math.round(snap.error_window_minutes / 1440)}d`
+                  : `${Math.round(snap.error_window_minutes / 60)}h`}{" "}
+                window
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {snap.provider_error_rates.length === 0 ? (
@@ -385,20 +371,7 @@ export function OpsClient({
       {configHealth?.available && configHealth.checks && (
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-2.5">
-              <AppIcon
-                color={
-                  configHealth.overall_status === "error"
-                    ? "red"
-                    : configHealth.overall_status === "warn"
-                      ? "orange"
-                      : "green"
-                }
-              >
-                <ShieldAlert />
-              </AppIcon>
-              <CardTitle>Config health</CardTitle>
-            </div>
+            <CardTitle>Config health</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {configHealth.checks.map((c) => (

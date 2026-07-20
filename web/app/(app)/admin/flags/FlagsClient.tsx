@@ -3,7 +3,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Flag, Plus, ScrollText } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { formatDateTime, relativeTime } from "@/components/admin/format";
 import { Badge } from "@/components/ui/badge";
@@ -406,9 +406,6 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <Flag className="h-6 w-6 text-muted-foreground" aria-hidden />
-        </div>
         <h3 className="text-lg font-semibold">No feature flags yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create your first flag to gate a capability behind an admin toggle.
@@ -417,10 +414,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
           <Plus className="h-3.5 w-3.5" aria-hidden />
           Add flag
         </Button>
-        <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
-          <ScrollText className="h-3.5 w-3.5" aria-hidden />
-          {AUDIT_NOTE}
-        </p>
+        <p className="pt-1 text-xs text-muted-foreground">{AUDIT_NOTE}</p>
       </CardContent>
     </Card>
   );

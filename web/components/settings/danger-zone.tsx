@@ -1,5 +1,4 @@
 import * as React from "react";
-import { AlertTriangle } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -25,13 +24,7 @@ export function DangerZone({
       className={cn("border-destructive/40 bg-destructive/5", className)}
     >
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <AlertTriangle
-            className="size-4 text-destructive"
-            aria-hidden="true"
-          />
-          <CardTitle className="text-base font-semibold">{title}</CardTitle>
-        </div>
+        <CardTitle className="text-base font-semibold">{title}</CardTitle>
         {description ? (
           <p className="text-sm text-muted-foreground">{description}</p>
         ) : null}

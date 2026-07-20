@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Search, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 
 import { AccountStatusBadge, RoleBadge } from "@/components/admin/badges";
 import { relativeTime } from "@/components/admin/format";
@@ -244,9 +244,6 @@ function EmptyState({ query }: { query: string }) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <Users className="h-6 w-6 text-muted-foreground" aria-hidden />
-        </div>
         <h3 className="text-lg font-semibold">
           {query ? "No matching users" : "No users yet"}
         </h3>
