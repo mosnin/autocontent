@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 
-import { ImagePlaceholder } from "@/components/marketing/system";
+import { MediaSlot } from "@/components/media-slot";
 import { EASE } from "@/components/marketing/system/motion";
 import RotatingText from "@/components/reactbits/RotatingText";
 
@@ -141,12 +141,9 @@ export function Hero() {
             aria-hidden
             className="pointer-events-none absolute -inset-8 rounded-[3rem] bg-[radial-gradient(80%_80%_at_30%_20%,rgba(245,158,11,0.08),rgba(244,63,94,0.05)_50%,transparent_80%)]"
           />
-          <ImagePlaceholder
-            aspect="aspect-[13/10]"
-            className="relative rounded-2xl shadow-[0_24px_80px_rgba(15,23,42,0.14)] lg:rounded-r-none"
-            file="home-hero-app.png"
-            label="App screenshot — Studio queue with agent sidebar"
-          />
+          <div className="group relative aspect-[13/10] overflow-hidden rounded-2xl shadow-[0_24px_80px_rgba(15,23,42,0.14)] lg:rounded-r-none">
+            <MediaSlot id="mk-hero" />
+          </div>
         </motion.div>
       </div>
     </section>

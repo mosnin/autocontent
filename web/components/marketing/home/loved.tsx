@@ -1,6 +1,7 @@
 import * as React from "react";
 
-import { ImagePlaceholder, Reveal, Stagger } from "@/components/marketing/system";
+import { Reveal, Stagger } from "@/components/marketing/system";
+import { MediaSlot } from "@/components/media-slot";
 
 /** Testimonial rail — portrait video cards like the reference. Quotes and
  *  portraits are placeholders until real customer stories are uploaded. */
@@ -8,22 +9,22 @@ const CARDS = [
   {
     quote: "The overnight queue is the closest thing to hiring I've done without hiring.",
     who: "Creator, fitness niche",
-    file: "testimonial-1.jpg",
+    slotId: "mk-testimonial-1",
   },
   {
     quote: "We cap every client at their retainer and never think about overruns again.",
     who: "Agency founder",
-    file: "testimonial-2.jpg",
+    slotId: "mk-testimonial-2",
   },
   {
     quote: "Our agent files the brief on Monday and the channel is full by Friday.",
     who: "SaaS marketing lead",
-    file: "testimonial-3.jpg",
+    slotId: "mk-testimonial-3",
   },
   {
     quote: "Articles that used to take a week of freelancer wrangling ship in an afternoon.",
     who: "Ecommerce owner",
-    file: "testimonial-4.jpg",
+    slotId: "mk-testimonial-4",
   },
 ];
 
@@ -51,14 +52,15 @@ export function Loved() {
           {CARDS.map((c) => (
             <figure
               className="flex flex-col overflow-hidden rounded-3xl border border-zinc-900/[0.06] bg-white shadow-[0_8px_32px_rgba(15,23,42,0.06)]"
-              key={c.file}
+              key={c.slotId}
             >
-              <ImagePlaceholder
-                aspect="aspect-[4/5]"
-                className="rounded-none border-0"
-                file={c.file}
-                label={`Customer portrait video — ${c.who}`}
-              />
+              <div className="group aspect-[4/5]">
+                <MediaSlot
+                  alt={`Customer portrait video — ${c.who}`}
+                  id={c.slotId}
+                  showChip={false}
+                />
+              </div>
               <div className="flex flex-1 flex-col p-5">
                 <blockquote className="text-[14.5px] leading-relaxed text-zinc-800">
                   &ldquo;{c.quote}&rdquo;

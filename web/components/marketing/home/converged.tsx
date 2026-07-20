@@ -4,8 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 
-import { ImagePlaceholder, Reveal } from "@/components/marketing/system";
+import { Reveal } from "@/components/marketing/system";
 import { EASE, VIEWPORT } from "@/components/marketing/system/motion";
+import { MediaSlot } from "@/components/media-slot";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
@@ -83,36 +84,31 @@ function CapTile({ cap }: { cap: Cap }) {
 
 const FLOATERS: Array<{
   name: string;
-  file: string;
-  label: string;
+  slotId: string;
   className: string;
   delay: number;
 }> = [
   {
     name: "Studio",
-    file: "converged-studio.png",
-    label: "Studio — video queue",
+    slotId: "mk-converged-studio",
     className: "left-[4%] top-[8%] w-64 -rotate-2",
     delay: 0,
   },
   {
     name: "Press",
-    file: "converged-press.png",
-    label: "Press — article SEO panel",
+    slotId: "mk-converged-press",
     className: "right-[5%] top-[16%] w-60 rotate-2",
     delay: 0.1,
   },
   {
     name: "Agents",
-    file: "converged-agents.png",
-    label: "Agent chat — campaign brief",
+    slotId: "mk-converged-agents",
     className: "left-[14%] bottom-[6%] w-60 rotate-1",
     delay: 0.2,
   },
   {
     name: "Ads",
-    file: "converged-ads.png",
-    label: "Ads — budget guardrails",
+    slotId: "mk-converged-ads",
     className: "right-[12%] bottom-[10%] w-64 -rotate-1",
     delay: 0.3,
   },
@@ -136,12 +132,9 @@ function Floater({ f }: { f: (typeof FLOATERS)[number] }) {
             {f.name}
           </span>
         </div>
-        <ImagePlaceholder
-          aspect="aspect-[16/11]"
-          className="rounded-none border-0"
-          file={f.file}
-          label={f.label}
-        />
+        <div className="group aspect-[16/11]">
+          <MediaSlot id={f.slotId} showChip={false} />
+        </div>
       </div>
     </motion.div>
   );

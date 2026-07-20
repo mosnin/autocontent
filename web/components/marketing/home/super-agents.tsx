@@ -1,7 +1,8 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { ImagePlaceholder, Reveal } from "@/components/marketing/system";
+import { Reveal } from "@/components/marketing/system";
+import { MediaSlot } from "@/components/media-slot";
 
 /** The big "new era" band: display headline, one CTA, one hero photo. */
 export function SuperAgents() {
@@ -25,12 +26,9 @@ export function SuperAgents() {
         </Reveal>
 
         <Reveal className="mt-16" delay={0.1}>
-          <ImagePlaceholder
-            aspect="aspect-[21/10]"
-            className="rounded-[2rem] shadow-[0_24px_80px_rgba(15,23,42,0.10)]"
-            file="home-agents-photo.jpg"
-            label="Hero photo — person delegating a campaign to their agent"
-          />
+          <div className="group relative aspect-[21/10] overflow-hidden rounded-[2rem] shadow-[0_24px_80px_rgba(15,23,42,0.10)]">
+            <MediaSlot id="mk-agents" />
+          </div>
         </Reveal>
       </div>
     </section>
