@@ -3,42 +3,15 @@
 // and sidebar. The sidebar renders ONLY the active product's nav — products
 // are never mashed together into one long list.
 //
-// Pure + client-safe: no server-only imports, no React hooks. Holds lucide
-// icon component references (plain values) so both the sidebar and the /home
-// launcher can consume one registry.
-
-import {
-  LayoutTemplate,
-  Rocket,
-  Boxes,
-  Clapperboard,
-  BarChart3,
-  CalendarDays,
-  CheckSquare,
-  FileText,
-  Film,
-  KeyRound,
-  Image as ImageIcon,
-  Layers,
-  LayoutDashboard,
-  Link2,
-  ListChecks,
-  Megaphone,
-  Palette,
-  ScrollText,
-  Settings,
-  ShieldCheck,
-  Sparkles,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+// Pure + client-safe: no server-only imports, no React hooks. Plain data
+// only — the switcher, product tabs, and /home hub all consume this one
+// registry.
 
 export type ProductId = "studio" | "press" | "ads" | "campaigns" | "suite";
 
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
   /** Not yet built — rendered disabled with a "Soon" hint. */
   soon?: boolean;
 }
@@ -53,9 +26,6 @@ export interface Product {
   label: string;
   /** One-line description for the launcher card + switcher. */
   tagline: string;
-  icon: LucideIcon;
-  /** A category tint token (bg-cat-*) so each product reads as its own tile. */
-  accent: "navy" | "blue" | "orange" | "green" | "purple";
   /** Landing route when you switch into this product. */
   home: string;
   /** Path prefixes that belong to this product (for active detection). */
@@ -69,20 +39,18 @@ const STUDIO: Product = {
   id: "studio",
   label: "Content",
   tagline: "Short-form video content — TikTok, Reels, Shorts",
-  icon: Film,
-  accent: "navy",
   home: "/dashboard",
   match: ["/dashboard", "/niches", "/queue", "/calendar", "/library", "/templates", "/onboarding"],
   groups: [
     {
       label: "Operate",
       items: [
-        { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { href: "/niches", label: "Niches", icon: Layers },
-        { href: "/queue", label: "Queue", icon: ListChecks },
-        { href: "/calendar", label: "Calendar", icon: CalendarDays },
-        { href: "/library", label: "Library", icon: Clapperboard },
-        { href: "/templates", label: "Templates", icon: LayoutTemplate },
+        { href: "/dashboard", label: "Dashboard" },
+        { href: "/niches", label: "Niches" },
+        { href: "/queue", label: "Queue" },
+        { href: "/calendar", label: "Calendar" },
+        { href: "/library", label: "Library" },
+        { href: "/templates", label: "Templates" },
       ],
     },
   ],
@@ -92,15 +60,13 @@ const PRESS: Product = {
   id: "press",
   label: "SEO",
   tagline: "Long-form articles, SEO, and search performance",
-  icon: FileText,
-  accent: "blue",
   home: "/articles",
   match: ["/articles"],
   groups: [
     {
       label: "Content",
       items: [
-        { href: "/articles", label: "Articles", icon: FileText },
+        { href: "/articles", label: "Articles" },
       ],
     },
   ],
@@ -110,25 +76,23 @@ const ADS: Product = {
   id: "ads",
   label: "Ads",
   tagline: "Create, manage, and scale paid campaigns with agents",
-  icon: Megaphone,
-  accent: "orange",
   home: "/ads",
   match: ["/ads"],
   groups: [
     {
       label: "Campaigns",
       items: [
-        { href: "/ads", label: "Overview", icon: BarChart3 },
-        { href: "/ads/campaigns", label: "Campaigns", icon: Megaphone },
-        { href: "/ads/approvals", label: "Approvals", icon: CheckSquare },
-        { href: "/ads/activity", label: "Activity", icon: ScrollText },
-        { href: "/ads/insights", label: "Insights", icon: Sparkles, soon: true },
-        { href: "/ads/creatives", label: "Creatives", icon: Palette, soon: true },
+        { href: "/ads", label: "Overview" },
+        { href: "/ads/campaigns", label: "Campaigns" },
+        { href: "/ads/approvals", label: "Approvals" },
+        { href: "/ads/activity", label: "Activity" },
+        { href: "/ads/insights", label: "Insights", soon: true },
+        { href: "/ads/creatives", label: "Creatives", soon: true },
       ],
     },
     {
       label: "Setup",
-      items: [{ href: "/ads/connect", label: "Ad accounts", icon: Link2 }],
+      items: [{ href: "/ads/connect", label: "Ad accounts" }],
     },
   ],
 };
@@ -137,15 +101,13 @@ const CAMPAIGNS: Product = {
   id: "campaigns",
   label: "Campaigns",
   tagline: "Run content, SEO, and ads together on a budget",
-  icon: Rocket,
-  accent: "green",
   home: "/campaigns",
   match: ["/campaigns"],
   groups: [
     {
       label: "Orchestrate",
       items: [
-        { href: "/campaigns", label: "Campaigns", icon: Rocket },
+        { href: "/campaigns", label: "Campaigns" },
       ],
     },
   ],
@@ -155,27 +117,25 @@ const SUITE: Product = {
   id: "suite",
   label: "Suite",
   tagline: "Account-wide settings, connections, and admin",
-  icon: Settings,
-  accent: "purple",
   home: "/settings",
   match: ["/settings", "/connect", "/admin"],
   groups: [
     {
       label: "Account",
       items: [
-        { href: "/settings", label: "Settings", icon: Settings },
-        { href: "/settings/brand", label: "Brand kit", icon: Palette },
-        { href: "/settings/kits", label: "Kits", icon: Boxes },
-        { href: "/connect", label: "Connect socials", icon: Link2 },
-        { href: "/settings/tokens", label: "Tokens", icon: KeyRound },
-        { href: "/settings/billing", label: "Billing", icon: Wallet },
+        { href: "/settings", label: "Settings" },
+        { href: "/settings/brand", label: "Brand kit" },
+        { href: "/settings/kits", label: "Kits" },
+        { href: "/connect", label: "Connect socials" },
+        { href: "/settings/tokens", label: "Tokens" },
+        { href: "/settings/billing", label: "Billing" },
       ],
     },
     {
       label: "Admin",
       items: [
-        { href: "/admin", label: "Admin console", icon: ShieldCheck },
-        { href: "/admin/media", label: "Media", icon: ImageIcon },
+        { href: "/admin", label: "Admin console" },
+        { href: "/admin/media", label: "Media" },
       ],
     },
   ],
@@ -185,8 +145,6 @@ const SUITE: Product = {
  *  then Suite intentionally last. */
 export const PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS, SUITE];
 
-/** The primary work products shown as hero tiles on the launcher. */
-export const PRIMARY_PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS];
 
 export function productById(id: ProductId): Product {
   return PRODUCTS.find((p) => p.id === id) ?? STUDIO;
@@ -212,13 +170,3 @@ export function productForPath(pathname: string): Product {
   return best;
 }
 
-/** Accent tile background class for a product's app-switcher/launcher glyph. */
-export function productAccentClass(accent: Product["accent"]): string {
-  return {
-    navy: "bg-cat-navy",
-    blue: "bg-cat-blue",
-    orange: "bg-cat-orange",
-    green: "bg-cat-green",
-    purple: "bg-cat-purple",
-  }[accent];
-}

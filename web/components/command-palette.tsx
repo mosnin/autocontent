@@ -4,18 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
-  Coins,
-  FileText,
-  KeyRound,
-  LayoutDashboard,
-  Link2,
-  ListChecks,
-  Play,
-  Plus,
-  Settings,
-} from "lucide-react";
-
-import {
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -74,25 +62,25 @@ export function CommandPalette() {
         <CommandEmpty>No results.</CommandEmpty>
         <CommandGroup heading="Pages" className={KICKER}>
           <CommandItem onSelect={() => go("/dashboard")}>
-            <LayoutDashboard className="text-muted-foreground" /> Dashboard
+            Dashboard
           </CommandItem>
           <CommandItem onSelect={() => go("/queue")}>
-            <ListChecks className="text-muted-foreground" /> Queue
+            Queue
           </CommandItem>
           <CommandItem onSelect={() => go("/articles")}>
-            <FileText className="text-muted-foreground" /> Articles
+            Articles
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
-            <Link2 className="text-muted-foreground" /> Connect socials
+            Connect socials
           </CommandItem>
           <CommandItem onSelect={() => go("/settings")}>
-            <Settings className="text-muted-foreground" /> Settings
+            Settings
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/billing")}>
-            <Coins className="text-muted-foreground" /> Billing
+            Billing
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
-            <KeyRound className="text-muted-foreground" /> Tokens
+            Tokens
           </CommandItem>
         </CommandGroup>
 
@@ -100,16 +88,16 @@ export function CommandPalette() {
 
         <CommandGroup heading="Actions" className={KICKER}>
           <CommandItem onSelect={() => go("/onboarding")}>
-            <Plus className="text-muted-foreground" /> Create niche
+            Create niche
           </CommandItem>
           <CommandItem onSelect={() => go("/articles?new=1")}>
-            <FileText className="text-muted-foreground" /> New article
+            New article
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
-            <Link2 className="text-muted-foreground" /> Connect socials
+            Connect socials
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
-            <KeyRound className="text-muted-foreground" /> Create token
+            Create token
           </CommandItem>
         </CommandGroup>
 
@@ -125,7 +113,6 @@ export function CommandPalette() {
                     onSelect={() => enqueue(n.id, p)}
                     className="data-[selected=true]:border-brand/30 border border-transparent"
                   >
-                    <Play className="fill-brand/20 text-brand" />
                     <span className="font-medium">Enqueue {n.title}</span>
                     <CommandShortcut className="font-mono uppercase tracking-normal">
                       {p}
