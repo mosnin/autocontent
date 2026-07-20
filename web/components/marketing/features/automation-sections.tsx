@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import { AutomationOrbitIllustration } from "@/components/marketing/illustrations";
 import {
   GlassPanel,
   GradientScene,
@@ -15,11 +14,13 @@ import {
 } from "@/components/marketing/system";
 import {
   MCPVignette,
+  ScheduleVignette,
   TerminalVignette,
 } from "@/components/marketing/vignettes";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
+import { VignetteStage } from "./vignette-stage";
 
 /** Matches DisplayHeading's default (level 2, size lg) styling. */
 const H2_CLASS =
@@ -68,11 +69,11 @@ export function SurfaceCards() {
         <Reveal className="max-w-2xl">
           <Kicker>Four surfaces, one platform</Kicker>
           <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
-            Whatever your agent speaks, it&apos;s covered.
+            Create a niche. Enqueue a video. Check the spend.
           </TextReveal>
           <Lede className="mt-5">
-            Agents can create niches, enqueue videos, generate articles, and
-            check spend, from whichever surface fits the stack.
+            The same three calls, from whichever surface fits the stack:
+            REST, the Python SDK, the CLI, or MCP.
           </Lede>
         </Reveal>
         <Reveal delay={0.12}>
@@ -186,9 +187,11 @@ export function WindowsBand() {
               ]}
             />
           </Reveal>
-          <Reveal delay={0.12}>
+          <Reveal className="flex justify-center" delay={0.12}>
             <Parallax speed={-0.1}>
-              <AutomationOrbitIllustration />
+              <VignetteStage scene="dusk">
+                <ScheduleVignette />
+              </VignetteStage>
             </Parallax>
           </Reveal>
         </div>

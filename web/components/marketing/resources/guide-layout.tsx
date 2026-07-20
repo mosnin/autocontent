@@ -140,19 +140,6 @@ export function GuideLayout({
               <div className="flex flex-wrap items-center gap-3">
                 <Kicker>{kicker}</Kicker>
                 <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-900/10 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-500">
-                  <svg
-                    aria-hidden
-                    className="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 3" />
-                  </svg>
                   {readingTime}
                 </span>
                 <span className="text-[11px] font-medium text-zinc-400">

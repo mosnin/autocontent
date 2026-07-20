@@ -18,76 +18,74 @@ const REDUCED = "(prefers-reduced-motion: reduce)";
 const FULL = "(prefers-reduced-motion: no-preference)";
 
 /* ------------------------------------------------------------------ */
-/* The capability grid                                                 */
+/* The capability chips                                                */
 /* ------------------------------------------------------------------ */
 
-type Cap = { label: string; href: string; tint: string; glyph: React.ReactNode };
+type Cap = { label: string; href: string };
+type CapGroup = { kicker: string; items: Cap[] };
 
-const g = (d: string) => <path d={d} />;
-
-/** Every capability the platform covers, as small labeled icon tiles —
- *  the reference's wall-of-features grid, tailored to marketer.sh. */
-const CAPS: Cap[] = [
-  { label: "Ideation", href: "/features/video", tint: "text-amber-500", glyph: g("M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.5 1 2.5h6c0-1 .3-1.9 1-2.5A6 6 0 0 0 12 3ZM9.5 19h5M10.5 22h3") },
-  { label: "Scripts", href: "/features/video", tint: "text-sky-500", glyph: g("M6 3h12v18l-3-2-3 2-3-2-3 2ZM9 8h6M9 12h6") },
-  { label: "Keyframes", href: "/features/video", tint: "text-violet-500", glyph: g("M3 5h18v14H3ZM3 9h18M7 5v14M17 5v14") },
-  { label: "Animation", href: "/features/video", tint: "text-rose-500", glyph: g("M4 6h11v12H4ZM15 10l5-3v10l-5-3") },
-  { label: "Voiceover", href: "/features/video", tint: "text-orange-500", glyph: g("M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3ZM6 12a6 6 0 0 0 12 0M12 18v3") },
-  { label: "Music", href: "/features/video", tint: "text-fuchsia-500", glyph: g("M9 18V6l10-2v12M9 18a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0ZM19 16a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z") },
-  { label: "Captions", href: "/features/video", tint: "text-cyan-600", glyph: g("M4 5h16v14H4ZM7 15h4M13 15h4M7 11h10") },
-  { label: "QA gates", href: "/features/video", tint: "text-amber-600", glyph: g("M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6ZM9 12l2 2 4-4") },
-  { label: "Publishing", href: "/features/video", tint: "text-indigo-500", glyph: g("M12 19V5M5 12l7-7 7 7") },
-  { label: "SERP research", href: "/features/articles", tint: "text-sky-600", glyph: g("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM21 21l-4.5-4.5") },
-  { label: "Outlines", href: "/features/articles", tint: "text-violet-600", glyph: g("M4 6h16M8 12h12M8 18h12M4 12h.01M4 18h.01") },
-  { label: "Articles", href: "/features/articles", tint: "text-rose-600", glyph: g("M5 3h14v18H5ZM9 8h6M9 12h6M9 16h4") },
-  { label: "JSON-LD", href: "/features/articles", tint: "text-slate-500", glyph: g("M8 4c-2 0-3 1-3 3v2c0 1.5-1 2-2 2 1 0 2 .5 2 2v3c0 2 1 3 3 3M16 4c2 0 3 1 3 3v2c0 1.5 1 2 2 2-1 0-2 .5-2 2v3c0 2-1 3-3 3") },
-  { label: "Hero images", href: "/features/articles", tint: "text-pink-500", glyph: g("M4 5h16v14H4ZM8.5 11a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3ZM20 15l-5-5-9 9") },
-  { label: "Ad campaigns", href: "/features", tint: "text-orange-600", glyph: g("M3 11l14-6v14L3 13v-2ZM17 8a4 4 0 0 1 0 8M7 14v5h3") },
-  { label: "Spend caps", href: "/features/analytics", tint: "text-amber-500", glyph: g("M12 3v18M7 7.5C7 6 8.5 5 12 5s5 1 5 2.5S15.5 10 12 10s-5 1-5 2.5S8.5 15 12 15s5 1 5 2.5S15.5 20 12 20s-5-1-5-2.5") },
-  { label: "Approvals", href: "/features/analytics", tint: "text-emerald-600", glyph: g("M9 11l3 3 8-8M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9") },
-  { label: "Scheduling", href: "/features/video", tint: "text-indigo-600", glyph: g("M5 5h14v15H5ZM5 9h14M9 3v4M15 3v4M9 14l2 2 4-4") },
-  { label: "Analytics", href: "/features/analytics", tint: "text-sky-500", glyph: g("M4 20h16M6 16v-4M11 16V8M16 16v-6M21 16V6") },
-  { label: "Learning loop", href: "/features/analytics", tint: "text-rose-500", glyph: g("M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6") },
-  { label: "Brand kit", href: "/features", tint: "text-violet-500", glyph: g("M12 3a9 9 0 0 0 0 18c1.5 0 2-1 2-2s-.5-2 1-2h2a4 4 0 0 0 4-4c0-5-4-10-9-10ZM7.5 12a1 1 0 1 0 0-2M12 8a1 1 0 1 0 0-2M16.5 12a1 1 0 1 0 0-2") },
-  { label: "Niches", href: "/features", tint: "text-cyan-500", glyph: g("M12 3l9 5-9 5-9-5ZM3 13l9 5 9-5") },
-  { label: "REST API", href: "/resources/api", tint: "text-slate-600", glyph: g("M8 8l-4 4 4 4M16 8l4 4-4 4M13 5l-2 14") },
-  { label: "MCP server", href: "/resources/api", tint: "text-amber-600", glyph: g("M5 8h6v8H5ZM13 8h6v8h-6ZM11 12h2M2 12h3M19 12h3") },
+/** Every capability the platform covers, grouped by the product that owns
+ *  it. Text-only chips — no icon standing in for the words. */
+const GROUPS: CapGroup[] = [
+  {
+    kicker: "Studio",
+    items: [
+      { label: "Ideation", href: "/features/video" },
+      { label: "Scripts", href: "/features/video" },
+      { label: "Keyframes", href: "/features/video" },
+      { label: "Animation", href: "/features/video" },
+      { label: "Voiceover", href: "/features/video" },
+      { label: "Music", href: "/features/video" },
+      { label: "Captions", href: "/features/video" },
+      { label: "QA gates", href: "/features/video" },
+      { label: "Publishing", href: "/features/video" },
+      { label: "Scheduling", href: "/features/video" },
+    ],
+  },
+  {
+    kicker: "Press",
+    items: [
+      { label: "SERP research", href: "/features/articles" },
+      { label: "Outlines", href: "/features/articles" },
+      { label: "Articles", href: "/features/articles" },
+      { label: "JSON-LD", href: "/features/articles" },
+      { label: "Hero images", href: "/features/articles" },
+    ],
+  },
+  {
+    kicker: "Ads",
+    items: [
+      { label: "Ad campaigns", href: "/features" },
+      { label: "Spend caps", href: "/features/analytics" },
+      { label: "Approvals", href: "/features/analytics" },
+    ],
+  },
+  {
+    kicker: "Platform",
+    items: [
+      { label: "Analytics", href: "/features/analytics" },
+      { label: "Learning loop", href: "/features/analytics" },
+      { label: "Brand kit", href: "/features" },
+      { label: "Niches", href: "/features" },
+      { label: "REST API", href: "/resources/api" },
+      { label: "MCP server", href: "/resources/api" },
+    ],
+  },
 ];
 
-function CapTile({ cap }: { cap: Cap }) {
+function CapChip({ cap }: { cap: Cap }) {
   return (
     <Link
-      className="group flex flex-col items-center gap-2 rounded-2xl px-2 py-4 transition-colors hover:bg-zinc-900/[0.03]"
+      className="rounded-full border border-zinc-900/10 bg-white px-4 py-2 text-[13px] font-medium text-zinc-700 transition-colors hover:border-zinc-900/30 hover:text-zinc-950"
       data-cap-tile
       href={cap.href}
     >
-      <span
-        aria-hidden
-        className={cn(
-          "flex size-11 items-center justify-center rounded-xl border border-zinc-900/[0.06] bg-white shadow-sm transition-transform duration-200 group-hover:-translate-y-0.5",
-          cap.tint,
-        )}
-      >
-        <svg
-          className="size-5"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="1.6"
-          viewBox="0 0 24 24"
-        >
-          {cap.glyph}
-        </svg>
-      </span>
-      <span className="text-center text-[12px] font-medium leading-tight text-zinc-600 group-hover:text-zinc-900">
-        {cap.label}
-      </span>
+      {cap.label}
     </Link>
   );
 }
 
-/** Scroll-triggered cascade for the capability grid — tiles rise into place
+/** Scroll-triggered cascade for the capability chips — they rise into place
  *  once as the grid enters view. Reduced motion renders them settled. */
 function CapGrid() {
   const gridRef = React.useRef<HTMLDivElement>(null);
@@ -101,11 +99,11 @@ function CapGrid() {
 
       mm.add(FULL, () => {
         gsap.from(tiles, {
-          y: 18,
+          y: 12,
           opacity: 0,
           stagger: { each: 0.018, from: "start" },
           ease: "power3.out",
-          duration: 0.6,
+          duration: 0.5,
           scrollTrigger: { trigger: grid, start: "top 85%", once: true },
         });
       });
@@ -118,9 +116,21 @@ function CapGrid() {
   );
 
   return (
-    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6" ref={gridRef}>
-      {CAPS.map((cap) => (
-        <CapTile cap={cap} key={cap.label} />
+    <div className="divide-y divide-zinc-900/[0.06]" ref={gridRef}>
+      {GROUPS.map((group) => (
+        <div
+          className="py-6 first:pt-0 last:pb-0 md:flex md:items-start md:gap-8 md:py-7"
+          key={group.kicker}
+        >
+          <p className="shrink-0 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400 md:w-28 md:pt-2.5">
+            {group.kicker}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 md:mt-0">
+            {group.items.map((cap) => (
+              <CapChip cap={cap} key={cap.label} />
+            ))}
+          </div>
+        </div>
       ))}
     </div>
   );
@@ -223,7 +233,7 @@ export function Converged() {
 
         <Reveal className="relative mt-16" delay={0.1}>
           {/* Dim the grid edges so the floating cards pop, like the reference. */}
-          <div className="rounded-[2rem] border border-zinc-900/[0.05] bg-white/60 p-4 md:p-8">
+          <div className="rounded-[2rem] border border-zinc-900/[0.05] bg-white/60 p-6 md:p-10">
             <CapGrid />
           </div>
           {FLOATERS.map((f) => (

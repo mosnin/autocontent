@@ -239,27 +239,6 @@ export function StepsBand({
 /* Product-moment band — copy beside a floating glass mock             */
 /* ------------------------------------------------------------------ */
 
-function CheckGlyph() {
-  return (
-    <span
-      aria-hidden
-      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border border-zinc-900/10 bg-white text-zinc-700"
-    >
-      <svg
-        className="size-3"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2.5"
-        viewBox="0 0 24 24"
-      >
-        <path d="m5 13 4 4L19 7" />
-      </svg>
-    </span>
-  );
-}
-
 export function MockBand({
   kicker,
   heading,
@@ -298,7 +277,10 @@ export function MockBand({
                     className="flex items-start gap-3 text-[15px] leading-relaxed text-zinc-600"
                     key={b}
                   >
-                    <CheckGlyph />
+                    <span
+                      aria-hidden
+                      className="mt-2.5 block size-1.5 shrink-0 rounded-full bg-zinc-300"
+                    />
                     {b}
                   </li>
                 ))}

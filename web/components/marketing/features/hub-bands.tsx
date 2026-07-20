@@ -1,12 +1,6 @@
 import * as React from "react";
 
 import {
-  AnalyticsLoopIllustration,
-  ArticleFlowIllustration,
-  AutomationOrbitIllustration,
-  VideoPipelineIllustration,
-} from "@/components/marketing/illustrations";
-import {
   CtaPill,
   GradientScene,
   Kicker,
@@ -14,9 +8,17 @@ import {
   Reveal,
   TextReveal,
 } from "@/components/marketing/system";
+import {
+  AgentChatVignette,
+  ArticleSeoVignette,
+  CapGaugeVignette,
+  MetricsVignette,
+  QueueVignette,
+} from "@/components/marketing/vignettes";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
+import { VignetteStage } from "./vignette-stage";
 
 type Band = {
   id: string;
@@ -44,7 +46,11 @@ const BANDS: Band[] = [
     ],
     href: "/features/video",
     linkLabel: "Explore video",
-    illustration: <VideoPipelineIllustration />,
+    illustration: (
+      <VignetteStage scene="sky">
+        <QueueVignette />
+      </VignetteStage>
+    ),
     scene: "white",
   },
   {
@@ -59,7 +65,11 @@ const BANDS: Band[] = [
     ],
     href: "/features/articles",
     linkLabel: "Explore articles",
-    illustration: <ArticleFlowIllustration />,
+    illustration: (
+      <VignetteStage scene="pearl">
+        <ArticleSeoVignette />
+      </VignetteStage>
+    ),
     scene: "pearl",
     flip: true,
   },
@@ -75,7 +85,11 @@ const BANDS: Band[] = [
     ],
     href: "/features/automation",
     linkLabel: "Explore automation",
-    illustration: <AutomationOrbitIllustration />,
+    illustration: (
+      <VignetteStage scene="mist">
+        <AgentChatVignette />
+      </VignetteStage>
+    ),
     scene: "white",
   },
   {
@@ -90,7 +104,14 @@ const BANDS: Band[] = [
     ],
     href: "/features/analytics",
     linkLabel: "Explore analytics",
-    illustration: <AnalyticsLoopIllustration />,
+    illustration: (
+      <VignetteStage scene="sky">
+        <div className="space-y-4">
+          <MetricsVignette />
+          <CapGaugeVignette />
+        </div>
+      </VignetteStage>
+    ),
     scene: "sky",
     flip: true,
   },

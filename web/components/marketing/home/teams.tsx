@@ -60,7 +60,7 @@ const TEAMS: Team[] = [
     checks: [
       "Feature-launch shorts in hours",
       "Evergreen article clusters",
-      "Changelog-to-content automation",
+      "One release brief, video and article both",
     ],
     cards: [
       { title: "SaaS playbook", desc: "Marketing that tracks your roadmap.", href: "/use-cases/saas" },

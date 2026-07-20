@@ -16,3 +16,4 @@ export { CharacterVignette } from "./character";
 export { MCPVignette } from "./mcp";
 export { ApprovalVignette } from "./approval";
 export { CreditsVignette } from "./credits";
+export { OutlineVignette } from "./outline";
