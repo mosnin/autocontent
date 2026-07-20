@@ -26,5 +26,8 @@ export const config = {
     "/(home|onboarding|dashboard|queue|calendar|articles|ads|connect|settings|niches|admin)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
+    // Media manager: GET stays public, POST/DELETE check auth() in-route —
+    // clerkMiddleware just needs to run here so auth() is available.
+    "/api/media",
   ],
 };
