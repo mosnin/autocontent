@@ -60,9 +60,10 @@ export function Hero() {
             {...enter(0)}
             className="font-display text-5xl font-semibold leading-[1.04] tracking-tight text-zinc-950 md:text-6xl"
           >
-            Maximize your
+            One brief.
             <br />
             <span className="flex flex-wrap items-center gap-x-3">
+              Every
               <RotatingText
                 auto={!reduced}
                 mainClassName="inline-flex overflow-hidden rounded-2xl bg-zinc-900 px-3 py-1 text-white md:px-4"
@@ -70,19 +71,20 @@ export function Hero() {
                 splitLevelClassName="overflow-hidden pb-1"
                 staggerDuration={0.02}
                 staggerFrom="last"
-                texts={["marketing", "video", "article", "ad"]}
+                texts={["format.", "short.", "article.", "ad set."]}
                 transition={{ type: "spring", damping: 30, stiffness: 400 }}
               />
-              output.
             </span>
           </motion.h1>
 
           <motion.p
             {...enter(0.08)}
-            className="mt-6 max-w-[42ch] text-lg leading-relaxed text-zinc-600"
+            className="mt-6 max-w-[46ch] text-lg leading-relaxed text-zinc-600"
           >
-            Replace the whole content stack. Every video, article, and agent
-            in one place, with hard caps on every dollar spent.
+            marketer.sh is the autonomous marketing platform. Give it a brief
+            and a budget. It plans the campaign, produces the video, articles,
+            and ads, publishes on schedule, and learns from what ships. Every
+            dollar stays under a cap you set.
           </motion.p>
 
           <motion.div

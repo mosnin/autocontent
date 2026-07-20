@@ -1,6 +1,5 @@
 import * as React from "react";
 
-import { ArticleFlowIllustration } from "@/components/marketing/illustrations";
 import {
   GlassPanel,
   GradientScene,
@@ -14,6 +13,7 @@ import {
   warmBg,
   warmChip,
 } from "@/components/marketing/system";
+import { OutlineVignette } from "@/components/marketing/vignettes";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
@@ -157,9 +157,11 @@ export function OutlineBand() {
               ]}
             />
           </Reveal>
-          <Reveal className="lg:order-1" delay={0.12}>
+          <Reveal className="flex justify-center lg:order-1" delay={0.12}>
             <Parallax speed={-0.1}>
-              <ArticleFlowIllustration />
+              <VignetteStage scene="pearl">
+                <OutlineVignette />
+              </VignetteStage>
             </Parallax>
           </Reveal>
         </div>

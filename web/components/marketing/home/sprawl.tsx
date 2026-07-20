@@ -12,24 +12,27 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 const REDUCED = "(prefers-reduced-motion: reduce)";
 const FULL = "(prefers-reduced-motion: no-preference)";
 
-const PAINS = [
+const STEPS = [
   {
-    title: "Tool switching",
-    desc: "A video editor, a CMS, a scheduler, an ads console, a spreadsheet of budgets. Every handoff between them loses an hour and a little context.",
+    title: "You set the brief and the cap",
+    desc: "Name the audience, the goal, and a daily budget. That is the whole job description. The cap is enforced fail-closed, so the system stops before the money does.",
   },
   {
-    title: "Budget blind spots",
-    desc: "Generation and ad spend live in five dashboards, so nobody knows the real cost per post until the invoice lands. Overruns surface weeks late.",
+    title: "It plans and produces every format",
+    desc: "Hooks are ideated, scripts written, scenes rendered, voiceover recorded, captions burned in. Articles are built from live SERP research. Ad creatives follow the same brief.",
   },
   {
-    title: "Manual stitching",
-    desc: "Someone still copies the script into the editor, the export into the scheduler, and the results into the report. That someone is your bottleneck.",
+    title: "It publishes, measures, and learns",
+    desc: "Posts land on schedule across TikTok, Reels, Shorts, and your blog. Two QA gates run before anything ships, and the performance loop feeds the next plan.",
   },
 ];
 
-/** Tangled scribble that resolves into a straight line — the reference's
- *  centerpiece graphic, drawn as an animated SVG path scrubbed by scroll. */
-function SprawlLine() {
+/** Stage markers along the pipeline line, in path order. */
+const STAGES = ["Brief", "Plan", "Produce", "QA", "Publish", "Learn"];
+
+/** The pipeline line: a single stroke drawn under your scroll from brief
+ *  to learn, with each stage label surfacing as the line reaches it. */
+function PipelineLine() {
   const wrapRef = React.useRef<HTMLDivElement>(null);
   const pathRef = React.useRef<SVGPathElement>(null);
   const dotRef = React.useRef<SVGCircleElement>(null);
@@ -108,11 +111,16 @@ function SprawlLine() {
         </defs>
         <circle cx="740" cy="80" fill="#f43f5e" r="6" ref={dotRef} />
       </svg>
+      <div className="mt-2 hidden justify-between px-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-zinc-400 md:flex">
+        {STAGES.map((s) => (
+          <span key={s}>{s}</span>
+        ))}
+      </div>
       <span
         className="absolute right-0 top-1/2 hidden -translate-y-[150%] rounded-full border border-zinc-900/10 bg-white px-3 py-1 text-[12px] font-medium text-zinc-700 shadow-sm md:inline-block"
         ref={chipRef}
       >
-        one pipeline
+        campaign live
       </span>
     </div>
   );
@@ -120,27 +128,27 @@ function SprawlLine() {
 
 export function Sprawl() {
   return (
-    <section aria-label="The problem" className="bg-white py-24 md:py-32">
+    <section aria-label="How it works" className="bg-white py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl text-center">
           <TextReveal
             as="h2"
             className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl"
           >
-            It&apos;s time to end tool sprawl.
+            You write the brief. It runs the campaign.
           </TextReveal>
           <Reveal>
             <p className="mt-5 text-lg leading-relaxed text-zinc-600">
-              Most teams run marketing across six disconnected tools. The work
-              isn&apos;t hard, the stitching is.
+              One pipeline carries a brief from idea to published campaign.
+              No handoffs, no export-and-reupload, no invoice surprises.
             </p>
           </Reveal>
         </div>
 
-        <SprawlLine />
+        <PipelineLine />
 
         <Stagger className="mx-auto mt-16 grid max-w-5xl gap-10 md:grid-cols-3">
-          {PAINS.map((p) => (
+          {STEPS.map((p) => (
             <div className="text-center md:text-left" key={p.title}>
               <h3 className="text-lg font-semibold text-zinc-900">{p.title}</h3>
               <p className="mt-2.5 text-[15px] leading-relaxed text-zinc-600">

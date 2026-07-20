@@ -16,8 +16,14 @@ export function SuperAgents() {
             as="h2"
             className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-zinc-950 md:text-6xl"
           >
-            A new era of marketing, with agents on staff.
+            Your agents can run all of it.
           </TextReveal>
+          <Reveal delay={0.05}>
+            <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-zinc-600">
+              REST API, Python SDK, CLI, and an MCP server expose the same
+              pipeline a human runs by hand — briefs in, campaigns out.
+            </p>
+          </Reveal>
           <div className="mt-8">
             <Magnetic>
               <Link
