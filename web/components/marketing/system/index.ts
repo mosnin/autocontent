@@ -30,3 +30,5 @@ export {
 export { MockDashboard, MockChat } from "./mock-cards";
 export { ImagePlaceholder } from "./image-placeholder";
 export { EASE, VIEWPORT, REVEAL_DURATION } from "./motion";
+export { TextReveal, Parallax, PinScene, Marquee, Magnetic } from "./gsap-fx";
+export { TaggedPlaceholder } from "./tagged-placeholder";

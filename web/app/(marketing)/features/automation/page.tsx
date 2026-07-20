@@ -6,8 +6,7 @@ import {
   WindowsBand,
 } from "@/components/marketing/features/automation-sections";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
-import { AgentGridIllustration } from "@/components/marketing/illustrations";
-import { SectionCta } from "@/components/marketing/system";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 
 const DESCRIPTION =
   "REST API, typed Python SDK, the marketer CLI, and an MCP server with cost-aware tools. Agents create niches, enqueue videos, and publish inside your caps.";
@@ -27,16 +26,20 @@ export default function AutomationFeaturePage() {
   return (
     <main>
       <FeatureHero
-        illustration={<AgentGridIllustration />}
+        illustration={
+          <div className="aspect-video overflow-hidden rounded-[2rem]">
+            <TaggedPlaceholder
+              kind="video"
+              label="Agent demo — MCP call to shipped campaign"
+              tone="warm"
+            />
+          </div>
+        }
         kicker="Automation & agents"
         lede="Everything a person can do here, an agent can do through the REST API, the typed Python SDK, the marketer CLI, or the MCP server. Inside the caps you set."
+        magneticPrimary
         secondary={{ label: "Read the API docs", href: "/resources/api" }}
-        title={
-          <>
-            Point your agents at it.
-            <br /> Walk away.
-          </>
-        }
+        titleText="Point your agents at it. Walk away."
         variant="sky"
       />
       <SurfaceCards />

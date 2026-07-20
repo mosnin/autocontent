@@ -4,13 +4,18 @@ import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 import {
-  DisplayHeading,
   EASE,
   GradientScene,
   Kicker,
   Lede,
+  TextReveal,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
+
+const H1_CLASS: Record<"xl" | "lg", string> = {
+  xl: "font-display font-semibold tracking-tight text-balance text-zinc-900 text-5xl leading-[1.02] md:text-6xl lg:text-7xl",
+  lg: "font-display font-semibold tracking-tight text-balance text-zinc-900 text-4xl leading-[1.05] md:text-5xl",
+};
 
 function FadeUp({
   children,
@@ -75,9 +80,9 @@ export function PageHero({
             <Kicker>{kicker}</Kicker>
           </FadeUp>
           <FadeUp delay={0.22}>
-            <DisplayHeading className="mx-auto mt-5 max-w-3xl" level={1} size={size}>
+            <TextReveal as="h1" className={cn(H1_CLASS[size], "mx-auto mt-5 max-w-3xl")}>
               {headline}
-            </DisplayHeading>
+            </TextReveal>
           </FadeUp>
           {sub ? (
             <FadeUp delay={0.4}>

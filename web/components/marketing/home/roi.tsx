@@ -1,7 +1,9 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
 
-import { Reveal, Stagger } from "@/components/marketing/system";
+import { Magnetic, Reveal, Stagger, TextReveal } from "@/components/marketing/system";
 import CountUp from "@/components/reactbits/CountUp";
 
 /** Product economics band — the reference's ROI columns, with numbers
@@ -46,21 +48,22 @@ export function Roi() {
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <h2 className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
-              It&apos;s like adding a full
-              <br className="hidden md:block" /> content team.
-            </h2>
+            <TextReveal className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
+              It&apos;s like adding a full content team.
+            </TextReveal>
             <p className="mt-5 text-lg leading-relaxed text-zinc-600">
               Writers, editors, a media buyer, and an analyst, running as one
               pipeline you steer with briefs and caps.
             </p>
           </div>
-          <Link
-            className="inline-flex min-h-12 shrink-0 items-center rounded-xl bg-zinc-900 px-7 text-[15px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
-            href="/sign-up"
-          >
-            Get started
-          </Link>
+          <Magnetic className="shrink-0">
+            <Link
+              className="inline-flex min-h-12 items-center rounded-xl bg-zinc-900 px-7 text-[15px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+              href="/sign-up"
+            >
+              Get started
+            </Link>
+          </Magnetic>
         </Reveal>
 
         <Stagger className="mt-16 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">

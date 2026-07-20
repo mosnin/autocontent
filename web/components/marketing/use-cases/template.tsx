@@ -9,39 +9,23 @@ import {
   EASE,
   Kicker,
   Lede,
+  Magnetic,
   Reveal,
   Stagger,
   StatStrip,
+  TaggedPlaceholder,
+  TextReveal,
   type Stat,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 import { UseCaseScene, type SceneName } from "./scene";
 
+/** Placeholder tones the tagged-placeholder kit supports. */
+type PlaceholderTone = "warm" | "sky" | "violet" | "slate" | "rose";
+
 /* ------------------------------------------------------------------ */
 /* Hero                                                                */
 /* ------------------------------------------------------------------ */
-
-function StagedLine({ line, index }: { line: string; index: number }) {
-  const reduced = useReducedMotion();
-  // Always mount the motion element (see FadeUp): the branch pattern strands
-  // motion's SSR'd translateY(110%) on the DOM for reduced-motion users.
-  return (
-    <span className="block overflow-hidden pb-[0.08em]">
-      <motion.span
-        animate={{ y: 0 }}
-        className="block"
-        initial={reduced ? false : { y: "110%" }}
-        transition={
-          reduced
-            ? { duration: 0 }
-            : { duration: 0.8, ease: EASE, delay: 0.25 + index * 0.12 }
-        }
-      >
-        {line}
-      </motion.span>
-    </span>
-  );
-}
 
 function FadeUp({
   children,
@@ -81,9 +65,11 @@ export function UseCaseHero({
   primaryHref = "/sign-up",
   secondaryLabel = "See pricing",
   secondaryHref = "/pricing",
+  placeholderLabel,
+  placeholderTone = "slate",
 }: {
   kicker: string;
-  /** Headline lines; each animates in as its own staged line. */
+  /** Headline lines; each renders as its own TextReveal span. */
   headline: string[];
   lede: string;
   scene: SceneName;
@@ -91,6 +77,9 @@ export function UseCaseHero({
   primaryHref?: string;
   secondaryLabel?: string;
   secondaryHref?: string;
+  /** When set, renders a tagged image placeholder near the top of the hero. */
+  placeholderLabel?: string;
+  placeholderTone?: PlaceholderTone;
 }) {
   return (
     <section aria-label="Introduction" className="px-4 pt-24 md:px-6 md:pt-28">
@@ -108,7 +97,14 @@ export function UseCaseHero({
           </FadeUp>
           <h1 className="mt-5 font-display text-5xl font-semibold leading-[1.02] tracking-tight text-balance text-zinc-900 md:text-6xl lg:text-7xl">
             {headline.map((line, i) => (
-              <StagedLine index={i} key={line} line={line} />
+              <TextReveal
+                as="span"
+                className="block"
+                delay={0.05 + i * 0.12}
+                key={line}
+              >
+                {line}
+              </TextReveal>
             ))}
           </h1>
           <FadeUp delay={0.55}>
@@ -118,13 +114,27 @@ export function UseCaseHero({
             className="mt-9 flex flex-wrap items-center justify-center gap-3"
             delay={0.7}
           >
-            <CtaPill href={primaryHref} size="lg">
-              {primaryLabel}
-            </CtaPill>
+            <Magnetic>
+              <CtaPill href={primaryHref} size="lg">
+                {primaryLabel}
+              </CtaPill>
+            </Magnetic>
             <CtaPill href={secondaryHref} size="lg" variant="secondary">
               {secondaryLabel}
             </CtaPill>
           </FadeUp>
+          {placeholderLabel ? (
+            <FadeUp className="mt-14" delay={0.85}>
+              <div className="mx-auto aspect-[16/8] w-full overflow-hidden rounded-[2rem] border border-zinc-900/[0.06] shadow-[0_16px_60px_rgba(15,23,42,0.08)]">
+                <TaggedPlaceholder
+                  className="h-full w-full"
+                  kind="image"
+                  label={placeholderLabel}
+                  tone={placeholderTone}
+                />
+              </div>
+            </FadeUp>
+          ) : null}
         </div>
       </UseCaseScene>
     </section>
@@ -156,7 +166,7 @@ export function PainBand({
       </Reveal>
       <Stagger
         className="mt-12 grid gap-4 md:grid-cols-3"
-        gap={0.08}
+        gap={0.06}
         itemClassName="h-full"
       >
         {pains.map((p) => (

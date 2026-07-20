@@ -104,7 +104,7 @@ export function HubGrid() {
     >
       <Stagger
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-        gap={0.08}
+        gap={0.06}
         itemClassName="h-full"
       >
         {CASES.map((c) => (

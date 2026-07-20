@@ -89,6 +89,12 @@
     from { height: var(--radix-accordion-content-height); }
     to { height: 0; }
   }
+  /* Seamless marquee drift: the row is rendered twice, each copy travels
+     its own full width. */
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+  }
 }
 
 :root {

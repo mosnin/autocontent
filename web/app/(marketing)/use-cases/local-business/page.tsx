@@ -31,6 +31,8 @@ export default function LocalBusinessPage() {
         headline={["Show up every week.", "Stay behind the counter."]}
         kicker="For local businesses"
         lede="A few good posts a week and an article people find when they search your town. Written from a brief in your own words, reviewed by you in minutes."
+        placeholderLabel="Local businesses in the product — hero still"
+        placeholderTone="slate"
         scene="daylight"
       />
       <PainBand

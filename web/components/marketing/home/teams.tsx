@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import { Reveal } from "@/components/marketing/system";
+import { Reveal, TextReveal } from "@/components/marketing/system";
 import { EASE } from "@/components/marketing/system/motion";
 import { cn } from "@/lib/utils";
 
@@ -147,9 +147,9 @@ export function Teams() {
     <section aria-label="Solutions for every team" className="bg-[#f5f6f8] py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="mx-auto max-w-3xl text-center">
-          <h2 className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
+          <TextReveal className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
             AI marketing for every team.
-          </h2>
+          </TextReveal>
           <p className="mt-5 text-lg leading-relaxed text-zinc-600">
             The same pipeline, tuned to how your business ships.
           </p>

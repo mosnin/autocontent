@@ -1,9 +1,11 @@
 import * as React from "react";
 
+import { Marquee, TaggedPlaceholder } from "@/components/marketing/system";
+
 /**
  * Trusted-by strip under the hero. Real customer logos land later —
- * each slot is a labeled placeholder box until the assets are uploaded
- * (upload: web/public/logo/customers/logo-1.svg … logo-6.svg).
+ * each slot is a tagged placeholder drifting in a slow marquee until
+ * the assets are uploaded (upload: web/public/logo/customers/logo-1.svg …).
  */
 export function LogoBand() {
   return (
@@ -12,15 +14,27 @@ export function LogoBand() {
         <p className="shrink-0 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
           Trusted by teams shipping daily
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <span
-              className="flex h-9 w-24 items-center justify-center rounded-lg border border-dashed border-zinc-900/10 bg-zinc-50 font-mono text-[10px] text-zinc-300"
-              key={n}
-            >
-              logo-{n}.svg
-            </span>
-          ))}
+        <div
+          className="w-full md:max-w-xl"
+          style={{
+            maskImage:
+              "linear-gradient(90deg,transparent,black 8%,black 92%,transparent)",
+          }}
+        >
+          <Marquee ariaLabel="Customer logos" itemClassName="gap-3 pr-3" seconds={30}>
+            {Array.from({ length: 8 }, (_, i) => i + 1).map((n) => (
+              <span
+                className="mr-3 block h-9 w-28 shrink-0 overflow-hidden rounded-lg"
+                key={n}
+              >
+                <TaggedPlaceholder
+                  kind="image"
+                  label="Customer logo"
+                  tone="slate"
+                />
+              </span>
+            ))}
+          </Marquee>
         </div>
       </div>
     </section>

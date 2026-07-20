@@ -9,7 +9,7 @@ import {
   GuideStrong,
   type GuideSection,
 } from "@/components/marketing/resources/guide-layout";
-import { SectionCta } from "@/components/marketing/system";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 
 const TITLE = "Launch your first channel in an afternoon";
 const DESCRIPTION =
@@ -61,6 +61,14 @@ const SECTIONS: GuideSection[] = [
           yourself in ten minutes. If you can, the ideation engine can name two
           hundred, and rank them by what actually performed.
         </GuideP>
+        <div className="mt-6 aspect-[16/10] overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            className="h-full w-full"
+            kind="illustration"
+            label="Guide diagram — niche framing"
+            tone="violet"
+          />
+        </div>
       </>
     ),
   },

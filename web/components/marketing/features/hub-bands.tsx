@@ -8,11 +8,11 @@ import {
 } from "@/components/marketing/illustrations";
 import {
   CtaPill,
-  DisplayHeading,
   GradientScene,
   Kicker,
   Lede,
   Reveal,
+  TextReveal,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
@@ -101,14 +101,19 @@ function BandPanel({ band }: { band: Band }) {
     <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
       <Reveal className={cn(band.flip && "lg:order-2")}>
         <Kicker>{band.kicker}</Kicker>
-        <DisplayHeading className="mt-4">{band.title}</DisplayHeading>
+        <TextReveal
+          as="h2"
+          className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+        >
+          {band.title}
+        </TextReveal>
         <Lede className="mt-5">{band.lede}</Lede>
         <ProofList className="mt-8" items={band.bullets} />
         <CtaPill className="mt-9" href={band.href} variant="secondary">
           {band.linkLabel}
         </CtaPill>
       </Reveal>
-      <Reveal className={cn(band.flip && "lg:order-1")} delay={0.12}>
+      <Reveal className={cn(band.flip && "lg:order-1")} delay={0.08}>
         {band.illustration}
       </Reveal>
     </div>

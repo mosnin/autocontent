@@ -3,11 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 
-import { Reveal } from "@/components/marketing/system";
+import { Reveal, Parallax, TextReveal } from "@/components/marketing/system";
 import { EASE, VIEWPORT } from "@/components/marketing/system/motion";
 import { MediaSlot } from "@/components/media-slot";
 import { cn } from "@/lib/utils";
+
+gsap.registerPlugin(ScrollTrigger, useGSAP);
+
+const REDUCED = "(prefers-reduced-motion: reduce)";
+const FULL = "(prefers-reduced-motion: no-preference)";
 
 /* ------------------------------------------------------------------ */
 /* The capability grid                                                 */
@@ -50,6 +58,7 @@ function CapTile({ cap }: { cap: Cap }) {
   return (
     <Link
       className="group flex flex-col items-center gap-2 rounded-2xl px-2 py-4 transition-colors hover:bg-zinc-900/[0.03]"
+      data-cap-tile
       href={cap.href}
     >
       <span
@@ -78,6 +87,45 @@ function CapTile({ cap }: { cap: Cap }) {
   );
 }
 
+/** Scroll-triggered cascade for the capability grid — tiles rise into place
+ *  once as the grid enters view. Reduced motion renders them settled. */
+function CapGrid() {
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  useGSAP(
+    () => {
+      const grid = gridRef.current;
+      if (!grid) return;
+      const tiles = grid.querySelectorAll<HTMLElement>("[data-cap-tile]");
+      const mm = gsap.matchMedia();
+
+      mm.add(FULL, () => {
+        gsap.from(tiles, {
+          y: 18,
+          opacity: 0,
+          stagger: { each: 0.018, from: "start" },
+          ease: "power3.out",
+          duration: 0.6,
+          scrollTrigger: { trigger: grid, start: "top 85%", once: true },
+        });
+      });
+
+      mm.add(REDUCED, () => {
+        gsap.set(tiles, { y: 0, opacity: 1 });
+      });
+    },
+    { scope: gridRef },
+  );
+
+  return (
+    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6" ref={gridRef}>
+      {CAPS.map((cap) => (
+        <CapTile cap={cap} key={cap.label} />
+      ))}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /* Floating product cards over the grid                                */
 /* ------------------------------------------------------------------ */
@@ -87,56 +135,65 @@ const FLOATERS: Array<{
   slotId: string;
   className: string;
   delay: number;
+  parallaxSpeed: number;
 }> = [
   {
     name: "Studio",
     slotId: "mk-converged-studio",
     className: "left-[4%] top-[8%] w-64 -rotate-2",
     delay: 0,
+    parallaxSpeed: -0.16,
   },
   {
     name: "Press",
     slotId: "mk-converged-press",
     className: "right-[5%] top-[16%] w-60 rotate-2",
     delay: 0.1,
+    parallaxSpeed: -0.08,
   },
   {
     name: "Agents",
     slotId: "mk-converged-agents",
     className: "left-[14%] bottom-[6%] w-60 rotate-1",
     delay: 0.2,
+    parallaxSpeed: 0.1,
   },
   {
     name: "Ads",
     slotId: "mk-converged-ads",
     className: "right-[12%] bottom-[10%] w-64 -rotate-1",
     delay: 0.3,
+    parallaxSpeed: 0.16,
   },
 ];
 
 function Floater({ f }: { f: (typeof FLOATERS)[number] }) {
   const reduced = useReducedMotion();
   return (
-    <motion.div
+    <Parallax
       className={cn("pointer-events-none absolute hidden xl:block", f.className)}
-      initial={reduced ? { opacity: 1 } : { opacity: 0, y: 28 }}
-      transition={{ duration: 0.8, ease: EASE, delay: f.delay }}
-      viewport={VIEWPORT}
-      whileInView={{ opacity: 1, y: 0 }}
+      speed={f.parallaxSpeed}
     >
-      <div className="overflow-hidden rounded-2xl border border-zinc-900/[0.08] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
-        <div className="flex items-center gap-1.5 border-b border-zinc-900/[0.06] px-3 py-2">
-          <span className="size-2 rounded-full bg-zinc-200" />
-          <span className="size-2 rounded-full bg-zinc-200" />
-          <span className="ml-1 text-[11px] font-medium text-zinc-500">
-            {f.name}
-          </span>
+      <motion.div
+        initial={reduced ? { opacity: 1 } : { opacity: 0, y: 28 }}
+        transition={{ duration: 0.8, ease: EASE, delay: f.delay }}
+        viewport={VIEWPORT}
+        whileInView={{ opacity: 1, y: 0 }}
+      >
+        <div className="overflow-hidden rounded-2xl border border-zinc-900/[0.08] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
+          <div className="flex items-center gap-1.5 border-b border-zinc-900/[0.06] px-3 py-2">
+            <span className="size-2 rounded-full bg-zinc-200" />
+            <span className="size-2 rounded-full bg-zinc-200" />
+            <span className="ml-1 text-[11px] font-medium text-zinc-500">
+              {f.name}
+            </span>
+          </div>
+          <div className="group aspect-[16/11]">
+            <MediaSlot id={f.slotId} showChip={false} />
+          </div>
         </div>
-        <div className="group aspect-[16/11]">
-          <MediaSlot id={f.slotId} showChip={false} />
-        </div>
-      </div>
-    </motion.div>
+      </motion.div>
+    </Parallax>
   );
 }
 
@@ -149,25 +206,25 @@ export function Converged() {
       className="bg-[#f5f6f8] py-24 md:py-32"
     >
       <div className="mx-auto max-w-7xl px-6">
-        <Reveal className="mx-auto max-w-3xl text-center">
-          <h2 className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
-            Everything you need in one
-            <br className="hidden md:block" /> converged marketing platform.
-          </h2>
-          <p className="mt-5 text-lg leading-relaxed text-zinc-600">
-            Ideation to publish to learning, every step lives in the same
-            system and shares the same budget.
-          </p>
-        </Reveal>
+        <div className="mx-auto max-w-3xl text-center">
+          <TextReveal
+            as="h2"
+            className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl"
+          >
+            Everything you need in one converged marketing platform.
+          </TextReveal>
+          <Reveal>
+            <p className="mt-5 text-lg leading-relaxed text-zinc-600">
+              Ideation to publish to learning, every step lives in the same
+              system and shares the same budget.
+            </p>
+          </Reveal>
+        </div>
 
         <Reveal className="relative mt-16" delay={0.1}>
           {/* Dim the grid edges so the floating cards pop, like the reference. */}
           <div className="rounded-[2rem] border border-zinc-900/[0.05] bg-white/60 p-4 md:p-8">
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6">
-              {CAPS.map((cap) => (
-                <CapTile cap={cap} key={cap.label} />
-              ))}
-            </div>
+            <CapGrid />
           </div>
           {FLOATERS.map((f) => (
             <Floater f={f} key={f.name} />

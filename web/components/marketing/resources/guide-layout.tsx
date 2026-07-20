@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { Kicker, Reveal } from "@/components/marketing/system";
+import { Kicker, Reveal, TextReveal } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
 export type GuideSection = {
@@ -159,9 +159,12 @@ export function GuideLayout({
                   Updated {updated}
                 </span>
               </div>
-              <h1 className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl">
+              <TextReveal
+                as="h1"
+                className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+              >
                 {title}
-              </h1>
+              </TextReveal>
               <p className="mt-5 text-[17px] leading-relaxed text-zinc-600">
                 {lede}
               </p>

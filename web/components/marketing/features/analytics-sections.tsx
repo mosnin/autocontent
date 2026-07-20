@@ -1,14 +1,16 @@
 import * as React from "react";
 
 import {
-  DisplayHeading,
   GlassPanel,
   GradientScene,
   Kicker,
   Lede,
+  Parallax,
   Reveal,
   Stagger,
   StatStrip,
+  TaggedPlaceholder,
+  TextReveal,
   VignetteCard,
   warmChip,
 } from "@/components/marketing/system";
@@ -17,9 +19,14 @@ import {
   CreditsVignette,
   MetricsVignette,
 } from "@/components/marketing/vignettes";
+import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
 import { VignetteStage } from "./vignette-stage";
+
+/** Matches DisplayHeading's default (level 2, size lg) styling. */
+const H2_CLASS =
+  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-4xl leading-[1.05] md:text-5xl";
 
 /* ------------------------------------------------------------------ */
 /* Learning loop                                                       */
@@ -81,9 +88,9 @@ export function LoopBand() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>The learning loop</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
               Losers teach it as much as winners.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Views, watch time, and completion are collected per post. Top
               and bottom performers are attributed to their angles, and
@@ -99,9 +106,11 @@ export function LoopBand() {
             />
           </Reveal>
           <Reveal className="flex justify-center" delay={0.12}>
-            <VignetteStage scene="dawn">
-              <PerformersCard />
-            </VignetteStage>
+            <Parallax speed={-0.08}>
+              <VignetteStage scene="dawn">
+                <PerformersCard />
+              </VignetteStage>
+            </Parallax>
           </Reveal>
         </div>
       </div>
@@ -123,9 +132,9 @@ export function SpendBand() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal className="lg:order-2">
             <Kicker>Spend controls</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
               Hard caps. Not soft alerts.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Every LLM, image, video, and TTS call is metered to a ledger
               as it happens. Caps aren&apos;t a dashboard warning you read the
@@ -141,9 +150,11 @@ export function SpendBand() {
             />
           </Reveal>
           <Reveal className="flex justify-center lg:order-1" delay={0.12}>
-            <VignetteStage scene="pearl">
-              <CapGaugeVignette />
-            </VignetteStage>
+            <Parallax speed={-0.08}>
+              <VignetteStage scene="pearl">
+                <CapGaugeVignette />
+              </VignetteStage>
+            </Parallax>
           </Reveal>
         </div>
       </GradientScene>
@@ -165,16 +176,16 @@ export function MetricsMoment() {
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
           <Reveal className="mx-auto max-w-2xl text-center">
             <Kicker>One pane, both sides</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4 mx-auto")}>
               What it earned. What it cost.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mx-auto mt-5">
               Performance and spend live side by side, per post, so you
               always know whether a channel is paying for itself.
             </Lede>
           </Reveal>
           <Stagger
-            className="mx-auto mt-12 grid max-w-3xl gap-6 sm:grid-cols-2"
+            className="mx-auto mt-12 grid max-w-5xl gap-6 sm:grid-cols-2 lg:grid-cols-3"
             gap={0.1}
           >
             <VignetteCard
@@ -188,6 +199,18 @@ export function MetricsMoment() {
               scene="dawn"
               title="Cost ledger"
               vignette={<CreditsVignette />}
+            />
+            <VignetteCard
+              description="The two sides connected: what a post earns feeds the next brief, capped by what it's allowed to cost."
+              scene="mist"
+              title="The loop, end to end"
+              vignette={
+                <TaggedPlaceholder
+                  kind="illustration"
+                  label="Performance-to-spend loop diagram"
+                  tone="sky"
+                />
+              }
             />
           </Stagger>
         </div>

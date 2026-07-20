@@ -31,6 +31,8 @@ export default function EcommercePage() {
         headline={["Every product,", "its own channel."]}
         kicker="For ecommerce"
         lede="One niche per product line. Hook-driven demo shorts for the feed, buying guides that rank for the search, both from the brief you already wrote for the listing."
+        placeholderLabel="Ecommerce teams in the product — hero still"
+        placeholderTone="rose"
         scene="mint"
       />
       <PainBand

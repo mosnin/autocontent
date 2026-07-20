@@ -10,7 +10,11 @@ import {
   GuideStrong,
   type GuideSection,
 } from "@/components/marketing/resources/guide-layout";
-import { GlassPanel, SectionCta } from "@/components/marketing/system";
+import {
+  GlassPanel,
+  SectionCta,
+  TaggedPlaceholder,
+} from "@/components/marketing/system";
 
 const TITLE = "Hand your marketing to an agent, safely";
 const DESCRIPTION =
@@ -127,6 +131,14 @@ const SECTIONS: GuideSection[] = [
           it spends. You will see this in transcripts: agents narrate the
           budget without being asked, because the tools taught them to.
         </GuideP>
+        <div className="mt-6 aspect-[16/10] overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            className="h-full w-full"
+            kind="illustration"
+            label="Guide diagram — MCP setup"
+            tone="sky"
+          />
+        </div>
       </>
     ),
   },

@@ -5,6 +5,7 @@ import {
   CtaPill,
   GlassPanel,
   Kicker,
+  Magnetic,
   Stagger,
   warmBg,
   warmDot,
@@ -67,13 +68,25 @@ export function PricingTiles() {
             ))}
           </ul>
           <div className="mt-auto pt-8">
-            <CtaPill
-              className="w-full justify-center"
-              href="/sign-up"
-              variant={pack.featured ? "primary" : "secondary"}
-            >
-              Buy ${pack.amount} of credit
-            </CtaPill>
+            {pack.featured ? (
+              <Magnetic className="block w-full">
+                <CtaPill
+                  className="w-full justify-center"
+                  href="/sign-up"
+                  variant="primary"
+                >
+                  Buy ${pack.amount} of credit
+                </CtaPill>
+              </Magnetic>
+            ) : (
+              <CtaPill
+                className="w-full justify-center"
+                href="/sign-up"
+                variant="secondary"
+              >
+                Buy ${pack.amount} of credit
+              </CtaPill>
+            )}
           </div>
         </GlassPanel>
       ))}

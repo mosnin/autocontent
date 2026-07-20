@@ -1,16 +1,15 @@
 "use client";
 
 import * as React from "react";
-import { useMotionValueEvent, type MotionValue } from "motion/react";
 
-import { VideoPipelineIllustration } from "@/components/marketing/illustrations";
 import {
-  DisplayHeading,
   Kicker,
   Lede,
-  PinnedScene,
+  PinScene,
   Reveal,
   Stagger,
+  TaggedPlaceholder,
+  TextReveal,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
@@ -84,9 +83,12 @@ function Header() {
   return (
     <div className="max-w-2xl">
       <Kicker>The production line</Kicker>
-      <DisplayHeading className="mt-4">
+      <TextReveal
+        as="h2"
+        className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+      >
         Ten stages. Zero hand-offs.
-      </DisplayHeading>
+      </TextReveal>
       <Lede className="mt-4">
         What an editor, a voice actor, and a social manager would do in a
         week, run as one pipeline.
@@ -161,21 +163,18 @@ function Rail({ active }: { active: number }) {
   );
 }
 
-function Scene({ progress }: { progress: MotionValue<number> }) {
-  const [stage, setStage] = React.useState(0);
-  useMotionValueEvent(progress, "change", (v) => {
-    setStage(
-      Math.max(0, Math.min(STAGES.length - 1, Math.floor(v * STAGES.length))),
-    );
-  });
-
+function Scene({ stage }: { stage: number }) {
   return (
     <div className="mx-auto max-w-6xl px-6">
       <Header />
       <div className="mt-8 grid items-center gap-10 lg:grid-cols-[minmax(0,22rem)_1fr]">
         <Rail active={stage} />
-        <div className="rounded-[2rem] border border-zinc-900/[0.05] bg-white p-6 shadow-[0_8px_40px_rgba(15,23,42,0.06)] md:p-10">
-          <VideoPipelineIllustration stage={STAGES[stage].macro} />
+        <div className="aspect-[4/3] overflow-hidden rounded-[2rem] border border-zinc-900/[0.05] shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+          <TaggedPlaceholder
+            kind="illustration"
+            label="Scene-by-scene pipeline"
+            tone="violet"
+          />
         </div>
       </div>
     </div>
@@ -210,18 +209,48 @@ function StaticWalkthrough() {
 }
 
 /**
- * The stage walkthrough. On large screens it pins (the only PinnedScene on
- * the features pages) and scroll advances the ten-stage rail while the
- * pipeline drawing lights up. Small screens and reduced motion get the
- * static numbered rail with a Reveal stagger.
+ * Pins the walkthrough and drives the stage rail from the scrub position.
+ * The pin/scrub is GSAP-owned (the only PinScene on the features pages);
+ * the active stage lives in React state so `Rail`/`Scene` keep their plain
+ * prop-driven rendering.
+ */
+function PinnedWalkthrough() {
+  const [stage, setStage] = React.useState(0);
+  const stageRef = React.useRef(0);
+
+  return (
+    <PinScene
+      build={(_el, tl) => {
+        const proxy = { value: 0 };
+        tl.to(proxy, {
+          value: STAGES.length - 1,
+          ease: "none",
+          onUpdate: () => {
+            const next = Math.round(proxy.value);
+            if (next !== stageRef.current) {
+              stageRef.current = next;
+              setStage(next);
+            }
+          },
+        });
+      }}
+      lengthVh={150}
+    >
+      <Scene stage={stage} />
+    </PinScene>
+  );
+}
+
+/**
+ * The stage walkthrough. On large screens it pins and scroll advances the
+ * ten-stage rail while the pipeline diagram tracks along. Small screens and
+ * reduced motion get the static numbered rail with a Reveal stagger.
  */
 export function VideoWalkthrough() {
   return (
     <section aria-label="The ten video stages">
       <div className="hidden lg:block">
-        <PinnedScene fallback={<StaticWalkthrough />} trackClassName="h-[400vh]">
-          {(progress) => <Scene progress={progress} />}
-        </PinnedScene>
+        <PinnedWalkthrough />
       </div>
       <div className="lg:hidden">
         <StaticWalkthrough />

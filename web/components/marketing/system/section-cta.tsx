@@ -2,9 +2,10 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { CtaPill } from "./cta-pill";
+import { Magnetic, TextReveal } from "./gsap-fx";
 import { GradientScene } from "./gradient-scene";
 import { Reveal } from "./reveal";
-import { DisplayHeading, Kicker, Lede } from "./typography";
+import { Kicker, Lede } from "./typography";
 
 /**
  * The closing CTA band. Every marketing page ends with one (spec).
@@ -38,14 +39,19 @@ export function SectionCta({
         <div className="mx-auto max-w-6xl px-6 py-24 text-center md:py-32">
           <Reveal>
             <Kicker>{kicker}</Kicker>
-            <DisplayHeading className="mx-auto mt-4 max-w-3xl" size="lg">
+            <TextReveal
+              as="h2"
+              className="mx-auto mt-4 max-w-3xl text-balance font-display text-4xl font-semibold leading-[1.05] tracking-tight text-zinc-900 md:text-5xl"
+            >
               {headline}
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mx-auto mt-5">{sub}</Lede>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <CtaPill href={primaryHref} size="lg">
-                {primaryLabel}
-              </CtaPill>
+              <Magnetic>
+                <CtaPill href={primaryHref} size="lg">
+                  {primaryLabel}
+                </CtaPill>
+              </Magnetic>
               <CtaPill href={secondaryHref} size="lg" variant="secondary">
                 {secondaryLabel}
               </CtaPill>

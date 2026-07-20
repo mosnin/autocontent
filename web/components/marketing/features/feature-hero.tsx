@@ -10,8 +10,13 @@ import {
   GradientScene,
   Kicker,
   Lede,
+  Magnetic,
+  TextReveal,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
+
+const H1_CLASS =
+  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-5xl leading-[1.02] md:text-6xl lg:text-7xl";
 
 function Rise({
   children,
@@ -46,19 +51,29 @@ function Rise({
 export function FeatureHero({
   kicker,
   title,
+  titleText,
   lede,
   variant = "sky",
   illustration,
   primary = { label: "Start creating", href: "/sign-up" },
   secondary = { label: "See pricing", href: "/pricing" },
+  magneticPrimary = false,
 }: {
   kicker: string;
-  title: React.ReactNode;
+  title?: React.ReactNode;
+  /**
+   * Plain-string title, rendered through TextReveal's word-by-word mask
+   * instead of the static DisplayHeading. Opt-in and takes precedence over
+   * `title` when provided — existing callers are unaffected.
+   */
+  titleText?: string;
   lede: React.ReactNode;
   variant?: "sky" | "pearl" | "mist";
   illustration?: React.ReactNode;
   primary?: { label: string; href: string };
   secondary?: { label: string; href: string };
+  /** Wrap the primary CTA in the Magnetic hover effect. Opt-in. */
+  magneticPrimary?: boolean;
 }) {
   const split = Boolean(illustration);
 
@@ -81,13 +96,22 @@ export function FeatureHero({
               <Kicker>{kicker}</Kicker>
             </Rise>
             <Rise delay={0.22}>
-              <DisplayHeading
-                className={cn("mt-5", !split && "mx-auto")}
-                level={1}
-                size="xl"
-              >
-                {title}
-              </DisplayHeading>
+              {titleText ? (
+                <TextReveal
+                  as="h1"
+                  className={cn(H1_CLASS, "mt-5", !split && "mx-auto")}
+                >
+                  {titleText}
+                </TextReveal>
+              ) : (
+                <DisplayHeading
+                  className={cn("mt-5", !split && "mx-auto")}
+                  level={1}
+                  size="xl"
+                >
+                  {title}
+                </DisplayHeading>
+              )}
             </Rise>
             <Rise delay={0.4}>
               <Lede className={cn("mt-6", !split && "mx-auto")}>{lede}</Lede>
@@ -99,9 +123,17 @@ export function FeatureHero({
               )}
               delay={0.55}
             >
-              <CtaPill href={primary.href} size="lg">
-                {primary.label}
-              </CtaPill>
+              {magneticPrimary ? (
+                <Magnetic>
+                  <CtaPill href={primary.href} size="lg">
+                    {primary.label}
+                  </CtaPill>
+                </Magnetic>
+              ) : (
+                <CtaPill href={primary.href} size="lg">
+                  {primary.label}
+                </CtaPill>
+              )}
               <CtaPill href={secondary.href} size="lg" variant="secondary">
                 {secondary.label}
               </CtaPill>

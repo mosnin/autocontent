@@ -9,9 +9,12 @@ import {
   GradientScene,
   Kicker,
   Lede,
+  Magnetic,
   Reveal,
   SectionCta,
   Stagger,
+  TaggedPlaceholder,
+  TextReveal,
 } from "@/components/marketing/system";
 
 const DESCRIPTION =
@@ -94,16 +97,28 @@ export default function PricingPage() {
           <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
             <Reveal className="max-w-2xl">
               <Kicker>How credits work</Kicker>
-              <DisplayHeading className="mt-4">
+              <TextReveal
+                as="h2"
+                className="mt-4 font-display text-4xl font-semibold tracking-tight text-balance text-zinc-900 md:text-5xl"
+              >
                 A balance, a meter, and a hard limit.
-              </DisplayHeading>
+              </TextReveal>
               <Lede className="mt-5">
                 The billing model is three moving parts, and all three are
                 visible on your dashboard at all times.
               </Lede>
             </Reveal>
+            <Reveal className="mt-10 overflow-hidden rounded-[1.75rem] border border-white/60 shadow-[0_8px_40px_rgba(15,23,42,0.06)]" delay={0.1}>
+              <div className="aspect-[16/7]">
+                <TaggedPlaceholder
+                  kind="illustration"
+                  label="How credits work — diagram"
+                  tone="warm"
+                />
+              </div>
+            </Reveal>
             <Stagger
-              className="mt-14 grid gap-4 md:grid-cols-3"
+              className="mt-10 grid gap-4 md:grid-cols-3"
               gap={0.08}
               itemClassName="h-full"
             >
@@ -173,18 +188,22 @@ export default function PricingPage() {
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap gap-3">
-                <a
-                  className="inline-flex min-h-11 items-center rounded-full bg-white px-6 py-1.5 text-sm font-medium text-zinc-900 transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  href="mailto:hello@marketer.sh"
-                >
-                  hello@marketer.sh
-                </a>
-                <Link
-                  className="inline-flex min-h-11 items-center rounded-full border border-white/20 px-6 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:border-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                  href="/resources/api"
-                >
-                  See the agent surfaces
-                </Link>
+                <Magnetic>
+                  <a
+                    className="inline-flex min-h-11 items-center rounded-full bg-white px-6 py-1.5 text-sm font-medium text-zinc-900 transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    href="mailto:hello@marketer.sh"
+                  >
+                    hello@marketer.sh
+                  </a>
+                </Magnetic>
+                <Magnetic>
+                  <Link
+                    className="inline-flex min-h-11 items-center rounded-full border border-white/20 px-6 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:border-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    href="/resources/api"
+                  >
+                    See the agent surfaces
+                  </Link>
+                </Magnetic>
               </div>
             </div>
           </GlassPanel>
