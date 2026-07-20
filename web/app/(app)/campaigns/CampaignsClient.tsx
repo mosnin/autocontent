@@ -114,6 +114,7 @@ export function CampaignsClient({
             }
             tagline="Spin up a capped, multi-format push"
             title="New campaign"
+            tone="warm"
           />
         </DashRise>
         <DashRise delay={0.16}>
@@ -138,6 +139,7 @@ export function CampaignsClient({
             }
             tagline="Let an agent run the whole push"
             title="Autopilot"
+            tone="sky"
           />
         </DashRise>
       </div>
@@ -180,6 +182,7 @@ export function CampaignsClient({
                 </div>
               }
               title={c.name}
+              tone="warm"
             />
           ))}
           {initial.length === 0 && (
@@ -191,13 +194,19 @@ export function CampaignsClient({
       </DashPanel>
 
       <DashRise delay={0.12}>
-      <Card className={cn(hubCardClass, "scroll-mt-24 border-dashed")} id="new-campaign">
+      <Card className={cn(hubCardClass, "scroll-mt-24")} id="new-campaign">
         <CardHeader>
-          <CardTitle className="text-base">New campaign</CardTitle>
-          <CardDescription>
-            The budget caps generation credits (videos + articles). Ad
-            spend stays governed by the Ads product&apos;s guardrails.
-          </CardDescription>
+          <div className="grid gap-x-8 gap-y-1.5 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <CardTitle className="text-lg font-semibold tracking-tight">
+                New campaign
+              </CardTitle>
+              <CardDescription>
+                The budget caps generation credits (videos + articles). Ad
+                spend stays governed by the Ads product&apos;s guardrails.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">

@@ -7,6 +7,7 @@ import { motion, useReducedMotion } from "motion/react";
 
 import TextType from "@/components/reactbits/TextType";
 import { BannerCard, MediaCard } from "@/components/hub/dashboard-kit";
+import { MediaSlot, useMediaManifest } from "@/components/media-slot";
 import { productById } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
@@ -103,24 +104,32 @@ function CampaignsVignette() {
   );
 }
 
+const HOOK_TILE_GRADIENTS = [
+  "linear-gradient(160deg,#fcd9b8,#f7aeb4 55%,#eb9ecb)",
+  "linear-gradient(160deg,#c9dcfd,#aac2fb 55%,#c2aef6)",
+  "linear-gradient(160deg,#d9d0fc,#bcaefa 55%,#eaa9e0)",
+  "linear-gradient(160deg,#bfe3d9,#a9cdea 55%,#b6b3f0)",
+];
+
 function ContentVignette() {
   return (
     <VignetteFrame className="min-h-44">
       <div className="grid grid-cols-4 gap-2">
         {["Hook A", "Hook B", "Hook C", "Hook D"].map((h, i) => (
           <div
-            className="flex aspect-[9/13] flex-col justify-between rounded-lg border border-border/60 bg-card p-1.5"
+            className="relative aspect-[9/13] overflow-hidden rounded-lg border border-white/50"
             key={h}
+            style={{ background: HOOK_TILE_GRADIENTS[i] }}
           >
             <span
               className={cn(
-                "flex size-4 items-center justify-center rounded-full text-[8px] text-white",
+                "absolute left-1.5 top-1.5 flex size-4 items-center justify-center rounded-full text-[8px] text-white shadow-sm",
                 i === 1 ? "bg-rose-500" : "bg-zinc-900",
               )}
             >
               ▶
             </span>
-            <span className="text-[9px] font-medium text-muted-foreground">
+            <span className="absolute inset-x-0 bottom-0 bg-white/75 px-1.5 py-1 text-[9px] font-medium text-zinc-700 backdrop-blur-sm">
               {h}
             </span>
           </div>
@@ -205,6 +214,25 @@ function SuiteVignette() {
   );
 }
 
+/** Uploaded slot image when the admin has provided one, else the vignette. */
+function HubMedia({
+  id,
+  fallback,
+}: {
+  id: string;
+  fallback: React.ReactNode;
+}) {
+  const { data } = useMediaManifest();
+  if (data?.slots?.[id]) {
+    return (
+      <div className="h-full min-h-44 w-full">
+        <MediaSlot id={id} showChip={false} />
+      </div>
+    );
+  }
+  return <>{fallback}</>;
+}
+
 /* ------------------------------------------------------------------ */
 /* The hub                                                             */
 /* ------------------------------------------------------------------ */
@@ -244,18 +272,30 @@ export function HomeHub() {
           <Rise delay={stagger(1)}>
             <BannerCard
               href={campaigns.home}
-              media={<CampaignsVignette />}
+              media={
+                <HubMedia
+                  fallback={<CampaignsVignette />}
+                  id="dash-home-campaigns"
+                />
+              }
               tagline={campaigns.tagline}
               title="Campaigns"
+              tone="warm"
             />
           </Rise>
           <Rise delay={stagger(2)}>
             <BannerCard
               badge="Studio"
               href={content.home}
-              media={<ContentVignette />}
+              media={
+                <HubMedia
+                  fallback={<ContentVignette />}
+                  id="dash-home-content"
+                />
+              }
               tagline={content.tagline}
               title="Content"
+              tone="sky"
             />
           </Rise>
         </div>
@@ -269,24 +309,29 @@ export function HomeHub() {
             <MediaCard
               foot="Press — articles & search"
               href={seo.home}
-              media={<SeoVignette />}
+              media={<HubMedia fallback={<SeoVignette />} id="dash-home-seo" />}
               title="SEO"
+              tone="violet"
             />
           </Rise>
           <Rise delay={stagger(5)}>
             <MediaCard
               foot="Paid campaigns, capped"
               href={ads.home}
-              media={<AdsVignette />}
+              media={<HubMedia fallback={<AdsVignette />} id="dash-home-ads" />}
               title="Ads"
+              tone="warm"
             />
           </Rise>
           <Rise delay={stagger(6)}>
             <MediaCard
               foot="Account, brand, admin"
               href={suite.home}
-              media={<SuiteVignette />}
+              media={
+                <HubMedia fallback={<SuiteVignette />} id="dash-home-suite" />
+              }
               title="Suite"
+              tone="slate"
             />
           </Rise>
         </div>
