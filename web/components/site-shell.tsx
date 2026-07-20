@@ -17,7 +17,14 @@ import { cn } from "@/lib/utils";
  * No sidebar — navigation lives entirely in the two top rows, like the
  * reference's toolbar-first layout.
  */
-export function SiteShell({ children }: { children: React.ReactNode }) {
+export function SiteShell({
+  children,
+  account,
+}: {
+  children: React.ReactNode;
+  /** Account slot — defaults to Clerk's UserButton; previews pass a stub. */
+  account?: React.ReactNode;
+}) {
   return (
     <div className="min-h-svh bg-[#f6f7f9]">
       <header className="sticky top-0 z-40 border-b border-border/70 bg-white/85 backdrop-blur-xl">
@@ -85,7 +92,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             >
               New campaign
             </Link>
-            <UserButton afterSignOutUrl="/" />
+            {account ?? <UserButton afterSignOutUrl="/" />}
           </div>
         </div>
 

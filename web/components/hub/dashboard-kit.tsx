@@ -23,6 +23,17 @@ import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 
+export type DashTone = "warm" | "sky" | "violet" | "slate" | "rose";
+
+/** Duotone gradients for the card media wells — saturated pastel. */
+const MEDIA_TONES: Record<DashTone, string> = {
+  warm: "linear-gradient(135deg,#fff3e4,#ffe1d6 50%,#ffd9e4)",
+  sky: "linear-gradient(135deg,#e3edfe,#dbe4fd 50%,#e6ddfc)",
+  violet: "linear-gradient(135deg,#efeafe,#e4dcfc 50%,#f6ddf3)",
+  rose: "linear-gradient(135deg,#ffe9ec,#fdd8e2)",
+  slate: "linear-gradient(135deg,#fafbfd,#eef1f7)",
+};
+
 export function DashRise({
   children,
   delay = 0,
@@ -101,6 +112,7 @@ export function BannerCard({
   tagline,
   badge,
   media,
+  tone,
   className,
 }: {
   href: string;
@@ -108,6 +120,7 @@ export function BannerCard({
   tagline: string;
   badge?: string;
   media: React.ReactNode;
+  tone?: DashTone;
   className?: string;
 }) {
   const reduced = useReducedMotion();
@@ -116,6 +129,7 @@ export function BannerCard({
       className={cn("h-full", className)}
       transition={{ type: "spring", stiffness: 350, damping: 26 }}
       whileHover={reduced ? undefined : { y: -5 }}
+      whileTap={reduced ? undefined : { scale: 0.985 }}
     >
       <Link
         className="group flex h-full flex-col rounded-[1.75rem] border border-border/70 bg-card p-6 shadow-[0_1px_2px_rgb(0_0_0/0.03),0_16px_48px_-28px_rgb(0_0_0/0.25)] transition-shadow hover:shadow-[0_2px_6px_rgb(0_0_0/0.05),0_28px_64px_-28px_rgb(0_0_0/0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -137,8 +151,13 @@ export function BannerCard({
           </div>
           <ArrowCircle size="lg" />
         </div>
-        <div className="flex-1 overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(135deg,#fafbfd,#eef1f7)]">
-          {media}
+        <div
+          className="flex-1 overflow-hidden rounded-2xl border border-border/60"
+          style={{ background: MEDIA_TONES[tone ?? "slate"] }}
+        >
+          <div className="h-full w-full transition-transform duration-500 group-hover:scale-[1.02]">
+            {media}
+          </div>
         </div>
       </Link>
     </motion.div>
@@ -154,12 +173,14 @@ export function MediaCard({
   title,
   media,
   foot,
+  tone,
   className,
 }: {
   href: string;
   title: string;
   media: React.ReactNode;
   foot?: React.ReactNode;
+  tone?: DashTone;
   className?: string;
 }) {
   const reduced = useReducedMotion();
@@ -168,6 +189,7 @@ export function MediaCard({
       className={cn("h-full", className)}
       transition={{ type: "spring", stiffness: 380, damping: 26 }}
       whileHover={reduced ? undefined : { y: -4 }}
+      whileTap={reduced ? undefined : { scale: 0.985 }}
     >
       <Link
         className="group flex h-full flex-col rounded-3xl border border-border/70 bg-card p-4 shadow-[0_1px_2px_rgb(0_0_0/0.03),0_10px_32px_-22px_rgb(0_0_0/0.2)] transition-shadow hover:shadow-[0_2px_4px_rgb(0_0_0/0.05),0_20px_48px_-24px_rgb(0_0_0/0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -179,8 +201,13 @@ export function MediaCard({
           </h3>
           <ArrowCircle />
         </div>
-        <div className="flex-1 overflow-hidden rounded-xl border border-border/60 bg-[linear-gradient(135deg,#fafbfd,#eef1f7)]">
-          {media}
+        <div
+          className="flex-1 overflow-hidden rounded-xl border border-border/60"
+          style={{ background: MEDIA_TONES[tone ?? "slate"] }}
+        >
+          <div className="h-full w-full transition-transform duration-500 group-hover:scale-[1.02]">
+            {media}
+          </div>
         </div>
         {foot ? (
           <div className="px-1 pt-3 text-xs text-muted-foreground">{foot}</div>

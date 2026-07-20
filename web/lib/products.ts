@@ -18,6 +18,7 @@ import {
   FileText,
   Film,
   KeyRound,
+  Image as ImageIcon,
   Layers,
   LayoutDashboard,
   Link2,
@@ -172,7 +173,10 @@ const SUITE: Product = {
     },
     {
       label: "Admin",
-      items: [{ href: "/admin", label: "Admin console", icon: ShieldCheck }],
+      items: [
+        { href: "/admin", label: "Admin console", icon: ShieldCheck },
+        { href: "/admin/media", label: "Media", icon: ImageIcon },
+      ],
     },
   ],
 };
