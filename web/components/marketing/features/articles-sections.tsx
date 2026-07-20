@@ -2,13 +2,15 @@ import * as React from "react";
 
 import { ArticleFlowIllustration } from "@/components/marketing/illustrations";
 import {
-  DisplayHeading,
   GlassPanel,
   GradientScene,
   Kicker,
   Lede,
+  Parallax,
   Reveal,
   Stagger,
+  TaggedPlaceholder,
+  TextReveal,
   warmBg,
   warmChip,
 } from "@/components/marketing/system";
@@ -16,6 +18,10 @@ import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
 import { VignetteStage } from "./vignette-stage";
+
+/** Matches DisplayHeading's default (level 2, size lg) styling. */
+const H2_CLASS =
+  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-4xl leading-[1.05] md:text-5xl";
 
 /* ------------------------------------------------------------------ */
 /* SERP research                                                       */
@@ -92,9 +98,9 @@ export function SerpBand() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>Research first</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
               It reads the results page before writing one.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Each topic is picked and deduped against your recent posts, so
               nothing repeats. Then Exa pulls what currently ranks, and the
@@ -134,9 +140,9 @@ export function OutlineBand() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal className="lg:order-2">
             <Kicker>Structure, then speed</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
               One outline. Sections written in parallel.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               The research becomes a structured outline: one H1, five to ten
               H2s, each with a job to do. Then every section is drafted at
@@ -152,7 +158,9 @@ export function OutlineBand() {
             />
           </Reveal>
           <Reveal className="lg:order-1" delay={0.12}>
-            <ArticleFlowIllustration />
+            <Parallax speed={-0.1}>
+              <ArticleFlowIllustration />
+            </Parallax>
           </Reveal>
         </div>
       </GradientScene>
@@ -248,9 +256,9 @@ export function MetadataBand() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>Ship-ready</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
               Metadata handled. Schema included.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Every article leaves the pipeline with a title, slug, meta
               description, and keywords, plus JSON-LD for Article and
@@ -304,15 +312,28 @@ export function QaBand() {
       aria-label="Quality scoring"
       className="mx-auto max-w-6xl px-6 py-24 md:py-32"
     >
-      <Reveal className="max-w-2xl">
-        <Kicker>Quality gate</Kicker>
-        <DisplayHeading className="mt-4">Scored before it ships.</DisplayHeading>
-        <Lede className="mt-5">
-          Every draft is scored on keyword density, E-E-A-T, and
-          readability. Fall short and it gets one corrective rewrite, then
-          it&apos;s re-scored. Then it ships, or it doesn&apos;t.
-        </Lede>
-      </Reveal>
+      <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
+        <Reveal className="max-w-2xl">
+          <Kicker>Quality gate</Kicker>
+          <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
+            Scored before it ships.
+          </TextReveal>
+          <Lede className="mt-5">
+            Every draft is scored on keyword density, E-E-A-T, and
+            readability. Fall short and it gets one corrective rewrite, then
+            it&apos;s re-scored. Then it ships, or it doesn&apos;t.
+          </Lede>
+        </Reveal>
+        <Reveal delay={0.12}>
+          <div className="aspect-[4/3] overflow-hidden rounded-[1.75rem]">
+            <TaggedPlaceholder
+              kind="illustration"
+              label="QA gate diagram — draft, score, rewrite, ship"
+              tone="violet"
+            />
+          </div>
+        </Reveal>
+      </div>
       <Stagger className="mt-12 grid gap-6 md:grid-cols-3" gap={0.08}>
         {QA_SCORES.map((q) => (
           <GlassPanel className="p-6" key={q.label}>

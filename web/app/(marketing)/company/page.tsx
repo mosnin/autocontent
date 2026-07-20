@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing/resources/page-hero";
 import {
-  DisplayHeading,
   GradientScene,
   Kicker,
   Reveal,
   SectionCta,
   Stagger,
+  TaggedPlaceholder,
+  TextReveal,
 } from "@/components/marketing/system";
 
 const DESCRIPTION =
@@ -74,9 +75,12 @@ export default function CompanyPage() {
       >
         <Reveal>
           <Kicker>The problem</Kicker>
-          <DisplayHeading className="mt-4" size="md">
+          <TextReveal
+            as="h2"
+            className="mt-4 font-display text-2xl font-semibold tracking-tight text-balance text-zinc-900 leading-tight md:text-3xl"
+          >
             The treadmill taxes the wrong people.
-          </DisplayHeading>
+          </TextReveal>
           <p className="mt-5 text-[17px] leading-[1.75] text-zinc-600">
             Distribution now demands a daily video, a steady article cadence,
             and a feel for three different feeds. The people best positioned
@@ -100,9 +104,12 @@ export default function CompanyPage() {
 
         <Reveal>
           <Kicker>The bet</Kicker>
-          <DisplayHeading className="mt-4" size="md">
+          <TextReveal
+            as="h2"
+            className="mt-4 font-display text-2xl font-semibold tracking-tight text-balance text-zinc-900 leading-tight md:text-3xl"
+          >
             Pipelines, not heroics.
-          </DisplayHeading>
+          </TextReveal>
           <p className="mt-5 text-[17px] leading-[1.75] text-zinc-600">
             Frontier models made each step of marketing automatable: the
             script, the frames, the voice, the article, the metadata. What was
@@ -116,9 +123,12 @@ export default function CompanyPage() {
         <Reveal>
           <div className="mt-14 md:mt-16">
             <Kicker>The line we hold</Kicker>
-            <DisplayHeading className="mt-4" size="md">
+            <TextReveal
+              as="h2"
+              className="mt-4 font-display text-2xl font-semibold tracking-tight text-balance text-zinc-900 leading-tight md:text-3xl"
+            >
               Autonomous, never unaccountable.
-            </DisplayHeading>
+            </TextReveal>
             <p className="mt-5 text-[17px] leading-[1.75] text-zinc-600">
               An autonomous system spending your money and speaking in your
               name has to be governable, or it is a liability with a nice
@@ -130,6 +140,24 @@ export default function CompanyPage() {
         </Reveal>
       </section>
 
+      {/* Team */}
+      <section
+        aria-label="The team"
+        className="mx-auto max-w-5xl px-6 pb-24 md:pb-32"
+      >
+        <Stagger className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5" gap={0.08}>
+          <div className="aspect-[4/5] overflow-hidden rounded-2xl">
+            <TaggedPlaceholder kind="image" label="Team photo" tone="warm" />
+          </div>
+          <div className="aspect-[4/5] overflow-hidden rounded-2xl">
+            <TaggedPlaceholder kind="image" label="Team photo" tone="sky" />
+          </div>
+          <div className="col-span-2 aspect-[4/5] overflow-hidden rounded-2xl sm:col-span-1">
+            <TaggedPlaceholder kind="image" label="Team photo" tone="violet" />
+          </div>
+        </Stagger>
+      </section>
+
       {/* Principles */}
       <section aria-label="Principles" className="px-4 py-6 md:px-6">
         <GradientScene
@@ -139,9 +167,12 @@ export default function CompanyPage() {
           <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
             <Reveal className="max-w-2xl">
               <Kicker>Principles</Kicker>
-              <DisplayHeading className="mt-4">
+              <TextReveal
+                as="h2"
+                className="mt-4 font-display text-4xl font-semibold tracking-tight text-balance text-zinc-900 leading-[1.05] md:text-5xl"
+              >
                 Four rules we build by.
-              </DisplayHeading>
+              </TextReveal>
             </Reveal>
             <Stagger
               className="mt-14 grid gap-4 sm:grid-cols-2"

@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 
 import { MediaSlot } from "@/components/media-slot";
 import { EASE } from "@/components/marketing/system/motion";
+import { Magnetic, Parallax } from "@/components/marketing/system";
 import RotatingText from "@/components/reactbits/RotatingText";
 
 /** Feature chip rows under the hero copy, like the reference's capability
@@ -88,12 +89,14 @@ export function Hero() {
             {...enter(0.16)}
             className="mt-8 flex flex-wrap items-center gap-4"
           >
-            <Link
-              className="inline-flex min-h-12 items-center rounded-xl bg-zinc-900 px-7 text-[15px] font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
-              href="/sign-up"
-            >
-              Get started. It&apos;s $5.
-            </Link>
+            <Magnetic>
+              <Link
+                className="inline-flex min-h-12 items-center rounded-xl bg-zinc-900 px-7 text-[15px] font-semibold text-white shadow-[0_2px_12px_rgba(15,23,42,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+                href="/sign-up"
+              >
+                Get started. It&apos;s $5.
+              </Link>
+            </Magnetic>
             <p className="text-sm leading-snug text-zinc-500">
               Prepaid credits from $5.
               <br />
@@ -142,7 +145,9 @@ export function Hero() {
             className="pointer-events-none absolute -inset-8 rounded-[3rem] bg-[radial-gradient(80%_80%_at_30%_20%,rgba(245,158,11,0.08),rgba(244,63,94,0.05)_50%,transparent_80%)]"
           />
           <div className="group relative aspect-[13/10] overflow-hidden rounded-2xl shadow-[0_24px_80px_rgba(15,23,42,0.14)] lg:rounded-r-none">
-            <MediaSlot id="mk-hero" />
+            <Parallax className="h-full w-full" speed={-0.1}>
+              <MediaSlot id="mk-hero" />
+            </Parallax>
           </div>
         </motion.div>
       </div>

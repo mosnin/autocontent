@@ -10,6 +10,7 @@ import {
   Reveal,
   SectionCta,
   Stagger,
+  TaggedPlaceholder,
 } from "@/components/marketing/system";
 
 const DESCRIPTION =
@@ -67,6 +68,16 @@ export default function ApiPage() {
         </Reveal>
         <Reveal className="mt-12" delay={0.1}>
           <CodeTabs />
+        </Reveal>
+        <Reveal className="mt-10" delay={0.15}>
+          <div className="aspect-[21/9] overflow-hidden rounded-[2rem] border border-zinc-900/[0.06]">
+            <TaggedPlaceholder
+              className="h-full w-full"
+              kind="illustration"
+              label="Agent surfaces — API, SDK, CLI, MCP map"
+              tone="slate"
+            />
+          </div>
         </Reveal>
       </section>
 

@@ -1,7 +1,9 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
 
-import { Reveal, Stagger } from "@/components/marketing/system";
+import { Reveal, Stagger, TextReveal } from "@/components/marketing/system";
 
 const PILLARS = [
   {
@@ -28,9 +30,9 @@ export function Enterprise() {
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <h2 className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
+            <TextReveal className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
               Enterprise-grade everything.
-            </h2>
+            </TextReveal>
             <p className="mt-5 text-lg leading-relaxed text-zinc-600">
               Autonomy only works with control. Every automated action runs
               inside guardrails you set.

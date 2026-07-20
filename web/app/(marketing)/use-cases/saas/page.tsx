@@ -31,6 +31,8 @@ export default function SaasPage() {
         headline={["The content engine", "you never staffed."]}
         kicker="For SaaS growth teams"
         lede="Educational shorts at the top of the funnel, comparison articles at the bottom, and every post's metrics feeding the next round. No new headcount."
+        placeholderLabel="SaaS teams in the product — hero still"
+        placeholderTone="sky"
         scene="tide"
       />
       <PainBand

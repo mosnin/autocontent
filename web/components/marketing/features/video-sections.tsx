@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import {
-  DisplayHeading,
   GlassPanel,
   GradientScene,
   Kicker,
@@ -9,6 +8,7 @@ import {
   Reveal,
   Stagger,
   StatStrip,
+  TextReveal,
   VignetteCard,
   warmChip,
   type VignetteScene,
@@ -36,9 +36,12 @@ export function QueueMoment() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>The queue</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal
+              as="h2"
+              className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+            >
               Renders, schedules, publishes. On its own.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Every video moves through the queue with a status you can read
               at a glance. Rendering now, scheduled for the next window,
@@ -190,9 +193,12 @@ export function CharacterBand() {
           </Reveal>
           <Reveal className="lg:order-2" delay={0.12}>
             <Kicker>On-model, every frame</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal
+              as="h2"
+              className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+            >
               The same face in video one and video forty.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Each niche gets a character sheet: who fronts the videos, how
               they look, how they hold the frame. Every gpt-image-1 keyframe
@@ -223,9 +229,12 @@ export function ApprovalGateBand() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>The approval gate</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal
+              as="h2"
+              className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+            >
               Nothing posts without your rules.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               The gate is optional, the control is not. Hold every video for
               review, or let the pipeline run full-auto inside the rules you
@@ -330,9 +339,12 @@ export function PlatformRow() {
     >
       <Reveal className="max-w-2xl">
         <Kicker>Distribution</Kicker>
-        <DisplayHeading className="mt-4">
+        <TextReveal
+          as="h2"
+          className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+        >
           Posted where short-form lives.
-        </DisplayHeading>
+        </TextReveal>
         <Lede className="mt-5">
           One render, three destinations. Posting windows are set per niche,
           mornings for coffee, evenings for gaming, and the queue hits them

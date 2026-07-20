@@ -31,6 +31,8 @@ export default function CreatorsPage() {
         headline={["Post daily.", "Edit never."]}
         kicker="For creators and faceless channels"
         lede="One brief becomes tonight's shorts: scripted, voiced, animated, captioned, and scheduled. Your character stays consistent. Nothing posts until you say so."
+        placeholderLabel="Creators in the product — hero still"
+        placeholderTone="warm"
         scene="dusk"
       />
       <PainBand

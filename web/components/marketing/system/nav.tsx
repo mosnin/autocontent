@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
 import { EASE } from "./motion";
+import { Marquee } from "./gsap-fx";
 
 /* ------------------------------------------------------------------ */
 /* Sitemap data (URLs are canonical, see DESIGN_SPEC.md)               */
@@ -420,29 +421,34 @@ function Caret({ open }: { open?: boolean }) {
 /* Announcement banner                                                 */
 /* ------------------------------------------------------------------ */
 
+const BANNER_SEGMENTS = [
+  "Meet the marketer.sh suite: Studio, Press, and Ads",
+  "One brief, every format",
+  "Hard caps on every dollar",
+  "Your agents ship the campaign",
+  "See what shipped this week",
+];
+
 function AnnouncementBanner() {
   return (
     <Link
-      className="flex min-h-10 items-center justify-center gap-1.5 bg-zinc-950 px-4 text-center text-[13px] text-zinc-300 transition-colors hover:text-white"
+      aria-label="Announcement: Meet the marketer.sh suite — see what shipped"
+      className="block bg-zinc-950 text-[13px] text-zinc-300 transition-colors hover:text-white"
       href="/resources/changelog"
     >
-      <span className="font-semibold text-white">Meet the marketer.sh suite:</span>
-      <span className="hidden sm:inline">
-        Studio, Press, and Ads. One brief, every format.
-      </span>
-      <span className="font-medium text-white">See what shipped</span>
-      <svg
-        aria-hidden
-        className="size-3.5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-      >
-        <path d="m9 6 6 6-6 6" />
-      </svg>
+      <Marquee ariaLabel={undefined} className="min-h-10 items-center" seconds={36}>
+        {BANNER_SEGMENTS.map((seg, i) => (
+          <span className="flex items-center" key={i}>
+            <span className={cn("whitespace-nowrap px-5", i === 0 && "font-semibold text-white")}>
+              {seg}
+            </span>
+            <span
+              aria-hidden
+              className="size-1 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
+            />
+          </span>
+        ))}
+      </Marquee>
     </Link>
   );
 }

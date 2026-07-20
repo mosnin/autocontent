@@ -61,6 +61,8 @@ export default function AiAgentsPage() {
         headline={["Your agents are", "the marketing team."]}
         kicker="For AI agents · the namesake"
         lede="marketer.sh exists so software can run marketing. Every pipeline is a tool an agent can call, every cost is declared up front, and every dollar stops at a cap you set."
+        placeholderLabel="AI agents in the product — hero still"
+        placeholderTone="warm"
         primaryHref="/resources/api"
         primaryLabel="Read the API docs"
         scene="aurora"

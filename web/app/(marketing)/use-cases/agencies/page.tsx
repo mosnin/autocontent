@@ -31,6 +31,8 @@ export default function AgenciesPage() {
         headline={["Every client, run like", "your only client."]}
         kicker="For agencies"
         lede="One niche per client. Its own brief, its own daily cap, its own approval gate, its own line in the ledger. Ten accounts feel like one."
+        placeholderLabel="Agencies in the product — hero still"
+        placeholderTone="violet"
         scene="steel"
       />
       <PainBand

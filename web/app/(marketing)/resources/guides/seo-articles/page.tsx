@@ -9,7 +9,7 @@ import {
   GuideStrong,
   type GuideSection,
 } from "@/components/marketing/resources/guide-layout";
-import { SectionCta } from "@/components/marketing/system";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 
 const TITLE = "Rank with articles your agents write";
 const DESCRIPTION =
@@ -77,6 +77,14 @@ const SECTIONS: GuideSection[] = [
             </>,
           ]}
         />
+        <div className="mt-6 aspect-[16/10] overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            className="h-full w-full"
+            kind="illustration"
+            label="Guide diagram — article pipeline"
+            tone="warm"
+          />
+        </div>
       </>
     ),
   },

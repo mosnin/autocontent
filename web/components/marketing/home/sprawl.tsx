@@ -1,10 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
 
-import { Reveal, Stagger } from "@/components/marketing/system";
-import { EASE, VIEWPORT } from "@/components/marketing/system/motion";
+import { Reveal, Stagger, TextReveal } from "@/components/marketing/system";
+
+gsap.registerPlugin(ScrollTrigger, useGSAP);
+
+const REDUCED = "(prefers-reduced-motion: reduce)";
+const FULL = "(prefers-reduced-motion: no-preference)";
 
 const PAINS = [
   {
@@ -22,25 +28,76 @@ const PAINS = [
 ];
 
 /** Tangled scribble that resolves into a straight line — the reference's
- *  centerpiece graphic, drawn as an animated SVG path. */
+ *  centerpiece graphic, drawn as an animated SVG path scrubbed by scroll. */
 function SprawlLine() {
-  const reduced = useReducedMotion();
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const pathRef = React.useRef<SVGPathElement>(null);
+  const dotRef = React.useRef<SVGCircleElement>(null);
+  const chipRef = React.useRef<HTMLSpanElement>(null);
+
+  useGSAP(
+    () => {
+      const wrap = wrapRef.current;
+      const path = pathRef.current;
+      const dot = dotRef.current;
+      const chip = chipRef.current;
+      if (!wrap || !path || !dot || !chip) return;
+
+      const mm = gsap.matchMedia();
+
+      mm.add(FULL, () => {
+        const length = path.getTotalLength();
+        gsap.set(path, {
+          strokeDasharray: length,
+          strokeDashoffset: length,
+        });
+        gsap.set(dot, { scale: 0, opacity: 0, transformOrigin: "50% 50%" });
+        gsap.set(chip, { opacity: 0, y: 8 });
+
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: wrap,
+            scrub: 0.8,
+            start: "top 75%",
+            end: "bottom 55%",
+          },
+        });
+
+        tl.to(path, { strokeDashoffset: 0, ease: "none" }, 0)
+          .to(
+            dot,
+            { scale: 1, opacity: 1, duration: 0.15, ease: "power2.out" },
+            0.85,
+          )
+          .to(
+            chip,
+            { opacity: 1, y: 0, duration: 0.15, ease: "power2.out" },
+            0.85,
+          );
+      });
+
+      mm.add(REDUCED, () => {
+        gsap.set(path, { strokeDasharray: "none", strokeDashoffset: 0 });
+        gsap.set(dot, { scale: 1, opacity: 1 });
+        gsap.set(chip, { opacity: 1, y: 0 });
+      });
+    },
+    { scope: wrapRef },
+  );
+
   return (
-    <div aria-hidden className="relative mx-auto mt-14 max-w-4xl px-6">
+    <div aria-hidden className="relative mx-auto mt-14 max-w-4xl px-6" ref={wrapRef}>
       <svg
         className="w-full"
         fill="none"
         viewBox="0 0 800 160"
       >
-        <motion.path
+        <path
           d="M10 80 C 60 20, 90 150, 150 90 S 220 10, 260 90 S 320 160, 360 80 S 420 20, 470 80 C 510 128, 540 80, 590 80 L 740 80"
-          initial={reduced ? { pathLength: 1 } : { pathLength: 0 }}
+          ref={pathRef}
           stroke="url(#sprawl-grad)"
           strokeLinecap="round"
           strokeWidth="3"
-          transition={{ duration: 1.8, ease: EASE }}
-          viewport={VIEWPORT}
-          whileInView={{ pathLength: 1 }}
         />
         <defs>
           <linearGradient id="sprawl-grad" x1="0" x2="800" y1="0" y2="0" gradientUnits="userSpaceOnUse">
@@ -49,26 +106,14 @@ function SprawlLine() {
             <stop offset="1" stopColor="#f43f5e" />
           </linearGradient>
         </defs>
-        <motion.circle
-          cx="740"
-          cy="80"
-          fill="#f43f5e"
-          initial={reduced ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-          r="6"
-          transition={{ delay: reduced ? 0 : 1.5, duration: 0.4, ease: EASE }}
-          viewport={VIEWPORT}
-          whileInView={{ scale: 1, opacity: 1 }}
-        />
+        <circle cx="740" cy="80" fill="#f43f5e" r="6" ref={dotRef} />
       </svg>
-      <motion.span
+      <span
         className="absolute right-0 top-1/2 hidden -translate-y-[150%] rounded-full border border-zinc-900/10 bg-white px-3 py-1 text-[12px] font-medium text-zinc-700 shadow-sm md:inline-block"
-        initial={reduced ? { opacity: 1 } : { opacity: 0, y: 8 }}
-        transition={{ delay: reduced ? 0 : 1.6, duration: 0.4, ease: EASE }}
-        viewport={VIEWPORT}
-        whileInView={{ opacity: 1, y: 0 }}
+        ref={chipRef}
       >
         one pipeline
-      </motion.span>
+      </span>
     </div>
   );
 }
@@ -77,15 +122,20 @@ export function Sprawl() {
   return (
     <section aria-label="The problem" className="bg-white py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-6">
-        <Reveal className="mx-auto max-w-3xl text-center">
-          <h2 className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
+        <div className="mx-auto max-w-3xl text-center">
+          <TextReveal
+            as="h2"
+            className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl"
+          >
             It&apos;s time to end tool sprawl.
-          </h2>
-          <p className="mt-5 text-lg leading-relaxed text-zinc-600">
-            Most teams run marketing across six disconnected tools. The work
-            isn&apos;t hard, the stitching is.
-          </p>
-        </Reveal>
+          </TextReveal>
+          <Reveal>
+            <p className="mt-5 text-lg leading-relaxed text-zinc-600">
+              Most teams run marketing across six disconnected tools. The work
+              isn&apos;t hard, the stitching is.
+            </p>
+          </Reveal>
+        </div>
 
         <SprawlLine />
 

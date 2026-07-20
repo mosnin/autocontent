@@ -2,21 +2,28 @@ import * as React from "react";
 
 import { AutomationOrbitIllustration } from "@/components/marketing/illustrations";
 import {
-  DisplayHeading,
   GlassPanel,
   GradientScene,
   Kicker,
   Lede,
+  Parallax,
   Reveal,
   Stagger,
+  TaggedPlaceholder,
+  TextReveal,
   VignetteCard,
 } from "@/components/marketing/system";
 import {
   MCPVignette,
   TerminalVignette,
 } from "@/components/marketing/vignettes";
+import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
+
+/** Matches DisplayHeading's default (level 2, size lg) styling. */
+const H2_CLASS =
+  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-4xl leading-[1.05] md:text-5xl";
 
 /* ------------------------------------------------------------------ */
 /* Surface cards: API / SDK / CLI / MCP                                */
@@ -57,16 +64,27 @@ export function SurfaceCards() {
       aria-label="Agent surfaces"
       className="mx-auto max-w-6xl px-6 py-24 md:py-32"
     >
-      <Reveal className="max-w-2xl">
-        <Kicker>Four surfaces, one platform</Kicker>
-        <DisplayHeading className="mt-4">
-          Whatever your agent speaks, it&apos;s covered.
-        </DisplayHeading>
-        <Lede className="mt-5">
-          Agents can create niches, enqueue videos, generate articles, and
-          check spend, from whichever surface fits the stack.
-        </Lede>
-      </Reveal>
+      <div className="grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
+        <Reveal className="max-w-2xl">
+          <Kicker>Four surfaces, one platform</Kicker>
+          <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
+            Whatever your agent speaks, it&apos;s covered.
+          </TextReveal>
+          <Lede className="mt-5">
+            Agents can create niches, enqueue videos, generate articles, and
+            check spend, from whichever surface fits the stack.
+          </Lede>
+        </Reveal>
+        <Reveal delay={0.12}>
+          <div className="aspect-[4/3] overflow-hidden rounded-[1.75rem]">
+            <TaggedPlaceholder
+              kind="illustration"
+              label="Surface map — API, SDK, CLI, MCP"
+              tone="warm"
+            />
+          </div>
+        </Reveal>
+      </div>
 
       <Stagger className="mt-12 grid gap-6 md:grid-cols-2" gap={0.08}>
         <VignetteCard
@@ -141,9 +159,9 @@ export function WindowsBand() {
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>Autopilot</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
               The schedule runs itself.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Each niche has posting windows. When one opens, the pipeline
               produces, checks, and publishes without anyone at the
@@ -169,7 +187,9 @@ export function WindowsBand() {
             />
           </Reveal>
           <Reveal delay={0.12}>
-            <AutomationOrbitIllustration />
+            <Parallax speed={-0.1}>
+              <AutomationOrbitIllustration />
+            </Parallax>
           </Reveal>
         </div>
       </GradientScene>
@@ -242,9 +262,9 @@ export function ReliabilityBand() {
           </Reveal>
           <Reveal className="lg:order-2" delay={0.12}>
             <Kicker>Reliability</Kicker>
-            <DisplayHeading className="mt-4">
+            <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
               Retry and reaping keep the queue honest.
-            </DisplayHeading>
+            </TextReveal>
             <Lede className="mt-5">
               Failed steps retry. Jobs orphaned by a dead worker get reaped
               and requeued. And when a spend cap trips, the job fails
