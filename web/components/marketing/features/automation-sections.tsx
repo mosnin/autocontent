@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import {
-  GlassPanel,
   GradientScene,
   Kicker,
   Lede,
@@ -12,11 +11,6 @@ import {
   TextReveal,
   VignetteCard,
 } from "@/components/marketing/system";
-import {
-  MCPVignette,
-  ScheduleVignette,
-  TerminalVignette,
-} from "@/components/marketing/vignettes";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
@@ -29,35 +23,6 @@ const H2_CLASS =
 /* ------------------------------------------------------------------ */
 /* Surface cards: API / SDK / CLI / MCP                                */
 /* ------------------------------------------------------------------ */
-
-/**
- * Dark code miniature for the REST and SDK cards, in the
- * `TerminalVignette` frame language: traffic dots, mono 11px, staged
- * inside the card's vignette wash.
- */
-function CodeVignette({
-  meta,
-  children,
-}: {
-  meta: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="mx-auto w-full max-w-[380px] rounded-2xl border border-white/10 bg-zinc-900 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.35)]">
-      <div className="flex items-center gap-1.5">
-        <span className="size-2 rounded-full bg-white/15" />
-        <span className="size-2 rounded-full bg-white/15" />
-        <span className="size-2 rounded-full bg-white/15" />
-        <span className="ml-auto font-mono text-[10px] text-zinc-500">
-          {meta}
-        </span>
-      </div>
-      <div className="mt-3 space-y-1.5 font-mono text-[11px] leading-relaxed">
-        {children}
-      </div>
-    </div>
-  );
-}
 
 export function SurfaceCards() {
   return (
@@ -94,16 +59,11 @@ export function SurfaceCards() {
           scene="sky"
           title="API"
           vignette={
-            <CodeVignette meta="HTTP">
-              <p className="text-zinc-100">
-                <span className="text-sky-300">POST</span>{" "}
-                /v1/niches/home-espresso/videos
-              </p>
-              <p className="text-zinc-400">
-                202 Accepted · job{" "}
-                <span className="text-zinc-200">vid_8c21</span> queued
-              </p>
-            </CodeVignette>
+            <TaggedPlaceholder
+              kind="image"
+              label="REST call — enqueue endpoint request and response"
+              tone="sky"
+            />
           }
         />
 
@@ -113,16 +73,11 @@ export function SurfaceCards() {
           scene="pearl"
           title="SDK"
           vignette={
-            <CodeVignette meta="agent.py">
-              <p className="text-zinc-100">
-                <span className="text-violet-300">from</span> marketer{" "}
-                <span className="text-violet-300">import</span> Marketer
-              </p>
-              <p className="text-zinc-100">
-                client.videos.enqueue(niche=
-                <span className="text-amber-300">&quot;home-espresso&quot;</span>)
-              </p>
-            </CodeVignette>
+            <TaggedPlaceholder
+              kind="image"
+              label="Python SDK snippet — enqueue a video"
+              tone="slate"
+            />
           }
         />
 
@@ -131,7 +86,13 @@ export function SurfaceCards() {
           kicker="CLI"
           scene="dusk"
           title="marketer"
-          vignette={<TerminalVignette />}
+          vignette={
+            <TaggedPlaceholder
+              kind="image"
+              label="CLI session — marketer command output"
+              tone="violet"
+            />
+          }
         />
 
         <VignetteCard
@@ -139,7 +100,13 @@ export function SurfaceCards() {
           kicker="MCP"
           scene="mist"
           title="MCP server"
-          vignette={<MCPVignette />}
+          vignette={
+            <TaggedPlaceholder
+              kind="image"
+              label="MCP tool call — cost-aware tool description"
+              tone="rose"
+            />
+          }
         />
       </Stagger>
     </section>
@@ -190,7 +157,13 @@ export function WindowsBand() {
           <Reveal className="flex justify-center" delay={0.12}>
             <Parallax speed={-0.1}>
               <VignetteStage scene="dusk">
-                <ScheduleVignette />
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                  <TaggedPlaceholder
+                    kind="illustration"
+                    label="Posting schedule — per-niche windows"
+                    tone="violet"
+                  />
+                </div>
               </VignetteStage>
             </Parallax>
           </Reveal>
@@ -204,64 +177,19 @@ export function WindowsBand() {
 /* Reliability                                                         */
 /* ------------------------------------------------------------------ */
 
-const JOB_ROWS = [
-  {
-    id: "vid_8c21",
-    event: "animation step failed",
-    action: "retrying 2/3",
-    tone: "amber" as const,
-  },
-  {
-    id: "art_2210",
-    event: "worker lost mid-write",
-    action: "reaped, requeued",
-    tone: "sky" as const,
-  },
-  {
-    id: "vid_8c22",
-    event: "daily cap reached",
-    action: "held, fails closed",
-    tone: "zinc" as const,
-  },
-];
-
-const TONE = {
-  amber: "border-amber-600/15 bg-amber-50/80 text-amber-700",
-  sky: "border-sky-600/15 bg-sky-50/80 text-sky-700",
-  zinc: "border-zinc-900/10 bg-white/80 text-zinc-500",
-};
-
 export function ReliabilityBand() {
   return (
     <section aria-label="Reliability" className="px-4 pt-6 md:px-6">
       <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal className="flex justify-center lg:order-1">
-            <GlassPanel className="w-full max-w-sm p-5">
-              <p className="text-[13px] font-semibold text-zinc-900">
-                Queue health
-              </p>
-              <ul className="mt-4 space-y-2">
-                {JOB_ROWS.map((row) => (
-                  <li
-                    className="flex items-center justify-between gap-3 rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-3"
-                    key={row.id}
-                  >
-                    <div className="min-w-0">
-                      <p className="font-mono text-[12px] text-zinc-800">
-                        {row.id}
-                      </p>
-                      <p className="text-[11px] text-zinc-400">{row.event}</p>
-                    </div>
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full border px-2.5 py-1 text-[11px] font-medium ${TONE[row.tone]}`}
-                    >
-                      {row.action}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </GlassPanel>
+            <div className="aspect-[4/3] w-full max-w-sm overflow-hidden rounded-2xl">
+              <TaggedPlaceholder
+                kind="image"
+                label="Queue health panel — retries and reaping status"
+                tone="slate"
+              />
+            </div>
           </Reveal>
           <Reveal className="lg:order-2" delay={0.12}>
             <Kicker>Reliability</Kicker>

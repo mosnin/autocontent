@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
-import { SectionCta } from "@/components/marketing/system";
-import { LocalWeekMock } from "@/components/marketing/use-cases/mocks/local-week";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 import {
   MockBand,
   OutcomesBand,
@@ -81,7 +80,13 @@ export default function LocalBusinessPage() {
         lede="Harbor Coffee's week: two shorts, one article for people searching nearby, all approved in a single Sunday review."
         scene="daylight"
       >
-        <LocalWeekMock />
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+          <TaggedPlaceholder
+            kind="image"
+            label="Local business workflow — screenshot"
+            tone="slate"
+          />
+        </div>
       </MockBand>
       <OutcomesBand
         heading="Present all week, for pocket change."

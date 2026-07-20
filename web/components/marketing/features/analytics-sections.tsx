@@ -1,7 +1,6 @@
 import * as React from "react";
 
 import {
-  GlassPanel,
   GradientScene,
   Kicker,
   Lede,
@@ -12,13 +11,7 @@ import {
   TaggedPlaceholder,
   TextReveal,
   VignetteCard,
-  warmChip,
 } from "@/components/marketing/system";
-import {
-  CapGaugeVignette,
-  CreditsVignette,
-  MetricsVignette,
-} from "@/components/marketing/vignettes";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
@@ -31,55 +24,6 @@ const H2_CLASS =
 /* ------------------------------------------------------------------ */
 /* Learning loop                                                       */
 /* ------------------------------------------------------------------ */
-
-function PerformersCard() {
-  return (
-    <GlassPanel className="w-full max-w-sm p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-zinc-900">This week</p>
-        <span className="rounded-full bg-zinc-900/[0.05] px-2.5 py-1 text-[11px] font-medium text-zinc-500">
-          home-espresso
-        </span>
-      </div>
-      <ul className="mt-4 space-y-2">
-        <li className="rounded-xl border border-amber-600/15 bg-amber-50/50 px-3.5 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="truncate text-[13px] font-medium text-zinc-800">
-              Dial in espresso in 60 seconds
-            </p>
-            <span
-              className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${warmChip}`}
-            >
-              top performer
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] tabular-nums text-zinc-500">
-            48.2K views · 71% completion · more like this
-          </p>
-        </li>
-        <li className="rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-3">
-          <div className="flex items-center justify-between gap-3">
-            <p className="truncate text-[13px] font-medium text-zinc-800">
-              The history of the portafilter
-            </p>
-            <span className="shrink-0 rounded-full border border-zinc-900/10 bg-white/80 px-2 py-0.5 text-[10px] font-medium text-zinc-500">
-              bottom
-            </span>
-          </div>
-          <p className="mt-1 text-[11px] tabular-nums text-zinc-500">
-            900 views · 12% completion · angle retired
-          </p>
-        </li>
-      </ul>
-      <div className="mt-3 flex items-start gap-2 rounded-xl border border-brand/20 bg-brand/[0.05] px-3.5 py-2.5">
-        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-brand" />
-        <p className="text-[12px] leading-snug text-zinc-600">
-          Next ideation round: more fast how-tos, no more history explainers.
-        </p>
-      </div>
-    </GlassPanel>
-  );
-}
 
 export function LoopBand() {
   return (
@@ -108,7 +52,13 @@ export function LoopBand() {
           <Reveal className="flex justify-center" delay={0.12}>
             <Parallax speed={-0.08}>
               <VignetteStage scene="dawn">
-                <PerformersCard />
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                  <TaggedPlaceholder
+                    kind="image"
+                    label="This week's performers — top and bottom angles"
+                    tone="warm"
+                  />
+                </div>
               </VignetteStage>
             </Parallax>
           </Reveal>
@@ -152,7 +102,13 @@ export function SpendBand() {
           <Reveal className="flex justify-center lg:order-1" delay={0.12}>
             <Parallax speed={-0.08}>
               <VignetteStage scene="pearl">
-                <CapGaugeVignette />
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                  <TaggedPlaceholder
+                    kind="image"
+                    label="Spend cap gauge — per-niche and global caps"
+                    tone="sky"
+                  />
+                </div>
               </VignetteStage>
             </Parallax>
           </Reveal>
@@ -192,13 +148,25 @@ export function MetricsMoment() {
               description="Views, watch time, and completion, attributed and fed to the next ideation round."
               scene="sky"
               title="Post performance"
-              vignette={<MetricsVignette />}
+              vignette={
+                <TaggedPlaceholder
+                  kind="image"
+                  label="Post performance card — views, watch time, completion"
+                  tone="sky"
+                />
+              }
             />
             <VignetteCard
               description="Every call metered as it happens, checked against caps before each step."
               scene="dawn"
               title="Cost ledger"
-              vignette={<CreditsVignette />}
+              vignette={
+                <TaggedPlaceholder
+                  kind="image"
+                  label="Cost ledger card — metered model calls"
+                  tone="warm"
+                />
+              }
             />
             <VignetteCard
               description="The two sides connected: what a post earns feeds the next brief, capped by what it's allowed to cost."

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
-import { SectionCta } from "@/components/marketing/system";
-import { EcommerceArticleMock } from "@/components/marketing/use-cases/mocks/ecommerce-article";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 import {
   MockBand,
   OutcomesBand,
@@ -82,7 +81,13 @@ export default function EcommercePage() {
         lede="This is a finished article for a grinder line: search preview, metadata within limits, structured data attached. Ready when you are."
         scene="mint"
       >
-        <EcommerceArticleMock />
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+          <TaggedPlaceholder
+            kind="image"
+            label="Ecommerce workflow — screenshot"
+            tone="rose"
+          />
+        </div>
       </MockBand>
       <OutcomesBand
         heading="A catalog that markets itself."

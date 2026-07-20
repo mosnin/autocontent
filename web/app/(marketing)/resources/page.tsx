@@ -2,18 +2,22 @@ import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing/resources/page-hero";
 import { ResourceCard } from "@/components/marketing/resources/resource-card";
-import {
-  ChangelogMiniVignette,
-  FaqMiniVignette,
-} from "@/components/marketing/resources/resource-vignettes";
-import { SectionCta, Stagger } from "@/components/marketing/system";
-import {
-  AgentChatVignette,
-  ArticleSeoVignette,
-  MCPVignette,
-  ScheduleVignette,
-  TerminalVignette,
-} from "@/components/marketing/vignettes";
+import { SectionCta, Stagger, TaggedPlaceholder } from "@/components/marketing/system";
+
+/** Fills the shared vignette frame edge-to-edge (cancels its padding). */
+function CardPlaceholder({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "warm" | "sky" | "violet" | "slate" | "rose";
+}) {
+  return (
+    <div className="absolute -inset-5 sm:-inset-6">
+      <TaggedPlaceholder kind="image" label={label} tone={tone} />
+    </div>
+  );
+}
 
 const DESCRIPTION =
   "Docs, guides, and references for marketer.sh: the quickstart, the API, SDK, CLI and MCP surfaces, launch guides, the changelog, and answers to common questions.";
@@ -37,7 +41,7 @@ const CARDS = [
       "From sign-up to a running channel in six steps. One sentence in, first video approved, autopilot on.",
     href: "/resources/quickstart",
     scene: "sky",
-    vignette: <ScheduleVignette />,
+    vignette: <CardPlaceholder label="Quickstart still" tone="sky" />,
   },
   {
     category: "Developers",
@@ -46,7 +50,7 @@ const CARDS = [
       "Four surfaces, one platform. Enqueue work over REST, script it in Python, drive it from a terminal, or hand it to an agent.",
     href: "/resources/api",
     scene: "dusk",
-    vignette: <TerminalVignette />,
+    vignette: <CardPlaceholder label="CLI session still" tone="slate" />,
   },
   {
     category: "Guide",
@@ -55,7 +59,7 @@ const CARDS = [
       "Framing a niche, writing the one-sentence brief, choosing a voice, and earning trust with approval mode.",
     href: "/resources/guides/first-channel",
     scene: "pearl",
-    vignette: <AgentChatVignette />,
+    vignette: <CardPlaceholder label="First-channel guide still" tone="warm" />,
   },
   {
     category: "Guide",
@@ -64,7 +68,7 @@ const CARDS = [
       "How the article pipeline researches, outlines, and writes, and how to set up internal links and cadence per niche.",
     href: "/resources/guides/seo-articles",
     scene: "mist",
-    vignette: <ArticleSeoVignette />,
+    vignette: <CardPlaceholder label="SEO guide still" tone="violet" />,
   },
   {
     category: "Guide",
@@ -73,7 +77,7 @@ const CARDS = [
       "MCP setup, token scopes, spend caps as guardrails, and how to widen autonomy once the output earns it.",
     href: "/resources/guides/agent-driven-marketing",
     scene: "dawn",
-    vignette: <MCPVignette />,
+    vignette: <CardPlaceholder label="MCP guide still" tone="rose" />,
   },
   {
     category: "Product",
@@ -82,7 +86,7 @@ const CARDS = [
       "What shipped and when. New pipelines, guardrails, and agent surfaces, newest first.",
     href: "/resources/changelog",
     scene: "warm",
-    vignette: <ChangelogMiniVignette />,
+    vignette: <CardPlaceholder label="Changelog still" tone="warm" />,
   },
   {
     category: "Support",
@@ -91,7 +95,7 @@ const CARDS = [
       "Caps, approvals, platforms, ownership, refunds, and data handling, answered plainly.",
     href: "/resources/faq",
     scene: "sky",
-    vignette: <FaqMiniVignette />,
+    vignette: <CardPlaceholder label="FAQ still" tone="sky" />,
   },
 ] as const;
 

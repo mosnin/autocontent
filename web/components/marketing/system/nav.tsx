@@ -18,7 +18,6 @@ type PanelItem = {
   title: string;
   href: string;
   desc?: string;
-  icon?: IconKind;
 };
 
 type PanelColumn = {
@@ -28,7 +27,7 @@ type PanelColumn = {
 };
 
 /** Columned mega-panel content, reference-style: kicker heading per
- *  column, icon-tile rows on the left columns, plain links on the right. */
+ *  column, text rows on the left columns, plain links on the right. */
 const PANELS: Record<MenuKey, PanelColumn[]> = {
   suite: [
     {
@@ -38,19 +37,16 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Platform overview",
           href: "/features",
           desc: "The converged marketing workspace",
-          icon: "platform",
         },
         {
           title: "Agents",
           href: "/features/automation",
           desc: "Delegate your marketing entirely",
-          icon: "agents",
         },
         {
           title: "Autopilot",
           href: "/resources/guides/agent-driven-marketing",
           desc: "One system that plans, ships, and learns",
-          icon: "autopilot",
         },
       ],
     },
@@ -61,19 +57,16 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Studio video",
           href: "/features/video",
           desc: "Short-form video from a single brief",
-          icon: "video",
         },
         {
           title: "Press articles",
           href: "/features/articles",
           desc: "SEO articles built from live research",
-          icon: "articles",
         },
         {
           title: "Performance loop",
           href: "/features/analytics",
           desc: "Learn from every post, cap every dollar",
-          icon: "analytics",
         },
       ],
     },
@@ -95,13 +88,11 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Studio",
           href: "/features/video",
           desc: "TikTok, Reels, and Shorts on schedule",
-          icon: "video",
         },
         {
           title: "Press",
           href: "/features/articles",
           desc: "Long-form articles that rank",
-          icon: "articles",
         },
       ],
     },
@@ -112,13 +103,11 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Automation & agents",
           href: "/features/automation",
           desc: "REST API, SDK, CLI, and MCP surfaces",
-          icon: "agents",
         },
         {
           title: "Analytics & spend",
           href: "/features/analytics",
           desc: "The performance loop, hard caps included",
-          icon: "analytics",
         },
       ],
     },
@@ -140,19 +129,16 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Creators",
           href: "/use-cases/creators",
           desc: "A daily channel without the daily grind",
-          icon: "video",
         },
         {
           title: "Ecommerce",
           href: "/use-cases/ecommerce",
           desc: "Product videos and buying guides",
-          icon: "cart",
         },
         {
           title: "SaaS",
           href: "/use-cases/saas",
           desc: "Launch videos and evergreen SEO",
-          icon: "platform",
         },
       ],
     },
@@ -163,19 +149,16 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Agencies",
           href: "/use-cases/agencies",
           desc: "Many brands, one pipeline, per-client caps",
-          icon: "grid",
         },
         {
           title: "Local business",
           href: "/use-cases/local-business",
           desc: "Show up in local search every week",
-          icon: "pin",
         },
         {
           title: "AI agents",
           href: "/use-cases/ai-agents",
           desc: "Give your agent a marketing department",
-          icon: "agents",
         },
       ],
     },
@@ -196,13 +179,11 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Quickstart",
           href: "/resources/quickstart",
           desc: "First video out the door in ten minutes",
-          icon: "autopilot",
         },
         {
           title: "API & MCP",
           href: "/resources/api",
           desc: "REST API, SDK, CLI, and the MCP server",
-          icon: "code",
         },
       ],
     },
@@ -213,19 +194,16 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
           title: "Launch your first channel",
           href: "/resources/guides/first-channel",
           desc: "Zero to a posting channel in one sitting",
-          icon: "video",
         },
         {
           title: "SEO articles that rank",
           href: "/resources/guides/seo-articles",
           desc: "Research, outline, publish, measure",
-          icon: "articles",
         },
         {
           title: "Agent-driven marketing",
           href: "/resources/guides/agent-driven-marketing",
           desc: "Wire your agent into the pipeline",
-          icon: "agents",
         },
       ],
     },
@@ -252,117 +230,6 @@ const PLAIN_LINKS = [
   { label: "Pricing", href: "/pricing" },
   { label: "Company", href: "/company" },
 ];
-
-/* ------------------------------------------------------------------ */
-/* Icon tiles                                                          */
-/* ------------------------------------------------------------------ */
-
-type IconKind =
-  | "platform"
-  | "agents"
-  | "autopilot"
-  | "video"
-  | "articles"
-  | "analytics"
-  | "cart"
-  | "pin"
-  | "grid"
-  | "code";
-
-/** Soft pastel tile per icon, like the reference's colorful menu icons. */
-const TILE_BG: Record<IconKind, string> = {
-  platform: "bg-indigo-50 text-indigo-500",
-  agents: "bg-rose-50 text-rose-500",
-  autopilot: "bg-amber-50 text-amber-500",
-  video: "bg-sky-50 text-sky-500",
-  articles: "bg-violet-50 text-violet-500",
-  analytics: "bg-orange-50 text-orange-500",
-  cart: "bg-pink-50 text-pink-500",
-  pin: "bg-cyan-50 text-cyan-600",
-  grid: "bg-fuchsia-50 text-fuchsia-500",
-  code: "bg-slate-100 text-slate-500",
-};
-
-function IconTile({ kind }: { kind: IconKind }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "flex size-10 shrink-0 items-center justify-center rounded-xl",
-        TILE_BG[kind],
-      )}
-    >
-      <svg
-        className="size-5"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.75"
-        viewBox="0 0 24 24"
-      >
-        {kind === "platform" && (
-          <>
-            <rect height="7" rx="1.5" width="7" x="3.5" y="3.5" />
-            <rect height="7" rx="1.5" width="7" x="13.5" y="3.5" />
-            <rect height="7" rx="1.5" width="7" x="3.5" y="13.5" />
-            <path d="M17 14v6M14 17h6" />
-          </>
-        )}
-        {kind === "agents" && (
-          <>
-            <rect height="10" rx="3" width="14" x="5" y="8" />
-            <path d="M12 8V5M9.5 12.5v1M14.5 12.5v1" />
-            <circle cx="12" cy="4" r="1" />
-          </>
-        )}
-        {kind === "autopilot" && (
-          <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
-        )}
-        {kind === "video" && (
-          <>
-            <rect height="14" rx="3" width="18" x="3" y="5" />
-            <path className="fill-current" d="m10.5 9.5 4.5 2.5-4.5 2.5Z" />
-          </>
-        )}
-        {kind === "articles" && (
-          <>
-            <rect height="18" rx="2.5" width="15" x="4.5" y="3" />
-            <path d="M8 8h8M8 12h8M8 16h5" />
-          </>
-        )}
-        {kind === "analytics" && (
-          <>
-            <path d="M4 20h16" />
-            <path d="M6 16v-4M11 16V8M16 16v-6M21 16v-9" />
-          </>
-        )}
-        {kind === "cart" && (
-          <>
-            <path d="M3 4h2l2.4 11.2A2 2 0 0 0 9.36 17H18a2 2 0 0 0 1.95-1.55L21.5 9H6" />
-            <circle cx="9.5" cy="20" r="1.25" />
-            <circle cx="17.5" cy="20" r="1.25" />
-          </>
-        )}
-        {kind === "pin" && (
-          <>
-            <path d="M12 21s7-5.5 7-11a7 7 0 1 0-14 0c0 5.5 7 11 7 11Z" />
-            <circle cx="12" cy="10" r="2.5" />
-          </>
-        )}
-        {kind === "grid" && (
-          <>
-            <circle cx="7" cy="7" r="2.5" />
-            <circle cx="17" cy="7" r="2.5" />
-            <circle cx="7" cy="17" r="2.5" />
-            <circle cx="17" cy="17" r="2.5" />
-          </>
-        )}
-        {kind === "code" && <path d="m8 8-4 4 4 4M16 8l4 4-4 4M13 5l-2 14" />}
-      </svg>
-    </span>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* Small pieces                                                        */
@@ -491,7 +358,6 @@ function MegaPanel({
                     href={item.href}
                     onClick={onNavigate}
                   >
-                    {item.icon ? <IconTile kind={item.icon} /> : null}
                     <span className="min-w-0">
                       <span className="block text-[15px] font-medium text-zinc-900">
                         {item.title}
@@ -604,7 +470,6 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
                               href={item.href}
                               onClick={onClose}
                             >
-                              {item.icon ? <IconTile kind={item.icon} /> : null}
                               <span className="min-w-0">
                                 <span className="block text-[15px] font-medium text-zinc-800">
                                   {item.title}
