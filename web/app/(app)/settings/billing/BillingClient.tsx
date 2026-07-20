@@ -3,7 +3,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowUpRight, Coins } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -84,26 +84,23 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
   return (
     <div className="space-y-8">
       <Card>
-        <CardContent className="flex items-end justify-between pt-6">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Available credit
-            </p>
-            <p
-              className={cn(
-                "font-mono text-5xl font-semibold tabular-nums tracking-tight",
-                low ? "text-brand" : "text-foreground",
-              )}
-            >
-              {formatUsd(Number(billing.balance_usd))}
-            </p>
-            {low && (
-              <p className="text-xs text-brand">
-                Running low — the pipeline pauses at zero.
-              </p>
+        <CardContent className="space-y-1 pt-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Available credit
+          </p>
+          <p
+            className={cn(
+              "font-mono text-5xl font-semibold tabular-nums tracking-tight",
+              low ? "text-brand" : "text-foreground",
             )}
-          </div>
-          <Coins aria-hidden className="size-8 text-muted-foreground/50" />
+          >
+            {formatUsd(Number(billing.balance_usd))}
+          </p>
+          {low && (
+            <p className="text-xs text-brand">
+              Running low — the pipeline pauses at zero.
+            </p>
+          )}
         </CardContent>
       </Card>
 

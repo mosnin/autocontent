@@ -3,11 +3,12 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { CheckCircle2, Link2, RefreshCw, Unplug, XCircle } from "lucide-react";
+import { CheckCircle2, RefreshCw, Unplug, XCircle } from "lucide-react";
 
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { hubCardClass } from "@/components/hub/primitives";
 import { clientFetch } from "@/lib/client-fetcher";
 import {
   adsKeys,
@@ -117,14 +118,11 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
         {PLATFORMS.map((p) => {
           const conns = byPlatform(p.id);
           return (
-            <Card key={p.id}>
+            <Card className={hubCardClass} key={p.id}>
               <CardContent className="space-y-4 pt-5">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h2 className="text-base font-semibold">{p.label}</h2>
-                    <p className="text-sm text-muted-foreground">{p.blurb}</p>
-                  </div>
-                  <Link2 className="size-5 text-muted-foreground" aria-hidden />
+                <div>
+                  <h2 className="text-base font-semibold">{p.label}</h2>
+                  <p className="text-sm text-muted-foreground">{p.blurb}</p>
                 </div>
 
                 {conns.length === 0 ? (

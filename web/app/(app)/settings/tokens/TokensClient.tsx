@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Copy, Key, KeyRound, MoreHorizontal, Plus } from "lucide-react";
+import { Copy, MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -71,10 +71,7 @@ export function TokensClient({ tokens }: Props) {
       {freshToken && (
         <Card className="border-success/40 bg-success/5">
           <CardContent className="space-y-3 pt-6">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <KeyRound className="h-4 w-4 text-success" />
-              New token — shown once
-            </div>
+            <div className="text-sm font-medium">New token — shown once</div>
             <div className="flex items-center gap-2 rounded-md border bg-background p-2">
               <code className="flex-1 overflow-x-auto font-mono text-xs">
                 {freshToken}
@@ -157,9 +154,6 @@ export function TokensClient({ tokens }: Props) {
       {tokens.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <div className="rounded-full bg-muted p-3">
-              <Key className="h-6 w-6 text-muted-foreground" />
-            </div>
             <h3 className="text-lg font-semibold">No tokens</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               Create a token to authenticate the CLI, MCP server, or any

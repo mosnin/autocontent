@@ -36,7 +36,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AppIcon } from "@/components/ui/app-icon";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
@@ -636,12 +635,9 @@ function KpiCard({
     <Card className={hubCardClass}>
       <CardContent className="space-y-3 pt-5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <AppIcon color={color}>{icon}</AppIcon>
-            <span className="text-sm font-medium text-muted-foreground">
-              {title}
-            </span>
-          </div>
+          <span className="text-sm font-medium text-muted-foreground">
+            {title}
+          </span>
         </div>
         <p
           className={cn(

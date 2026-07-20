@@ -4,14 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  Ban,
-  RotateCcw,
-  ScrollText,
-  Shield,
-  Wallet,
-} from "lucide-react";
+import { ArrowLeft, Ban, RotateCcw, Shield, Wallet } from "lucide-react";
 
 import { AccountStatusBadge, RoleBadge } from "@/components/admin/badges";
 import {
@@ -179,10 +172,7 @@ export function UserDetailClient({
       {/* recent audit */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-sm font-semibold">
-            <ScrollText className="h-4 w-4 text-muted-foreground" aria-hidden />
-            Recent admin actions
-          </h2>
+          <h2 className="text-sm font-semibold">Recent admin actions</h2>
           <Link
             href={`/admin/audit?target_type=user&target_id=${id}`}
             className="text-xs font-medium text-brand hover:underline"

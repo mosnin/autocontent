@@ -2,42 +2,18 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 
 import TextType from "@/components/reactbits/TextType";
 import { BannerCard, MediaCard } from "@/components/hub/dashboard-kit";
+import { HubHeading, Rise } from "@/components/hub/primitives";
 import { MediaSlot, useMediaManifest } from "@/components/media-slot";
 import { productById } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
-const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-
 /* ------------------------------------------------------------------ */
 /* Motion primitives — one rhythm for the whole hub                    */
 /* ------------------------------------------------------------------ */
-
-function Rise({
-  children,
-  delay = 0,
-  className,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-}) {
-  const reduced = useReducedMotion();
-  return (
-    <motion.div
-      animate={{ opacity: 1, y: 0 }}
-      className={className}
-      initial={reduced ? { opacity: 0, y: 0 } : { opacity: 0, y: 20 }}
-      transition={{ duration: reduced ? 0.15 : 0.6, ease: EASE, delay }}
-    >
-      {children}
-    </motion.div>
-  );
-}
 
 function SectionHeading({
   children,
@@ -48,10 +24,9 @@ function SectionHeading({
 }) {
   return (
     <Rise delay={delay}>
-      <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+      <HubHeading as="h2" className="text-2xl">
         {children}
-        <Sparkles aria-hidden className="size-4 text-brand" />
-      </h2>
+      </HubHeading>
     </Rise>
   );
 }

@@ -3,11 +3,12 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Check, CheckSquare, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { hubCardClass } from "@/components/hub/primitives";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { adsKeys, decideApproval, type AdApproval } from "@/lib/ads-client";
@@ -45,11 +46,8 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
       </div>
 
       {pending.length === 0 ? (
-        <Card>
+        <Card className={hubCardClass}>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <div className="rounded-full bg-muted p-3">
-              <CheckSquare className="size-6 text-muted-foreground" aria-hidden />
-            </div>
             <h3 className="text-lg font-semibold">Nothing to review</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               When an agent proposes a budget change above your approval
@@ -61,7 +59,7 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
         <ul className="space-y-3">
           {pending.map((a) => (
             <li key={a.id}>
-              <Card>
+              <Card className={hubCardClass}>
                 <CardContent className="flex flex-wrap items-center gap-3 py-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">

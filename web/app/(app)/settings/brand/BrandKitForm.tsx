@@ -9,7 +9,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Loader2, Palette, Tags, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,7 +121,6 @@ export function BrandKitForm({ initial }: { initial: BrandKit }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <SectionCard
-        icon={Tags}
         kicker="Identity"
         title="Name & positioning"
         description="How the brand refers to itself and who it's speaking to."
@@ -166,7 +165,6 @@ export function BrandKitForm({ initial }: { initial: BrandKit }) {
       </SectionCard>
 
       <SectionCard
-        icon={Palette}
         kicker="Voice & look"
         title="Tone, keywords & colour"
         description="The guardrails that steer every generated draft."
@@ -376,13 +374,11 @@ function ChipInput({
 // --- section scaffolding (mirrors EditNicheForm) -----------------------
 
 function SectionCard({
-  icon: Icon,
   kicker,
   title,
   description,
   children,
 }: {
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   kicker: string;
   title: string;
   description: string;
@@ -394,10 +390,7 @@ function SectionCard({
         <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
           {kicker}
         </p>
-        <div className="flex items-center gap-2">
-          <Icon className="size-4 text-muted-foreground" aria-hidden={true} />
-          <CardTitle className="text-base">{title}</CardTitle>
-        </div>
+        <CardTitle className="text-base">{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">{children}</CardContent>

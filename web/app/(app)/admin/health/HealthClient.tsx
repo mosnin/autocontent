@@ -6,13 +6,10 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   CheckCircle2,
-  Database,
-  PauseCircle,
   RefreshCw,
   XCircle,
 } from "lucide-react";
 
-import { AppIcon } from "@/components/ui/app-icon";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -104,7 +101,6 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
         {/* database reachability */}
         <HealthCard
           color={dbDown ? "red" : "green"}
-          icon={<Database />}
           title="Database"
         >
           <Badge
@@ -128,7 +124,6 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
         {/* stuck jobs */}
         <StatCard
           color={stuckWarn ? "orange" : "blue"}
-          icon={<PauseCircle />}
           title="Stuck jobs"
           value={stuck}
           tone={stuckWarn ? "warn" : undefined}
@@ -144,7 +139,6 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
         {/* failed jobs 24h */}
         <StatCard
           color={failedWarn ? "orange" : "blue"}
-          icon={<AlertTriangle />}
           title="Failed jobs · 24h"
           value={failed}
           tone={failedWarn ? "warn" : undefined}
@@ -231,25 +225,20 @@ function StatusBanner({
 
 /** KPI-styled shell shared by the health cards (mirrors AdminKpiCard). */
 function HealthCard({
-  color,
-  icon,
+  color: _color,
   title,
   children,
 }: {
   color: "green" | "orange" | "blue" | "navy" | "purple" | "red";
-  icon: React.ReactNode;
   title: string;
   children: React.ReactNode;
 }) {
   return (
     <Card className="shadow-sm">
       <CardContent className="space-y-3 pt-5">
-        <div className="flex items-center gap-2.5">
-          <AppIcon color={color}>{icon}</AppIcon>
-          <span className="text-sm font-medium text-muted-foreground">
-            {title}
-          </span>
-        </div>
+        <span className="text-sm font-medium text-muted-foreground">
+          {title}
+        </span>
         <div>{children}</div>
       </CardContent>
     </Card>
@@ -258,15 +247,13 @@ function HealthCard({
 
 /** Numeric health stat, KPI-styled. Renders "—" when the metric is null. */
 function StatCard({
-  color,
-  icon,
+  color: _color,
   title,
   value,
   foot,
   tone,
 }: {
   color: "green" | "orange" | "blue" | "navy" | "purple" | "red";
-  icon: React.ReactNode;
   title: string;
   value: number | null;
   foot: string;
@@ -275,12 +262,9 @@ function StatCard({
   return (
     <Card className="shadow-sm">
       <CardContent className="space-y-3 pt-5">
-        <div className="flex items-center gap-2.5">
-          <AppIcon color={color}>{icon}</AppIcon>
-          <span className="text-sm font-medium text-muted-foreground">
-            {title}
-          </span>
-        </div>
+        <span className="text-sm font-medium text-muted-foreground">
+          {title}
+        </span>
         <p
           className={cn(
             "font-mono text-3xl font-semibold tabular-nums tracking-tight",

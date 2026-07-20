@@ -1,15 +1,6 @@
 import * as React from "react";
 import Link from "next/link";
-import {
-  Ban,
-  KeyRound,
-  Lock,
-  ScrollText,
-  ShieldCheck,
-  UserCog,
-} from "lucide-react";
 
-import { AppIcon } from "@/components/ui/app-icon";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -24,7 +15,6 @@ export const dynamic = "force-dynamic";
 type Category = "green" | "orange" | "blue" | "purple" | "navy";
 
 interface Control {
-  icon: React.ReactNode;
   color: Category;
   title: string;
   body: string;
@@ -33,39 +23,33 @@ interface Control {
 
 const CONTROLS: Control[] = [
   {
-    icon: <ShieldCheck />,
     color: "navy",
     title: "Role-based access control",
     body: "Administrative routes are gated on an explicit admin role and follow least-privilege — a non-admin caller receives HTTP 403 from every /admin endpoint, and the admin UI reveals nothing behind a clean 'not authorized' state.",
   },
   {
-    icon: <ScrollText />,
     color: "blue",
     title: "Append-only audit trail",
     body: "Every privileged action — suspensions, role changes, credit adjustments — is written to an append-only log capturing the actor, their IP and user agent, the target, and structured metadata. Entries are never mutated or deleted.",
     link: { href: "/admin/audit", label: "Open audit log" },
   },
   {
-    icon: <Ban />,
     color: "orange",
     title: "Access revocation",
     body: "Suspending an account immediately blocks access and halts new pipeline runs; demoting an admin revokes privileged access on the next request. Both actions take effect without a deploy and are fully audited.",
     link: { href: "/admin/users", label: "Manage users" },
   },
   {
-    icon: <Lock />,
     color: "green",
     title: "Encryption at rest",
     body: "Application data lives in a managed Postgres database with encryption at rest. Provider secrets and API keys are supplied through environment configuration and a managed secret store — never committed to source.",
   },
   {
-    icon: <KeyRound />,
     color: "purple",
     title: "Authentication & session controls",
     body: "Authentication and session lifecycle are handled by Clerk. Every backend request carries a short-lived JWT that is verified server-side before any data is returned; the Next.js proxy attaches it so browser code never handles long-lived credentials.",
   },
   {
-    icon: <UserCog />,
     color: "navy",
     title: "Data export & erasure",
     body: "Per-account data export and right-to-erasure requests are actioned by administrators against a specific user record, with the resulting action captured in the audit trail for evidence.",
@@ -88,10 +72,7 @@ export default function AdminSecurityPage() {
           <Card key={c.title} className="flex flex-col">
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5">
-                  <AppIcon color={c.color}>{c.icon}</AppIcon>
-                  <CardTitle className="text-base">{c.title}</CardTitle>
-                </div>
+                <CardTitle className="text-base">{c.title}</CardTitle>
                 <Badge variant="success" className="shrink-0 font-mono lowercase">
                   implemented
                 </Badge>

@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Check, Inbox, Instagram, Music2, RefreshCw, Youtube } from "lucide-react";
+import { Check, Instagram, Music2, RefreshCw, Youtube } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { DashHeading } from "@/components/hub/dashboard-kit";
+import { hubCardClass } from "@/components/hub/primitives";
 import {
   approveJobAction,
   rejectJobAction,
@@ -25,6 +27,7 @@ import {
 } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { jobStatusLabel, StatusBadge } from "@/lib/status-badge";
+import { cn } from "@/lib/utils";
 import type { Job, JobStatus } from "@/lib/types";
 
 const POLL_MS = 5000;
@@ -156,12 +159,9 @@ export function QueueClient({ initial }: { initial: Job[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Queue</h1>
-        <p className="text-sm text-muted-foreground">
-          All pipeline runs. Updates every {POLL_MS / 1000}s.
-        </p>
-      </div>
+      <DashHeading as="h1" sub={`All pipeline runs. Updates every ${POLL_MS / 1000}s.`}>
+        Queue
+      </DashHeading>
 
       {error && (
         <p className="text-sm text-muted-foreground">
@@ -210,7 +210,7 @@ export function QueueClient({ initial }: { initial: Job[] }) {
             <EmptyState filter={filter} />
           ) : (
             <div className="overflow-x-auto">
-              <Card className="min-w-[640px]">
+              <Card className={cn(hubCardClass, "min-w-[640px]")}>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -254,11 +254,8 @@ function EmptyState({ filter }: { filter: Filter }) {
       : `No ${filter.replace("_", " ")} jobs`;
 
   return (
-    <Card>
+    <Card className={hubCardClass}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <div className="rounded-full bg-muted p-3">
-          <Inbox className="h-6 w-6 text-muted-foreground" />
-        </div>
         <h3 className="text-lg font-semibold">{label}</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           {filter === "all"

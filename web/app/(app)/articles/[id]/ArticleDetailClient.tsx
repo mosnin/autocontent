@@ -8,9 +8,10 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowLeft, Copy, Download, ImageIcon, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowLeft, Copy, Download, RefreshCw } from "lucide-react";
 
 import { ArticleMarkdown } from "@/components/article-markdown";
+import { hubCardClass } from "@/components/hub/primitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { retryArticleAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { ARTICLE_IN_PROGRESS, ArticleStatusBadge } from "@/lib/status-badge";
+import { cn } from "@/lib/utils";
 import type { Article } from "@/lib/types";
 
 const POLL_MS = 10_000;
@@ -77,7 +79,7 @@ export function ArticleDetailClient({
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
         <Link href="/articles">
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to articles
         </Link>
       </Button>
@@ -159,7 +161,7 @@ export function ArticleDetailClient({
 
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Article body */}
-        <Card className="min-w-0 lg:w-2/3">
+        <Card className={cn(hubCardClass, "min-w-0 lg:w-2/3")}>
           <CardHeader>
             <CardTitle className="text-base">Article</CardTitle>
           </CardHeader>
@@ -192,7 +194,7 @@ export function ArticleDetailClient({
 
         {/* SEO sidebar */}
         <div className="min-w-0 space-y-6 lg:w-1/3">
-          <Card>
+          <Card className={hubCardClass}>
             <CardHeader>
               <CardTitle className="text-base">SEO metadata</CardTitle>
             </CardHeader>
@@ -280,7 +282,7 @@ export function ArticleDetailClient({
           </Card>
 
           {article.link_suggestions.length > 0 && (
-            <Card>
+            <Card className={hubCardClass}>
               <CardHeader>
                 <CardTitle className="text-base">Link suggestions</CardTitle>
               </CardHeader>
@@ -310,7 +312,7 @@ export function ArticleDetailClient({
           )}
 
           {article.schema_jsonld && (
-            <Card>
+            <Card className={hubCardClass}>
               <CardContent>
                 <details>
                   <summary className="cursor-pointer text-sm font-medium">
@@ -338,7 +340,7 @@ function HeroImageCard({ articleId, alt }: { articleId: string; alt: string | nu
   const [errored, setErrored] = React.useState(false);
   const src = `/api/proxy/api/v1/articles/${articleId}/hero-image`;
   return (
-    <Card className="overflow-hidden">
+    <Card className={cn(hubCardClass, "overflow-hidden")}>
       {!errored ? (
         <div className="relative aspect-[16/10] w-full bg-muted/40">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -351,16 +353,11 @@ function HeroImageCard({ articleId, alt }: { articleId: string; alt: string | nu
           />
         </div>
       ) : (
-        <CardContent className="flex items-start gap-4 p-4">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-card/40 text-muted-foreground">
-            <ImageIcon className="size-5" aria-hidden="true" />
-          </span>
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm font-medium">Hero image generated</p>
-            <p className="text-sm text-muted-foreground">
-              {alt ?? "A hero image was produced for this article."}
-            </p>
-          </div>
+        <CardContent className="space-y-1 p-4">
+          <p className="text-sm font-medium">Hero image generated</p>
+          <p className="text-sm text-muted-foreground">
+            {alt ?? "A hero image was produced for this article."}
+          </p>
         </CardContent>
       )}
       {!errored && alt ? (
@@ -488,13 +485,10 @@ function RepurposeCard({ articleId }: { articleId: string }) {
   }
 
   return (
-    <Card>
+    <Card className={hubCardClass}>
       <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
         <div className="min-w-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-brand" aria-hidden="true" />
-            Repurpose to social
-          </CardTitle>
+          <CardTitle className="text-base">Repurpose to social</CardTitle>
           <p className="mt-1 text-sm text-muted-foreground">
             Turn this article into platform-native posts. One metered
             generation, charged to this channel&apos;s cap.
@@ -531,10 +525,6 @@ function RepurposeCard({ articleId }: { articleId: string }) {
           disabled={loading || selected.length === 0}
           className="w-full sm:w-auto"
         >
-          <Sparkles
-            className={`h-4 w-4 ${loading ? "animate-pulse" : ""}`}
-            aria-hidden="true"
-          />
           {loading ? "Generating…" : "Generate social posts"}
         </Button>
 

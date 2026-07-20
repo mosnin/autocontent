@@ -1,15 +1,4 @@
 import Link from "next/link";
-import {
-  Activity,
-  Ban,
-  DollarSign,
-  FileText,
-  ScrollText,
-  TrendingUp,
-  UserPlus,
-  Users,
-  Wallet,
-} from "lucide-react";
 
 import { AdminKpiCard } from "@/components/admin/kpi-card";
 import { fmtCompact } from "@/components/admin/format";
@@ -38,21 +27,18 @@ export default async function AdminOverviewPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <AdminKpiCard
           color="navy"
-          icon={<Users />}
           title="Users"
           value={fmtCompact(o.total_users)}
           foot={`${o.admin_users} admin${o.admin_users === 1 ? "" : "s"}`}
         />
         <AdminKpiCard
           color="green"
-          icon={<UserPlus />}
           title="New this week"
           value={fmtCompact(o.new_users_7d)}
           foot="last 7 days"
         />
         <AdminKpiCard
           color="blue"
-          icon={<Activity />}
           title="Jobs · 24h"
           value={fmtCompact(o.jobs_24h)}
           foot={`${o.failed_jobs_24h} failed`}
@@ -61,35 +47,30 @@ export default async function AdminOverviewPage() {
         />
         <AdminKpiCard
           color="orange"
-          icon={<FileText />}
           title="Articles · 24h"
           value={fmtCompact(o.articles_24h)}
           foot={`${fmtCompact(o.total_articles)} all-time`}
         />
         <AdminKpiCard
           color="green"
-          icon={<DollarSign />}
           title="Spend today"
           value={formatUsd(o.spend_today_usd)}
           foot="all accounts"
         />
         <AdminKpiCard
           color="blue"
-          icon={<TrendingUp />}
           title="Spend · 30d"
           value={formatUsd(o.spend_30d_usd)}
           foot="last 30 days"
         />
         <AdminKpiCard
           color="purple"
-          icon={<Wallet />}
           title="Credit liability"
           value={formatUsd(o.credit_liability_usd)}
           foot="outstanding prepaid"
         />
         <AdminKpiCard
           color="orange"
-          icon={<Ban />}
           title="Suspended"
           value={fmtCompact(o.suspended_users)}
           foot="accounts"
@@ -133,18 +114,12 @@ export default async function AdminOverviewPage() {
       {/* SOC2 note */}
       <Card className="border-border/60 bg-muted/30">
         <CardContent className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <ScrollText
-              className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground"
-              aria-hidden
-            />
-            <div>
-              <div className="text-sm font-medium">Audit trail</div>
-              <p className="text-sm text-muted-foreground">
-                Every privileged action — suspensions, role changes, credit
-                grants — is written to an append-only log for SOC 2 evidence.
-              </p>
-            </div>
+          <div>
+            <div className="text-sm font-medium">Audit trail</div>
+            <p className="text-sm text-muted-foreground">
+              Every privileged action — suspensions, role changes, credit
+              grants — is written to an append-only log for SOC 2 evidence.
+            </p>
           </div>
           <Link
             href="/admin/audit"

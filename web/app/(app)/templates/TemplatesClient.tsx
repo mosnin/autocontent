@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DashHeading } from "@/components/hub/dashboard-kit";
+import { hubCardClass } from "@/components/hub/primitives";
+import { cn } from "@/lib/utils";
 
 export interface Template {
   id: string;
@@ -45,17 +48,15 @@ function fileToB64(file: File): Promise<string> {
 export function TemplatesClient({ initial }: { initial: Template[] }) {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Curated looks with their exact prompt attached. Remix one with
-          your product photo — same aesthetic, your product. Results land
-          in Library → Images.
-        </p>
-      </div>
+      <DashHeading
+        as="h1"
+        sub="Curated looks with their exact prompt attached. Remix one with your product photo — same aesthetic, your product. Results land in Library → Images."
+      >
+        Templates
+      </DashHeading>
 
       {initial.length === 0 && (
-        <Card>
+        <Card className={hubCardClass}>
           <CardContent className="pt-6 text-sm text-muted-foreground">
             No templates published yet. Admins add them from the admin
             console (or via the API) with a reference image + prompt.
@@ -95,7 +96,7 @@ function TemplateCard({ template }: { template: Template }) {
   };
 
   return (
-    <Card>
+    <Card className={cn(hubCardClass, "overflow-hidden")}>
       {template.reference_key && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
