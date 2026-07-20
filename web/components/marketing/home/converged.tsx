@@ -191,10 +191,8 @@ function Floater({ f }: { f: (typeof FLOATERS)[number] }) {
         whileInView={{ opacity: 1, y: 0 }}
       >
         <div className="overflow-hidden rounded-2xl border border-zinc-900/[0.08] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
-          <div className="flex items-center gap-1.5 border-b border-zinc-900/[0.06] px-3 py-2">
-            <span className="size-2 rounded-full bg-zinc-200" />
-            <span className="size-2 rounded-full bg-zinc-200" />
-            <span className="ml-1 text-[11px] font-medium text-zinc-500">
+          <div className="flex items-center border-b border-zinc-900/[0.06] px-3 py-2">
+            <span className="text-[11px] font-medium text-zinc-500">
               {f.name}
             </span>
           </div>

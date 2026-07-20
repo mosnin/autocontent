@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
-import { SectionCta } from "@/components/marketing/system";
-import { SaasAnalyticsMock } from "@/components/marketing/use-cases/mocks/saas-analytics";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 import {
   MockBand,
   OutcomesBand,
@@ -81,7 +80,13 @@ export default function SaasPage() {
         lede="A published short's numbers, and the two ideas it just earned: a sibling short and a bottom-funnel comparison article."
         scene="tide"
       >
-        <SaasAnalyticsMock />
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+          <TaggedPlaceholder
+            kind="image"
+            label="SaaS workflow — screenshot"
+            tone="sky"
+          />
+        </div>
       </MockBand>
       <OutcomesBand
         heading="A funnel that feeds itself."

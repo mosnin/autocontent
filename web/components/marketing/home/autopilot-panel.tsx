@@ -4,88 +4,33 @@ import * as React from "react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "motion/react";
 
-import { TextReveal, PinScene, Magnetic } from "@/components/marketing/system";
+import {
+  TaggedPlaceholder,
+  TextReveal,
+  PinScene,
+  Magnetic,
+} from "@/components/marketing/system";
 import CountUp from "@/components/reactbits/CountUp";
 import { EASE, VIEWPORT } from "@/components/marketing/system/motion";
-
-/* ------------------------------------------------------------------ */
-/* Mini UI mocks inside the dark cards (hand-built, never screenshots) */
-/* ------------------------------------------------------------------ */
-
-function MockAutopilot() {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-[12px]">
-      {[
-        { label: "Ideate 3 hooks — fitness niche", state: "done" },
-        { label: "Render short — scene 4 of 6", state: "live" },
-        { label: "Publish 9:00 AM slot", state: "queued" },
-      ].map((row) => (
-        <div
-          className="flex items-center justify-between border-b border-white/[0.06] py-2 last:border-0"
-          key={row.label}
-        >
-          <span className="text-zinc-300">{row.label}</span>
-          {row.state === "done" && <span className="text-amber-400">done</span>}
-          {row.state === "live" && (
-            <span className="flex items-center gap-1.5 text-rose-400">
-              <span className="relative flex size-1.5">
-                <span className="relative inline-flex size-1.5 rounded-full bg-rose-400" />
-              </span>
-              live
-            </span>
-          )}
-          {row.state === "queued" && <span className="text-zinc-500">queued</span>}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function MockAsk() {
-  return (
-    <div className="space-y-2 text-[12px]">
-      <div className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-white/10 px-3 py-2 text-zinc-200">
-        What was our cost per published short last week?
-      </div>
-      <div className="w-fit max-w-[90%] rounded-2xl rounded-bl-md border border-white/10 bg-white/[0.04] px-3 py-2 text-zinc-300">
-        $0.84 across 21 shorts. Tuesday&apos;s batch ran cheapest, want the
-        breakdown by niche?
-      </div>
-    </div>
-  );
-}
-
-function MockMcp() {
-  return (
-    <div className="rounded-xl border border-white/10 bg-black/40 p-3 font-mono text-[11.5px] leading-relaxed text-zinc-400">
-      <p>
-        <span className="text-amber-400">$</span> marketer campaign create \
-      </p>
-      <p className="pl-4">--brief &quot;spring launch&quot; --cap 25.00</p>
-      <p className="text-zinc-500">✓ queued 4 videos, 2 articles</p>
-      <p className="text-zinc-500">✓ cap enforced: $25.00 / day</p>
-    </div>
-  );
-}
 
 const CARDS = [
   {
     kicker: "Always on",
     title: "Autopilot runs the channel 24/7",
     desc: "Give it a niche and a daily cap. It plans, produces, and publishes on schedule, and never spends past the cap.",
-    mock: <MockAutopilot />,
+    placeholder: { label: "Autopilot queue — screenshot", tone: "warm" as const },
   },
   {
     kicker: "Instant answers",
     title: "Ask your marketing anything",
     desc: "Spend, performance, and queue state live in one system, so the answer comes from data, not from a hunt across tabs.",
-    mock: <MockAsk />,
+    placeholder: { label: "Agent chat — screenshot", tone: "sky" as const },
   },
   {
     kicker: "Agent surfaces",
     title: "Your agents ship the campaign",
     desc: "REST API, Python SDK, CLI, and an MCP server. Whatever runs your agents can run your marketing.",
-    mock: <MockMcp />,
+    placeholder: { label: "CLI session — screenshot", tone: "violet" as const },
   },
 ];
 
@@ -170,7 +115,13 @@ export function AutopilotPanel() {
                   <p className="mt-2 text-[14px] leading-relaxed text-zinc-400">
                     {card.desc}
                   </p>
-                  <div className="mt-5 flex-1">{card.mock}</div>
+                  <div className="mt-5 aspect-[16/11] overflow-hidden rounded-xl border border-white/10">
+                    <TaggedPlaceholder
+                      kind="image"
+                      label={card.placeholder.label}
+                      tone={card.placeholder.tone}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

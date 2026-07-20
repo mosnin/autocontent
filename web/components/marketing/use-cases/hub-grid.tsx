@@ -2,17 +2,30 @@ import * as React from "react";
 
 import {
   Stagger,
+  TaggedPlaceholder,
   VignetteCard,
   type VignetteScene,
 } from "@/components/marketing/system";
-import {
-  AgentChatVignette,
-  ArticleSeoVignette,
-  CapGaugeVignette,
-  MetricsVignette,
-  QueueVignette,
-  ScheduleVignette,
-} from "@/components/marketing/vignettes";
+
+/**
+ * Fills the VignetteCard's padded vignette frame edge to edge: the frame
+ * (in `system/vignette-card.tsx`) sets aspect + rounding + overflow-hidden
+ * and is `relative`, so an absolutely positioned child that cancels the
+ * frame's own padding covers it exactly.
+ */
+function CardPlaceholder({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "warm" | "sky" | "violet" | "slate" | "rose";
+}) {
+  return (
+    <div className="absolute -inset-5 sm:-inset-6">
+      <TaggedPlaceholder kind="image" label={label} tone={tone} />
+    </div>
+  );
+}
 
 /** Quiet "See how" arrow row pinned to the card bottom. */
 function SeeHow() {
@@ -52,42 +65,55 @@ const CASES: Array<{
     title: "Creators",
     promise: "Daily shorts without the editing days.",
     scene: "dusk",
-    vignette: <QueueVignette />,
+    vignette: (
+      <CardPlaceholder label="Creators workflow — screenshot" tone="warm" />
+    ),
   },
   {
     href: "/use-cases/ecommerce",
     title: "Ecommerce",
     promise: "Every product line becomes a content engine.",
     scene: "warm",
-    vignette: <ArticleSeoVignette />,
+    vignette: (
+      <CardPlaceholder label="Ecommerce workflow — screenshot" tone="rose" />
+    ),
   },
   {
     href: "/use-cases/saas",
     title: "SaaS",
     promise: "Shorts that teach, articles that convert.",
     scene: "sky",
-    vignette: <MetricsVignette />,
+    vignette: <CardPlaceholder label="SaaS workflow — screenshot" tone="sky" />,
   },
   {
     href: "/use-cases/agencies",
     title: "Agencies",
     promise: "Every client on its own budget and gate.",
     scene: "pearl",
-    vignette: <CapGaugeVignette />,
+    vignette: (
+      <CardPlaceholder label="Agencies workflow — screenshot" tone="violet" />
+    ),
   },
   {
     href: "/use-cases/local-business",
     title: "Local business",
     promise: "Show up every week without a marketing hire.",
     scene: "dawn",
-    vignette: <ScheduleVignette />,
+    vignette: (
+      <CardPlaceholder
+        label="Local business workflow — screenshot"
+        tone="slate"
+      />
+    ),
   },
   {
     href: "/use-cases/ai-agents",
     title: "AI agents",
     promise: "Your agents are the marketing team.",
     scene: "mist",
-    vignette: <AgentChatVignette />,
+    vignette: (
+      <CardPlaceholder label="AI agents workflow — screenshot" tone="warm" />
+    ),
   },
 ];
 

@@ -6,15 +6,9 @@ import {
   Kicker,
   Lede,
   Reveal,
+  TaggedPlaceholder,
   TextReveal,
 } from "@/components/marketing/system";
-import {
-  AgentChatVignette,
-  ArticleSeoVignette,
-  CapGaugeVignette,
-  MetricsVignette,
-  QueueVignette,
-} from "@/components/marketing/vignettes";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
@@ -48,7 +42,13 @@ const BANDS: Band[] = [
     linkLabel: "Explore video",
     illustration: (
       <VignetteStage scene="sky">
-        <QueueVignette />
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Publish queue — render, schedule, publish status"
+            tone="sky"
+          />
+        </div>
       </VignetteStage>
     ),
     scene: "white",
@@ -67,7 +67,13 @@ const BANDS: Band[] = [
     linkLabel: "Explore articles",
     illustration: (
       <VignetteStage scene="pearl">
-        <ArticleSeoVignette />
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Article SEO card — metadata and schema"
+            tone="warm"
+          />
+        </div>
       </VignetteStage>
     ),
     scene: "pearl",
@@ -87,7 +93,13 @@ const BANDS: Band[] = [
     linkLabel: "Explore automation",
     illustration: (
       <VignetteStage scene="mist">
-        <AgentChatVignette />
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Agent chat — MCP tool call to shipped video"
+            tone="slate"
+          />
+        </div>
       </VignetteStage>
     ),
     scene: "white",
@@ -106,9 +118,12 @@ const BANDS: Band[] = [
     linkLabel: "Explore analytics",
     illustration: (
       <VignetteStage scene="sky">
-        <div className="space-y-4">
-          <MetricsVignette />
-          <CapGaugeVignette />
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Analytics dashboard — performance metrics and spend cap gauge"
+            tone="rose"
+          />
         </div>
       </VignetteStage>
     ),

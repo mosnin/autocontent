@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 
-import { SectionCta } from "@/components/marketing/system";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 import { FaqBand, type FaqItem } from "@/components/marketing/use-cases/faq";
-import { AgentChatMock } from "@/components/marketing/use-cases/mocks/agent-chat";
 import {
   MockBand,
   OutcomesBand,
@@ -115,7 +114,13 @@ export default function AiAgentsPage() {
         lede="An ops agent gets a one-line instruction, calls the tools, checks its budget, and parks the whole push at your approval gate."
         scene="aurora"
       >
-        <AgentChatMock />
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+          <TaggedPlaceholder
+            kind="image"
+            label="AI agents workflow — screenshot"
+            tone="warm"
+          />
+        </div>
       </MockBand>
       <OutcomesBand
         heading="Autonomy, with receipts."

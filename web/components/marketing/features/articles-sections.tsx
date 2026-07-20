@@ -11,9 +11,7 @@ import {
   TaggedPlaceholder,
   TextReveal,
   warmBg,
-  warmChip,
 } from "@/components/marketing/system";
-import { OutlineVignette } from "@/components/marketing/vignettes";
 import { cn } from "@/lib/utils";
 
 import { ProofList } from "./proof-list";
@@ -26,70 +24,6 @@ const H2_CLASS =
 /* ------------------------------------------------------------------ */
 /* SERP research                                                       */
 /* ------------------------------------------------------------------ */
-
-const SERP_ROWS = [
-  {
-    rank: 1,
-    title: "Best espresso machines of 2026",
-    domain: "wirecutter.com",
-    chip: "hands-on",
-  },
-  {
-    rank: 2,
-    title: "9 best home espresso machines",
-    domain: "goodhousekeeping.com",
-    chip: "listicle",
-  },
-  {
-    rank: 3,
-    title: "Espresso machine buying guide",
-    domain: "seriouseats.com",
-    chip: "guide",
-  },
-];
-
-function SerpCard() {
-  return (
-    <GlassPanel className="w-full max-w-sm p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-zinc-900">SERP scan</p>
-        <span className="rounded-full bg-zinc-900/[0.05] px-2.5 py-1 font-mono text-[11px] text-zinc-500">
-          exa
-        </span>
-      </div>
-      <p className="mt-1 text-[12px] text-zinc-400">
-        &ldquo;best home espresso machine&rdquo;
-      </p>
-      <ul className="mt-4 space-y-2">
-        {SERP_ROWS.map((row) => (
-          <li
-            className="flex items-center gap-3 rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-2.5"
-            key={row.rank}
-          >
-            <span className="font-mono text-xs tabular-nums text-zinc-400">
-              {row.rank}
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-zinc-800">
-                {row.title}
-              </p>
-              <p className="text-[11px] text-zinc-400">{row.domain}</p>
-            </div>
-            <span className="rounded-full bg-zinc-900/[0.05] px-2 py-0.5 text-[10px] font-medium text-zinc-500">
-              {row.chip}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-3 flex items-start gap-2 rounded-xl border border-brand/20 bg-brand/[0.05] px-3.5 py-2.5">
-        <span className="mt-1 size-1.5 shrink-0 rounded-full bg-brand" />
-        <p className="text-[12px] leading-snug text-zinc-600">
-          Gap: no sub-$800 head-to-head. That&apos;s the angle.
-        </p>
-      </div>
-    </GlassPanel>
-  );
-}
 
 export function SerpBand() {
   return (
@@ -117,7 +51,13 @@ export function SerpBand() {
           </Reveal>
           <Reveal className="flex justify-center" delay={0.12}>
             <VignetteStage scene="sky">
-              <SerpCard />
+              <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                <TaggedPlaceholder
+                  kind="image"
+                  label="SERP research scan — ranked results for a topic"
+                  tone="sky"
+                />
+              </div>
             </VignetteStage>
           </Reveal>
         </div>
@@ -160,7 +100,13 @@ export function OutlineBand() {
           <Reveal className="flex justify-center lg:order-1" delay={0.12}>
             <Parallax speed={-0.1}>
               <VignetteStage scene="pearl">
-                <OutlineVignette />
+                <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                  <TaggedPlaceholder
+                    kind="illustration"
+                    label="Outline structure — H1, H2 sections drafted in parallel"
+                    tone="violet"
+                  />
+                </div>
               </VignetteStage>
             </Parallax>
           </Reveal>
@@ -173,80 +119,6 @@ export function OutlineBand() {
 /* ------------------------------------------------------------------ */
 /* SEO metadata card                                                   */
 /* ------------------------------------------------------------------ */
-
-function MetaField({
-  label,
-  children,
-  mono = false,
-}: {
-  label: string;
-  children: React.ReactNode;
-  mono?: boolean;
-}) {
-  return (
-    <div className="rounded-xl border border-zinc-900/[0.05] bg-white/80 px-3.5 py-2.5">
-      <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-zinc-400">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-1 text-[13px] leading-snug text-zinc-700",
-          mono && "font-mono text-[12px]",
-        )}
-      >
-        {children}
-      </p>
-    </div>
-  );
-}
-
-function MetadataCard() {
-  return (
-    <GlassPanel className="w-full max-w-md p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-[13px] font-semibold text-zinc-900">SEO metadata</p>
-        <span
-          className={cn(
-            "rounded-full px-2.5 py-1 text-[11px] font-medium",
-            warmChip,
-          )}
-        >
-          generated
-        </span>
-      </div>
-      <div className="mt-4 space-y-2">
-        <MetaField label="Title">
-          Best Home Espresso Machines Under $800, Tested
-        </MetaField>
-        <MetaField label="Slug" mono>
-          /blog/best-home-espresso-machines-under-800
-        </MetaField>
-        <MetaField label="Meta description">
-          We pulled 400 shots on 9 machines under $800. Three earn the
-          counter space, and one beats machines twice its price.
-        </MetaField>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {["best espresso machine", "under $800", "home barista"].map((kw) => (
-          <span
-            className="rounded-full bg-zinc-900/[0.05] px-2.5 py-1 text-[11px] font-medium text-zinc-500"
-            key={kw}
-          >
-            {kw}
-          </span>
-        ))}
-        {["JSON-LD: Article", "JSON-LD: FAQPage"].map((chip) => (
-          <span
-            className="rounded-full border border-sky-600/15 bg-sky-50/80 px-2.5 py-1 font-mono text-[11px] font-medium text-sky-700"
-            key={chip}
-          >
-            {chip}
-          </span>
-        ))}
-      </div>
-    </GlassPanel>
-  );
-}
 
 export function MetadataBand() {
   return (
@@ -277,7 +149,13 @@ export function MetadataBand() {
           </Reveal>
           <Reveal className="flex justify-center" delay={0.12}>
             <VignetteStage className="max-w-lg" scene="pearl">
-              <MetadataCard />
+              <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+                <TaggedPlaceholder
+                  kind="image"
+                  label="SEO metadata card — title, slug, schema tags"
+                  tone="warm"
+                />
+              </div>
             </VignetteStage>
           </Reveal>
         </div>
