@@ -74,6 +74,96 @@ async def release(key: str) -> None:
     await pool.execute("delete from idempotency_keys where key = $1", key)
 
 
+async def record_body_hash(key: str, body_hash: str) -> None:
+    """Attach a request-body hash to an already-claimed key, before the
+    handler runs. Lets a concurrent or later request bearing the same key
+    detect "same key, different body" (a client bug / accidental key
+    collision) and get a 422 instead of either a silent wrong replay or a
+    second execution.
+
+    Best-effort: never raises. Losing this write only widens (slightly
+    and briefly) the window in which a concurrent racer's conflict check
+    can't yet tell hash-mismatch from still-recording, which the HTTP
+    layer treats conservatively as "still processing" (409) rather than
+    risking a false negative on the conflict check.
+    """
+    try:
+        pool = await get_pool()
+        await pool.execute(
+            "update idempotency_keys set result = $2::jsonb where key = $1",
+            key, json.dumps({"body_hash": body_hash}),
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+async def get_record(key: str) -> dict | None:
+    """Fetch the current state of *key* for the HTTP idempotency layer.
+
+    Returns ``None`` when the key doesn't exist or has expired (an
+    expired row is treated as gone even if the DELETE from
+    ``reap_expired`` hasn't run yet, so a stale, no-longer-authoritative
+    claim is never served). Otherwise returns
+    ``{"status": "claimed" | "done", "body_hash": str | None,
+    "response": {"status": int, "headers": dict, "body": str} | None}``.
+
+    Unlike ``get_cached_response``-style helpers that only surface
+    *completed* rows, this also surfaces in-flight ("claimed") rows so
+    the caller can distinguish "still processing" (409) from "done,
+    replay it" and check the body hash regardless of which state the row
+    is in.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        select status, result
+          from idempotency_keys
+         where key = $1
+           and expires_at > now()
+        """,
+        key,
+    )
+    if row is None:
+        return None
+    result = row["result"]
+    if isinstance(result, str):
+        result = json.loads(result)
+    result = result or {}
+    return {
+        "status": row["status"],
+        "body_hash": result.get("body_hash"),
+        "response": result.get("response"),
+    }
+
+
+async def store_response(key: str, *, body_hash: str, status: int, headers: dict, body: str) -> None:
+    """Persist the final response for a claimed key so a later replay of
+    the same (user, method, path, key) — with a matching body hash — can
+    be served verbatim without re-running the handler. Marks the row
+    'done' in the same write ``mark_done`` would, but with the richer
+    payload the HTTP layer needs to reconstruct a byte-identical response
+    (status code + headers + body) and keeps the body hash alongside it
+    so a conflicting-body replay is still rejected even after completion.
+
+    Best-effort: never raises. Losing this write only costs a future
+    replay's ability to hit the cache (the request itself already
+    succeeded) — the caller should not fail the in-flight request over a
+    caching side effect.
+    """
+    try:
+        pool = await get_pool()
+        payload = json.dumps({
+            "body_hash": body_hash,
+            "response": {"status": status, "headers": headers, "body": body},
+        })
+        await pool.execute(
+            "update idempotency_keys set status = 'done', result = $2::jsonb where key = $1",
+            key, payload,
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
 async def reap_expired(*, older_than_minutes: int = 0) -> int:
     """Delete claims whose expires_at has passed (plus an optional grace
     buffer). Keeps the table from growing unboundedly; safe to run

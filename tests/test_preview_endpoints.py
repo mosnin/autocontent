@@ -87,4 +87,4 @@ def test_character_sheet_404_before_first_run(client, monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 404
-    assert "not generated yet" in resp.json()["detail"]
+    assert "not generated yet" in resp.json()["error"]["message"]

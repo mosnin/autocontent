@@ -5,14 +5,25 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
+from .errors import (
+    AppError,
+    app_error_handler,
+    http_exception_handler,
+    unhandled_exception_handler,
+    validation_exception_handler,
+)
+from .idempotency_api import IdempotencyMiddleware
+from .openapi import customize_openapi
 from .rate_limit import limiter
 from .routes import admin, ads, articles, billing, brand_kit, calendar, campaigns, connect, failures, healthz, image_posts, jobs, kits, library, metrics, niches, ops, performance, providers, spend, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, x402
 
@@ -77,6 +88,16 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="marketer api", version="0.1.0", lifespan=_lifespan)
 
+    # ── Structured error envelope ─────────────────────────────────────────────
+    # Every failure renders as {"error": {code, message, hint, retryable, ...}}
+    # with an X-Request-ID correlation id. The HTTPException handler maps the
+    # existing `raise HTTPException(...)` call sites into the envelope, so no
+    # route had to change and nothing leaks on a 500.
+    app.add_exception_handler(AppError, app_error_handler)
+    app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(Exception, unhandled_exception_handler)
+
     # ── Rate limiting (must be registered before CORS middleware) ─────────────
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -101,6 +122,12 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # ── Idempotency-Key: exactly-once for mutating API/agent calls ────────────
+    # A retried POST/PUT/PATCH/DELETE carrying an Idempotency-Key header is
+    # deduped against the cycle-2 idempotency table and replays the original
+    # response. GETs and header-less requests pass through untouched.
+    app.add_middleware(IdempotencyMiddleware)
 
     app.include_router(healthz.router, prefix="", tags=["health"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
@@ -151,5 +178,10 @@ def create_app() -> FastAPI:
         FastAPIInstrumentor.instrument_app(app)
     except ImportError:
         pass  # package not installed; tracing stays disabled
+
+    # ── OpenAPI: Bearer security scheme, tag groups, stable operationIds ──────
+    # Called last so it sees the full route table. The exported spec (see
+    # scripts/export_openapi.py) drives the TypeScript SDK + docs.
+    customize_openapi(app)
 
     return app
