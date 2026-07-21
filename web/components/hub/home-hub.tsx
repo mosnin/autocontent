@@ -2,147 +2,122 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useReducedMotion } from "motion/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import TextType from "@/components/reactbits/TextType";
-import { BannerCard, MediaCard } from "@/components/hub/dashboard-kit";
-import { HubHeading, Rise } from "@/components/hub/primitives";
-import { MediaSlot } from "@/components/media-slot";
-import { productById } from "@/lib/products";
+import { HubHeading, Rise, hubCardClass } from "@/components/hub/primitives";
+import { LatestVideos } from "@/components/latest-videos";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
-/* ------------------------------------------------------------------ */
-/* Motion primitives — one rhythm for the whole hub                    */
-/* ------------------------------------------------------------------ */
-
-function SectionHeading({
-  children,
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-}) {
-  return (
-    <Rise delay={delay}>
-      <HubHeading as="h2" className="text-2xl">
-        {children}
-      </HubHeading>
-    </Rise>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Media — always the managed slot; its own empty-state placeholder    */
-/* art shows until an admin uploads a real image (see media-slot.tsx). */
-/* ------------------------------------------------------------------ */
-
-function HubMedia({ id }: { id: string }) {
-  return (
-    <div className="h-full min-h-44 w-full">
-      <MediaSlot id={id} showChip={false} />
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* The hub                                                             */
-/* ------------------------------------------------------------------ */
-
+/**
+ * The suite home: a working brief composer (creates a real campaign and
+ * jumps into it), the live video library, and direct links into every
+ * surface. Everything here is functional — navigation lives in the shell
+ * sidebar and switcher.
+ */
 export function HomeHub() {
-  const reduced = useReducedMotion();
-  const campaigns = productById("campaigns");
-  const content = productById("studio");
-  const seo = productById("press");
-  const ads = productById("ads");
-  const suite = productById("suite");
+  const router = useRouter();
+  const [brief, setBrief] = React.useState("");
+  const [budget, setBudget] = React.useState("25");
+  const [busy, setBusy] = React.useState(false);
 
-  const stagger = (i: number) => (reduced ? 0 : 0.08 * i);
+  const createCampaign = async () => {
+    const text = brief.trim();
+    if (!text) {
+      toast.error("Write a one-line brief first");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/proxy/api/v1/campaigns", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          // First clause as the name, full text as the objective.
+          name: text.split(/[.!?\n]/)[0].slice(0, 80) || "New campaign",
+          objective: text,
+          budget_usd: budget || "25",
+          ends_at: null,
+        }),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+      const campaign = await res.json();
+      toast.success("Campaign created — add lanes and press start");
+      router.push(`/campaigns/${campaign.id}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-6xl space-y-12">
-      {/* Hero row: the two flagship dashboards */}
-      <section aria-label="Start here" className="space-y-5">
-        <div className="space-y-1.5">
-          <SectionHeading>Bring your next campaign to life</SectionHeading>
-          <Rise delay={reduced ? 0 : 0.05}>
-            <TextType
-              as="p"
-              className="text-sm text-muted-foreground"
-              cursorCharacter="▍"
-              pauseDuration={2200}
-              text={[
-                "What are we shipping today?",
-                "Queue a short. Draft an article. Cap the spend.",
-                "Your agents are on the clock.",
-              ]}
-              typingSpeed={40}
+    <div className="mx-auto max-w-5xl space-y-10">
+      {/* Brief composer — the "chat" surface of the suite. */}
+      <section aria-label="New brief" className="space-y-4">
+        <Rise>
+          <HubHeading as="h1" className="text-2xl">
+            What are we shipping today?
+          </HubHeading>
+          <TextType
+            as="p"
+            className="mt-1 text-sm text-muted-foreground"
+            cursorCharacter="▍"
+            pauseDuration={2200}
+            text={[
+              "Describe the push. It becomes a campaign.",
+              "Content, SEO, and ads, under one cap.",
+              "Your agents are on the clock.",
+            ]}
+            typingSpeed={40}
+          />
+        </Rise>
+        <Rise delay={0.06}>
+          <div className={cn(hubCardClass, "p-4")}>
+            <Textarea
+              aria-label="Campaign brief"
+              className="min-h-24 resize-none border-0 p-1 text-[15px] shadow-none focus-visible:ring-0"
+              onChange={(e) => setBrief(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  void createCampaign();
+                }
+              }}
+              placeholder="Describe the campaign — audience, goal, angle. Example: Drive signups for the spring launch with daily shorts and two buying guides."
+              value={brief}
             />
-          </Rise>
-        </div>
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Rise delay={stagger(1)}>
-            <BannerCard
-              href={campaigns.home}
-              media={<HubMedia id="dash-home-campaigns" />}
-              tagline={campaigns.tagline}
-              title="Campaigns"
-              tone="warm"
-            />
-          </Rise>
-          <Rise delay={stagger(2)}>
-            <BannerCard
-              badge="Studio"
-              href={content.home}
-              media={<HubMedia id="dash-home-content" />}
-              tagline={content.tagline}
-              title="Content"
-              tone="sky"
-            />
-          </Rise>
-        </div>
-      </section>
-
-      {/* Product rail: the rest of the suite, in order */}
-      <section aria-label="All products" className="space-y-5">
-        <SectionHeading delay={stagger(3)}>Work in every surface</SectionHeading>
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <Rise delay={stagger(4)}>
-            <MediaCard
-              foot="Press — articles & search"
-              href={seo.home}
-              media={<HubMedia id="dash-home-seo" />}
-              title="SEO"
-              tone="violet"
-            />
-          </Rise>
-          <Rise delay={stagger(5)}>
-            <MediaCard
-              foot="Paid campaigns, capped"
-              href={ads.home}
-              media={<HubMedia id="dash-home-ads" />}
-              title="Ads"
-              tone="warm"
-            />
-          </Rise>
-          <Rise delay={stagger(6)}>
-            <MediaCard
-              foot="Account, brand, admin"
-              href={suite.home}
-              media={<HubMedia id="dash-home-suite" />}
-              title="Suite"
-              tone="slate"
-            />
-          </Rise>
-        </div>
-      </section>
-
-      {/* Quick actions strip */}
-      <section aria-label="Quick actions" className="space-y-5">
-        <SectionHeading delay={stagger(7)}>Jump back in</SectionHeading>
-        <Rise className="flex flex-wrap gap-2.5" delay={stagger(8)}>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                Daily cap $
+                <Input
+                  aria-label="Daily credit cap in USD"
+                  className="h-8 w-20"
+                  min={1}
+                  onChange={(e) => setBudget(e.target.value)}
+                  step="1"
+                  type="number"
+                  value={budget}
+                />
+              </label>
+              <div className="flex items-center gap-3">
+                <span className="hidden text-xs text-muted-foreground sm:inline">
+                  ⌘↵ to create
+                </span>
+                <Button disabled={busy} onClick={() => void createCampaign()}>
+                  {busy ? "Creating…" : "Create campaign"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Rise>
+        <Rise className="flex flex-wrap gap-2.5" delay={0.12}>
           {[
-            { label: "New campaign", href: "/campaigns" },
             { label: "Queue a short", href: "/queue" },
-            { label: "Draft an article", href: "/articles" },
+            { label: "Draft an article", href: "/articles?new=1" },
             { label: "Review ad approvals", href: "/ads/approvals" },
             { label: "Connect socials", href: "/connect" },
             { label: "Top up credits", href: "/settings/billing" },
@@ -157,6 +132,12 @@ export function HomeHub() {
           ))}
         </Rise>
       </section>
+
+      {/* Library — real rendered videos, straight from the API. The
+          component owns its own heading and links. */}
+      <Rise delay={0.1}>
+        <LatestVideos />
+      </Rise>
     </div>
   );
 }

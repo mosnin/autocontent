@@ -7,15 +7,15 @@ import { UserButton } from "@clerk/nextjs";
 import { motion, useReducedMotion } from "motion/react";
 
 import { DashboardSwitcher } from "@/components/dashboard-switcher";
-import { productForPath } from "@/lib/products";
+import { PRODUCTS, productForPath } from "@/lib/products";
 import { cn } from "@/lib/utils";
 
 /**
- * Reference-style shell, light aesthetic: a sticky top bar (wordmark,
- * search pill, the center dashboard switcher, credits + create + account
- * on the right) with the active product's pages as a tab row beneath it.
- * No sidebar — navigation lives entirely in the two top rows, like the
- * reference's toolbar-first layout.
+ * Reference-style shell, light aesthetic: sticky top bar (wordmark,
+ * search pill, the center dashboard switcher, credits + create + account)
+ * with a real left sidebar underneath — the active product's pages as
+ * working links, then the rest of the suite. Mirrors the reference's
+ * top-nav + catalog-rail anatomy.
  */
 export function SiteShell({
   children,
@@ -100,66 +100,102 @@ export function SiteShell({
         <div className="overflow-x-auto border-t border-border/50 px-4 py-2 lg:hidden">
           <DashboardSwitcher className="w-max" />
         </div>
-
-        <ProductTabs />
       </header>
 
-      <main className="mx-auto w-full max-w-[1440px] px-4 py-8 md:px-6 md:py-10">
-        {children}
-      </main>
+      <div className="mx-auto flex w-full max-w-[1440px]">
+        <ProductSidebar />
+        <main className="min-w-0 flex-1 px-4 py-8 md:px-6 md:py-10">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
 
 /**
- * The active product's pages as a slim tab row under the top bar — the
- * sidebar's replacement. The underline glides between tabs.
+ * The left rail: the active product's pages as real links with active
+ * states, then the rest of the suite for one-click jumps. Hidden on
+ * small screens (the mobile switcher row covers navigation there).
  */
-function ProductTabs() {
+function ProductSidebar() {
   const pathname = usePathname();
   const reduced = useReducedMotion();
-  if (pathname === "/home") return null;
-  const product = productForPath(pathname);
-  const items = product.groups.flatMap((g) => g.items).filter((i) => !i.soon);
-  if (items.length < 2) return null;
+  const active = productForPath(pathname);
+  const isHome = pathname === "/home";
 
   return (
-    <nav
-      aria-label={`${product.label} pages`}
-      className="overflow-x-auto border-t border-border/50 bg-white/60"
+    <aside
+      aria-label="Product navigation"
+      className="sticky top-16 hidden h-[calc(100svh-4rem)] w-60 shrink-0 flex-col gap-6 overflow-y-auto border-r border-border/60 px-4 py-6 lg:flex"
     >
-      <div className="mx-auto flex h-11 w-max min-w-full max-w-[1440px] items-center gap-1 px-4 md:px-6">
-        {items.map((item) => {
-          const active =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Link
-              className={cn(
-                "relative flex h-full items-center px-3 text-[13px] font-medium transition-colors",
-                active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              href={item.href}
-              key={item.href}
-            >
-              {item.label}
-              {active && (
-                <motion.span
-                  aria-hidden
-                  className="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-foreground"
-                  layoutId="product-tab-underline"
-                  transition={
-                    reduced
-                      ? { duration: 0 }
-                      : { type: "spring", stiffness: 420, damping: 36 }
-                  }
-                />
-              )}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+      {!isHome && (
+        <nav aria-label={`${active.label} pages`}>
+          <p className="px-2 pb-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+            {active.label}
+          </p>
+          <ul className="space-y-0.5">
+            {active.groups
+              .flatMap((g) => g.items)
+              .filter((i) => !i.soon)
+              .map((item) => {
+                const current =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
+                return (
+                  <li key={item.href}>
+                    <Link
+                      aria-current={current ? "page" : undefined}
+                      className={cn(
+                        "relative block rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                        current
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:bg-zinc-900/[0.04] hover:text-foreground",
+                      )}
+                      href={item.href}
+                    >
+                      {current && (
+                        <motion.span
+                          aria-hidden
+                          className="absolute inset-0 rounded-lg border border-border/70 bg-card shadow-sm"
+                          layoutId="sidebar-active"
+                          transition={
+                            reduced
+                              ? { duration: 0 }
+                              : { type: "spring", stiffness: 420, damping: 36 }
+                          }
+                        />
+                      )}
+                      <span className="relative">{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+          </ul>
+        </nav>
+      )}
+
+      <nav aria-label="Products" className={cn(!isHome && "border-t border-border/60 pt-5")}>
+        <p className="px-2 pb-2 font-mono text-[10.5px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Products
+        </p>
+        <ul className="space-y-0.5">
+          {PRODUCTS.map((p) => (
+            <li key={p.id}>
+              <Link
+                className={cn(
+                  "block rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  !isHome && p.id === active.id
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:bg-zinc-900/[0.04] hover:text-foreground",
+                )}
+                href={p.home}
+              >
+                {p.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </aside>
   );
 }

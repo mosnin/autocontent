@@ -43,11 +43,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  BannerCard,
   DashHeading,
   DashPanel,
   DashRise,
-  MediaCard,
 } from "@/components/hub/dashboard-kit";
 import {
   HoverLift,
@@ -165,165 +163,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         Bring any idea to the feed
       </DashHeading>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DashRise delay={0.08}>
-          <BannerCard
-            href="/queue"
-            media={
-              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
-                {[
-                  { label: "Morning hook — POV clip", state: "Rendering" },
-                  { label: "Top 5 countdown", state: "Queued" },
-                  { label: "Behind the scenes", state: "Posted" },
-                ].map((row) => (
-                  <div
-                    className="flex items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px]"
-                    key={row.label}
-                  >
-                    <span className="truncate font-medium">{row.label}</span>
-                    <span className="shrink-0 rounded-full border border-border/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {row.state}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            }
-            tagline="Line up shorts and let the pipeline render, caption, and post"
-            title="Queue a short"
-          />
-        </DashRise>
-        <DashRise delay={0.16}>
-          <BannerCard
-            badge="Autopilot"
-            href="/niches"
-            media={
-              <div className="grid h-full min-h-44 content-center gap-2 p-5 sm:grid-cols-2">
-                {[
-                  { name: "Stoic quotes", meta: "3 platforms" },
-                  { name: "Cozy cooking", meta: "daily cap $4" },
-                  { name: "Retro tech", meta: "2 shorts/day" },
-                  { name: "Trail running", meta: "auto-post on" },
-                ].map((tile) => (
-                  <div
-                    className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5"
-                    key={tile.name}
-                  >
-                    <div className="truncate text-[13px] font-medium">
-                      {tile.name}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {tile.meta}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            }
-            tagline="Standing pipelines that post on their own schedule"
-            title="Niches"
-          />
-        </DashRise>
-      </div>
-
-      <DashPanel delay={0.1} title="Create with every tool">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
-          <MediaCard
-            foot="Runs, renders, retries"
-            href="/queue"
-            media={
-              <div className="flex h-full min-h-24 flex-col justify-center gap-1.5 p-3">
-                {["Render 02:14", "Caption pass", "Post to Shorts"].map((r) => (
-                  <div
-                    className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 text-[11px] font-medium"
-                    key={r}
-                  >
-                    {r}
-                  </div>
-                ))}
-              </div>
-            }
-            title="Queue"
-          />
-          <MediaCard
-            foot="See the week's slots"
-            href="/calendar"
-            media={
-              <div className="grid h-full min-h-24 grid-cols-4 content-center gap-1.5 p-3">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div
-                    className={cn(
-                      "aspect-square rounded-lg border border-border/60",
-                      i === 2 || i === 5 ? "bg-zinc-900/80" : "bg-card",
-                    )}
-                    key={i}
-                  />
-                ))}
-              </div>
-            }
-            title="Calendar"
-          />
-          <MediaCard
-            foot="Every video you've shipped"
-            href="/library"
-            media={
-              <div className="flex h-full min-h-24 items-center justify-center gap-2 p-3">
-                {[0, 1, 2].map((i) => (
-                  <div
-                    className={cn(
-                      "h-16 w-9 rounded-lg border border-border/60 bg-card",
-                      i === 1 && "h-20 w-11 bg-zinc-900/80",
-                    )}
-                    key={i}
-                  />
-                ))}
-              </div>
-            }
-            title="Library"
-          />
-          <MediaCard
-            foot="Reusable video recipes"
-            href="/templates"
-            media={
-              <div className="flex h-full min-h-24 flex-col justify-center gap-1.5 p-3">
-                {["Hook + b-roll", "Countdown list", "Voiceover story"].map(
-                  (t) => (
-                    <div
-                      className="rounded-lg border border-dashed border-border/80 bg-card px-2.5 py-1.5 text-[11px] font-medium text-muted-foreground"
-                      key={t}
-                    >
-                      {t}
-                    </div>
-                  ),
-                )}
-              </div>
-            }
-            title="Templates"
-          />
-          <MediaCard
-            foot="Pipelines and their caps"
-            href="/niches"
-            media={
-              <div className="flex h-full min-h-24 flex-col justify-center gap-1.5 p-3">
-                {[70, 40, 15].map((w) => (
-                  <div
-                    className="rounded-lg border border-border/60 bg-card px-2.5 py-2"
-                    key={w}
-                  >
-                    <div className="h-1.5 overflow-hidden rounded-full bg-zinc-900/10">
-                      <div
-                        className="h-full rounded-full bg-[linear-gradient(90deg,#f59e0b,#f43f5e)]"
-                        style={{ width: `${w}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            }
-            title="Niches"
-          />
-        </div>
-      </DashPanel>
-
-      <DashPanel delay={0.12} title="Today at a glance">
+      <DashPanel delay={0.1} title="Today at a glance">
       {(() => {
         const spent = Number(spendData.total_usd);
         const cap = globalCap !== null ? Number(globalCap) : null;
