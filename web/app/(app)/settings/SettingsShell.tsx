@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import {
   Card,
   CardContent,
@@ -7,17 +9,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  BannerCard,
-  DashHeading,
-  DashPanel,
-  DashRise,
-  MediaCard,
-} from "@/components/hub/dashboard-kit";
+import { DashHeading, DashPanel } from "@/components/hub/dashboard-kit";
 import { hubCardClass } from "@/components/hub/primitives";
 import { cn } from "@/lib/utils";
 import { SpendCapForm } from "./SpendCapForm";
 import { NotificationsForm } from "./NotificationsForm";
+
+const SETTINGS_LINKS = [
+  { href: "/settings/brand", label: "Brand kit", desc: "Voice, colors, and defaults for every draft" },
+  { href: "/settings/billing", label: "Billing & credits", desc: "Balance, top-ups, and every charge" },
+  { href: "/settings/kits", label: "Kits", desc: "Reusable presets for channels and drafts" },
+  { href: "/connect", label: "Connect socials", desc: "Link the platforms scheduled posts publish to" },
+  { href: "/settings/tokens", label: "Tokens", desc: "Scoped API tokens for the CLI, MCP, and agents" },
+  { href: "/settings/webhooks", label: "Webhooks", desc: "Signed real-time events for automation" },
+  { href: "/settings/privacy", label: "Privacy", desc: "Export your data, or delete your account" },
+];
 
 export function SettingsShell({
   initialCap,
@@ -35,179 +41,7 @@ export function SettingsShell({
         Everything behind the scenes
       </DashHeading>
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DashRise delay={0.08}>
-          <BannerCard
-            href="/settings/brand"
-            media={
-              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
-                <div className="flex gap-2">
-                  {["#18181b", "#f59e0b", "#f43f5e", "#fafafa"].map((c) => (
-                    <span
-                      className="size-8 rounded-lg border border-border/60"
-                      key={c}
-                      style={{ backgroundColor: c }}
-                    />
-                  ))}
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px]">
-                  <span className="font-semibold">Voice: </span>
-                  <span className="text-muted-foreground">
-                    direct, a little dry, never salesy
-                  </span>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px] text-muted-foreground">
-                  Seeds every new channel draft automatically.
-                </div>
-              </div>
-            }
-            tagline="One identity behind every draft"
-            title="Brand kit"
-          />
-        </DashRise>
-        <DashRise delay={0.16}>
-          <BannerCard
-            href="/settings/billing"
-            media={
-              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
-                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5">
-                  <div className="flex items-center justify-between text-[13px]">
-                    <span className="font-medium">Pipeline credits</span>
-                    <span className="font-mono text-[12px] text-muted-foreground">
-                      62% left
-                    </span>
-                  </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-900/10">
-                    <div
-                      className="h-full rounded-full bg-[linear-gradient(90deg,#f59e0b,#f43f5e)]"
-                      style={{ width: "62%" }}
-                    />
-                  </div>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px] text-muted-foreground">
-                  Balance, top-ups, and every charge — down to the API call.
-                </div>
-              </div>
-            }
-            tagline="Balance, top-ups, every charge"
-            title="Billing & credits"
-          />
-        </DashRise>
-      </div>
-
-      <DashPanel delay={0.1} title="Workspace">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <MediaCard
-            foot="Reusable presets for channels and drafts"
-            href="/settings/kits"
-            media={
-              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
-                {["Launch kit", "Evergreen kit", "UGC kit"].map((k) => (
-                  <div
-                    className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-medium"
-                    key={k}
-                  >
-                    {k}
-                  </div>
-                ))}
-              </div>
-            }
-            title="Kits"
-          />
-          <MediaCard
-            foot="Link Ayrshare so scheduled posts actually ship"
-            href="/connect"
-            media={
-              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
-                {[
-                  ["TikTok", "linked"],
-                  ["YouTube", "linked"],
-                  ["X", "not linked"],
-                ].map(([name, state]) => (
-                  <div
-                    className="flex items-center justify-between rounded-lg border border-border/60 bg-card px-2.5 py-1.5"
-                    key={name}
-                  >
-                    <span className="font-medium">{name}</span>
-                    <span
-                      className={cn(
-                        "ml-2",
-                        state === "linked"
-                          ? "font-medium text-amber-600"
-                          : "text-muted-foreground",
-                      )}
-                    >
-                      {state}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            }
-            title="Connect socials"
-          />
-          <MediaCard
-            foot="For the CLI, MCP server, and external agents"
-            href="/settings/tokens"
-            media={
-              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4">
-                <div className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
-                  mk_live_••••••••7f2a
-                </div>
-                <div className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground">
-                  mk_live_••••••••c914
-                </div>
-                <p className="px-0.5 pt-1 text-[11.5px] text-muted-foreground">
-                  Scoped, revocable, audit-logged.
-                </p>
-              </div>
-            }
-            title="Tokens"
-          />
-          <MediaCard
-            foot="Signed real-time events for agents and automation"
-            href="/settings/webhooks"
-            media={
-              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
-                {[
-                  ["run.completed", "200"],
-                  ["post.published", "200"],
-                  ["cap.reached", "200"],
-                ].map(([event, code]) => (
-                  <div
-                    className="flex items-center justify-between rounded-lg border border-border/60 bg-card px-2.5 py-1.5"
-                    key={event}
-                  >
-                    <span className="truncate font-mono text-[10.5px]">
-                      {event}
-                    </span>
-                    <span className="ml-2 shrink-0 font-mono text-[10.5px] font-semibold text-amber-600">
-                      {code}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            }
-            title="Webhooks"
-          />
-          <MediaCard
-            foot="Export everything we hold, or delete your account"
-            href="/settings/privacy"
-            media={
-              <div className="flex h-full min-h-28 flex-col justify-center gap-1.5 p-4 text-[11.5px]">
-                <div className="rounded-lg border border-border/60 bg-card px-2.5 py-1.5 font-medium">
-                  Export my data
-                </div>
-                <div className="rounded-lg border border-dashed border-border/70 bg-card/60 px-2.5 py-1.5 text-muted-foreground">
-                  Delete account — yours to pull, any time
-                </div>
-              </div>
-            }
-            title="Privacy"
-          />
-        </div>
-      </DashPanel>
-
-      <DashPanel delay={0.12} title="Account controls">
+      <DashPanel delay={0.08} title="Account controls">
         <div className="grid gap-4 lg:grid-cols-2">
           <Card className={hubCardClass}>
             <CardHeader>
@@ -236,6 +70,26 @@ export function SettingsShell({
               <NotificationsForm initialEnabled={initialNotifications} />
             </CardContent>
           </Card>
+        </div>
+      </DashPanel>
+
+      <DashPanel delay={0.1} title="More settings">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {SETTINGS_LINKS.map((link) => (
+            <Link
+              className={cn(
+                hubCardClass,
+                "flex flex-col gap-1 p-4 transition-colors hover:bg-muted/40",
+              )}
+              href={link.href}
+              key={link.href}
+            >
+              <span className="text-sm font-medium">{link.label}</span>
+              <span className="text-xs text-muted-foreground">
+                {link.desc}
+              </span>
+            </Link>
+          ))}
         </div>
       </DashPanel>
     </div>

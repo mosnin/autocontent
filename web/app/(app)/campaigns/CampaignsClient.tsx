@@ -19,14 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import Link from "next/link";
 import {
-  BannerCard,
   DashHeading,
   DashPanel,
   DashRise,
-  MediaCard,
 } from "@/components/hub/dashboard-kit";
-import { hubCardClass } from "@/components/hub/primitives";
+import { HoverLift, hubCardClass } from "@/components/hub/primitives";
 import { cn } from "@/lib/utils";
 import type { Campaign, Niche } from "@/lib/types";
 
@@ -82,119 +81,14 @@ export function CampaignsClient({
     }
   };
 
-  const running = initial.filter((c) => c.status === "running").length;
-
   return (
     <div className="space-y-10">
       <DashHeading as="h1" sub="Content, SEO, and ads in one push — set a budget, set a window, let it run.">
         Bring your next campaign to life
       </DashHeading>
 
-      {/* Reference-style hero banners */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        <DashRise delay={0.08}>
-          <BannerCard
-            href="#new-campaign"
-            media={
-              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
-                {["Name the push", "Cap the credits", "Press start"].map(
-                  (step, i) => (
-                    <div
-                      className="flex items-center gap-3 rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px]"
-                      key={step}
-                    >
-                      <span className="flex size-5 items-center justify-center rounded-full bg-zinc-900 text-[10px] font-semibold text-white">
-                        {i + 1}
-                      </span>
-                      <span className="font-medium">{step}</span>
-                    </div>
-                  ),
-                )}
-              </div>
-            }
-            tagline="Spin up a capped, multi-format push"
-            title="New campaign"
-            tone="warm"
-          />
-        </DashRise>
-        <DashRise delay={0.16}>
-          <BannerCard
-            badge="Agents"
-            href="/resources/guides/agent-driven-marketing"
-            media={
-              <div className="flex h-full min-h-44 flex-col justify-center gap-2 p-5">
-                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px]">
-                  <span className="text-muted-foreground">Running now: </span>
-                  <span className="font-semibold">
-                    {running} campaign{running === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 font-mono text-[12px] text-muted-foreground">
-                  $ marketer campaign create --cap 25.00
-                </div>
-                <div className="rounded-xl border border-border/60 bg-card px-3.5 py-2.5 text-[13px] text-muted-foreground">
-                  Agents plan the queue, caps stop the spend.
-                </div>
-              </div>
-            }
-            tagline="Let an agent run the whole push"
-            title="Autopilot"
-            tone="sky"
-          />
-        </DashRise>
-      </div>
-
-      <DashPanel delay={0.1} title="Your campaigns">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {initial.map((c, i) => (
-            <MediaCard
-              foot={
-                <>
-                  Budget ${Number(c.budget_usd).toFixed(2)}
-                  {c.ends_at
-                    ? ` · ends ${new Date(c.ends_at).toLocaleDateString()}`
-                    : " · open-ended"}
-                </>
-              }
-              href={`/campaigns/${c.id}`}
-              key={c.id}
-              media={
-                <div className="flex h-full min-h-28 flex-col justify-center gap-2.5 p-4">
-                  <div className="flex items-center justify-between text-[12px]">
-                    <span className="capitalize text-muted-foreground">
-                      {c.status}
-                    </span>
-                    {statusBadge(c.status)}
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-zinc-900/10">
-                    <div
-                      className="h-full rounded-full bg-[linear-gradient(90deg,#f59e0b,#f43f5e)]"
-                      style={{
-                        width: `${c.status === "completed" ? 100 : c.status === "running" ? 55 + ((i * 17) % 35) : 8}%`,
-                      }}
-                    />
-                  </div>
-                  {c.objective ? (
-                    <p className="line-clamp-2 text-[12px] text-muted-foreground">
-                      {c.objective}
-                    </p>
-                  ) : null}
-                </div>
-              }
-              title={c.name}
-              tone="warm"
-            />
-          ))}
-          {initial.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              No campaigns yet — create one below and press start.
-            </p>
-          )}
-        </div>
-      </DashPanel>
-
-      <DashRise delay={0.12}>
-      <Card className={cn(hubCardClass, "scroll-mt-24")} id="new-campaign">
+      <DashRise delay={0.08}>
+      <Card className={hubCardClass}>
         <CardHeader>
           <div className="grid gap-x-8 gap-y-1.5 md:grid-cols-2">
             <div className="space-y-1.5">
@@ -245,6 +139,44 @@ export function CampaignsClient({
         </CardContent>
       </Card>
       </DashRise>
+
+      <DashPanel delay={0.12} title="Your campaigns">
+        {initial.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            No campaigns yet — create one above and press start.
+          </p>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {initial.map((c) => (
+              <HoverLift className="h-full" key={c.id}>
+                <Link href={`/campaigns/${c.id}`} className="block h-full">
+                  <Card className={cn(hubCardClass, "h-full")}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-lg font-semibold">
+                          {c.name}
+                        </CardTitle>
+                        {statusBadge(c.status)}
+                      </div>
+                      {c.objective ? (
+                        <CardDescription className="line-clamp-2">
+                          {c.objective}
+                        </CardDescription>
+                      ) : null}
+                    </CardHeader>
+                    <CardContent className="text-xs text-muted-foreground">
+                      Budget ${Number(c.budget_usd).toFixed(2)}
+                      {c.ends_at
+                        ? ` · ends ${new Date(c.ends_at).toLocaleDateString()}`
+                        : " · open-ended"}
+                    </CardContent>
+                  </Card>
+                </Link>
+              </HoverLift>
+            ))}
+          </div>
+        )}
+      </DashPanel>
     </div>
   );
 }
