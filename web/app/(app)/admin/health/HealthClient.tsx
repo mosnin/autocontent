@@ -3,12 +3,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  XCircle,
-} from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -79,10 +73,6 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
             onClick={() => void onRefresh()}
             disabled={isValidating}
           >
-            <RefreshCw
-              className={cn("h-3.5 w-3.5", isValidating && "animate-spin")}
-              aria-hidden
-            />
             Refresh
           </Button>
         </div>
@@ -107,11 +97,6 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
             variant={dbDown ? "destructive" : "success"}
             className="font-mono lowercase"
           >
-            {dbDown ? (
-              <XCircle className="size-3" aria-hidden />
-            ) : (
-              <CheckCircle2 className="size-3" aria-hidden />
-            )}
             {dbDown ? "down" : "reachable"}
           </Badge>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -166,7 +151,6 @@ function StatusBanner({
   // needs a look, green = healthy. The brand accent is reserved for identity
   // and primary actions, never for status signalling.
   const accent = critical ? "destructive" : attention ? "warning" : "success";
-  const Icon = attention ? AlertTriangle : CheckCircle2;
 
   return (
     <Card
@@ -192,30 +176,17 @@ function StatusBanner({
               )}
             />
           </span>
-          <div className="flex items-center gap-2">
-            <Icon
-              className={cn(
-                "size-4",
-                accent === "destructive"
-                  ? "text-destructive"
-                  : accent === "warning"
-                    ? "text-warning"
-                    : "text-success",
-              )}
-              aria-hidden
-            />
-            <div>
-              <p className="text-sm font-semibold">
-                {attention ? "Attention needed" : "All systems operational"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {attention
-                  ? critical
-                    ? "A core dependency is down — investigate immediately."
-                    : "One or more metrics are outside their healthy range."
-                  : "Database is reachable and no jobs are stuck or failing."}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-semibold">
+              {attention ? "Attention needed" : "All systems operational"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {attention
+                ? critical
+                  ? "A core dependency is down — investigate immediately."
+                  : "One or more metrics are outside their healthy range."
+                : "Database is reachable and no jobs are stuck or failing."}
+            </p>
           </div>
         </div>
       </CardContent>

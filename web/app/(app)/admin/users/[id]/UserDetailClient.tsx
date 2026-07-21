@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowLeft, Ban, RotateCcw, Shield, Wallet } from "lucide-react";
 
 import { AccountStatusBadge, RoleBadge } from "@/components/admin/badges";
 import {
@@ -78,7 +77,6 @@ export function UserDetailClient({
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
         <Link href="/admin/users">
-          <ArrowLeft className="h-4 w-4" aria-hidden />
           Back to users
         </Link>
       </Button>
@@ -107,7 +105,6 @@ export function UserDetailClient({
               size="sm"
               onClick={() => setDialog("unsuspend")}
             >
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden />
               Reinstate
             </Button>
           ) : (
@@ -117,16 +114,13 @@ export function UserDetailClient({
               className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={() => setDialog("suspend")}
             >
-              <Ban className="h-3.5 w-3.5" aria-hidden />
               Suspend
             </Button>
           )}
           <Button variant="outline" size="sm" onClick={() => setDialog("role")}>
-            <Shield className="h-3.5 w-3.5" aria-hidden />
             Change role
           </Button>
           <Button size="sm" onClick={() => setDialog("credits")}>
-            <Wallet className="h-3.5 w-3.5" aria-hidden />
             Grant credits
           </Button>
         </div>
@@ -134,8 +128,7 @@ export function UserDetailClient({
 
       {suspended && user.suspended_reason && (
         <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="flex items-start gap-3 py-4">
-            <Ban className="mt-0.5 h-4 w-4 shrink-0 text-destructive" aria-hidden />
+          <CardContent className="py-4">
             <div className="text-sm">
               <span className="font-medium">Suspended</span>{" "}
               <span className="text-muted-foreground">
@@ -477,13 +470,12 @@ function RoleDialog({
         </DialogHeader>
         <div
           className={cn(
-            "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm",
+            "rounded-lg border px-3 py-2 text-sm",
             promoting
               ? "border-brand/40 bg-brand/5 text-brand"
               : "border-border bg-muted/40 text-muted-foreground",
           )}
         >
-          <Shield className="size-4 shrink-0" aria-hidden />
           Role will change from{" "}
           <span className="font-mono">{currentRole}</span> to{" "}
           <span className="font-mono">{nextRole}</span>.

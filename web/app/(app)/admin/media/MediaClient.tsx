@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Trash2, Upload } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { MediaSlot, useMediaManifest } from "@/components/media-slot";
@@ -106,7 +106,6 @@ export function MediaClient() {
                           busy === slot.id && "pointer-events-none opacity-60",
                         )}
                       >
-                        <Upload aria-hidden className="size-3.5" />
                         {filled ? "Replace" : "Upload"}
                         <input
                           accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"

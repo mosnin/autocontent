@@ -1,5 +1,3 @@
-import { ShieldCheck } from "lucide-react";
-
 import { Card, CardContent } from "@/components/ui/card";
 import { fetchAdminOverview, isForbidden } from "@/lib/admin-server";
 
@@ -38,8 +36,7 @@ export default async function AdminLayout({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-          <ShieldCheck className="size-3.5" aria-hidden />
+        <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
           Admin
         </span>
         <span className="text-xs text-muted-foreground">

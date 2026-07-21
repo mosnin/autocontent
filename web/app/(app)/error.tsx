@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +15,6 @@ export default function AppError({ error, reset }: ErrorProps) {
     <main className="flex min-h-[60vh] items-center justify-center p-6">
       <Card className="w-full max-w-lg">
         <CardHeader className="flex flex-col items-center gap-3 text-center">
-          <div className="rounded-full bg-destructive/10 p-3">
-            <AlertTriangle className="h-6 w-6 text-destructive" />
-          </div>
           <CardTitle>Something went wrong</CardTitle>
         </CardHeader>
         <CardContent className="text-center">

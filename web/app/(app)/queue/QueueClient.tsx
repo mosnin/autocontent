@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Check, Instagram, Music2, RefreshCw, Youtube } from "lucide-react";
+import { Instagram, Music2, Youtube } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -363,7 +363,6 @@ function JobRow({
             disabled={retrying}
             aria-label={`Retry job ${job.id.slice(0, 8)}`}
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`} aria-hidden="true" />
             {retrying ? "…" : "Retry"}
           </Button>
         )}
@@ -384,7 +383,6 @@ function JobRow({
               onClick={handleApproveClick}
               size="sm"
             >
-              <Check className="h-3.5 w-3.5" aria-hidden="true" />
               {acting ? "…" : "Approve"}
             </Button>
           </span>

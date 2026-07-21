@@ -64,24 +64,7 @@ export function Enterprise() {
               className="rounded-3xl border border-zinc-900/[0.06] bg-[#fafbfc] p-6"
               key={p.title}
             >
-              <span
-                aria-hidden
-                className="flex size-10 items-center justify-center rounded-xl bg-zinc-900 text-white"
-              >
-                <svg
-                  className="size-5"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="1.75"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6Z" />
-                  <path d="M9 12l2 2 4-4" />
-                </svg>
-              </span>
-              <h3 className="mt-4 text-[15px] font-semibold text-zinc-900">
+              <h3 className="text-[15px] font-semibold text-zinc-900">
                 {p.title}
               </h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-600">

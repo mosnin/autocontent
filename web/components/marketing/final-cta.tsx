@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { SignedIn, SignedOut } from "@clerk/nextjs";
-import { ArrowRight } from "lucide-react";
 
 import { Reveal } from "@/components/marketing/reveal";
 import TextBurnNeon from "@/components/pixel-perfect/text-burn-neon";
@@ -34,18 +33,12 @@ export function FinalCta() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <SignedIn>
               <Button asChild size="xl">
-                <Link href="/dashboard">
-                  Open your dashboard
-                  <ArrowRight className="size-4" />
-                </Link>
+                <Link href="/dashboard">Open your dashboard</Link>
               </Button>
             </SignedIn>
             <SignedOut>
               <Button asChild size="xl">
-                <Link href="/sign-in">
-                  Start a channel
-                  <ArrowRight className="size-4" />
-                </Link>
+                <Link href="/sign-in">Start a channel</Link>
               </Button>
             </SignedOut>
           </div>

@@ -3,7 +3,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowUpRight } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -129,7 +128,6 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
               <span className="mt-1 text-xs text-muted-foreground">{p.blurb}</span>
               <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand">
                 {buying === p.key ? "Opening checkout…" : "Buy"}
-                <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </span>
             </button>
           ))}

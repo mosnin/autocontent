@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,6 @@ export function RetryButton({
 
   return (
     <Button variant="destructive" onClick={onClick} disabled={pending}>
-      <RefreshCw className="h-4 w-4" />
       {pending ? "Retrying…" : "Retry"}
     </Button>
   );

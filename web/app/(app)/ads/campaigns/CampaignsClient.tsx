@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { Plus } from "lucide-react";
 
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,7 +62,6 @@ export function CampaignsClient({
         {hasAccounts && (
           <Button asChild size="sm">
             <Link href="/ads/campaigns/new">
-              <Plus className="size-4" aria-hidden />
               New campaign
             </Link>
           </Button>
@@ -144,7 +142,6 @@ function EmptyNoCampaigns() {
         </p>
         <Button asChild>
           <Link href="/ads/campaigns/new">
-            <Plus className="size-4" aria-hidden />
             New campaign
           </Link>
         </Button>

@@ -1,5 +1,3 @@
-import { Shield } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import type { AdminUser, UserRole } from "@/lib/admin-types";
 
@@ -9,9 +7,8 @@ export function RoleBadge({ role }: { role: UserRole }) {
     return (
       <Badge
         variant="outline"
-        className="gap-1 border-brand/50 font-mono lowercase text-brand"
+        className="border-brand/50 font-mono lowercase text-brand"
       >
-        <Shield className="size-3" aria-hidden />
         admin
       </Badge>
     );

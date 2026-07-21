@@ -3,7 +3,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Copy, Pause, Play, Plus, Send, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,7 +137,6 @@ function SecretReveal({
             {secret}
           </code>
           <Button size="sm" variant="ghost" onClick={() => copy(secret)}>
-            <Copy className="h-4 w-4" />
             Copy
           </Button>
         </div>
@@ -240,10 +239,7 @@ function AddEndpointDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4" />
-          Add endpoint
-        </Button>
+        <Button>Add endpoint</Button>
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -421,7 +417,6 @@ function DeleteDialog({
             disabled={deleting}
             isLoading={deleting}
           >
-            <Trash2 className="h-4 w-4" />
             Delete endpoint
           </Button>
         </DialogFooter>
@@ -548,11 +543,6 @@ function EndpointCard({
                 : `Resume delivery to ${endpoint.url}`
             }
           >
-            {endpoint.enabled ? (
-              <Pause className="h-4 w-4" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )}
             {endpoint.enabled ? "Pause" : "Resume"}
           </Button>
           <Button
@@ -566,7 +556,6 @@ function EndpointCard({
               endpoint.enabled ? undefined : "Resume the endpoint to send a test"
             }
           >
-            <Send className="h-4 w-4" />
             Send test
           </Button>
           <Button
@@ -659,7 +648,6 @@ export function WebhooksClient({ initial }: { initial: WebhookEndpoint[] }) {
               automation can react without polling.
             </p>
             <Button onClick={() => setAddOpen(true)}>
-              <Plus className="h-4 w-4" />
               Add your first endpoint
             </Button>
           </CardContent>

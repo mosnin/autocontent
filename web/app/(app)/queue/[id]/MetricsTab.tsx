@@ -5,7 +5,6 @@
 // pulling from GET /api/v1/jobs/{id}/metrics (D1 endpoint).
 
 import * as React from "react";
-import { ExternalLink } from "lucide-react";
 
 import Grid from "@/components/charts/grid";
 import LineChart, { Line } from "@/components/charts/line-chart";
@@ -60,7 +59,6 @@ function EmptyMetrics({ providerPostId }: { providerPostId: string | null }) {
           className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
         >
           View post on Ayrshare
-          <ExternalLink className="h-3.5 w-3.5" />
         </a>
       )}
     </div>
@@ -178,7 +176,6 @@ export function MetricsTab({ metrics, providerPostId }: Props) {
               className="inline-flex items-center gap-0.5 text-brand hover:underline"
             >
               View on Ayrshare
-              <ExternalLink className="h-3 w-3" />
             </a>
           </>
         )}

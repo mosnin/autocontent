@@ -126,12 +126,6 @@ export function Hero() {
                     href={chip.href}
                     key={chip.label}
                   >
-                    {chip.hot ? (
-                      <span
-                        aria-hidden
-                        className="size-1.5 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
-                      />
-                    ) : null}
                     {chip.label}
                   </Link>
                 ))}

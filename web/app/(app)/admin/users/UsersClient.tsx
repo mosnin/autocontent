@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { AccountStatusBadge, RoleBadge } from "@/components/admin/badges";
 import { relativeTime } from "@/components/admin/format";
@@ -86,17 +86,12 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
         </p>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-          aria-hidden
-        />
+      <div className="max-w-sm">
         <Input
           value={rawQuery}
           onChange={(e) => setRawQuery(e.target.value)}
           placeholder="Search by email…"
           aria-label="Search users by email"
-          className="pl-9"
         />
       </div>
 

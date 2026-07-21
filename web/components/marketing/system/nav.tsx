@@ -309,10 +309,9 @@ function AnnouncementBanner() {
             <span className={cn("whitespace-nowrap px-5", i === 0 && "font-semibold text-white")}>
               {seg}
             </span>
-            <span
-              aria-hidden
-              className="size-1 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
-            />
+            <span aria-hidden className="text-zinc-500">
+              ·
+            </span>
           </span>
         ))}
       </Marquee>
@@ -605,12 +604,6 @@ export function MarketingNav() {
                   }}
                   type="button"
                 >
-                  {m.chip ? (
-                    <span
-                      aria-hidden
-                      className="size-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
-                    />
-                  ) : null}
                   {m.label}
                   <Caret open={open === m.key} />
                 </button>

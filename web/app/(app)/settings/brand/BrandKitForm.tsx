@@ -238,7 +238,6 @@ export function BrandKitForm({ initial }: { initial: BrandKit }) {
                 onClick={() => setColorHex("")}
                 className="text-muted-foreground"
               >
-                <X className="h-3.5 w-3.5" />
                 Clear
               </Button>
             )}

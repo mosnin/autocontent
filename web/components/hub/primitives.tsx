@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Sparkles } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { cn } from "@/lib/utils";
@@ -44,7 +43,7 @@ export function Rise({
   );
 }
 
-/** Sparkle section heading, reference-style ("Bring any idea to life ✦"). */
+/** Section heading. */
 export function HubHeading({
   children,
   className,
@@ -63,7 +62,6 @@ export function HubHeading({
       )}
     >
       {children}
-      <Sparkles aria-hidden className="size-4 shrink-0 text-brand" />
     </Tag>
   );
 }

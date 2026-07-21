@@ -4,20 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  ArrowRight,
-  DollarSign,
-  Eye,
-  Layers,
-  Link2,
-  MoreHorizontal,
-  Pencil,
-  Play,
-  Plus,
-  Trash2,
-  Wallet,
-} from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,7 +40,6 @@ import {
   hubCardHoverClass,
 } from "@/components/hub/primitives";
 import { LatestVideos } from "@/components/latest-videos";
-import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
@@ -179,7 +165,6 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               foot={
                 cap !== null ? `of ${formatUsd(cap)} daily cap` : "no cap set"
               }
-              icon={<DollarSign />}
               title="Spent today"
               tone={hot ? "warn" : undefined}
               trail={cap !== null ? `${pct}%` : undefined}
@@ -189,14 +174,12 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               color="blue"
               foot={cap !== null ? "resets at midnight UTC" : undefined}
               footLink={cap === null ? { href: "/settings", label: "Set a cap" } : undefined}
-              icon={<Wallet />}
               title="Cap remaining"
               value={remaining !== null ? formatUsd(remaining) : "—"}
             />
             <KpiCard
               color="navy"
               foot="each on its own cap"
-              icon={<Layers />}
               title="Active niches"
               value={String(nichesList.length)}
             />
@@ -207,7 +190,6 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
                   ? `across ${metricsSummary.sampled_videos} videos`
                   : "no data yet"
               }
-              icon={<Eye />}
               title="Views · 30d"
               value={
                 metricsSummary
@@ -224,19 +206,15 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         <DashRise delay={0.14}>
         <Card className={cn(hubCardClass, "border-destructive/50 bg-destructive/5")}>
           <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
-              <div>
-                <div className="font-medium">Posting profile not set up</div>
-                <div className="text-sm text-muted-foreground">
-                  Pipeline runs will succeed, but posts won&apos;t ship until you
-                  create your posting profile and link socials in Ayrshare.
-                </div>
+            <div>
+              <div className="font-medium">Posting profile not set up</div>
+              <div className="text-sm text-muted-foreground">
+                Pipeline runs will succeed, but posts won&apos;t ship until you
+                create your posting profile and link socials in Ayrshare.
               </div>
             </div>
             <Button asChild variant="outline">
               <Link href="/connect">
-                <Link2 className="h-4 w-4" />
                 Connect socials
               </Link>
             </Button>
@@ -260,7 +238,6 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         actions={
           <Button asChild>
             <Link href="/onboarding">
-              <Plus className="h-4 w-4" />
               New niche
             </Link>
           </Button>
@@ -291,7 +268,6 @@ function EmptyState() {
   return (
     <Card className={cn(hubCardClass, "border-dashed")}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-        <LoopCircuit className="scale-75 opacity-90" />
         <h3 className="text-lg font-semibold">No niches yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create one to start the pipeline. You can have as many as you want;
@@ -299,7 +275,6 @@ function EmptyState() {
         </p>
         <Button asChild>
           <Link href="/onboarding">
-            <Plus className="h-4 w-4" />
             Create your first niche
           </Link>
         </Button>
@@ -356,7 +331,7 @@ function NicheCard({
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
                 <Link href={`/niches/${niche.id}/edit`}>
-                  <Pencil /> Edit
+                  Edit
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -367,7 +342,7 @@ function NicheCard({
                 }}
                 className="text-destructive focus:text-destructive"
               >
-                <Trash2 /> Archive
+                Archive
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -430,14 +405,12 @@ function NicheCard({
             className="focus-visible:ring-2"
             onClick={() => openRunConfirm({ nicheId: niche.id, platform: p })}
           >
-            <Play className="h-3.5 w-3.5" aria-hidden="true" />
             {PLATFORM_LABEL[p]}
           </Button>
         ))}
         <Button asChild size="sm" variant="ghost" className="ml-auto">
           <Link href={`/niches/${niche.id}/edit`}>
             Edit
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </Button>
       </CardFooter>
@@ -454,7 +427,6 @@ function fmtCompact(n: number): string {
 
 function KpiCard({
   color,
-  icon,
   title,
   value,
   foot,
@@ -463,7 +435,6 @@ function KpiCard({
   tone,
 }: {
   color: "green" | "orange" | "blue" | "navy" | "purple";
-  icon: React.ReactNode;
   title: string;
   value: string;
   foot?: string;

@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowLeft, Pause, Play, Square } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,9 +89,8 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     <div className="space-y-6">
       <Link
         href="/ads/campaigns"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="size-4" aria-hidden />
         Campaigns
       </Link>
 
@@ -118,7 +116,6 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               disabled={busy !== null}
               isLoading={busy === "active"}
             >
-              <Play className="size-3.5" aria-hidden />
               Activate
             </Button>
           )}
@@ -130,7 +127,6 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               disabled={busy !== null}
               isLoading={busy === "paused"}
             >
-              <Pause className="size-3.5" aria-hidden />
               Pause
             </Button>
           )}
@@ -143,7 +139,6 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               disabled={busy !== null}
               isLoading={busy === "ended"}
             >
-              <Square className="size-3.5" aria-hidden />
               End
             </Button>
           )}

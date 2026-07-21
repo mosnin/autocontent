@@ -8,7 +8,6 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowLeft, Copy, Download, RefreshCw } from "lucide-react";
 
 import { ArticleMarkdown } from "@/components/article-markdown";
 import { hubCardClass } from "@/components/hub/primitives";
@@ -79,7 +78,6 @@ export function ArticleDetailClient({
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
         <Link href="/articles">
-          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to articles
         </Link>
       </Button>
@@ -124,10 +122,6 @@ export function ArticleDetailClient({
               onClick={handleRetry}
               disabled={retrying}
             >
-              <RefreshCw
-                className={`h-4 w-4 ${retrying ? "animate-spin" : ""}`}
-                aria-hidden="true"
-              />
               {retrying ? "Retrying…" : "Retry"}
             </Button>
           )}
@@ -137,7 +131,6 @@ export function ArticleDetailClient({
                 href={downloadPath}
                 download={`${article.slug ?? article.id}.md`}
               >
-                <Download className="h-4 w-4" aria-hidden="true" />
                 Download .md
               </a>
             </Button>
@@ -559,7 +552,6 @@ function RepurposeCard({ articleId }: { articleId: string }) {
                       onClick={() => copy(full)}
                       aria-label={`Copy ${label} post`}
                     >
-                      <Copy className="h-3.5 w-3.5" aria-hidden="true" />
                       Copy
                     </Button>
                   </div>
