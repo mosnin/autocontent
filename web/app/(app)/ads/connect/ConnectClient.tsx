@@ -3,7 +3,7 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { CheckCircle2, RefreshCw, Unplug, XCircle } from "lucide-react";
+import { RefreshCw, Unplug } from "lucide-react";
 
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -143,13 +143,6 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
                           key={a.id}
                           className="flex items-center gap-2 rounded-lg border border-border/60 bg-card/40 p-2.5"
                         >
-                          {a.status === "active" ? (
-                            <CheckCircle2 className="size-4 text-success" aria-hidden />
-                          ) : a.status === "error" ? (
-                            <XCircle className="size-4 text-destructive" aria-hidden />
-                          ) : (
-                            <span className="size-4" aria-hidden />
-                          )}
                           <span className="min-w-0 flex-1 truncate text-sm">
                             {a.name || a.external_account_id || "Account"}
                           </span>

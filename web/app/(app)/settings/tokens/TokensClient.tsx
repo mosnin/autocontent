@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useActionState } from "react";
-import { Copy, MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -81,7 +81,6 @@ export function TokensClient({ tokens }: Props) {
                 variant="ghost"
                 onClick={() => copy(freshToken)}
               >
-                <Copy className="h-4 w-4" />
                 Copy
               </Button>
             </div>
@@ -100,10 +99,7 @@ export function TokensClient({ tokens }: Props) {
         <h2 className="text-lg font-semibold">Active tokens</h2>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4" />
-              New token
-            </Button>
+            <Button>New token</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -160,7 +156,6 @@ export function TokensClient({ tokens }: Props) {
               external agent driving marketer.sh.
             </p>
             <Button onClick={() => setOpen(true)}>
-              <Plus className="h-4 w-4" />
               Create your first token
             </Button>
           </CardContent>

@@ -20,7 +20,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -140,7 +139,6 @@ function ReplayButton({
 
   return (
     <Button variant="outline" size="sm" onClick={onClick} disabled={pending}>
-      <RefreshCw className="h-3.5 w-3.5" />
       {pending ? "Replaying…" : "Retry"}
     </Button>
   );

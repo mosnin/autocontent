@@ -3,7 +3,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
 
 import { formatDateTime, relativeTime } from "@/components/admin/format";
 import { Badge } from "@/components/ui/badge";
@@ -126,7 +125,6 @@ export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
           </p>
         </div>
         <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus className="h-3.5 w-3.5" aria-hidden />
           Add flag
         </Button>
       </div>
@@ -411,7 +409,6 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
           Create your first flag to gate a capability behind an admin toggle.
         </p>
         <Button size="sm" variant="outline" onClick={onAdd}>
-          <Plus className="h-3.5 w-3.5" aria-hidden />
           Add flag
         </Button>
         <p className="pt-1 text-xs text-muted-foreground">{AUDIT_NOTE}</p>

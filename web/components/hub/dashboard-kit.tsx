@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { HUB_EASE } from "@/components/hub/primitives";
@@ -56,7 +56,7 @@ export function DashRise({
   );
 }
 
-/** Big section greeting, reference-style: bold, roomy, sparkle after. */
+/** Big section greeting: bold, roomy. */
 export function DashHeading({
   children,
   sub,
@@ -72,7 +72,6 @@ export function DashHeading({
     <DashRise delay={delay}>
       <Tag className="flex items-center gap-2.5 text-[1.6rem] font-bold tracking-tight md:text-3xl">
         {children}
-        <Sparkles aria-hidden className="size-5 shrink-0 text-brand" />
       </Tag>
       {sub ? <div className="mt-1.5 text-sm text-muted-foreground">{sub}</div> : null}
     </DashRise>
@@ -237,7 +236,6 @@ export function DashPanel({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
             {title}
-            <Sparkles aria-hidden className="size-4 shrink-0 text-brand" />
           </h2>
           {actions}
         </div>

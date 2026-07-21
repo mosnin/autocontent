@@ -57,23 +57,7 @@ export function ClosingCta() {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.25),transparent_70%)]"
         />
-        <span
-          aria-hidden
-          className="relative mx-auto flex size-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur"
-        >
-          <svg
-            className="size-7 text-white"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeWidth="2.25"
-            viewBox="0 0 24 24"
-          >
-            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-            <path d="M21 3v6h-6" />
-          </svg>
-        </span>
-        <TextReveal className="relative mt-8 font-display text-4xl font-semibold tracking-tight text-white md:text-6xl">
+        <TextReveal className="relative font-display text-4xl font-semibold tracking-tight text-white md:text-6xl">
           Time is priceless. Your marketing runs itself.
         </TextReveal>
         <p className="relative mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/85">

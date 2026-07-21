@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowRight, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { DashHeading } from "@/components/hub/dashboard-kit";
 import { hubCardClass } from "@/components/hub/primitives";
-import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type { Niche, Platform } from "@/lib/types";
@@ -41,7 +39,6 @@ export default async function NichesPage() {
         </DashHeading>
         <Button asChild>
           <Link href="/onboarding">
-            <Plus className="h-4 w-4" />
             New niche
           </Link>
         </Button>
@@ -64,7 +61,6 @@ function EmptyState() {
   return (
     <Card className={cn(hubCardClass, "border-dashed")}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-        <LoopCircuit className="scale-75 opacity-90" />
         <h3 className="text-lg font-semibold">No niches yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create one to start the pipeline. You can have as many as you want;
@@ -72,7 +68,6 @@ function EmptyState() {
         </p>
         <Button asChild>
           <Link href="/onboarding">
-            <Plus className="h-4 w-4" />
             Create your first niche
           </Link>
         </Button>
@@ -136,7 +131,6 @@ function NicheCard({ niche }: { niche: Niche }) {
         <Button asChild size="sm" variant="ghost">
           <Link href={`/niches/${niche.id}`}>
             Open
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </Button>
       </CardFooter>

@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
   Instagram,
   Music2,
-  Pencil,
   Youtube,
   type LucideIcon,
 } from "lucide-react";
@@ -19,7 +17,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Reveal } from "@/components/marketing/reveal";
-import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
 import { SpendHistoryChart } from "@/components/spend-history-chart";
 import { api } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
@@ -153,7 +150,6 @@ export default async function NichePage({
       {/* back nav */}
       <Button asChild variant="ghost" size="sm">
         <Link href="/dashboard">
-          <ArrowLeft className="h-4 w-4" />
           Back to dashboard
         </Link>
       </Button>
@@ -200,7 +196,6 @@ export default async function NichePage({
           <div className="flex shrink-0 gap-2">
             <Button asChild variant="outline" size="sm">
               <Link href={`/niches/${niche.id}/edit`}>
-                <Pencil className="h-3.5 w-3.5" />
                 Edit
               </Link>
             </Button>
@@ -277,7 +272,6 @@ export default async function NichePage({
               <RecentJobsTable jobs={recentJobs} />
             ) : (
               <div className="flex flex-col items-center gap-4 py-6 text-center">
-                <LoopCircuit className="max-w-[320px]" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium">No videos yet</p>
                   <p className="text-sm text-muted-foreground">

@@ -7,7 +7,6 @@
 import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowLeft, ExternalLink } from "lucide-react";
 
 import { Reveal } from "@/components/marketing/reveal";
 import { Badge } from "@/components/ui/badge";
@@ -127,7 +126,6 @@ export function JobDetailClient({
     <div className="space-y-6">
       <Button asChild variant="ghost" size="sm">
         <Link href="/queue">
-          <ArrowLeft className="h-4 w-4" />
           Back to queue
         </Link>
       </Button>
@@ -180,7 +178,6 @@ export function JobDetailClient({
               <Button asChild variant="outline">
                 <a href={ayrshareUrl} target="_blank" rel="noreferrer">
                   Open on Ayrshare
-                  <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
             )}

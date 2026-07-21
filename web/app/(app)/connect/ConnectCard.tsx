@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Link2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 import { DotGridSpotlight } from "@/components/dot-grid-spotlight";
 import { Button } from "@/components/ui/button";
@@ -34,21 +34,7 @@ export function ConnectCard({
         spacing={22}
       />
       <CardHeader className="items-center text-center">
-        <div
-          className={
-            connected
-              ? "relative mx-auto flex size-12 items-center justify-center rounded-full bg-brand/10 text-brand"
-              : "relative mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
-          }
-        >
-          {connected && (
-            <span
-              aria-hidden
-            />
-          )}
-          <Link2 className="size-6" />
-        </div>
-        <CardTitle className="mt-1">
+        <CardTitle>
           {connected ? "Posting profile created" : "Connect Ayrshare"}
         </CardTitle>
         <CardDescription className="max-w-sm">

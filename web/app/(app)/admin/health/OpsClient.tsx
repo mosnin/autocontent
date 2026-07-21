@@ -3,12 +3,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  CheckCircle2,
-  RefreshCw,
-  XCircle,
-} from "lucide-react";
 
 import { AdminKpiCard } from "@/components/admin/kpi-card";
 import { Badge } from "@/components/ui/badge";
@@ -186,10 +180,6 @@ export function OpsClient({
             onClick={() => void onRefresh()}
             disabled={isValidating}
           >
-            <RefreshCw
-              className={cn("h-3.5 w-3.5", isValidating && "animate-spin")}
-              aria-hidden
-            />
             Refresh
           </Button>
         </div>
@@ -293,13 +283,11 @@ export function OpsClient({
                           </TableCell>
                           <TableCell className="text-right">
                             {r.warn ? (
-                              <Badge variant="warning" className="gap-1 font-mono lowercase">
-                                <AlertTriangle className="size-3" aria-hidden />
+                              <Badge variant="warning" className="font-mono lowercase">
                                 warn
                               </Badge>
                             ) : (
-                              <Badge variant="success" className="gap-1 font-mono lowercase">
-                                <CheckCircle2 className="size-3" aria-hidden />
+                              <Badge variant="success" className="font-mono lowercase">
                                 ok
                               </Badge>
                             )}
@@ -359,8 +347,7 @@ export function OpsClient({
 
           {!snap.db_ok && (
             <Card className="border-destructive/40 bg-destructive/5">
-              <CardContent className="flex items-center gap-2 py-4 text-sm text-destructive-foreground">
-                <XCircle className="size-4" aria-hidden />
+              <CardContent className="py-4 text-sm text-destructive-foreground">
                 Database did not respond to the ops probe — the numbers above may be stale.
               </CardContent>
             </Card>

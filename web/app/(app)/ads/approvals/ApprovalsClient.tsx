@@ -3,7 +3,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -83,7 +82,6 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
                       disabled={busy === a.id}
                       onClick={() => decide(a.id, "rejected")}
                     >
-                      <X className="size-3.5" aria-hidden />
                       Reject
                     </Button>
                     <Button
@@ -92,7 +90,6 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
                       isLoading={busy === a.id}
                       onClick={() => decide(a.id, "approved")}
                     >
-                      <Check className="size-3.5" aria-hidden />
                       Approve
                     </Button>
                   </div>

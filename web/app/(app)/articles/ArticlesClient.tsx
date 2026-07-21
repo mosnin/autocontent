@@ -4,8 +4,6 @@ import * as React from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Plus, RefreshCw } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -162,7 +160,6 @@ export function ArticlesClient({
       <DashPanel
         actions={
           <Button onClick={() => setNewOpen(true)}>
-            <Plus className="h-4 w-4" aria-hidden="true" />
             New article
           </Button>
         }
@@ -283,7 +280,6 @@ function EmptyState({
         </p>
         {filter === "all" && (
           <Button size="sm" variant="outline" onClick={onNew}>
-            <Plus className="h-3.5 w-3.5" aria-hidden="true" />
             New article
           </Button>
         )}
@@ -367,10 +363,6 @@ function ArticleRow({
             disabled={retrying}
             aria-label={`Retry article ${article.id.slice(0, 8)}`}
           >
-            <RefreshCw
-              className={`h-3.5 w-3.5 ${retrying ? "animate-spin" : ""}`}
-              aria-hidden="true"
-            />
             {retrying ? "…" : "Retry"}
           </Button>
         )}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useClerk } from "@clerk/nextjs";
-import { Download, Loader2, Trash2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -165,10 +165,7 @@ export function PrivacyClient({ email }: Props) {
                   Preparing…
                 </>
               ) : (
-                <>
-                  <Download className="size-4" aria-hidden="true" />
-                  Download my data
-                </>
+                "Download my data"
               )}
             </Button>
           </div>
@@ -191,7 +188,6 @@ export function PrivacyClient({ email }: Props) {
             onClick={() => setDialogOpen(true)}
             className="shrink-0"
           >
-            <Trash2 className="size-4" aria-hidden="true" />
             Delete account
           </Button>
         </div>
@@ -302,10 +298,7 @@ export function PrivacyClient({ email }: Props) {
                   Deleting…
                 </>
               ) : (
-                <>
-                  <Trash2 className="size-4" aria-hidden="true" />
-                  Permanently delete
-                </>
+                "Permanently delete"
               )}
             </Button>
           </DialogFooter>

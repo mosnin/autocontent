@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import {
   actionTone,
@@ -177,7 +177,6 @@ export function AuditClient({
                   variant="ghost"
                   onClick={clearAll}
                 >
-                  <X className="h-3.5 w-3.5" aria-hidden />
                   Clear
                 </Button>
               )}

@@ -164,10 +164,6 @@ export function MarketingFooter() {
         <div className="mt-14 flex flex-col gap-4 border-t border-zinc-900/[0.06] pt-6 text-xs text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} marketer.sh. All rights reserved.</p>
           <p className="flex items-center gap-1.5">
-            <span
-              aria-hidden
-              className="size-1.5 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
-            />
             Built for humans and their agents.
           </p>
         </div>

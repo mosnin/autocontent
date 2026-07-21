@@ -74,11 +74,7 @@ export function AutopilotPanel() {
         >
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="flex items-center justify-center gap-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
-                <span
-                  aria-hidden
-                  className="size-2 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
-                />
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
                 marketer.sh autopilot
               </p>
               <TextReveal

@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowRight, Clapperboard, Eye, TrendingUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -83,7 +82,6 @@ export function LatestVideos() {
       {hasPayoff && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand/5 px-5 py-4">
           <div className="flex items-center gap-3">
-            <TrendingUp className="size-5 text-brand" />
             <div>
               <p className="text-sm">
                 Your machine earned{" "}
@@ -113,7 +111,6 @@ export function LatestVideos() {
           </div>
           <Button asChild size="sm" variant="ghost">
             <Link href="/queue?status_filter=done">
-              <Eye className="size-3.5" />
               See all
             </Link>
           </Button>
@@ -125,7 +122,6 @@ export function LatestVideos() {
         <Button asChild size="sm" variant="ghost">
           <Link href="/queue">
             All jobs
-            <ArrowRight className="size-3.5" />
           </Link>
         </Button>
       </div>
@@ -187,7 +183,6 @@ export function LatestVideos() {
           )}
           <Button asChild>
             <Link href={revealJob ? `/queue/${revealJob.id}` : "/queue"}>
-              <Clapperboard className="size-4" />
               See the full breakdown
             </Link>
           </Button>

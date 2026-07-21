@@ -52,18 +52,6 @@ export function SiteShell({
 
           {/* Search pill — surfaces the ⌘K palette. */}
           <span className="hidden items-center gap-2 rounded-full border border-border/70 bg-muted/60 px-3.5 py-1.5 text-xs text-muted-foreground xl:flex">
-            <svg
-              aria-hidden
-              className="size-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <circle cx="11" cy="11" r="7" />
-              <path d="m21 21-4.5-4.5" />
-            </svg>
             Search
             <kbd className="rounded border border-border/70 bg-card px-1.5 py-0.5 font-mono text-[10px]">
               ⌘K
@@ -80,10 +68,6 @@ export function SiteShell({
               className="hidden items-center gap-1.5 rounded-full border border-amber-500/40 bg-[linear-gradient(135deg,rgba(245,158,11,0.12),rgba(244,63,94,0.10))] px-4 py-1.5 text-[13px] font-semibold transition-colors hover:border-amber-500/70 md:flex"
               href="/settings/billing"
             >
-              <span
-                aria-hidden
-                className="size-1.5 rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
-              />
               Get more credits
             </Link>
             <Link

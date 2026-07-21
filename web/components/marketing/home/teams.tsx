@@ -121,20 +121,8 @@ function Check() {
   return (
     <span
       aria-hidden
-      className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#f59e0b,#f43f5e)]"
-    >
-      <svg
-        className="size-3 text-white"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="2.5"
-        viewBox="0 0 24 24"
-      >
-        <path d="m5 13 4 4L19 7" />
-      </svg>
-    </span>
+      className="mt-2 size-1.5 shrink-0 rounded-full bg-zinc-300"
+    />
   );
 }
 

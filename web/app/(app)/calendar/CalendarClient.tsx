@@ -4,8 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Plus } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -154,7 +152,6 @@ function EmptyState({ range }: { range: CalendarRange }) {
         </p>
         <Button asChild size="sm" variant="outline">
           <Link href="/dashboard">
-            <Plus className="h-3.5 w-3.5" aria-hidden />
             Go to niches
           </Link>
         </Button>

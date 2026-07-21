@@ -13,8 +13,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { RefreshCw } from "lucide-react";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -107,7 +105,6 @@ function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string })
                   disabled={busy === p.id}
                   onClick={() => act(p, "retry")}
                 >
-                  <RefreshCw className="mr-1.5 size-3.5" aria-hidden />
                   Retry
                 </Button>
               )}
@@ -426,7 +423,6 @@ function StatusBadge({ status }: { status: Composition["status"] }) {
   if (status === "failed") return <Badge variant="destructive">failed</Badge>;
   return (
     <Badge variant="secondary" className="gap-1">
-      <RefreshCw className="size-3 animate-spin" aria-hidden />
       {status}
     </Badge>
   );
