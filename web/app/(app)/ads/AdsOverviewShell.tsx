@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { DollarSign, Megaphone, ShieldCheck, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/square/ui/card";
 import { DashHeading, DashPanel } from "@/components/hub/dashboard-kit";
-import { hubCardClass } from "@/components/hub/primitives";
-import { cn } from "@/lib/utils";
+import { SquareStatsCards, type SquareStat } from "@/components/square/stats-cards";
 import { formatUsd } from "@/lib/format";
 import type { AdsOverview } from "@/lib/ads-client";
 
@@ -24,29 +24,7 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
 
       <DashPanel delay={0.12} title="Today">
         {hasAccounts && ov ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Kpi
-              label="Spend today"
-              value={formatUsd(ov.spend_today_usd)}
-              foot={`${ov.active_accounts} active account${ov.active_accounts === 1 ? "" : "s"}`}
-            />
-            <Kpi
-              label="Spend · 30d"
-              value={formatUsd(ov.spend_30d_usd)}
-              foot="last 30 days"
-            />
-            <Kpi
-              label="Active campaigns"
-              value={String(ov.active_campaigns)}
-              foot={`${ov.campaigns} total`}
-            />
-            <Kpi
-              label="Pending approvals"
-              value={String(ov.pending_approvals)}
-              foot={ov.pending_approvals > 0 ? "needs your review" : "all clear"}
-              tone={ov.pending_approvals > 0 ? "warn" : undefined}
-            />
-          </div>
+          <SquareStatsCards stats={buildStats(ov)} />
         ) : (
           <ConnectCallout />
         )}
@@ -72,9 +50,66 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
   );
 }
 
+/**
+ * Real-derivable KPI values only. Spend today's trend compares against the
+ * 30-day average daily spend (both real numbers); accounts/campaigns show
+ * their real totals with no arrow (no meaningful up/down direction for a
+ * plain count); pending approvals gets the destructive-tone arrow when
+ * there's something to review, since that IS the real state — never an
+ * invented percentage.
+ */
+function buildStats(ov: AdsOverview): SquareStat[] {
+  const spendToday = Number(ov.spend_today_usd);
+  const spend30d = Number(ov.spend_30d_usd);
+  const avgDaily30d = spend30d / 30;
+
+  let spendDelta: SquareStat["delta"] = null;
+  if (Number.isFinite(avgDaily30d) && avgDaily30d > 0) {
+    const pct = ((spendToday - avgDaily30d) / avgDaily30d) * 100;
+    spendDelta = {
+      text: `${pct >= 0 ? "+" : ""}${pct.toFixed(0)}% vs 30d avg`,
+      trend: pct >= 0 ? "up" : "down",
+    };
+  }
+
+  return [
+    {
+      key: "spend_today",
+      label: "Spend today",
+      icon: DollarSign,
+      value: formatUsd(ov.spend_today_usd),
+      delta: spendDelta,
+    },
+    {
+      key: "active_accounts",
+      label: "Active accounts",
+      icon: Users,
+      value: String(ov.active_accounts),
+      delta: { text: `${ov.accounts} total` },
+    },
+    {
+      key: "pending_approvals",
+      label: "Pending approvals",
+      icon: ShieldCheck,
+      value: String(ov.pending_approvals),
+      delta:
+        ov.pending_approvals > 0
+          ? { text: "needs your review", trend: "down" }
+          : { text: "all clear" },
+    },
+    {
+      key: "campaigns",
+      label: "Campaigns",
+      icon: Megaphone,
+      value: String(ov.campaigns),
+      delta: { text: `${ov.active_campaigns} active` },
+    },
+  ];
+}
+
 function ConnectCallout() {
   return (
-    <Card className={cn(hubCardClass, "border-dashed")}>
+    <Card className="border-dashed">
       <CardContent className="flex flex-col items-center justify-center gap-3 py-14 text-center">
         <h2 className="text-lg font-semibold">Connect an ad account to begin</h2>
         <p className="max-w-md text-sm text-muted-foreground">
@@ -89,39 +124,6 @@ function ConnectCallout() {
   );
 }
 
-function Kpi({
-  label,
-  value,
-  foot,
-  tone,
-}: {
-  label: string;
-  value: string;
-  foot: string;
-  tone?: "warn";
-}) {
-  return (
-    <Card className={hubCardClass}>
-      <CardContent className="space-y-3 pt-5">
-        <div className="text-sm font-medium text-muted-foreground">
-          {label}
-        </div>
-        <p
-          className={
-            "font-mono text-3xl font-semibold tabular-nums tracking-tight" +
-            (tone === "warn" ? " text-warning" : "")
-          }
-        >
-          {value}
-        </p>
-        <div className="border-t border-border/60 pt-3 text-xs text-muted-foreground">
-          {foot}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 function Feature({
   title,
   body,
@@ -130,7 +132,7 @@ function Feature({
   body: string;
 }) {
   return (
-    <Card className={hubCardClass}>
+    <Card>
       <CardContent className="space-y-2 pt-5">
         <h3 className="text-sm font-semibold">{title}</h3>
         <p className="text-sm text-muted-foreground">{body}</p>

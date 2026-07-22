@@ -17,5 +17,11 @@ export default async function AdsCampaignsPage() {
     accounts = [];
   }
   const hasAccounts = accounts.some((a) => a.status !== "disconnected");
-  return <CampaignsClient initial={campaigns} hasAccounts={hasAccounts} />;
+  return (
+    <CampaignsClient
+      initial={campaigns}
+      accounts={accounts}
+      hasAccounts={hasAccounts}
+    />
+  );
 }

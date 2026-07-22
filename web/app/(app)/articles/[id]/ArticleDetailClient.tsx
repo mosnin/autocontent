@@ -11,11 +11,11 @@ import { toast } from "sonner";
 
 import { ArticleMarkdown } from "@/components/article-markdown";
 import { hubCardClass } from "@/components/hub/primitives";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
+import { Separator } from "@/components/square/ui/separator";
+import { Skeleton } from "@/components/square/ui/skeleton";
 import { retryArticleAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { ARTICLE_IN_PROGRESS, ArticleStatusBadge } from "@/lib/status-badge";
