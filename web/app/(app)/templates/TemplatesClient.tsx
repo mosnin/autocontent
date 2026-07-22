@@ -3,24 +3,28 @@
 // Template library: admin-curated looks with the exact prompt attached.
 // Remix = your product photo + the template's prompt -> same aesthetic,
 // your product. Results land in Library -> Images.
+//
+// Chrome recladded to the Square UI marketing-dashboard kit
+// (components/square/ui/*): Card/Badge/Button/Input chrome swapped in.
+// square/ui has no Label primitive, so Label stays the existing app
+// primitive (@/components/ui/label) — same precedent as the niches
+// port. No handler/logic changes.
 
 import * as React from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+} from "@/components/square/ui/card";
+import { Input } from "@/components/square/ui/input";
 import { Label } from "@/components/ui/label";
 import { DashHeading } from "@/components/hub/dashboard-kit";
-import { hubCardClass } from "@/components/hub/primitives";
-import { cn } from "@/lib/utils";
 
 export interface Template {
   id: string;
@@ -56,7 +60,7 @@ export function TemplatesClient({ initial }: { initial: Template[] }) {
       </DashHeading>
 
       {initial.length === 0 && (
-        <Card className={hubCardClass}>
+        <Card className="rounded-lg border bg-card">
           <CardContent className="pt-6 text-sm text-muted-foreground">
             No templates published yet. Admins add them from the admin
             console (or via the API) with a reference image + prompt.
@@ -96,16 +100,16 @@ function TemplateCard({ template }: { template: Template }) {
   };
 
   return (
-    <Card className={cn(hubCardClass, "overflow-hidden")}>
+    <Card className="overflow-hidden rounded-lg border bg-card py-0 gap-0">
       {template.reference_key && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={`/api/proxy/api/v1/templates/${template.id}/reference`}
           alt={template.name}
-          className="aspect-square w-full rounded-t-xl object-cover"
+          className="aspect-square w-full object-cover"
         />
       )}
-      <CardHeader>
+      <CardHeader className="pt-6">
         <CardTitle className="flex items-center gap-2 text-base">
           {template.name}
           <Badge variant="secondary" className="capitalize">{template.kind}</Badge>
@@ -114,7 +118,7 @@ function TemplateCard({ template }: { template: Template }) {
           <CardDescription>{template.description}</CardDescription>
         )}
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 pb-6">
         {template.kind !== "video" ? (
           <>
             <div className="space-y-1.5">

@@ -1,5 +1,5 @@
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card } from "@/components/square/ui/card";
+import { Skeleton } from "@/components/square/ui/skeleton";
 
 export default function LibraryLoading() {
   return (
@@ -20,7 +20,7 @@ export default function LibraryLoading() {
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {Array.from({ length: 10 }).map((_, i) => (
-          <Card key={i} className="overflow-hidden">
+          <Card key={i} className="overflow-hidden rounded-lg border bg-card py-0 gap-0">
             <Skeleton className="aspect-[9/16] w-full" />
             <div className="space-y-2 p-3">
               <Skeleton className="h-3 w-3/4" />

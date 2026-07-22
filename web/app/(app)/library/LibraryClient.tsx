@@ -9,24 +9,42 @@
 //
 // Playback goes through /api/proxy/api/v1/library/{id}/media which
 // either streams from the volume or follows a presigned Wasabi URL.
+//
+// Chrome recladded to the Square UI marketing-dashboard kit
+// (components/square/ui/*): Card/Badge/Button/Input/Select/Checkbox +
+// the template's table anatomy (components/square/ui/table) for the
+// Remixes list, which is tabular (title, clips, created, status,
+// preview). Tabs has no square/ui counterpart, so it stays the existing
+// app primitive (@/components/ui/tabs) — same precedent as the niches
+// port. The asset grid keeps its real video/image previews exactly as
+// wired today; no logic changes anywhere in this file.
 
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+import { Checkbox } from "@/components/square/ui/checkbox";
+import { Input } from "@/components/square/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/square/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/square/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashHeading } from "@/components/hub/dashboard-kit";
+import { cn } from "@/lib/utils";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { Composition, ImagePost, MediaAsset, Niche } from "@/lib/types";
 
@@ -64,7 +82,7 @@ function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string })
   if (active.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="rounded-lg border bg-card">
       <CardContent className="space-y-2 p-4">
         <p className="text-sm font-medium">Image post runs</p>
         {active.map((p) => (
@@ -72,7 +90,15 @@ function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string })
             key={p.id}
             className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm"
           >
-            <Badge variant={p.status === "failed" ? "destructive" : "secondary"}>
+            <Badge
+              variant="outline"
+              className={cn(
+                "text-xs font-medium px-2 py-0.5",
+                p.status === "failed"
+                  ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900"
+                  : "border text-muted-foreground bg-transparent",
+              )}
+            >
               {p.status.replaceAll("_", " ")}
             </Badge>
             <span className="font-medium">
@@ -243,7 +269,7 @@ export function LibraryClient({
 
         <TabsContent value="clips" className="space-y-4 pt-4">
           {selected.length > 0 && (
-            <Card className="border-primary/40">
+            <Card className="rounded-lg border-primary/40 bg-card">
               <CardContent className="flex flex-wrap items-center gap-3 p-4">
                 <span className="text-sm font-medium">
                   {selected.length} clip{selected.length === 1 ? "" : "s"} selected
@@ -324,7 +350,7 @@ function AssetGrid({
       {assets.map((a) => {
         const order = selected.indexOf(a.id);
         return (
-          <Card key={a.id} className="overflow-hidden">
+          <Card key={a.id} className="overflow-hidden rounded-lg border bg-card py-0 gap-0">
             <div className="relative">
               {a.kind === "keyframe" || a.content_type?.startsWith("image/") ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -376,6 +402,10 @@ function AssetGrid({
   );
 }
 
+// Composition status is tabular (title, clips, created, status, preview),
+// so it adopts the template's table anatomy (components/square/ui/table)
+// rather than the stacked Card list. No sort/search/pagination toolbar —
+// this is a small status list, not the primary campaigns-table clone.
 function CompositionList({ compositions }: { compositions: Composition[] }) {
   if (compositions.length === 0) {
     return (
@@ -385,44 +415,69 @@ function CompositionList({ compositions }: { compositions: Composition[] }) {
     );
   }
   return (
-    <div className="space-y-3">
-      {compositions.map((c) => (
-        <Card key={c.id}>
-          <CardContent className="flex flex-wrap items-center gap-4 p-4">
-            <div className="min-w-0 flex-1">
-              <p className="line-clamp-1 text-sm font-medium">
-                {c.title || `Remix ${c.id.slice(0, 8)}`}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {c.clip_asset_ids.length} clips ·{" "}
+    <div className="rounded-lg border bg-card overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="text-xs font-medium text-muted-foreground">Title</TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">Clips</TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">Created</TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">Status</TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">Preview</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {compositions.map((c) => (
+            <TableRow key={c.id} className="border-b last:border-0 hover:bg-muted/30">
+              <TableCell className="py-3">
+                <p className="line-clamp-1 text-sm font-medium max-w-[220px]">
+                  {c.title || `Remix ${c.id.slice(0, 8)}`}
+                </p>
+                {c.error && (
+                  <p className="pt-1 text-xs text-destructive line-clamp-1 max-w-[220px]">{c.error}</p>
+                )}
+              </TableCell>
+              <TableCell className="py-3 text-sm text-muted-foreground">
+                {c.clip_asset_ids.length}
+              </TableCell>
+              <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                 {new Date(c.created_at).toLocaleString()}
-              </p>
-              {c.error && (
-                <p className="pt-1 text-xs text-destructive">{c.error}</p>
-              )}
-            </div>
-            <StatusBadge status={c.status} />
-            {c.status === "done" && c.output_asset_id && (
-              <video
-                src={mediaUrl(c.output_asset_id)}
-                controls
-                preload="metadata"
-                playsInline
-                className="aspect-[9/16] w-28 rounded bg-black object-contain"
-              />
-            )}
-          </CardContent>
-        </Card>
-      ))}
+              </TableCell>
+              <TableCell className="py-3">
+                <StatusBadge status={c.status} />
+              </TableCell>
+              <TableCell className="py-3">
+                {c.status === "done" && c.output_asset_id ? (
+                  <video
+                    src={mediaUrl(c.output_asset_id)}
+                    controls
+                    preload="metadata"
+                    playsInline
+                    className="aspect-[9/16] w-16 rounded bg-black object-contain"
+                  />
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </div>
   );
 }
 
 function StatusBadge({ status }: { status: Composition["status"] }) {
-  if (status === "done") return <Badge>done</Badge>;
-  if (status === "failed") return <Badge variant="destructive">failed</Badge>;
+  // Template palette: Draft/Live/Paused/Ended slots mapped onto our real
+  // composition states (same technique as square/campaigns-table.tsx).
+  const tone =
+    status === "done"
+      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
+      : status === "failed"
+        ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900"
+        : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 dark:border-blue-900";
   return (
-    <Badge variant="secondary" className="gap-1">
+    <Badge variant="outline" className={cn("text-xs font-medium px-2 py-0.5", tone)}>
       {status}
     </Badge>
   );
