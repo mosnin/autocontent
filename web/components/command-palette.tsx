@@ -23,6 +23,13 @@ import type { Niche, Platform } from "@/lib/types";
 const KICKER =
   "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-1 [&_[cmdk-group-heading]]:text-[0.65rem] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.25em] [&_[cmdk-group-heading]]:text-brand";
 
+const OPEN_EVENT = "marketer:open-command-palette";
+
+/** Programmatic open — the shell's search pill / button calls this. */
+export function openCommandPalette() {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT));
+}
+
 export function CommandPalette() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
@@ -35,8 +42,15 @@ export function CommandPalette() {
         setOpen((v) => !v);
       }
     }
+    function onOpen() {
+      setOpen(true);
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_EVENT, onOpen);
+    };
   }, []);
 
   const { data: niches } = useSWR<Niche[]>(

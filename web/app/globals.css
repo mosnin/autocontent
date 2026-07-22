@@ -136,12 +136,13 @@
   --cat-purple: 255 70% 62%;
   --cat-navy: 222 35% 22%;
   /* chart palette — full colors (unlike the bare HSL triples above)
-     because chart components consume these directly via var(). */
-  --chart-1: hsl(221.2 83.2% 53.3%);
-  --chart-2: hsl(212 95% 68%);
-  --chart-3: hsl(216 92% 60%);
-  --chart-4: hsl(210 98% 78%);
-  --chart-5: hsl(212 97% 87%);
+     because chart components consume these directly via var().
+     Brand fusion: amber-500 → rose-500 family (Tailwind v4 values). */
+  --chart-1: oklch(0.769 0.188 70.08);
+  --chart-2: oklch(0.645 0.246 16.439);
+  --chart-3: oklch(0.705 0.213 47.604);
+  --chart-4: oklch(0.879 0.169 91.605);
+  --chart-5: oklch(0.81 0.117 11.638);
   --chart-background: oklch(1 0 0);
   --chart-foreground: oklch(0.145 0.004 285);
   --chart-foreground-muted: oklch(0.55 0.014 260);
@@ -201,12 +202,13 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 240 4.9% 83.9%;
-  /* chart palette (dark) — full colors, see the light palette note. */
-  --chart-1: hsl(221.2 83.2% 53.3%);
-  --chart-2: hsl(212 95% 68%);
-  --chart-3: hsl(216 92% 60%);
-  --chart-4: hsl(210 98% 78%);
-  --chart-5: hsl(212 97% 87%);
+  /* chart palette (dark) — full colors, see the light palette note.
+     Same amber → rose family, one step brighter for dark surfaces. */
+  --chart-1: oklch(0.828 0.189 84.429);
+  --chart-2: oklch(0.712 0.194 13.428);
+  --chart-3: oklch(0.75 0.183 55.934);
+  --chart-4: oklch(0.924 0.12 95.746);
+  --chart-5: oklch(0.81 0.117 11.638);
   --chart-background: oklch(0.145 0 0);
   --chart-foreground: oklch(0.45 0 0);
   --chart-foreground-muted: oklch(0.65 0.01 260);
