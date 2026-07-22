@@ -7,15 +7,15 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/square/ui/card";
 import { Reveal } from "@/components/marketing/reveal";
 import { SpendHistoryChart } from "@/components/spend-history-chart";
 import { api } from "@/lib/api";

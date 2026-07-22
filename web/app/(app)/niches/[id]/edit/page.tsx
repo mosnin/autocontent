@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/square/ui/button";
 import { api } from "@/lib/api";
 import type { Niche } from "@/lib/types";
 import { EditNicheForm } from "./EditNicheForm";

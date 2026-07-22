@@ -21,10 +21,9 @@ import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { hubCardClass } from "@/components/hub/primitives";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
 import { clientFetch } from "@/lib/client-fetcher";
 
 const POLL_MS = 15000;
@@ -186,7 +185,7 @@ export function FailuresInbox() {
 
   if (isLoading && !data) {
     return (
-      <Card className={hubCardClass}>
+      <Card>
         <CardHeader>
           <CardTitle>Failures inbox</CardTitle>
         </CardHeader>
@@ -197,7 +196,7 @@ export function FailuresInbox() {
 
   if (error) {
     return (
-      <Card className={hubCardClass}>
+      <Card>
         <CardHeader>
           <CardTitle>Failures inbox</CardTitle>
         </CardHeader>
@@ -216,7 +215,7 @@ export function FailuresInbox() {
       : failures.filter((f) => f.category === activeCategory);
 
   return (
-    <Card className={hubCardClass}>
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           Failures inbox

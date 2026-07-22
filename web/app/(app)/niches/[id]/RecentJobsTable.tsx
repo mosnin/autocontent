@@ -16,7 +16,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/square/ui/table";
 import { StatusBadge } from "@/lib/status-badge";
 import type { Job, Platform } from "@/lib/types";
 
