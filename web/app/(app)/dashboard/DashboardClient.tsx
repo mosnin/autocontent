@@ -40,6 +40,7 @@ import {
   hubCardHoverClass,
 } from "@/components/hub/primitives";
 import { LatestVideos } from "@/components/latest-videos";
+import { SquareStatsCards } from "@/components/square/stats-cards";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
@@ -149,7 +150,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         Bring any idea to the feed
       </DashHeading>
 
-      <DashPanel delay={0.1} title="Today at a glance">
+      <DashRise delay={0.1}>
       {(() => {
         const spent = Number(spendData.total_usd);
         const cap = globalCap !== null ? Number(globalCap) : null;
@@ -159,48 +160,48 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         const remaining = cap !== null ? Math.max(0, cap - spent) : null;
 
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              color="green"
-              foot={
-                cap !== null ? `of ${formatUsd(cap)} daily cap` : "no cap set"
-              }
-              title="Spent today"
-              tone={hot ? "warn" : undefined}
-              trail={cap !== null ? `${pct}%` : undefined}
-              value={formatUsd(spent)}
-            />
-            <KpiCard
-              color="blue"
-              foot={cap !== null ? "resets at midnight UTC" : undefined}
-              footLink={cap === null ? { href: "/settings", label: "Set a cap" } : undefined}
-              title="Cap remaining"
-              value={remaining !== null ? formatUsd(remaining) : "—"}
-            />
-            <KpiCard
-              color="navy"
-              foot="each on its own cap"
-              title="Active niches"
-              value={String(nichesList.length)}
-            />
-            <KpiCard
-              color="orange"
-              foot={
-                metricsSummary && metricsSummary.sampled_videos > 0
-                  ? `across ${metricsSummary.sampled_videos} videos`
-                  : "no data yet"
-              }
-              title="Views · 30d"
-              value={
-                metricsSummary
+          <SquareStatsCards
+            stats={[
+              {
+                key: "spent",
+                label: "Spent today",
+                value: formatUsd(spent),
+                trail: cap !== null ? `${pct}% of cap` : "no cap set",
+                trailTone: hot ? "warn" : "default",
+              },
+              {
+                key: "remaining",
+                label: "Cap remaining",
+                value: remaining !== null ? formatUsd(remaining) : "—",
+                trail:
+                  cap !== null ? `${formatUsd(cap)} daily cap` : undefined,
+                trailLink:
+                  cap === null
+                    ? { href: "/settings", label: "Set a cap" }
+                    : undefined,
+              },
+              {
+                key: "niches",
+                label: "Active niches",
+                value: String(nichesList.length),
+                trail: "each on its own cap",
+              },
+              {
+                key: "views",
+                label: "Views · 30d",
+                value: metricsSummary
                   ? fmtCompact(metricsSummary.total_views)
-                  : "—"
-              }
-            />
-          </div>
+                  : "—",
+                trail:
+                  metricsSummary && metricsSummary.sampled_videos > 0
+                    ? `${metricsSummary.sampled_videos} videos`
+                    : "no data yet",
+              },
+            ]}
+          />
         );
       })()}
-      </DashPanel>
+      </DashRise>
 
       {showAyrshareBanner && (
         <DashRise delay={0.14}>
@@ -425,59 +426,3 @@ function fmtCompact(n: number): string {
   return String(n);
 }
 
-function KpiCard({
-  color,
-  title,
-  value,
-  foot,
-  footLink,
-  trail,
-  tone,
-}: {
-  color: "green" | "orange" | "blue" | "navy" | "purple";
-  title: string;
-  value: string;
-  foot?: string;
-  footLink?: { href: string; label: string };
-  trail?: string;
-  tone?: "warn";
-}) {
-  return (
-    <Card className={hubCardClass}>
-      <CardContent className="space-y-3 pt-5">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
-            {title}
-          </span>
-        </div>
-        <p
-          className={cn(
-            "font-mono text-3xl font-semibold tabular-nums tracking-tight",
-            tone === "warn" ? "text-brand" : "text-foreground",
-          )}
-        >
-          {value}
-        </p>
-        <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs">
-          {footLink ? (
-            <Link className="text-brand hover:underline" href={footLink.href}>
-              {footLink.label}
-            </Link>
-          ) : (
-            <span className="text-muted-foreground">{foot ?? "\u00A0"}</span>
-          )}
-          {trail && (
-            <span
-              className={cn(
-                "font-mono tabular-nums",
-                tone === "warn" ? "text-brand" : "text-muted-foreground",
-              )}
-            >
-              {trail}
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
