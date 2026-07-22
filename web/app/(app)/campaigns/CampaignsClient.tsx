@@ -19,14 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import Link from "next/link";
 import {
   DashHeading,
   DashPanel,
   DashRise,
 } from "@/components/hub/dashboard-kit";
-import { HoverLift, hubCardClass } from "@/components/hub/primitives";
-import { cn } from "@/lib/utils";
+import { hubCardClass } from "@/components/hub/primitives";
+import { CampaignsTable } from "@/components/square/campaigns-table";
 import type { Campaign, Niche } from "@/lib/types";
 
 export function statusBadge(status: Campaign["status"]) {
@@ -141,41 +140,14 @@ export function CampaignsClient({
       </DashRise>
 
       <DashPanel delay={0.12} title="Your campaigns">
-        {initial.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No campaigns yet — create one above and press start.
-          </p>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {initial.map((c) => (
-              <HoverLift className="h-full" key={c.id}>
-                <Link href={`/campaigns/${c.id}`} className="block h-full">
-                  <Card className={cn(hubCardClass, "h-full")}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-lg font-semibold">
-                          {c.name}
-                        </CardTitle>
-                        {statusBadge(c.status)}
-                      </div>
-                      {c.objective ? (
-                        <CardDescription className="line-clamp-2">
-                          {c.objective}
-                        </CardDescription>
-                      ) : null}
-                    </CardHeader>
-                    <CardContent className="text-xs text-muted-foreground">
-                      Budget ${Number(c.budget_usd).toFixed(2)}
-                      {c.ends_at
-                        ? ` · ends ${new Date(c.ends_at).toLocaleDateString()}`
-                        : " · open-ended"}
-                    </CardContent>
-                  </Card>
-                </Link>
-              </HoverLift>
-            ))}
-          </div>
-        )}
+        <CampaignsTable
+          campaigns={initial}
+          onNewCampaign={() => {
+            const el = document.getElementById("cmp-name");
+            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+            el?.focus({ preventScroll: true });
+          }}
+        />
       </DashPanel>
     </div>
   );

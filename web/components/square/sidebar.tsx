@@ -30,8 +30,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+} from "@/components/square/ui/sidebar";
+import { Button } from "@/components/square/ui/button";
 import { openCommandPalette } from "@/components/command-palette";
 import { PRODUCTS, productForPath, type ProductId } from "@/lib/products";
 
