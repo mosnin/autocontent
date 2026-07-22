@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
 import { cn } from "@/lib/utils";
 
 interface DangerZoneProps {

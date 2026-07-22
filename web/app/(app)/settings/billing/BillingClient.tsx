@@ -4,7 +4,7 @@ import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/square/ui/table";
 import { createCheckoutAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
@@ -107,29 +107,39 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
         <h2 className="text-lg font-semibold tracking-tight">Add credit</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {PACKS.map((p) => (
-            <button
+            <Card
+              aria-disabled={buying !== null}
               className={cn(
-                "group flex flex-col items-start rounded-xl border p-5 text-left transition-colors",
+                "cursor-pointer text-left transition-colors",
                 p.featured
                   ? "border-brand/50 bg-brand/5 hover:bg-brand/10"
-                  : "border-border/60 bg-card/40 hover:border-brand/30",
+                  : "hover:border-brand/30",
+                buying !== null && "pointer-events-none opacity-70",
               )}
-              disabled={buying !== null}
               key={p.key}
               onClick={() => buy(p.key)}
-              type="button"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  buy(p.key);
+                }
+              }}
             >
-              <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                {p.label}
-              </span>
-              <span className="mt-2 font-mono text-3xl font-semibold tabular-nums">
-                ${p.amount}
-              </span>
-              <span className="mt-1 text-xs text-muted-foreground">{p.blurb}</span>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand">
-                {buying === p.key ? "Opening checkout…" : "Buy"}
-              </span>
-            </button>
+              <CardContent className="flex flex-col items-start">
+                <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                  {p.label}
+                </span>
+                <span className="mt-2 font-mono text-3xl font-semibold tabular-nums">
+                  ${p.amount}
+                </span>
+                <span className="mt-1 text-xs text-muted-foreground">{p.blurb}</span>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand">
+                  {buying === p.key ? "Opening checkout…" : "Buy"}
+                </span>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>

@@ -5,9 +5,14 @@ import useSWR from "swr";
 import { toast } from "sonner";
 
 import { formatDateTime, relativeTime } from "@/components/admin/format";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+// Dialogs (and everything inside them) stay on the app's own primitives —
+// dialog/label/textarea/switch have no square/ui counterpart the template
+// prescribes for this context (established precedent, see
+// articles/ArticlesClient.tsx's NewArticleDialog) — including the app
+// Button (its `isLoading` prop is used on the dialog's submit button).
 import {
   Dialog,
   DialogContent,
@@ -18,7 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Button as DialogButton } from "@/components/ui/button";
+import { Skeleton } from "@/components/square/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -28,9 +34,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/square/ui/table";
 import { adminKeys, adminUpsertFlag } from "@/lib/admin-api";
 import { clientFetch } from "@/lib/client-fetcher";
+import { cn } from "@/lib/utils";
 import type { FeatureFlag } from "@/lib/admin-types";
 
 const POLL_MS = 30_000;
@@ -199,8 +206,12 @@ function FlagRow({
         <div className="flex items-center gap-2">
           <code className="font-mono text-sm font-medium">{flag.key}</code>
           <Badge
-            variant={flag.enabled ? "success" : "secondary"}
-            className="font-mono lowercase"
+            variant={flag.enabled ? "outline" : "secondary"}
+            className={cn(
+              "font-mono lowercase",
+              flag.enabled &&
+                "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900",
+            )}
           >
             {flag.enabled ? "on" : "off"}
           </Badge>
@@ -367,16 +378,16 @@ function AddFlagDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button
+            <DialogButton
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
             >
               Cancel
-            </Button>
-            <Button type="submit" disabled={!canSubmit} isLoading={submitting}>
+            </DialogButton>
+            <DialogButton type="submit" disabled={!canSubmit} isLoading={submitting}>
               Create flag
-            </Button>
+            </DialogButton>
           </DialogFooter>
         </form>
       </DialogContent>

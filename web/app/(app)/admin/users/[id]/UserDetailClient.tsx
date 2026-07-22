@@ -7,14 +7,19 @@ import { toast } from "sonner";
 
 import { AccountStatusBadge, RoleBadge } from "@/components/admin/badges";
 import {
-  actionTone,
+  actionToneClass,
   formatDateTime,
   humanizeAction,
   relativeTime,
 } from "@/components/admin/format";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+// Dialogs (and everything inside them) stay on the app's own primitives —
+// dialog/label/textarea have no square/ui counterpart the template
+// prescribes for this context (established precedent, see
+// articles/ArticlesClient.tsx's NewArticleDialog) — including the app
+// Button (its `isLoading` prop is used on every dialog submit button).
 import {
   Dialog,
   DialogContent,
@@ -25,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button as DialogButton } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   adminGrantCredits,
@@ -187,7 +193,7 @@ export function UserDetailClient({
                   key={e.id}
                   className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3"
                 >
-                  <Badge variant={actionTone(e.action)}>
+                  <Badge variant="outline" className={actionToneClass(e.action)}>
                     {humanizeAction(e.action)}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
@@ -339,21 +345,21 @@ function SuspendDialog({
             />
           </div>
           <DialogFooter>
-            <Button
+            <DialogButton
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
             >
               Cancel
-            </Button>
-            <Button
+            </DialogButton>
+            <DialogButton
               type="submit"
               variant="destructive"
               disabled={!reason.trim() || submitting}
               isLoading={submitting}
             >
               Suspend account
-            </Button>
+            </DialogButton>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -404,12 +410,12 @@ function UnsuspendDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <DialogButton variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
-          </Button>
-          <Button onClick={onConfirm} disabled={submitting} isLoading={submitting}>
+          </DialogButton>
+          <DialogButton onClick={onConfirm} disabled={submitting} isLoading={submitting}>
             Reinstate
-          </Button>
+          </DialogButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -481,17 +487,17 @@ function RoleDialog({
           <span className="font-mono">{nextRole}</span>.
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <DialogButton variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
-          </Button>
-          <Button
+          </DialogButton>
+          <DialogButton
             onClick={onConfirm}
             disabled={submitting}
             isLoading={submitting}
             variant={promoting ? "default" : "destructive"}
           >
             {promoting ? "Grant admin" : "Revoke admin"}
-          </Button>
+          </DialogButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -589,20 +595,20 @@ function CreditsDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button
+            <DialogButton
               type="button"
               variant="ghost"
               onClick={() => onOpenChange(false)}
             >
               Cancel
-            </Button>
-            <Button
+            </DialogButton>
+            <DialogButton
               type="submit"
               disabled={!validAmount || !note.trim() || submitting}
               isLoading={submitting}
             >
               {parsed < 0 ? "Deduct credits" : "Grant credits"}
-            </Button>
+            </DialogButton>
           </DialogFooter>
         </form>
       </DialogContent>

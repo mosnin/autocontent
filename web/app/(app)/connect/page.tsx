@@ -1,4 +1,5 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/square/ui/badge";
+import { Card, CardContent } from "@/components/square/ui/card";
 import { connectAyrshareAction } from "@/lib/actions";
 import { api } from "@/lib/api";
 import type { AyrshareConnectStatus } from "@/lib/types";
@@ -76,30 +77,32 @@ export default async function ConnectPage() {
           />
 
           <div className="space-y-3">
-            <ul className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               {PLATFORMS.map((p) => (
-                <li
-                  className="flex flex-col items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 py-4 text-center"
-                  key={p.key}
-                >
-                  <span
-                    className={
-                      profileCreated
-                        ? "flex size-8 items-center justify-center rounded-full bg-brand/10 text-brand"
-                        : "flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground"
-                    }
-                  >
-                    <span className="text-xs font-semibold">
-                      {p.label.charAt(0)}
+                <Card key={p.key} className="text-center">
+                  <CardContent className="flex flex-col items-center gap-2 px-3 py-4">
+                    <span
+                      className={
+                        profileCreated
+                          ? "flex size-8 items-center justify-center rounded-full bg-brand/10 text-brand"
+                          : "flex size-8 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                      }
+                    >
+                      <span className="text-xs font-semibold">
+                        {p.label.charAt(0)}
+                      </span>
                     </span>
-                  </span>
-                  <span className="text-xs font-medium">{p.label}</span>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                    {profileCreated ? "in Ayrshare" : "needs profile"}
-                  </span>
-                </li>
+                    <span className="text-xs font-medium">{p.label}</span>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] uppercase tracking-wider"
+                    >
+                      {profileCreated ? "in Ayrshare" : "needs profile"}
+                    </Badge>
+                  </CardContent>
+                </Card>
               ))}
-            </ul>
+            </div>
             <p className="text-center text-xs text-muted-foreground">
               {profileCreated
                 ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare — open the chooser above to add or revoke a platform."

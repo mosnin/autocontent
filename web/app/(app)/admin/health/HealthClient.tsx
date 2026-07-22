@@ -4,9 +4,9 @@ import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
 import { adminKeys } from "@/lib/admin-api";
 import { clientFetch } from "@/lib/client-fetcher";
 import { cn } from "@/lib/utils";
@@ -94,8 +94,12 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
           title="Database"
         >
           <Badge
-            variant={dbDown ? "destructive" : "success"}
-            className="font-mono lowercase"
+            variant={dbDown ? "destructive" : "outline"}
+            className={cn(
+              "font-mono lowercase",
+              !dbDown &&
+                "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900",
+            )}
           >
             {dbDown ? "down" : "reachable"}
           </Badge>

@@ -1,8 +1,6 @@
 // Pure, framework-free helpers shared across the admin surface. No React,
 // no client hooks — safe to import from server or client components.
 
-import type { BadgeVariant } from "@/components/ui/badge";
-
 function capitalize(word: string): string {
   if (!word) return word;
   return word.charAt(0).toUpperCase() + word.slice(1);
@@ -29,14 +27,23 @@ export function humanizeAction(action: string): string {
     .join(" ");
 }
 
-/** Badge tone for an action, so the audit log scans by severity. */
-export function actionTone(action: string): BadgeVariant {
+/**
+ * Tonal class for an audit-action Badge, so the log scans by severity.
+ * Paired with `variant="outline"` on square/ui's Badge — the same
+ * outline-plus-tonal-class technique the template's StatusBadge helpers
+ * use (square/campaigns-table.tsx, queue/QueueClient.tsx), since
+ * square/ui's Badge has no built-in success/warning/info variants.
+ */
+export function actionToneClass(action: string): string {
   if (action.includes("suspend") && !action.includes("unsuspend"))
-    return "destructive";
-  if (action.includes("role")) return "warning";
-  if (action.includes("credit")) return "info";
-  if (action.includes("unsuspend")) return "success";
-  return "secondary";
+    return "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900";
+  if (action.includes("role"))
+    return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900";
+  if (action.includes("credit"))
+    return "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 dark:border-blue-900";
+  if (action.includes("unsuspend"))
+    return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900";
+  return "border text-muted-foreground bg-transparent";
 }
 
 /** Short relative time, e.g. "3m ago". */

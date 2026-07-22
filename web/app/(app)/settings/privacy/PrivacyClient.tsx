@@ -5,14 +5,14 @@ import { useClerk } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/square/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/square/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/square/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Separator } from "@/components/square/ui/separator";
 import { DangerZone } from "@/components/settings/danger-zone";
 
 interface Props {
@@ -124,7 +124,7 @@ export function PrivacyClient({ email }: Props) {
   return (
     <div className="space-y-6">
       {/* Export ------------------------------------------------------ */}
-      <Card className="border-border/60 bg-card/40">
+      <Card>
         <CardHeader>
           <CardTitle className="text-base font-semibold">
             Export your data
