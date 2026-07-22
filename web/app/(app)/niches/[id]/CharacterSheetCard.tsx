@@ -2,8 +2,8 @@
 
 import * as React from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
+import { Skeleton } from "@/components/square/ui/skeleton";
 
 /**
  * The face of the channel — the generated character sheet every scene is

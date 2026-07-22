@@ -22,7 +22,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/square/ui/card";
 import {
   Table,
   TableBody,
@@ -30,13 +30,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/square/ui/table";
 import {
   Tooltip as UITooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
+} from "@/components/square/ui/tooltip";
+import { ChartContainer, type ChartConfig } from "@/components/square/ui/chart";
 import type { NichePerformance, JobPerformance } from "@/lib/types";
 
 interface Props {

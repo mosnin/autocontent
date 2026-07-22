@@ -2,7 +2,7 @@
 
 import { Instagram, Music2, Youtube, type LucideIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/square/ui/button";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import type { Niche, Platform } from "@/lib/types";
 
