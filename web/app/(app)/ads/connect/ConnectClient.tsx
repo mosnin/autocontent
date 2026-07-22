@@ -5,10 +5,10 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import { RefreshCw, Unplug } from "lucide-react";
 
-import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { hubCardClass } from "@/components/hub/primitives";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+import { cn } from "@/lib/utils";
 import { clientFetch } from "@/lib/client-fetcher";
 import {
   adsKeys,
@@ -32,16 +32,34 @@ const PLATFORMS: { id: AdPlatform; label: string; blurb: string }[] = [
   },
 ];
 
-function statusBadge(status: string): { variant: BadgeVariant; label: string } {
+// Template badge tone technique (square Badge has no
+// success/warning/destructive-tint variants of its own) — same
+// outline + tonal bg/text/border classes used across the ads pages.
+function statusTone(status: string): { label: string; className: string } {
   switch (status) {
     case "active":
-      return { variant: "success", label: "Connected" };
+      return {
+        label: "Connected",
+        className:
+          "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900",
+      };
     case "pending":
-      return { variant: "warning", label: "Authorizing" };
+      return {
+        label: "Authorizing",
+        className:
+          "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900",
+      };
     case "error":
-      return { variant: "destructive", label: "Error" };
+      return {
+        label: "Error",
+        className:
+          "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900",
+      };
     default:
-      return { variant: "secondary", label: "Disconnected" };
+      return {
+        label: "Disconnected",
+        className: "border text-muted-foreground bg-transparent",
+      };
   }
 }
 
@@ -118,7 +136,7 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
         {PLATFORMS.map((p) => {
           const conns = byPlatform(p.id);
           return (
-            <Card className={hubCardClass} key={p.id}>
+            <Card key={p.id}>
               <CardContent className="space-y-4 pt-5">
                 <div>
                   <h2 className="text-base font-semibold">{p.label}</h2>
@@ -129,24 +147,28 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
                   <Button
                     onClick={() => onConnect(p.id)}
                     disabled={busy === p.id}
-                    isLoading={busy === p.id}
                     className="w-full"
                   >
-                    Connect {p.label}
+                    {busy === p.id ? "…" : `Connect ${p.label}`}
                   </Button>
                 ) : (
                   <ul className="space-y-2">
                     {conns.map((a) => {
-                      const s = statusBadge(a.status);
+                      const tone = statusTone(a.status);
                       return (
                         <li
                           key={a.id}
-                          className="flex items-center gap-2 rounded-lg border border-border/60 bg-card/40 p-2.5"
+                          className="flex items-center gap-2 rounded-lg border bg-card p-2.5"
                         >
                           <span className="min-w-0 flex-1 truncate text-sm">
                             {a.name || a.external_account_id || "Account"}
                           </span>
-                          <Badge variant={s.variant}>{s.label}</Badge>
+                          <Badge
+                            variant="outline"
+                            className={cn("text-xs font-medium px-2 py-0.5", tone.className)}
+                          >
+                            {tone.label}
+                          </Badge>
                           <Button
                             size="icon-sm"
                             variant="ghost"
@@ -175,9 +197,8 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
                         size="sm"
                         onClick={() => onConnect(p.id)}
                         disabled={busy === p.id}
-                        isLoading={busy === p.id}
                       >
-                        Connect another
+                        {busy === p.id ? "…" : "Connect another"}
                       </Button>
                     </li>
                   </ul>

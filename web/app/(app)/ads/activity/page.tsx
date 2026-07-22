@@ -1,5 +1,12 @@
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+// Square UI "marketing-dashboard" template table anatomy, applied to the
+// read-only ads audit log. Same Table/TableRow/TableCell chrome as
+// campaigns-table.tsx / QueueClient, template badge tone technique
+// (Badge variant="outline" + a tonal class per action kind, since square
+// Badge has no destructive/warning/success variants to reuse). No
+// toolbar — this table never had search/filter and stays read-only.
+
+import { Badge } from "@/components/square/ui/badge";
+import { Card, CardContent } from "@/components/square/ui/card";
 import {
   Table,
   TableBody,
@@ -7,8 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { hubCardClass } from "@/components/hub/primitives";
+} from "@/components/square/ui/table";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { formatUsd } from "@/lib/format";
@@ -27,11 +33,14 @@ interface AdAction {
   created_at: string;
 }
 
-function tone(action: string): "destructive" | "warning" | "success" | "secondary" {
-  if (action.includes("denied")) return "destructive";
-  if (action.includes("approval") || action.includes("governance")) return "warning";
-  if (action.includes("change") || action.includes("create")) return "success";
-  return "secondary";
+function toneClass(action: string): string {
+  if (action.includes("denied"))
+    return "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900";
+  if (action.includes("approval") || action.includes("governance"))
+    return "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900";
+  if (action.includes("change") || action.includes("create"))
+    return "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900";
+  return "border text-muted-foreground bg-transparent";
 }
 
 export default async function AdsActivityPage() {
@@ -53,7 +62,7 @@ export default async function AdsActivityPage() {
       </div>
 
       {actions.length === 0 ? (
-        <Card className={hubCardClass}>
+        <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <h3 className="text-lg font-semibold">No activity yet</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
@@ -63,38 +72,54 @@ export default async function AdsActivityPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto">
-          <Card className={cn(hubCardClass, "min-w-[720px]")}>
+        <div className="rounded-lg border bg-card flex flex-col">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px]">Action</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead className="w-[160px]">Target</TableHead>
-                  <TableHead className="w-[110px] text-right">Δ / day</TableHead>
-                  <TableHead className="w-[120px]">When</TableHead>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10 whitespace-nowrap">
+                    Action
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Actor
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10 whitespace-nowrap">
+                    Target
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10 text-right whitespace-nowrap">
+                    Δ / day
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10 whitespace-nowrap">
+                    When
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {actions.map((a) => (
-                  <TableRow key={a.id}>
-                    <TableCell>
-                      <Badge variant={tone(a.action)} className="font-mono">
+                  <TableRow key={a.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <TableCell className="py-3 whitespace-nowrap">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "font-mono text-xs font-medium px-2 py-0.5",
+                          toneClass(a.action),
+                        )}
+                      >
                         {a.action}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                       {a.actor_email || a.actor}
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
+                    <TableCell className="py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
                       <span className="text-foreground">{a.target_type}</span>
                     </TableCell>
-                    <TableCell className="text-right font-mono tabular-nums">
+                    <TableCell className="py-3 text-right font-mono text-sm tabular-nums whitespace-nowrap">
                       {Number(a.dollar_delta_usd) !== 0
                         ? formatUsd(a.dollar_delta_usd)
                         : "—"}
                     </TableCell>
-                    <TableCell className="tabular-nums text-muted-foreground">
+                    <TableCell className="py-3 tabular-nums text-sm text-muted-foreground whitespace-nowrap">
                       {new Date(a.created_at).toLocaleDateString(undefined, {
                         month: "short",
                         day: "numeric",
@@ -106,7 +131,7 @@ export default async function AdsActivityPage() {
                 ))}
               </TableBody>
             </Table>
-          </Card>
+          </div>
         </div>
       )}
     </div>

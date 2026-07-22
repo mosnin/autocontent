@@ -4,11 +4,10 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+import { Input } from "@/components/square/ui/input";
 import { Label } from "@/components/ui/label";
-import { hubCardClass } from "@/components/hub/primitives";
 import { createCampaign, type AdAccount } from "@/lib/ads-client";
 
 const OBJECTIVES = [
@@ -61,7 +60,7 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
         </p>
       </div>
 
-      <Card className={hubCardClass}>
+      <Card>
         <CardContent className="pt-6">
           <form onSubmit={onSubmit} className="space-y-5">
             <div className="space-y-1.5">
@@ -145,9 +144,8 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
               <Button
                 type="submit"
                 disabled={busy || active.length === 0}
-                isLoading={busy}
               >
-                Create draft
+                {busy ? "…" : "Create draft"}
               </Button>
             </div>
           </form>

@@ -5,12 +5,10 @@ import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+import { Input } from "@/components/square/ui/input";
 import { Label } from "@/components/ui/label";
-import { hubCardClass } from "@/components/hub/primitives";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import {
@@ -20,7 +18,7 @@ import {
   type AdCampaign,
   type AdMetricsDaily,
 } from "@/lib/ads-client";
-import { statusVariant } from "../CampaignsClient";
+import { AdStatusBadge } from "../CampaignsClient";
 
 interface Detail {
   campaign: AdCampaign;
@@ -100,9 +98,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
             <h1 className="text-2xl font-semibold tracking-tight">
               {campaign.name}
             </h1>
-            <Badge variant={statusVariant(campaign.status)}>
-              {campaign.status}
-            </Badge>
+            <AdStatusBadge status={campaign.status} />
           </div>
           <p className="text-sm capitalize text-muted-foreground">
             {campaign.objective || "no objective"}
@@ -114,9 +110,8 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               size="sm"
               onClick={() => onStatus("active")}
               disabled={busy !== null}
-              isLoading={busy === "active"}
             >
-              Activate
+              {busy === "active" ? "…" : "Activate"}
             </Button>
           )}
           {campaign.status === "active" && (
@@ -125,9 +120,8 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               variant="outline"
               onClick={() => onStatus("paused")}
               disabled={busy !== null}
-              isLoading={busy === "paused"}
             >
-              Pause
+              {busy === "paused" ? "…" : "Pause"}
             </Button>
           )}
           {campaign.status !== "ended" && (
@@ -137,9 +131,8 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               className="text-muted-foreground hover:text-destructive"
               onClick={() => onStatus("ended")}
               disabled={busy !== null}
-              isLoading={busy === "ended"}
             >
-              End
+              {busy === "ended" ? "…" : "End"}
             </Button>
           )}
         </div>
@@ -155,7 +148,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
         <Stat label="Impressions" value={totals.impressions.toLocaleString()} />
       </div>
 
-      <Card className={hubCardClass}>
+      <Card>
         <CardContent className="pt-6">
           <form onSubmit={onBudget} className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
@@ -176,8 +169,8 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
                 />
               </div>
             </div>
-            <Button type="submit" disabled={busy !== null} isLoading={busy === "budget"}>
-              Update budget
+            <Button type="submit" disabled={busy !== null}>
+              {busy === "budget" ? "…" : "Update budget"}
             </Button>
             <p className="w-full text-xs text-muted-foreground">
               Large increases are held for approval; changes over your account
@@ -192,7 +185,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <Card className={hubCardClass}>
+    <Card>
       <CardContent className="space-y-1 pt-5">
         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
           {label}

@@ -1,13 +1,29 @@
 "use client";
 
+// Square UI "marketing-dashboard" template table anatomy, applied to the
+// approvals queue: real fields (action, summary, requested by, $/day
+// delta) are tabular, so this follows the table precedent (queue's
+// QueueClient / campaigns-table.tsx) rather than freeform cards — same
+// Table/TableRow/TableCell chrome, template badge tone for the action
+// chip, and an actions column with the real Approve/Reject buttons (same
+// pattern as QueueClient's per-row actions). No toolbar: this list is
+// already server-filtered to pending-only, same as before.
+
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { hubCardClass } from "@/components/hub/primitives";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/square/ui/table";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { adsKeys, decideApproval, type AdApproval } from "@/lib/ads-client";
@@ -45,7 +61,7 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
       </div>
 
       {pending.length === 0 ? (
-        <Card className={hubCardClass}>
+        <Card>
           <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <h3 className="text-lg font-semibold">Nothing to review</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
@@ -55,49 +71,75 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
           </CardContent>
         </Card>
       ) : (
-        <ul className="space-y-3">
-          {pending.map((a) => (
-            <li key={a.id}>
-              <Card className={hubCardClass}>
-                <CardContent className="flex flex-wrap items-center gap-3 py-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className="font-mono">
+        <div className="rounded-lg border bg-card flex flex-col">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Action
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Summary
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Requested by
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10 text-right">
+                    Δ / day
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10 text-right">
+                    Decision
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pending.map((a) => (
+                  <TableRow key={a.id} className="border-b last:border-0 hover:bg-muted/30">
+                    <TableCell className="py-3 whitespace-nowrap">
+                      <Badge
+                        variant="outline"
+                        className="font-mono text-xs font-medium px-2 py-0.5 border text-muted-foreground bg-transparent"
+                      >
                         {a.action}
                       </Badge>
-                      <span className="text-sm font-medium">{a.summary}</span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Requested by {a.requested_by} ·{" "}
-                      <span className="font-mono tabular-nums text-warning">
-                        {formatUsd(a.dollar_delta_usd)}/day
-                      </span>{" "}
-                      change
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={busy === a.id}
-                      onClick={() => decide(a.id, "rejected")}
-                    >
-                      Reject
-                    </Button>
-                    <Button
-                      size="sm"
-                      disabled={busy === a.id}
-                      isLoading={busy === a.id}
-                      onClick={() => decide(a.id, "approved")}
-                    >
-                      Approve
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
+                    </TableCell>
+                    <TableCell className="py-3 text-sm font-medium max-w-[320px] truncate">
+                      {a.summary}
+                    </TableCell>
+                    <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
+                      {a.requested_by}
+                    </TableCell>
+                    <TableCell className="py-3 text-right font-mono text-sm tabular-nums text-amber-700 dark:text-amber-400 whitespace-nowrap">
+                      {formatUsd(a.dollar_delta_usd)}
+                    </TableCell>
+                    <TableCell className="py-3 whitespace-nowrap">
+                      <span className="flex items-center justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          disabled={busy === a.id}
+                          onClick={() => decide(a.id, "rejected")}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs"
+                          disabled={busy === a.id}
+                          onClick={() => decide(a.id, "approved")}
+                        >
+                          {busy === a.id ? "…" : "Approve"}
+                        </Button>
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
       )}
     </div>
   );
