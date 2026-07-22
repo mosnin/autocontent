@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { MoreHorizontal } from "lucide-react";
+import { Coins, Eye, MoreHorizontal, Users, WalletMinimal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,14 +39,22 @@ import {
   hubCardClass,
   hubCardHoverClass,
 } from "@/components/hub/primitives";
-import { LatestVideos } from "@/components/latest-videos";
 import { SquareStatsCards } from "@/components/square/stats-cards";
+import {
+  MonthlyViewsChart,
+  type ChartPoint,
+  type Period,
+} from "@/components/square/monthly-views-chart";
+import {
+  RecentUploads,
+  type RecentUpload,
+} from "@/components/square/recent-uploads";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Niche, Platform, TodaySpend } from "@/lib/types";
+import type { Job, Niche, Platform, TodaySpend } from "@/lib/types";
 
 interface InitialData {
   niches: Niche[];
@@ -79,6 +87,14 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     total_views: number;
     sampled_videos: number;
   }>("/api/v1/metrics/summary", clientFetch, { refreshInterval: 60000 });
+
+  // Finished jobs — same endpoint/pattern as latest-videos.tsx; feeds the
+  // template's chart + recent-uploads tiles with real data.
+  const { data: doneJobs } = useSWR<Job[]>(
+    "/api/v1/jobs?status_filter=done&limit=250",
+    clientFetch,
+    { refreshInterval: 15000 },
+  );
 
   // Probe Ayrshare status only when the parent told us the route exists
   // (initial.ayrshareConnected !== null).
@@ -159,43 +175,58 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         const hot = cap !== null && pct >= 80;
         const remaining = cap !== null ? Math.max(0, cap - spent) : null;
 
+        // Delta slots carry real derivable values only: spend as % of the
+        // daily cap, remaining cap %, and views per video. Stats with no
+        // real delta render "—" inside the component.
+        const viewsPerVideo =
+          metricsSummary && metricsSummary.sampled_videos > 0
+            ? metricsSummary.total_views / metricsSummary.sampled_videos
+            : null;
+
         return (
           <SquareStatsCards
             stats={[
               {
                 key: "spent",
                 label: "Spent today",
+                icon: WalletMinimal,
                 value: formatUsd(spent),
-                trail: cap !== null ? `${pct}% of cap` : "no cap set",
-                trailTone: hot ? "warn" : "default",
+                delta:
+                  cap !== null
+                    ? { text: `${pct}% of cap`, trend: hot ? "down" : "up" }
+                    : null,
               },
               {
                 key: "remaining",
                 label: "Cap remaining",
+                icon: Coins,
                 value: remaining !== null ? formatUsd(remaining) : "—",
-                trail:
-                  cap !== null ? `${formatUsd(cap)} daily cap` : undefined,
-                trailLink:
-                  cap === null
-                    ? { href: "/settings", label: "Set a cap" }
-                    : undefined,
+                delta:
+                  cap !== null && cap > 0
+                    ? {
+                        text: `${100 - pct}% left`,
+                        trend: hot ? "down" : "up",
+                      }
+                    : null,
               },
               {
                 key: "niches",
                 label: "Active niches",
+                icon: Users,
                 value: String(nichesList.length),
-                trail: "each on its own cap",
+                delta: null,
               },
               {
                 key: "views",
                 label: "Views · 30d",
+                icon: Eye,
                 value: metricsSummary
                   ? fmtCompact(metricsSummary.total_views)
                   : "—",
-                trail:
-                  metricsSummary && metricsSummary.sampled_videos > 0
-                    ? `${metricsSummary.sampled_videos} videos`
-                    : "no data yet",
+                delta:
+                  viewsPerVideo !== null
+                    ? { text: `${fmtCompact(Math.round(viewsPerVideo))}/video` }
+                    : null,
               },
             ]}
           />
@@ -231,8 +262,19 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         </p>
       )}
 
+      {/* Template two-column slot (app/page.tsx + dashboard/content.tsx):
+          chart + recent uploads, fed with real jobs data. Jobs carry no
+          per-video view metric, so the chart plots videos published per
+          bucket and is titled accordingly. */}
       <DashRise delay={0.16}>
-        <LatestVideos />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <MonthlyViewsChart
+            periodData={buildPublishedSeries(doneJobs ?? [])}
+            title="Videos published"
+            unit="videos"
+          />
+          <RecentUploads uploads={toRecentUploads(doneJobs ?? [])} />
+        </div>
       </DashRise>
 
       <DashPanel
@@ -418,6 +460,79 @@ function NicheCard({
     </Card>
     </HoverLift>
   );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function bucketLabel(d: Date, monthOnly = false): string {
+  return monthOnly
+    ? d.toLocaleDateString("en-US", { month: "short" })
+    : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/**
+ * Real chart series derived from finished jobs' created_at timestamps.
+ * Jobs carry no per-video view metric, so each point is the count of
+ * videos published in that bucket (daily / weekly / bi-weekly / monthly,
+ * matching the template's four periods).
+ */
+function buildPublishedSeries(jobs: Job[]): Record<Period, ChartPoint[]> {
+  const times = jobs
+    .map((j) => new Date(j.created_at).getTime())
+    .filter((t) => Number.isFinite(t));
+
+  const countBuckets = (
+    buckets: number,
+    bucketMs: number,
+    monthOnly = false,
+  ): ChartPoint[] => {
+    const now = Date.now();
+    const start = now - buckets * bucketMs;
+    const counts = new Array<number>(buckets).fill(0);
+    for (const t of times) {
+      if (t < start || t > now) continue;
+      const idx = Math.min(buckets - 1, Math.floor((t - start) / bucketMs));
+      counts[idx] += 1;
+    }
+    return counts.map((views, i) => ({
+      date: bucketLabel(new Date(start + i * bucketMs), monthOnly),
+      views,
+    }));
+  };
+
+  return {
+    "1m": countBuckets(30, DAY_MS),
+    "3m": countBuckets(13, 7 * DAY_MS),
+    "6m": countBuckets(12, 14 * DAY_MS),
+    "1y": countBuckets(12, 30 * DAY_MS, true),
+  };
+}
+
+function timeAgo(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const diff = Math.max(0, Date.now() - t);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+/** Real uploads: newest finished jobs, previewed via the video proxy. */
+function toRecentUploads(jobs: Job[]): RecentUpload[] {
+  return jobs.slice(0, 6).map((job) => ({
+    id: job.id,
+    title: job.script?.idea?.hook ?? job.id.slice(0, 8),
+    timeAgo: timeAgo(job.created_at),
+    videoSrc: `/api/proxy/api/v1/jobs/${job.id}/video`,
+    href: `/queue/${job.id}`,
+  }));
 }
 
 function fmtCompact(n: number): string {

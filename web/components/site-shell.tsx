@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/square/ui/sidebar";
 import { SquareSidebar } from "@/components/square/sidebar";
 import { SquareHeader } from "@/components/square/header";
 

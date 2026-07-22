@@ -2,15 +2,17 @@
 
 // Square UI "marketing-dashboard" template header, ported faithfully.
 // Swaps per the port contract: static "Campaigns" label -> the active
-// product page derived from lib/products, theme toggle skipped (app is
-// light-only), GitHub promo button -> the real "New campaign" action,
-// plus the ⌘K search pill wired to the command palette.
+// product page derived from lib/products, the template's theme toggle
+// restored verbatim, GitHub promo button omitted (the one permitted
+// omission), plus the ⌘K search pill and the real "New campaign" action
+// in the right-hand slot.
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House } from "lucide-react";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import { SidebarTrigger } from "@/components/square/ui/sidebar";
+import { Button } from "@/components/square/ui/button";
+import { ThemeToggle } from "@/components/square/theme-toggle";
 import { openCommandPalette } from "@/components/command-palette";
 import { productForPath } from "@/lib/products";
 import { PRODUCT_ICONS } from "@/components/square/sidebar";
@@ -51,6 +53,7 @@ export function SquareHeader() {
             ⌘K
           </kbd>
         </button>
+        <ThemeToggle />
         <Button size="sm" asChild>
           <Link href="/campaigns">New campaign</Link>
         </Button>
