@@ -8,10 +8,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/square/ui/card";
 import { DashHeading, DashPanel } from "@/components/hub/dashboard-kit";
-import { hubCardClass } from "@/components/hub/primitives";
-import { cn } from "@/lib/utils";
 import { SpendCapForm } from "./SpendCapForm";
 import { NotificationsForm } from "./NotificationsForm";
 
@@ -43,7 +41,7 @@ export function SettingsShell({
 
       <DashPanel delay={0.08} title="Account controls">
         <div className="grid gap-4 lg:grid-cols-2">
-          <Card className={hubCardClass}>
+          <Card>
             <CardHeader>
               <CardTitle className="text-base font-semibold">
                 Spend caps
@@ -57,7 +55,7 @@ export function SettingsShell({
               <SpendCapForm initialCap={initialCap} />
             </CardContent>
           </Card>
-          <Card className={hubCardClass}>
+          <Card>
             <CardHeader>
               <CardTitle className="text-base font-semibold">
                 Notifications
@@ -76,18 +74,15 @@ export function SettingsShell({
       <DashPanel delay={0.1} title="More settings">
         <div className="grid gap-3 sm:grid-cols-2">
           {SETTINGS_LINKS.map((link) => (
-            <Link
-              className={cn(
-                hubCardClass,
-                "flex flex-col gap-1 p-4 transition-colors hover:bg-muted/40",
-              )}
-              href={link.href}
-              key={link.href}
-            >
-              <span className="text-sm font-medium">{link.label}</span>
-              <span className="text-xs text-muted-foreground">
-                {link.desc}
-              </span>
+            <Link className="block" href={link.href} key={link.href}>
+              <Card className="h-full transition-colors hover:bg-muted/40">
+                <CardContent className="flex flex-col gap-1">
+                  <span className="text-sm font-medium">{link.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {link.desc}
+                  </span>
+                </CardContent>
+              </Card>
             </Link>
           ))}
         </div>

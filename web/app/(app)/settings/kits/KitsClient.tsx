@@ -7,16 +7,28 @@
 import * as React from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+} from "@/components/square/ui/card";
+import { Input } from "@/components/square/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/square/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/square/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,11 +97,10 @@ export function KitsClient({ initial }: { initial: Kit[] }) {
               {KIND_META[kind].blurb}
             </p>
             <KitEditor kind={kind} onSaved={refresh} />
-            {kits
-              .filter((k) => k.kind === kind)
-              .map((kit) => (
-                <KitCard key={kit.id} kit={kit} onChanged={refresh} />
-              ))}
+            <KitsTable
+              kits={kits.filter((k) => k.kind === kind)}
+              onChanged={refresh}
+            />
           </TabsContent>
         ))}
       </Tabs>
@@ -97,7 +108,62 @@ export function KitsClient({ initial }: { initial: Kit[] }) {
   );
 }
 
-function KitCard({ kit, onChanged }: { kit: Kit; onChanged: () => void }) {
+// Square UI "marketing-dashboard" template table anatomy, applied to each
+// kind's kit list — same Table/TableRow/TableCell chrome as the
+// tokens/webhooks lists, no toolbar (each list is already scoped to one
+// kind by the surrounding Tab). Full content/rules preview moves into a
+// hover tooltip on the name cell (same Tooltip used for the articles list
+// error preview) since a table row has no room for the free-text block the
+// old card rendered inline.
+function KitsTable({
+  kits,
+  onChanged,
+}: {
+  kits: Kit[];
+  onChanged: () => void;
+}) {
+  if (kits.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          No kits yet for this kind.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border bg-card flex flex-col">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                Name
+              </TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                Description
+              </TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                Default
+              </TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground h-10 text-right">
+                Actions
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {kits.map((kit) => (
+              <KitRow key={kit.id} kit={kit} onChanged={onChanged} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+function KitRow({ kit, onChanged }: { kit: Kit; onChanged: () => void }) {
   const [busy, setBusy] = React.useState(false);
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true);
@@ -112,23 +178,48 @@ function KitCard({ kit, onChanged }: { kit: Kit; onChanged: () => void }) {
     }
   };
 
+  const preview = kit.content || "(empty)";
+  const rulesPreview =
+    kit.kind === "ad" && Object.keys(kit.rules).length > 0
+      ? JSON.stringify(kit.rules, null, 2)
+      : null;
+
   return (
-    <Card>
-      <CardHeader className="flex-row items-start justify-between space-y-0">
-        <div>
-          <CardTitle className="flex items-center gap-2 text-base">
-            {kit.name}
-            {kit.is_default && <Badge variant="secondary">default</Badge>}
-          </CardTitle>
-          {kit.description && (
-            <CardDescription>{kit.description}</CardDescription>
-          )}
-        </div>
-        <div className="flex gap-2">
+    <TableRow className="border-b last:border-0 hover:bg-muted/30">
+      <TableCell className="py-3">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="text-sm font-medium underline decoration-dotted underline-offset-4">
+              {kit.name}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent className="max-w-xs">
+            <p className="whitespace-pre-wrap break-words">{preview}</p>
+            {rulesPreview && (
+              <p className="mt-2 whitespace-pre-wrap break-words font-mono text-[10px]">
+                {rulesPreview}
+              </p>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TableCell>
+      <TableCell className="py-3 max-w-[320px] truncate text-sm text-muted-foreground">
+        {kit.description || "—"}
+      </TableCell>
+      <TableCell className="py-3">
+        {kit.is_default ? (
+          <Badge variant="secondary">default</Badge>
+        ) : (
+          <span className="text-sm text-muted-foreground">—</span>
+        )}
+      </TableCell>
+      <TableCell className="py-3 whitespace-nowrap text-right">
+        <span className="flex items-center justify-end gap-1.5">
           {!kit.is_default && (
             <Button
               size="sm"
               variant="outline"
+              className="h-7 text-xs"
               disabled={busy}
               onClick={() =>
                 run(
@@ -143,6 +234,7 @@ function KitCard({ kit, onChanged }: { kit: Kit; onChanged: () => void }) {
           <Button
             size="sm"
             variant="ghost"
+            className="h-7 text-xs"
             disabled={busy}
             onClick={() =>
               run(() => mutate(`/api/v1/kits/${kit.id}`, "DELETE"), "Kit deleted")
@@ -150,19 +242,9 @@ function KitCard({ kit, onChanged }: { kit: Kit; onChanged: () => void }) {
           >
             Delete
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <pre className="whitespace-pre-wrap rounded-md bg-muted/40 p-3 font-sans text-sm">
-          {kit.content || "(empty)"}
-        </pre>
-        {kit.kind === "ad" && Object.keys(kit.rules).length > 0 && (
-          <pre className="mt-2 rounded-md bg-muted/40 p-3 text-xs">
-            {JSON.stringify(kit.rules, null, 2)}
-          </pre>
-        )}
-      </CardContent>
-    </Card>
+        </span>
+      </TableCell>
+    </TableRow>
   );
 }
 

@@ -5,9 +5,9 @@ import useSWR from "swr";
 import { toast } from "sonner";
 
 import { AdminKpiCard } from "@/components/admin/kpi-card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/square/ui/table";
 import { clientFetch } from "@/lib/client-fetcher";
 import { cn } from "@/lib/utils";
 
@@ -283,11 +283,17 @@ export function OpsClient({
                           </TableCell>
                           <TableCell className="text-right">
                             {r.warn ? (
-                              <Badge variant="warning" className="font-mono lowercase">
+                              <Badge
+                                variant="outline"
+                                className="font-mono lowercase bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900"
+                              >
                                 warn
                               </Badge>
                             ) : (
-                              <Badge variant="success" className="font-mono lowercase">
+                              <Badge
+                                variant="outline"
+                                className="font-mono lowercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
+                              >
                                 ok
                               </Badge>
                             )}
@@ -371,10 +377,14 @@ export function OpsClient({
                   <div>{c.message}</div>
                 </div>
                 <Badge
-                  variant={
-                    c.status === "error" ? "destructive" : c.status === "warn" ? "warning" : "success"
-                  }
-                  className="shrink-0 font-mono lowercase"
+                  variant={c.status === "error" ? "destructive" : "outline"}
+                  className={cn(
+                    "shrink-0 font-mono lowercase",
+                    c.status === "warn" &&
+                      "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 border-amber-200 dark:border-amber-900",
+                    c.status === "ok" &&
+                      "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900",
+                  )}
                 >
                   {c.status}
                 </Badge>

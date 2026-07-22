@@ -5,14 +5,14 @@ import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
 
 import {
-  actionTone,
+  actionToneClass,
   formatDateTime,
   humanizeAction,
   relativeTime,
 } from "@/components/admin/format";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,7 +22,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/square/ui/table";
 import { adminKeys } from "@/lib/admin-api";
 import { clientFetch } from "@/lib/client-fetcher";
 import { cn } from "@/lib/utils";
@@ -223,12 +223,11 @@ export function AuditClient({
               variant="outline"
               size="sm"
               disabled={loading}
-              isLoading={loading}
               onClick={() =>
                 void load(false, applied, entries[entries.length - 1]?.id)
               }
             >
-              Load more
+              {loading ? "Loading…" : "Load more"}
             </Button>
           )}
         </div>
@@ -284,7 +283,7 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
         onClick={hasMeta ? () => setOpen((v) => !v) : undefined}
       >
         <TableCell>
-          <Badge variant={actionTone(entry.action)}>
+          <Badge variant="outline" className={actionToneClass(entry.action)}>
             {humanizeAction(entry.action)}
           </Badge>
         </TableCell>

@@ -5,10 +5,16 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
-import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/square/ui/button";
+// `isLoading` (the inline spinner) is an app-Button-only feature — Spinner
+// has no square/ui counterpart (established precedent: dialog/label/
+// textarea/select-in-forms/tabs/spinner/switch stay on app primitives).
+// Call sites that rely on isLoading keep the app Button under this alias;
+// every other button in this file uses the square/ui default above.
+import { Button as LoadingButton } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
+import { Checkbox } from "@/components/square/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/square/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/client-fetcher";
@@ -79,9 +85,19 @@ function formatRelative(iso: string): string {
   return "";
 }
 
+// Square/ui Badge has no "success" variant, so status tone is expressed the
+// same way the template's own status badges are (QueueClient / ArticlesClient
+// StatusBadge): variant="outline" plus a tonal bg/text/border class.
+const SUCCESS_BADGE_CLASS =
+  "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900";
+const DESTRUCTIVE_BADGE_CLASS =
+  "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900";
+
 /** Warm-ok for 2xx, destructive otherwise. */
-function statusVariant(status: number): BadgeVariant {
-  return status >= 200 && status < 300 ? "success" : "destructive";
+function statusToneClass(status: number): string {
+  return status >= 200 && status < 300
+    ? SUCCESS_BADGE_CLASS
+    : DESTRUCTIVE_BADGE_CLASS;
 }
 
 // --- signing helper card ----------------------------------------------
@@ -271,11 +287,18 @@ function AddEndpointDialog({
 
           <fieldset className="space-y-3">
             <legend className="text-sm font-medium">Events</legend>
-            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-input p-3 transition-colors hover:border-brand/30 has-[:checked]:border-brand/50 has-[:checked]:bg-brand/5">
+            <label
+              className={cn(
+                "flex cursor-pointer items-start gap-3 rounded-md border p-3 transition-colors",
+                allEvents
+                  ? "border-brand/50 bg-brand/5"
+                  : "border-input hover:border-brand/30",
+              )}
+            >
               <Checkbox
                 className="mt-0.5"
                 checked={allEvents}
-                onCheckedChange={(d) => setAllEvents(Boolean(d.checked))}
+                onCheckedChange={(checked) => setAllEvents(checked === true)}
                 aria-label="Subscribe to all events"
               />
               <span>
@@ -350,9 +373,9 @@ function AddEndpointDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} isLoading={submitting}>
+            <LoadingButton type="submit" disabled={submitting} isLoading={submitting}>
               Create endpoint
-            </Button>
+            </LoadingButton>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -410,7 +433,7 @@ function DeleteDialog({
           >
             Cancel
           </Button>
-          <Button
+          <LoadingButton
             type="button"
             variant="destructive"
             onClick={onConfirm}
@@ -418,7 +441,7 @@ function DeleteDialog({
             isLoading={deleting}
           >
             Delete endpoint
-          </Button>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -487,7 +510,10 @@ function EndpointCard({
             >
               {endpoint.url}
             </code>
-            <Badge variant={endpoint.enabled ? "success" : "secondary"}>
+            <Badge
+              variant="outline"
+              className={endpoint.enabled ? SUCCESS_BADGE_CLASS : ""}
+            >
               {endpoint.enabled ? "Enabled" : "Disabled"}
             </Badge>
           </div>
@@ -514,8 +540,8 @@ function EndpointCard({
             <span>Last delivery:</span>
             {endpoint.last_status != null ? (
               <Badge
-                variant={statusVariant(endpoint.last_status)}
-                className="font-mono"
+                variant="outline"
+                className={cn("font-mono", statusToneClass(endpoint.last_status))}
               >
                 HTTP {endpoint.last_status}
               </Badge>
@@ -531,7 +557,7 @@ function EndpointCard({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <Button
+          <LoadingButton
             size="sm"
             variant="outline"
             onClick={onToggle}
@@ -544,8 +570,8 @@ function EndpointCard({
             }
           >
             {endpoint.enabled ? "Pause" : "Resume"}
-          </Button>
-          <Button
+          </LoadingButton>
+          <LoadingButton
             size="sm"
             variant="outline"
             onClick={onTest}
@@ -557,7 +583,7 @@ function EndpointCard({
             }
           >
             Send test
-          </Button>
+          </LoadingButton>
           <Button
             size="icon"
             variant="ghost"

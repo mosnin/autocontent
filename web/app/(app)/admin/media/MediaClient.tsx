@@ -9,7 +9,7 @@ import {
   DashHeading,
   DashPanel,
 } from "@/components/hub/dashboard-kit";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/square/ui/button";
 import { MEDIA_SLOTS } from "@/lib/media-slots";
 import { cn } from "@/lib/utils";
 

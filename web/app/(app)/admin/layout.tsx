@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/square/ui/card";
 import { fetchAdminOverview, isForbidden } from "@/lib/admin-server";
 
 export const dynamic = "force-dynamic";

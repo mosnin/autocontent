@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/square/ui/card";
 import { api } from "@/lib/api";
 import type { BillingBalance } from "@/lib/types";
 import { BillingClient } from "./BillingClient";

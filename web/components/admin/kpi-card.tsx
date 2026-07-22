@@ -1,7 +1,7 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/square/ui/card";
 import { cn } from "@/lib/utils";
 
 /**

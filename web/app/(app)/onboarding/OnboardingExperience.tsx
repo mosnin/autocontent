@@ -2,6 +2,10 @@
 
 import * as React from "react";
 
+// Kept on the app's own Button: this CTA depends on `size="xl"` and the
+// `pill` shape capability, neither of which square/ui's Button exposes —
+// not a drop-in swap (see repo-wide precedent: no square/ui counterpart
+// -> keep the app primitive rather than approximate/invent one).
 import { Button } from "@/components/ui/button";
 import { OnboardingEntry } from "./OnboardingEntry";
 

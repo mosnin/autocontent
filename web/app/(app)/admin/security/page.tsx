@@ -1,14 +1,14 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/square/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/square/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +73,10 @@ export default function AdminSecurityPage() {
             <CardHeader>
               <div className="flex items-center justify-between gap-2">
                 <CardTitle className="text-base">{c.title}</CardTitle>
-                <Badge variant="success" className="shrink-0 font-mono lowercase">
+                <Badge
+                  variant="outline"
+                  className="shrink-0 font-mono lowercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
+                >
                   implemented
                 </Badge>
               </div>

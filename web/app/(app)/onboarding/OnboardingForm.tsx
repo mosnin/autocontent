@@ -19,8 +19,12 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/square/ui/button";
+// The voice-preview control is a tightly-embedded form-step control that
+// relies on the app Button's `size="icon-md"` — a size square/ui's Button
+// doesn't expose — so it stays on the app primitive (not a drop-in swap).
+import { Button as FormButton } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
@@ -894,7 +898,7 @@ function VoicePreviewButton({ voice }: { voice: string }) {
   }
 
   return (
-    <Button
+    <FormButton
       aria-label={
         state === "playing"
           ? `Stop ${voice} preview`
@@ -913,6 +917,6 @@ function VoicePreviewButton({ voice }: { voice: string }) {
       ) : (
         <Play className="size-4" aria-hidden />
       )}
-    </Button>
+    </FormButton>
   );
 }

@@ -5,8 +5,8 @@ import { useActionState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/square/ui/button";
+import { Card, CardContent } from "@/components/square/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +21,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
+} from "@/components/square/ui/dropdown-menu";
+import { Input } from "@/components/square/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -31,7 +31,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@/components/square/ui/table";
 import { createTokenAction, revokeTokenAction } from "@/lib/actions";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import type { PersonalAccessToken } from "@/lib/types";
@@ -161,26 +161,36 @@ export function TokensClient({ tokens }: Props) {
           </CardContent>
         </Card>
       ) : (
-        <div className="overflow-x-auto">
-          <Card className="min-w-[640px]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Prefix</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Expires</TableHead>
-                <TableHead>Last used</TableHead>
-                <TableHead className="w-[60px]" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tokens.map((t) => (
-                <TokenRow key={t.id} token={t} />
-              ))}
-            </TableBody>
-          </Table>
-          </Card>
+        <div className="rounded-lg border bg-card flex flex-col">
+          <div className="overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Name
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Prefix
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Created
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Expires
+                  </TableHead>
+                  <TableHead className="text-xs font-medium text-muted-foreground h-10">
+                    Last used
+                  </TableHead>
+                  <TableHead className="w-[60px] h-10" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {tokens.map((t) => (
+                  <TokenRow key={t.id} token={t} />
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       )}
     </div>
@@ -198,23 +208,23 @@ function TokenRow({ token }: { token: PersonalAccessToken }) {
   }
 
   return (
-    <TableRow>
-      <TableCell className="font-medium">{token.name}</TableCell>
-      <TableCell>
+    <TableRow className="border-b last:border-0 hover:bg-muted/30">
+      <TableCell className="py-3 font-medium">{token.name}</TableCell>
+      <TableCell className="py-3">
         <code className="font-mono text-xs">{token.prefix}</code>
       </TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell className="py-3 text-muted-foreground">
         {new Date(token.created_at).toLocaleString()}
       </TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell className="py-3 text-muted-foreground">
         {token.expires_at ? new Date(token.expires_at).toLocaleString() : "—"}
       </TableCell>
-      <TableCell className="text-muted-foreground">
+      <TableCell className="py-3 text-muted-foreground">
         {token.last_used_at
           ? new Date(token.last_used_at).toLocaleString()
           : "never"}
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="py-3 text-right">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`More options for token ${token.name}`}>
