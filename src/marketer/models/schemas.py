@@ -189,6 +189,7 @@ class SpendEntry(BaseModel):
     job_id: UUID | None
     article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
     image_post_id: UUID | None = None  # set for image-post spend
+    studio_generation_id: UUID | None = None  # set for Studio generation spend
     provider: str  # "openai" | "xai" | "ayrshare"
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
@@ -387,6 +388,43 @@ class Composition(BaseModel):
     status: Literal["queued", "rendering", "done", "failed"] = "queued"
     output_asset_id: UUID | None = None
     error: str | None = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+StudioKind = Literal["image", "video", "audio", "lipsync", "video2video", "recast"]
+StudioStatus = Literal["queued", "running", "done", "failed"]
+
+
+class StudioOutput(BaseModel):
+    """One produced artifact of a Studio generation.
+
+    `url` is playable/downloadable by the owner: a presigned object-storage
+    URL when object storage is configured, otherwise the API's own
+    auth-scoped playback path for the library asset.
+    """
+
+    url: str
+    kind: Literal["image", "video", "audio"]
+    content_type: str = ""
+    asset_id: UUID | None = None
+
+
+class StudioGeneration(BaseModel):
+    """One generation started from a Studio surface. Server-side so the
+    history panel survives a device change; per-user scoped everywhere."""
+
+    id: UUID
+    user_id: str
+    kind: StudioKind
+    model: str
+    params: dict = Field(default_factory=dict)
+    status: StudioStatus = "queued"
+    provider: str | None = None
+    provider_request_id: str | None = None
+    outputs: list[StudioOutput] = Field(default_factory=list)
+    error: str | None = None
+    cost_usd: Decimal = Decimal("0")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

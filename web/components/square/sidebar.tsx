@@ -10,6 +10,7 @@ import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import {
   Clapperboard,
+  Wand2,
   HelpCircle,
   LayoutGrid,
   Megaphone,
@@ -38,6 +39,7 @@ import { PRODUCTS, productForPath, type ProductId } from "@/lib/products";
 export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
   campaigns: Megaphone,
   studio: Clapperboard,
+  "studio-gen": Wand2,
   press: Newspaper,
   ads: Target,
   suite: LayoutGrid,

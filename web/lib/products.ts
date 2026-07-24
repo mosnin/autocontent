@@ -7,7 +7,13 @@
 // only — the switcher, product tabs, and /home hub all consume this one
 // registry.
 
-export type ProductId = "studio" | "press" | "ads" | "campaigns" | "suite";
+export type ProductId =
+  | "studio"
+  | "studio-gen"
+  | "press"
+  | "ads"
+  | "campaigns"
+  | "suite";
 
 export interface NavItem {
   href: string;
@@ -52,6 +58,49 @@ const STUDIO: Product = {
         { href: "/library", label: "Library" },
         { href: "/templates", label: "Templates" },
       ],
+    },
+  ],
+};
+
+const GEN_STUDIO: Product = {
+  id: "studio-gen",
+  label: "Studio",
+  tagline: "Generative image, video, audio, and agent studios",
+  home: "/studio/image",
+  match: ["/studio"],
+  groups: [
+    {
+      label: "Generate",
+      items: [
+        { href: "/studio/image", label: "Image" },
+        { href: "/studio/video", label: "Video" },
+        { href: "/studio/audio", label: "Audio" },
+        { href: "/studio/lip-sync", label: "Lip Sync" },
+        { href: "/studio/cinema", label: "Cinema" },
+        { href: "/studio/recast", label: "Recast" },
+      ],
+    },
+    {
+      label: "Produce",
+      items: [
+        { href: "/studio/clipping", label: "Clipping" },
+        { href: "/studio/motion", label: "Motion" },
+        { href: "/studio/marketing", label: "Marketing" },
+        { href: "/studio/influencer", label: "Influencer" },
+      ],
+    },
+    {
+      label: "Automate",
+      items: [
+        { href: "/studio/workflows", label: "Workflows" },
+        { href: "/studio/agents", label: "Agents" },
+        { href: "/studio/design", label: "Design" },
+        { href: "/studio/apps", label: "Apps" },
+      ],
+    },
+    {
+      label: "Library",
+      items: [{ href: "/studio/history", label: "History" }],
     },
   ],
 };
@@ -143,7 +192,7 @@ const SUITE: Product = {
 
 /** Ordered for the launcher + switcher: Campaigns, Content, SEO, Ads,
  *  then Suite intentionally last. */
-export const PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS, SUITE];
+export const PRODUCTS: Product[] = [CAMPAIGNS, GEN_STUDIO, STUDIO, PRESS, ADS, SUITE];
 
 
 export function productById(id: ProductId): Product {
