@@ -55,6 +55,9 @@ class StudioModelOut(BaseModel):
     kind: StudioKind
     catalog_id: str | None = None
     provider: str
+    # The endpoint's declared inputs, trimmed to what we allow. Present for
+    # every model with a real schema; the UI builds its controls from it.
+    input_schema: dict = Field(default_factory=dict)
     output_kind: str
     unit: str
     usd_per_unit: Decimal
@@ -126,6 +129,7 @@ async def list_models(
             kind=m.kind,
             catalog_id=m.catalog_id or None,
             provider=m.provider,
+            input_schema=m.input_schema,
             output_kind=m.output_kind,
             unit=m.unit,
             usd_per_unit=m.usd_per_unit,

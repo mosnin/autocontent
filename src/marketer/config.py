@@ -137,6 +137,12 @@ class Settings(BaseSettings):
     # registry prices without a code deploy, e.g.
     # '{"fal-ai/veo3/image-to-video": "0.45"}'.
     fal_price_overrides: str = ""
+    # JSON array of extra Studio model entries (services/studio_gen.py's
+    # StudioModel shape), so a studio whose models have no generated or
+    # curated entry can be enabled against a provider path we already run
+    # without a code deploy. Same defensive-parse policy as
+    # fal_price_overrides: malformed entries are dropped but logged loudly.
+    studio_model_registry_extra: str = ""
 
     # --- Per-provider concurrency backpressure (services/provider_limits.py) -
     # Bounds how many in-flight calls to a given provider this PROCESS

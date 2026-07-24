@@ -78,6 +78,16 @@ When this contract and the reference implementation disagree, THIS WINS.
   cap state; it never simulates or bypasses it.
 - Uploads go through our upload endpoint to our object storage; user
   URLs are SSRF-checked server-side.
+- Generation runs on **fal**, not the reference implementation's own
+  vendor API. The model registry in
+  `src/marketer/services/studio_fal_registry.py` is generated from fal
+  itself (`scripts/studio_catalog/`): every entry was proven to resolve,
+  and carries fal's own published price plus the endpoint's real input
+  schema. Regenerate rather than hand-edit; correct a drifted price
+  through `MARKETER_FAL_PRICE_OVERRIDES`.
+- A model whose price we cannot compute honestly is absent from the
+  registry. Never ship an optimistic estimate — it would let a
+  generation start that the cap should have refused.
 - Generation history is server-side and per-user (it must survive a
   device change), not localStorage. Client-side storage is allowed only
   for ephemeral UI preferences (last model, last aspect ratio).

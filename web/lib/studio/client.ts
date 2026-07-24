@@ -5,6 +5,7 @@
 // server-side.
 
 import { clientFetch } from "@/lib/client-fetcher";
+import type { ModelInputField } from "./types";
 
 const STUDIO = "/api/v1/studio";
 
@@ -26,6 +27,12 @@ export interface StudioModel {
   kind: StudioKind;
   /** Entry in the local model catalog whose `inputs` schema drives controls. */
   catalog_id: string | null;
+  /**
+   * The endpoint's own declared inputs, trimmed to the params we allow.
+   * Authoritative when present: it describes exactly what will run, so
+   * controls built from it can never offer an option the endpoint rejects.
+   */
+  input_schema: Record<string, ModelInputField>;
   provider: string;
   output_kind: "image" | "video" | "audio";
   unit: string;

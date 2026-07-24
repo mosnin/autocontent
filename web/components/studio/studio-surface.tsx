@@ -48,10 +48,22 @@ export interface StudioSurfaceProps {
   emptyHint?: string;
 }
 
-const catalogEntry = (model: StudioModel | undefined): ModelDefinition | undefined =>
-  model?.catalog_id
+/**
+ * The schema a model's controls are built from.
+ *
+ * The endpoint's own declared inputs win: they describe exactly what will
+ * run. The ported catalog entry is the fallback for a model whose endpoint
+ * schema we don't carry.
+ */
+const schemaFor = (model: StudioModel | undefined): ModelDefinition | undefined => {
+  if (!model) return undefined;
+  if (model.input_schema && Object.keys(model.input_schema).length > 0) {
+    return { id: model.id, name: model.name, inputs: model.input_schema };
+  }
+  return model.catalog_id
     ? allModels.find((m) => m.id === model.catalog_id)
     : undefined;
+};
 
 export function StudioSurface({
   kind,
@@ -101,7 +113,7 @@ export function StudioSurface({
 
   const selected =
     eligible.find((m) => m.id === modelId) ?? eligible[0] ?? undefined;
-  const schema = catalogEntry(selected);
+  const schema = schemaFor(selected);
 
   // Switching model resets the controls to that model's own defaults —
   // carrying a previous model's values over would submit options it never

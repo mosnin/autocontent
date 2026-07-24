@@ -59,6 +59,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import mimetypes
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
@@ -143,7 +144,7 @@ class UnsafeInputURL(StudioGenError):
 
 StudioKind = Literal["image", "video", "audio", "lipsync", "video2video", "recast"]
 Provider = Literal["fal", "openai", "xai", "elevenlabs"]
-Unit = Literal["image", "second", "character"]
+Unit = Literal["image", "second", "character", "megapixel"]
 
 # Params we accept per kind and forward to the provider verbatim. Anything
 # outside this set is rejected rather than silently dropped — a param the
@@ -213,6 +214,15 @@ class StudioModel(BaseModel):
     max_duration_sec: int = 60
     # Extra request fields the endpoint requires.
     extra_body: dict[str, Any] = {}
+    # The endpoint's own input schema, trimmed to the params we allow. When
+    # present it is authoritative: the UI builds its controls from it and we
+    # send only the fields it declares, so a control can never offer an
+    # option the endpoint would reject.
+    input_schema: dict[str, Any] = {}
+    # Our payload key -> the field this endpoint reads it as. fal spells the
+    # same input differently across families (`image_urls`, `end_image_url`),
+    # and the UI should not have to know that.
+    field_map: dict[str, str] = {}
     # Matching entry in the UI model catalog (web/lib/studio/catalog). The
     # UI builds its controls from that entry's `inputs` schema; "" means we
     # have no schema for this model and the UI uses its generic controls.
@@ -471,6 +481,33 @@ STUDIO_MODELS: list[StudioModel] = [
 ]
 
 
+def _fal_registry() -> list[StudioModel]:
+    """The generated fal registry: every endpoint we verified exists, with
+    fal's own published price and its real input schema.
+
+    Parsed once — it is static data, unlike the operator-registered extras
+    that are re-read so a config change takes effect without a restart.
+    """
+    global _FAL_REGISTRY_CACHE
+    if _FAL_REGISTRY_CACHE is None:
+        from .studio_fal_registry import FAL_REGISTRY
+
+        parsed: list[StudioModel] = []
+        for item in FAL_REGISTRY:
+            try:
+                parsed.append(StudioModel.model_validate({**item, "provider": "fal"}))
+            except (ValidationError, TypeError) as exc:
+                log.warning(
+                    "studio registry: dropping generated entry",
+                    extra={"model": item.get("id"), "error": str(exc)},
+                )
+        _FAL_REGISTRY_CACHE = parsed
+    return _FAL_REGISTRY_CACHE
+
+
+_FAL_REGISTRY_CACHE: list[StudioModel] | None = None
+
+
 def _registry_extra() -> list[StudioModel]:
     """Operator-registered catalog entries, parsed per call.
 
@@ -539,7 +576,12 @@ def catalog() -> list[StudioModel]:
     """The live catalog: built-in entries plus operator-registered ones,
     with price overrides applied. Later entries win on id collision so an
     operator can correct a built-in outright."""
-    by_id: dict[str, StudioModel] = {m.id: m for m in STUDIO_MODELS}
+    by_id: dict[str, StudioModel] = {m.id: m for m in _fal_registry()}
+    # A curated entry wins over the generated one for the same endpoint: it
+    # carries the hand-checked extras (duration handling, request fields)
+    # that generation cannot infer.
+    for curated in STUDIO_MODELS:
+        by_id[curated.id] = curated
     for extra in _registry_extra():
         by_id[extra.id] = extra
     overrides = _fal_price_overrides()
@@ -658,6 +700,20 @@ def validate_params(model: StudioModel, params: dict) -> dict:
             f"{model.name} does not accept: {', '.join(unsupported)}"
         )
 
+    if model.input_schema:
+        # The endpoint told us what it takes. Sending it anything else would
+        # be dropped on the way out, and a silently ignored setting is worse
+        # than a refusal — the user would believe it applied.
+        undeclared = sorted(
+            key
+            for key in params
+            if key not in model.input_schema and key not in _OUR_PARAMS
+        )
+        if undeclared:
+            raise InvalidStudioParams(
+                f"{model.name} does not accept: {', '.join(undeclared)}"
+            )
+
     missing = [p for p in model.required_params if not params.get(p)]
     if missing:
         raise InvalidStudioParams(
@@ -702,6 +758,56 @@ def _resolve_duration(model: StudioModel, requested: Any) -> int:
     return seconds
 
 
+# fal's named image sizes, as megapixels. An unknown or free-form size
+# falls back to the largest thing these endpoints render, because an
+# under-estimate would let a generation start that the cap should refuse.
+_NAMED_SIZE_MP: dict[str, Decimal] = {
+    "square_hd": Decimal("1.05"),        # 1024x1024
+    "square": Decimal("0.26"),           # 512x512
+    "portrait_4_3": Decimal("0.79"),     # 768x1024
+    "portrait_16_9": Decimal("0.59"),    # 576x1024
+    "landscape_4_3": Decimal("0.79"),
+    "landscape_16_9": Decimal("0.59"),
+}
+_ASSUMED_MAX_MP = Decimal("4.2")  # 2048x2048
+
+
+def _megapixels(params: dict) -> Decimal:
+    """How many megapixels a request will be billed for.
+
+    Deliberately pessimistic: a size we cannot read is priced as the
+    largest output these endpoints produce.
+    """
+    size = params.get("image_size")
+    if isinstance(size, dict):
+        try:
+            width = int(size.get("width", 0))
+            height = int(size.get("height", 0))
+        except (TypeError, ValueError):
+            return _ASSUMED_MAX_MP
+        if width > 0 and height > 0:
+            return (Decimal(width * height) / Decimal(1_000_000)).quantize(
+                Decimal("0.0001")
+            )
+        return _ASSUMED_MAX_MP
+    if isinstance(size, str):
+        named = _NAMED_SIZE_MP.get(size)
+        if named is not None:
+            return named
+        match = re.fullmatch(r"(\d+)\s*[x×]\s*(\d+)", size.strip())
+        if match:
+            pixels = int(match.group(1)) * int(match.group(2))
+            return (Decimal(pixels) / Decimal(1_000_000)).quantize(Decimal("0.0001"))
+    return _ASSUMED_MAX_MP
+
+
+def _image_count(params: dict) -> int:
+    try:
+        return max(1, int(params.get("num_images") or 1))
+    except (TypeError, ValueError):
+        return 1
+
+
 def estimate_cost(model: StudioModel, params: dict) -> Decimal:
     """Pre-flight USD estimate — what the cap check gates on.
 
@@ -724,6 +830,10 @@ def estimate_cost(model: StudioModel, params: dict) -> Decimal:
             except ValueError as exc:
                 raise InvalidStudioParams(str(exc)) from exc
         return (model.usd_per_unit * Decimal(n)).quantize(Decimal("0.000001"))
+    if model.unit == "megapixel":
+        return (
+            model.usd_per_unit * _megapixels(params) * Decimal(_image_count(params))
+        ).quantize(Decimal("0.000001"))
     if model.unit == "character":
         text = str(params.get("text") or "")
         return (model.usd_per_unit * Decimal(len(text))).quantize(Decimal("0.000001"))
@@ -859,9 +969,21 @@ def _result_urls(result: dict) -> list[str]:
 
 
 def _build_fal_body(model: StudioModel, params: dict) -> dict:
-    body: dict[str, Any] = {
-        k: v for k, v in params.items() if k in _KIND_PARAMS.get(model.kind, ())
-    }
+    """The request the endpoint actually accepts.
+
+    Two filters, in order: our per-kind whitelist (the security envelope,
+    which never widens) and — when we know it — the endpoint's own declared
+    fields. Names are translated on the way out, so the rest of the system
+    only ever speaks our payload keys.
+    """
+    allowed = _KIND_PARAMS.get(model.kind, ())
+    body: dict[str, Any] = {}
+    for key, value in params.items():
+        if key not in allowed:
+            continue
+        if model.input_schema and key not in model.input_schema:
+            continue
+        body[model.field_map.get(key, key)] = value
     if model.unit == "second" and model.allowed_durations:
         seconds = _resolve_duration(model, params.get("duration_sec"))
         body["duration"] = f"{seconds}{model.duration_suffix}"
