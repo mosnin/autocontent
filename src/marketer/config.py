@@ -7,6 +7,16 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     xai_api_key: str = ""
     ayrshare_api_key: str = ""
+    # Zernio: social publishing + analytics, multi-tenant via profiles.
+    # Replaces Ayrshare. Both integrations ship side by side during the
+    # cutover; `publisher_provider` selects the live one.
+    zernio_api_key: str = ""
+    zernio_webhook_secret: str = ""
+    # Which publishing integration the pipeline uses: "zernio" | "ayrshare".
+    # Defaults to Ayrshare so an existing deploy does not silently change
+    # where its posts go the moment this lands — flip it deliberately once
+    # a Zernio key is configured and smoke-tested.
+    publisher_provider: str = "ayrshare"
     pixabay_api_key: str = ""
 
     # Supabase Postgres (use the pooler URL for the runtime app).

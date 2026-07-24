@@ -75,6 +75,7 @@ class User(BaseModel):
     id: str  # Clerk user_id
     email: str
     ayrshare_profile_key: str | None = None
+    zernio_profile_id: str | None = None
     global_daily_cap_usd: Decimal | None = None
     # Prepaid pipeline credit (hosted product). Ignored when billing is
     # disabled.
@@ -426,6 +427,27 @@ class StudioGeneration(BaseModel):
     error: str | None = None
     cost_usd: Decimal = Decimal("0")
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SocialAccount(BaseModel):
+    """One social account a user connected through Zernio.
+
+    `zernio_account_id` is what a publish sends as platforms[].accountId.
+    Zernio validates that id against the whole team rather than against a
+    profile, so `user_id` here is the ownership boundary — never resolve an
+    account id except through this user's rows.
+    """
+
+    id: UUID
+    user_id: str
+    zernio_account_id: str
+    zernio_profile_id: str
+    platform: Literal["tiktok", "reels", "shorts"]
+    username: str = ""
+    is_active: bool = True
+    connected_at: datetime = Field(default_factory=datetime.utcnow)
+    disconnected_at: datetime | None = None
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
 

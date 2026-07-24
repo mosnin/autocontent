@@ -28,7 +28,7 @@ from ..logging import get_logger
 from ..models import Niche
 from ..repos import image_posts as image_posts_repo
 from ..repos import niches as niches_repo
-from ..services import media_archive, openai_images, scheduler
+from ..services import media_archive, openai_images, publisher
 from ..services.spend_context import SpendContext, default_context
 from ..storage.volume import ensure_layout
 
@@ -36,7 +36,7 @@ log = get_logger(__name__)
 
 MAX_SLIDES = 10
 
-# Ayrshare can't post still images to YouTube ("shorts"); pick the first
+# No provider can post still images to YouTube ("shorts"); pick the first
 # platform that supports image posts so we fail BEFORE spending, not after.
 _IMAGE_CAPABLE = ("reels", "tiktok")
 
@@ -203,7 +203,7 @@ async def schedule_image_post(
         platform = image_platform(niche, post["payload"].get("platform")) or "reels"
         when = datetime.now(timezone.utc)
 
-        poster = apply_schedule or scheduler.schedule_image_post
+        poster = apply_schedule or publisher.schedule_image_post
         provider_post_id = await poster(
             image_paths=[Path(s["path"]) for s in slides],
             caption=caption,

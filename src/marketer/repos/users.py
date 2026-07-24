@@ -9,7 +9,7 @@ from ..models import User
 # and suspension were previously omitted here — the API reported balance 0
 # and no role regardless of the row (prior audit M14).
 _COLS = (
-    "id, email, ayrshare_profile_key, global_daily_cap_usd, "
+    "id, email, ayrshare_profile_key, zernio_profile_id, global_daily_cap_usd, "
     "credit_balance_usd, role, suspended_at, suspended_reason, "
     "email_notifications, created_at"
 )
@@ -42,6 +42,24 @@ async def get(user_id: str) -> User | None:
         user_id,
     )
     return User(**dict(row)) if row else None
+
+
+async def id_by_zernio_profile(profile_id: str) -> str | None:
+    """Which user owns this Zernio profile — the webhook routing key for
+    account events, which carry profileId but not our user id."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "select id from users where zernio_profile_id = $1", profile_id
+    )
+    return row["id"] if row else None
+
+
+async def set_zernio_profile_id(user_id: str, profile_id: str) -> None:
+    """Persist the user's Zernio profile. One per user, set once at connect."""
+    pool = await get_pool()
+    await pool.execute(
+        "update users set zernio_profile_id = $2 where id = $1", user_id, profile_id
+    )
 
 
 async def set_ayrshare_profile_key(user_id: str, key: str) -> None:

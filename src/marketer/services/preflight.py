@@ -132,6 +132,63 @@ def check_fal_video() -> CheckResult:
     )
 
 
+def check_publisher() -> CheckResult:
+    """The live publishing integration. An unset key here means finished
+    videos pile up with nowhere to go — the failure surfaces at the very
+    last stage of a job, after every cent of generation is spent."""
+    from . import publisher  # deferred: keeps preflight import-order-safe
+
+    provider = publisher.provider()
+    if provider not in ("ayrshare", "zernio"):
+        return _error(
+            "publishing",
+            f"MARKETER_PUBLISHER_PROVIDER is {provider!r}; expected "
+            "'ayrshare' or 'zernio'. Publishing will fail at the last "
+            "stage of every job.",
+        )
+    if not publisher.enabled():
+        key = "MARKETER_ZERNIO_API_KEY" if provider == "zernio" else "MARKETER_AYRSHARE_API_KEY"
+        # WARN, not ERROR: an absent capability is this module's WARN (see
+        # check_xai_video, which warns even though Grok is the DEFAULT video
+        # backend). ERROR is reserved for config that is actively wrong —
+        # like an unknown provider name above. A deploy that only generates
+        # and never publishes is a valid, if unusual, configuration.
+        return _warn(
+            "publishing",
+            f"publisher is {provider!r} but {key} is not set — jobs will "
+            "spend their full generation cost and then fail at the "
+            "publishing stage.",
+            provider=provider,
+        )
+    return _ok(
+        "publishing", f"{provider} configured for social publishing.", provider=provider
+    )
+
+
+def check_publisher_webhook() -> CheckResult:
+    """Post-lifecycle webhooks. Without the secret the receiver returns 503,
+    so a scheduled post's real outcome never reaches us and the job sits on
+    its optimistic status forever."""
+    from . import publisher  # deferred
+
+    if publisher.using_zernio():
+        if settings.zernio_webhook_secret:
+            return _ok("publishing.webhook", "Zernio webhook secret configured.")
+        return _warn(
+            "publishing.webhook",
+            "MARKETER_ZERNIO_WEBHOOK_SECRET is not set — /webhooks/zernio "
+            "returns 503, so publish outcomes and account disconnects never "
+            "reach us.",
+        )
+    if settings.ayrshare_webhook_secret:
+        return _ok("publishing.webhook", "Ayrshare webhook secret configured.")
+    return _warn(
+        "publishing.webhook",
+        "MARKETER_AYRSHARE_WEBHOOK_SECRET is not set — /webhooks/ayrshare "
+        "returns 503 and publish outcomes never reach us.",
+    )
+
+
 def check_fal_price_overrides() -> CheckResult:
     """Validate MARKETER_FAL_PRICE_OVERRIDES shape at boot.
 
@@ -377,6 +434,8 @@ _CHECKS = (
     check_xai_video,
     check_fal_video,
     check_fal_price_overrides,
+    check_publisher,
+    check_publisher_webhook,
     check_openrouter,
     check_elevenlabs_voice,
     check_generated_music,

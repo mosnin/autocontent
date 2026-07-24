@@ -62,8 +62,11 @@ as `MARKETER_<UPPERCASE_FIELD>`. Values with a default are optional.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `MARKETER_AYRSHARE_API_KEY` | `""` | Social posting + profiles. |
-| `MARKETER_AYRSHARE_WEBHOOK_SECRET` | `""` | HMAC for inbound webhooks; empty ⇒ endpoint returns 503. |
+| `MARKETER_PUBLISHER_PROVIDER` | `ayrshare` | Which integration is live: `ayrshare` or `zernio`. Defaults to Ayrshare so landing the Zernio code cannot silently redirect an existing deploy's posts. |
+| `MARKETER_ZERNIO_API_KEY` | `""` | Zernio posting, profiles, and analytics. |
+| `MARKETER_ZERNIO_WEBHOOK_SECRET` | `""` | Hex HMAC-SHA256 for `X-Zernio-Signature`; empty ⇒ `/webhooks/zernio` returns 503. |
+| `MARKETER_AYRSHARE_API_KEY` | `""` | Legacy. Social posting + profiles. |
+| `MARKETER_AYRSHARE_WEBHOOK_SECRET` | `""` | Legacy. Base-64 HMAC; empty ⇒ endpoint returns 503. |
 
 ### Object storage (Wasabi)
 

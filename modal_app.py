@@ -47,6 +47,14 @@ secrets = [
     modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
     modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
     modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
+    # Social publishing. Create with:
+    #   modal secret create marketer-zernio \
+    #     MARKETER_ZERNIO_API_KEY=... MARKETER_ZERNIO_WEBHOOK_SECRET=... \
+    #     MARKETER_PUBLISHER_PROVIDER=zernio
+    modal.Secret.from_name("marketer-zernio"),
+    # Generation providers. marketer-fal carries MARKETER_FAL_API_KEY, which
+    # every Studio model and the fal animation backend need.
+    modal.Secret.from_name("marketer-fal"),
 ]
 
 app = modal.App(APP_NAME, image=image, secrets=secrets)
@@ -517,9 +525,11 @@ async def daily_analytics_sync() -> dict:
     from marketer.db import get_pool
     from marketer.models import PostMetrics
     from marketer.repos import post_metrics as post_metrics_repo
-    from marketer.services.ayrshare_analytics import (
-        AyrshareAnalyticsError,
-        fetch_post_analytics,
+    from marketer.services.ayrshare_analytics import AyrshareAnalyticsError
+    from marketer.services.publisher import fetch_post_analytics
+    from marketer.services.zernio_analytics import (
+        AnalyticsPending,
+        AnalyticsUnavailable,
     )
 
     logger = logging.getLogger(__name__)
@@ -552,9 +562,12 @@ async def daily_analytics_sync() -> dict:
                 # (tiktok / instagram / youtube).  Our platform field uses
                 # our internal names; try both to be safe.
                 from marketer.services.scheduler import PLATFORM_MAP
-                ayr_key = PLATFORM_MAP.get(platform, platform)
+                # Ayrshare keys by ITS platform name; the Zernio client
+                # normalizes back to ours. Try both — one of them is right
+                # whichever provider produced this response.
+                vendor_key = PLATFORM_MAP.get(platform, platform)
                 analytics = (
-                    raw["analytics"].get(ayr_key)
+                    raw["analytics"].get(vendor_key)
                     or raw["analytics"].get(platform)
                     or {}
                 )
@@ -590,6 +603,15 @@ async def daily_analytics_sync() -> dict:
             )
             await post_metrics_repo.record(metrics)
             ok += 1
+        except (AnalyticsPending, AnalyticsUnavailable) as exc:
+            # Not a failure: the post has no metrics YET (still syncing) or
+            # the platforms failed to report this round. Recording zeros
+            # would fabricate a data point at the moment a post is newest;
+            # skipping leaves the series honest and the next run picks it up.
+            logger.info(
+                "analytics not ready for job %s provider_post_id=%s: %s",
+                job_id, provider_post_id, exc,
+            )
         except AyrshareAnalyticsError as exc:
             logger.warning(
                 "analytics fetch failed for job %s provider_post_id=%s: %s",
@@ -603,7 +625,7 @@ async def daily_analytics_sync() -> dict:
             )
             errors += 1
 
-    # Bound the fan-out so a large backlog doesn't hammer Ayrshare's
+    # Bound the fan-out so a large backlog doesn't hammer the provider's
     # rate limits and turn the whole sync into 429 noise.
     sem = asyncio.Semaphore(5)
 

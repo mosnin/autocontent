@@ -48,7 +48,8 @@ from .services import (
     otel,
     provider_fallback,
     provider_limits,
-    scheduler,
+    publisher,
+    scheduler,  # noqa: F401 — kept for tests monkeypatching pipeline.scheduler
     subtitle,
     video_qa,
 )
@@ -854,14 +855,14 @@ async def _schedule_stage(job: Job, niche: Niche) -> Job:
         job.status = JobStatus.scheduling
         await _persist(job)
         when = _next_posting_slot(niche)
-        post_id = await scheduler.schedule_post(
+        post_id = await publisher.schedule_post(
             video_path=Path(job.rendered.path),
             caption=job.script.idea.hook,
             hashtags=niche.hashtags,
             platform=job.platform,
             scheduled_for=when,
-            profile_key=None,  # resolved inside scheduler from user_id
             user_id=job.user_id,
+            job_id=job.id,
         )
         job.scheduled_for = when
         job.provider_post_id = post_id
