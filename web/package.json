@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify:catalog": "node --experimental-strip-types scripts/verify-catalog.mjs"
   },
   "dependencies": {
     "@ark-ui/react": "^5.37.2",
