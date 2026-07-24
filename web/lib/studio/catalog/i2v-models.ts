@@ -145,8 +145,8 @@ export const i2vModels: ModelDefinition[] = [
         "default": 5
       }
     },
-    "provider": "muapi",
-    "provider_name": "MuapiApp"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "motion-controls",
@@ -266,8 +266,8 @@ export const i2vModels: ModelDefinition[] = [
         "default": 5
       }
     },
-    "provider": "muapi",
-    "provider_name": "MuapiApp"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "vfx",
@@ -349,8 +349,8 @@ export const i2vModels: ModelDefinition[] = [
         "default": 5
       }
     },
-    "provider": "muapi",
-    "provider_name": "MuapiApp"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "veo3-image-to-video",
@@ -366,7 +366,7 @@ export const i2vModels: ModelDefinition[] = [
         "name": "prompt",
         "description": "Text prompt describing the desired video content.",
         "examples": [
-          "On a neon-lit street corner, a hyped street performer with a mic shouts: 'Yo! Big drop today! VEO3 just launched on muapi!' A crowd cheers as holograms of videos burst into the air and the muapi logo spins above."
+          "On a neon-lit street corner, a hyped street performer with a mic shouts: 'Yo! Big drop today! Veo 3 just launched!' A crowd cheers as holograms of videos burst into the air above them."
         ]
       },
       "aspect_ratio": {
@@ -398,7 +398,7 @@ export const i2vModels: ModelDefinition[] = [
         "name": "prompt",
         "description": "Text prompt describing the desired video content.",
         "examples": [
-          "A spaceship hovers over Earth. A digital billboard beams out: 'MuAPI is broadcasting creativity across the galaxy.' A robot host floats in zero gravity holding a prompt card: 'Let’s turn this into a story.' Suddenly, video panels fly around the ship with generated content."
+          "A spaceship hovers over Earth. A digital billboard beams out: 'Marketer.sh is broadcasting creativity across the galaxy.' A robot host floats in zero gravity holding a prompt card: 'Let’s turn this into a story.' Suddenly, video panels fly around the ship with generated content."
         ]
       },
       "aspect_ratio": {
@@ -1181,8 +1181,8 @@ export const i2vModels: ModelDefinition[] = [
         "default": "Balloon Flyaway"
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "seedance-lite-i2v",
@@ -1486,7 +1486,7 @@ export const i2vModels: ModelDefinition[] = [
         "name": "prompt",
         "description": "The prompt to generate the video",
         "examples": [
-          "Animate the scene: camera slowly dollies forward toward the robot, neon city lights begin to flicker, soft reflections shift across the dome glass, twilight deepens into night with subtle ambient glow. The robot raises its head and speaks in a clear futuristic voice: ‘WAN 2.5 is now available on the MuAPI app.’"
+          "Animate the scene: camera slowly dollies forward toward the robot, neon city lights begin to flicker, soft reflections shift across the dome glass, twilight deepens into night with subtle ambient glow. The robot raises its head and speaks in a clear futuristic voice: ‘WAN 2.5 is now available.’"
         ]
       },
       "resolution": {
@@ -1625,8 +1625,8 @@ export const i2vModels: ModelDefinition[] = [
         ]
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "openai-sora-2-pro-image-to-video",
@@ -1737,7 +1737,7 @@ export const i2vModels: ModelDefinition[] = [
         "name": "prompt",
         "description": "Text prompt describing the video.",
         "examples": [
-          "Scene: Giant floating library orbiting in zero-gravity space.\nCharacters: Astronaut-librarian flipping glowing pages suspended midair.\nAction: Camera rotates 360° around drifting books → zooms through a floating page into a nebula outside window.\nCamera: Orbit + push-through transition.\nLighting: Cool cosmic ambient with warm page glows; rim lighting on suit.\nMotion: Slow rotational drift; pages react with fluid inertia.\nAudio: Ethereal synth pads + book rustle in vacuum hush.\nMood: Awe, wonder, intellectual calm.\nLine: “Wow veo3.1 launched in Muapiapp. Let's go!”"
+          "Scene: Giant floating library orbiting in zero-gravity space.\nCharacters: Astronaut-librarian flipping glowing pages suspended midair.\nAction: Camera rotates 360° around drifting books → zooms through a floating page into a nebula outside window.\nCamera: Orbit + push-through transition.\nLighting: Cool cosmic ambient with warm page glows; rim lighting on suit.\nMotion: Slow rotational drift; pages react with fluid inertia.\nAudio: Ethereal synth pads + book rustle in vacuum hush.\nMood: Awe, wonder, intellectual calm.\nLine: “Wow, Veo 3.1 just launched. Let's go!”"
         ]
       },
       "aspect_ratio": {
@@ -6403,9 +6403,6 @@ export const i2vModels: ModelDefinition[] = [
         "title": "Reference Images",
         "name": "image_urls",
         "description": "Upload 1–7 reference images for the video. Maximum 20 MB each.",
-        "examples": [
-          "https://cdn.muapi.ai/assets/gemini-omni-image-to-video.jpg"
-        ],
         "maxItems": 7
       },
       "duration": {
@@ -6495,9 +6492,6 @@ export const i2vModels: ModelDefinition[] = [
         ]
       },
       "images_list": {
-        "examples": [
-          "https://cdn.muapi.ai/assets/grok-imagine-video-1-5-preview.jpg"
-        ],
         "description": "Upload or provide image URLs to use as input for video generation.",
         "field": "images_list",
         "type": "array",
@@ -6572,10 +6566,7 @@ export const i2vModels: ModelDefinition[] = [
         "title": "Image URL",
         "name": "image_url",
         "description": "URL of the input image used to generate video.",
-        "field": "image",
-        "examples": [
-          "https://cdn.muapi.ai/assets/kling-v3-turbo-standard-image-to-video.jpg"
-        ]
+        "field": "image"
       },
       "duration": {
         "type": "int",
@@ -6613,10 +6604,7 @@ export const i2vModels: ModelDefinition[] = [
         "title": "Image URL",
         "name": "image_url",
         "description": "URL of the input image used to generate video.",
-        "field": "image",
-        "examples": [
-          "https://cdn.muapi.ai/assets/kling-v3-turbo-pro-image-to-video.jpg"
-        ]
+        "field": "image"
       },
       "duration": {
         "type": "int",

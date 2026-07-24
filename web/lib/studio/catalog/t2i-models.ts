@@ -401,8 +401,8 @@ export const t2iModels: ModelDefinition[] = [
         "isEdit": true
       }
     },
-    "provider": "muapi",
-    "provider_name": "MuapiApp"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "wan2.1-text-to-image",
@@ -798,7 +798,7 @@ export const t2iModels: ModelDefinition[] = [
     "inputs": {
       "prompt": {
         "examples": [
-          "A retro 80s style poster with the words 'MUAPI APP' glowing in pink and blue neon lights, cyberpunk city skyline in the background, cinematic design, highly detailed."
+          "A retro 80s style poster with the words 'MARKETER.SH' glowing in pink and blue neon lights, cyberpunk city skyline in the background, cinematic design, highly detailed."
         ],
         "description": "Text prompt describing the image.",
         "type": "string",

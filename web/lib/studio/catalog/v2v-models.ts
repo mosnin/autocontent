@@ -18,8 +18,8 @@ export const v2vModels: ModelDefinition[] = [
     "videoField": "video_url",
     "hasPrompt": false,
     "description": "Remove watermarks, logos, captions, and unwanted text from videos.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "kling-v2.6-std-motion-control",
@@ -68,8 +68,8 @@ export const v2vModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "description": "Replace faces in videos with stunning realism.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "mmaudio-v2-video-to-video",
@@ -113,8 +113,8 @@ export const v2vModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": true,
     "description": "Bring your characters and worlds to life with AI Dance Effects — a creative video effect that adds playful, dynamic, and cinematic motion to your generations.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "ai-video-upscaler",
@@ -124,8 +124,8 @@ export const v2vModels: ModelDefinition[] = [
     "videoField": "video_url",
     "hasPrompt": false,
     "description": "The AI Video Upscaler is a powerful tool designed to enhance the resolution and quality of videos.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "wan2.2-edit-video",
@@ -146,8 +146,8 @@ export const v2vModels: ModelDefinition[] = [
     "videoField": "video_url",
     "hasPrompt": false,
     "description": "Convert any video into 175+ languages with synchronized voice translation, AI-voice cloning, and accurate lip sync.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "topaz-video-upscale",
@@ -168,8 +168,8 @@ export const v2vModels: ModelDefinition[] = [
     "videoField": "video_url",
     "hasPrompt": false,
     "description": "The AI Video Upscaler is a powerful tool designed to enhance the resolution and quality of videos.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "remix-video",
@@ -179,8 +179,8 @@ export const v2vModels: ModelDefinition[] = [
     "videoField": "video_url",
     "hasPrompt": false,
     "description": "Transform and resize your videos effortlessly with remix video tool.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "kling-o1-video-edit",
@@ -257,8 +257,8 @@ export const v2vModels: ModelDefinition[] = [
     "imageField": "watermark_image_url",
     "hasPrompt": false,
     "description": "Add custom watermark to videos with adjustable position, opacity, and size.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "seedance-2-watermark-remover",
@@ -279,8 +279,8 @@ export const v2vModels: ModelDefinition[] = [
     "videoField": "video_url",
     "hasPrompt": false,
     "description": "Add AI-generated animated captions to any video using Vadoo's caption engine.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "ltx-2.3-video-extend",
@@ -400,8 +400,8 @@ export const v2vModels: ModelDefinition[] = [
     "videoField": "video_url",
     "hasPrompt": false,
     "description": "Video Background Remover automatically removes the background from any video, producing a clean cutout of the subject with a transparent or solid-color backdrop.",
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "kling-v2.6-pro-motion-control",

@@ -1634,8 +1634,8 @@ export const t2vModels: ModelDefinition[] = [
         "default": "16:9"
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "grok-imagine-text-to-video",

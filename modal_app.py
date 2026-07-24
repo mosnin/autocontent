@@ -159,6 +159,23 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 30,
 )
+async def run_studio_generation(user_id: str, generation_id: str) -> dict:
+    """Drive one Studio generation to a terminal state.
+
+    Spawned by `POST /api/v1/studio/generations`. The row is claimed
+    atomically inside, so a duplicate spawn never pays twice."""
+    from uuid import UUID
+    from marketer.services.studio_gen import run_generation
+
+    result = await run_generation(user_id=user_id, generation_id=UUID(generation_id))
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 30,
+)
 async def run_image_post(user_id: str, image_post_id: str) -> dict:
     """Drive one image post (still or carousel) to a terminal state."""
     from uuid import UUID
@@ -374,23 +391,28 @@ async def reap_stale_jobs() -> dict:
     from marketer.repos import jobs as jobs_repo
 
     from marketer.repos import image_posts as image_posts_repo
+    from marketer.repos import studio as studio_repo
 
     reaped = await jobs_repo.reap_stale(older_than_minutes=120)
     reaped_articles = await articles_repo.reap_stale(older_than_minutes=120)
     reaped_images = await image_posts_repo.reap_stale(older_than_minutes=120)
+    # Studio generations are minutes, not hours: a row with no progress for
+    # an hour is dead, and the history panel polls it forever until it is.
+    reaped_studio = await studio_repo.reap_stale(older_than_minutes=60)
     # Idempotency claims expire on their own TTL (claim() treats an expired
     # row as reclaimable), so this is pure disk cleanup, not a correctness
     # dependency — safe to run on the same cadence as the other reapers.
     reaped_idempotency_keys = await idempotency_repo.reap_expired()
-    if reaped or reaped_articles or reaped_images:
+    if reaped or reaped_articles or reaped_images or reaped_studio:
         logging.getLogger(__name__).error(
-            "reaped %d stale job(s), %d article(s), %d image post(s) — a container died or timed out mid-run",
-            reaped, reaped_articles, reaped_images,
+            "reaped %d stale job(s), %d article(s), %d image post(s), %d studio generation(s) — a container died or timed out mid-run",
+            reaped, reaped_articles, reaped_images, reaped_studio,
         )
     return {
         "reaped": reaped,
         "reaped_articles": reaped_articles,
         "reaped_images": reaped_images,
+        "reaped_studio": reaped_studio,
         "reaped_idempotency_keys": reaped_idempotency_keys,
     }
 

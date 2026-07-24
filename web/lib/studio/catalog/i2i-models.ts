@@ -18,7 +18,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -41,8 +41,8 @@ export const i2iModels: ModelDefinition[] = [
         "step": 1
       }
     },
-    "provider": "muapi",
-    "provider_name": "MuapiApp"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "ai-dress-change",
@@ -52,7 +52,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "model_image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -63,7 +63,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -84,7 +84,7 @@ export const i2iModels: ModelDefinition[] = [
         ]
       }
     },
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -95,7 +95,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -106,7 +106,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -177,7 +177,7 @@ export const i2iModels: ModelDefinition[] = [
         ]
       }
     },
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -188,7 +188,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -199,7 +199,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -210,7 +210,7 @@ export const i2iModels: ModelDefinition[] = [
     "imageField": "image_url",
     "hasPrompt": false,
     "inputs": {},
-    "provider": "muapi",
+    "provider": "marketer",
     "provider_name": "Fal"
   },
   {
@@ -887,8 +887,8 @@ export const i2iModels: ModelDefinition[] = [
         "default": "Angel Figurine"
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "nano-banana-edit",
@@ -1355,8 +1355,8 @@ export const i2iModels: ModelDefinition[] = [
         "default": "4k"
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "qwen-image-edit-plus-lora",
@@ -1496,8 +1496,8 @@ export const i2iModels: ModelDefinition[] = [
         "default": true
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "kling-o1-edit-image",
@@ -2042,8 +2042,8 @@ export const i2iModels: ModelDefinition[] = [
         ]
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "flux-2-klein-4b-edit",
@@ -2158,8 +2158,8 @@ export const i2iModels: ModelDefinition[] = [
         "default": 0.2
       }
     },
-    "provider": "muapi",
-    "provider_name": "Muapi"
+    "provider": "marketer",
+    "provider_name": "Marketer.sh"
   },
   {
     "id": "nano-banana-2-edit",
@@ -2620,10 +2620,7 @@ export const i2iModels: ModelDefinition[] = [
         "name": "image_url",
         "title": "Image URL",
         "description": "Upload a clear portrait photo.",
-        "field": "image",
-        "examples": [
-          "https://cdn.muapi.ai/outputs/d09a771a8b2a45f1b0b5e6aba5955f1b.jpg"
-        ]
+        "field": "image"
       },
       "name": {
         "type": "string",
@@ -3068,9 +3065,6 @@ export const i2iModels: ModelDefinition[] = [
         ]
       },
       "images_list": {
-        "examples": [
-          "https://cdn.muapi.ai/assets/nano-banana-2-lite-edit-in.jpg"
-        ],
         "description": "Reference image URLs to edit. Up to 14 images.",
         "field": "images_list",
         "type": "array",

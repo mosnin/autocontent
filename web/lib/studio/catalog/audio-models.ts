@@ -1005,7 +1005,7 @@ export const audioModels: ModelDefinition[] = [
       },
       "prompt": {
         "examples": [
-          "Hello! Welcome to Muapiapp! This is a preview of your cloned voice. I hope you enjoy it!"
+          "Hello! This is a preview of your cloned voice. I hope you enjoy it!"
         ],
         "description": "Text for audio preview. Limited to 2000 characters.",
         "type": "string",
@@ -1509,7 +1509,7 @@ export const audioModels: ModelDefinition[] = [
           "Afrikaans_male_1_v1",
           "Afrikaans_female_1_v1"
         ],
-        "description": "Desired voice ID. Use a voice ID you have trained (https://muapi.ai/playground/minimax-voice-clone), or one of the following system voice IDs",
+        "description": "Desired voice ID. Use a voice ID you have trained, or one of the following system voice IDs",
         "type": "string",
         "typing": true,
         "title": "Voice ID",
@@ -1686,7 +1686,7 @@ export const audioModels: ModelDefinition[] = [
     "inputs": {
       "prompt": {
         "examples": [
-          "Welcome to Minimax-Speech 2.6 by Muapiapp! Get ready for an audio revolution! We are thrilled to introduce a model so realistic, it's virtually indistinguishable from a human voice. You're going to be amazed by its lifelike delivery!"
+          "Welcome to Minimax-Speech 2.6! Get ready for an audio revolution! We are thrilled to introduce a model so realistic, it's virtually indistinguishable from a human voice. You're going to be amazed by its lifelike delivery!"
         ],
         "description": "Text to convert to speech. Every character is 1 token. Maximum 10000 characters. Use <#x#> between words to control pause duration (0.01-99.99s).",
         "type": "string",
@@ -2168,7 +2168,7 @@ export const audioModels: ModelDefinition[] = [
           "Afrikaans_male_1_v1",
           "Afrikaans_female_1_v1"
         ],
-        "description": "Desired voice ID. Use a voice ID you have trained (https://muapi.ai/playground/minimax-voice-clone), or one of the following system voice IDs",
+        "description": "Desired voice ID. Use a voice ID you have trained, or one of the following system voice IDs",
         "type": "string",
         "typing": true,
         "title": "Voice ID",
