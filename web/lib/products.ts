@@ -83,19 +83,18 @@ const GEN_STUDIO: Product = {
     {
       label: "Produce",
       items: [
-        { href: "/studio/clipping", label: "Clipping" },
-        { href: "/studio/motion", label: "Motion" },
-        { href: "/studio/marketing", label: "Marketing" },
-        { href: "/studio/influencer", label: "Influencer" },
+        { href: "/studio/clipping", label: "Clipping", soon: true },
+        { href: "/studio/motion", label: "Motion", soon: true },
+        { href: "/studio/marketing", label: "Marketing", soon: true },
+        { href: "/studio/influencer", label: "Influencer", soon: true },
       ],
     },
     {
       label: "Automate",
       items: [
-        { href: "/studio/workflows", label: "Workflows" },
-        { href: "/studio/agents", label: "Agents" },
-        { href: "/studio/design", label: "Design" },
-        { href: "/studio/apps", label: "Apps" },
+        { href: "/studio/workflows", label: "Workflows", soon: true },
+        { href: "/studio/agents", label: "Agents", soon: true },
+        { href: "/studio/design", label: "Design", soon: true },
       ],
     },
     {
