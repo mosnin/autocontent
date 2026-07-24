@@ -8,7 +8,7 @@ reads. If a variable is not listed here, nothing reads it.
 
 | Store | What | How it's reached |
 |---|---|---|
-| **Supabase Postgres** | Every row: users, niches, jobs, articles, campaigns, ads, spend ledger, media index, studio generations. | `asyncpg` pool (`src/marketer/db.py`), `MARKETER_DATABASE_URL`. Use the **pooler** connection string. |
+| **Neon Postgres** | Every row: users, niches, jobs, articles, campaigns, ads, spend ledger, media index, studio generations. | `asyncpg` pool (`src/marketer/db.py`), `MARKETER_DATABASE_URL`. The `-pooler` endpoint is PgBouncer in transaction mode; `db.py` detects that and sets `statement_cache_size=0`, which is what makes it safe for asyncpg. |
 | **Modal Volumes** | `marketer-artifacts` (renders in flight), `marketer-assets` (static inputs). Ephemeral working storage, not a library. | Mounted at `/artifacts` and `/assets`. |
 | **Wasabi (S3-compatible)** | Durable media library + Studio outputs and reference uploads. Optional; without it media stays on the volume and does not survive a recycle. | `boto3`, `MARKETER_WASABI_*`. |
 | **Redis** | Distributed rate-limit buckets only. Optional — falls back to in-process memory, which is correct for a single instance. | `MARKETER_RATE_LIMIT_REDIS_URL`. |
