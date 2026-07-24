@@ -29,7 +29,7 @@ was wrong, duplicated, or silently dropped.
 |---|---|---|
 | **Unattended runs** | Recurring work executes and closes itself out; the operator sees exceptions, not tasks. | 5–10× |
 | **Parallel breadth** | One operator supervises many Spaces (clients, brands, niches) instead of one. | 5–20× |
-| **First-pass yield** | Verification before publish, plus memory of what failed last time, kills the rework loop. | 2–3× |
+| **First-pass yield** | QA audits before publish, revision loops with specific findings, and memory of what failed last time kill the rework loop. | 2–3× |
 | **Cost per unit** | Model routing + context budget + caching + semantic reuse cut spend per completed task. | 2–5× on cost |
 
 The plan is ordered by that table, not by the notecard branches. Reliability
@@ -71,6 +71,29 @@ already is a user-level skill injected into agent runtimes, and
 `SpendContext` already is the product refusing what a prompt asked for.
 Phase 5 generalizes both.
 
+### The shape it takes: a corporation
+
+That rule has a natural org. A **Manager** agent owns the objective, breaks
+it into projects and tasks, and assigns them. A roster of **Employee**
+agents carries out assigned work. A **QA** function reviews output against
+the standard before it counts as done, and sends it back with specific
+findings when it does not. The operator is the owner the manager reports
+to — and the only one who can change what the standard is.
+
+The metaphor earns its place in exactly three ways:
+
+1. **Accountability** — every task has exactly one assignee, and delegating
+   work does not transfer responsibility for it.
+2. **Review lines** — who checks whose work is explicit, configurable data,
+   not something implied by a prompt.
+3. **Performance** — an employee whose work is measured can be compared,
+   tuned, given more of what it is good at, or retired.
+
+Where it stops, deliberately: no titles, no promotions, no org politics, no
+simulated morale or personalities. Those are HR-ware — surface area with no
+capability behind it. The corporation here is an accountability structure,
+not a simulation of one.
+
 ---
 
 ## 2. Coverage map — all 120 patterns
@@ -109,8 +132,8 @@ with the reason.
 | 24 | Adaptive reasoning effort | P3.6 | effort tier from task risk × uncertainty |
 | 25 | Inference time scaling | P3.7 | n-sample + verify on high-stakes outputs |
 | 26 | Self reflection | P3.7 | draft→critique→revise before submit |
-| 27 | Verifier model | Have → P3.7 | `agents/qa.py`, `video_qa.py` generalized |
-| 28 | Process supervision | P3.7 | step-level acceptance, not just final |
+| 27 | Verifier model | Have → P3.7 | the QA agent; `agents/qa.py`, `video_qa.py` generalized |
+| 28 | Process supervision | P3.7 | `qa_mode = process`: step-level acceptance |
 | 29 | Value of information | P3.8 | ask-the-human threshold |
 | 30 | Stopping criterion | P3.8 | success ∨ budget ∨ no-progress |
 
@@ -189,13 +212,13 @@ with the reason.
 | # | Term | Status | Where |
 |---|---|---|---|
 | 1 | Orchestrator | P6.1 | the Operate runtime |
-| 2 | Supervisor pattern | P6.1 | Space Supervisor role |
+| 2 | Supervisor pattern | P1.4, P6.1 | the Manager: plans, staffs, dispositions |
 | 3 | Router pattern | P6.2 | cheap classifier → specialist |
 | 4 | Handoff | P6.2 | typed context transfer |
-| 5 | Delegation | P6.2 | bounded subtask, retained accountability |
+| 5 | Delegation | P1.4, P6.2 | bounded subtask, accountability stays with the delegator |
 | 6 | Blackboard architecture | P6.3 | the Space *is* the blackboard |
 | 7 | Contract net protocol | Decline | bidding presumes competing autonomous agents; ours are our own roles with known costs |
-| 8 | Role specialization | P6.1 | roles carry tools, skills, grants |
+| 8 | Role specialization | P1.4 | employees carry role, tools, skills, grants, capacity |
 | 9 | Swarm orchestration | Decline | emergent coordination is unauditable, and audit is a product requirement |
 | 10 | Parallel fan out and fan in | P6.4 | per-task concurrency with a join |
 | 11 | Map reduce for agents | P6.4 | e.g. 40 competitor posts → one brief |
@@ -214,7 +237,7 @@ with the reason.
 | 24 | Dead letter queue | Have → P2.4 | `routes/failures.py` becomes actionable, not read-only |
 | 25 | Distributed tracing | Have → P7.4 | `services/otel.py` spans over agent steps |
 | 26 | Trace grading | P7.4 | score whole trajectories |
-| 27 | Agent evaluation | P7.6 | offline suite + online scorecards |
+| 27 | Agent evaluation | P7.6 | offline eval suite + per-employee scorecards |
 | 28 | Guardrail | P7.1 | pre/post checks on every action |
 | 29 | Policy as code | P7.2 | versioned, testable rules |
 | 30 | Budget governor | Have → P7.3 | `SpendContext` extended to time/tokens/actions |
@@ -276,7 +299,7 @@ then made not-null — to `niches`, `campaigns`, `articles`, `jobs`,
 
 Tabs (all inside the existing `SiteShell`, built from
 `components/square/ui/*` — no new design system):
-`Overview · Scheduled · Work · Knowledge · Skills · Agents · Activity · Settings`
+`Overview · Scheduled · Work · Team · Knowledge · Skills · Activity · Settings`
 
 **Done when:** an operator can create a Space, everything they already had
 appears inside their Default Space, and no existing route regressed.
@@ -359,6 +382,61 @@ what stalls.
 **Done when:** killing a worker mid-run and re-dispatching produces one
 logical effect, not two, and the event log alone reconstructs final state.
 
+### Phase 1.4 — The org: manager, employees, review lines
+
+**Covers:** role specialization, delegation, supervisor pattern (the roster
+half; the coordination half is Part VI).
+
+An **agent** is a configured employee: a role plus its model defaults,
+policy, skills, grants, budget, and capacity. Roles are the job
+descriptions; agents are the staff.
+
+```sql
+create table operate_agents (
+  id uuid primary key, space_id uuid not null, user_id text not null,
+  name text not null,                        -- "Ops Manager", "Senior Writer"
+  role text not null,                        -- manager|researcher|writer|qa|…
+  reports_to_agent_id uuid,                  -- org chart; null = reports to the operator
+  can_assign boolean not null default false, -- only manager-class agents
+  can_review boolean not null default false, -- only QA-class agents
+  status text not null default 'active',     -- active | paused | retired
+  policy_id uuid, skill_ids uuid[] not null default '{}',
+  grant_ids uuid[] not null default '{}',
+  model_defaults jsonb not null default '{}',
+  budget_usd numeric(12,4),                  -- per period, rolls into the governor
+  max_concurrent int not null default 1,     -- capacity, i.e. headcount as a dial
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+```
+
+`operate_tasks` gains the columns that make a task a work assignment:
+
+```sql
+alter table operate_tasks
+  add column assigned_agent_id uuid,     -- null = assigned to the operator
+  add column reviewer_agent_id uuid,     -- who audits it; null = no audit
+  add column qa_mode text,               -- null = inherit (see Phase 3.7)
+  add column revision_round int not null default 0;
+```
+
+Four rules, enforced in the service rather than asked for in a prompt:
+
+- **Only `can_assign` agents may create or assign tasks.** Assignment is an
+  action in the registry like any other, subject to grants — a manager that
+  can assign work does not thereby gain the power to publish it.
+- **`reports_to_agent_id` must be acyclic** and every chain must terminate
+  at the operator. An org with no human at the top is an org with no owner.
+- **An agent can never review its own work.** `reviewer_agent_id !=
+  assigned_agent_id`, checked at write time. Self-approval is not QA.
+- **Capacity is a budget lever.** `max_concurrent` and per-agent budget are
+  how an operator scales a team up or down; adding staff is a settings
+  change, not a deploy.
+
+**Done when:** an operator can see their org chart, hire (create), pause,
+and retire employees, and every task in the Space names both who does it
+and who checks it.
+
 ---
 
 ## PART II — Scheduled work (the Scheduled tab)
@@ -404,19 +482,29 @@ guarantee: a daily 9am task set cannot double-fire because a cron ran twice
 or a container retried.
 
 **Templates are the useful unit.** A schedule instantiates a *set* of tasks
-with their dependencies — "Daily content ops" is not one task, it is:
+with their dependencies, each already assigned to an employee and — where
+QA is on — to a reviewer. "Daily content ops" is not one task, it is a
+morning of work the team walks through:
 
 ```
-09:00  Pull yesterday's metrics            (agent, low risk)
+09:00  Pull yesterday's metrics            Analyst        low     no QA
    ↓
-09:05  Flag underperformers vs. baseline   (agent, low risk)
+09:05  Flag underperformers vs. baseline   Analyst        low     no QA
    ↓
-09:10  Draft 3 replacement hooks           (agent, low risk)
+09:10  Draft 3 replacement hooks           Writer         low     QA: sample
    ↓
-09:20  Queue winners for render            (agent, medium risk)
-   ↓
-09:30  Review queue                        (human, blocking)
+09:20  Queue winners for render            Director       medium  QA: always
+   ↓                                                              ↳ QA agent
+   ↓                                                                audits,
+   ↓                                                                revises once
+09:30  Approve the queue                   You            —       blocking
 ```
+
+A manager agent can also author schedules: "every Monday, plan the week"
+is a scheduled task assigned to the Manager whose *output* is next week's
+task graph. That is the recursion that makes the system run itself — the
+manager's own work is scheduled work like anyone else's, and is auditable
+the same way.
 
 ### Phase 2.2 — The dispatcher
 
@@ -521,20 +609,95 @@ expensive path is reserved for what actually needs it. The Studio registry
 (139 models with real prices) already gives the media half of this a real
 cost table to route against.
 
-### Phase 3.7 — Verification: reflection, verifiers, process supervision
+### Phase 3.7 — Quality assurance: audits, verdicts, revision loops
 
-Three layers, applied by risk class:
+The brief asks for QA audits and revision feedback loops that can be
+**toggled on**. This phase is that feature, and it is what makes unattended
+work safe enough to fan out.
 
-1. **Self-reflection** (all tasks): draft → critique against acceptance →
-   revise, once.
-2. **Independent verifier** (medium+): a separate role that *only* scores,
-   never generates, and is given the acceptance criteria and the artifact —
-   generalizing `agents/qa.py` and `services/video_qa.py`.
-3. **Process supervision** (high): step-level acceptance, so a bad step is
-   caught at step 3 rather than at the finished artifact.
+#### The toggle
 
-Verification failures are events, feed episodic memory, and are the
-substrate for the **first-pass-yield multiplier**.
+`qa_mode` resolves most-specific-wins: task → task kind → schedule → Space
+default. Four values:
+
+| Mode | What happens | Use |
+|---|---|---|
+| `off` | Ships on the executor's own self-critique. | Reversible, low-stakes work. |
+| `sample` | Audits a configurable percentage. | Steady-state work you already trust. |
+| `always` | Every task audited before it can reach `done`. | Anything published or paid for. |
+| `process` | Step-level audit during the run, not just at the end. | High risk, long tasks. |
+
+Sampling is not decoration: it is how you keep measuring quality after you
+stop auditing everything, so a regression surfaces before it compounds.
+
+#### Three layers of checking
+
+1. **Self-reflection** (all modes, including `off`): draft → critique
+   against the task's `acceptance` → revise, once, inside the run.
+2. **Independent audit** (`sample`, `always`): a QA agent that *only*
+   scores and never rewrites, given the acceptance criteria and the
+   artifact. Generalizes `agents/qa.py` and `services/video_qa.py`.
+3. **Process supervision** (`process`): step-level acceptance so a bad step
+   is caught at step 3 rather than in the finished artifact.
+
+#### The verdict
+
+```sql
+create table operate_reviews (
+  id uuid primary key, task_id uuid not null, run_id uuid,
+  space_id uuid not null, user_id text not null,
+  reviewer_agent_id uuid not null,
+  round int not null default 1,
+  verdict text not null,          -- pass | revise | reject | escalate
+  score numeric(4,3),             -- against the acceptance criteria
+  findings jsonb not null default '[]',
+  -- findings: [{criterion, met, evidence, suggested_fix}]
+  created_at timestamptz not null default now()
+);
+```
+
+**Findings are per criterion, with evidence and a suggested fix.** This is
+the difference between a loop that converges and one that does not: a
+reviewer who says "make it better" produces a second draft that is
+differently wrong. A reviewer who says *"criterion 3 (hook in first 2s) not
+met — the hook lands at 4.1s; cut the establishing shot"* produces a fix.
+
+#### The revision loop
+
+```text
+Employee submits → status: review
+   ↓
+Reviewer scores against acceptance
+   ↓
+pass ─────────→ done
+revise ───────→ back to the assignee with findings, revision_round += 1
+reject ───────→ failed (with the reason on the task)
+escalate ─────→ blocked, with a specific question for the operator
+```
+
+Bounded by `max_revision_rounds` (default 2). Exceeding it **escalates
+rather than loops** — an unbounded revise cycle is the expensive failure
+mode of this whole design, and the cap is enforced by the runtime, not by
+asking the reviewer to be reasonable. Each round's cost is charged to the
+task and visible on it, so a task that took four attempts is not silently
+as cheap as one that took one.
+
+Two rules that protect the measurement:
+
+- **The reviewer never rewrites.** The moment QA fixes the work itself, the
+  employee's quality signal disappears and Phase 7.6's numbers become
+  fiction.
+- **A `revise` verdict must cite at least one unmet criterion.** A verdict
+  with no findings is rejected as malformed, which prevents "vibes" review.
+
+#### The loop that teaches
+
+Every review is an event and an episode. When the same finding recurs
+across an employee's tasks, consolidation (Phase 4.7) proposes it as a
+durable correction: an addition to that role's skill, a fact in the Space's
+knowledge, or a tightened acceptance criterion. **That is where QA stops
+being a tax and becomes the mechanism that raises first-pass yield** — the
+2–3× multiplier in §0 is this loop, not the audit itself.
 
 ### Phase 3.8 — Stopping and value of information
 
@@ -697,26 +860,47 @@ published post actually rendered — not general web operation.
 
 ---
 
-## PART VI — Multi-agent orchestration
+## PART VI — The corporation at scale
 
-*Only now, because multi-agent on an unreliable, unverified substrate
-multiplies problems faster than output.*
+*Only now, because a team on an unreliable, unaudited substrate multiplies
+problems faster than output. Phase 1.4 gave us a roster; this part is how a
+roster does work together.*
 
-### Phase 6.1 — Supervisor and roles
+### Phase 6.1 — The manager and staffing
 
-A Space Supervisor holds the objective, selects specialists, reviews
-results, and decides next steps. Roles (Researcher, Strategist, Writer,
-Director, Editor, Analyst, Publisher) are configuration: prompt, policy,
-tools, skills, grants, budget, model routing defaults. Operators can edit
-roles and add their own — this is where "more customization for the AI
-agents" lands in the UI without changing the shell.
+The Manager holds the objective, decides what the work is, staffs it, and
+decides what happens next when a result comes back. Concretely it owns
+three loops:
+
+- **Planning** — objective → projects → task graph (Phase 3.1), on a
+  schedule ("every Monday, plan the week") or on demand.
+- **Staffing** — which employee takes which task, given role fit, current
+  load against `max_concurrent`, remaining per-agent budget, and the
+  performance history in Phase 7.6. An overloaded employee is a queue, not
+  a failure — the manager either waits, splits the work, or asks the
+  operator to raise capacity.
+- **Disposition** — on `pass`, close and move on; on `reject` or repeated
+  `revise`, decide whether to re-brief, reassign to a different employee,
+  or escalate to the operator.
+
+Roles (Researcher, Strategist, Writer, Director, Editor, Analyst,
+Publisher, QA) are configuration: prompt, policy, tools, skills, grants,
+budget, capacity, model routing defaults. Operators can edit them and add
+their own — this is where "more customization for the AI agents" lands in
+the UI without changing the shell.
+
+A **project** is the unit a manager works in: an objective, its task graph,
+its staffed team, its budget, and its deadline. It is the same rows as
+everything else — objectives and tasks — with a view over them, not a new
+concept to maintain.
 
 ### Phase 6.2 — Router, handoff, delegation
 
 A cheap classifier routes incoming work to a role. Handoffs are typed
 records (what was done, what remains, what is uncertain) — not a dumped
 transcript. Delegation keeps accountability with the delegator: the parent
-task stays open until the child's acceptance passes.
+task stays open until the child's acceptance passes, which is the whole
+point of an org chart that terminates at a human.
 
 ### Phase 6.3 — The Space as blackboard
 
@@ -744,24 +928,94 @@ is reserved for the genuinely contested calls, because it is expensive.
 
 *Runs alongside every part above, gated as its own deliverables.*
 
-- **7.1 Guardrails** — pre-action and post-action checks: brand rules,
-  banned claims, PII, platform policy, spend, rate. Block, modify, or
-  escalate; every decision an event.
-- **7.2 Policy as code** — rules as versioned, testable, diffable code
-  with a test suite, not prose in a prompt.
-- **7.3 Budget governor** — `SpendContext` extended from money to money +
-  tokens + wall clock + action counts + concurrency, per Space, per
-  schedule, per run. Fail-closed, as today.
-- **7.4 Tracing and trace grading** — OTel spans across agents, tools, and
-  models, joined to `operate_events`; graded trajectories locate *workflow*
-  failures (right answer, insane path) that output-only grading misses.
-- **7.5 Circuit breakers** — explicit open/half-open/closed per provider
-  and per action, building on `provider_fallback.py`.
-- **7.6 Agent evaluation** — a golden task set per role, run on every
-  policy/prompt/skill change, scored on success, trajectory quality, cost,
-  latency; plus online scorecards per Space. **No policy or skill change
-  ships without an eval delta.** This is the mechanism that makes the other
-  six phases improvable rather than merely shipped.
+### Phase 7.1 — Guardrails
+
+Pre-action and post-action checks: brand rules, banned claims, PII,
+platform policy, spend, rate limits. Block, modify, or escalate — every
+decision an event. Distinct from QA (Phase 3.7): a guardrail asks *"is this
+allowed?"*, QA asks *"is this good?"*. Both can stop a task; only QA sends
+it back with findings.
+
+### Phase 7.2 — Policy as code
+
+Rules as versioned, testable, diffable code with a test suite, not prose in
+a prompt.
+
+### Phase 7.3 — Budget governor
+
+`SpendContext` extended from money to money + tokens + wall clock + action
+counts + concurrency, per Space, per agent, per schedule, per run.
+Fail-closed, as today. Revision rounds spend from the task's budget, so a
+loop cannot quietly outspend the work it is improving.
+
+### Phase 7.4 — Tracing and trace grading
+
+OTel spans across agents, tools, and models, joined to `operate_events`;
+graded trajectories locate *workflow* failures (right answer, insane path)
+that output-only grading misses.
+
+### Phase 7.5 — Circuit breakers
+
+Explicit open/half-open/closed per provider and per action, building on
+`provider_fallback.py`.
+
+### Phase 7.6 — Agent evaluation and performance analytics
+
+Two halves that share one metric definition, so the offline number and the
+number on the Team tab mean the same thing.
+
+**Offline evaluation.** A golden task set per role, run on every
+policy/prompt/skill change, scored on success, trajectory quality, cost and
+latency. **No policy or skill change ships without an eval delta.**
+
+**Online performance.** A daily rollup per employee, from events and
+reviews — no new instrumentation, just a fold over what Parts I and III
+already record:
+
+```sql
+create table operate_agent_metrics_daily (
+  agent_id uuid not null, space_id uuid not null, user_id text not null,
+  day date not null, task_kind text not null,
+  assigned int, completed int, failed int,
+  first_pass_passes int,        -- passed QA at round 1
+  revision_rounds int,          -- total rounds consumed
+  escalations int, rejections int,
+  avg_review_score numeric(4,3),
+  cost_usd numeric(12,6), tokens_in bigint, tokens_out bigint,
+  p50_cycle_sec int, p90_cycle_sec int,
+  on_time int, late int,
+  primary key (agent_id, day, task_kind)
+);
+```
+
+Derived and shown per employee, per task kind:
+
+| Metric | Definition | What it tells you |
+|---|---|---|
+| First-pass yield | `first_pass_passes / completed` | Is this employee's work good the first time? |
+| Revision load | `revision_rounds / completed` | What does its quality actually cost? |
+| Cost per accepted task | `cost_usd / completed` | The number that matters for routing. |
+| On-time rate | `on_time / (on_time + late)` | Can you schedule around it? |
+| Escalation rate | `escalations / assigned` | Is it interrupting you too much? |
+| Review score trend | 7/28-day `avg_review_score` | Is it drifting? |
+
+Three rules that keep these numbers honest:
+
+- **Never compare across task kinds.** A Writer's first-pass yield on hooks
+  and on long-form are different jobs; the primary key includes
+  `task_kind` for exactly this reason.
+- **Suppress small samples.** A scorecard on three tasks is noise. Below a
+  threshold, show the count and withhold the rate rather than printing a
+  confident-looking 67%.
+- **Attribute honestly.** A task that failed because a provider was down is
+  not the employee's miss; failures carry a cause class and infrastructure
+  causes are excluded from quality metrics (and reported separately).
+
+**The loop closes here.** These metrics feed the meta policy (Phase 3.6):
+routing prefers the employee with the best cost-per-accepted-task for a
+given task kind, and an employee whose review scores drift gets sampled
+more heavily by QA until it recovers or is retired. Measurement that does
+not change behaviour is a dashboard; this is a control loop.
 
 ---
 
@@ -774,19 +1028,39 @@ decorative icons, no invented chrome.
 
 What is genuinely new is **fields, not surfaces**:
 
-- **Space tabs** — the eight-tab bar described in 1.1.
+- **Space tabs** — `Overview · Scheduled · Work · Team · Knowledge ·
+  Skills · Activity · Settings`. ("Agents" becomes "Team", which is what
+  it is.)
 - **Scheduled tab** — Today (checklist) / Schedules (definitions) /
   Timeline. Rows use the existing table and badge primitives; the only new
-  primitive is a checkbox row that an agent can also tick.
+  primitive is a checkbox row an agent can also tick. Each row shows who
+  it is assigned to and, when QA is on, who reviewed it.
 - **Task detail** — brief, acceptance criteria, dependencies, assignee,
-  risk, cost so far, and the run trace. This is where the added
-  customization fields live.
-- **Role editor** — prompt, policy, tools, skills, grants, budget, model
-  routing. A form, not a canvas.
+  reviewer, risk, revision round, cost so far, review findings, and the run
+  trace. This is where most of the added customization lives.
+- **Team tab** — the roster as a table: name, role, reports-to, status,
+  capacity, and this period's scorecard (first-pass yield, revision load,
+  cost per accepted task, on-time rate). Click through to one employee for
+  their trend, recent tasks, and their editable policy, skills, and grants.
+  The org chart is a small nested list, not a diagram — it is four levels
+  deep at most and a diagram would be decoration.
+- **QA settings** — one select on the Space (`off / sample / always /
+  process`) with a sampling percentage, plus overrides per schedule and per
+  task kind in the same shape. `max_revision_rounds` sits beside it. No
+  wizard; it is four fields.
+- **Review inbox** — tasks sitting in `review`, with findings inline and
+  the artifact alongside. An operator can override any verdict, and the
+  override is recorded as a review of its own so it shows up in the
+  employee's numbers rather than vanishing.
 - **Knowledge tab** — facts and episodes with provenance and confidence,
   editable and deletable by the operator.
 - **Approvals** — one inbox for everything blocked on a human, with the
-  dry-run preview inline.
+  dry-run preview inline. (Escalations from a blown revision cap land here,
+  carrying every round's findings so the operator can see why it stalled.)
+- **Overview** — the Space's own analytics: throughput, first-pass yield,
+  cost per accepted task, and on-time rate over time, plus what is late and
+  what is blocked. Charts come from the existing `chart` primitive; per the
+  taste rules, a number with a real denominator beats a gauge.
 - **Activity** — the event stream, filterable, with cost per run.
 
 Progressive disclosure applies to the UI too: the default view of a Space
@@ -799,18 +1073,18 @@ nothing is in the way.
 
 | Wave | Phases | Why this order |
 |---|---|---|
-| **A** | 1.1, 1.2, 1.3 | Nothing is trustworthy without durable, replayable runs. |
-| **B** | 2.1–2.5, 7.3, 7.1 | Ships the named feature and the unattended-run multiplier, with its budget and guardrails in the same wave. |
-| **C** | 5.1, 5.2, 5.4 | Actions, skills, and least privilege — the seam that lets agents do more without being able to do harm. |
+| **A** | 1.1–1.4 | Nothing is trustworthy without durable, replayable runs — and the roster, because a task with no assignee is not an assignment. |
+| **B** | 2.1–2.5, **3.5, 3.7**, 7.3, 7.1 | Ships the named features together: scheduled work that runs unattended, acceptance criteria to judge it by, and the QA audit + revision loop that makes running it unattended defensible. Budget and guardrails in the same wave. |
+| **C** | 5.1, 5.2, 5.4 | Actions, skills, and least privilege — the seam that lets employees do more without being able to do harm. |
 | **D** | 4.1–4.5 | Context discipline; cuts cost per task and stops rot before memory grows. |
-| **E** | 3.1, 3.2, 3.5, 3.7, 3.8 | Plan/execute/verify/stop — the first-pass-yield multiplier. |
-| **F** | 4.6–4.9, 7.4, 7.6 | Memory that compounds, plus the evaluation that keeps it honest. |
-| **G** | 6.1–6.4, 3.6 | Parallel breadth and routing, on a substrate that can now carry it. |
+| **E** | 3.1, 3.2, 3.8, **7.6** | Plan/execute/stop, plus the performance analytics that make the QA loop steerable rather than merely present. |
+| **F** | 4.6–4.9, 7.4 | Memory that compounds — including turning recurring review findings into durable corrections — plus trace grading. |
+| **G** | 6.1–6.4, 3.6 | The manager staffing real teams, and routing that spends the Phase 7.6 numbers. |
 | **H** | 5.3, 3.3, 3.4, 6.5, 5.5, 7.2, 7.5 | Force multipliers and the expensive-path patterns, last. |
 
-Waves A–C are the minimum that delivers the brief's stated feature honestly.
-Waves D–F are where the performance claim is actually earned. G–H are
-leverage on top.
+Waves A–B are the minimum that delivers the brief's stated features
+honestly: a team, scheduled work, QA with revision loops. C–E are where the
+performance claim is actually earned. F–H are leverage on top.
 
 **Definition of done for the programme**, stated as measurements rather
 than adjectives — each needs a baseline captured in Wave A, or the claim is
@@ -818,10 +1092,12 @@ unfalsifiable:
 
 1. Share of scheduled tasks completing unattended, without operator touch.
 2. Operator minutes per shipped unit of work.
-3. First-pass yield: share of artifacts passing verification without rework.
-4. Cost per completed task (tokens + provider spend).
-5. Spaces concurrently managed per operator.
-6. Mean time to detect a failed run (target: before the operator notices).
+3. First-pass yield: share of artifacts passing QA at round 1.
+4. Revision rounds per accepted task (the cost of that yield).
+5. Escalation rate: share of tasks that end up asking the operator.
+6. Cost per accepted task (tokens + provider spend).
+7. Spaces concurrently managed per operator.
+8. Mean time to detect a failed run (target: before the operator notices).
 
 ---
 
@@ -841,6 +1117,27 @@ unfalsifiable:
 - **The `space_id` migration.** Touching seven tables is the highest-
   regression-risk item here. Additive, backfilled, three-step (nullable →
   backfill → not-null), with the rollback written first.
-- **Scope.** This is a large programme. Waves A–C are a coherent product on
+- **The org metaphor running away with the design.** "Corporation" is a
+  useful frame for accountability, review lines, and measurement. It is a
+  terrible frame for everything else, and it invites building HR-ware —
+  titles, promotions, personalities, org-chart diagrams — that costs
+  surface area and returns nothing. The constraint in §1 is load-bearing:
+  if a proposed feature does not serve accountability, review, or
+  performance, the metaphor is not a reason to build it.
+- **Revision loops that do not converge.** The expensive failure mode of
+  Part III: an employee and a reviewer trading drafts on someone else's
+  budget. Mitigated by a hard `max_revision_rounds` cap enforced by the
+  runtime, findings that must cite a specific unmet criterion, and per-task
+  cost that includes every round so a four-attempt task cannot hide.
+- **QA that becomes a rubber stamp.** An auditor with a weak rubric passes
+  everything and costs money for nothing. Mitigated by acceptance criteria
+  being typed and checkable (3.5) rather than prose, and by sampling
+  continuing after `always` is relaxed, so the pass rate stays measured.
+- **Scorecards that mislead.** Small samples, cross-kind comparisons, and
+  infrastructure failures attributed to an employee will all produce
+  confident nonsense that then steers routing. The three rules in 7.6 exist
+  because this is the most likely way the analytics do harm rather than
+  nothing.
+- **Scope.** This is a large programme. Waves A–B are a coherent product on
   their own; every wave after that is separately shippable, and the plan is
   written so that stopping after any wave leaves something whole.
