@@ -96,20 +96,29 @@ export interface SpendHistory {
   total_usd: string;
 }
 
-export interface AyrshareConnectStatus {
-  connected: boolean;
-  profile_key: string | null;
+export type SocialPlatform = "tiktok" | "reels" | "shorts";
+
+export interface ConnectedAccount {
+  platform: SocialPlatform;
+  username: string;
+  is_active: boolean;
 }
 
-export interface AyrshareConnectResponse {
-  profile_key: string;
-  login_url: string;
+export interface SocialConnectStatus {
+  connected: boolean;
+  profile_id: string | null;
+  accounts: ConnectedAccount[];
+}
+
+export interface SocialConnectResponse {
+  profile_id: string;
+  auth_url: string;
 }
 
 export interface User {
   id: string;
   email: string;
-  ayrshare_profile_key: string | null;
+  zernio_profile_id: string | null;
   global_daily_cap_usd: string | null;
   email_notifications: boolean;
   created_at: string;

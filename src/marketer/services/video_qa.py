@@ -8,7 +8,7 @@ on the artifact itself:
 - real duration covers the voiceover (narration is never cut off)
 - real duration is within tolerance of the niche target
 - audio isn't silent (mean volume above a floor)
-- file fits the Ayrshare upload limit — re-encoded to a bitrate budget
+- file fits the publisher's upload limit — re-encoded to a bitrate budget
   when it doesn't, and re-verified after
 
 Everything funnels into a `RenderReport`; the pipeline fails the job on
@@ -25,7 +25,7 @@ from . import ffmpeg
 
 log = get_logger(__name__)
 
-# Ayrshare's documented media upload ceiling (see services/scheduler.py).
+# Media upload ceiling for a short-form render (see services/zernio.py).
 MAX_UPLOAD_BYTES = 30 * 1024 * 1024
 # Narration may end this far before the video does — never after it.
 VO_COVERAGE_SLACK_SEC = 0.25

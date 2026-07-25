@@ -74,7 +74,6 @@ class JobStatus(str, Enum):
 class User(BaseModel):
     id: str  # Clerk user_id
     email: str
-    ayrshare_profile_key: str | None = None
     zernio_profile_id: str | None = None
     global_daily_cap_usd: Decimal | None = None
     # Prepaid pipeline credit (hosted product). Ignored when billing is
@@ -191,7 +190,7 @@ class SpendEntry(BaseModel):
     article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
     image_post_id: UUID | None = None  # set for image-post spend
     studio_generation_id: UUID | None = None  # set for Studio generation spend
-    provider: str  # "openai" | "xai" | "ayrshare"
+    provider: str  # "openai" | "xai" | "fal" | "elevenlabs" | "zernio"
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
     cost_usd: Decimal
@@ -271,14 +270,23 @@ class SpendHistory(BaseModel):
     total_usd: Decimal
 
 
-class AyrshareConnectResponse(BaseModel):
-    profile_key: str
-    login_url: str
+class ConnectedAccount(BaseModel):
+    """One social account a user has linked, as the connect UI sees it."""
+
+    platform: Literal["tiktok", "reels", "shorts"]
+    username: str = ""
+    is_active: bool = True
 
 
-class AyrshareConnectStatus(BaseModel):
+class SocialConnectResponse(BaseModel):
+    profile_id: str
+    auth_url: str
+
+
+class SocialConnectStatus(BaseModel):
     connected: bool
-    profile_key: str | None = None
+    profile_id: str | None = None
+    accounts: list[ConnectedAccount] = Field(default_factory=list)
 
 
 class Template(BaseModel):

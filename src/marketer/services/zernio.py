@@ -1,10 +1,7 @@
 """Social publishing via Zernio (multi-tenant).
 
-Replaces the Ayrshare integration. The shape is different in one way that
-matters, so it is worth stating up front:
+The one property to keep in mind:
 
-* Ayrshare scoped every call with a per-user ``Profile-Key`` header, so
-  "which user's accounts" was implicit in the transport.
 * Zernio addresses **accounts by id in the request body**. Profiles are an
   organizational boundary above accounts, and — per Zernio's own docs —
   ``accountId`` is validated against the whole team, *not* against a

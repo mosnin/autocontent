@@ -4,12 +4,12 @@ import { DashboardClient } from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
 
-// Best-effort: probe the optional ayrshare-status endpoint another agent
+// Best-effort: probe the connect-status endpoint another agent
 // may be adding. If the route 404s, we treat it as "feature absent" and
 // skip the banner entirely (return null).
-async function fetchAyrshareConnected(): Promise<boolean | null> {
+async function fetchSocialsConnected(): Promise<boolean | null> {
   try {
-    const res = await api<{ connected: boolean }>("/api/v1/connect/ayrshare/status");
+    const res = await api<{ connected: boolean }>("/api/v1/connect/zernio/status");
     return Boolean(res?.connected);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -27,16 +27,16 @@ async function fetchUser(): Promise<User | null> {
 }
 
 export default async function Dashboard() {
-  const [niches, spend, ayrshareConnected, user] = await Promise.all([
+  const [niches, spend, socialsConnected, user] = await Promise.all([
     api<Niche[]>("/api/v1/niches"),
     api<TodaySpend>("/api/v1/spend/today"),
-    fetchAyrshareConnected(),
+    fetchSocialsConnected(),
     fetchUser(),
   ]);
 
   return (
     <DashboardClient
-      initial={{ niches, spend, ayrshareConnected, globalCap: user?.global_daily_cap_usd ?? null }}
+      initial={{ niches, spend, socialsConnected, globalCap: user?.global_daily_cap_usd ?? null }}
     />
   );
 }

@@ -262,9 +262,9 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)
 
     async def fake_schedule(*, video_path, caption, hashtags, platform,
-                            scheduled_for, profile_key, user_id):
+                            scheduled_for, user_id, job_id=None):
         return "post-skip-test"
-    monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule)
+    monkeypatch.setattr(pipeline.publisher, "schedule_post", fake_schedule)
 
     job = await pipeline.run_job(
         user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok"

@@ -15,7 +15,7 @@ from ..db import get_pool
 from ..models import User
 
 _USER_COLS = (
-    "id, email, ayrshare_profile_key, global_daily_cap_usd, "
+    "id, email, zernio_profile_id, global_daily_cap_usd, "
     "credit_balance_usd, role, suspended_at, suspended_reason, created_at"
 )
 

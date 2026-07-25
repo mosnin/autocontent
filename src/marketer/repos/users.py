@@ -9,7 +9,7 @@ from ..models import User
 # and suspension were previously omitted here — the API reported balance 0
 # and no role regardless of the row (prior audit M14).
 _COLS = (
-    "id, email, ayrshare_profile_key, zernio_profile_id, global_daily_cap_usd, "
+    "id, email, zernio_profile_id, global_daily_cap_usd, "
     "credit_balance_usd, role, suspended_at, suspended_reason, "
     "email_notifications, created_at"
 )
@@ -59,13 +59,6 @@ async def set_zernio_profile_id(user_id: str, profile_id: str) -> None:
     pool = await get_pool()
     await pool.execute(
         "update users set zernio_profile_id = $2 where id = $1", user_id, profile_id
-    )
-
-
-async def set_ayrshare_profile_key(user_id: str, key: str) -> None:
-    pool = await get_pool()
-    await pool.execute(
-        "update users set ayrshare_profile_key = $2 where id = $1", user_id, key
     )
 
 

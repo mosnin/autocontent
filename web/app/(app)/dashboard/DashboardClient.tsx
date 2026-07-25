@@ -59,7 +59,7 @@ import type { Job, Niche, Platform, TodaySpend } from "@/lib/types";
 interface InitialData {
   niches: Niche[];
   spend: TodaySpend;
-  ayrshareConnected: boolean | null;
+  socialsConnected: boolean | null;
   globalCap: string | null;
 }
 
@@ -96,17 +96,17 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     { refreshInterval: 15000 },
   );
 
-  // Probe Ayrshare status only when the parent told us the route exists
-  // (initial.ayrshareConnected !== null).
-  const { data: ayrshare } = useSWR<{ connected: boolean }>(
-    initial.ayrshareConnected === null ? null : "/api/v1/connect/ayrshare/status",
+  // Probe connect status only when the parent told us the route exists
+  // (initial.socialsConnected !== null).
+  const { data: socials } = useSWR<{ connected: boolean }>(
+    initial.socialsConnected === null ? null : "/api/v1/connect/zernio/status",
     clientFetch,
     {
       refreshInterval: POLL_MS,
       fallbackData:
-        initial.ayrshareConnected === null
+        initial.socialsConnected === null
           ? undefined
-          : { connected: initial.ayrshareConnected },
+          : { connected: initial.socialsConnected },
       shouldRetryOnError: false,
     },
   );
@@ -130,8 +130,8 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
   const nichesList = niches ?? [];
   const spendData = spend ?? { by_niche: {}, total_usd: "0" };
-  const showAyrshareBanner =
-    ayrshare !== undefined && ayrshare.connected === false;
+  const showConnectBanner =
+    socials !== undefined && socials.connected === false;
 
   async function handleArchive(niche: Niche) {
     if (!confirm(`Archive niche "${niche.title}"? This will stop new posts.`)) {
@@ -234,7 +234,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
       })()}
       </DashRise>
 
-      {showAyrshareBanner && (
+      {showConnectBanner && (
         <DashRise delay={0.14}>
         <Card className={cn(hubCardClass, "border-destructive/50 bg-destructive/5")}>
           <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
@@ -242,7 +242,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               <div className="font-medium">Posting profile not set up</div>
               <div className="text-sm text-muted-foreground">
                 Pipeline runs will succeed, but posts won&apos;t ship until you
-                create your posting profile and link socials in Ayrshare.
+                link your TikTok, Instagram, or YouTube account.
               </div>
             </div>
             <Button asChild variant="outline">

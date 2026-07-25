@@ -218,9 +218,9 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path, pa
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)
 
     async def fake_schedule_post(*, video_path, caption, hashtags, platform,
-                                 scheduled_for, profile_key, user_id):
+                                 scheduled_for, user_id, job_id=None):
         return "post-id-fanout"
-    monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
+    monkeypatch.setattr(pipeline.publisher, "schedule_post", fake_schedule_post)
 
     job = await pipeline.run_job(
         user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok",

@@ -44,7 +44,6 @@ secrets = [
     # to model knowledge rather than failing runs.
     modal.Secret.from_name("marketer-openai"),
     modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
-    modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
     modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
     modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
     # Social publishing. Create with:
@@ -135,7 +134,7 @@ async def finish_scheduling(user_id: str, job_id: str) -> dict:
     """Resume an operator-approved job at the scheduling stage.
 
     Spawned by `POST /api/v1/jobs/{id}/approve` — the video is already
-    rendered on the artifacts volume; only the Ayrshare upload +
+    rendered on the artifacts volume; only the upload +
     schedule remain."""
     from uuid import UUID
     from marketer.pipeline import schedule_approved_job
@@ -511,7 +510,7 @@ def apply_migrations() -> dict:
     timeout=60 * 30,
 )
 async def daily_analytics_sync() -> dict:
-    """Pull per-post engagement metrics from Ayrshare for every job in the
+    """Pull per-post engagement metrics from Zernio for every job in the
     last 14 days that has a provider_post_id.
 
     Each invocation writes a new post_metrics row — callers can chart the
@@ -525,8 +524,8 @@ async def daily_analytics_sync() -> dict:
     from marketer.db import get_pool
     from marketer.models import PostMetrics
     from marketer.repos import post_metrics as post_metrics_repo
-    from marketer.services.ayrshare_analytics import AyrshareAnalyticsError
     from marketer.services.publisher import fetch_post_analytics
+    from marketer.services.zernio import ZernioError
     from marketer.services.zernio_analytics import (
         AnalyticsPending,
         AnalyticsUnavailable,
@@ -553,18 +552,15 @@ async def daily_analytics_sync() -> dict:
         nonlocal ok, errors
         try:
             raw = await fetch_post_analytics(provider_post_id, platforms=[platform])
-            # Ayrshare nests analytics per-platform under a top-level
-            # "analytics" key.  We try to unpack the relevant sub-dict for
-            # the canonical columns; the full raw response is always stored.
+            # Metrics arrive nested per-platform under a top-level
+            # "analytics" key. We unpack the relevant sub-dict for the
+            # canonical columns; the full raw response is always stored.
             analytics: dict = {}
             if isinstance(raw.get("analytics"), dict):
-                # Ayrshare uses the internal platform name as the key
-                # (tiktok / instagram / youtube).  Our platform field uses
-                # our internal names; try both to be safe.
-                from marketer.services.scheduler import PLATFORM_MAP
-                # Ayrshare keys by ITS platform name; the Zernio client
-                # normalizes back to ours. Try both — one of them is right
-                # whichever provider produced this response.
+                # The client normalizes vendor platform names back to
+                # ours, but a raw passthrough would key by the vendor's
+                # (tiktok / instagram / youtube). Try both.
+                from marketer.services.zernio import PLATFORM_MAP
                 vendor_key = PLATFORM_MAP.get(platform, platform)
                 analytics = (
                     raw["analytics"].get(vendor_key)
@@ -612,7 +608,7 @@ async def daily_analytics_sync() -> dict:
                 "analytics not ready for job %s provider_post_id=%s: %s",
                 job_id, provider_post_id, exc,
             )
-        except AyrshareAnalyticsError as exc:
+        except ZernioError as exc:
             logger.warning(
                 "analytics fetch failed for job %s provider_post_id=%s: %s",
                 job_id, provider_post_id, exc,

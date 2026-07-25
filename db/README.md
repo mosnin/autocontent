@@ -91,7 +91,7 @@ matching the base name (excluding `.rollback`).
 
 - `users` — Clerk-owned identity (PK is Clerk's `user_id`).
 - `niches` — per-user content channels with generation prefs, posting
-  windows, daily spend cap, and Ayrshare profile.
+  windows, daily spend cap, and social profile.
 - `jobs` — one row per pipeline run; `payload` jsonb holds the full
   in-memory `Job` snapshot for resumability.
 - `spend_ledger` — every credit-spending API call. Sum by

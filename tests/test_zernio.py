@@ -41,9 +41,9 @@ def test_signature_is_case_insensitive_and_trims():
 
 
 def test_signature_rejects_base64_encoding_of_the_same_digest():
-    """Ayrshare sends base-64, Zernio sends hex. Same algorithm, different
-    wire format — accepting either would mean accepting a digest we never
-    verified against this provider's contract."""
+    """Zernio signs with hex. Accepting a base-64 digest too would widen
+    the verifier past the contract we actually checked against — same
+    algorithm, different wire format, and only one of them is signed."""
     digest = hmac.new(SECRET.encode(), BODY, hashlib.sha256).digest()
     assert not _verify_zernio_signature(BODY, b64encode(digest).decode(), SECRET)
 
@@ -159,27 +159,12 @@ def test_request_id_differs_across_jobs_and_platforms():
     assert publisher._request_id("job", a, "tiktok") != publisher._request_id("job", a, "reels")
 
 
-# ── Provider switch ──────────────────────────────────────────────────────────
+# ── Enablement ───────────────────────────────────────────────────────────────
 
 
-def test_provider_defaults_to_ayrshare(monkeypatch):
-    """An existing deploy must not silently change where its posts go the
-    moment this code lands."""
-    monkeypatch.setattr(publisher.settings, "publisher_provider", "")
-    assert publisher.provider() == "ayrshare"
-    assert not publisher.using_zernio()
-
-
-def test_provider_switch_is_case_and_whitespace_tolerant(monkeypatch):
-    monkeypatch.setattr(publisher.settings, "publisher_provider", "  Zernio ")
-    assert publisher.using_zernio()
-
-
-def test_enabled_follows_the_live_provider_key(monkeypatch):
-    monkeypatch.setattr(publisher.settings, "publisher_provider", "zernio")
+def test_enabled_follows_the_zernio_key(monkeypatch):
     monkeypatch.setattr(publisher.settings, "zernio_api_key", "")
-    monkeypatch.setattr(publisher.settings, "ayrshare_api_key", "set")
-    assert not publisher.enabled(), "an Ayrshare key must not enable the Zernio path"
+    assert not publisher.enabled()
     monkeypatch.setattr(publisher.settings, "zernio_api_key", "set")
     assert publisher.enabled()
 

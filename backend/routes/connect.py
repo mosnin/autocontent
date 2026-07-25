@@ -1,18 +1,9 @@
-"""Social connect flows — Ayrshare (legacy) and Zernio (current).
-
-POST /api/v1/connect/ayrshare
-    Idempotent. If the caller already has a profile_key, returns it
-    along with a fresh short-lived login URL. Otherwise creates an
-    Ayrshare User Profile, persists the key on the users row, then
-    returns the new key + login URL.
-
-GET /api/v1/connect/ayrshare/status
-    Cheap read for the UI on page load. Returns whether the user has
-    a profile_key on file (we don't introspect Ayrshare itself here).
+"""Zernio connect flow.
 
 POST /api/v1/connect/zernio/{platform}
     Ensure a Zernio profile for the caller, then return the OAuth URL to
-    send them to for that platform. Idempotent.
+    send them to for that platform. Idempotent: an existing profile is
+    reused rather than a second one created.
 
 GET /api/v1/connect/zernio/status
     Which accounts this user has connected, reconciled against Zernio.
@@ -27,60 +18,13 @@ from pydantic import BaseModel
 from marketer.config import settings
 from marketer.repos import social_accounts as accounts_repo
 from marketer.repos import users as users_repo
-from marketer.services import ayrshare_profiles, zernio, zernio_profiles
+from marketer.services import zernio, zernio_profiles
 
 from ..auth import AuthCtx, CurrentUser
 from ..rate_limit import limiter
 
 router = APIRouter()
 log = logging.getLogger(__name__)
-
-
-class ConnectResponse(BaseModel):
-    profile_key: str
-    login_url: str
-
-
-class ConnectStatusResponse(BaseModel):
-    connected: bool
-    profile_key: str | None
-
-
-@router.post("/ayrshare", response_model=ConnectResponse)
-@limiter.limit("5/minute")
-async def connect_ayrshare(request: Request, ctx: AuthCtx = CurrentUser) -> ConnectResponse:
-    user = await users_repo.get(ctx.user_id)
-    profile_key = user.ayrshare_profile_key if user else None
-
-    if not profile_key:
-        title = ctx.email or ctx.user_id
-        profile_key, _ref_id = await ayrshare_profiles.create_profile(title=title)
-        await users_repo.set_ayrshare_profile_key(ctx.user_id, profile_key)
-
-    login_url = await ayrshare_profiles.generate_login_jwt(profile_key=profile_key)
-    return ConnectResponse(profile_key=profile_key, login_url=login_url)
-
-
-@router.get("/ayrshare/status", response_model=ConnectStatusResponse)
-async def connect_ayrshare_status(ctx: AuthCtx = CurrentUser) -> ConnectStatusResponse:
-    user = await users_repo.get(ctx.user_id)
-    key = user.ayrshare_profile_key if user else None
-    return ConnectStatusResponse(connected=bool(key), profile_key=key)
-
-
-# ---------------------------------------------------------------------------
-# Zernio
-# ---------------------------------------------------------------------------
-#
-# POST /api/v1/connect/zernio/{platform}
-#     Ensure the caller has a Zernio profile, then hand back an OAuth URL
-#     for that platform. Idempotent: an existing profile is reused.
-#
-# GET  /api/v1/connect/zernio/status
-#     What this user has connected. Reconciles against Zernio rather than
-#     trusting our rows, because `account.connected` webhooks are
-#     at-least-once and can be missed entirely — and a user staring at
-#     "not connected" after connecting has no way to fix it themselves.
 
 
 class ZernioConnectResponse(BaseModel):

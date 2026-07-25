@@ -10,7 +10,8 @@ import pytest
 
 from marketer import cli as cli_mod
 from marketer.models import (
-    AyrshareConnectResponse,
+    SocialConnectResponse,
+    SocialConnectStatus,
     Job,
     JobStatus,
     Niche,
@@ -66,10 +67,21 @@ class FakeClient:
         self.calls.append(("today_spend",))
         return TodaySpend(by_niche={"nid1": Decimal("1.20")}, total_usd=Decimal("1.20"))
 
-    async def connect_ayrshare(self):
-        self.calls.append(("connect_ayrshare",))
-        return AyrshareConnectResponse(
-            profile_key="pk-1", login_url="https://app.ayrshare.com/connect/xyz"
+    async def connect_social(self, platform):
+        self.calls.append(("connect_social", platform))
+        return SocialConnectResponse(
+            profile_id="prof-1", auth_url="https://zernio.com/oauth/xyz"
+        )
+
+    async def social_status(self):
+        self.calls.append(("social_status",))
+        return SocialConnectStatus(
+            connected=True,
+            profile_id="prof-1",
+            accounts=[
+                {"platform": "tiktok", "username": "acme", "is_active": True},
+                {"platform": "reels", "username": "acme", "is_active": False},
+            ],
         )
 
     async def list_tokens(self):
@@ -220,11 +232,11 @@ def test_spend_today_json(capsys):
     assert parsed["total_usd"] == "1.20"
 
 
-def test_connect_ayrshare_prints_url(capsys):
-    rc = cli_mod.main(["connect", "ayrshare"])
+def test_connect_social_prints_auth_url(capsys):
+    rc = cli_mod.main(["connect", "social", "tiktok"])
     out = capsys.readouterr()
     assert rc == 0
-    assert "https://app.ayrshare.com/connect/xyz" in out.out
+    assert "https://zernio.com/oauth/xyz" in out.out
 
 
 def test_tokens_create_prints_plaintext_once(capsys):

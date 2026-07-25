@@ -30,7 +30,7 @@ as `MARKETER_<UPPERCASE_FIELD>`. Values with a default are optional.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `MARKETER_DATABASE_URL` | — | Supabase pooler URL. Nothing works without it. |
+| `MARKETER_DATABASE_URL` | — | Neon pooled endpoint. Nothing works without it. |
 | `MARKETER_CLERK_JWKS_URL` | — | JWT verification. |
 | `MARKETER_CLERK_ISSUER` | — | JWT verification. |
 | `MARKETER_CLERK_AUDIENCE` | `""` | Set in production, or tokens minted for another frontend on the same Clerk instance are accepted. |
@@ -62,11 +62,8 @@ as `MARKETER_<UPPERCASE_FIELD>`. Values with a default are optional.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `MARKETER_PUBLISHER_PROVIDER` | `ayrshare` | Which integration is live: `ayrshare` or `zernio`. Defaults to Ayrshare so landing the Zernio code cannot silently redirect an existing deploy's posts. |
-| `MARKETER_ZERNIO_API_KEY` | `""` | Zernio posting, profiles, and analytics. |
-| `MARKETER_ZERNIO_WEBHOOK_SECRET` | `""` | Hex HMAC-SHA256 for `X-Zernio-Signature`; empty ⇒ `/webhooks/zernio` returns 503. |
-| `MARKETER_AYRSHARE_API_KEY` | `""` | Legacy. Social posting + profiles. |
-| `MARKETER_AYRSHARE_WEBHOOK_SECRET` | `""` | Legacy. Base-64 HMAC; empty ⇒ endpoint returns 503. |
+| `MARKETER_ZERNIO_API_KEY` | `""` | Zernio posting, profiles, and analytics. The only publishing integration. |
+| `MARKETER_ZERNIO_WEBHOOK_SECRET` | `""` | Hex HMAC-SHA256 for `X-Zernio-Signature`; empty ⇒ `/webhooks/zernio` returns 503, so publish outcomes and account disconnects never reach us. |
 
 ### Object storage (Wasabi)
 
@@ -207,7 +204,7 @@ Three things that are currently wrong or incomplete, found while
 enumerating this. None is fixed here — flagging only.
 
 1. **`.env.example` lists `OPENAI_API_KEY`, `XAI_API_KEY`, and
-   `AYRSHARE_API_KEY` unprefixed.** Because of `env_prefix="MARKETER_"`,
+   `XAI_API_KEY` unprefixed.** Because of `env_prefix="MARKETER_"`,
    those do **not** populate `Settings`. Verified:
 
    ```
@@ -218,11 +215,11 @@ enumerating this. None is fixed here — flagging only.
    Consequence: with only the unprefixed form set, the Agents SDK stages
    work (the SDK reads the env var itself) while `openai_images`,
    `openai_tts`, and `openai_whisper` get an empty key. **Both** forms of
-   the OpenAI key need to be set today; xAI and Ayrshare need the
-   `MARKETER_`-prefixed form only.
+   the OpenAI key need to be set today; xAI needs the `MARKETER_`-prefixed
+   form only.
 
 2. **`modal_app.py` mounts five secrets** — `marketer-openai`,
-   `marketer-xai`, `marketer-ayrshare`, `marketer-supabase`,
+   `marketer-xai`, `marketer-zernio`, `marketer-fal`, `marketer-supabase`,
    `marketer-clerk`. Nothing in that list carries fal, ElevenLabs, Wasabi,
    Stripe, Composio, Resend, OpenRouter, Pixabay, Inngest, or x402 keys.
    Those features cannot run on Modal until their variables are added to

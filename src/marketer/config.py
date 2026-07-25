@@ -6,20 +6,15 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
     xai_api_key: str = ""
-    ayrshare_api_key: str = ""
     # Zernio: social publishing + analytics, multi-tenant via profiles.
-    # Replaces Ayrshare. Both integrations ship side by side during the
-    # cutover; `publisher_provider` selects the live one.
+    # The only publishing integration — a job that reaches the scheduling
+    # stage without this key spends its full generation cost and then has
+    # nowhere to publish, which preflight warns about at boot.
     zernio_api_key: str = ""
     zernio_webhook_secret: str = ""
-    # Which publishing integration the pipeline uses: "zernio" | "ayrshare".
-    # Defaults to Ayrshare so an existing deploy does not silently change
-    # where its posts go the moment this lands — flip it deliberately once
-    # a Zernio key is configured and smoke-tested.
-    publisher_provider: str = "ayrshare"
     pixabay_api_key: str = ""
 
-    # Supabase Postgres (use the pooler URL for the runtime app).
+    # Postgres (Neon). Use the pooled endpoint — see db.py.
     database_url: str = ""
 
     # Clerk JWT verification.
@@ -92,8 +87,6 @@ class Settings(BaseSettings):
     sentry_environment: str = "production"
     sentry_traces_sample_rate: float = 0.0
 
-    # Ayrshare webhook HMAC secret. Must be set to accept webhook deliveries.
-    ayrshare_webhook_secret: str = ""
 
     # --- Hosted product (Route A) -------------------------------------
     # When true, pipeline spend requires prepaid credit and debits it at

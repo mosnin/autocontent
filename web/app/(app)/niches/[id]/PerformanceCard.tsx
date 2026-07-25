@@ -149,7 +149,7 @@ export function PerformanceCard({ performance }: Props) {
     );
   }
 
-  // Jobs ran but Ayrshare hasn't sampled yet
+  // Jobs ran but the analytics sync hasn't sampled yet
   const anyMetrics = jobs.some((j) => j.views !== null);
   const noMetricsNote = !anyMetrics ? (
     <p className="mt-3 text-xs text-muted-foreground">

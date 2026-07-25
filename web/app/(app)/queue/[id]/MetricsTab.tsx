@@ -47,19 +47,14 @@ function EmptyMetrics({ providerPostId }: { providerPostId: string | null }) {
       <div className="space-y-1">
         <p className="text-sm font-medium">No engagement data yet</p>
         <p className="text-xs text-muted-foreground">
-          The Ayrshare analytics sync runs daily at 11:00 UTC. Metrics appear
+          The analytics sync runs daily at 11:00 UTC. Metrics appear
           here after the first snapshot lands.
         </p>
       </div>
       {providerPostId && (
-        <a
-          href={`https://app.ayrshare.com/posts/${providerPostId}`}
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-brand hover:underline"
-        >
-          View post on Ayrshare
-        </a>
+        <p className="text-xs text-muted-foreground">
+          Post <code className="font-mono">{providerPostId}</code>
+        </p>
       )}
     </div>
   );
@@ -169,14 +164,7 @@ export function MetricsTab({ metrics, providerPostId }: Props) {
         {providerPostId && (
           <>
             {" · "}
-            <a
-              href={`https://app.ayrshare.com/posts/${providerPostId}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-0.5 text-brand hover:underline"
-            >
-              View on Ayrshare
-            </a>
+            <code className="font-mono">{providerPostId}</code>
           </>
         )}
       </p>

@@ -16,8 +16,8 @@ import httpx
 
 from .articles.models import Article, ArticleStatus
 from .models import (
-    AyrshareConnectResponse,
-    AyrshareConnectStatus,
+    SocialConnectResponse,
+    SocialConnectStatus,
     Job,
     JobStatus,
     Niche,
@@ -331,13 +331,19 @@ class MarketerClient:
 
     # ------------------------------------------------------------------ connect
 
-    async def connect_ayrshare(self) -> AyrshareConnectResponse:
-        resp = await self._request("POST", "/api/v1/connect/ayrshare")
-        return AyrshareConnectResponse.model_validate(resp.json())
+    async def connect_social(self, platform: str) -> SocialConnectResponse:
+        """Start the OAuth flow for one platform.
 
-    async def ayrshare_status(self) -> AyrshareConnectStatus:
-        resp = await self._request("GET", "/api/v1/connect/ayrshare/status")
-        return AyrshareConnectStatus.model_validate(resp.json())
+        Connecting is per platform, not one hosted chooser: the caller
+        opens `auth_url`, authorizes, and the account is bound to their
+        profile server-side.
+        """
+        resp = await self._request("POST", f"/api/v1/connect/zernio/{platform}")
+        return SocialConnectResponse.model_validate(resp.json())
+
+    async def social_status(self) -> SocialConnectStatus:
+        resp = await self._request("GET", "/api/v1/connect/zernio/status")
+        return SocialConnectStatus.model_validate(resp.json())
 
     # ------------------------------------------------------------------ tokens
 

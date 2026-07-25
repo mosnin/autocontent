@@ -1,8 +1,9 @@
 from .creative_brief import CaptionStyle, CreativeBrief
 from .schemas import (
     AudioTrack,
-    AyrshareConnectResponse,
-    AyrshareConnectStatus,
+    ConnectedAccount,
+    SocialConnectResponse,
+    SocialConnectStatus,
     Clip,
     Idea,
     Job,
@@ -43,8 +44,9 @@ __all__ = [
     "CreativeBrief",
     "CreditTransaction",
     "AudioTrack",
-    "AyrshareConnectResponse",
-    "AyrshareConnectStatus",
+    "ConnectedAccount",
+    "SocialConnectResponse",
+    "SocialConnectStatus",
     "Clip",
     "Idea",
     "Job",

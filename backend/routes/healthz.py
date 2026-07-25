@@ -14,7 +14,7 @@ Critical checks (failures → 503):
                is treated as a configuration error (503).
 
 Informational checks (non-critical, never affect the HTTP status):
-  openai_api_key, xai_api_key, ayrshare_api_key — just report "configured"
+  openai_api_key, xai_api_key, zernio_api_key — just report "configured"
   or "missing" so operators can verify env without calling upstreams.
 """
 from __future__ import annotations
@@ -91,7 +91,7 @@ async def healthz_deep() -> JSONResponse:
     # ── Optional API-key presence checks ─────────────────────────────────────
     checks["openai_api_key"] = {"configured": bool(settings.openai_api_key)}
     checks["xai_api_key"] = {"configured": bool(settings.xai_api_key)}
-    checks["ayrshare_api_key"] = {"configured": bool(settings.ayrshare_api_key)}
+    checks["zernio_api_key"] = {"configured": bool(settings.zernio_api_key)}
 
     status_code = 200 if all_critical_ok else 503
     return JSONResponse(

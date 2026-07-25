@@ -1,66 +1,64 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
-
-import { DotGridSpotlight } from "@/components/dot-grid-spotlight";
+import { Badge } from "@/components/square/ui/badge";
 import { Button } from "@/components/square/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/square/ui/card";
+import { Card, CardContent } from "@/components/square/ui/card";
+import type { ConnectedAccount, SocialPlatform } from "@/lib/types";
 
+/**
+ * One platform's connect row.
+ *
+ * Connecting is per platform — each one is its own OAuth — so the state
+ * shown is that platform's real state, not a proxy for "an account exists
+ * somewhere". A dead token reads as "Reconnect", because that is the only
+ * action that fixes it.
+ */
 export function ConnectCard({
   action,
-  connected,
-  maskedKey,
+  platform,
+  label,
+  account,
 }: {
-  action: () => Promise<void>;
-  connected: boolean;
-  maskedKey: string | null;
+  action: (formData: FormData) => Promise<void>;
+  platform: SocialPlatform;
+  label: string;
+  account: ConnectedAccount | null;
 }) {
+  const live = account?.is_active ?? false;
+  const needsReconnect = Boolean(account) && !live;
+
   return (
-    <Card className="relative isolate overflow-hidden">
-      {/* Cursor-reactive dot field behind the card — the surface feels wired
-          in, matching the marketing hero's grammar. */}
-      <DotGridSpotlight
-        activeDotColor="hsl(var(--brand) / 0.5)"
-        className="absolute inset-0 -z-10 opacity-70"
-        dotColor="hsl(var(--muted-foreground) / 0.12)"
-        interactionRadius={140}
-        spacing={22}
-      />
-      <CardHeader className="items-center text-center">
-        <CardTitle>
-          {connected ? "Posting profile created" : "Connect Ayrshare"}
-        </CardTitle>
-        <CardDescription className="max-w-sm">
-          {connected
-            ? "Your Ayrshare posting profile is ready. Open the hosted chooser any time to link, add, or revoke individual platforms."
-            : "We'll bounce you to Ayrshare's hosted chooser to create a posting profile and authorize each platform."}
-        </CardDescription>
-      </CardHeader>
-
-      {connected && maskedKey && (
-        <CardContent className="text-center">
-          <div className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-3 py-1.5 text-sm backdrop-blur">
-            <CheckCircle2 className="size-4 text-success" />
-            <span className="text-muted-foreground">profile_key</span>
-            <code className="font-mono text-xs">{maskedKey}</code>
+    <Card>
+      <CardContent className="flex items-center justify-between gap-4 py-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">{label}</span>
+            {live ? (
+              <Badge variant="secondary">Connected</Badge>
+            ) : needsReconnect ? (
+              <Badge variant="destructive">Reconnect</Badge>
+            ) : null}
           </div>
-        </CardContent>
-      )}
+          <p className="mt-0.5 truncate text-sm text-muted-foreground">
+            {live
+              ? account?.username || "Linked"
+              : needsReconnect
+                ? "The connection expired or was revoked — posts to this platform will fail until it is reconnected."
+                : "Not connected."}
+          </p>
+        </div>
 
-      <CardFooter className="justify-center">
         <form action={action}>
-          <Button size="lg" type="submit">
-            {connected ? "Reconnect / add accounts" : "Connect socials"}
+          <input name="platform" type="hidden" value={platform} />
+          <Button
+            size="sm"
+            type="submit"
+            variant={live ? "outline" : "default"}
+          >
+            {live ? "Reconnect" : needsReconnect ? "Reconnect" : "Connect"}
           </Button>
         </form>
-      </CardFooter>
+      </CardContent>
     </Card>
   );
 }

@@ -1,5 +1,5 @@
 """Outbound webhook management — register endpoints that receive signed
-event notifications. Distinct from routes/webhooks.py (the inbound Ayrshare
+event notifications. Distinct from routes/webhooks.py (the inbound Zernio
 receiver)."""
 from __future__ import annotations
 

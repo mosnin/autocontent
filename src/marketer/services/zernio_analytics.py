@@ -13,9 +13,9 @@ codes are not failures and must not be treated as one:
 Both surface as typed results rather than exceptions so the daily sync can
 skip and move on without one pending post killing the loop.
 
-The response is normalized into the same shape the Ayrshare client
-produced — ``{"id": ..., "analytics": {<platform>: {...}}}`` — so
-``post_metrics`` parsing is untouched by the provider swap.
+The response is normalized to ``{"id": ..., "analytics": {<platform>:
+{...}}}`` keyed by OUR platform names, which is the shape the
+``post_metrics`` parser expects.
 """
 from __future__ import annotations
 
@@ -74,9 +74,9 @@ def _normalize(payload: dict[str, Any]) -> dict[str, Any]:
 async def fetch_post_analytics(provider_post_id: str, platforms: list[str]) -> dict:
     """Metrics for one post, normalized.
 
-    ``platforms`` is accepted for signature parity with the Ayrshare client
-    (the caller passes our internal names); Zernio resolves platforms from
-    the post itself, so it is not sent.
+    ``platforms`` (our internal names) is accepted so callers can pass what
+    they know; Zernio resolves platforms from the post itself, so it is not
+    sent.
 
     Raises ``AnalyticsPending`` (202) or ``AnalyticsUnavailable`` (424) —
     both meaning "no metrics yet", for different reasons the caller may

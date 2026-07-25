@@ -1,7 +1,7 @@
 """Tests for the daily_analytics_sync Modal function.
 
 The sync logic is extracted from modal_app.py and exercised here by
-monkeypatching the DB pool, Ayrshare client, and post_metrics repo.
+monkeypatching the DB pool, analytics client, and post_metrics repo.
 No real DB or HTTP calls.
 """
 from __future__ import annotations
@@ -124,7 +124,7 @@ async def test_one_record_per_eligible_job(sync_fn, monkeypatch):
 
     import marketer.db as db_mod
     import marketer.repos.post_metrics as pm_repo
-    import marketer.services.ayrshare_analytics as analytics_mod
+    import marketer.services.publisher as analytics_mod
 
     monkeypatch.setattr(db_mod, "get_pool", _fake_get_pool)
     monkeypatch.setattr(analytics_mod, "fetch_post_analytics", _fake_fetch)
@@ -139,7 +139,7 @@ async def test_one_record_per_eligible_job(sync_fn, monkeypatch):
 
 async def test_one_bad_fetch_does_not_kill_loop(sync_fn, monkeypatch):
     """An exception in one fetch is logged and swallowed; other jobs still run."""
-    rows = [_make_row(provider_post_id="ayr-ok"), _make_row(provider_post_id="ayr-bad")]
+    rows = [_make_row(provider_post_id="post-ok"), _make_row(provider_post_id="post-bad")]
     pool = _FakePool(rows)
 
     recorded = []
@@ -148,9 +148,9 @@ async def test_one_bad_fetch_does_not_kill_loop(sync_fn, monkeypatch):
         return pool
 
     async def _fake_fetch(provider_post_id: str, platforms: list[str]) -> dict:
-        if provider_post_id == "ayr-bad":
-            from marketer.services.ayrshare_analytics import AyrshareAnalyticsError
-            raise AyrshareAnalyticsError("simulated 429")
+        if provider_post_id == "post-bad":
+            from marketer.services.zernio import ZernioError
+            raise ZernioError("simulated 429")
         return {**SAMPLE_RAW, "id": provider_post_id}
 
     async def _fake_record(metrics):
@@ -159,7 +159,7 @@ async def test_one_bad_fetch_does_not_kill_loop(sync_fn, monkeypatch):
 
     import marketer.db as db_mod
     import marketer.repos.post_metrics as pm_repo
-    import marketer.services.ayrshare_analytics as analytics_mod
+    import marketer.services.publisher as analytics_mod
 
     monkeypatch.setattr(db_mod, "get_pool", _fake_get_pool)
     monkeypatch.setattr(analytics_mod, "fetch_post_analytics", _fake_fetch)

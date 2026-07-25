@@ -364,13 +364,23 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
     # ------------------------------------------------------------- connect
 
     @mcp.tool(description=(
-        "Start the Ayrshare connect flow. Returns a login_url the user must open "
-        "in a browser to link TikTok / Instagram / YouTube. Idempotent: safe to "
-        "call even if already connected (returns a fresh URL)."
+        "Start the social connect flow for one platform (tiktok, reels, or "
+        "shorts). Returns an auth_url the user must open in a browser to "
+        "authorize that account. Idempotent: safe to call even if already "
+        "connected (returns a fresh URL)."
     ))
-    async def connect_ayrshare() -> str:
+    async def connect_social(platform: str) -> str:
         async with _client() as c:
-            return _dump(await c.connect_ayrshare())
+            return _dump(await c.connect_social(platform))
+
+    @mcp.tool(description=(
+        "List the social accounts this user has connected, with whether each "
+        "one is still live. A disconnected account needs reconnecting before "
+        "anything can publish to it."
+    ))
+    async def social_status() -> str:
+        async with _client() as c:
+            return _dump(await c.social_status())
 
     # ------------------------------------------------------------- resources
 

@@ -115,8 +115,10 @@ user's payment method on the ad platform — so it is engineered around a strict
 ## Multi-tenant
 
 Every user is a Clerk identity. Per-user records (`niches`, `jobs`,
-`spend_ledger`) live in Supabase Postgres. Posting goes through one
-Ayrshare account using per-user profile keys. Artifacts on the Modal
+`spend_ledger`) live in Neon Postgres. Posting goes through one Zernio
+team: each user gets a profile, connects their own social accounts, and
+`social_accounts` maps every account id back to its owner — the boundary
+that keeps one user's post off another's socials. Artifacts on the Modal
 volume are partitioned by `user_id`. Each niche has its own daily spend
 cap that the pipeline checks before every credit-spending stage.
 

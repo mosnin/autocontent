@@ -110,12 +110,6 @@ export function JobDetailClient({
   // the panels that need scenes/cta.
   const fullScript = job.script as Script | null | undefined;
 
-  const ayrshareUrl = job.provider_post_id
-    ? // TODO: confirm Ayrshare's hosted permalink shape; this is the
-      // /posts/<id> path their dashboard uses today.
-      `https://app.ayrshare.com/posts/${job.provider_post_id}`
-    : null;
-
   const videoPath = job.rendered?.path
     ? `/api/proxy/api/v1/jobs/${job.id}/video`
     : null;
@@ -173,13 +167,6 @@ export function JobDetailClient({
                   void mutate();
                 }}
               />
-            )}
-            {ayrshareUrl && (
-              <Button asChild variant="outline">
-                <a href={ayrshareUrl} target="_blank" rel="noreferrer">
-                  Open on Ayrshare
-                </a>
-              </Button>
             )}
           </div>
         </div>

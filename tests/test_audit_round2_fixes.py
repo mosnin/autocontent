@@ -390,14 +390,14 @@ async def test_schedule_image_post_failure_marks_failed(monkeypatch):
     monkeypatch.setattr(niches_repo, "get", fake_niche)
 
     async def exploding_poster(**kwargs):
-        raise RuntimeError("ayrshare 500")
+        raise RuntimeError("zernio 500")
 
     result = await svc.schedule_image_post(
         user_id=_USER_ID, image_post_id=pid, apply_schedule=exploding_poster,
     )
     # terminal 'failed', never stuck in 'scheduling'
     assert result["status"] == "failed"
-    assert "ayrshare 500" in state["failed"]
+    assert "zernio 500" in state["failed"]
 
 
 # --------------------------------------------------------------------------- misc units

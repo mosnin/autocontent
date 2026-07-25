@@ -273,7 +273,7 @@ async def get(job_id: UUID, *, user_id: str) -> Job | None:
 
 
 async def get_by_provider_post_id(provider_post_id: str) -> Job | None:
-    """Look up a Job by its Ayrshare post id.
+    """Look up a Job by its provider post id.
 
     No user_id scope — webhooks arrive without a user token; the
     provider_post_id is the sole identifier. Returns None if the job has
@@ -344,7 +344,7 @@ _PROVIDER_ERROR_MARKERS = (
     "elevenlabs",
     "openai",
     "pixabay",
-    "ayrshare",
+    "zernio",
     "apiconnectionerror",
     "apitimeouterror",
     "ratelimiterror",

@@ -270,10 +270,20 @@ async def h_spend_today(c: MarketerClient, a: argparse.Namespace) -> None:
 
 # --- connect
 
-async def h_connect_ayrshare(c: MarketerClient, a: argparse.Namespace) -> None:
-    res = await c.connect_ayrshare()
-    _confirm("Open this URL to connect TikTok / Instagram / YouTube:")
-    print(res.login_url)
+async def h_connect_social(c: MarketerClient, a: argparse.Namespace) -> None:
+    res = await c.connect_social(a.platform)
+    _confirm(f"Open this URL to connect {a.platform}:")
+    print(res.auth_url)
+
+
+async def h_connect_status(c: MarketerClient, a: argparse.Namespace) -> None:
+    status = await c.social_status()
+    if not status.accounts:
+        print("no accounts connected")
+        return
+    for account in status.accounts:
+        state = "connected" if account.is_active else "DISCONNECTED — reconnect"
+        print(f"{account.platform:<8} {account.username or '—':<24} {state}")
 
 
 # --- tokens
@@ -405,8 +415,11 @@ def build_parser() -> argparse.ArgumentParser:
     connect = sub.add_parser("connect", help="connect external services").add_subparsers(
         dest="cmd", required=True
     )
-    p = connect.add_parser("ayrshare")
-    p.set_defaults(handler=h_connect_ayrshare)
+    p = connect.add_parser("social", help="link a social account")
+    p.add_argument("platform", choices=["tiktok", "reels", "shorts"])
+    p.set_defaults(handler=h_connect_social)
+    p = connect.add_parser("status", help="show connected accounts")
+    p.set_defaults(handler=h_connect_status)
 
     # tokens
     tokens = sub.add_parser("tokens", help="manage personal access tokens").add_subparsers(

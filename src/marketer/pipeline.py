@@ -49,7 +49,6 @@ from .services import (
     provider_fallback,
     provider_limits,
     publisher,
-    scheduler,  # noqa: F401 — kept for tests monkeypatching pipeline.scheduler
     subtitle,
     video_qa,
 )
@@ -841,7 +840,7 @@ async def _run_job_inner(
         await _emit_webhook(job, "job.awaiting_approval")
         return job
 
-    # 11. Schedule via Ayrshare (per-user profile)
+    # 11. Schedule the post on the user's connected account
     return await _schedule_stage(job, niche)
 
 

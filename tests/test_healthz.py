@@ -60,7 +60,7 @@ def test_healthz_deep_all_healthy(monkeypatch):
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "openai_api_key", "sk-test")
     monkeypatch.setattr(settings, "xai_api_key", "")
-    monkeypatch.setattr(settings, "ayrshare_api_key", "ay-test")
+    monkeypatch.setattr(settings, "zernio_api_key", "ay-test")
 
     # Patch get_pool to return a fake pool.
     class _FakePool:
@@ -109,7 +109,7 @@ def test_healthz_deep_all_healthy(monkeypatch):
     assert data["checks"]["migrations"]["pending"] == 0
     assert data["checks"]["openai_api_key"] == {"configured": True}
     assert data["checks"]["xai_api_key"] == {"configured": False}
-    assert data["checks"]["ayrshare_api_key"] == {"configured": True}
+    assert data["checks"]["zernio_api_key"] == {"configured": True}
 
 
 # ---------------------------------------------------------------------------
@@ -222,7 +222,7 @@ def test_healthz_deep_optional_key_missing_still_200(monkeypatch):
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "openai_api_key", "")  # missing — should be "configured: false"
     monkeypatch.setattr(settings, "xai_api_key", "")
-    monkeypatch.setattr(settings, "ayrshare_api_key", "")
+    monkeypatch.setattr(settings, "zernio_api_key", "")
 
     class _FakePool:
         async def fetchval(self, query: str):

@@ -2,7 +2,7 @@
 
 queued → planning (topic + carousel plan) → generating (slides, with
 slide 1 as the aesthetic reference for the rest) → awaiting_approval
-(when the niche requires sign-off) → scheduling (Ayrshare multi-image)
+(when the niche requires sign-off) → scheduling (multi-image post)
 → done.
 
 Cohesion trick: slide 0 renders first from the plan; every later slide
@@ -85,7 +85,7 @@ async def run_image_post(
     *, user_id: str, image_post_id: UUID, apply_schedule=None
 ) -> dict:
     """Drive one image post to a terminal state. `apply_schedule` is
-    injectable for tests; production posts through Ayrshare."""
+    injectable for tests; production posts through the publisher."""
     post = await image_posts_repo.get(image_post_id, user_id=user_id)
     if post is None:
         raise ValueError(f"image post {image_post_id} not found for {user_id}")

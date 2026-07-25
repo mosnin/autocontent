@@ -1,6 +1,6 @@
 """Tests for GET /api/v1/jobs/{id}/metrics.
 
-No DB or Ayrshare calls — jobs_repo and post_metrics_repo are monkeypatched.
+No DB or provider calls — jobs_repo and post_metrics_repo are monkeypatched.
 Auth is bypassed via FastAPI dependency_overrides.
 """
 from __future__ import annotations

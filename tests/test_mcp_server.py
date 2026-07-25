@@ -17,7 +17,7 @@ async def test_tools_registered(server):
     expected = {
         "list_niches", "get_niche", "create_niche", "archive_niche",
         "list_jobs", "get_job", "enqueue_job", "retry_job",
-        "today_spend", "connect_ayrshare",
+        "today_spend", "connect_social", "social_status",
     }
     assert expected.issubset(names), f"missing tools: {expected - names}"
 

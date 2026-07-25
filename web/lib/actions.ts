@@ -7,7 +7,7 @@ import { api } from "./api";
 import type { ActionState } from "./action-state";
 import type {
   Article,
-  AyrshareConnectResponse,
+  SocialConnectResponse,
   CreativeBrief,
   Job,
   Niche,
@@ -465,14 +465,17 @@ export async function createCheckoutAction(
   }
 }
 
-export async function connectAyrshareAction(): Promise<void> {
-  // Creates (or reuses) the user's Ayrshare profile and bounces them to
-  // the hosted OAuth chooser so they can link TikTok / IG / YouTube.
-  const res = await api<AyrshareConnectResponse>("/api/v1/connect/ayrshare", {
-    method: "POST",
-  });
+export async function connectSocialAction(formData: FormData): Promise<void> {
+  // Connecting is per platform: we ensure the user's profile exists, then
+  // bounce them to that platform's OAuth. The account is bound to their
+  // profile server-side when the provider calls our webhook back.
+  const platform = String(formData.get("platform") ?? "");
+  const res = await api<SocialConnectResponse>(
+    `/api/v1/connect/zernio/${platform}`,
+    { method: "POST" },
+  );
   revalidatePath("/connect");
-  redirect(res.login_url);
+  redirect(res.auth_url);
 }
 
 export async function updateUserSettingsAction(

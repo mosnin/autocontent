@@ -68,7 +68,7 @@ from marketer.repos import jobs as jobs_repo
         ("APITimeoutError: read timed out", "provider_error"),
         ("openai: insufficient_quota", "provider_error"),
         ("elevenlabs returned 503", "provider_error"),
-        ("ayrshare post failed: invalid profile key", "provider_error"),
+        ("zernio post failed: invalid profile key", "provider_error"),
         ("pixabay rate limit exceeded", "provider_error"),
         ("upstream 5xx from provider", "provider_error"),
         # fallback

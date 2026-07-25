@@ -194,25 +194,39 @@ async def test_today_spend_parses_decimals():
     assert out.by_niche["a"] == Decimal("1.50")
 
 
-async def test_connect_ayrshare_returns_url():
-    def handler(_: httpx.Request) -> httpx.Response:
+async def test_connect_social_returns_auth_url():
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.url.path)
         return httpx.Response(200, json={
-            "profile_key": "pk-1",
-            "login_url": "https://app.ayrshare.com/connect/xyz",
+            "profile_id": "prof-1",
+            "auth_url": "https://zernio.com/oauth/xyz",
         })
 
     async with _client(handler) as c:
-        res = await c.connect_ayrshare()
-    assert res.login_url.startswith("https://")
+        res = await c.connect_social("tiktok")
+    # The platform is part of the path — connecting is per platform, so a
+    # client that dropped it would silently connect the wrong one.
+    assert seen == ["/api/v1/connect/zernio/tiktok"]
+    assert res.auth_url.startswith("https://")
 
 
-async def test_ayrshare_status():
+async def test_social_status_reports_per_account_liveness():
     def handler(_: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"connected": True, "profile_key": "pk-1"})
+        return httpx.Response(200, json={
+            "connected": True,
+            "profile_id": "prof-1",
+            "accounts": [
+                {"platform": "tiktok", "username": "acme", "is_active": True},
+                {"platform": "reels", "username": "acme", "is_active": False},
+            ],
+        })
 
     async with _client(handler) as c:
-        s = await c.ayrshare_status()
+        s = await c.social_status()
     assert s.connected is True
+    assert [a.is_active for a in s.accounts] == [True, False]
 
 
 async def test_create_token_returns_plaintext_and_info():

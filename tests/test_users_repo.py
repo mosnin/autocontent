@@ -54,7 +54,7 @@ def _make_user_row(
     return {
         "id": user_id,
         "email": email,
-        "ayrshare_profile_key": None,
+        "zernio_profile_id": None,
         "global_daily_cap_usd": global_daily_cap_usd,
         "created_at": datetime.now(timezone.utc),
     }
