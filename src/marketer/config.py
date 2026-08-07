@@ -195,6 +195,56 @@ class Settings(BaseSettings):
     x402_min_topup_usd: float = 1.0
     x402_max_topup_usd: float = 1000.0
 
+    # --- Context.dev brand intelligence + web extraction ---------------
+    # One key powers brand lookup, page scraping (markdown + rendered HTML),
+    # styleguide extraction, and structured product extraction. Empty key =
+    # every feature built on it (ad creative studio, SEO auditor) reports
+    # "not configured" instead of failing mid-run.
+    context_dev_api_key: str = ""
+    context_dev_base_url: str = "https://api.context.dev"
+    context_dev_timeout_sec: float = 60.0
+
+    # --- Ad creative studio (domain -> on-brand ad images) -------------
+    # Generates a bounded "ad run" of 1:1 creatives from a public domain:
+    # brand research -> one LLM planning call -> N images, each a distinct
+    # creative direction rendered by a distinct image model. Off by default;
+    # inert without context_dev_api_key.
+    ad_creative_enabled: bool = False
+    # Model that picks creative directions and writes ad copy.
+    ad_creative_planner_model: str = "gpt-5.4-mini"
+    # Company-level creatives per run (the rest are product-level).
+    ad_creative_company_count: int = 3
+    # Bounds on product-level creatives extracted from the site.
+    ad_creative_product_min: int = 1
+    ad_creative_product_max: int = 3
+    # Maximum slots rendered concurrently within one ad run.
+    ad_creative_fanout_limit: int = 3
+
+    # --- SEO auditor (AI answer-engine readability) --------------------
+    # Scores a URL 0-100 across crawlability, chunking, schema, E-E-A-T,
+    # citation surface, and governance, then emits an agent-ready fix
+    # prompt. Off by default; inert without context_dev_api_key.
+    seo_audit_enabled: bool = False
+    # Serve a stored audit for the same URL when it is younger than this.
+    seo_audit_cache_ttl_sec: int = 86_400
+    # Milliseconds the scraper waits for client-side JSON-LD injectors.
+    seo_audit_html_wait_ms: int = 3_000
+
+    # --- UGC studio (script + reference images -> spokesperson video) --
+    # MUAPI-backed async render jobs across several video models. Off by
+    # default; inert without muapi_api_key.
+    ugc_enabled: bool = False
+    muapi_api_key: str = ""
+    muapi_base_url: str = "https://api.muapi.ai/api/v1"
+    # Public origin MUAPI posts completion webhooks back to. Empty =
+    # renders are reconciled by polling instead.
+    muapi_webhook_url: str = ""
+    # Shared secret appended to the webhook URL as ?token=... and required
+    # on delivery. Empty = the webhook endpoint refuses every request.
+    muapi_webhook_secret: str = ""
+    # Maximum reference images accepted per render.
+    ugc_max_reference_images: int = 7
+
     # Transactional email (Resend). Empty key = emails silently skipped.
     resend_api_key: str = ""
     email_from: str = "marketer <notifications@marketer.dev>"
