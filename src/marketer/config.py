@@ -245,6 +245,19 @@ class Settings(BaseSettings):
     # Maximum reference images accepted per render.
     ugc_max_reference_images: int = 7
 
+    # --- Seedance 2.5 video provider (services/seedance.py) -------------
+    # Text-to-video, image-to-video, first/last-frame, and omni/character
+    # reference. Served by the same MuAPI gateway as the UGC studio, so an
+    # unset key falls back to muapi_api_key; both empty = the provider is
+    # unavailable and says so loudly rather than silently substituting.
+    seedance_api_key: str = ""
+    seedance_base_url: str = "https://api.muapi.ai/api/v1"
+    # JSON {model_id | model_id@resolution: usd_per_second} correcting the
+    # pinned registry without a deploy, e.g.
+    # '{"seedance-2.5-omni-reference@720p": "0.18"}'. Same defensive-parse
+    # policy as fal_price_overrides: bad values are dropped, never fatal.
+    seedance_price_overrides: str = ""
+
     # Transactional email (Resend). Empty key = emails silently skipped.
     resend_api_key: str = ""
     email_from: str = "marketer <notifications@marketer.dev>"

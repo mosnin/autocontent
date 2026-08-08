@@ -17,6 +17,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from .mcp_tools import media
 from .models import (
     Job,
     JobStatus,
@@ -371,6 +372,14 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
     async def connect_ayrshare() -> str:
         async with _client() as c:
             return _dump(await c.connect_ayrshare())
+
+    # ------------------------------------------------------------- media
+
+    # Video/image generation: catalog, submit, status, asset. Registered
+    # with this server's own `_client`, so the tools inherit the caller's
+    # base URL + personal access token and can only spend through the
+    # metered HTTP API (SpendContext, niche/global caps, prepaid credit).
+    media.register(mcp, _client)
 
     # ------------------------------------------------------------- resources
 

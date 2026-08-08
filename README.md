@@ -180,6 +180,10 @@ falls back) and the rest of the platform is unaffected. Set them as
 | `MARKETER_PIXABAY_API_KEY` | Stock music fallback chain |
 | `MARKETER_WASABI_*` (`wasabi_enabled=true`, endpoint, region, bucket, keys) | Durable object storage for every produced artifact + template reference mirroring |
 | `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
+| `MARKETER_SEEDANCE_API_KEY` | Seedance 2.5 video (text-to-video, image-to-video, first/last frame, omni/character reference); falls back to `MARKETER_MUAPI_API_KEY` |
+| `MARKETER_SEEDANCE_PRICE_OVERRIDES` | JSON `{model_id\|model_id@resolution: usd_per_second}` correcting pinned Seedance prices without a deploy |
+| `MARKETER_CONTEXT_DEV_API_KEY` | Brand research + web extraction — required by the ad creative studio and the SEO auditor |
+| `MARKETER_MUAPI_API_KEY` | UGC studio render jobs |
 
 Deploy checklist when bumping to this version: `marketer-migrate up`
 (migrations through 0023), `modal deploy modal_app.py`, then set any new

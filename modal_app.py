@@ -455,6 +455,23 @@ async def retry_ad_creative_slot(user_id: str, run_id: str, slot_id: str) -> dic
 
 
 @app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_headshot_batch(user_id: str, batch_id: str) -> dict:
+    """One headshot batch: claim, render every variant from the user's own
+    source photos, settle done/partial/failed. Variant fan-out is bounded
+    inside the pipeline; a failed variant fails alone and the batch is
+    retryable from the gaps."""
+    from uuid import UUID
+    from marketer.headshots.pipeline import run_headshot_batch as _run
+
+    result = await _run(user_id=user_id, batch_id=UUID(batch_id))
+    artifacts.commit()
+    return result
+
+
+@app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
 )
