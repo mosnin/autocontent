@@ -374,10 +374,18 @@ async def reap_stale_jobs() -> dict:
     from marketer.repos import jobs as jobs_repo
 
     from marketer.repos import image_posts as image_posts_repo
+    from marketer.repos import motion_projects as motion_repo
+    from marketer.repos import scheduled_posts as scheduled_posts_repo
 
     reaped = await jobs_repo.reap_stale(older_than_minutes=120)
     reaped_articles = await articles_repo.reap_stale(older_than_minutes=120)
     reaped_images = await image_posts_repo.reap_stale(older_than_minutes=120)
+    # A crashed dispatcher strands posts in `dispatching`, where nothing
+    # retries them and the user just never sees the post go out — shorter
+    # window than the render reapers because a scheduled post is late the
+    # moment it misses its slot.
+    reaped_scheduled = await scheduled_posts_repo.reap_stale(older_than_minutes=60)
+    reaped_motion = await motion_repo.reap_stale(older_than_minutes=120)
     # Idempotency claims expire on their own TTL (claim() treats an expired
     # row as reclaimable), so this is pure disk cleanup, not a correctness
     # dependency — safe to run on the same cadence as the other reapers.
@@ -392,6 +400,8 @@ async def reap_stale_jobs() -> dict:
         "reaped_articles": reaped_articles,
         "reaped_images": reaped_images,
         "reaped_idempotency_keys": reaped_idempotency_keys,
+        "reaped_scheduled_posts": reaped_scheduled,
+        "reaped_motion_projects": reaped_motion,
     }
 
 
@@ -485,6 +495,70 @@ async def run_drama_pipeline(user_id: str, drama_id: str) -> dict:
     drama = await run_drama(user_id=user_id, drama_id=UUID(drama_id))
     artifacts.commit()
     return {"status": str(getattr(drama, "status", ""))}
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_motion_project(user_id: str, project_id: str) -> dict:
+    """One motion project end-to-end: narration -> beats -> b-roll +
+    kinetic type -> composited mp4. Resumable: keyframes already on the
+    volume are reused instead of re-bought."""
+    from uuid import UUID
+    from marketer.motion.pipeline import run_motion_project as _run
+
+    result = await _run(user_id=user_id, project_id=UUID(project_id))
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 10,
+)
+async def run_trend_research(user_id: str, report_id: str) -> dict:
+    """One trend-research run for a niche: up to three Exa searches plus
+    one metered LLM call, stored on the report row. Degrades to model
+    knowledge (grounded=false) when Exa is unconfigured."""
+    from uuid import UUID
+    from marketer.research.trends import run_trend_research as _run
+
+    return await _run(user_id=user_id, report_id=UUID(report_id))
+
+
+@app.function(
+    schedule=modal.Cron("* * * * *"),  # minute resolution: a due post is late by <60s
+    timeout=60 * 10,
+)
+async def dispatch_scheduled_posts() -> dict:
+    """Publish every scheduled post that has come due.
+
+    Safe to run concurrently with itself and safe to retry: `claim_due` is
+    an atomic scheduled -> dispatching UPDATE, `claim_variant` is the same
+    trick per platform, and services/idempotency.py is the durable third
+    guard. See src/marketer/scheduling/dispatch.py."""
+    from marketer.repos.article_revisions import publish_due
+    from marketer.scheduling.dispatch import run_due_dispatch
+
+    result = await run_due_dispatch()
+    # Scheduled article publication rides the same minute tick: both are
+    # "something the user set a time for has come due", and giving them one
+    # clock keeps a post and the article it links to from going live in
+    # different minutes.
+    result["published_articles"] = await publish_due()
+    return result
+
+
+@app.function(timeout=60 * 10)
+async def publish_scheduled_post(user_id: str, post_id: str) -> dict:
+    """Publish-now path. The ROUTE already made the atomic claim before
+    spawning this, so do not re-claim — just fan the claimed post out."""
+    from uuid import UUID
+
+    from marketer.scheduling.dispatch import dispatch_claimed_post
+
+    return await dispatch_claimed_post(user_id=user_id, post_id=UUID(post_id))
 
 
 @app.function(

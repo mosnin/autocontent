@@ -15,8 +15,15 @@ equivalent in a few places):
     `$` also matches before a trailing newline. Where that difference is
     reachable we use `\Z`.
 *   `Intl.Segmenter` word segmentation has no stdlib equivalent, so
-    `count_words` implements the source's documented regex fallback. For
-    Latin text the two agree; for CJK both count characters.
+    `count_words` implements the source's own documented regex fallback --
+    the branch the source itself takes on runtimes without a segmenter.
+    Verified token-for-token against that fallback. It differs slightly
+    from the segmenter path on separator-bearing numbers ("4,200" counts
+    as 2, not 1), hyphenated words ("well-known" as 1, not 2), and CJK
+    (per character, not per word). The gap moves word counts by a couple
+    of percent on a typical page, which no rule threshold is tight enough
+    to notice -- A8's ratio test and B4's words-per-section test are the
+    only consumers, and both have wide bands.
 """
 from __future__ import annotations
 

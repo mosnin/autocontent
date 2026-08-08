@@ -258,6 +258,11 @@ class Settings(BaseSettings):
     # policy as fal_price_overrides: bad values are dropped, never fatal.
     seedance_price_overrides: str = ""
 
+    # Stock footage for motion-graphics b-roll (Pexels). Empty key = the
+    # stock strategy finds nothing and every shot falls back to a generated
+    # keyframe, rather than failing the render.
+    pexels_api_key: str = ""
+
     # Transactional email (Resend). Empty key = emails silently skipped.
     resend_api_key: str = ""
     email_from: str = "marketer <notifications@marketer.dev>"

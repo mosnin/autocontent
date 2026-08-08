@@ -128,6 +128,33 @@ def _merge_pair(beats: list[Beat], i: int) -> list[Beat]:
     return beats[:i] + [fused] + beats[i + 2 :]
 
 
+def _absorb_runts(beats: list[Beat], min_sec: float) -> list[Beat]:
+    """Fuse any beat shorter than `min_sec` into a neighbour.
+
+    A runt ("...and that's it.") is absorbed by its predecessor rather
+    than getting its own visual for half a second. A runt at the HEAD of
+    the list has no predecessor, so it merges *forward* instead —
+    without that pass a short opening sentence ("Hi.") kept its own
+    quarter-second visual, which is exactly the flash-frame the minimum
+    exists to prevent.
+    """
+    merged: list[Beat] = []
+    for b in beats:
+        if merged and b.duration < min_sec:
+            prev = merged[-1]
+            merged[-1] = Beat(
+                index=prev.index,
+                start=prev.start,
+                end=b.end,
+                text=f"{prev.text} {b.text}".strip(),
+            )
+        else:
+            merged.append(b)
+    while len(merged) > 1 and merged[0].duration < min_sec:
+        merged = _merge_pair(merged, 0)
+    return merged
+
+
 def enforce_beat_cap(beats: list[Beat], *, max_beats: int = MAX_BEATS) -> list[Beat]:
     """Merge adjacent beats until at most `max_beats` remain.
 
@@ -180,21 +207,7 @@ def segment_words(
     if current:  # defensive: unreachable while the last word always flushes
         beats.append(_flush(current, len(beats)))
 
-    # A trailing runt ("...and that's it.") is absorbed by its predecessor
-    # rather than getting its own visual for half a second.
-    merged: list[Beat] = []
-    for b in beats:
-        if merged and b.duration < min_sec:
-            prev = merged[-1]
-            merged[-1] = Beat(
-                index=prev.index,
-                start=prev.start,
-                end=b.end,
-                text=f"{prev.text} {b.text}".strip(),
-            )
-        else:
-            merged.append(b)
-
+    merged = _absorb_runts(beats, min_sec)
     return enforce_beat_cap(_reindex(merged), max_beats=max_beats)
 
 
@@ -235,16 +248,7 @@ def beats_from_narration(
 
     # Same runt-absorption rule as segment_words, so both paths hand
     # downstream stages beats with the same minimum-length guarantee.
-    merged: list[Beat] = []
-    for b in beats:
-        if merged and b.duration < min_sec:
-            prev = merged[-1]
-            merged[-1] = Beat(
-                index=prev.index, start=prev.start, end=b.end,
-                text=f"{prev.text} {b.text}".strip(),
-            )
-        else:
-            merged.append(b)
+    merged = _absorb_runts(beats, min_sec)
     return enforce_beat_cap(_reindex(merged), max_beats=max_beats)
 
 

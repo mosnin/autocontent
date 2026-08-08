@@ -14,7 +14,7 @@ from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import ad_creatives, admin, ads, articles, billing, brand_kit, calendar, campaigns, cinema, connect, design, dramas, failures, headshots, healthz, image_posts, jobs, kits, library, metrics, niches, ops, performance, personas, providers, seo_audits, spend, style_presets, templates, tokens, ugc, users, voices, webhook_endpoints, webhooks, x402
+from .routes import ad_creatives, admin, ads, articles, billing, brand_kit, calendar, campaigns, cinema, cms, connect, design, dramas, failures, formats, headshots, healthz, image_posts, jobs, kits, library, metrics, motion, niches, ops, performance, personas, providers, scheduled_posts, seo_audits, spend, style_presets, templates, tokens, ugc, users, voices, webhook_endpoints, webhooks, x402
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +141,12 @@ def create_app() -> FastAPI:
     app.include_router(design.router, prefix="/api/v1/design", tags=["design"])
     app.include_router(personas.router, prefix="/api/v1/personas", tags=["personas"])
     app.include_router(headshots.router, prefix="/api/v1/headshots", tags=["headshots"])
+    app.include_router(motion.router, prefix="/api/v1/motion", tags=["motion"])
+    app.include_router(formats.router, prefix="/api/v1/formats", tags=["formats"])
+    app.include_router(
+        scheduled_posts.router, prefix="/api/v1/scheduled-posts", tags=["scheduled-posts"]
+    )
+    app.include_router(cms.router, prefix="/api/v1/cms", tags=["cms"])
 
     # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
     # when enabled this serves the functions at /api/inngest.

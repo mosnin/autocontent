@@ -218,11 +218,17 @@ They all follow the same architecture contract:
 | Cinema presets | `cinema/` | `/api/v1/cinema` | Cinematography catalog (lenses, stocks, grades) + deterministic structured prompt composer |
 | Design agent | `design/` | `/api/v1/design` | Brief → validated, bounded, inspectable plan → step-by-step canvas execution with per-step retry |
 | Brand personas | `personas/` | `/api/v1/personas` | Reusable brand voice (extends the brand kit) with injection-fenced chat and a locked visual reference |
+| Headshot studio | `headshots/` | `/api/v1/headshots` | Source photos + a style → a batch of consistent portraits; also mints a reusable AI actor for UGC and drama |
+| Motion graphics | `motion/` | `/api/v1/motion` | Narration → timed beats → beat-aligned b-roll (generated or stock) + kinetic type, composited to one MP4 |
+| Video formats + trends | `formats/`, `research/` | `/api/v1/formats` | Six selectable beat contracts (explainer, myth-buster, what-if, listicle, tutorial, UGC testimonial), a per-model gotchas KB the prompt builders consult, and niche trend research |
+| Scheduled posts | `scheduling/` | `/api/v1/scheduled-posts` | Hand-authored posts with per-platform variants, recurring slots, CSV import, and an idempotent dispatch loop |
+| Article CMS | `cms/` | `/api/v1/cms` | Editing with append-only revisions, guarded publication states, DB-enforced public slugs, collections, bulk topic queueing |
+| Seedance 2.5 | `services/seedance.py` | MCP tools | Text-to-video, image-to-video, first/last-frame, and omni/character reference behind the pluggable provider seam |
 
-In progress (packages landed, wiring pending): headshot studio
-(`headshots/`), video formats + model-gotchas KB (`formats/`), motion
-graphics/kinetic text (`motion/`), first-class scheduled posts
-(`scheduling/`).
+Two of these upgrade existing surfaces rather than standing alone: a
+niche's `video_format` steers the scriptwriter through the beat contract
+it will be graded against, and scheduled posts join the unified
+`/calendar` feed.
 
 ## Platform surfaces
 

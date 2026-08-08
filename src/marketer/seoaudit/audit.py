@@ -84,6 +84,15 @@ def normalize_audit_url(raw: str) -> str | None:
     hostname = re.sub(r"^www\.", "", hostname.lower())
     if "." not in hostname:
         return None
+    # Drop the scheme's default port, exactly as `new URL().toString()` does.
+    # Keeping it would desynchronize this from `parsing._normalize_link`, which
+    # already strips it: the audited page's origin would be
+    # "https://host:443" while every extracted link's origin is
+    # "https://host", so every internal link would be scored as external
+    # (B8/B11/E12). It would also split the audit cache across two spellings
+    # of the same page.
+    if port is not None and (scheme, port) in (("https", 443), ("http", 80)):
+        port = None
     netloc = f"{hostname}:{port}" if port else hostname
     return urlunsplit((scheme, netloc, parts.path or "/", parts.query, ""))
 

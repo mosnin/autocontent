@@ -27,11 +27,17 @@ without ffmpeg, a network, or a database.
 from __future__ import annotations
 
 from .beats import Beat, beats_from_narration, segment_words
+from .broll import BrollShot, plan_broll, select_broll_beats, visual_filter
 from .overlays import Canvas, OverlaySpec, build_overlays, escape_drawtext, filter_chain
 from .styles import DEFAULT_STYLE_KEY, MotionStyle, catalog, get_style
 
+# `pipeline` is deliberately NOT re-exported: it pulls in the Agents SDK,
+# httpx and the DB pool, and every other module here is meant to be
+# importable (and testable) without any of that.
+
 __all__ = [
     "Beat",
+    "BrollShot",
     "Canvas",
     "DEFAULT_STYLE_KEY",
     "MotionStyle",
@@ -42,5 +48,8 @@ __all__ = [
     "escape_drawtext",
     "filter_chain",
     "get_style",
+    "plan_broll",
     "segment_words",
+    "select_broll_beats",
+    "visual_filter",
 ]

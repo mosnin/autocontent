@@ -9,6 +9,7 @@ from __future__ import annotations
 from agents import Agent
 
 from ..config import settings
+from ..formats.registry import VideoFormat, scriptwriter_directives
 from ..models import Script
 
 SCRIPTWRITER_INSTRUCTIONS = """You are a short-form script director.
@@ -48,10 +49,17 @@ Educational rules:
 """
 
 
-def build_scriptwriter_agent() -> Agent:
+def build_scriptwriter_agent(fmt: VideoFormat | None = None) -> Agent:
+    """`fmt` appends the format's beat contract, pacing math, voice
+    direction, and narration constraints — the exact rules the script is
+    graded against by `formats.registry.check`. A rule the writer is
+    graded on but never told is a retry the user already paid for."""
+    instructions = SCRIPTWRITER_INSTRUCTIONS
+    if fmt is not None:
+        instructions = f"{SCRIPTWRITER_INSTRUCTIONS}\n\n{scriptwriter_directives(fmt)}"
     return Agent(
         model=settings.agent_model,
         name="Scriptwriter",
-        instructions=SCRIPTWRITER_INSTRUCTIONS,
+        instructions=instructions,
         output_type=Script,
     )
