@@ -185,6 +185,41 @@ Deploy checklist when bumping to this version: `marketer-migrate up`
 (migrations through 0023), `modal deploy modal_app.py`, then set any new
 keys above.
 
+## Creative surfaces (ported feature suite)
+
+A wave of focused creation tools, each a self-contained package under
+`src/marketer/` with its own repo module, route module, and migration.
+They all follow the same architecture contract:
+
+- **One vendor seam per vendor.** Context.dev calls (brand data, page
+  markdown, rendered HTML, styleguide, structured extraction) go through
+  `services/context_dev.py`; MUAPI render jobs through `services/muapi.py`.
+  No feature fetches a researched or audited site directly.
+- **Metered like everything else.** Every LLM/image/video call runs
+  through `SpendContext` — per-niche daily cap, optional global cap,
+  prepaid credits — and fan-out is bounded.
+- **Fail-closed config.** A feature whose flag is off or whose key is
+  missing answers `409`, never a 500; boot preflight reports the
+  misconfiguration (`services/preflight.py`).
+- **Catalogs are pure data.** Creative directions, cinema presets, video
+  formats, headshot styles, and model capability tables are import-safe
+  pure modules with no I/O, so pipelines can consume them directly.
+
+| Surface | Package | API | What it does |
+| --- | --- | --- | --- |
+| Ad creative studio | `adcreative/` | `/api/v1/ad-creatives` | Public domain → brand research → one planning call → 4-6 on-brand 1:1 ads, each a distinct creative direction on a distinct image model |
+| SEO auditor | `seoaudit/` | `/api/v1/seo-audits` | URL → 0-100 AI answer-engine readability score across six weighted categories + an agent-ready fix prompt |
+| UGC studio | `ugc/` | `/api/v1/ugc` | Script + reference images → vertical spokesperson video via async provider jobs (secret-gated webhook + polling reconcile) |
+| Micro-drama | `drama/` | `/api/v1/dramas` | Idea → screenplay → locked cast portraits → per-shot keyframes/clips → stitched short with character consistency |
+| Cinema presets | `cinema/` | `/api/v1/cinema` | Cinematography catalog (lenses, stocks, grades) + deterministic structured prompt composer |
+| Design agent | `design/` | `/api/v1/design` | Brief → validated, bounded, inspectable plan → step-by-step canvas execution with per-step retry |
+| Brand personas | `personas/` | `/api/v1/personas` | Reusable brand voice (extends the brand kit) with injection-fenced chat and a locked visual reference |
+
+In progress (packages landed, wiring pending): headshot studio
+(`headshots/`), video formats + model-gotchas KB (`formats/`), motion
+graphics/kinetic text (`motion/`), first-class scheduled posts
+(`scheduling/`).
+
 ## Platform surfaces
 
 Beyond the two content pipelines, the product ships:

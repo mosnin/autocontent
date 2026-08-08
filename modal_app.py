@@ -424,6 +424,73 @@ async def run_article_pipeline(
 
 @app.function(
     volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_ad_creative_run(user_id: str, run_id: str) -> dict:
+    """One Ad Run: brand research → planning → every slot rendered.
+    Slot fan-out is bounded inside execute_run; a failed slot fails
+    alone and is individually retryable."""
+    from uuid import UUID
+    from marketer.adcreative.renderer import execute_run
+
+    result = await execute_run(user_id=user_id, run_id=UUID(run_id))
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 10,
+)
+async def retry_ad_creative_slot(user_id: str, run_id: str, slot_id: str) -> dict:
+    """Re-render one failed Ad Slot without re-planning the run."""
+    from uuid import UUID
+    from marketer.adcreative.renderer import retry_slot
+
+    result = await retry_slot(
+        user_id=user_id, run_id=UUID(run_id), slot_id=UUID(slot_id)
+    )
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 60,
+)
+async def run_drama_pipeline(user_id: str, drama_id: str) -> dict:
+    """One micro-drama end-to-end: screenplay → locked cast → per-shot
+    keyframes/clips → stitch. Resumable: a retry keeps the already-paid
+    screenplay, character references, and completed shots."""
+    from uuid import UUID
+    from marketer.drama.pipeline import run_drama
+
+    drama = await run_drama(user_id=user_id, drama_id=UUID(drama_id))
+    artifacts.commit()
+    return {"status": str(getattr(drama, "status", ""))}
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_design_project(
+    user_id: str, project_id: str, from_step_id: str = ""
+) -> dict:
+    """Drive one design project: plan (one metered call) then execute the
+    validated step graph. `from_step_id` re-runs a step + downstream."""
+    from uuid import UUID
+    from marketer.design.executor import run_design_project as _run
+
+    result = await _run(
+        user_id=user_id, project_id=UUID(project_id), from_step_id=from_step_id
+    )
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
     schedule=modal.Cron("0 9 * * *"),  # 09:00 UTC daily
     timeout=60 * 30,
 )

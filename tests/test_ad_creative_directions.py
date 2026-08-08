@@ -87,7 +87,7 @@ def test_prompts_carry_typography_spec_and_hard_rules():
                 _brief(), subject=subject, headline="Move money", subheadline="Fast."
             ),
         )
-        assert "TEXT IS THE #1 PRIORITY" in prompt
+        assert "TEXT IS THE TOP PRIORITY" in prompt
         assert concepts.HARD_RULES in prompt
         assert "1:1" in prompt
         assert '"Move money"' in prompt

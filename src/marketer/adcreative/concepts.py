@@ -93,7 +93,10 @@ class PromptInput:
 
 def _typography(p: PromptInput, *, include_url: bool = False) -> str:
     lines = [
-        "TEXT IS THE #1 PRIORITY. The typography must look like it was set by a "
+        # "TOP PRIORITY", not "#1 PRIORITY": prompts must stay entirely
+        # hash-free so the no-hex-codes invariant is checkable as "# never
+        # appears" — and models have printed literal "#1" into the art.
+        "TEXT IS THE TOP PRIORITY. The typography must look like it was set by a "
         "professional designer in Figma — clean, sharp, flawless. Follow these "
         "rules exactly:",
         "• The image must contain EXACTLY these pieces of text, and absolutely "

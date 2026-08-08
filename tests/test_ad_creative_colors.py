@@ -33,7 +33,7 @@ def test_shorthand_hex_expands():
     full = hex_to_hsl("#ffffff")
     short = hex_to_hsl("#fff")
     assert full is not None and short is not None
-    assert round(full.l) == round(short.l) == 100
+    assert round(full.lightness) == round(short.lightness) == 100
 
 
 def test_describe_color_families():

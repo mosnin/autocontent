@@ -40,7 +40,10 @@ const STUDIO: Product = {
   label: "Content",
   tagline: "Short-form video content — TikTok, Reels, Shorts",
   home: "/dashboard",
-  match: ["/dashboard", "/niches", "/queue", "/calendar", "/library", "/templates", "/onboarding"],
+  match: [
+    "/dashboard", "/niches", "/queue", "/calendar", "/library", "/templates",
+    "/onboarding", "/ugc", "/dramas", "/motion", "/scheduled",
+  ],
   groups: [
     {
       label: "Operate",
@@ -53,6 +56,18 @@ const STUDIO: Product = {
         { href: "/templates", label: "Templates" },
       ],
     },
+    {
+      // Format-first creation surfaces (each is one backend feature; a
+      // `soon` item has a live API but no page yet — flip it on when the
+      // page ships, never before).
+      label: "Create",
+      items: [
+        { href: "/ugc", label: "UGC ads", soon: true },
+        { href: "/dramas", label: "Micro-dramas", soon: true },
+        { href: "/motion", label: "Motion graphics", soon: true },
+        { href: "/scheduled", label: "Scheduled posts", soon: true },
+      ],
+    },
   ],
 };
 
@@ -61,12 +76,18 @@ const PRESS: Product = {
   label: "SEO",
   tagline: "Long-form articles, SEO, and search performance",
   home: "/articles",
-  match: ["/articles"],
+  match: ["/articles", "/seo-audit"],
   groups: [
     {
       label: "Content",
       items: [
         { href: "/articles", label: "Articles" },
+      ],
+    },
+    {
+      label: "Optimize",
+      items: [
+        { href: "/seo-audit", label: "AI SEO audit", soon: true },
       ],
     },
   ],
@@ -77,7 +98,7 @@ const ADS: Product = {
   label: "Ads",
   tagline: "Create, manage, and scale paid campaigns with agents",
   home: "/ads",
-  match: ["/ads"],
+  match: ["/ads", "/ad-creatives"],
   groups: [
     {
       label: "Campaigns",
@@ -87,7 +108,16 @@ const ADS: Product = {
         { href: "/ads/approvals", label: "Approvals" },
         { href: "/ads/activity", label: "Activity" },
         { href: "/ads/insights", label: "Insights", soon: true },
-        { href: "/ads/creatives", label: "Creatives", soon: true },
+      ],
+    },
+    {
+      // Organic creative production (no paid-platform spend) lives with
+      // Ads because the output feeds campaign creatives.
+      label: "Creative",
+      items: [
+        { href: "/ad-creatives", label: "Ad studio", soon: true },
+        { href: "/ads/design", label: "Design agent", soon: true },
+        { href: "/ads/headshots", label: "Headshots", soon: true },
       ],
     },
     {
@@ -125,6 +155,7 @@ const SUITE: Product = {
       items: [
         { href: "/settings", label: "Settings" },
         { href: "/settings/brand", label: "Brand kit" },
+        { href: "/settings/personas", label: "Personas", soon: true },
         { href: "/settings/kits", label: "Kits" },
         { href: "/connect", label: "Connect socials" },
         { href: "/settings/tokens", label: "Tokens" },

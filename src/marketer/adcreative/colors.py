@@ -24,7 +24,7 @@ FALLBACK_COLOR_B = "deep navy"
 class Hsl:
     h: float
     s: float
-    l: float
+    lightness: float
 
 
 def normalize_brand_color_hex(value: str) -> str | None:
@@ -59,7 +59,7 @@ def hex_to_hsl(value: str) -> Hsl | None:
             hue = ((b - r) / delta + 2) * 60
         else:
             hue = ((r - g) / delta + 4) * 60
-    return Hsl(h=hue, s=saturation * 100, l=lightness * 100)
+    return Hsl(h=hue, s=saturation * 100, lightness=lightness * 100)
 
 
 def _hue_name(h: float, lightness: float) -> str:
@@ -98,23 +98,23 @@ def describe_color(value: str) -> str:
     if hsl is None:
         return FALLBACK_COLOR_B
     if hsl.s < 10:
-        if hsl.l < 12:
+        if hsl.lightness < 12:
             return "near-black"
-        if hsl.l < 30:
+        if hsl.lightness < 30:
             return "charcoal"
-        if hsl.l < 55:
+        if hsl.lightness < 55:
             return "slate gray"
-        if hsl.l < 82:
+        if hsl.lightness < 82:
             return "soft gray"
         return "off-white"
-    hue = _hue_name(hsl.h, hsl.l)
+    hue = _hue_name(hsl.h, hsl.lightness)
     if hue == "navy":
         return "deep navy"
-    if hsl.l < 25:
+    if hsl.lightness < 25:
         return f"deep {hue}"
-    if hsl.l > 80:
+    if hsl.lightness > 80:
         return f"pale {hue}"
-    if hsl.s > 70 and 38 <= hsl.l <= 66:
+    if hsl.s > 70 and 38 <= hsl.lightness <= 66:
         return f"vivid {hue}"
     if hsl.s > 40:
         return f"rich {hue}"
@@ -134,7 +134,7 @@ def pick_brand_colors(hexes: list[str]) -> tuple[str, str]:
         hsl = hex_to_hsl(value)
         if hsl is None:
             continue
-        scored.append((hsl.s - abs(hsl.l - 50), value, hsl))
+        scored.append((hsl.s - abs(hsl.lightness - 50), value, hsl))
     scored.sort(key=lambda entry: entry[0], reverse=True)
 
     if not scored:
@@ -145,7 +145,7 @@ def pick_brand_colors(hexes: list[str]) -> tuple[str, str]:
     for candidate in scored[1:]:
         delta_h = abs(candidate[2].h - first_hsl.h)
         hue_distance = min(delta_h, 360 - delta_h)
-        if hue_distance >= 30 or abs(candidate[2].l - first_hsl.l) >= 25:
+        if hue_distance >= 30 or abs(candidate[2].lightness - first_hsl.lightness) >= 25:
             second = candidate
             break
     if second is None and len(scored) > 1:
