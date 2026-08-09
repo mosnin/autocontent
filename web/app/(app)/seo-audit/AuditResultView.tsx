@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Metric, Provenance, Section } from "@/components/editorial";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -184,15 +185,6 @@ function CategoryCard({ category }: { category: AuditCategory }) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border bg-card px-3 py-2">
-      <div className="font-mono text-sm tabular-nums">{value}</div>
-      <div className="text-[11px] text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
 function ScrapeNotice({ audit }: { audit: StoredAudit["audit"] }) {
   const d = audit.diagnostics;
   const degraded =
@@ -232,41 +224,37 @@ export function AuditResultView({ stored }: { stored: StoredAudit }) {
 
   return (
     <div className="space-y-6">
-      {/* Score + band */}
-      <Card>
-        <CardContent className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="flex items-baseline gap-2">
-            <span
-              className={cn(
-                "font-mono text-6xl font-semibold tabular-nums leading-none",
-                bandClass(audit.band.label),
-              )}
-            >
-              {audit.score.toFixed(1)}
-            </span>
-            <span className="text-lg text-muted-foreground">/ 100</span>
-          </div>
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className={cn("text-xs", bandClass(audit.band.label))}>
-                {audit.band.label}
-              </Badge>
-              {stored.cached ? (
-                <Badge variant="secondary" className="text-xs">
-                  From cache
-                </Badge>
-              ) : null}
-              <span className="text-xs text-muted-foreground">
-                Fetched {new Date(audit.fetched_at).toLocaleString()}
+      {/* The verdict. The score is the headline, so it is set at display
+          scale in mono — and the four status counts sit beside it as peers
+          rather than as a footnote, because "didn't apply" is a distinct
+          outcome from "failed" and the scoring model depends on the reader
+          understanding that. */}
+      <div className="mb-10 border-b border-border pb-8">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-2">
+              <span
+                className={cn(
+                  "font-mono text-7xl tabular-nums leading-none",
+                  bandClass(audit.band.label),
+                )}
+              >
+                {audit.score.toFixed(1)}
               </span>
+              <span className="font-mono text-xl text-muted-foreground">/ 100</span>
             </div>
-            <p className="text-sm text-muted-foreground">{audit.band.interpretation}</p>
-            <div className="space-y-0.5">
+            <p className="mt-3 font-editorial text-2xl leading-tight text-foreground">
+              {audit.band.label}
+            </p>
+            <p className="mt-1 max-w-(--measure) text-sm leading-relaxed text-muted-foreground">
+              {audit.band.interpretation}
+            </p>
+            <div className="mt-4 space-y-0.5">
               <a
-                href={audit.url}
-                target="_blank"
-                rel="noreferrer noopener"
                 className="break-all text-sm font-medium underline-offset-4 hover:underline"
+                href={audit.url}
+                rel="noreferrer noopener"
+                target="_blank"
               >
                 {audit.url}
               </a>
@@ -274,24 +262,27 @@ export function AuditResultView({ stored }: { stored: StoredAudit }) {
                 <p className="truncate text-xs text-muted-foreground">{audit.title}</p>
               ) : null}
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1">
-                <Check className="size-3 text-success" aria-hidden /> {counts.pass} pass
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Minus className="size-3 text-amber-600 dark:text-amber-400" aria-hidden />{" "}
-                {counts.partial} partial
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <X className="size-3 text-destructive" aria-hidden /> {counts.fail} fail
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <CircleSlash className="size-3" aria-hidden /> {counts.na} didn&apos;t apply
-              </span>
-            </div>
+            <Provenance
+              className="mt-4"
+              items={[
+                {
+                  label: "Fetched",
+                  numeric: true,
+                  value: new Date(audit.fetched_at).toLocaleString(),
+                },
+                { label: "Source", value: stored.cached ? "Cached" : "Live" },
+              ]}
+            />
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="grid shrink-0 grid-cols-4 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <Metric label="Pass" tone="positive" value={counts.pass} />
+            <Metric label="Partial" value={counts.partial} />
+            <Metric label="Fail" tone={counts.fail > 0 ? "negative" : "default"} value={counts.fail} />
+            <Metric hint="Not applicable" label="N/A" tone="muted" value={counts.na} />
+          </div>
+        </div>
+      </div>
 
       <ScrapeNotice audit={audit} />
 
@@ -383,31 +374,31 @@ export function AuditResultView({ stored }: { stored: StoredAudit }) {
         </Card>
       ) : null}
 
-      {/* Categories */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          Category breakdown
-        </h2>
-        {audit.categories.map((category) => (
-          <CategoryCard key={category.id} category={category} />
-        ))}
-      </div>
-
-      {/* Page stats */}
-      <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          What we parsed
-        </h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-          <Stat label="Words" value={audit.stats.words.toLocaleString()} />
-          <Stat label="Headings" value={audit.stats.headings.toLocaleString()} />
-          <Stat label="Links" value={audit.stats.links.toLocaleString()} />
-          <Stat label="External links" value={audit.stats.external_links.toLocaleString()} />
-          <Stat label="JSON-LD blocks" value={audit.stats.json_ld_blocks.toLocaleString()} />
-          <Stat label="Markdown chars" value={audit.stats.markdown_chars.toLocaleString()} />
-          <Stat label="HTML chars" value={audit.stats.raw_html_chars.toLocaleString()} />
+      <Section
+        aside={`${audit.categories.length} categories, 100 points`}
+        label="Category breakdown"
+      >
+        <div className="space-y-3">
+          {audit.categories.map((category) => (
+            <CategoryCard category={category} key={category.id} />
+          ))}
         </div>
-      </div>
+      </Section>
+
+      {/* What the rules actually saw. These are the inputs behind every
+          verdict above, so they belong on the page — an audit you cannot
+          check is just an opinion with a number on it. */}
+      <Section label="What we parsed">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-7">
+          <Metric label="Words" value={audit.stats.words.toLocaleString()} />
+          <Metric label="Headings" value={audit.stats.headings.toLocaleString()} />
+          <Metric label="Links" value={audit.stats.links.toLocaleString()} />
+          <Metric label="External" value={audit.stats.external_links.toLocaleString()} />
+          <Metric label="JSON-LD" value={audit.stats.json_ld_blocks.toLocaleString()} />
+          <Metric label="MD chars" value={audit.stats.markdown_chars.toLocaleString()} />
+          <Metric label="HTML chars" value={audit.stats.raw_html_chars.toLocaleString()} />
+        </div>
+      </Section>
     </div>
   );
 }

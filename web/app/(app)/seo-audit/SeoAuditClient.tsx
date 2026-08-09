@@ -17,6 +17,7 @@ import { Info, Loader2, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { PageTitle } from "@/components/editorial";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -146,17 +147,10 @@ export function SeoAuditClient({ initial }: { initial: SeoAuditSummary[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-          Answer-engine readiness
-        </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight">AI SEO audit</h1>
-        <p className="max-w-2xl text-sm text-muted-foreground">
-          Score any page 0-100 on how readable it is to AI answer engines, across
-          six weighted categories. Every finding comes with the evidence behind it
-          and a copy-paste prompt your coding agent can act on.
-        </p>
-      </div>
+      <PageTitle
+        lede="Score any page 0-100 on how readable it is to AI answer engines, across six weighted categories. Every finding comes with the evidence behind it and a copy-paste prompt your coding agent can act on."
+        title="AI SEO audit"
+      />
 
       <Card>
         <CardHeader>
