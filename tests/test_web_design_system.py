@@ -71,6 +71,28 @@ def test_nothing_imports_a_non_canonical_kit() -> None:
     )
 
 
+def test_display_serif_is_not_used_at_ui_sizes() -> None:
+    """`font-editorial` is Instrument Serif — a high-contrast display face.
+
+    Its thin strokes stop being legible below roughly 20px, so it belongs
+    on page titles and figure captions and nowhere else. Pairing it with a
+    small text size is the single easiest way to make the editorial system
+    look like a mistake rather than a decision.
+    """
+    small = re.compile(r"font-editorial[^\"']*\btext-(xs|sm|base|\[1[0-9]px\])\b")
+    offenders = sorted(
+        {
+            path.relative_to(_WEB).as_posix()
+            for path, source in _tsx_sources()
+            if small.search(source)
+        }
+    )
+    assert not offenders, (
+        "these files set font-editorial at a UI text size; the display serif is "
+        f"for titles and captions only: {offenders}"
+    )
+
+
 def test_checkbox_handlers_use_the_ark_contract() -> None:
     """`!!value` on ark's `{ checked }` detail object is always true.
 

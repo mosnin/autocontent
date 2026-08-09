@@ -28,6 +28,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Empty,
+  Figure,
+  Gallery,
+  PageTitle,
+  Provenance,
+  Section,
+} from "@/components/editorial";
 import { clientFetch } from "@/lib/client-fetcher";
 import { cn } from "@/lib/utils";
 import type { Niche } from "@/lib/types";
@@ -95,89 +103,111 @@ export function AdSlotCard({
   onRetry?: (slot: AdSlot) => void;
   busy?: boolean;
 }) {
+  // The ad IS the content, so it sits flush with no card around it and no
+  // status chip on top of the artwork. A finished ad shows only itself; the
+  // machinery that made it hangs underneath, where it informs without
+  // competing.
   return (
-    <Card className="gap-0 overflow-hidden rounded-lg border bg-card py-0">
-      <div className="relative aspect-square w-full bg-muted">
-        {slot.status === "done" ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={adSlotImageUrl(runId, slot.id, nonce)}
-            alt={slot.headline || slot.direction_label}
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
-        ) : isSlotPending(slot) ? (
-          <div className="flex h-full w-full items-center justify-center">
-            <Skeleton className="h-full w-full rounded-none" />
-            <span className="absolute text-xs text-muted-foreground">
-              {slot.status === "rendering" ? "Rendering…" : "Queued"}
-            </span>
-          </div>
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-center">
-            <p className="text-xs font-medium text-destructive">Render failed</p>
-            {slot.error ? (
-              <p
-                className="line-clamp-4 text-[11px] text-muted-foreground"
-                title={slot.error}
-              >
-                {slot.error}
-              </p>
-            ) : null}
-            {onRetry ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-7 text-xs"
-                disabled={busy}
-                onClick={() => onRetry(slot)}
-              >
-                {busy ? "…" : "Retry"}
-              </Button>
-            ) : null}
-          </div>
-        )}
-        <span className="absolute left-2 top-2">
-          <Badge
-            variant="outline"
-            className={cn(
-              "bg-background/85 font-mono text-[10px] backdrop-blur",
-              SLOT_TONE[slot.status],
-            )}
-          >
-            {slot.status}
-          </Badge>
-        </span>
-      </div>
-      <CardContent className="space-y-1.5 p-3">
-        <p className="line-clamp-2 text-sm font-semibold leading-snug">
-          {slot.headline || slot.direction_label}
-        </p>
-        {slot.subheadline ? (
-          <p className="line-clamp-2 text-xs text-muted-foreground">{slot.subheadline}</p>
-        ) : null}
-        <div className="flex flex-wrap items-center gap-1 pt-1">
-          <Badge variant="secondary" className="text-[10px]">
-            {slot.direction_label || slot.direction_key}
-          </Badge>
-          <Badge variant="outline" className="text-[10px] text-muted-foreground">
-            {slot.subject_kind === "product"
-              ? slot.product_name || "Product"
-              : "Company"}
-          </Badge>
+    <Figure
+      aside={slot.status === "done" ? null : slot.status}
+      caption={slot.headline || slot.direction_label}
+      ratio="1 / 1"
+    >
+      {slot.status === "done" ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          alt={slot.headline || slot.direction_label}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          src={adSlotImageUrl(runId, slot.id, nonce)}
+        />
+      ) : isSlotPending(slot) ? (
+        <div className="flex h-full w-full items-center justify-center">
+          <Skeleton className="h-full w-full rounded-none" />
+          <span className="absolute font-mono text-[11px] uppercase tracking-[0.1em] text-muted-foreground">
+            {slot.status === "rendering" ? "Rendering" : "Queued"}
+          </span>
         </div>
-        <p
-          className="truncate font-mono text-[10px] text-muted-foreground"
-          title={slot.image_model_id}
-        >
-          {slot.image_model_name || slot.image_model_id}
-        </p>
-      </CardContent>
-    </Card>
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-5 text-center">
+          <p className="font-editorial text-lg text-destructive">Render failed</p>
+          {slot.error ? (
+            <p className="line-clamp-4 text-[11px] text-muted-foreground" title={slot.error}>
+              {slot.error}
+            </p>
+          ) : null}
+          {onRetry ? (
+            <Button
+              className="h-7 text-xs"
+              disabled={busy}
+              onClick={() => onRetry(slot)}
+              size="sm"
+              variant="outline"
+            >
+              {busy ? "…" : "Retry"}
+            </Button>
+          ) : null}
+        </div>
+      )}
+      <span className="sr-only">{slot.status}</span>
+    </Figure>
   );
 }
 
-/** The run's slots as a responsive 1:1 grid, in plan order. */
+/**
+ * One slot: the artifact, then its provenance. Subheadline sits between
+ * them because it is part of the creative, not part of the metadata.
+ */
+export function AdSlotItem({
+  runId,
+  slot,
+  nonce,
+  onRetry,
+  busy,
+}: {
+  runId: string;
+  slot: AdSlot;
+  nonce: number;
+  onRetry?: (slot: AdSlot) => void;
+  busy?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <AdSlotCard
+        busy={busy}
+        nonce={nonce}
+        onRetry={onRetry}
+        runId={runId}
+        slot={slot}
+      />
+      {slot.subheadline ? (
+        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          {slot.subheadline}
+        </p>
+      ) : null}
+      <Provenance
+        className="mt-2.5 border-t border-border pt-2.5"
+        items={[
+          { label: "Direction", value: slot.direction_label || slot.direction_key },
+          {
+            label: "Subject",
+            value:
+              slot.subject_kind === "product"
+                ? slot.product_name || "Product"
+                : "Company",
+          },
+          {
+            label: "Model",
+            numeric: true,
+            value: slot.image_model_name || slot.image_model_id,
+          },
+        ]}
+      />
+    </div>
+  );
+}
+
+/** The run's slots, in plan order, sized by the artifact. */
 export function AdRunGallery({
   runId,
   slots,
@@ -193,28 +223,25 @@ export function AdRunGallery({
 }) {
   if (slots.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed bg-card px-6 py-12 text-center">
-        <p className="text-sm font-medium">Planning the run</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          The brand research and the creative plan land first; slots appear here
-          the moment the plan is written.
-        </p>
-      </div>
+      <Empty title="Planning the run">
+        The brand research and the creative plan land first; slots appear here
+        the moment the plan is written.
+      </Empty>
     );
   }
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <Gallery>
       {slots.map((s) => (
-        <AdSlotCard
+        <AdSlotItem
+          busy={busySlot === s.id}
           key={s.id}
-          runId={runId}
-          slot={s}
           nonce={nonce}
           onRetry={onRetry}
-          busy={busySlot === s.id}
+          runId={runId}
+          slot={s}
         />
       ))}
-    </div>
+    </Gallery>
   );
 }
 
@@ -292,27 +319,18 @@ export function AdCreativesClient({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Ad studio</h1>
-        <p className="text-sm text-muted-foreground">
-          Give it a public domain. It researches the brand, writes a plan of
-          distinct creative directions, and renders each one as a square ad on
-          its own image model.
-        </p>
-      </div>
+    <div>
+      <PageTitle
+        lede="Give it a public domain. It researches the brand, writes a plan of distinct creative directions, and renders each one as a square ad on its own image model."
+        title="Ad studio"
+      />
 
       {notConfigured ? (
-        <Card>
-          <CardContent className="space-y-2 py-8 text-center">
-            <h3 className="text-base font-semibold">Ad studio isn&apos;t enabled here</h3>
-            <p className="mx-auto max-w-md text-sm text-muted-foreground">
-              This deployment is missing the ad studio feature flag or its brand
-              research key, so new runs can&apos;t be accepted. Anything already
-              rendered stays below.
-            </p>
-          </CardContent>
-        </Card>
+        <Empty title="Ad studio isn't enabled here">
+          This deployment is missing the ad studio feature flag or its brand
+          research key, so new runs can&apos;t be accepted. Anything already
+          rendered stays below.
+        </Empty>
       ) : (
         <Card>
           <CardContent className="pt-6">
@@ -362,21 +380,22 @@ export function AdCreativesClient({
       )}
 
       {newest ? (
-        <section className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold tracking-tight">
-                {newest.brand_name || newest.domain}
-              </h2>
-              <RunStatusBadge status={detail?.run.status ?? newest.status} />
-            </div>
+        <Section
+          aside={
             <Link
+              className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
               href={`/ad-creatives/${newest.id}`}
-              className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
               Open run →
             </Link>
-          </div>
+          }
+          label={
+            <span className="flex items-center gap-2">
+              {newest.brand_name || newest.domain}
+              <RunStatusBadge status={detail?.run.status ?? newest.status} />
+            </span>
+          }
+        >
           {(detail?.run.error ?? newest.error) ? (
             <p className="rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {detail?.run.error ?? newest.error}
@@ -389,22 +408,16 @@ export function AdCreativesClient({
             onRetry={retry}
             busySlot={busySlot}
           />
-        </section>
+        </Section>
       ) : (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-            <h3 className="text-lg font-semibold">No runs yet</h3>
-            <p className="max-w-sm text-sm text-muted-foreground">
-              Enter a domain above. The first gallery usually lands a couple of
-              minutes later.
-            </p>
-          </CardContent>
-        </Card>
+        <Empty title="No runs yet">
+          Enter a domain above. The first gallery usually lands a couple of
+          minutes later.
+        </Empty>
       )}
 
       {list.length > 1 ? (
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold tracking-tight">Earlier runs</h2>
+        <Section label="Earlier runs">
           <div className="flex flex-col rounded-lg border bg-card">
             <div className="overflow-x-auto">
               <Table>
@@ -450,7 +463,7 @@ export function AdCreativesClient({
               </Table>
             </div>
           </div>
-        </section>
+        </Section>
       ) : null}
     </div>
   );
