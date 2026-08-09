@@ -1,5 +1,5 @@
-import { Badge } from "@/components/square/ui/badge";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { connectAyrshareAction } from "@/lib/actions";
 import { api } from "@/lib/api";
 import type { AyrshareConnectStatus } from "@/lib/types";

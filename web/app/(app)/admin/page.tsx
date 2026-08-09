@@ -12,7 +12,7 @@ import {
 
 import { fmtCompact } from "@/components/admin/format";
 import { SquareStatsCards, type SquareStat } from "@/components/square/stats-cards";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { fetchAdminOverview } from "@/lib/admin-server";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";

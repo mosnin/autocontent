@@ -40,18 +40,18 @@ import {
   ChevronsRight,
   ChevronsUpDown,
 } from "lucide-react";
-import { Button } from "@/components/square/ui/button";
-import { Checkbox } from "@/components/square/ui/checkbox";
-import { Input } from "@/components/square/ui/input";
-import { Badge } from "@/components/square/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/square/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/square/ui/select";
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,7 +59,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/square/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -67,7 +67,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatUsd } from "@/lib/format";
 import type { Niche, Platform } from "@/lib/types";
@@ -118,14 +118,14 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && "indeterminate")
             }
-            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            onCheckedChange={(d) => table.toggleAllPageRowsSelected(d.checked === true)}
             aria-label="Select all"
           />
         ),
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            onCheckedChange={(d) => row.toggleSelected(d.checked === true)}
             aria-label="Select row"
           />
         ),

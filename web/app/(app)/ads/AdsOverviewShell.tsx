@@ -4,7 +4,7 @@ import Link from "next/link";
 import { DollarSign, Megaphone, ShieldCheck, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DashHeading, DashPanel } from "@/components/hub/dashboard-kit";
 import { SquareStatsCards, type SquareStat } from "@/components/square/stats-cards";
 import { formatUsd } from "@/lib/format";

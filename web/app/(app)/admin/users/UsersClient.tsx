@@ -39,10 +39,10 @@ import {
 
 import { AccountStatusBadge, RoleBadge } from "@/components/admin/badges";
 import { relativeTime } from "@/components/admin/format";
-import { Button } from "@/components/square/ui/button";
-import { Input } from "@/components/square/ui/input";
-import { Card, CardContent } from "@/components/square/ui/card";
-import { Skeleton } from "@/components/square/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -50,7 +50,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { adminKeys } from "@/lib/admin-api";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";

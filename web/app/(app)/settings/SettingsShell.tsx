@@ -8,7 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/square/ui/card";
+} from "@/components/ui/card";
 import { DashHeading, DashPanel } from "@/components/hub/dashboard-kit";
 import { SpendCapForm } from "./SpendCapForm";
 import { NotificationsForm } from "./NotificationsForm";

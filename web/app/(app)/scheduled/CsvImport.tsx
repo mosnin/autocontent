@@ -13,14 +13,14 @@ import * as React from "react";
 import { FileUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/square/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/square/ui/card";
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import {
   CSV_TEMPLATE_HEADER,
   importScheduledPosts,

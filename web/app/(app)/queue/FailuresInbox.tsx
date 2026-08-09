@@ -21,9 +21,9 @@ import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { clientFetch } from "@/lib/client-fetcher";
 
 const POLL_MS = 15000;

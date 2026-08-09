@@ -17,12 +17,12 @@ import useSWR from "swr";
 import { Loader2, Lock, Plus, Send, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
-import { Input } from "@/components/square/ui/input";
-import { Separator } from "@/components/square/ui/separator";
-import { Skeleton } from "@/components/square/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Niche } from "@/lib/types";
 import {
   MAX_GREETING_CHARS,

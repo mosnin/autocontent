@@ -52,18 +52,18 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 
-import { Button } from "@/components/square/ui/button";
+import { Button } from "@/components/ui/button";
 import { Button as DialogButton } from "@/components/ui/button";
-import { Checkbox } from "@/components/square/ui/checkbox";
-import { Input } from "@/components/square/ui/input";
-import { Badge } from "@/components/square/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/square/ui/select";
+} from "@/components/ui/select";
 import {
   Select as DialogSelect,
   SelectContent as DialogSelectContent,
@@ -78,7 +78,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/square/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -86,12 +86,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/square/ui/tooltip";
+} from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -294,14 +294,14 @@ export function ArticlesClient({
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && "indeterminate")
             }
-            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            onCheckedChange={(d) => table.toggleAllPageRowsSelected(d.checked === true)}
             aria-label="Select all"
           />
         ),
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            onCheckedChange={(d) => row.toggleSelected(d.checked === true)}
             aria-label="Select row"
             onClick={(e) => e.stopPropagation()}
           />

@@ -1,4 +1,4 @@
-import { Badge } from "@/components/square/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import type { AdminUser, UserRole } from "@/lib/admin-types";
 
 /** Role chip — admins get the warm-accent outline treatment. */

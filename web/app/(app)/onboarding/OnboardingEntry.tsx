@@ -4,7 +4,7 @@ import * as React from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/square/ui/button";
+import { Button } from "@/components/ui/button";
 // Textarea has no square/ui counterpart the template prescribes here — kept
 // on the app primitive (established precedent).
 import { Textarea } from "@/components/ui/textarea";

@@ -12,9 +12,9 @@ import {
   humanizeAction,
   relativeTime,
 } from "@/components/admin/format";
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 // Dialogs (and everything inside them) stay on the app's own primitives —
 // dialog/label/textarea have no square/ui counterpart the template
 // prescribes for this context (established precedent, see

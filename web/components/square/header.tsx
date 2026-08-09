@@ -10,8 +10,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { House } from "lucide-react";
-import { SidebarTrigger } from "@/components/square/ui/sidebar";
-import { Button } from "@/components/square/ui/button";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/square/theme-toggle";
 import { openCommandPalette } from "@/components/command-palette";
 import { productForPath } from "@/lib/products";

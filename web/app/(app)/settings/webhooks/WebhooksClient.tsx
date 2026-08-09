@@ -5,16 +5,16 @@ import useSWR from "swr";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 // `isLoading` (the inline spinner) is an app-Button-only feature — Spinner
 // has no square/ui counterpart (established precedent: dialog/label/
 // textarea/select-in-forms/tabs/spinner/switch stay on app primitives).
 // Call sites that rely on isLoading keep the app Button under this alias;
 // every other button in this file uses the square/ui default above.
 import { Button as LoadingButton } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
-import { Checkbox } from "@/components/square/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +24,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/square/ui/input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError } from "@/lib/client-fetcher";
@@ -298,7 +298,7 @@ function AddEndpointDialog({
               <Checkbox
                 className="mt-0.5"
                 checked={allEvents}
-                onCheckedChange={(checked) => setAllEvents(checked === true)}
+                onCheckedChange={(d) => setAllEvents(d.checked === true)}
                 aria-label="Subscribe to all events"
               />
               <span>
