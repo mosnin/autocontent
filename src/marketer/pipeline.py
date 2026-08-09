@@ -483,6 +483,7 @@ async def _run_job_inner(
                 audience_context=audience_ctx,
                 brief=niche.creative_brief,
                 script_model=niche.script_model,
+                format_key=niche.video_format,
                 spend=spend,
             )
             # cast_mode 'none' means NO characters — a lingering

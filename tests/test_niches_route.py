@@ -356,3 +356,83 @@ def test_delete_niche_without_auth_returns_401(monkeypatch):
     client = TestClient(create_app(), raise_server_exceptions=False)
     resp = client.delete(f"/api/v1/niches/{_NICHE_ID}")
     assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# video_format (beat contract the scriptwriter writes to)
+# ---------------------------------------------------------------------------
+
+
+def test_create_niche_rejects_unknown_video_format(monkeypatch):
+    """An unknown format key must never reach the database.
+
+    `formats.resolve` raises on one, so the niche would fail at the
+    SCRIPTING stage of every future run — after ideation has already been
+    paid for. The 422 names the known formats so the caller can correct it.
+    """
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+
+    resp = client.post(
+        "/api/v1/niches",
+        json={**_VALID_PAYLOAD, "video_format": "documentary"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+    assert "documentary" in resp.json()["detail"]
+    assert "explainer" in resp.json()["detail"]
+
+
+def test_create_niche_accepts_a_known_video_format(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.niches as niches_repo
+
+    seen: dict = {}
+
+    async def _create(user_id: str, **kwargs) -> Niche:
+        seen.update(kwargs)
+        return _make_niche()
+
+    monkeypatch.setattr(niches_repo, "create", _create)
+    client = _make_authed_client(monkeypatch)
+
+    resp = client.post(
+        "/api/v1/niches",
+        json={**_VALID_PAYLOAD, "video_format": "listicle"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 201
+    assert seen["video_format"] == "listicle"
+
+
+def test_create_niche_accepts_empty_video_format(monkeypatch):
+    """'' means "not chosen" and resolves to the default format — it is the
+    value every pre-existing niche carries, so it must stay valid."""
+    _reset_limiter()
+    import marketer.repos.niches as niches_repo
+
+    async def _create(user_id: str, **kwargs) -> Niche:
+        assert kwargs["video_format"] == ""
+        return _make_niche()
+
+    monkeypatch.setattr(niches_repo, "create", _create)
+    client = _make_authed_client(monkeypatch)
+
+    resp = client.post(
+        "/api/v1/niches",
+        json=_VALID_PAYLOAD,
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 201
+
+
+def test_update_niche_rejects_unknown_video_format(monkeypatch):
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+
+    resp = client.put(
+        f"/api/v1/niches/{_NICHE_ID}",
+        json={"video_format": "nope"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422

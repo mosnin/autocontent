@@ -155,7 +155,7 @@ const SUITE: Product = {
       items: [
         { href: "/settings", label: "Settings" },
         { href: "/settings/brand", label: "Brand kit" },
-        { href: "/settings/personas", label: "Personas", soon: true },
+        { href: "/settings/personas", label: "Personas" },
         { href: "/settings/kits", label: "Kits" },
         { href: "/connect", label: "Connect socials" },
         { href: "/settings/tokens", label: "Tokens" },
