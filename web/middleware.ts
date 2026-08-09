@@ -8,6 +8,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // templates, and campaigns were all live and unauthenticated), which is
 // why the invariant is enforced by a test instead of by remembering.
 const APP_SEGMENTS = [
+  "ad-creatives",
   "admin",
   "ads",
   "articles",
@@ -15,13 +16,18 @@ const APP_SEGMENTS = [
   "campaigns",
   "connect",
   "dashboard",
+  "dramas",
   "home",
   "library",
+  "motion",
   "niches",
   "onboarding",
   "queue",
+  "scheduled",
+  "seo-audit",
   "settings",
   "templates",
+  "ugc",
 ] as const;
 
 const APP_GROUP = `/(${APP_SEGMENTS.join("|")})(.*)`;

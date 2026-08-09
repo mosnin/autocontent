@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 from marketer.config import settings
 from marketer.repos import niches as niches_repo
 from marketer.repos import ugc_renders as renders_repo
-from marketer.services import muapi
+from marketer.services import muapi, seedance
 from marketer.ugc import catalog, pricing, render
 from marketer.ugc.prompts import UgcPromptError
 
@@ -45,6 +45,10 @@ class UgcRenderCreate(BaseModel):
     duration: int | None = Field(default=None, ge=1, le=60)
     resolution: str | None = None
     mode: str | None = None
+    # Seedance-only camera direction token (e.g. "dolly_in"); the adapter
+    # folds it into the prompt prose. Rejected for models that declare no
+    # camera controls rather than being silently dropped.
+    camera_move: str | None = None
     image_urls: list[str] = Field(default_factory=list)
     niche_id: UUID | None = None
 
@@ -70,6 +74,19 @@ def _model_json(model: catalog.UgcModel) -> dict:
         "default_resolution": model.default_resolution,
         "modes": list(model.modes),
         "default_mode": model.default_mode,
+        "camera_controls": list(model.camera_controls),
+        # Reference-media arity. `max_images: null` means the model
+        # declares no bound of its own and only `max_reference_images`
+        # (below) applies; a 0 is a real zero. `max_videos`/`max_audios`
+        # are declared capabilities of the route — this endpoint carries
+        # image references only, so they read as 0-in-practice today.
+        "reference_media": {
+            "min_images": model.min_images,
+            "max_images": model.max_images,
+            "max_videos": model.max_videos,
+            "max_audios": model.max_audios,
+            "character_reference": model.supports_character_reference,
+        },
         "cost_basis": pricing.cost_basis(model),
     }
 
@@ -112,14 +129,17 @@ async def create_render(body: UgcRenderCreate, ctx: AuthCtx = CurrentUser) -> di
             duration=body.duration,
             resolution=body.resolution,
             mode=body.mode,
+            camera_move=body.camera_move,
             image_urls=body.image_urls,
             niche_id=body.niche_id,
         )
     except (catalog.UgcValidationError, UgcPromptError) as exc:
         # Everything the user could have got wrong lands here, before any
-        # provider call and before any spend.
+        # provider call and before any spend. The Seedance adapter's own
+        # validation errors are re-raised as UgcValidationError at the
+        # seam, so both providers answer through this one branch.
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    except muapi.MuapiDisabled as exc:
+    except (muapi.MuapiDisabled, seedance.SeedanceDisabled) as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except Exception as exc:
         from marketer.repos.spend import SpendCapExceeded
@@ -151,6 +171,8 @@ async def retry_render(render_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
         row = await render.retry_render(render_id, user_id=ctx.user_id)
     except (catalog.UgcValidationError, UgcPromptError) as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except (muapi.MuapiDisabled, seedance.SeedanceDisabled) as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except Exception as exc:
         from marketer.repos.spend import SpendCapExceeded
 

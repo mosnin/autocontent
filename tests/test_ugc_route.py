@@ -260,7 +260,9 @@ def test_models_returns_capabilities_for_the_ui(monkeypatch, env):
     body = _client(monkeypatch).get("/api/v1/ugc/models", headers=AUTH).json()
     assert body["max_reference_images"] == 7
     by_id = {m["id"]: m for m in body["models"]}
-    assert set(by_id) == {"grok-video", "veo-3-1", "happy-horse", "seedance-2"}
+    # The four ported MUAPI models plus Seedance 2.5's four routes.
+    assert {"grok-video", "veo-3-1", "happy-horse", "seedance-2"} <= set(by_id)
+    assert len([i for i in by_id if i.startswith("seedance-2.5-")]) == 4
 
     grok = by_id["grok-video"]
     assert grok["duration"] == {"kind": "range", "min": 6, "max": 30, "default": 6}

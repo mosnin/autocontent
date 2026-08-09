@@ -25,12 +25,26 @@ Deviation from the source, on purpose: every default aspect ratio here is
 it is a general video studio; this product's UGC lane exists to produce
 vertical TikTok/Reels/Shorts ads, so the vertical default is the correct
 one for our UI. The *allowed* sets are ported unchanged.
+
+Two providers, one catalog
+--------------------------
+The four ported models submit through `services/muapi.py`; the four
+Seedance 2.5 routes submit through `services/seedance.py`, which owns its
+own endpoint-per-resolution-tier map, capability table and pinned rate
+card. Rather than restate those capabilities here (a second declaration
+is a second thing to get wrong, and a second price table is a COGS bug
+waiting to happen), the Seedance entries are DERIVED from
+`seedance.SEEDANCE_MODELS` and carry an `adapter` tag that
+`ugc/render.py` dispatches on and `ugc/pricing.py` delegates on. The
+seam is here; neither registry is reshaped to fit the other.
 """
 from __future__ import annotations
 
 from typing import Literal
 
 from pydantic import BaseModel
+
+from ..services import seedance
 
 
 class UgcModel(BaseModel):
@@ -41,8 +55,17 @@ class UgcModel(BaseModel):
     description: str
     # Upstream provider behind the MUAPI gateway (display-only).
     provider: str
-    # Path appended to `settings.muapi_base_url` on submit.
+    # Path appended to `settings.muapi_base_url` on submit. For a
+    # seedance-adapter model this is the 720p route only — the tier is
+    # part of the path upstream, so the real endpoint is resolved per
+    # render by `SeedanceModel.endpoint_for(resolution)`.
     endpoint: str
+
+    # Which provider client submits this model. `ugc/render.py` dispatches
+    # on it and `ugc/pricing.py` delegates on it; everything else in the
+    # studio (validation, metering, persistence, webhook/reconcile) is
+    # identical for both.
+    adapter: Literal["muapi", "seedance"] = "muapi"
 
     aspect_ratios: tuple[str, ...]
     default_aspect_ratio: str
@@ -63,6 +86,25 @@ class UgcModel(BaseModel):
     # Empty tuple = this endpoint has no mode parameter.
     modes: tuple[str, ...] = ()
     default_mode: str = ""
+
+    # Reference-media arity, where the route declares one. `max_images =
+    # None` means "this model states no per-model bound", which is the
+    # MUAPI models' situation: they are bounded only by the studio-wide
+    # MARKETER_UGC_MAX_REFERENCE_IMAGES limit. A declared 0 is a real
+    # zero (the text-to-video route accepts no images at all), so the two
+    # cases must not collapse into the same value.
+    min_images: int = 0
+    max_images: int | None = None
+    # Video/audio references are declared for the UI and for agents, but
+    # `POST /api/v1/ugc/renders` only carries image URLs today — the row
+    # has no column for the other two. See ugc/render.py.
+    max_videos: int = 0
+    max_audios: int = 0
+    supports_character_reference: bool = False
+
+    # Closed set of camera-direction tokens folded into the prompt text.
+    # Seedance-only; empty everywhere else.
+    camera_controls: tuple[str, ...] = ()
 
     def allows_duration(self, seconds: int) -> bool:
         if self.duration_kind == "options":
@@ -158,6 +200,45 @@ UGC_MODELS: list[UgcModel] = [
     ),
 ]
 
+
+def _from_seedance(model: seedance.SeedanceModel) -> UgcModel:
+    """Adapt one Seedance route into a studio catalog entry.
+
+    Every capability is READ from the provider adapter, never restated:
+    `services/seedance.py` is the authoritative source for the aspect
+    ratios, duration envelope, resolution tiers, camera tokens and
+    reference-media arity of these routes, and a hand-copied duplicate
+    here would validate against yesterday's truth.
+    """
+    return UgcModel(
+        id=model.id,
+        name=model.name,
+        description=model.tagline,
+        provider="bytedance",
+        endpoint=model.endpoint,
+        adapter="seedance",
+        aspect_ratios=model.aspect_ratios,
+        default_aspect_ratio=model.default_aspect_ratio,
+        # Seedance states an inclusive second range on every route.
+        duration_kind="range",
+        duration_min=model.duration_min,
+        duration_max=model.duration_max,
+        default_duration=model.default_duration,
+        resolutions=model.resolutions,
+        default_resolution=model.default_resolution,
+        min_images=model.min_images,
+        max_images=model.max_images,
+        max_videos=model.max_videos,
+        max_audios=model.max_audios,
+        supports_character_reference=model.supports_character_reference,
+        camera_controls=model.camera_controls,
+    )
+
+
+# The Seedance 2.5 routes are appended, not interleaved, so the ported
+# source models keep their original catalog order in the UI.
+UGC_MODELS.extend(_from_seedance(m) for m in seedance.list_models())
+
 _BY_ID = {m.id: m for m in UGC_MODELS}
 
 
@@ -248,3 +329,25 @@ def validate_params(
         raise UgcValidationError(f"{model.id} has no mode parameter")
 
     return settings
+
+
+def validate_reference_media(model_id: str, *, image_count: int) -> None:
+    """Check the reference-image arity a model declares.
+
+    Separate from `validate_params` because the image list is validated
+    (count-bounded, SSRF-checked) in `ugc/render.py` rather than being one
+    of the on-the-wire settings. Only models that declare a bound are
+    checked: a `max_images` of None means the model states none and the
+    studio-wide limit is the only ceiling.
+    """
+    model = require_model(model_id)
+    if image_count < model.min_images:
+        raise UgcValidationError(
+            f"{model.id} needs at least {model.min_images} reference image(s), "
+            f"got {image_count}"
+        )
+    if model.max_images is not None and image_count > model.max_images:
+        raise UgcValidationError(
+            f"{model.id} accepts at most {model.max_images} reference image(s), "
+            f"got {image_count}"
+        )

@@ -62,10 +62,10 @@ const STUDIO: Product = {
       // page ships, never before).
       label: "Create",
       items: [
-        { href: "/ugc", label: "UGC ads", soon: true },
-        { href: "/dramas", label: "Micro-dramas", soon: true },
-        { href: "/motion", label: "Motion graphics", soon: true },
-        { href: "/scheduled", label: "Scheduled posts", soon: true },
+        { href: "/ugc", label: "UGC ads" },
+        { href: "/dramas", label: "Micro-dramas" },
+        { href: "/motion", label: "Motion graphics" },
+        { href: "/scheduled", label: "Scheduled posts" },
       ],
     },
   ],
@@ -87,7 +87,7 @@ const PRESS: Product = {
     {
       label: "Optimize",
       items: [
-        { href: "/seo-audit", label: "AI SEO audit", soon: true },
+        { href: "/seo-audit", label: "AI SEO audit" },
       ],
     },
   ],
@@ -115,9 +115,9 @@ const ADS: Product = {
       // Ads because the output feeds campaign creatives.
       label: "Creative",
       items: [
-        { href: "/ad-creatives", label: "Ad studio", soon: true },
-        { href: "/ads/design", label: "Design agent", soon: true },
-        { href: "/ads/headshots", label: "Headshots", soon: true },
+        { href: "/ad-creatives", label: "Ad studio" },
+        { href: "/ads/design", label: "Design agent" },
+        { href: "/ads/headshots", label: "Headshots" },
       ],
     },
     {

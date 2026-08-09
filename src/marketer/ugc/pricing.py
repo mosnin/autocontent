@@ -35,11 +35,22 @@ the ratio is meaningful because it is the same model on the same gateway:
 
     grok  480p:720p = 5:10        -> 1.0x : 2.0x
     veo   720p:1080p:4k = 500:650:740 -> 1.0x : 1.3x : 1.48x
+
+Seedance 2.5 is NOT priced here
+-------------------------------
+Those four routes are priced by `services/seedance.py`, which pins the
+per-second rate per resolution tier and also carries the operator's
+`MARKETER_SEEDANCE_PRICE_OVERRIDES` escape hatch. This module DELEGATES
+to it instead of keeping a second copy: two price tables for one model
+drift the moment one of them is edited, and a stale copy here would be
+charged against the caller's cap while the gateway billed the real
+number — a silent COGS bug rather than a loud failure.
 """
 from __future__ import annotations
 
 from decimal import Decimal
 
+from ..services import seedance
 from .catalog import UgcModel, require_model
 
 # USD per rendered second. A model with a resolution knob keys by
@@ -78,7 +89,23 @@ class UgcPricingError(RuntimeError):
     """
 
 
+def _seedance_usd_per_second(model: UgcModel, resolution: str) -> Decimal:
+    """Delegate to the provider adapter's pinned registry.
+
+    Its failure modes are re-raised as `UgcPricingError` so every caller
+    in the studio keeps one exception to catch, and an unpriced tier
+    still fails closed rather than costing zero.
+    """
+    try:
+        route = seedance.require_model(model.id)
+        return seedance.usd_per_second(route, resolution or route.default_resolution)
+    except (seedance.SeedancePricingError, seedance.SeedanceValidationError) as exc:
+        raise UgcPricingError(str(exc)) from exc
+
+
 def usd_per_second(model: UgcModel, resolution: str = "") -> Decimal:
+    if model.adapter == "seedance":
+        return _seedance_usd_per_second(model, resolution)
     table = USD_PER_SECOND.get(model.id)
     if not table:
         raise UgcPricingError(f"no pinned price for model {model.id!r}")
@@ -105,6 +132,10 @@ def cost_basis(model: UgcModel) -> dict:
     The UI multiplies this by the chosen duration to show a live estimate,
     so the number the user sees is the same number metering will charge.
     """
+    if model.adapter == "seedance":
+        # Already {"unit": "usd_per_second", "by_resolution": {...}} and
+        # override-applied, so the quoted rate is the metered rate.
+        return seedance.cost_basis(seedance.require_model(model.id))
     table = USD_PER_SECOND.get(model.id, {})
     if model.resolutions:
         return {

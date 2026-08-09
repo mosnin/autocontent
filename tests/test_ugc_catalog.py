@@ -9,10 +9,27 @@ import pytest
 from marketer.ugc import catalog
 from marketer.ugc.catalog import UgcValidationError, validate_params
 
-ALL_IDS = {"grok-video", "veo-3-1", "happy-horse", "seedance-2"}
+# The four models ported from the source UGC studio.
+MUAPI_IDS = {"grok-video", "veo-3-1", "happy-horse", "seedance-2"}
+# Seedance 2.5's four routes, registered here so they are submittable
+# through the same metered path rather than only via the MCP tools.
+SEEDANCE_IDS = {
+    "seedance-2.5-text-to-video",
+    "seedance-2.5-image-to-video",
+    "seedance-2.5-first-last-frame",
+    "seedance-2.5-omni-reference",
+}
+ALL_IDS = MUAPI_IDS | SEEDANCE_IDS
 
 
 def test_catalog_ports_the_four_source_models():
+    assert MUAPI_IDS <= {m.id for m in catalog.list_models()}
+
+
+def test_catalog_registers_every_seedance_route():
+    """A Seedance id missing here is not a cosmetic gap: the render route
+    validates against this catalog, so the model silently stops being
+    submittable while the MCP tool still advertises it."""
     assert {m.id for m in catalog.list_models()} == ALL_IDS
 
 

@@ -46,6 +46,11 @@ async def create(
     image_urls: list[str] | None = None,
     niche_id: UUID | None = None,
     est_cost_usd: Decimal | str = "0",
+    # Which provider client submitted the job. Defaults to the gateway
+    # client so pre-existing callers are unchanged; the Seedance routes
+    # pass their own so a row can be attributed to the adapter that
+    # actually holds its request id.
+    provider: str = "muapi",
 ) -> dict:
     pool = await get_pool()
     row = await pool.fetchrow(
@@ -53,14 +58,15 @@ async def create(
         insert into ugc_renders (
             user_id, niche_id, model_id, prompt, render_mode,
             aspect_ratio, resolution, mode, duration_sec,
-            image_urls, est_cost_usd
+            image_urls, est_cost_usd, provider
         )
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12)
         returning *
         """,
         user_id, niche_id, model_id, prompt, render_mode,
         aspect_ratio, resolution, mode, duration_sec,
         json.dumps(list(image_urls or [])), Decimal(str(est_cost_usd)),
+        provider,
     )
     return _row(row)
 
