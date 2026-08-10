@@ -31,3 +31,29 @@ See `AGENTIC_ADS_GOAL.md` for the phase breakdown.
   Audit is asymmetric on purpose: a broken sink never fails an ALLOW
   (the platform call is its own record), but a store failure on a
   SPECULATE is fatal.
+- **Cycles 2-4 — intent store, reconciliation, divergence (Phases 2-4).**
+  Migration 0039 (`gatekeeper_intents` + append-only `gatekeeper_audit`),
+  `repos/gatekeeper.py`, `gatekeeper/reconcile.py`,
+  `gatekeeper/registry.py`, `gatekeeper/production.py`, and the approval
+  inbox at `/api/v1/gatekeeper` (5 routes). Applying runs on a 4-minute
+  Modal cron, never in-request. 31 gatekeeper tests; suite 2388 passed.
+  Decisions worth remembering:
+  - **Claim before the external call.** A crash mid-apply leaves a row
+    the reaper can find; claiming after risks two workers both calling
+    the platform, and double-spending real money is worse than a
+    stranded row a human investigates.
+  - **Divergence is conservative but not noisy.** `compare` reports a
+    difference whenever it cannot prove equivalence, but ignores extra
+    platform fields we never made a claim about — over-reporting would
+    train operators to ignore the one signal that makes speculation
+    defensible.
+  - **Capability names are permanent.** Intents resolve by string days
+    later, so `register` refuses to overwrite a name (a load-order
+    dependent money bug) and `resolve` returns None rather than raising
+    (an exception would stop the queue and strand other operators'
+    approvals behind it).
+  - Bulk decide is one statement, so a partially-applied bulk approval
+    cannot exist; already-decided rows are skipped, not fatal.
+  - A dedicated table rather than reusing `ad_approvals`: an intent is
+    generic over every capability and stores the SIMULATED result, which
+    is what makes divergence detection possible at all.

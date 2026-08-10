@@ -374,6 +374,7 @@ async def reap_stale_jobs() -> dict:
     from marketer.repos import jobs as jobs_repo
 
     from marketer.repos import image_posts as image_posts_repo
+    from marketer.repos import gatekeeper as gatekeeper_repo
     from marketer.repos import motion_projects as motion_repo
     from marketer.repos import scheduled_posts as scheduled_posts_repo
 
@@ -386,6 +387,10 @@ async def reap_stale_jobs() -> dict:
     # moment it misses its slot.
     reaped_scheduled = await scheduled_posts_repo.reap_stale(older_than_minutes=60)
     reaped_motion = await motion_repo.reap_stale(older_than_minutes=120)
+    # An intent claimed for apply whose container died looks successful
+    # forever unless it is failed loudly.
+    reaped_intents = await gatekeeper_repo.reap_stale(older_than_minutes=60)
+    expired_intents = await gatekeeper_repo.expire_stale_pending(older_than_hours=168)
     # Idempotency claims expire on their own TTL (claim() treats an expired
     # row as reclaimable), so this is pure disk cleanup, not a correctness
     # dependency — safe to run on the same cadence as the other reapers.
@@ -402,6 +407,8 @@ async def reap_stale_jobs() -> dict:
         "reaped_idempotency_keys": reaped_idempotency_keys,
         "reaped_scheduled_posts": reaped_scheduled,
         "reaped_motion_projects": reaped_motion,
+        "reaped_gatekeeper_intents": reaped_intents,
+        "expired_gatekeeper_intents": expired_intents,
     }
 
 
@@ -511,6 +518,37 @@ async def run_motion_project(user_id: str, project_id: str) -> dict:
     result = await _run(user_id=user_id, project_id=UUID(project_id))
     artifacts.commit()
     return result
+
+
+@app.function(
+    schedule=modal.Cron("*/4 * * * *"),
+    timeout=60 * 10,
+)
+async def apply_gatekeeper_intents() -> dict:
+    """Apply intents a human approved.
+
+    Runs off-request on purpose: a bulk approval of twenty campaign
+    changes must not depend on a browser tab staying open. Every apply
+    re-claims atomically, so overlapping runs cannot double-spend."""
+    from marketer.gatekeeper.production import DbAuditSink
+    from marketer.gatekeeper.reconcile import run_apply_queue
+    from marketer.gatekeeper.registry import resolve_capability
+
+    sink = DbAuditSink()
+
+    async def audit(**fields):
+        from marketer.gatekeeper.capability import GatekeeperContext
+
+        await sink.write(
+            capability=fields["capability"],
+            verdict=fields["verdict"],
+            summary=fields.get("summary", ""),
+            reason=fields.get("reason", ""),
+            ctx=GatekeeperContext(user_id=fields["user_id"], actor="system"),
+            intent_id=str(fields["intent_id"]) if fields.get("intent_id") else None,
+        )
+
+    return await run_apply_queue(resolve_capability, audit=audit)
 
 
 @app.function(

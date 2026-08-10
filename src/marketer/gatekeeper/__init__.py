@@ -8,6 +8,8 @@ simulates instead of blocking and collects approvals in bulk afterwards.
 from __future__ import annotations
 
 from .broker import AuditSink, Gatekeeper, IntentStore, always
+from .registry import register, registered_names, resolve_capability
+from .reconcile import apply_intent, compare, run_apply_queue
 from .capability import (
     Capability,
     CapabilityDenied,
@@ -28,4 +30,10 @@ __all__ = [
     "Outcome",
     "Verdict",
     "always",
+    "apply_intent",
+    "compare",
+    "register",
+    "registered_names",
+    "resolve_capability",
+    "run_apply_queue",
 ]
