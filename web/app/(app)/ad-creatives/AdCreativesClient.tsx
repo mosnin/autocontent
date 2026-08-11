@@ -29,6 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AgentWorking,
   Empty,
   Figure,
   Gallery,
@@ -223,10 +224,10 @@ export function AdRunGallery({
 }) {
   if (slots.length === 0) {
     return (
-      <Empty title="Planning the run">
+      <AgentWorking title="Planning the run">
         The brand research and the creative plan land first; slots appear here
         the moment the plan is written.
-      </Empty>
+      </AgentWorking>
     );
   }
   return (

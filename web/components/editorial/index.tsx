@@ -29,6 +29,7 @@
 
 import * as React from "react";
 
+import { AgentMark } from "@/components/orb";
 import { cn } from "@/lib/utils";
 
 // ------------------------------------------------------------------ layout
@@ -381,6 +382,44 @@ export function SpendMeter({
         role="img"
       >
         <div className={cn("h-px transition-all", barTone)} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ agent
+
+/**
+ * An agent is working on this.
+ *
+ * Distinct from a spinner on purpose: a spinner means "the page is
+ * fetching", this means "an autonomous agent is spending your money and
+ * producing something". Those are different promises and they should not
+ * look alike, which is why the mark appears here and nowhere generic.
+ */
+export function AgentWorking({
+  title,
+  children,
+  size = 72,
+  className,
+}: {
+  title: React.ReactNode;
+  children?: React.ReactNode;
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex items-center gap-5 border-t border-border py-12", className)}>
+      <div className="grid shrink-0 place-items-center rounded-full bg-black" style={{ width: size, height: size }}>
+        <AgentMark size={Math.round(size * 0.86)} />
+      </div>
+      <div className="min-w-0">
+        <h3 className="font-editorial text-2xl text-foreground">{title}</h3>
+        {children ? (
+          <p className="mt-1 max-w-(--measure-narrow) text-sm leading-relaxed text-muted-foreground">
+            {children}
+          </p>
+        ) : null}
       </div>
     </div>
   );

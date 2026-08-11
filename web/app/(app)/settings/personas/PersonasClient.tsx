@@ -23,6 +23,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AgentMark } from "@/components/orb";
 import type { Niche } from "@/lib/types";
 import {
   MAX_GREETING_CHARS,
@@ -451,8 +452,11 @@ export function PersonasClient({
                     src={visualUrl(selected)}
                   />
                 ) : (
-                  <div className="grid size-20 place-items-center rounded-md bg-muted text-[11px] text-muted-foreground">
-                    No visual
+                  // No locked reference yet — the agent mark stands in,
+                  // because "not yet given a face" is precisely what it
+                  // depicts. A grey box would just read as a broken image.
+                  <div className="grid size-20 place-items-center rounded-md bg-black">
+                    <AgentMark size={56} />
                   </div>
                 )}
                 <div className="grid flex-1 gap-1">
