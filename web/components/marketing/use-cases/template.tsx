@@ -21,6 +21,12 @@ import { type SceneName } from "./scene";
 /* Hero                                                                */
 /* ------------------------------------------------------------------ */
 
+/** The last two words of a line — what the accent lands on by default. */
+function lastWords(line: string, count = 2) {
+  const words = line.split(" ");
+  return words.slice(Math.max(0, words.length - count)).join(" ");
+}
+
 /**
  * Use-case page hero: centred eyebrow → headline → lede → CTAs inside the
  * ruled section container, with an optional staged still underneath.
@@ -60,7 +66,7 @@ export function UseCaseHero({
         align="center"
         eyebrow={kicker}
         heading={headline.join(" ")}
-        highlight={highlight ?? headline[headline.length - 1]}
+        highlight={highlight ?? lastWords(headline[headline.length - 1] ?? "")}
         lede={lede}
         level={1}
         size="xl"

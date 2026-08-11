@@ -404,7 +404,12 @@ export function Bullets({
   return (
     <ul className={cn("os-bullets", className)}>
       {items.map((item, i) => (
-        <li key={i}>{item}</li>
+        <li key={i}>
+          {/* One flex child, so multi-element bullets (a <strong> lead-in
+              plus its sentence) stay on one text flow instead of becoming
+              two columns. */}
+          <span>{item}</span>
+        </li>
       ))}
     </ul>
   );

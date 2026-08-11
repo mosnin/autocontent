@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
 import { HubBands } from "@/components/marketing/features/hub-bands";
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
   "Two production pipelines from one niche brief: short-form video and SEO articles, plus an agent surface and spend controls that keep every dollar capped.";
@@ -23,13 +24,11 @@ export default function FeaturesPage() {
     <main>
       <FeatureHero
         illustration={
-          <div className="aspect-[4/3] overflow-hidden rounded-[2rem] shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
-            <TaggedPlaceholder
-              kind="image"
-              label="Platform overview still"
-              tone="slate"
-            />
-          </div>
+          <MediaCard
+            kind="image"
+            label="Platform overview still"
+            ratio="4/3"
+          />
         }
         kicker="Features"
         lede="One niche brief drives two production pipelines, an agent surface, and a ledger that watches every dollar. Nothing to stitch together, nothing to babysit."

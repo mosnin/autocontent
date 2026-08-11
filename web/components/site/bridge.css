@@ -1,19 +1,25 @@
 /*
- * Token bridge: our components inside the transcribed shell.
+ * Token bridge for the marketing surface.
  *
- * The marketing pages are built from our own components, which resolve
- * every colour through the HSL custom properties in globals.css
- * (`--color-background: hsl(var(--background))` and friends). The shell
- * they now render inside is dark, so rather than restyle thirty pages by
- * hand, the variables are re-pointed at the export's palette. Components
- * adapt automatically and there is still one source of truth per colour.
+ * The thirty inner pages are now built from the section primitives in
+ * `components/site/sections`, which paint from `--os-*` and never from a
+ * Tailwind colour utility. This file is what remains around the edges:
  *
- * Values are the export's own design tokens converted to HSL triplets:
- *   #151E1D  page          rgb(252,253,253)  text
- *   #0F1514  card          rgb(129,152,149)  muted text
- *   rgb(42,60,58) border   rgb(65,255,243)   accent
+ *   1. the shadcn design tokens, re-pointed at the export's palette, so any
+ *      shared UI component that resolves colour through `--background`,
+ *      `--foreground`, `--border` and friends lands on the dark ground;
+ *   2. the three type faces, so `font-sans` / `font-display` / `font-mono`
+ *      resolve to the export's faces instead of Geist inside `#main`;
+ *   3. a safety net that inverts the zinc ramp, for any stray utility that
+ *      outlives a refactor. It is deliberately last and deliberately small:
+ *      the pages are not styled by it, and nothing new should rely on it.
  *
- * Scoped to `#main` so it cannot reach the authenticated app.
+ * Values are the export's own tokens:
+ *   #151E1D  ground        rgb(252,253,253)  ink
+ *   #0F1514  surface       rgb(188,200,199)  ink-2
+ *   rgb(42,60,58) hairline rgb(65,255,243)   accent
+ *
+ * Everything is scoped to `#main` so it cannot reach the authenticated app.
  */
 
 #main {
@@ -46,23 +52,45 @@
 
   --page: 173 18% 10%;
 
+  /* Tailwind v4 emits `font-family: var(--font-display)` and friends, so
+     re-pointing the three variables here switches every `font-*` utility
+     inside the marketing shell to the export's faces. All three are
+     @font-face'd by site.css. */
+  --font-sans: "Inter Display", "Inter Display Placeholder", sans-serif;
+  --font-display: "Pretendard Variable Variable", "Inter Display", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
   color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+}
+
+/* The shell paints its own ground, but the document body sits behind it and
+   would otherwise flash light on overscroll. */
+body:has(#main) {
+  background-color: #151e1d;
 }
 
 /*
- * Utilities our marketing components hardcode rather than route through a
- * token. These are the ones that actually appear on the pages in this
- * group; each would otherwise render near-black text on a near-black
- * ground. Kept as an explicit list — a blanket `[class*="zinc"]` rule
- * would also repaint intentional dark-on-light chips.
+ * Safety net. The zinc ramp is inverted rather than patched class by class:
+ * a utility that meant "near-black ink" now resolves to near-white ink, and
+ * one that meant "white card" resolves to the surface colour, so both the
+ * text and the surface it sits on stay in step. Alpha variants
+ * (`bg-zinc-900/[0.06]`) come along for free, because Tailwind v4 mixes
+ * these same variables.
  */
-#main .bg-white { background-color: hsl(var(--card)); }
-#main .text-zinc-900,
-#main .text-zinc-800 { color: hsl(var(--foreground)); }
-#main .text-zinc-700,
-#main .text-zinc-600,
-#main .text-zinc-500 { color: hsl(var(--muted-foreground)); }
-#main .border-zinc-200,
-#main .border-zinc-100 { border-color: hsl(var(--border)); }
-#main .bg-zinc-50,
-#main .bg-zinc-100 { background-color: hsl(var(--muted)); }
+#main {
+  --color-white: #0f1514;
+  --color-black: #fcfdfd;
+
+  --color-zinc-50: #0f1514;
+  --color-zinc-100: #151e1d;
+  --color-zinc-200: #1f2d2b;
+  --color-zinc-300: #2a3c3a;
+  --color-zinc-400: #6c8481;
+  --color-zinc-500: #819895;
+  --color-zinc-600: #bcc8c7;
+  --color-zinc-700: #e2e9e9;
+  --color-zinc-800: #f1f4f4;
+  --color-zinc-900: #fcfdfd;
+  --color-zinc-950: #ffffff;
+}

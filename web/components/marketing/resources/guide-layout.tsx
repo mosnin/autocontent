@@ -33,7 +33,9 @@ export function GuideList({ items }: { items: React.ReactNode[] }) {
   return (
     <ul className="os-bullets os-mt-20">
       {items.map((item, i) => (
-        <li key={i}>{item}</li>
+        <li key={i}>
+          <span>{item}</span>
+        </li>
       ))}
     </ul>
   );

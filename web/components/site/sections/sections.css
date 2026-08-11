@@ -100,7 +100,8 @@
 }
 
 #main .os-section--top > .os-section__inner {
-  padding-top: calc(var(--os-band) * 1.15);
+  padding-top: calc(var(--os-band) * 1.1);
+  padding-bottom: calc(var(--os-band) * 0.8);
 }
 
 /* Content inset inside the ruled container. */
@@ -520,6 +521,8 @@
   letter-spacing: -0.01em;
   color: var(--os-ink-2);
 }
+
+#main .os-bullets li > span { flex: 1 1 auto; min-width: 0; }
 
 #main .os-bullets li::before {
   content: "";
@@ -1237,6 +1240,9 @@
 }
 
 #main .os-stagegrid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 26px 40px;
@@ -1530,3 +1536,61 @@
 
 #main .os-essay { max-width: 72ch; }
 #main .os-aspect-45 { aspect-ratio: 4 / 5; }
+
+#main .os-teams {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 36px 34px;
+}
+
+#main .os-narrow { max-width: 900px; margin: 0 auto; }
+
+/* Agent transcript sample (agent-driven-marketing guide). */
+#main .os-transcript {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#main .os-turn {
+  max-width: 85%;
+  padding: 11px 15px;
+  border: 1px solid var(--os-line);
+  border-radius: 2px;
+  font-family: var(--os-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+#main .os-turn--you {
+  margin-left: auto;
+  border-color: transparent;
+  background-color: var(--os-accent);
+  color: var(--os-accent-ink);
+}
+
+#main .os-turn--agent {
+  background-color: var(--os-ground);
+  color: var(--os-ink-2);
+}
+
+/* ------------------------------------------------------------------ */
+/* Page root                                                           */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Every page body is a flex child of the shell's column wrapper, which
+ * sizes to its content. Without stretching, the ruled section containers
+ * shrink-wrap the widest paragraph on text-only pages and the side rules
+ * stop lining up with the nav and footer.
+ */
+#main main,
+#main > div > article,
+#main > div > main {
+  width: 100%;
+  align-self: stretch;
+}

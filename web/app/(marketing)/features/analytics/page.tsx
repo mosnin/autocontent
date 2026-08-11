@@ -7,7 +7,8 @@ import {
   SpendBand,
 } from "@/components/marketing/features/analytics-sections";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
   "Per-post views, watch time, and completion feed the next ideation round. Every model call is metered to a ledger with hard caps that fail closed, not open.";
@@ -28,13 +29,11 @@ export default function AnalyticsFeaturePage() {
     <main>
       <FeatureHero
         illustration={
-          <div className="aspect-video overflow-hidden rounded-[2rem]">
-            <TaggedPlaceholder
-              kind="illustration"
-              label="Performance loop — spend caps diagram"
-              tone="sky"
-            />
-          </div>
+          <MediaCard
+            kind="illustration"
+            label="Performance loop — spend caps diagram"
+            ratio="16/9"
+          />
         }
         kicker="Analytics & spend"
         lede="Every post reports back with views, watch time, and completion. Every dollar is metered as it's spent. The system learns from the first and is bound by the second."

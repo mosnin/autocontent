@@ -7,7 +7,8 @@ import {
   SerpBand,
 } from "@/components/marketing/features/articles-sections";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
   "Live SERP research, structured outlines, sections written in parallel under E-E-A-T rules, QA scoring, full SEO metadata, JSON-LD, and internal links.";
@@ -28,13 +29,11 @@ export default function ArticlesFeaturePage() {
     <main>
       <FeatureHero
         illustration={
-          <div className="aspect-video overflow-hidden rounded-[2rem]">
-            <TaggedPlaceholder
-              kind="video"
-              label="Press demo — SERP research to published article"
-              tone="violet"
-            />
-          </div>
+          <MediaCard
+            kind="video"
+            label="Press demo — SERP research to published article"
+            ratio="16/9"
+          />
         }
         kicker="Articles & SEO"
         lede="Every piece starts with research into what currently ranks, gets written under E-E-A-T rules, and is scored before it ships. With metadata, schema, and internal links included."
