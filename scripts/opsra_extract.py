@@ -255,6 +255,36 @@ def rebuild_split_run(text: str) -> str:
     return "".join(out)
 
 
+def strip_loader(html: str) -> str:
+    """Remove Framer's page-loading overlay.
+
+    It is a `position:fixed; z-index:9999` full-viewport panel marked
+    `data-load-wrap`, which the Framer runtime hides once the page is
+    interactive. With no runtime it never dismisses, so it covers the site
+    forever — and because it is fixed it only masks one viewport, which is
+    why a full-page screenshot diff still matched the original: both had
+    the same overlay, and the content underneath rendered fine.
+    """
+    marker = html.find('data-load-wrap="true"')
+    if marker == -1:
+        print("loader: no data-load-wrap found (already gone?)")
+        return html
+    start = html.rfind("<div", 0, html.rfind("<div", 0, marker))
+    depth, end = 0, None
+    for tok in re.finditer(r"<(/?)div\b[^>]*?(/?)>", html[start:]):
+        if tok.group(2) == "/":
+            continue
+        depth += -1 if tok.group(1) else 1
+        if depth == 0:
+            end = start + tok.end()
+            break
+    if end is None:
+        print("loader: could not close the overlay; leaving it in place")
+        return html
+    print(f"loader: removed {end - start:,} bytes of loading overlay")
+    return html[:start] + html[end:]
+
+
 def apply_content(html: str) -> str:
     """Swap Opsra's words and marks for ours, on raw HTML.
 
@@ -388,7 +418,7 @@ if __name__ == "__main__":
     if inline_css:
         with (OUT / "opsra.css").open("a", encoding="utf-8") as fh:
             fh.write("\n" + inline_css)
-    main = apply_content(main)
+    main = strip_loader(apply_content(main))
     (OUT / "page-full.jsx.txt").write_text(to_jsx(main), encoding="utf-8")
 
     # Split the page into a reusable shell and the homepage body. The shell

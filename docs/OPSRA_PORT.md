@@ -88,10 +88,8 @@ still need real React implementations:
 - FAQ accordion
 - pricing monthly/annual toggle (both states are in the DOM)
 - Social Proof carousel (its prev/next buttons ship `disabled`)
-- scroll reveal for the 43 `opacity:0` nodes (IntersectionObserver;
-  21 are the identical `translateY(50px)` pattern)
-
-Copy is still Opsra's throughout.
+Scroll reveal and the loading overlay are done (see below). Copy and
+brand marks are ours (see Content swap).
 
 
 ## Content swap
@@ -118,6 +116,25 @@ Three matching bugs worth remembering:
 
 **Placeholder:** `LINKS` points the footer socials at conventional
 `marketersh` handles we do not own. Replace before launch.
+
+## The blank page: Framer's loading overlay
+
+The transcription rendered blank in a viewport screenshot while still
+measuring 0% diff on a full-page one. Both were true. The export ships a
+`position:fixed; z-index:9999` loading panel marked `data-load-wrap`
+("Hold tight" / "Hang in there") which the Framer runtime hides once the
+page is interactive. With no runtime it never dismisses.
+
+Because it is *fixed*, it masks exactly one viewport — so the full-page
+diff matched (the original had the same overlay, and content rendered
+fine underneath) while every viewport screenshot came out empty. The
+extractor now removes it.
+
+`components/site/reveal.tsx` supplies the other half: 631 nodes ship with
+inline `opacity: 0` (or `0.001` for the per-character headline) plus a
+`translateY`, cleared by the runtime on scroll-in. It reproduces that with
+an IntersectionObserver — same trigger, same end state — and honours
+`prefers-reduced-motion` by showing everything immediately.
 
 ## Open: applying the shell site-wide
 
