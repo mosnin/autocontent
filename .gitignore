@@ -34,3 +34,6 @@ web/opsra/
 # Claude Code harness sub-agent worktrees (not project code)
 .claude/
 .coverage
+
+# Playwright scratch from verification runs
+web/.pwtmp/

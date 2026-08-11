@@ -1,6 +1,7 @@
 import * as React from "react";
 
-import { Reveal, SiteShell } from "@/components/site";
+import { SiteShell } from "@/components/site";
+import { SiteMotion } from "@/components/site/motion";
 import "@/components/site/site.css";
 import "@/components/site/bridge.css";
 
@@ -15,8 +16,9 @@ export const dynamic = "force-dynamic";
  * `SiteShell` carries the transcribed nav, footer and the
  * `#main > .framer-pnUdQ` wrapper chain that site.css scopes all of its
  * layout rules under, so each page inherits the design rather than
- * re-implementing it. `Reveal` plays the entrance animations the Framer
- * runtime used to drive — without it the reveal-state nodes never appear.
+ * re-implementing it. `SiteMotion` restores the animation the Framer runtime
+ * used to drive: the export's CSS has zero @keyframes, so stripping the
+ * runtime removed every animation on the site except the 50 :hover rules.
  */
 export default function MarketingLayout({
   children,
@@ -26,7 +28,7 @@ export default function MarketingLayout({
   return (
     <SiteShell>
       {children}
-      <Reveal />
+      <SiteMotion />
     </SiteShell>
   );
 }
