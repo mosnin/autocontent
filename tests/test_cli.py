@@ -8,8 +8,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent import cli as cli_mod
-from autocontent.models import (
+from marketer import cli as cli_mod
+from marketer.models import (
     AyrshareConnectResponse,
     Job,
     JobStatus,
@@ -78,7 +78,7 @@ class FakeClient:
 
     async def create_token(self, *, name, expires_in_days=None):
         self.calls.append(("create_token", name, expires_in_days))
-        return _pat(name), "act_freshplaintext1234567"
+        return _pat(name), "mkt_freshplaintext1234567"
 
     async def revoke_token(self, token_id):
         self.calls.append(("revoke_token", token_id))
@@ -121,22 +121,22 @@ def _pat(name: str) -> PersonalAccessToken:
         id=uuid4(),
         user_id="user_abc",
         name=name,
-        prefix="act_fres",
+        prefix="mkt_fres",
         created_at=datetime.now(timezone.utc),
     )
 
 
 @pytest.fixture(autouse=True)
 def _env(monkeypatch):
-    monkeypatch.setenv("AUTOCONTENT_API_BASE_URL", "https://api.test.local")
-    monkeypatch.setenv("AUTOCONTENT_API_TOKEN", "act_testtoken12345")
-    monkeypatch.setattr(cli_mod, "AutoContentClient", FakeClient)
+    monkeypatch.setenv("MARKETER_API_BASE_URL", "https://api.test.local")
+    monkeypatch.setenv("MARKETER_API_TOKEN", "mkt_testtoken12345")
+    monkeypatch.setattr(cli_mod, "MarketerClient", FakeClient)
     FakeClient.last_instance = None
 
 
 def test_missing_env_exits_2(monkeypatch):
-    monkeypatch.delenv("AUTOCONTENT_API_BASE_URL", raising=False)
-    monkeypatch.delenv("AUTOCONTENT_API_TOKEN", raising=False)
+    monkeypatch.delenv("MARKETER_API_BASE_URL", raising=False)
+    monkeypatch.delenv("MARKETER_API_TOKEN", raising=False)
     rc = cli_mod.main(["niches", "list"])
     assert rc == 2
 
@@ -231,7 +231,7 @@ def test_tokens_create_prints_plaintext_once(capsys):
     rc = cli_mod.main(["tokens", "create", "--name", "ci", "--expires-in-days", "30"])
     captured = capsys.readouterr()
     assert rc == 0
-    assert captured.out.strip() == "act_freshplaintext1234567"
+    assert captured.out.strip() == "mkt_freshplaintext1234567"
     assert "store it now" in captured.err
     assert FakeClient.last_instance.calls[0] == ("create_token", "ci", 30)
 
@@ -240,7 +240,7 @@ def test_tokens_list(capsys):
     rc = cli_mod.main(["tokens", "list"])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "act_fres" in out
+    assert "mkt_fres" in out
 
 
 def test_tokens_revoke(capsys):

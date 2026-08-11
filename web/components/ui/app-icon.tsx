@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-type Category = "green" | "orange" | "blue" | "purple" | "navy";
+type Category = "green" | "orange" | "blue" | "purple" | "navy" | "red";
 type Size = "sm" | "md";
 
 const TINT: Record<Category, string> = {
@@ -11,6 +11,9 @@ const TINT: Record<Category, string> = {
   blue: "bg-cat-blue",
   purple: "bg-cat-purple",
   navy: "bg-cat-navy",
+  // Reserved for genuinely critical states (e.g. a dependency down) — reuses
+  // the destructive token so red carries a single, consistent meaning.
+  red: "bg-destructive",
 };
 
 const SIZE: Record<Size, string> = {

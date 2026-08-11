@@ -449,13 +449,15 @@ export function ElasticSlider({
       data-slot="elastic-slider"
       className={cn(
         "[--elastic-slider-height:--spacing(9)] [--elastic-slider-radius:var(--radius-lg)]",
-        "[--elastic-slider-bg:var(--muted)]",
-        "[--elastic-slider-fill:var(--muted-foreground)]/10",
-        "[--elastic-slider-fill-active:var(--muted-foreground)]/20",
-        "[--elastic-slider-hash:var(--muted-foreground)]/30",
-        "[--elastic-slider-handle:var(--foreground)]",
-        "[--elastic-slider-label:var(--muted-foreground)]",
-        "[--elastic-slider-focus:var(--foreground)]",
+        // Theme vars like --muted are bare HSL triples, so wrap them in
+        // hsl() (with the alpha folded in) to produce real colors.
+        "[--elastic-slider-bg:hsl(var(--muted))]",
+        "[--elastic-slider-fill:hsl(var(--muted-foreground)/0.1)]",
+        "[--elastic-slider-fill-active:hsl(var(--muted-foreground)/0.2)]",
+        "[--elastic-slider-hash:hsl(var(--muted-foreground)/0.3)]",
+        "[--elastic-slider-handle:hsl(var(--foreground))]",
+        "[--elastic-slider-label:hsl(var(--muted-foreground))]",
+        "[--elastic-slider-focus:hsl(var(--foreground))]",
         "relative h-(--elastic-slider-height)",
         className
       )}

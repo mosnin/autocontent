@@ -1,4 +1,4 @@
-"""Tests for autocontent.repos.users.
+"""Tests for marketer.repos.users.
 
 All DB calls are intercepted via monkeypatching asyncpg pool calls, so
 no real database is required.
@@ -10,7 +10,7 @@ from decimal import Decimal
 
 import pytest
 
-from autocontent.models import User
+from marketer.models import User
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +63,7 @@ def _make_user_row(
 @pytest.fixture
 def fake_pool(monkeypatch):
     """Return a factory: `fake_pool(row_dict)` → patches get_pool."""
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     pools: dict[str, _FakePool] = {}
 
@@ -85,7 +85,7 @@ def fake_pool(monkeypatch):
 
 async def test_get_returns_user_with_global_cap(fake_pool):
     """get() populates global_daily_cap_usd from the DB row."""
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     fake_pool(_make_user_row(global_daily_cap_usd=Decimal("7.50")))
 
@@ -97,7 +97,7 @@ async def test_get_returns_user_with_global_cap(fake_pool):
 
 async def test_get_returns_user_with_null_global_cap(fake_pool):
     """get() returns None for global_daily_cap_usd when DB value is NULL."""
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     fake_pool(_make_user_row(global_daily_cap_usd=None))
 
@@ -113,7 +113,7 @@ async def test_get_returns_user_with_null_global_cap(fake_pool):
 
 async def test_update_settings_sets_global_cap(fake_pool):
     """update_settings() updates global_daily_cap_usd and returns User."""
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     pool = fake_pool(_make_user_row(global_daily_cap_usd=Decimal("20.00")))
 
@@ -127,7 +127,7 @@ async def test_update_settings_sets_global_cap(fake_pool):
 
 async def test_update_settings_clears_global_cap(fake_pool):
     """update_settings(global_daily_cap_usd=None) clears the cap."""
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     fake_pool(_make_user_row(global_daily_cap_usd=None))
 
@@ -138,7 +138,7 @@ async def test_update_settings_clears_global_cap(fake_pool):
 
 async def test_update_settings_no_args_returns_current(monkeypatch):
     """Calling update_settings() with no keyword args returns current user."""
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     expected_user = User(
         id="user_test",

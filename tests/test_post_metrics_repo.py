@@ -10,8 +10,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent.models import PostMetrics
-from autocontent.repos import post_metrics as repo
+from marketer.models import PostMetrics
+from marketer.repos import post_metrics as repo
 
 # ---------------------------------------------------------------------------
 # Shared fixtures / helpers

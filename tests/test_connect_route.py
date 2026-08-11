@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
-from autocontent.models import User
+from marketer.models import User
 
 _USER_ID = "user_test"
 
@@ -29,7 +29,7 @@ def _make_user(*, profile_key: str | None = None) -> User:
 
 
 def _make_authed_client(monkeypatch) -> TestClient:
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -51,7 +51,7 @@ def _make_authed_client(monkeypatch) -> TestClient:
 def test_status_no_profile_returns_not_connected(monkeypatch):
     """User without a profile_key → connected: false."""
     _reset_limiter()
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     async def _get(user_id: str) -> User | None:
         return _make_user(profile_key=None)
@@ -61,7 +61,7 @@ def test_status_no_profile_returns_not_connected(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         "/api/v1/connect/ayrshare/status",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -72,7 +72,7 @@ def test_status_no_profile_returns_not_connected(monkeypatch):
 def test_status_with_profile_returns_connected(monkeypatch):
     """User with a profile_key → connected: true."""
     _reset_limiter()
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     async def _get(user_id: str) -> User | None:
         return _make_user(profile_key="pk-real-key-abc")
@@ -82,7 +82,7 @@ def test_status_with_profile_returns_connected(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         "/api/v1/connect/ayrshare/status",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -93,7 +93,7 @@ def test_status_with_profile_returns_connected(monkeypatch):
 def test_status_user_not_in_db_returns_not_connected(monkeypatch):
     """User row not found (first login before upsert) → connected: false."""
     _reset_limiter()
-    import autocontent.repos.users as users_repo
+    import marketer.repos.users as users_repo
 
     async def _get(user_id: str) -> User | None:
         return None
@@ -103,7 +103,7 @@ def test_status_user_not_in_db_returns_not_connected(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         "/api/v1/connect/ayrshare/status",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -113,7 +113,7 @@ def test_status_user_not_in_db_returns_not_connected(monkeypatch):
 def test_status_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -130,8 +130,8 @@ def test_status_without_auth_returns_401(monkeypatch):
 def test_connect_ayrshare_creates_new_profile(monkeypatch):
     """User without a profile → creates one and returns profile_key + login_url."""
     _reset_limiter()
-    import autocontent.repos.users as users_repo
-    from autocontent.services import ayrshare_profiles
+    import marketer.repos.users as users_repo
+    from marketer.services import ayrshare_profiles
 
     # User has no profile key yet.
     async def _get(user_id: str) -> User | None:
@@ -156,7 +156,7 @@ def test_connect_ayrshare_creates_new_profile(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.post(
         "/api/v1/connect/ayrshare",
-        headers={"Authorization": "Bearer act_uniquetok010"},
+        headers={"Authorization": "Bearer mkt_uniquetok010"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -170,8 +170,8 @@ def test_connect_ayrshare_creates_new_profile(monkeypatch):
 def test_connect_ayrshare_reuses_existing_profile(monkeypatch):
     """User already has profile_key → skips create, returns fresh login URL."""
     _reset_limiter()
-    import autocontent.repos.users as users_repo
-    from autocontent.services import ayrshare_profiles
+    import marketer.repos.users as users_repo
+    from marketer.services import ayrshare_profiles
 
     existing_key = "pk-existing-abc"
 
@@ -195,7 +195,7 @@ def test_connect_ayrshare_reuses_existing_profile(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.post(
         "/api/v1/connect/ayrshare",
-        headers={"Authorization": "Bearer act_uniquetok011"},
+        headers={"Authorization": "Bearer mkt_uniquetok011"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -208,7 +208,7 @@ def test_connect_ayrshare_reuses_existing_profile(monkeypatch):
 def test_connect_ayrshare_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 

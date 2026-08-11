@@ -2,40 +2,50 @@
 
 import * as React from "react";
 
-import { AppSidebar } from "@/components/app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { SquareSidebar } from "@/components/square/sidebar";
+import { SquareHeader } from "@/components/square/header";
 
 /**
- * Reference-style shell: the sidebar rides directly on the warm page, and
- * the content is a white panel that floats inside it with a soft border,
- * rounded corners, and a whisper of shadow.
+ * Logged-in shell.
+ *
+ * Structurally this is still the sidebar + inset-panel composition the app
+ * was built on, but the content gutter is editorial rather than the
+ * template's fixed 1440px column:
+ *
+ *   - The measure is wider (1600px) and the horizontal padding is larger,
+ *     because `Gallery` sizes itself by the artifact. A fixed narrow column
+ *     forced media into thumbnails, which is precisely the inversion the
+ *     editorial system undoes.
+ *   - Vertical rhythm is owned by the page's own `Section`s (each carries
+ *     its own bottom margin), so the shell contributes top padding only and
+ *     never fights them.
+ *
+ * Long-form surfaces clamp themselves with `max-w-(--measure)`; the shell
+ * deliberately does not impose a reading width on everything, because a
+ * gallery and an article want different ones.
  */
-export function SiteShell({ children }: { children: React.ReactNode }) {
+export function SiteShell({
+  children,
+  account,
+}: {
+  children: React.ReactNode;
+  /** Account slot — defaults to Clerk's UserButton; previews pass a stub. */
+  account?: React.ReactNode;
+}) {
   return (
-    <SidebarProvider className="bg-page">
-      <AppSidebar />
-      <SidebarInset className="bg-page">
-        <div className="flex min-h-svh flex-1 flex-col overflow-hidden border-border/70 bg-card md:m-2 md:ml-0 md:rounded-2xl md:border md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-16px_rgb(0_0_0/0.12)]">
-          <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border/70 px-4">
-            <SidebarTrigger aria-label="Toggle sidebar" />
-            <Separator className="mr-1 h-4" orientation="vertical" />
-            <span className="hidden text-xs text-muted-foreground sm:inline">
-              <kbd className="rounded border border-border/70 bg-muted px-1.5 py-0.5 font-mono text-[10px]">
-                ⌘B
-              </kbd>{" "}
-              to collapse
-            </span>
-          </header>
-          <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8 md:py-8">
-            <div className="mx-auto w-full max-w-6xl">{children}</div>
+    <SidebarProvider className="bg-sidebar">
+      <SquareSidebar account={account} />
+      <div className="h-svh overflow-hidden lg:p-2 w-full">
+        <div className="lg:border lg:rounded-md overflow-hidden flex flex-col h-full w-full bg-background">
+          <SquareHeader />
+          <main className="w-full flex-1 overflow-auto">
+            <div className="mx-auto w-full max-w-[1600px] px-5 pb-16 pt-10 md:px-10">
+              {children}
+            </div>
           </main>
         </div>
-      </SidebarInset>
+      </div>
     </SidebarProvider>
   );
 }

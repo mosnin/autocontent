@@ -1,5 +1,5 @@
 // Manual TS mirrors of the pydantic models in
-// src/autocontent/models/schemas.py. Keep these in sync when the
+// src/marketer/models/schemas.py. Keep these in sync when the
 // schema changes.
 
 export type Platform = "tiktok" | "reels" | "shorts";
@@ -29,6 +29,16 @@ export interface Niche {
   video_resolution: VideoResolution;
   scene_max_duration_sec: number;
   tts_style_directions: string | null;
+  character_description: string | null;
+  creative_brief: CreativeBrief;
+  video_provider: "grok" | "fal";
+  fal_model: string;
+  script_model: string;
+  voice_provider: "openai" | "elevenlabs";
+  elevenlabs_voice_id: string;
+  music_provider: "auto" | "library" | "generated";
+  design_kit_id: string | null;
+  writing_kit_id: string | null;
   posting_windows: PostingWindow[];
   platforms: Platform[];
   daily_spend_cap_usd: string;
@@ -101,6 +111,7 @@ export interface User {
   email: string;
   ayrshare_profile_key: string | null;
   global_daily_cap_usd: string | null;
+  email_notifications: boolean;
   created_at: string;
 }
 
@@ -168,6 +179,57 @@ export function isFailed(j: Job): boolean {
   return j.status === "failed";
 }
 
+export type ArticleStatus =
+  | "queued"
+  | "researching"
+  | "outlining"
+  | "writing"
+  | "qa"
+  | "metadata"
+  | "imaging"
+  | "done"
+  | "failed";
+
+/** Quality report emitted by the article QA step (camelCase on the wire). */
+export interface ArticleQuality {
+  overall: number;
+  keywordDensity: number;
+  eeatScore: number;
+  readability: number;
+  notes: string[];
+}
+
+export interface ArticleLinkSuggestion {
+  anchor: string;
+  targetUrl: string;
+  score: number;
+}
+
+export interface Article {
+  id: string;
+  user_id: string;
+  niche_id: string;
+  status: ArticleStatus;
+  topic: string;
+  focus_keyword: string;
+  title: string | null;
+  slug: string | null;
+  meta_description: string | null;
+  keywords: string[];
+  article_markdown: string | null;
+  schema_jsonld: string | null;
+  hero_image_path: string | null;
+  hero_image_alt: string | null;
+  quality: ArticleQuality | null;
+  link_suggestions: ArticleLinkSuggestion[];
+  word_count: number | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const ARTICLE_TERMINAL_STATUSES: ArticleStatus[] = ["done", "failed"];
+
 export interface PersonalAccessToken {
   id: string;
   user_id: string;
@@ -198,4 +260,204 @@ export interface BillingBalance {
 export interface TokenCreateResponse {
   token: string;
   info: PersonalAccessToken;
+}
+
+// ---------------------------------------------------------------- media library
+
+export type MediaKind = "clip" | "keyframe" | "voiceover" | "final" | "composition" | "music";
+
+export interface MediaAsset {
+  id: string;
+  user_id: string;
+  niche_id: string | null;
+  job_id: string | null;
+  kind: MediaKind;
+  scene_index: number | null;
+  storage: "wasabi" | "volume";
+  object_key: string;
+  content_type: string;
+  size_bytes: number;
+  duration_sec: string | null;
+  title: string;
+  created_at: string;
+}
+
+export interface Composition {
+  id: string;
+  user_id: string;
+  title: string;
+  clip_asset_ids: string[];
+  audio_mode: "keep" | "mute";
+  status: "queued" | "rendering" | "done" | "failed";
+  output_asset_id: string | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StylePreset {
+  id: string;
+  name: string;
+  tagline: string;
+  visual_style: string;
+  character_suggestion: string;
+  reference_video_url: string | null;
+  swatch: string;
+}
+
+// ---------------------------------------------------------------- creative DNA
+
+export interface CaptionStyleBrief {
+  font: string;
+  font_size: number;
+  text_hex: string;
+  outline_hex: string;
+  uppercase: boolean;
+  position: "bottom" | "center" | "top";
+}
+
+export interface CreativeBrief {
+  hooks: {
+    preferred_mechanisms: string[];
+    banned_openers: string[];
+    example_hooks: string[];
+  };
+  narrative: {
+    language: string;
+    pov: string;
+    pacing: string;
+    reading_level: string;
+    cta_policy: string;
+    must_include: string[];
+    must_avoid: string[];
+  };
+  visual: {
+    camera_language: string;
+    lighting: string;
+    color_palette: string;
+    negative_visuals: string[];
+  };
+  audio: {
+    music_enabled: boolean;
+    music_mood: string;
+    caption_style: CaptionStyleBrief;
+  };
+  prompt_overrides: {
+    ideation: string;
+    scriptwriter: string;
+    visual_director: string;
+    qa: string;
+  };
+}
+
+export const HOOK_MECHANISMS = [
+  "curiosity_gap",
+  "contrarian",
+  "mistake_or_stakes",
+  "story_cold_open",
+  "bold_result",
+  "myth_bust",
+] as const;
+
+// ---------------------------------------------------------------- providers & kits
+
+export interface VideoModelOption {
+  provider: "grok" | "fal";
+  model_id: string;
+  name: string;
+  tagline: string;
+  usd_per_second: string;
+  available: boolean;
+}
+
+export interface ScriptModelOption {
+  model_id: string;
+  name: string;
+  tagline: string;
+  usd_per_m_input: string;
+  usd_per_m_output: string;
+  available: boolean;
+}
+
+export interface ImagePost {
+  id: string;
+  user_id: string;
+  niche_id: string;
+  campaign_id: string | null;
+  kind: "single" | "carousel";
+  topic: string;
+  // queued | planning | generating | awaiting_approval | scheduling | done | failed
+  status: string;
+  // Plan/slide-path/caption snapshot. slide_count lives here (set at
+  // creation time), not as a top-level column — see
+  // marketer.repos.image_posts.create.
+  payload: { slide_count?: number; [key: string]: unknown };
+  provider_post_id: string | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface VoiceProviderOption {
+  provider: "openai" | "elevenlabs";
+  name: string;
+  tagline: string;
+  available: boolean;
+}
+
+export interface AudioProviders {
+  voice_providers: VoiceProviderOption[];
+  generated_music_available: boolean;
+}
+
+export type KitKind = "design" | "ad" | "writing";
+
+export interface Kit {
+  id: string;
+  user_id: string;
+  kind: KitKind;
+  name: string;
+  description: string;
+  content: string;
+  rules: Record<string, unknown>;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ---------------------------------------------------------------- campaigns
+
+export type CampaignStatus = "draft" | "running" | "paused" | "completed";
+
+export interface Campaign {
+  id: string;
+  user_id: string;
+  name: string;
+  objective: string;
+  status: CampaignStatus;
+  starts_at: string;
+  ends_at: string | null;
+  budget_usd: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignItem {
+  id: string;
+  campaign_id: string;
+  user_id: string;
+  kind: "video" | "article" | "ad";
+  ref_id: string;
+  enabled: boolean;
+  cadence_per_week: number;
+  config: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface CampaignOverview {
+  campaign: Campaign;
+  items: CampaignItem[];
+  spent_usd: string;
+  videos_total: number;
+  articles_total: number;
 }

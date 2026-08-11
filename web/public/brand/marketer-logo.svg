@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="117" height="32" viewBox="0 0 117 32" role="img" aria-label="marketer.sh">
+  <g fill="none" fill-rule="evenodd">
+    <rect x="0" y="6" width="20" height="20" rx="4" fill="#41FFF3"/>
+    <path d="M5 21V11l5 6 5-6v10" stroke="#151E1D" stroke-width="2.2" stroke-linecap="square" stroke-linejoin="miter"/>
+    <text x="27" y="22" font-family="'Inter Tight',Inter,'Helvetica Neue',Arial,sans-serif"
+          font-size="16" font-weight="600" letter-spacing="-0.5" fill="#FCFDFD">marketer.sh</text>
+  </g>
+</svg>

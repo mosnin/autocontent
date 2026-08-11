@@ -5,7 +5,9 @@ import { SignIn } from "@clerk/nextjs";
 export default function SignInPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-page p-4">
-      <SignIn />
+      {/* Land on the suite launcher so users pick a product, not a legacy
+          single-dashboard view. */}
+      <SignIn fallbackRedirectUrl="/home" />
     </main>
   );
 }

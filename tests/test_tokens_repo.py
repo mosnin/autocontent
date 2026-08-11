@@ -10,13 +10,13 @@ import hashlib
 
 import pytest
 
-from autocontent.repos import tokens as tokens_repo
+from marketer.repos import tokens as tokens_repo
 
 
 def test_generate_plaintext_shape():
     tok = tokens_repo.generate_plaintext()
-    assert tok.startswith("act_")
-    body = tok[len("act_"):]
+    assert tok.startswith("mkt_")
+    body = tok[len("mkt_"):]
     assert len(body) == tokens_repo.TOKEN_BODY_LEN
     # base32 lowercase alphabet
     allowed = set("abcdefghijklmnopqrstuvwxyz234567")
@@ -29,15 +29,15 @@ def test_generate_plaintext_is_random():
 
 
 def test_hash_token_is_sha256_hex():
-    plaintext = "act_abcdefghijklmnopqrstuvwx"
+    plaintext = "mkt_abcdefghijklmnopqrstuvwx"
     expected = hashlib.sha256(plaintext.encode()).hexdigest()
     assert tokens_repo.hash_token(plaintext) == expected
     assert len(tokens_repo.hash_token(plaintext)) == 64
 
 
 def test_display_prefix_extracts_short_hint():
-    plaintext = "act_abcdefghijklmnopqrstuvwx"
-    assert tokens_repo.display_prefix(plaintext) == "act_abcd"
+    plaintext = "mkt_abcdefghijklmnopqrstuvwx"
+    assert tokens_repo.display_prefix(plaintext) == "mkt_abcd"
 
 
 def test_display_prefix_rejects_foreign_format():

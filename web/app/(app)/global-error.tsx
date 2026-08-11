@@ -1,7 +1,5 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
-
 // global-error.tsx replaces the root layout on segment-level crashes,
 // so it must render its own <html> + <body>. Tailwind works here;
 // the theme provider has NOT mounted, so we use raw CSS rather than
@@ -20,9 +18,6 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
     <html lang="en">
       <body className="flex min-h-screen items-center justify-center bg-white p-6 font-sans text-gray-900">
         <div className="w-full max-w-lg rounded-lg border border-red-200 bg-red-50 p-8 text-center shadow-sm">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-            <AlertTriangle className="h-6 w-6 text-red-600" />
-          </div>
           <h1 className="mb-2 text-xl font-semibold text-gray-900">
             Something went wrong
           </h1>

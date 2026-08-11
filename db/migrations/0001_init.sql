@@ -1,4 +1,4 @@
--- 0001_init.sql — initial multi-tenant schema for autocontent.
+-- 0001_init.sql — initial multi-tenant schema for marketer.
 --
 -- Identity is owned by Clerk. We store the Clerk user id as the PK and
 -- denormalize email for display. All tenant-owned rows reference users(id).

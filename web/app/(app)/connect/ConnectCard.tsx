@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Link2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 import { DotGridSpotlight } from "@/components/dot-grid-spotlight";
 import { Button } from "@/components/ui/button";
@@ -34,28 +34,13 @@ export function ConnectCard({
         spacing={22}
       />
       <CardHeader className="items-center text-center">
-        <div
-          className={
-            connected
-              ? "relative mx-auto flex size-12 items-center justify-center rounded-full bg-brand/10 text-brand"
-              : "relative mx-auto flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground"
-          }
-        >
-          {connected && (
-            <span
-              aria-hidden
-              className="absolute inline-flex size-3 animate-ping rounded-full bg-brand opacity-60 [inset-block-start:0.35rem] [inset-inline-end:0.35rem]"
-            />
-          )}
-          <Link2 className="size-6" />
-        </div>
-        <CardTitle className="mt-1">
-          {connected ? "Profile connected" : "Connect Ayrshare"}
+        <CardTitle>
+          {connected ? "Posting profile created" : "Connect Ayrshare"}
         </CardTitle>
         <CardDescription className="max-w-sm">
           {connected
-            ? "You can re-run the OAuth chooser any time to add or revoke a platform."
-            : "We'll bounce you to Ayrshare's hosted chooser to authorize each platform."}
+            ? "Your Ayrshare posting profile is ready. Open the hosted chooser any time to link, add, or revoke individual platforms."
+            : "We'll bounce you to Ayrshare's hosted chooser to create a posting profile and authorize each platform."}
         </CardDescription>
       </CardHeader>
 

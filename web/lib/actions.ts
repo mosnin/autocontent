@@ -6,7 +6,9 @@ import { redirect } from "next/navigation";
 import { api } from "./api";
 import type { ActionState } from "./action-state";
 import type {
+  Article,
   AyrshareConnectResponse,
+  CreativeBrief,
   Job,
   Niche,
   Platform,
@@ -30,7 +32,17 @@ interface NicheCreatePayload {
   video_resolution: "480p" | "720p";
   scene_max_duration_sec: number;
   tts_style_directions: string | null;
+  character_description: string | null;
   approve_before_post: boolean;
+  creative_brief?: CreativeBrief;
+  video_provider?: "grok" | "fal";
+  fal_model?: string;
+  script_model?: string;
+  voice_provider?: "openai" | "elevenlabs";
+  elevenlabs_voice_id?: string;
+  music_provider?: "auto" | "library" | "generated";
+  design_kit_id?: string | null;
+  writing_kit_id?: string | null;
 }
 
 function splitCsv(raw: string | null): string[] {
@@ -38,6 +50,86 @@ function splitCsv(raw: string | null): string[] {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+/** Provider + kit selections (present only when the form renders them,
+ *  so onboarding submissions leave existing values untouched). */
+function providerFieldsFromForm(formData: FormData): Partial<NicheCreatePayload> {
+  if (formData.get("providers_present") !== "1") return {};
+  const videoChoice = String(formData.get("video_model_choice") || "grok:");
+  const [provider, ...rest] = videoChoice.split(":");
+  const designKit = String(formData.get("design_kit_id") || "");
+  const writingKit = String(formData.get("writing_kit_id") || "");
+  const voiceProvider = String(formData.get("voice_provider") || "openai");
+  const musicProvider = String(formData.get("music_provider") || "auto");
+  return {
+    video_provider: provider === "fal" ? "fal" : "grok",
+    fal_model: provider === "fal" ? rest.join(":") : "",
+    script_model: String(formData.get("script_model") || ""),
+    voice_provider: voiceProvider === "elevenlabs" ? "elevenlabs" : "openai",
+    elevenlabs_voice_id: String(formData.get("elevenlabs_voice_id") || "").trim(),
+    music_provider:
+      musicProvider === "library" || musicProvider === "generated"
+        ? musicProvider
+        : "auto",
+    design_kit_id: designKit || null,
+    writing_kit_id: writingKit || null,
+  };
+}
+
+/** Assemble a CreativeBrief from the edit form's brief_* fields. Returns
+ *  undefined when the form carries no brief marker (e.g. onboarding), so
+ *  create/update leave the niche's brief untouched. */
+function briefFromForm(formData: FormData): CreativeBrief | undefined {
+  if (formData.get("brief_present") !== "1") return undefined;
+  const get = (k: string) => String(formData.get(k) || "").trim();
+  const lines = (k: string) =>
+    get(k).split("\n").map((l) => l.trim()).filter(Boolean);
+  const hex = (k: string, fallback: string) => {
+    const v = get(k).replace(/^#/, "");
+    return /^[0-9a-fA-F]{6}$/.test(v) ? v : fallback;
+  };
+  const pos = get("brief_caption_position");
+  return {
+    hooks: {
+      preferred_mechanisms: formData.getAll("brief_mechanisms").map(String),
+      banned_openers: splitCsv(get("brief_banned_openers")),
+      example_hooks: lines("brief_example_hooks").slice(0, 10),
+    },
+    narrative: {
+      language: get("brief_language"),
+      pov: get("brief_pov"),
+      pacing: get("brief_pacing"),
+      reading_level: get("brief_reading_level"),
+      cta_policy: get("brief_cta_policy"),
+      must_include: [],
+      must_avoid: splitCsv(get("brief_must_avoid")),
+    },
+    visual: {
+      camera_language: get("brief_camera_language"),
+      lighting: get("brief_lighting"),
+      color_palette: get("brief_color_palette"),
+      negative_visuals: splitCsv(get("brief_negative_visuals")),
+    },
+    audio: {
+      music_enabled: formData.get("brief_music_enabled") === "on",
+      music_mood: get("brief_music_mood"),
+      caption_style: {
+        font: get("brief_caption_font") || "Arial Black",
+        font_size: Number(get("brief_caption_size") || 96),
+        text_hex: hex("brief_caption_text_hex", "FFFFFF"),
+        outline_hex: hex("brief_caption_outline_hex", "000000"),
+        uppercase: formData.get("brief_caption_uppercase") === "on",
+        position: pos === "center" || pos === "top" ? pos : "bottom",
+      },
+    },
+    prompt_overrides: {
+      ideation: get("brief_extra_ideation"),
+      scriptwriter: get("brief_extra_script"),
+      visual_director: get("brief_extra_visual"),
+      qa: "",
+    },
+  };
 }
 
 function errorMessage(e: unknown): string {
@@ -58,6 +150,7 @@ export interface NicheDraft {
   video_resolution: "480p" | "720p";
   scene_max_duration_sec: number;
   tts_style_directions: string;
+  character_description: string;
 }
 
 export async function draftNicheAction(
@@ -87,6 +180,7 @@ export async function createNicheAction(
   const postingMinute = Number(formData.get("posting_minute"));
   const tz = String(formData.get("tz") || "America/Los_Angeles");
   const ttsStyleRaw = String(formData.get("tts_style_directions") || "").trim();
+  const characterRaw = String(formData.get("character_description") || "").trim();
 
   const payload: NicheCreatePayload = {
     title: String(formData.get("title") || "").trim(),
@@ -104,6 +198,9 @@ export async function createNicheAction(
     video_resolution: (formData.get("video_resolution") as "480p" | "720p") || "480p",
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
+    character_description: characterRaw ? characterRaw : null,
+    creative_brief: briefFromForm(formData),
+    ...providerFieldsFromForm(formData),
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 
@@ -136,6 +233,7 @@ export async function updateNicheAction(
   const postingMinute = Number(formData.get("posting_minute"));
   const tz = String(formData.get("tz") || "America/Los_Angeles");
   const ttsStyleRaw = String(formData.get("tts_style_directions") || "").trim();
+  const characterRaw = String(formData.get("character_description") || "").trim();
 
   // Send the full payload (all fields optional on the backend), keeps
   // semantics symmetric with createNicheAction.
@@ -157,6 +255,9 @@ export async function updateNicheAction(
       (formData.get("video_resolution") as "480p" | "720p") || "480p",
     scene_max_duration_sec: Number(formData.get("scene_max_duration_sec") || 5),
     tts_style_directions: ttsStyleRaw ? ttsStyleRaw : null,
+    character_description: characterRaw ? characterRaw : null,
+    creative_brief: briefFromForm(formData),
+    ...providerFieldsFromForm(formData),
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 
@@ -193,6 +294,9 @@ export async function enqueueJobAction(
   }
   revalidatePath("/queue");
   revalidatePath("/dashboard");
+  // A new job also changes the niche's recent-jobs table + the niches list.
+  revalidatePath("/niches/[id]", "page");
+  revalidatePath("/niches");
   return { ok: true };
 }
 
@@ -208,6 +312,7 @@ export async function approveJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
   return { ok: true };
 }
 
@@ -223,6 +328,7 @@ export async function rejectJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
   return { ok: true };
 }
 
@@ -238,6 +344,45 @@ export async function retryJobAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/queue");
+  revalidatePath("/queue/[id]", "page");
+  return { ok: true };
+}
+
+export async function createArticleAction(
+  _prev: ActionState & { article?: Article },
+  formData: FormData,
+): Promise<ActionState & { article?: Article }> {
+  const niche_id = String(formData.get("niche_id") || "").trim();
+  if (!niche_id) return { ok: false, error: "niche_id required" };
+  // Topic is optional — the pipeline picks one from the niche when omitted.
+  const topic = String(formData.get("topic") || "").trim();
+  let article: Article;
+  try {
+    article = await api<Article>("/api/v1/articles", {
+      method: "POST",
+      body: JSON.stringify(topic ? { niche_id, topic } : { niche_id }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/articles");
+  return { ok: true, article };
+}
+
+export async function retryArticleAction(
+  _prev: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const article_id = String(formData.get("article_id"));
+  if (!article_id) return { ok: false, error: "article_id required" };
+  try {
+    await api<Article>(`/api/v1/articles/${article_id}/retry`, {
+      method: "POST",
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
+  revalidatePath("/articles");
   return { ok: true };
 }
 
@@ -253,13 +398,15 @@ export async function archiveNicheAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/dashboard");
+  revalidatePath("/niches");
+  revalidatePath("/niches/[id]", "page");
   return { ok: true };
 }
 
 export async function createTokenAction(
-  _prev: ActionState,
+  _prev: ActionState & { token?: string },
   formData: FormData,
-): Promise<ActionState> {
+): Promise<ActionState & { token?: string }> {
   const name = String(formData.get("name") || "").trim();
   if (!name) return { ok: false, error: "name required" };
   const expRaw = String(formData.get("expires_in_days") || "").trim();
@@ -280,9 +427,10 @@ export async function createTokenAction(
     return { ok: false, error: errorMessage(e) };
   }
   revalidatePath("/settings/tokens");
-  // The plaintext is shown exactly once via the query param. We could
-  // use cookies but they leak via cache; the URL is fine for a short hop.
-  redirect(`/settings/tokens?just_created=${encodeURIComponent(plaintext)}`);
+  // The plaintext is returned in the action state and rendered
+  // client-side exactly once — it must never enter the URL, logs, or
+  // browser history.
+  return { ok: true, token: plaintext };
 }
 
 export async function revokeTokenAction(
@@ -343,6 +491,23 @@ export async function updateUserSettingsAction(
     return { ok: false, error: errorMessage(e) };
   }
 
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function updateEmailNotificationsAction(
+  enabled: boolean,
+): Promise<ActionState> {
+  // Sends only the email_notifications key so the PATCH never touches the
+  // user's spend-cap safety net (the backend changes only keys present).
+  try {
+    await api<User>("/api/v1/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ email_notifications: enabled }),
+    });
+  } catch (e) {
+    return { ok: false, error: errorMessage(e) };
+  }
   revalidatePath("/settings");
   return { ok: true };
 }

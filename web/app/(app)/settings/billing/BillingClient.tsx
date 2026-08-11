@@ -3,7 +3,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { ArrowUpRight, Coins } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -84,26 +83,23 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
   return (
     <div className="space-y-8">
       <Card>
-        <CardContent className="flex items-end justify-between pt-6">
-          <div className="space-y-1">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Available credit
-            </p>
-            <p
-              className={cn(
-                "font-mono text-5xl font-semibold tabular-nums tracking-tight",
-                low ? "text-brand" : "text-foreground",
-              )}
-            >
-              {formatUsd(Number(billing.balance_usd))}
-            </p>
-            {low && (
-              <p className="text-xs text-brand">
-                Running low — the pipeline pauses at zero.
-              </p>
+        <CardContent className="space-y-1 pt-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+            Available credit
+          </p>
+          <p
+            className={cn(
+              "font-mono text-5xl font-semibold tabular-nums tracking-tight",
+              low ? "text-brand" : "text-foreground",
             )}
-          </div>
-          <Coins aria-hidden className="size-8 text-muted-foreground/50" />
+          >
+            {formatUsd(Number(billing.balance_usd))}
+          </p>
+          {low && (
+            <p className="text-xs text-brand">
+              Running low — the pipeline pauses at zero.
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -111,30 +107,39 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
         <h2 className="text-lg font-semibold tracking-tight">Add credit</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {PACKS.map((p) => (
-            <button
+            <Card
+              aria-disabled={buying !== null}
               className={cn(
-                "group flex flex-col items-start rounded-xl border p-5 text-left transition-colors",
+                "cursor-pointer text-left transition-colors",
                 p.featured
                   ? "border-brand/50 bg-brand/5 hover:bg-brand/10"
-                  : "border-border/60 bg-card/40 hover:border-brand/30",
+                  : "hover:border-brand/30",
+                buying !== null && "pointer-events-none opacity-70",
               )}
-              disabled={buying !== null}
               key={p.key}
               onClick={() => buy(p.key)}
-              type="button"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  buy(p.key);
+                }
+              }}
             >
-              <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                {p.label}
-              </span>
-              <span className="mt-2 font-mono text-3xl font-semibold tabular-nums">
-                ${p.amount}
-              </span>
-              <span className="mt-1 text-xs text-muted-foreground">{p.blurb}</span>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand">
-                {buying === p.key ? "Opening checkout…" : "Buy"}
-                <ArrowUpRight className="size-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </span>
-            </button>
+              <CardContent className="flex flex-col items-start">
+                <span className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
+                  {p.label}
+                </span>
+                <span className="mt-2 font-mono text-3xl font-semibold tabular-nums">
+                  ${p.amount}
+                </span>
+                <span className="mt-1 text-xs text-muted-foreground">{p.blurb}</span>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand">
+                  {buying === p.key ? "Opening checkout…" : "Buy"}
+                </span>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>

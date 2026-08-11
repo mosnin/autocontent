@@ -10,9 +10,9 @@ from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from autocontent import pipeline
-from autocontent.agents.qa import QAReport
-from autocontent.models import (
+from marketer import pipeline
+from marketer.agents.qa import QAReport
+from marketer.models import (
     Clip,
     Idea,
     Job,
@@ -67,7 +67,7 @@ def _make_script() -> Script:
     )
 
 
-async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path):
+async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path, passing_render_qa):
     """Max concurrent _generate_scene_assets calls must not exceed FANOUT_LIMIT."""
     peak = {"concurrent": 0, "max_concurrent": 0}
 
@@ -75,7 +75,9 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline.settings, "scene_fanout_limit", FANOUT_LIMIT)
 
     # Patch the real _generate_scene_assets with a probe that records concurrency.
-    async def probed_generate(scene, root, *, niche, reference_image, spend):
+    async def probed_generate(
+        scene, root, *, niche, reference_image, spend, avatar_model_id=None
+    ):
         peak["concurrent"] += 1
         if peak["concurrent"] > peak["max_concurrent"]:
             peak["max_concurrent"] = peak["concurrent"]
@@ -130,7 +132,7 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline.spend_repo, "record", fake_record)
 
     # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
 
     async def fake_users_get(user_id: str):
@@ -153,19 +155,19 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context=""):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_visual_director(script, *, visual_style):
+    async def fake_visual_director(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_visual_director)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 
@@ -209,7 +211,7 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path):
         return out_path
     monkeypatch.setattr(pipeline.ffmpeg, "burn_subtitles", fake_burn)
 
-    def fake_words_to_ass(words, out_path, style="tiktok-bold"):
+    def fake_words_to_ass(words, out_path, caption_style=None):
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text("[Script Info]\n")
         return out_path

@@ -13,7 +13,7 @@ request body, base-64 encoded, and sends it in one of:
 We accept either header so deployments aren't broken by Ayrshare quietly
 renaming it. If neither is present we reject with 401.
 
-The shared secret is ``AUTOCONTENT_AYRSHARE_WEBHOOK_SECRET``. If that env
+The shared secret is ``MARKETER_AYRSHARE_WEBHOOK_SECRET``. If that env
 var is unset we return 503 rather than silently accepting unsigned
 webhooks.
 
@@ -48,9 +48,9 @@ from typing import Any
 from fastapi import APIRouter, Request, Response, status
 from pydantic import BaseModel
 
-from autocontent.config import settings
-from autocontent.models import JobStatus
-from autocontent.repos import jobs as jobs_repo
+from marketer.config import settings
+from marketer.models import JobStatus
+from marketer.repos import jobs as jobs_repo
 
 router = APIRouter()
 log = logging.getLogger(__name__)
@@ -102,7 +102,7 @@ def _error_summary(errors: list[Any]) -> str:
 async def ayrshare_webhook(request: Request) -> dict:
     # --- 1. Secret guard ---------------------------------------------------
     if not settings.ayrshare_webhook_secret:
-        log.error("ayrshare_webhook.misconfigured: AUTOCONTENT_AYRSHARE_WEBHOOK_SECRET not set")
+        log.error("ayrshare_webhook.misconfigured: MARKETER_AYRSHARE_WEBHOOK_SECRET not set")
         return Response(
             content='{"detail":"webhook secret not configured"}',
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

@@ -7,7 +7,7 @@ from pathlib import Path
 import httpx
 import pytest
 
-from autocontent.services import scheduler
+from marketer.services import scheduler
 
 
 UPLOAD_URL = "https://images.ayrshare.com/abc/final.mp4"
@@ -16,7 +16,7 @@ POST_ID = "RhrbDtYh7hdSMc67zC8H"
 
 @pytest.fixture(autouse=True)
 def _ayrshare_key(monkeypatch):
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_api_key", "ayr-test")
 
 
@@ -70,7 +70,7 @@ def _make_transport(*, captured: dict) -> httpx.MockTransport:
 @pytest.fixture
 def stub_user_lookup(monkeypatch):
     """Avoid hitting the database from users_repo.get."""
-    from autocontent.models import User
+    from marketer.models import User
 
     async def _get(user_id: str):
         return User(id=user_id, email="x@y.z", ayrshare_profile_key="profile-key-xyz")
@@ -136,7 +136,7 @@ async def test_unknown_platform_raises(tmp_path, patch_async_client, stub_user_l
 
 
 async def test_missing_profile_key_raises(tmp_path, patch_async_client, monkeypatch):
-    from autocontent.models import User
+    from marketer.models import User
 
     async def _get(_user_id: str):
         return User(id="user_abc", email="x@y.z", ayrshare_profile_key=None)

@@ -16,8 +16,8 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent import pipeline
-from autocontent.models import Job, JobStatus, Niche, PostingWindow
+from marketer import pipeline
+from marketer.models import Job, JobStatus, Niche, PostingWindow
 
 USER_ID = "user_skip_test"
 NICHE_ID = UUID("00000000-0000-0000-0000-000000000077")
@@ -117,7 +117,7 @@ async def test_skipped_job_does_no_provider_work(stub_db, niche_lock_false, monk
     assert called == []
 
 
-async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
+async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passing_render_qa):
     """When niche_lock yields True the job runs normally (smoke check)."""
 
     @asynccontextmanager
@@ -134,8 +134,8 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
 
     # Minimal stubs so the pipeline body doesn't hit real providers.
     from decimal import Decimal
-    from autocontent.agents.qa import QAReport
-    from autocontent.models import (
+    from marketer.agents.qa import QAReport
+    from marketer.models import (
         Clip, Idea, Script, Scene,
     )
 
@@ -156,9 +156,9 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline.spend_repo, "record", fake_record)
 
     # Stub users_repo.get so default_context and _ensure_cap don't hit DB.
-    import autocontent.repos.users as _users_repo
+    import marketer.repos.users as _users_repo
     from datetime import datetime, timezone
-    from autocontent.models import User
+    from marketer.models import User
 
     async def fake_users_get(user_id: str):
         return User(
@@ -180,7 +180,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
-    async def fake_ideation(title, *, performance_context=""):
+    async def fake_ideation(title, *, performance_context="", niche_description="", target_audience="", platform="", brand_voice="", banned_words=None, recent_topics=None, brief=None, spend=None):
         return Idea(topic="t", angle="a", hook="h",
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
@@ -196,15 +196,15 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
             total_duration_sec=5,
         )
 
-    async def fake_scriptwriter(*a, **kw):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
-    async def fake_vd(script, *, visual_style):
+    async def fake_vd(script, *, visual_style, character_description="", brief=None, design_kit="", spend=None):
         return script
     monkeypatch.setattr(pipeline, "run_visual_director", fake_vd)
 
-    async def fake_qa(script, transcript, dur, *, niche):
+    async def fake_qa(script, transcript, dur, *, niche, spend=None):
         return QAReport(passed=True, issues=[], suggested_action="publish")
     monkeypatch.setattr(pipeline, "run_qa", fake_qa)
 
@@ -256,7 +256,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path):
         out.write_bytes(b"MP4")
     monkeypatch.setattr(pipeline.ffmpeg, "burn_subtitles", fake_burn)
 
-    def fake_words_to_ass(words, out, style="tiktok-bold"):
+    def fake_words_to_ass(words, out, caption_style=None):
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text("[Script Info]\n")
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)

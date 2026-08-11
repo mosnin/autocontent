@@ -4,7 +4,7 @@ import json
 import logging
 from io import StringIO
 
-from autocontent.logging import JsonFormatter, configure, get_logger, job_context
+from marketer.logging import JsonFormatter, configure, get_logger, job_context
 
 
 def _isolated_handler() -> tuple[logging.Logger, StringIO]:

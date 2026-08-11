@@ -5,9 +5,9 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from autocontent.models import SpendEntry
-from autocontent.repos.spend import SpendCapExceeded
-from autocontent.services.spend_context import SpendContext
+from marketer.models import SpendEntry
+from marketer.repos.spend import SpendCapExceeded
+from marketer.services.spend_context import SpendContext
 
 
 class _Recorder:

@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import pytest
 
-from autocontent import mcp_server
+from marketer import mcp_server
 
 
 @pytest.fixture
 def server():
-    return mcp_server.build_server(base_url="http://localhost", token="act_dummy12345678")
+    return mcp_server.build_server(base_url="http://localhost", token="mkt_dummy12345678")
 
 
 async def test_tools_registered(server):
@@ -36,14 +36,14 @@ async def test_resources_registered(server):
     resources = await server.list_resource_templates()
     uris = {str(r.uriTemplate) for r in resources}
     # The two parameterised ones come back as templates.
-    assert "autocontent://niches/{niche_id}" in uris
-    assert "autocontent://jobs/{job_id}" in uris
+    assert "marketer://niches/{niche_id}" in uris
+    assert "marketer://jobs/{job_id}" in uris
 
 
 def test_main_requires_env(monkeypatch, capsys):
-    monkeypatch.delenv("AUTOCONTENT_API_BASE_URL", raising=False)
-    monkeypatch.delenv("AUTOCONTENT_API_TOKEN", raising=False)
+    monkeypatch.delenv("MARKETER_API_BASE_URL", raising=False)
+    monkeypatch.delenv("MARKETER_API_TOKEN", raising=False)
     rc = mcp_server.main()
     assert rc == 2
     err = capsys.readouterr().err
-    assert "AUTOCONTENT_API_BASE_URL" in err
+    assert "MARKETER_API_BASE_URL" in err

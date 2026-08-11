@@ -1,0 +1,68 @@
+/*
+ * Token bridge: our components inside the transcribed shell.
+ *
+ * The marketing pages are built from our own components, which resolve
+ * every colour through the HSL custom properties in globals.css
+ * (`--color-background: hsl(var(--background))` and friends). The shell
+ * they now render inside is dark, so rather than restyle thirty pages by
+ * hand, the variables are re-pointed at the export's palette. Components
+ * adapt automatically and there is still one source of truth per colour.
+ *
+ * Values are the export's own design tokens converted to HSL triplets:
+ *   #151E1D  page          rgb(252,253,253)  text
+ *   #0F1514  card          rgb(129,152,149)  muted text
+ *   rgb(42,60,58) border   rgb(65,255,243)   accent
+ *
+ * Scoped to `#main` so it cannot reach the authenticated app.
+ */
+
+#main {
+  --background: 173 18% 10%;
+  --foreground: 180 20% 99%;
+
+  --card: 170 17% 7%;
+  --card-foreground: 180 20% 99%;
+  --popover: 170 17% 7%;
+  --popover-foreground: 180 20% 99%;
+
+  --muted: 173 18% 14%;
+  --muted-foreground: 172 10% 55%;
+
+  --secondary: 173 18% 14%;
+  --secondary-foreground: 180 20% 99%;
+
+  --accent: 173 18% 16%;
+  --accent-foreground: 180 20% 99%;
+
+  --border: 173 18% 20%;
+  --input: 173 18% 20%;
+  --ring: 176 100% 63%;
+
+  --primary: 176 100% 63%;
+  --primary-foreground: 173 18% 10%;
+
+  --brand: 176 100% 63%;
+  --brand-foreground: 173 18% 10%;
+
+  --page: 173 18% 10%;
+
+  color: hsl(var(--foreground));
+}
+
+/*
+ * Utilities our marketing components hardcode rather than route through a
+ * token. These are the ones that actually appear on the pages in this
+ * group; each would otherwise render near-black text on a near-black
+ * ground. Kept as an explicit list — a blanket `[class*="zinc"]` rule
+ * would also repaint intentional dark-on-light chips.
+ */
+#main .bg-white { background-color: hsl(var(--card)); }
+#main .text-zinc-900,
+#main .text-zinc-800 { color: hsl(var(--foreground)); }
+#main .text-zinc-700,
+#main .text-zinc-600,
+#main .text-zinc-500 { color: hsl(var(--muted-foreground)); }
+#main .border-zinc-200,
+#main .border-zinc-100 { border-color: hsl(var(--border)); }
+#main .bg-zinc-50,
+#main .bg-zinc-100 { background-color: hsl(var(--muted)); }

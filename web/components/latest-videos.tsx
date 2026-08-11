@@ -3,8 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowRight, Clapperboard, Eye, Film, TrendingUp } from "lucide-react";
-import { AppIcon } from "@/components/ui/app-icon";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +16,7 @@ import { clientFetch } from "@/lib/client-fetcher";
 import type { Job } from "@/lib/types";
 
 const POLL_MS = 15000;
-const FIRST_VIDEO_KEY = "autocontent_first_video_seen";
+const FIRST_VIDEO_KEY = "marketer_first_video_seen";
 
 interface MetricsSummary {
   total_views: number;
@@ -84,7 +82,6 @@ export function LatestVideos() {
       {hasPayoff && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/30 bg-brand/5 px-5 py-4">
           <div className="flex items-center gap-3">
-            <TrendingUp className="size-5 text-brand" />
             <div>
               <p className="text-sm">
                 Your machine earned{" "}
@@ -114,7 +111,6 @@ export function LatestVideos() {
           </div>
           <Button asChild size="sm" variant="ghost">
             <Link href="/queue?status_filter=done">
-              <Eye className="size-3.5" />
               See all
             </Link>
           </Button>
@@ -122,14 +118,10 @@ export function LatestVideos() {
       )}
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <AppIcon color="orange"><Film /></AppIcon>
-          <h2 className="text-lg font-semibold tracking-tight">Latest videos</h2>
-        </div>
+        <h2 className="text-lg font-semibold tracking-tight">Latest videos</h2>
         <Button asChild size="sm" variant="ghost">
           <Link href="/queue">
             All jobs
-            <ArrowRight className="size-3.5" />
           </Link>
         </Button>
       </div>
@@ -169,7 +161,6 @@ export function LatestVideos() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span aria-hidden className="relative flex size-2.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
                 <span className="relative inline-flex size-2.5 rounded-full bg-brand" />
               </span>
               Your machine shipped its first video
@@ -192,7 +183,6 @@ export function LatestVideos() {
           )}
           <Button asChild>
             <Link href={revealJob ? `/queue/${revealJob.id}` : "/queue"}>
-              <Clapperboard className="size-4" />
               See the full breakdown
             </Link>
           </Button>

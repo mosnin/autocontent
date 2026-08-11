@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { SearchX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,9 +14,6 @@ export default function NotFound() {
     <main className="flex min-h-[60vh] items-center justify-center p-6">
       <Card className="w-full max-w-md text-center">
         <CardHeader className="flex flex-col items-center gap-3">
-          <div className="rounded-full bg-muted p-3">
-            <SearchX className="h-6 w-6 text-muted-foreground" />
-          </div>
           <CardTitle>Couldn&apos;t find that page</CardTitle>
         </CardHeader>
         <CardContent>

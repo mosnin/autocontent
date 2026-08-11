@@ -1,4 +1,4 @@
-"""Unit tests for autocontent.services.pixabay_music.
+"""Unit tests for marketer.services.pixabay_music.
 
 All network I/O is mocked — no real HTTP calls are made.
 """
@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from autocontent.services.pixabay_music import PixabayError, Track, download, search
+from marketer.services.pixabay_music import PixabayError, Track, download, search
 
 
 # ---------------------------------------------------------------------------
@@ -40,11 +40,11 @@ def _hit(id: int = 1, audio: str = "https://cdn.pixabay.com/1.mp3",
 # ---------------------------------------------------------------------------
 
 async def test_search_returns_parsed_tracks(monkeypatch):
-    monkeypatch.setattr("autocontent.services.pixabay_music.settings.pixabay_api_key", "k")
+    monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     payload = _search_payload(_hit(id=1, duration=90), _hit(id=2, duration=120))
     fake_resp = _fake_response(200, payload)
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.get = AsyncMock(return_value=fake_resp)
 
@@ -58,10 +58,10 @@ async def test_search_returns_parsed_tracks(monkeypatch):
 
 
 async def test_search_empty_hits_returns_empty_list(monkeypatch):
-    monkeypatch.setattr("autocontent.services.pixabay_music.settings.pixabay_api_key", "k")
+    monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     fake_resp = _fake_response(200, _search_payload())
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.get = AsyncMock(return_value=fake_resp)
 
@@ -71,10 +71,10 @@ async def test_search_empty_hits_returns_empty_list(monkeypatch):
 
 
 async def test_search_401_raises_pixabay_error(monkeypatch):
-    monkeypatch.setattr("autocontent.services.pixabay_music.settings.pixabay_api_key", "bad")
+    monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "bad")
     fake_resp = _fake_response(401)
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.get = AsyncMock(return_value=fake_resp)
 
@@ -86,10 +86,10 @@ async def test_search_401_raises_pixabay_error(monkeypatch):
 
 
 async def test_search_429_raises_pixabay_error(monkeypatch):
-    monkeypatch.setattr("autocontent.services.pixabay_music.settings.pixabay_api_key", "k")
+    monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     fake_resp = _fake_response(429)
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.get = AsyncMock(return_value=fake_resp)
 
@@ -100,10 +100,10 @@ async def test_search_429_raises_pixabay_error(monkeypatch):
 
 
 async def test_search_500_raises_pixabay_error(monkeypatch):
-    monkeypatch.setattr("autocontent.services.pixabay_music.settings.pixabay_api_key", "k")
+    monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     fake_resp = _fake_response(503, text="Service Unavailable")
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.get = AsyncMock(return_value=fake_resp)
 
@@ -114,7 +114,7 @@ async def test_search_500_raises_pixabay_error(monkeypatch):
 
 
 async def test_search_no_key_raises(monkeypatch):
-    monkeypatch.setattr("autocontent.services.pixabay_music.settings.pixabay_api_key", "")
+    monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "")
 
     with pytest.raises(PixabayError) as exc_info:
         await search("q", min_duration=0, max_duration=200)
@@ -123,7 +123,7 @@ async def test_search_no_key_raises(monkeypatch):
 
 
 async def test_search_skips_hits_without_audio(monkeypatch):
-    monkeypatch.setattr("autocontent.services.pixabay_music.settings.pixabay_api_key", "k")
+    monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     payload = _search_payload(
         _hit(id=1),
         {"id": 2, "audio": "", "duration": 90, "user": "u", "tags": ""},  # empty audio
@@ -131,7 +131,7 @@ async def test_search_skips_hits_without_audio(monkeypatch):
     )
     fake_resp = _fake_response(200, payload)
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.get = AsyncMock(return_value=fake_resp)
 
@@ -167,7 +167,7 @@ async def test_download_writes_file(tmp_path: Path):
         async def __aexit__(self, *args):
             pass
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.stream = MagicMock(return_value=_StreamCtx())
 
@@ -182,7 +182,7 @@ async def test_download_skips_if_exists(tmp_path: Path):
     dest = tmp_path / "42.mp3"
     dest.write_bytes(b"EXISTING")
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         MockClient.return_value.__aenter__.return_value.stream = AsyncMock(
             side_effect=lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not download"))
         )
@@ -214,7 +214,7 @@ async def test_download_atomic_on_failure(tmp_path: Path):
         async def __aexit__(self, *args):
             pass
 
-    with patch("autocontent.services.pixabay_music.httpx.AsyncClient") as MockClient:
+    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
         instance = MockClient.return_value.__aenter__.return_value
         instance.stream = MagicMock(return_value=_StreamCtx())
 

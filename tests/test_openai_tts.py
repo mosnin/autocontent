@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from autocontent.services import openai_tts
+from marketer.services import openai_tts
 
 
 def _write_silence_wav(path: Path, seconds: float = 2.0, rate: int = 22050) -> None:

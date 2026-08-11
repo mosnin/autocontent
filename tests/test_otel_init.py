@@ -20,7 +20,7 @@ from opentelemetry.util._once import Once
 
 def _reset_otel_module() -> None:
     """Reset module-level state so each test starts from a clean slate."""
-    import autocontent.services.otel as otel_mod
+    import marketer.services.otel as otel_mod
 
     otel_mod._otel_inited = False
     otel_mod._provider = None
@@ -29,7 +29,7 @@ def _reset_otel_module() -> None:
 def _reset_all() -> None:
     """Also reset logging module flags so configure() chains cleanly."""
     _reset_otel_module()
-    import autocontent.logging as logging_mod
+    import marketer.logging as logging_mod
 
     logging_mod._configured = False
     logging_mod._sentry_inited = False
@@ -42,13 +42,13 @@ def _reset_all() -> None:
 def test_init_tracing_no_op_when_endpoint_empty(monkeypatch) -> None:
     """When the endpoint is empty, no TracerProvider is installed and the
     global tracer is the built-in no-op tracer."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "otel_exporter_otlp_endpoint", "")
     _reset_otel_module()
 
     from opentelemetry import trace
-    from autocontent.services.otel import init_tracing, get_tracer
+    from marketer.services.otel import init_tracing, get_tracer
 
     init_tracing()
 
@@ -65,10 +65,10 @@ def test_init_tracing_no_op_when_endpoint_empty(monkeypatch) -> None:
 def test_init_tracing_with_endpoint_configures_provider(monkeypatch) -> None:
     """With an endpoint set, a real TracerProvider is installed and spans
     are recorded."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "otel_exporter_otlp_endpoint", "http://localhost:4318/")
-    monkeypatch.setattr(settings, "otel_service_name", "autocontent-test")
+    monkeypatch.setattr(settings, "otel_service_name", "marketer-test")
     monkeypatch.setattr(settings, "otel_exporter_otlp_headers", "")
     monkeypatch.setattr(settings, "otel_traces_sample_rate", 1.0)
     _reset_otel_module()
@@ -82,7 +82,7 @@ def test_init_tracing_with_endpoint_configures_provider(monkeypatch) -> None:
         "opentelemetry.exporter.otlp.proto.http.trace_exporter.OTLPSpanExporter",
         mock_exporter_cls,
     ):
-        from autocontent.services import otel as otel_mod
+        from marketer.services import otel as otel_mod
 
         otel_mod._otel_inited = False
         otel_mod._provider = None
@@ -104,7 +104,7 @@ def test_init_tracing_with_endpoint_configures_provider(monkeypatch) -> None:
 
 def test_init_tracing_idempotent(monkeypatch) -> None:
     """Calling init_tracing() twice does not re-configure the provider."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "otel_exporter_otlp_endpoint", "http://localhost:4318/")
     monkeypatch.setattr(settings, "otel_exporter_otlp_headers", "")
@@ -117,7 +117,7 @@ def test_init_tracing_idempotent(monkeypatch) -> None:
         "opentelemetry.exporter.otlp.proto.http.trace_exporter.OTLPSpanExporter",
         mock_exporter_cls,
     ):
-        from autocontent.services import otel as otel_mod
+        from marketer.services import otel as otel_mod
 
         otel_mod._otel_inited = False
         otel_mod._provider = None
@@ -136,7 +136,7 @@ def test_init_tracing_idempotent(monkeypatch) -> None:
 
 def test_init_tracing_header_parsing(monkeypatch) -> None:
     """Comma-separated headers are parsed into a dict for the exporter."""
-    from autocontent.services.otel import _parse_headers
+    from marketer.services.otel import _parse_headers
 
     headers = _parse_headers("x-honeycomb-team=abc123,x-other=val==")
     assert headers["x-honeycomb-team"] == "abc123"
@@ -147,7 +147,7 @@ def test_init_tracing_header_parsing(monkeypatch) -> None:
 def test_configure_logging_calls_init_tracing(monkeypatch) -> None:
     """logging.configure() should trigger init_tracing() so a single entry
     point wires everything up."""
-    from autocontent.config import settings
+    from marketer.config import settings
 
     monkeypatch.setattr(settings, "sentry_dsn", "")
     monkeypatch.setattr(settings, "otel_exporter_otlp_endpoint", "")
@@ -162,12 +162,12 @@ def test_configure_logging_calls_init_tracing(monkeypatch) -> None:
         if original_init:
             original_init()
 
-    import autocontent.services.otel as otel_mod
+    import marketer.services.otel as otel_mod
 
     original_init = otel_mod.init_tracing
 
     with patch.object(otel_mod, "init_tracing", fake_init_tracing):
-        import autocontent.logging as logging_mod
+        import marketer.logging as logging_mod
 
         logging_mod._configured = False
         logging_mod._sentry_inited = False

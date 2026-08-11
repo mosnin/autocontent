@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
-from autocontent.models import Job, JobStatus, PostMetrics
+from marketer.models import Job, JobStatus, PostMetrics
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -69,7 +69,7 @@ def _reset_limiter():
 
 
 def _make_authed_client(monkeypatch, user_id: str = _USER_ID) -> TestClient:
-    from autocontent.config import settings
+    from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
@@ -91,8 +91,8 @@ def _make_authed_client(monkeypatch, user_id: str = _USER_ID) -> TestClient:
 def test_metrics_happy_path(monkeypatch):
     """Returns 200 with latest sample and full time-series history."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
-    import autocontent.repos.post_metrics as pm_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.post_metrics as pm_repo
 
     job = _make_job()
     latest_sample = _make_metrics(views=600)
@@ -114,7 +114,7 @@ def test_metrics_happy_path(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/jobs/{_JOB_ID}/metrics",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -129,8 +129,8 @@ def test_metrics_happy_path(monkeypatch):
 
 def test_metrics_empty_when_never_sampled(monkeypatch):
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
-    import autocontent.repos.post_metrics as pm_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.post_metrics as pm_repo
 
     job = _make_job()
 
@@ -150,7 +150,7 @@ def test_metrics_empty_when_never_sampled(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/jobs/{_JOB_ID}/metrics",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -165,7 +165,7 @@ def test_metrics_empty_when_never_sampled(monkeypatch):
 def test_metrics_other_user_job_returns_404(monkeypatch):
     """A job owned by another user is invisible — the repo returns None."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     # Repo returns None because the user_id doesn't match
     async def _get_job(job_id: UUID, *, user_id: str) -> Job | None:
@@ -176,7 +176,7 @@ def test_metrics_other_user_job_returns_404(monkeypatch):
     client = _make_authed_client(monkeypatch)
     resp = client.get(
         f"/api/v1/jobs/{_JOB_ID}/metrics",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 404
 
@@ -188,7 +188,7 @@ def test_metrics_other_user_job_returns_404(monkeypatch):
 def test_metrics_missing_job_returns_404(monkeypatch):
     """Completely unknown job_id → 404."""
     _reset_limiter()
-    import autocontent.repos.jobs as jobs_repo
+    import marketer.repos.jobs as jobs_repo
 
     async def _get_job(job_id: UUID, *, user_id: str) -> Job | None:
         return None
@@ -199,6 +199,6 @@ def test_metrics_missing_job_returns_404(monkeypatch):
     unknown_id = uuid4()
     resp = client.get(
         f"/api/v1/jobs/{unknown_id}/metrics",
-        headers={"Authorization": "Bearer act_tok"},
+        headers={"Authorization": "Bearer mkt_tok"},
     )
     assert resp.status_code == 404

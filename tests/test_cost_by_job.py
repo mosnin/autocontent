@@ -20,7 +20,7 @@ def _fake_row(job_id: UUID, total: str) -> dict:
 @pytest.mark.asyncio
 async def test_cost_by_job_aggregates_correctly(monkeypatch):
     """Returned rows are mapped to a UUID→Decimal dict."""
-    import autocontent.repos.spend as spend_repo
+    import marketer.repos.spend as spend_repo
 
     job_ids = [uuid4(), uuid4(), uuid4()]
     db_rows = [
@@ -33,7 +33,7 @@ async def test_cost_by_job_aggregates_correctly(monkeypatch):
         async def fetch(self, query, *args):
             return db_rows
 
-    monkeypatch.setattr("autocontent.repos.spend.get_pool", lambda: _async_return(_FakePool()))
+    monkeypatch.setattr("marketer.repos.spend.get_pool", lambda: _async_return(_FakePool()))
 
     result = await spend_repo.cost_by_job(job_ids, user_id=_USER_ID)
 
@@ -45,7 +45,7 @@ async def test_cost_by_job_aggregates_correctly(monkeypatch):
 @pytest.mark.asyncio
 async def test_cost_by_job_missing_ids_map_to_zero(monkeypatch):
     """Job IDs with no spend rows are returned as Decimal('0')."""
-    import autocontent.repos.spend as spend_repo
+    import marketer.repos.spend as spend_repo
 
     job_ids = [uuid4(), uuid4(), uuid4()]
     # DB only returns rows for the first two jobs.
@@ -58,7 +58,7 @@ async def test_cost_by_job_missing_ids_map_to_zero(monkeypatch):
         async def fetch(self, query, *args):
             return db_rows
 
-    monkeypatch.setattr("autocontent.repos.spend.get_pool", lambda: _async_return(_FakePool()))
+    monkeypatch.setattr("marketer.repos.spend.get_pool", lambda: _async_return(_FakePool()))
 
     result = await spend_repo.cost_by_job(job_ids, user_id=_USER_ID)
 
@@ -71,7 +71,7 @@ async def test_cost_by_job_missing_ids_map_to_zero(monkeypatch):
 @pytest.mark.asyncio
 async def test_cost_by_job_empty_input_returns_empty_dict(monkeypatch):
     """Empty input list → empty dict, no DB call needed."""
-    import autocontent.repos.spend as spend_repo
+    import marketer.repos.spend as spend_repo
 
     calls: list = []
 
@@ -80,7 +80,7 @@ async def test_cost_by_job_empty_input_returns_empty_dict(monkeypatch):
             calls.append(True)
             return []
 
-    monkeypatch.setattr("autocontent.repos.spend.get_pool", lambda: _async_return(_FakePool()))
+    monkeypatch.setattr("marketer.repos.spend.get_pool", lambda: _async_return(_FakePool()))
 
     result = await spend_repo.cost_by_job([], user_id=_USER_ID)
 
@@ -92,7 +92,7 @@ async def test_cost_by_job_empty_input_returns_empty_dict(monkeypatch):
 @pytest.mark.asyncio
 async def test_cost_by_job_single_job(monkeypatch):
     """Single job ID works correctly."""
-    import autocontent.repos.spend as spend_repo
+    import marketer.repos.spend as spend_repo
 
     jid = uuid4()
     db_rows = [_fake_row(jid, "5.99")]
@@ -101,7 +101,7 @@ async def test_cost_by_job_single_job(monkeypatch):
         async def fetch(self, query, *args):
             return db_rows
 
-    monkeypatch.setattr("autocontent.repos.spend.get_pool", lambda: _async_return(_FakePool()))
+    monkeypatch.setattr("marketer.repos.spend.get_pool", lambda: _async_return(_FakePool()))
 
     result = await spend_repo.cost_by_job([jid], user_id=_USER_ID)
     assert result[jid] == Decimal("5.99")

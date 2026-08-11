@@ -12,8 +12,8 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 
-from autocontent.config import settings
-from autocontent.services import openai_tts
+from marketer.config import settings
+from marketer.services import openai_tts
 
 from ..auth import AuthCtx, CurrentUser
 

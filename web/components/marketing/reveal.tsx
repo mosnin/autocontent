@@ -21,8 +21,22 @@ export function Reveal({
 }) {
   const reduced = useReducedMotion();
 
+  // Under reduced motion, keep the motion element mounted and drive it to
+  // the visible state via `animate` on mount. Branching to a plain <div>
+  // would strand the SSR-rendered `opacity:0` inline style on the hydrated
+  // node (useReducedMotion is false during SSR), blanking content for
+  // reduced-motion users.
   if (reduced) {
-    return <div className={className}>{children}</div>;
+    return (
+      <motion.div
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(className)}
+        initial={false}
+        transition={{ duration: 0 }}
+      >
+        {children}
+      </motion.div>
+    );
   }
 
   return (

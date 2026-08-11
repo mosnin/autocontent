@@ -9,7 +9,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from autocontent.models import Niche, PostingWindow
+from marketer.models import Niche, PostingWindow
 from backend.auth import AuthCtx, require_user
 from backend.main import create_app
 from backend.rate_limit import limiter
@@ -28,7 +28,7 @@ def client():
 def test_unknown_voice_404(client):
     resp = client.get(
         "/api/v1/voices/darthvader/preview",
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 404
 
@@ -49,17 +49,17 @@ def test_voice_preview_synthesizes_once_then_caches(client, monkeypatch, tmp_pat
     )
 
     r1 = client.get(
-        "/api/v1/voices/nova/preview", headers={"Authorization": "Bearer act_x"}
+        "/api/v1/voices/nova/preview", headers={"Authorization": "Bearer mkt_x"}
     )
     r2 = client.get(
-        "/api/v1/voices/nova/preview", headers={"Authorization": "Bearer act_x"}
+        "/api/v1/voices/nova/preview", headers={"Authorization": "Bearer mkt_x"}
     )
     assert r1.status_code == 200 and r2.status_code == 200
     assert calls == ["nova"]  # second hit served from cache
 
 
 def test_character_sheet_404_before_first_run(client, monkeypatch):
-    from autocontent.repos import niches as niches_repo
+    from marketer.repos import niches as niches_repo
 
     niche = Niche(
         id=uuid4(),
@@ -84,7 +84,7 @@ def test_character_sheet_404_before_first_run(client, monkeypatch):
 
     resp = client.get(
         f"/api/v1/niches/{niche.id}/character-sheet",
-        headers={"Authorization": "Bearer act_x"},
+        headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 404
     assert "not generated yet" in resp.json()["detail"]

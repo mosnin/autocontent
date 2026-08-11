@@ -4,16 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import {
-  KeyRound,
-  LayoutDashboard,
-  Link2,
-  ListChecks,
-  Play,
-  Plus,
-  Settings,
-} from "lucide-react";
-
-import {
   CommandDialog,
   CommandEmpty,
   CommandGroup,
@@ -33,6 +23,13 @@ import type { Niche, Platform } from "@/lib/types";
 const KICKER =
   "[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:pb-1.5 [&_[cmdk-group-heading]]:pt-1 [&_[cmdk-group-heading]]:text-[0.65rem] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-[0.25em] [&_[cmdk-group-heading]]:text-brand";
 
+const OPEN_EVENT = "marketer:open-command-palette";
+
+/** Programmatic open — the shell's search pill / button calls this. */
+export function openCommandPalette() {
+  window.dispatchEvent(new CustomEvent(OPEN_EVENT));
+}
+
 export function CommandPalette() {
   const [open, setOpen] = React.useState(false);
   const router = useRouter();
@@ -45,8 +42,15 @@ export function CommandPalette() {
         setOpen((v) => !v);
       }
     }
+    function onOpen() {
+      setOpen(true);
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_EVENT, onOpen);
+    };
   }, []);
 
   const { data: niches } = useSWR<Niche[]>(
@@ -72,19 +76,25 @@ export function CommandPalette() {
         <CommandEmpty>No results.</CommandEmpty>
         <CommandGroup heading="Pages" className={KICKER}>
           <CommandItem onSelect={() => go("/dashboard")}>
-            <LayoutDashboard className="text-muted-foreground" /> Dashboard
+            Dashboard
           </CommandItem>
           <CommandItem onSelect={() => go("/queue")}>
-            <ListChecks className="text-muted-foreground" /> Queue
+            Queue
+          </CommandItem>
+          <CommandItem onSelect={() => go("/articles")}>
+            Articles
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
-            <Link2 className="text-muted-foreground" /> Connect socials
+            Connect socials
+          </CommandItem>
+          <CommandItem onSelect={() => go("/settings")}>
+            Settings
+          </CommandItem>
+          <CommandItem onSelect={() => go("/settings/billing")}>
+            Billing
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
-            <Settings className="text-muted-foreground" /> Settings
-          </CommandItem>
-          <CommandItem onSelect={() => go("/settings/tokens")}>
-            <KeyRound className="text-muted-foreground" /> Tokens
+            Tokens
           </CommandItem>
         </CommandGroup>
 
@@ -92,13 +102,16 @@ export function CommandPalette() {
 
         <CommandGroup heading="Actions" className={KICKER}>
           <CommandItem onSelect={() => go("/onboarding")}>
-            <Plus className="text-muted-foreground" /> Create niche
+            Create niche
+          </CommandItem>
+          <CommandItem onSelect={() => go("/articles?new=1")}>
+            New article
           </CommandItem>
           <CommandItem onSelect={() => go("/connect")}>
-            <Link2 className="text-muted-foreground" /> Connect socials
+            Connect socials
           </CommandItem>
           <CommandItem onSelect={() => go("/settings/tokens")}>
-            <KeyRound className="text-muted-foreground" /> Create token
+            Create token
           </CommandItem>
         </CommandGroup>
 
@@ -114,7 +127,6 @@ export function CommandPalette() {
                     onSelect={() => enqueue(n.id, p)}
                     className="data-[selected=true]:border-brand/30 border border-transparent"
                   >
-                    <Play className="fill-brand/20 text-brand" />
                     <span className="font-medium">Enqueue {n.title}</span>
                     <CommandShortcut className="font-mono uppercase tracking-normal">
                       {p}
@@ -133,10 +145,9 @@ export function CommandPalette() {
             aria-hidden
             className="relative flex size-2"
           >
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand opacity-60" />
             <span className="relative inline-flex size-2 rounded-full bg-brand" />
           </span>
-          autocontent
+          marketer.sh
         </span>
       </div>
     </CommandDialog>

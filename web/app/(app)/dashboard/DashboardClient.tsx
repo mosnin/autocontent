@@ -4,21 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  ArrowRight,
-  DollarSign,
-  Eye,
-  Inbox,
-  Layers,
-  Link2,
-  MoreHorizontal,
-  Pencil,
-  Play,
-  Plus,
-  Trash2,
-  Wallet,
-} from "lucide-react";
+import { Coins, Eye, MoreHorizontal, Users, WalletMinimal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,21 +23,38 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AppIcon } from "@/components/ui/app-icon";
 import { Progress } from "@/components/ui/progress";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { LatestVideos } from "@/components/latest-videos";
-import { LoopCircuit } from "@/components/marketing/pipeline-circuit";
+import {
+  DashHeading,
+  DashPanel,
+  DashRise,
+} from "@/components/hub/dashboard-kit";
+import {
+  HoverLift,
+  hubCardClass,
+  hubCardHoverClass,
+} from "@/components/hub/primitives";
+import { SquareStatsCards } from "@/components/square/stats-cards";
+import {
+  MonthlyViewsChart,
+  type ChartPoint,
+  type Period,
+} from "@/components/square/monthly-views-chart";
+import {
+  RecentUploads,
+  type RecentUpload,
+} from "@/components/square/recent-uploads";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { archiveNicheAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Niche, Platform, TodaySpend } from "@/lib/types";
+import type { Job, Niche, Platform, TodaySpend } from "@/lib/types";
 
 interface InitialData {
   niches: Niche[];
@@ -84,6 +87,14 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     total_views: number;
     sampled_videos: number;
   }>("/api/v1/metrics/summary", clientFetch, { refreshInterval: 60000 });
+
+  // Finished jobs — same endpoint/pattern as latest-videos.tsx; feeds the
+  // template's chart + recent-uploads tiles with real data.
+  const { data: doneJobs } = useSWR<Job[]>(
+    "/api/v1/jobs?status_filter=done&limit=250",
+    clientFetch,
+    { refreshInterval: 15000 },
+  );
 
   // Probe Ayrshare status only when the parent told us the route exists
   // (initial.ayrshareConnected !== null).
@@ -150,22 +161,12 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Niches</h1>
-          <p className="text-sm text-muted-foreground">
-            Each niche is its own self-driving pipeline.
-          </p>
-        </div>
-        <Button asChild>
-          <Link href="/onboarding">
-            <Plus className="h-4 w-4" />
-            New niche
-          </Link>
-        </Button>
-      </div>
+    <div className="space-y-10">
+      <DashHeading as="h1" sub="Every niche is a self-driving pipeline — queue a short, cap the spend, ship to every feed.">
+        Bring any idea to the feed
+      </DashHeading>
 
+      <DashRise delay={0.1}>
       {(() => {
         const spent = Number(spendData.total_usd);
         const cap = globalCap !== null ? Number(globalCap) : null;
@@ -174,74 +175,84 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         const hot = cap !== null && pct >= 80;
         const remaining = cap !== null ? Math.max(0, cap - spent) : null;
 
+        // Delta slots carry real derivable values only: spend as % of the
+        // daily cap, remaining cap %, and views per video. Stats with no
+        // real delta render "—" inside the component.
+        const viewsPerVideo =
+          metricsSummary && metricsSummary.sampled_videos > 0
+            ? metricsSummary.total_views / metricsSummary.sampled_videos
+            : null;
+
         return (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              color="green"
-              foot={
-                cap !== null ? `of ${formatUsd(cap)} daily cap` : "no cap set"
-              }
-              icon={<DollarSign />}
-              title="Spent today"
-              tone={hot ? "warn" : undefined}
-              trail={cap !== null ? `${pct}%` : undefined}
-              value={formatUsd(spent)}
-            />
-            <KpiCard
-              color="blue"
-              foot={cap !== null ? "resets at midnight UTC" : undefined}
-              footLink={cap === null ? { href: "/settings", label: "Set a cap" } : undefined}
-              icon={<Wallet />}
-              title="Cap remaining"
-              value={remaining !== null ? formatUsd(remaining) : "—"}
-            />
-            <KpiCard
-              color="navy"
-              foot="each on its own cap"
-              icon={<Layers />}
-              title="Active niches"
-              value={String(nichesList.length)}
-            />
-            <KpiCard
-              color="orange"
-              foot={
-                metricsSummary && metricsSummary.sampled_videos > 0
-                  ? `across ${metricsSummary.sampled_videos} videos`
-                  : "no data yet"
-              }
-              icon={<Eye />}
-              title="Views · 30d"
-              value={
-                metricsSummary
+          <SquareStatsCards
+            stats={[
+              {
+                key: "spent",
+                label: "Spent today",
+                icon: WalletMinimal,
+                value: formatUsd(spent),
+                delta:
+                  cap !== null
+                    ? { text: `${pct}% of cap`, trend: hot ? "down" : "up" }
+                    : null,
+              },
+              {
+                key: "remaining",
+                label: "Cap remaining",
+                icon: Coins,
+                value: remaining !== null ? formatUsd(remaining) : "—",
+                delta:
+                  cap !== null && cap > 0
+                    ? {
+                        text: `${100 - pct}% left`,
+                        trend: hot ? "down" : "up",
+                      }
+                    : null,
+              },
+              {
+                key: "niches",
+                label: "Active niches",
+                icon: Users,
+                value: String(nichesList.length),
+                delta: null,
+              },
+              {
+                key: "views",
+                label: "Views · 30d",
+                icon: Eye,
+                value: metricsSummary
                   ? fmtCompact(metricsSummary.total_views)
-                  : "—"
-              }
-            />
-          </div>
+                  : "—",
+                delta:
+                  viewsPerVideo !== null
+                    ? { text: `${fmtCompact(Math.round(viewsPerVideo))}/video` }
+                    : null,
+              },
+            ]}
+          />
         );
       })()}
+      </DashRise>
 
       {showAyrshareBanner && (
-        <Card className="border-destructive/50 bg-destructive/5">
+        <DashRise delay={0.14}>
+        <Card className={cn(hubCardClass, "border-destructive/50 bg-destructive/5")}>
           <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 text-destructive" />
-              <div>
-                <div className="font-medium">Ayrshare not connected</div>
-                <div className="text-sm text-muted-foreground">
-                  Pipeline runs will succeed locally, but posts won&apos;t ship
-                  until you link a socials profile.
-                </div>
+            <div>
+              <div className="font-medium">Posting profile not set up</div>
+              <div className="text-sm text-muted-foreground">
+                Pipeline runs will succeed, but posts won&apos;t ship until you
+                create your posting profile and link socials in Ayrshare.
               </div>
             </div>
             <Button asChild variant="outline">
               <Link href="/connect">
-                <Link2 className="h-4 w-4" />
                 Connect socials
               </Link>
             </Button>
           </CardContent>
         </Card>
+        </DashRise>
       )}
 
       {hasError && (
@@ -251,31 +262,55 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         </p>
       )}
 
-      <LatestVideos />
-
-      {nichesList.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {nichesList.map((n) => (
-            <NicheCard
-              key={n.id}
-              niche={n}
-              spentToday={spendData.by_niche[n.id] ?? "0"}
-              onArchive={handleArchive}
-            />
-          ))}
+      {/* Template two-column slot (app/page.tsx + dashboard/content.tsx):
+          chart + recent uploads, fed with real jobs data. Jobs carry no
+          per-video view metric, so the chart plots videos published per
+          bucket and is titled accordingly. */}
+      <DashRise delay={0.16}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <MonthlyViewsChart
+            periodData={buildPublishedSeries(doneJobs ?? [])}
+            title="Videos published"
+            unit="videos"
+          />
+          <RecentUploads uploads={toRecentUploads(doneJobs ?? [])} />
         </div>
-      )}
+      </DashRise>
+
+      <DashPanel
+        actions={
+          <Button asChild>
+            <Link href="/onboarding">
+              New niche
+            </Link>
+          </Button>
+        }
+        delay={0.18}
+        title="Your niches"
+      >
+        {nichesList.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {nichesList.map((n) => (
+              <NicheCard
+                key={n.id}
+                niche={n}
+                spentToday={spendData.by_niche[n.id] ?? "0"}
+                onArchive={handleArchive}
+              />
+            ))}
+          </div>
+        )}
+      </DashPanel>
     </div>
   );
 }
 
 function EmptyState() {
   return (
-    <Card>
+    <Card className={cn(hubCardClass, "border-dashed")}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-        <LoopCircuit className="scale-75 opacity-90" />
         <h3 className="text-lg font-semibold">No niches yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create one to start the pipeline. You can have as many as you want;
@@ -283,7 +318,6 @@ function EmptyState() {
         </p>
         <Button asChild>
           <Link href="/onboarding">
-            <Plus className="h-4 w-4" />
             Create your first niche
           </Link>
         </Button>
@@ -308,7 +342,14 @@ function NicheCard({
   const tooltipText = `${formatUsd(spent)} of ${formatUsd(cap)} used today`;
 
   return (
-    <Card className="group flex flex-col transition-colors duration-300 hover:border-brand/30">
+    <HoverLift className="h-full">
+    <Card
+      className={cn(
+        hubCardClass,
+        hubCardHoverClass,
+        "group flex h-full flex-col transition-colors duration-300 hover:border-brand/30",
+      )}
+    >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <CardTitle className="text-lg font-semibold">
@@ -333,7 +374,7 @@ function NicheCard({
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
                 <Link href={`/niches/${niche.id}/edit`}>
-                  <Pencil /> Edit
+                  Edit
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -344,7 +385,7 @@ function NicheCard({
                 }}
                 className="text-destructive focus:text-destructive"
               >
-                <Trash2 /> Archive
+                Archive
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -407,19 +448,91 @@ function NicheCard({
             className="focus-visible:ring-2"
             onClick={() => openRunConfirm({ nicheId: niche.id, platform: p })}
           >
-            <Play className="h-3.5 w-3.5" aria-hidden="true" />
             {PLATFORM_LABEL[p]}
           </Button>
         ))}
         <Button asChild size="sm" variant="ghost" className="ml-auto">
           <Link href={`/niches/${niche.id}/edit`}>
             Edit
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
         </Button>
       </CardFooter>
     </Card>
+    </HoverLift>
   );
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function bucketLabel(d: Date, monthOnly = false): string {
+  return monthOnly
+    ? d.toLocaleDateString("en-US", { month: "short" })
+    : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/**
+ * Real chart series derived from finished jobs' created_at timestamps.
+ * Jobs carry no per-video view metric, so each point is the count of
+ * videos published in that bucket (daily / weekly / bi-weekly / monthly,
+ * matching the template's four periods).
+ */
+function buildPublishedSeries(jobs: Job[]): Record<Period, ChartPoint[]> {
+  const times = jobs
+    .map((j) => new Date(j.created_at).getTime())
+    .filter((t) => Number.isFinite(t));
+
+  const countBuckets = (
+    buckets: number,
+    bucketMs: number,
+    monthOnly = false,
+  ): ChartPoint[] => {
+    const now = Date.now();
+    const start = now - buckets * bucketMs;
+    const counts = new Array<number>(buckets).fill(0);
+    for (const t of times) {
+      if (t < start || t > now) continue;
+      const idx = Math.min(buckets - 1, Math.floor((t - start) / bucketMs));
+      counts[idx] += 1;
+    }
+    return counts.map((views, i) => ({
+      date: bucketLabel(new Date(start + i * bucketMs), monthOnly),
+      views,
+    }));
+  };
+
+  return {
+    "1m": countBuckets(30, DAY_MS),
+    "3m": countBuckets(13, 7 * DAY_MS),
+    "6m": countBuckets(12, 14 * DAY_MS),
+    "1y": countBuckets(12, 30 * DAY_MS, true),
+  };
+}
+
+function timeAgo(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return "";
+  const diff = Math.max(0, Date.now() - t);
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  const weeks = Math.floor(days / 7);
+  if (weeks < 5) return `${weeks}w ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
+/** Real uploads: newest finished jobs, previewed via the video proxy. */
+function toRecentUploads(jobs: Job[]): RecentUpload[] {
+  return jobs.slice(0, 6).map((job) => ({
+    id: job.id,
+    title: job.script?.idea?.hook ?? job.id.slice(0, 8),
+    timeAgo: timeAgo(job.created_at),
+    videoSrc: `/api/proxy/api/v1/jobs/${job.id}/video`,
+    href: `/queue/${job.id}`,
+  }));
 }
 
 function fmtCompact(n: number): string {
@@ -428,71 +541,3 @@ function fmtCompact(n: number): string {
   return String(n);
 }
 
-function KpiCard({
-  color,
-  icon,
-  title,
-  value,
-  foot,
-  footLink,
-  trail,
-  tone,
-}: {
-  color: "green" | "orange" | "blue" | "navy" | "purple";
-  icon: React.ReactNode;
-  title: string;
-  value: string;
-  foot?: string;
-  footLink?: { href: string; label: string };
-  trail?: string;
-  tone?: "warn";
-}) {
-  return (
-    <Card className="shadow-sm">
-      <CardContent className="space-y-3 pt-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <AppIcon color={color}>{icon}</AppIcon>
-            <span className="text-sm font-medium text-muted-foreground">
-              {title}
-            </span>
-          </div>
-          <button
-            aria-label={`Options for ${title}`}
-            className="text-muted-foreground/60 transition-colors hover:text-foreground"
-            type="button"
-          >
-            <MoreHorizontal className="size-4" />
-          </button>
-        </div>
-        <p
-          className={cn(
-            "font-mono text-3xl font-semibold tabular-nums tracking-tight",
-            tone === "warn" ? "text-brand" : "text-foreground",
-          )}
-        >
-          {value}
-        </p>
-        <div className="flex items-center justify-between border-t border-border/60 pt-3 text-xs">
-          {footLink ? (
-            <Link className="text-brand hover:underline" href={footLink.href}>
-              {footLink.label}
-            </Link>
-          ) : (
-            <span className="text-muted-foreground">{foot ?? "\u00A0"}</span>
-          )}
-          {trail && (
-            <span
-              className={cn(
-                "font-mono tabular-nums",
-                tone === "warn" ? "text-brand" : "text-muted-foreground",
-              )}
-            >
-              {trail}
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}

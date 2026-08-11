@@ -133,7 +133,7 @@ export function SpendCapForm({ initialCap }: Props) {
               </div>
             </div>
             <div className="flex items-center gap-2 pb-1">
-              <Badge variant="outline" size="lg" className="font-mono">
+              <Badge variant="outline" className="font-mono text-sm px-2.5 py-1">
                 <span className="tabular-nums">≈ {videosPerDay}</span>
                 <span className="ml-1 text-muted-foreground">videos/day</span>
               </Badge>
