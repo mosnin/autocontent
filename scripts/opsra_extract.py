@@ -11,8 +11,12 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from html.parser import HTMLParser
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import opsra_content as content  # noqa: E402
 
 SRC = Path("/home/user/autocontent/web/opsra")
 OUT = Path("/tmp/claude-0/-home-user-autocontent/0b678101-5c74-56af-85b5-284fca27af4e/scratchpad/out")
@@ -107,8 +111,8 @@ def style_to_jsx(style: str) -> str:
 
 def rewrite_url(value: str) -> str:
     """Point local asset refs at /opsra/ under public/."""
-    value = re.sub(r'(?<![\w/])(images/)', r'/opsra/\1', value)
-    value = re.sub(r'(?<![\w/])(fonts/)', r'/opsra/\1', value)
+    value = re.sub(r'(?<![\w/])(images/)', r'/site/\1', value)
+    value = re.sub(r'(?<![\w/])(fonts/)', r'/site/\1', value)
     return value
 
 
@@ -205,11 +209,131 @@ class ToJsx(HTMLParser):
         return "".join(self.buf)
 
 
+def to_jsx_open(html: str) -> str:
+    """JSX for an unclosed prefix — the parser would emit no closing tags
+    for the wrappers left open, so they are supplied by the shell."""
+    return to_jsx(html)
+
+
+def to_jsx_close(html: str) -> str:
+    """JSX for a suffix whose opening tags live in the prefix. HTMLParser
+    drops stray end tags, so they are re-emitted verbatim after the
+    balanced part is converted."""
+    return to_jsx(html)
+
+
 def to_jsx(html: str) -> str:
     p = ToJsx()
     p.feed(html)
     p.close()
     return p.result()
+
+
+CHAR_SPAN = (
+    '<span style="display:inline-block;opacity:0.001;transform:translateX(0px) '
+    'translateY(10px) scale(1) rotate(0deg) skewX(0deg) skewY(0deg)">{}</span>'
+)
+
+
+def rebuild_split_run(text: str) -> str:
+    """Re-emit a per-character reveal run for `text`.
+
+    The export renders this headline one <span> per character inside
+    per-word `white-space:nowrap` wrappers, so the stagger animates
+    letters without ever breaking a word across lines. Entities are one
+    glyph and must stay in a single span — splitting `&rsquo;` across
+    five would render the literal characters.
+    """
+    words = text.split(" ")
+    out = []
+    for i, word in enumerate(words):
+        glyphs = re.findall(r"&\w+;|.", word)
+        inner = "".join(CHAR_SPAN.format(g) for g in glyphs)
+        out.append(f'<span style="white-space:nowrap">{inner}</span>')
+        if i != len(words) - 1:
+            out.append(CHAR_SPAN.format(" "))
+    return "".join(out)
+
+
+def apply_content(html: str) -> str:
+    """Swap Opsra's words and marks for ours, on raw HTML.
+
+    Done before parsing because the keys carry entities (`&rsquo;`), and
+    with convert_charrefs=False the parser would hand those back as
+    separate events — `Autopilot your team` + `rsquo` + `s` — which no
+    whole-string key can match.
+    """
+    unused = []
+
+    # Split headline first: its full text also appears in a data-framer-name
+    # attribute, and rebuilding the run must not disturb that.
+    for src_text, dst_text in content.SPLIT_TEXT.items():
+        pattern = re.compile(
+            r'(data-framer-name="' + re.escape(src_text) + r'"[^>]*>.*?<h3\b[^>]*>)(.*?)(</h3>)',
+            re.S,
+        )
+        html, n = pattern.subn(lambda m: m.group(1) + rebuild_split_run(dst_text) + m.group(3), html)
+        if not n:
+            unused.append(f"SPLIT_TEXT: {src_text[:60]}…")
+
+    # Whole text nodes only — anchored between tags so a key like "Home"
+    # cannot corrupt an attribute or a substring of a longer sentence.
+    for src_text, dst_text in content.TEXT.items():
+        # Trailing whitespace is preserved: several nodes end with a space
+        # before an inline <a>, and eating it joins two words together.
+        pattern = re.compile(r">" + re.escape(src_text) + r"(\s*)<")
+        html, n = pattern.subn(lambda m, d=dst_text: f">{d}{m.group(1)}<", html)
+        if not n:
+            unused.append(f"TEXT: {src_text[:60]}")
+
+    for src_text, dst_text in content.ATTRS.items():
+        # Framer wraps long alt text, so `alt="opsra logo\n"` carries a
+        # literal newline where the eye sees a trailing space.
+        pattern = re.compile(r'="\s*' + re.escape(src_text.strip()) + r'\s*"')
+        html, n = pattern.subn(lambda _m, d=dst_text: f'="{d}"', html)
+        if not n:
+            unused.append(f"ATTRS: {src_text[:60]}")
+
+    for src_url, dst_url in content.LINKS.items():
+        if src_url not in html:
+            unused.append(f"LINKS: {src_url}")
+        html = html.replace(f'href="{src_url}"', f'href="{dst_url}"')
+
+    for src_asset, dst_asset in content.ASSETS.items():
+        if src_asset not in html:
+            unused.append(f"ASSETS: {src_asset}")
+        html = html.replace(src_asset, dst_asset)
+
+    # A replaced <img> keeps its old srcset pointing at Opsra's renditions,
+    # which the browser prefers over src and would put their wordmark back.
+    html = re.sub(r'\ssrcset="[^"]*brand/[^"]*"', "", html)
+
+    # `data-framer-name` carries the design-file layer name, which for text
+    # layers is a copy of the original sentence. Invisible to a reader, but
+    # it is in the DOM and in view-source, so it gets the same treatment.
+    def _clean_layer_name(m: re.Match[str]) -> str:
+        name = m.group(1)
+        for a, b in content.TEXT.items():
+            name = name.replace(a, b)
+        for a, b in content.SPLIT_TEXT.items():
+            name = name.replace(a, b)
+        name = re.sub(r"[Oo]psra", content.BRAND, name)
+        return f'data-framer-name="{name}"'
+
+    html = re.sub(r'data-framer-name="([^"]*)"', _clean_layer_name, html)
+
+    # Nothing Framer-branded may survive into our tree.
+    leaked = sorted(set(re.findall(r"framer\.com|framerusercontent\.com|[Oo]psra|OPSRA", html)))
+    if leaked:
+        print("\n!! Framer/Opsra references still present:", leaked)
+
+    if unused:
+        print("\n!! content map entries that matched nothing:")
+        for line in unused:
+            print("   ", line)
+    else:
+        print("content map: every entry matched")
+    return html
 
 
 if __name__ == "__main__":
@@ -220,7 +344,7 @@ if __name__ == "__main__":
     blocks = re.findall(r"<style[^>]*>(.*?)</style>", src, re.S)
     css = "\n".join(b for b in blocks if len(b) > 200)
     css = re.sub(r'url\(["\']?(?!data:|https?:|/)([^)"\']+)["\']?\)',
-                 lambda m: f'url("/opsra/{m.group(1)}")', css)
+                 lambda m: f'url("/site/{m.group(1)}")', css)
     # The export is a whole document: it assumes the initial values for
     # anything its own reset does not set. Mounted inside our app it also
     # inherits `globals.css`, whose base line-height reached every text
@@ -264,7 +388,19 @@ if __name__ == "__main__":
     if inline_css:
         with (OUT / "opsra.css").open("a", encoding="utf-8") as fh:
             fh.write("\n" + inline_css)
+    main = apply_content(main)
     (OUT / "page-full.jsx.txt").write_text(to_jsx(main), encoding="utf-8")
+
+    # Split the page into a reusable shell and the homepage body. The shell
+    # keeps the #main > .framer-pnUdQ wrapper chain that every layout rule
+    # is scoped under, so any page rendered inside it inherits the design
+    # rather than re-deriving it.
+    first = main.index("<section")
+    last = main.rindex("</section>") + len("</section>")
+    (OUT / "shell-head.jsx.txt").write_text(to_jsx_open(main[:first]), encoding="utf-8")
+    (OUT / "shell-foot.jsx.txt").write_text(to_jsx_close(main[last:]), encoding="utf-8")
+    (OUT / "home-body.jsx.txt").write_text(to_jsx(main[first:last]), encoding="utf-8")
+    print(f"shell      head={first:,}  body={last-first:,}  foot={len(main)-last:,}")
     print(f"page-full  {len(main):>8,} bytes html")
 
     # --- sections ---

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="360" viewBox="0 0 2400 360" role="img" aria-label="marketer.sh">
+  <defs>
+    <pattern id="halftone" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#41FFF3"/>
+      <rect width="3" height="6" fill="#151E1D" opacity="0.55"/>
+    </pattern>
+  </defs>
+  <text x="1200" y="268" text-anchor="middle"
+        font-family="'Inter Tight',Inter,'Helvetica Neue',Arial,sans-serif"
+        font-size="300" font-weight="700" letter-spacing="6" fill="url(#halftone)">MARKETER.SH</text>
+</svg>

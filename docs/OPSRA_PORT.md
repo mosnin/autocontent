@@ -1,4 +1,4 @@
-# Opsra port
+# Site transcription (from the Opsra Framer export)
 
 The Opsra template from Originkit is a **Framer static export**, not a
 component library: three HTML pages, a minified Framer runtime, 104 hashed
@@ -92,3 +92,48 @@ still need real React implementations:
   21 are the identical `translateY(50px)` pattern)
 
 Copy is still Opsra's throughout.
+
+
+## Content swap
+
+`scripts/opsra_content.py` maps the export's copy and brand marks to ours.
+Keys match the export's exact text node, entities included; the extractor
+prints any entry that stops matching, so a re-pull cannot silently restore
+the template's copy. It also sweeps `data-framer-name` (design-file layer
+names are copies of the original sentences and sit in view-source) and
+fails loudly on any surviving `Opsra`/`framer.com` reference.
+
+Currently: **every entry matches, nothing leaks.** Brand marks are in
+`web/public/brand/`; assets are served from `/site/`.
+
+Three matching bugs worth remembering:
+
+- `alt="opsra logo\n"` carries a literal newline where the eye reads a
+  trailing space, so attribute keys are matched whitespace-insensitively.
+- Several text nodes end with a space before an inline `<a>`; the matcher
+  preserves trailing whitespace or the words either side join up.
+- The Challenges headline is one `<span>` per character for a staggered
+  reveal. It is rebuilt from `SPLIT_TEXT`, keeping entities in a single
+  span — splitting `&rsquo;` across five renders the literal characters.
+
+**Placeholder:** `LINKS` points the footer socials at conventional
+`marketersh` handles we do not own. Replace before launch.
+
+## Open: applying the shell site-wide
+
+`SiteShell` (nav + footer + the `#main > .framer-pnUdQ` wrapper, with a
+children slot) and `HomeBody` are generated and typecheck clean. Wiring
+them into `app/(marketing)/layout.tsx` renders every route 200 with the
+shell and the new marks present in the DOM — but the page paints blank,
+with JavaScript both on and off.
+
+What is known: it is not hydration (JS-off is blank too) and not the
+transcription (which measures 0% pixel diff standalone). Computed styles
+are right at the point of failure — the nav reports 92px tall,
+`opacity: 1`, `color: rgb(252,253,253)` on `rgb(21,30,29)` — and nothing
+paints. That points at stacking/clipping introduced by splitting the tree
+at `<section>` boundaries, or at `globals.css` interacting with the
+export's reset.
+
+The integration is reverted on `app/(marketing)/` so the marketing site
+keeps working. Reproduce by importing `SiteShell` in the marketing layout.
