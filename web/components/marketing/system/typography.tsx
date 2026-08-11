@@ -1,8 +1,24 @@
 import * as React from "react";
 
+import {
+  Body,
+  Eyebrow,
+  Heading,
+  Lede as SiteLede,
+} from "@/components/site/sections";
 import { cn } from "@/lib/utils";
 
-/** 11px uppercase eyebrow line above headings. */
+/**
+ * The page typography, expressed in the transcribed site's language.
+ *
+ * These three names are what every marketing page imports, so rather than
+ * changing forty call sites they now delegate to the section primitives in
+ * `components/site/sections`: the mono uppercase eyebrow chip, the heavy
+ * display heading, and the Inter Display standfirst. Colour and face live in
+ * `sections.css` — nothing here paints.
+ */
+
+/** Uppercase mono eyebrow above a heading. */
 export function Kicker({
   children,
   className,
@@ -10,46 +26,36 @@ export function Kicker({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <p
-      className={cn(
-        "text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400",
-        className,
-      )}
-    >
-      {children}
-    </p>
-  );
+  return <Eyebrow className={className}>{children}</Eyebrow>;
 }
 
 /**
- * Display heading in the site's display face, tight tracking, ink color.
- * `level` controls the tag (exactly one h1 per page); `size` the scale.
+ * Display heading in the site's display face. `level` controls the tag
+ * (exactly one h1 per page); `size` the scale. `highlight` accents one
+ * phrase in teal, the way each homepage section does.
  */
 export function DisplayHeading({
   children,
   className,
   level = 2,
   size = "lg",
+  highlight,
 }: {
   children: React.ReactNode;
   className?: string;
   level?: 1 | 2 | 3;
   size?: "xl" | "lg" | "md";
+  highlight?: string;
 }) {
-  const Tag = (`h${level}`) as "h1" | "h2" | "h3";
   return (
-    <Tag
-      className={cn(
-        "font-display font-semibold tracking-tight text-balance text-zinc-900",
-        size === "xl" && "text-5xl leading-[1.02] md:text-6xl lg:text-7xl",
-        size === "lg" && "text-4xl leading-[1.05] md:text-5xl",
-        size === "md" && "text-2xl leading-tight md:text-3xl",
-        className,
-      )}
+    <Heading
+      className={className}
+      highlight={highlight}
+      level={level}
+      size={size}
     >
       {children}
-    </Tag>
+    </Heading>
   );
 }
 
@@ -61,14 +67,16 @@ export function Lede({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <p
-      className={cn(
-        "max-w-xl text-[17px] leading-relaxed text-zinc-600",
-        className,
-      )}
-    >
-      {children}
-    </p>
-  );
+  return <SiteLede className={className}>{children}</SiteLede>;
+}
+
+/** Small supporting copy — captions, notes, card bodies. */
+export function Note({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return <Body className={cn(className)}>{children}</Body>;
 }

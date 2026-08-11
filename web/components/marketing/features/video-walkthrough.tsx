@@ -2,15 +2,13 @@
 
 import * as React from "react";
 
+import { PinScene } from "@/components/marketing/system";
 import {
-  Kicker,
-  Lede,
-  PinScene,
-  Reveal,
-  Stagger,
-  TaggedPlaceholder,
-  TextReveal,
-} from "@/components/marketing/system";
+  Chip,
+  MediaSlot,
+  SectionHead,
+  Stage,
+} from "@/components/site/sections";
 import { cn } from "@/lib/utils";
 
 /**
@@ -81,80 +79,28 @@ const STAGES: Array<{
 
 function Header() {
   return (
-    <div className="max-w-2xl">
-      <Kicker>The production line</Kicker>
-      <TextReveal
-        as="h2"
-        className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
-      >
-        Ten stages. Zero hand-offs.
-      </TextReveal>
-      <Lede className="mt-4">
-        What an editor, a voice actor, and a social manager would do in a
-        week, run as one pipeline.
-      </Lede>
-    </div>
-  );
-}
-
-function StageNumber({ index, on }: { index: number; on?: boolean }) {
-  return (
-    <span
-      className={cn(
-        "font-mono text-xs tabular-nums transition-colors duration-500",
-        on === undefined ? "text-zinc-400" : on ? "text-zinc-900" : "text-zinc-300",
-      )}
-    >
-      {String(index + 1).padStart(2, "0")}
-    </span>
-  );
-}
-
-function StageTag({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="rounded-full bg-zinc-900/[0.05] px-2 py-0.5 font-mono text-[10px] text-zinc-500">
-      {children}
-    </span>
+    <SectionHead
+      eyebrow="The production line"
+      heading="Ten stages. Zero hand-offs."
+      highlight="Zero hand-offs."
+      lede="What an editor, a voice actor, and a social manager would do in a week, run as one pipeline."
+    />
   );
 }
 
 function Rail({ active }: { active: number }) {
   return (
-    <ol className="space-y-0.5">
+    <ol className="os-stagelist">
       {STAGES.map((s, i) => {
         const on = i === active;
         return (
-          <li
-            className={cn(
-              "rounded-xl border px-4 py-2 transition-all duration-500",
-              on
-                ? "border-zinc-900/[0.08] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.07)]"
-                : "border-transparent",
-            )}
-            key={s.label}
-          >
-            <div className="flex items-baseline gap-3">
-              <StageNumber index={i} on={on} />
-              <div className="min-w-0">
-                <p
-                  className={cn(
-                    "font-display text-[15px] font-semibold tracking-tight transition-colors duration-500",
-                    on ? "text-zinc-900" : "text-zinc-400",
-                  )}
-                >
-                  {s.label}
-                </p>
-                <p
-                  className={cn(
-                    "text-[13px] leading-snug transition-all duration-500",
-                    on
-                      ? "mt-0.5 max-h-12 text-zinc-500 opacity-100"
-                      : "max-h-0 overflow-hidden opacity-0",
-                  )}
-                >
-                  {s.copy}
-                </p>
-              </div>
+          <li className={cn("os-stagerow", on && "os-stagerow--on")} key={s.label}>
+            <span className="os-num">{String(i + 1).padStart(2, "0")}</span>
+            <div>
+              <p className="os-stagerow__label">{s.label}</p>
+              <p className={cn("os-stagerow__copy", on && "os-stagerow__copy--on")}>
+                {s.copy}
+              </p>
             </div>
           </li>
         );
@@ -165,17 +111,17 @@ function Rail({ active }: { active: number }) {
 
 function Scene({ stage }: { stage: number }) {
   return (
-    <div className="mx-auto max-w-6xl px-6">
+    <div className="os-inset">
       <Header />
-      <div className="mt-8 grid items-center gap-10 lg:grid-cols-[minmax(0,22rem)_1fr]">
+      <div className="os-walk os-mt-40">
         <Rail active={stage} />
-        <div className="aspect-[4/3] overflow-hidden rounded-[2rem] border border-zinc-900/[0.05] shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
-          <TaggedPlaceholder
+        <Stage>
+          <MediaSlot
+            className="os-aspect-43"
             kind="illustration"
             label="Scene-by-scene pipeline"
-            tone="violet"
           />
-        </div>
+        </Stage>
       </div>
     </div>
   );
@@ -184,35 +130,31 @@ function Scene({ stage }: { stage: number }) {
 /** Static fallback: the numbered rail as a staggered two-column grid. */
 function StaticWalkthrough() {
   return (
-    <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-      <Reveal>
-        <Header />
-      </Reveal>
-      <Stagger className="mt-12 grid gap-x-10 gap-y-8 sm:grid-cols-2" gap={0.06}>
+    <div className="os-inset">
+      <Header />
+      <div className="os-stagegrid os-mt-48">
         {STAGES.map((s, i) => (
-          <div className="flex items-baseline gap-3" key={s.label}>
-            <StageNumber index={i} />
+          <div className="os-stagecell" key={s.label}>
+            <span className="os-num">{String(i + 1).padStart(2, "0")}</span>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-display text-lg font-semibold tracking-tight text-zinc-900">
-                  {s.label}
-                </p>
-                {s.tag ? <StageTag>{s.tag}</StageTag> : null}
+              <div className="os-stagecell__head">
+                <p className="os-title os-title--sm">{s.label}</p>
+                {s.tag ? <Chip>{s.tag}</Chip> : null}
               </div>
-              <p className="mt-1 text-sm leading-snug text-zinc-500">{s.copy}</p>
+              <p className="os-body os-mt-8">{s.copy}</p>
             </div>
           </div>
         ))}
-      </Stagger>
+      </div>
     </div>
   );
 }
 
 /**
  * Pins the walkthrough and drives the stage rail from the scrub position.
- * The pin/scrub is GSAP-owned (the only PinScene on the features pages);
- * the active stage lives in React state so `Rail`/`Scene` keep their plain
- * prop-driven rendering.
+ * The pin/scrub is GSAP-owned (the only pinned scene on the features
+ * pages); the active stage lives in React state so `Rail`/`Scene` keep
+ * their plain prop-driven rendering.
  */
 function PinnedWalkthrough() {
   const [stage, setStage] = React.useState(0);
@@ -244,16 +186,18 @@ function PinnedWalkthrough() {
 /**
  * The stage walkthrough. On large screens it pins and scroll advances the
  * ten-stage rail while the pipeline diagram tracks along. Small screens and
- * reduced motion get the static numbered rail with a Reveal stagger.
+ * reduced motion get the static numbered rail.
  */
 export function VideoWalkthrough() {
   return (
-    <section aria-label="The ten video stages">
-      <div className="hidden lg:block">
-        <PinnedWalkthrough />
-      </div>
-      <div className="lg:hidden">
-        <StaticWalkthrough />
+    <section aria-label="The ten video stages" className="os-section">
+      <div className="os-section__inner">
+        <div className="os-walkthrough-lg">
+          <PinnedWalkthrough />
+        </div>
+        <div className="os-walkthrough-sm">
+          <StaticWalkthrough />
+        </div>
       </div>
     </section>
   );

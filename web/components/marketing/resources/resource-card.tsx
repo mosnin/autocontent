@@ -1,15 +1,12 @@
 import * as React from "react";
 
-import {
-  VignetteCard,
-  type VignetteScene,
-} from "@/components/marketing/system";
+import { VignetteCard, type VignetteScene } from "@/components/marketing/system";
+import { CardLink } from "@/components/site/sections";
 
 /**
- * Resources-hub card in the vignette language (Amendment 2): a product
- * miniature staged on a scene wash up top, kicker category + title +
- * one-liner below, and a quiet "Read" arrow pinned to the bottom. The
- * whole card is a link with the shared hover lift. Never an icon.
+ * Resources-hub card: a product miniature staged on the hairline frame,
+ * category eyebrow + title + one-liner below, and the quiet mono "Read"
+ * arrow pinned to the bottom. The whole card is a link.
  */
 export function ResourceCard({
   category,
@@ -33,24 +30,7 @@ export function ResourceCard({
     <VignetteCard
       className={className}
       description={description}
-      footer={
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-900">
-          Read
-          <svg
-            aria-hidden
-            className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <path d="M5 12h14" />
-            <path d="m13 6 6 6-6 6" />
-          </svg>
-        </span>
-      }
+      footer={<CardLink>Read</CardLink>}
       href={href}
       kicker={category}
       scene={scene}
