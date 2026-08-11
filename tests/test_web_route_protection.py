@@ -70,9 +70,25 @@ def test_no_stale_segments_declared() -> None:
 @pytest.mark.skipif(not _APP_DIR.is_dir(), reason="web app group not present")
 def test_matcher_and_protection_share_one_source() -> None:
     """`config.matcher` decides where middleware RUNS; `isProtected`
-    decides where it CHALLENGES. If those two lists ever diverge, a route
-    can run the middleware without being protected (or be "protected" by
-    middleware that never runs) — so both must be built from APP_GROUP."""
+    decides where it CHALLENGES.
+
+    If those two diverge a route can run the middleware without being
+    protected, or be "protected" by middleware that never runs. They
+    cannot share a constant: Next statically analyses `config` at build
+    time and rejects a computed matcher outright, so the pattern is
+    literal there and derived here. This test is the join — it rebuilds
+    the expected literal from APP_SEGMENTS and demands the file contain
+    exactly that.
+    """
     source = _MIDDLEWARE.read_text()
-    assert "createRouteMatcher([APP_GROUP])" in source
-    assert re.search(r"matcher:\s*\[\s*APP_GROUP", source)
+    assert "createRouteMatcher([APP_GROUP])" in source, (
+        "isProtected must be built from APP_GROUP, not its own list"
+    )
+
+    expected = f'"/({"|".join(sorted(_declared_segments()))})(.*)"'
+    matcher = re.search(r"matcher:\s*\[(.*?)\]", source, re.S)
+    assert matcher, "middleware.ts no longer declares a config.matcher array"
+    assert expected in matcher.group(1), (
+        "config.matcher's app-group pattern has drifted from APP_SEGMENTS; "
+        f"it must contain exactly {expected}"
+    )

@@ -28,6 +28,13 @@ _REPO = Path(__file__).resolve().parent.parent
 _WEB = _REPO / "web"
 _COMPONENTS = _WEB / "components"
 _CANONICAL = "components/ui"
+# Marketing sections delivered by a generator. Kept byte-for-byte so they
+# can be re-pulled; sealed from the outside by the test below.
+_VENDORED = "components/originkit"
+
+
+def _is_vendored(path: Path) -> bool:
+    return path.relative_to(_WEB).as_posix().startswith(f"{_VENDORED}/")
 
 pytestmark = pytest.mark.skipif(not _COMPONENTS.is_dir(), reason="web app not present")
 
@@ -57,17 +64,49 @@ def test_only_one_component_kit_exists() -> None:
 
 
 def test_nothing_imports_a_non_canonical_kit() -> None:
+    """App code may import from exactly one kit.
+
+    `components/originkit/` is exempt from being an *offender* because a
+    vendored marketing section legitimately ships its own private parts
+    folder; rewriting delivered files to our primitives is how vendored
+    code rots. The guarantee is preserved by the companion test below,
+    which pins that folder shut from the outside.
+    """
     offenders = sorted(
         {
             path.relative_to(_WEB).as_posix()
             for path, source in _tsx_sources()
+            if not _is_vendored(path)
             # Any `@/components/<something>/ui/...` other than the canonical one.
-            if re.search(r'@/components/(?!ui/)[\w-]+/ui/', source)
+            and re.search(r"@/components/(?!ui/)[\w-]+/ui/", source)
         }
     )
     assert not offenders, (
         "these files import a component kit other than "
         f"@/{_CANONICAL}: {offenders}"
+    )
+
+
+def test_vendored_sections_stay_sealed() -> None:
+    """Nothing outside `components/originkit/` may reach into it.
+
+    This is the half of the one-kit rule that actually matters. A vendored
+    section is allowed its own internals as long as the app imports the
+    section and nothing else — the moment a page imports
+    `originkit/ui/<x>/button`, that folder has become a second kit and we
+    are back to restyling two buttons.
+    """
+    reach_in = re.compile(rf"@/{_VENDORED}/[\w-]+/")
+    offenders = sorted(
+        {
+            path.relative_to(_WEB).as_posix()
+            for path, source in _tsx_sources()
+            if not _is_vendored(path) and reach_in.search(source)
+        }
+    )
+    assert not offenders, (
+        f"these files import internals of @/{_VENDORED}; import the section "
+        f"entry point instead: {offenders}"
     )
 
 

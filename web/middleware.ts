@@ -45,7 +45,13 @@ export const config = {
   // That exemption is why this stays an allow-list rather than being
   // inverted to "everything except marketing".
   matcher: [
-    APP_GROUP,
+    // This MUST be a literal. Next statically analyses `config` at build
+    // time and refuses anything it cannot fold to a constant — building it
+    // from APP_SEGMENTS above fails the build with "Unknown identifier
+    // APP_GROUP". So it is duplicated here and kept honest by
+    // test_web_route_protection.py, which recomputes it from APP_SEGMENTS
+    // and diffs the two.
+    "/(ad-creatives|admin|ads|articles|calendar|campaigns|connect|dashboard|dramas|home|library|motion|niches|onboarding|queue|scheduled|seo-audit|settings|templates|ugc)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
     // Media manager: GET stays public, POST/DELETE check auth() in-route —

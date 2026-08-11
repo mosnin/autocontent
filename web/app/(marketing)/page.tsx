@@ -4,7 +4,7 @@ import { AutopilotPanel } from "@/components/marketing/home/autopilot-panel";
 import { ClosingCta } from "@/components/marketing/home/closing-cta";
 import { Converged } from "@/components/marketing/home/converged";
 import { Enterprise } from "@/components/marketing/home/enterprise";
-import { Hero } from "@/components/marketing/home/hero";
+import Hero03 from "@/components/originkit/hero-03";
 import { LogoBand } from "@/components/marketing/home/logo-band";
 import { Loved } from "@/components/marketing/home/loved";
 import { Roi } from "@/components/marketing/home/roi";
@@ -49,7 +49,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         type="application/ld+json"
       />
-      <Hero />
+      <Hero03 />
       <LogoBand />
       <Sprawl />
       <Converged />
