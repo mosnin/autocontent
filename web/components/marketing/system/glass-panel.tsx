@@ -3,8 +3,13 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Frosted glass card: backdrop blur, hairline border, soft floating shadow.
- * The building block for product-UI mockups and overlay cards.
+ * A surface panel: the #0F1514 card ground with a rgb(42,60,58) hairline.
+ *
+ * The name is historical — on the light site this was frosted glass. On the
+ * transcribed dark ground there is no glass; depth comes from the surface
+ * being a shade below the page and from the hairline, exactly as the
+ * homepage's cards do it. `tone` is kept for call-site compatibility and
+ * only chooses how far the surface sits from the ground.
  */
 export function GlassPanel({
   children,
@@ -17,13 +22,7 @@ export function GlassPanel({
 }) {
   return (
     <div
-      className={cn(
-        "rounded-3xl border backdrop-blur-xl",
-        tone === "light"
-          ? "border-white/50 bg-white/70 shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
-          : "border-white/10 bg-zinc-900/70 shadow-[0_8px_40px_rgba(0,0,0,0.35)]",
-        className,
-      )}
+      className={cn("os-card", tone === "dark" && "os-card--raised", className)}
     >
       {children}
     </div>

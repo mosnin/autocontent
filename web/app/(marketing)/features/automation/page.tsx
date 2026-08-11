@@ -6,7 +6,8 @@ import {
   WindowsBand,
 } from "@/components/marketing/features/automation-sections";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
   "REST API, typed Python SDK, the marketer CLI, and an MCP server with cost-aware tools. Agents create niches, enqueue videos, and publish inside your caps.";
@@ -27,13 +28,11 @@ export default function AutomationFeaturePage() {
     <main>
       <FeatureHero
         illustration={
-          <div className="aspect-video overflow-hidden rounded-[2rem]">
-            <TaggedPlaceholder
-              kind="video"
-              label="Agent demo — MCP call to shipped campaign"
-              tone="warm"
-            />
-          </div>
+          <MediaCard
+            kind="video"
+            label="Agent demo — MCP call to shipped campaign"
+            ratio="16/9"
+          />
         }
         kicker="Automation & agents"
         lede="Everything a person can do here, an agent can do through the REST API, the typed Python SDK, the marketer CLI, or the MCP server. Inside the caps you set."

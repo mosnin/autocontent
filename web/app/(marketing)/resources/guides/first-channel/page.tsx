@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import * as React from "react";
 
 import {
   GuideCallout,
@@ -9,7 +10,8 @@ import {
   GuideStrong,
   type GuideSection,
 } from "@/components/marketing/resources/guide-layout";
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaCard } from "@/components/site/sections";
 
 const TITLE = "Launch your first channel in an afternoon";
 const DESCRIPTION =
@@ -61,13 +63,8 @@ const SECTIONS: GuideSection[] = [
           yourself in ten minutes. If you can, the ideation engine can name two
           hundred, and rank them by what actually performed.
         </GuideP>
-        <div className="mt-6 aspect-[16/10] overflow-hidden rounded-2xl">
-          <TaggedPlaceholder
-            className="h-full w-full"
-            kind="illustration"
-            label="Guide diagram — niche framing"
-            tone="violet"
-          />
+        <div className="os-mt-24">
+          <MediaCard kind="illustration" label="Guide diagram — niche framing" ratio="16/9" />
         </div>
       </>
     ),
@@ -89,21 +86,21 @@ const SECTIONS: GuideSection[] = [
         </GuideQuote>
         <GuideList
           items={[
-            <>
+            <React.Fragment key={1}>
               <GuideStrong>Name the person, not the demographic.</GuideStrong>{" "}
               &ldquo;Home cooks who meal-prep on Sundays&rdquo; beats
               &ldquo;25 to 40 year olds interested in food.&rdquo;
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={2}>
               <GuideStrong>Include the tension.</GuideStrong> The clause after
               &ldquo;who&rdquo; is where hooks come from. &ldquo;...who
               don&apos;t want to spend $2,000&rdquo; generates a hundred videos.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={3}>
               <GuideStrong>Skip adjectives about yourself.</GuideStrong>{" "}
               &ldquo;High-quality engaging content&rdquo; adds nothing. The
               system already tries to be good.
-            </>,
+            </React.Fragment>,
           ]}
         />
         <GuideP>
@@ -174,22 +171,22 @@ const SECTIONS: GuideSection[] = [
         </GuideP>
         <GuideList
           items={[
-            <>
+            <React.Fragment key={4}>
               <GuideStrong>Days 1 to 3:</GuideStrong> review everything.
               Reject freely and note why. Rejections teach you what to fix in
               the niche settings, usually the tone or the topic pillars.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={5}>
               <GuideStrong>Days 4 to 10:</GuideStrong> your approval rate
               should climb past 80 percent. If it does not, tighten the brief
               instead of grinding through reviews.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={6}>
               <GuideStrong>After two weeks:</GuideStrong> widen autonomy for
               the formats you trust. Many people keep articles on review and
               let video publish on schedule, or the reverse. Autonomy is per
               niche and reversible.
-            </>,
+            </React.Fragment>,
           ]}
         />
       </>
@@ -207,22 +204,22 @@ const SECTIONS: GuideSection[] = [
         </GuideP>
         <GuideList
           items={[
-            <>
+            <React.Fragment key={7}>
               <GuideStrong>Completion rate over views.</GuideStrong> A video
               that 200 people finish beats one that 2,000 people skip after a
               second. Completion is the earliest honest signal.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={8}>
               <GuideStrong>Spread between your best and worst
               post.</GuideStrong> A wide spread means the niche has a hit
               pattern to find. A flat, low spread usually means the framing is
               too broad.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={9}>
               <GuideStrong>The 30-day view, weekly.</GuideStrong> The niche
               performance card ranks top and bottom performers; ideation reads
               the same list. Check it weekly, not hourly.
-            </>,
+            </React.Fragment>,
           ]}
         />
         <GuideP>

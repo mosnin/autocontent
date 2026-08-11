@@ -1,21 +1,21 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { PageHero } from "@/components/marketing/resources/page-hero";
 import { PricingTiles } from "@/components/marketing/resources/pricing-tiles";
+import { SectionCta } from "@/components/marketing/system";
 import {
-  DisplayHeading,
-  GlassPanel,
-  GradientScene,
-  Kicker,
-  Lede,
-  Magnetic,
-  Reveal,
-  SectionCta,
-  Stagger,
-  TaggedPlaceholder,
-  TextReveal,
-} from "@/components/marketing/system";
+  Actions,
+  Body,
+  Btn,
+  Card,
+  CardGrid,
+  Eyebrow,
+  Frame,
+  MediaCard,
+  Section,
+  SectionHead,
+  Title,
+} from "@/components/site/sections";
 
 const DESCRIPTION =
   "Prepaid credit packs from $5, no subscription. Every video and article is metered against your balance, and hard daily caps make overruns impossible by design.";
@@ -70,148 +70,90 @@ export default function PricingPage() {
     <main>
       <PageHero
         headline="Pay for what ships. Nothing else."
+        highlight="Nothing else."
         kicker="Pricing"
         size="xl"
         sub="Three prepaid credit packs. Every render metered, every dollar capped, no subscription anywhere."
       />
 
       {/* Packs */}
-      <section
-        aria-label="Credit packs"
-        className="mx-auto max-w-6xl px-6 pb-24 pt-20 md:pb-32 lg:pt-24"
-      >
+      <Section label="Credit packs" size="tight">
         <PricingTiles />
-        <Reveal className="mt-8 text-center lg:mt-6" delay={0.2}>
-          <p className="text-sm text-zinc-500">
-            One-time purchases through Stripe. Top up whenever, in any mix.
-          </p>
-        </Reveal>
-      </section>
+        <Body className="os-mt-32 os-center">
+          One-time purchases through Stripe. Top up whenever, in any mix.
+        </Body>
+      </Section>
 
       {/* How credits work */}
-      <section aria-label="How credits work" className="px-4 py-6 md:px-6">
-        <GradientScene
-          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
-          variant="sky"
-        >
-          <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-            <Reveal className="max-w-2xl">
-              <Kicker>How credits work</Kicker>
-              <TextReveal
-                as="h2"
-                className="mt-4 font-display text-4xl font-semibold tracking-tight text-balance text-zinc-900 md:text-5xl"
-              >
-                A balance, a meter, and a hard limit.
-              </TextReveal>
-              <Lede className="mt-5">
-                The billing model is three moving parts, and all three are
-                visible on your dashboard at all times.
-              </Lede>
-            </Reveal>
-            <Reveal className="mt-10 overflow-hidden rounded-[1.75rem] border border-white/60 shadow-[0_8px_40px_rgba(15,23,42,0.06)]" delay={0.1}>
-              <div className="aspect-[16/7]">
-                <TaggedPlaceholder
-                  kind="illustration"
-                  label="How credits work — diagram"
-                  tone="warm"
-                />
-              </div>
-            </Reveal>
-            <Stagger
-              className="mt-10 grid gap-4 md:grid-cols-3"
-              gap={0.08}
-              itemClassName="h-full"
-            >
-              {HOW_IT_WORKS.map((item, i) => (
-                <div
-                  className="h-full rounded-[1.5rem] border border-white/60 bg-white/70 p-7 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
-                  key={item.title}
-                >
-                  <span className="font-mono text-xs tabular-nums text-zinc-400">
-                    0{i + 1}
-                  </span>
-                  <h3 className="mt-3 font-display text-lg font-semibold tracking-tight text-zinc-900">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
-                    {item.copy}
-                  </p>
-                </div>
-              ))}
-            </Stagger>
-          </div>
-        </GradientScene>
-      </section>
+      <Section label="How credits work">
+        <SectionHead
+          eyebrow="How credits work"
+          heading="A balance, a meter, and a hard limit."
+          highlight="a hard limit."
+          lede="The billing model is three moving parts, and all three are visible on your dashboard at all times."
+        />
+        <div className="os-mt-48">
+          <MediaCard
+            kind="illustration"
+            label="How credits work — diagram"
+            ratio="16/8"
+          />
+        </div>
+        <CardGrid className="os-mt-24">
+          {HOW_IT_WORKS.map((item, i) => (
+            <Card key={item.title}>
+              <span className="os-num">{String(i + 1).padStart(2, "0")}</span>
+              <Title className="os-mt-12" size="sm">
+                {item.title}
+              </Title>
+              <Body className="os-mt-8">{item.copy}</Body>
+            </Card>
+          ))}
+        </CardGrid>
+      </Section>
 
       {/* Mini FAQ + agents & teams */}
-      <section
-        aria-label="Pricing questions"
-        className="mx-auto max-w-6xl px-6 py-24 md:py-32"
-      >
-        <Reveal className="max-w-2xl">
-          <Kicker>Common questions</Kicker>
-          <DisplayHeading className="mt-4">
-            The fine print, unfined.
-          </DisplayHeading>
-        </Reveal>
-        <Stagger className="mt-12 grid gap-4 sm:grid-cols-2" gap={0.08} itemClassName="h-full">
+      <Section label="Pricing questions">
+        <SectionHead
+          eyebrow="Common questions"
+          heading="The fine print, unfined."
+          highlight="unfined."
+        />
+        <CardGrid className="os-mt-48" cols={2}>
           {MINI_FAQ.map((item) => (
-            <div
-              className="h-full rounded-[1.5rem] border border-zinc-900/[0.06] bg-white p-7 shadow-[0_8px_40px_rgba(15,23,42,0.05)]"
-              key={item.q}
-            >
-              <h3 className="font-display text-lg font-semibold tracking-tight text-zinc-900">
-                {item.q}
-              </h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
-                {item.a}
-              </p>
-            </div>
+            <Card key={item.q}>
+              <Title size="sm">{item.q}</Title>
+              <Body className="os-mt-8">{item.a}</Body>
+            </Card>
           ))}
-        </Stagger>
+        </CardGrid>
 
-        <Reveal className="mt-6" delay={0.1}>
-          <GlassPanel className="p-8 md:p-10" tone="dark">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-500">
-                  Agents &amp; teams
-                </p>
-                <h3 className="mt-3 font-display text-xl font-semibold tracking-tight text-white md:text-2xl">
-                  Running many niches, or a fleet of agents?
-                </h3>
-                <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-zinc-400">
-                  The Studio pack covers most of it: per-niche caps, API and
-                  MCP access, several channels in parallel. If your setup is
-                  bigger or stranger than that, talk to us and we&apos;ll make
-                  it work.
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-wrap gap-3">
-                <Magnetic>
-                  <a
-                    className="inline-flex min-h-11 items-center rounded-full bg-white px-6 py-1.5 text-sm font-medium text-zinc-900 transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    href="mailto:hello@marketer.sh"
-                  >
-                    hello@marketer.sh
-                  </a>
-                </Magnetic>
-                <Magnetic>
-                  <Link
-                    className="inline-flex min-h-11 items-center rounded-full border border-white/20 px-6 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:border-white/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    href="/resources/api"
-                  >
-                    See the agent surfaces
-                  </Link>
-                </Magnetic>
-              </div>
+        <Frame className="os-mt-24">
+          <div className="os-teams">
+            <div>
+              <Eyebrow>Agents &amp; teams</Eyebrow>
+              <Title className="os-mt-20" level={3}>
+                Running many niches, or a fleet of agents?
+              </Title>
+              <Body className="os-mt-12 os-measure">
+                The Studio pack covers most of it: per-niche caps, API and MCP
+                access, several channels in parallel. If your setup is bigger or
+                stranger than that, talk to us and we&apos;ll make it work.
+              </Body>
             </div>
-          </GlassPanel>
-        </Reveal>
-      </section>
+            <Actions>
+              <Btn href="mailto:hello@marketer.sh">hello@marketer.sh</Btn>
+              <Btn href="/resources/api" variant="secondary">
+                See the agent surfaces
+              </Btn>
+            </Actions>
+          </div>
+        </Frame>
+      </Section>
 
       <SectionCta
         headline="Five dollars says it works."
+        highlight="Five dollars"
         kicker="Get started"
         primaryHref="/sign-up"
         primaryLabel="Start creating"

@@ -1,17 +1,18 @@
 import * as React from "react";
 
+import { MediaSlot } from "@/components/site/sections";
 import { cn } from "@/lib/utils";
 
 /**
- * Tagged media placeholder: a plain flat surface with one small text tag
- * naming what belongs there (video, image, or illustration). No shapes,
- * no gradients, no fake art — it reads as "media goes here" and nothing
- * else. Parent sizes the frame (aspect + rounding + overflow-hidden).
- * Swapping in the real asset is a one-element change.
+ * Tagged media placeholder: the dark surface with a whisper of the accent
+ * dot-matrix and one mono tag naming what belongs there. No fake art — it
+ * reads as "media goes here" and nothing else. The parent sizes the frame
+ * (aspect + rounding + overflow-hidden), so swapping in the real asset is a
+ * one-element change.
  */
 
 type Kind = "video" | "image" | "illustration";
-/** Kept for call-site compatibility; tone no longer changes the render. */
+/** Kept for call-site compatibility; the dark ground has one wash. */
 type Tone = "warm" | "sky" | "violet" | "slate" | "rose";
 
 export function TaggedPlaceholder({
@@ -26,19 +27,5 @@ export function TaggedPlaceholder({
   tone?: Tone;
   className?: string;
 }) {
-  return (
-    <div
-      aria-label={`Placeholder ${kind}: ${label}`}
-      className={cn(
-        "relative flex h-full w-full items-center justify-center overflow-hidden bg-zinc-100",
-        className,
-      )}
-      data-placeholder={kind}
-      role="img"
-    >
-      <span className="max-w-[90%] truncate rounded border border-zinc-200 bg-white px-2 py-1 font-mono text-[10px] text-zinc-400">
-        {kind}: {label}
-      </span>
-    </div>
-  );
+  return <MediaSlot className={cn(className)} kind={kind} label={label} />;
 }

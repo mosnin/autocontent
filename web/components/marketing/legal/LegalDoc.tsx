@@ -1,10 +1,13 @@
 import * as React from "react";
 
+import { Heading } from "@/components/site/sections";
+
 import { LEGAL_EFFECTIVE } from "./legal-docs";
 
-// A sober, text-first legal document. Generous measure + rhythm, hairline
-// section rules, zero decorative icons. Content is plain h2/h3/p/ul/ol/a; the
-// child selectors here carry all the typography so pages stay pure content.
+// A sober, text-first legal document in the site's language: mono effective
+// date, the display heading, then hairline-ruled prose. Content stays plain
+// h2/h3/p/ul/ol/a — `.os-prose` in sections.css carries all the typography,
+// so the document pages stay pure content.
 export function LegalDoc({
   title,
   intro,
@@ -15,43 +18,20 @@ export function LegalDoc({
   children: React.ReactNode;
 }) {
   return (
-    <article className="max-w-2xl">
-      <header className="mb-10">
-        <p className="text-sm text-muted-foreground">
-          Effective {LEGAL_EFFECTIVE}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+    <article className="os-legal">
+      <header className="os-legal__header">
+        <p className="os-meta">Effective {LEGAL_EFFECTIVE}</p>
+        <Heading className="os-mt-16" level={1} size="lg">
           {title}
-        </h1>
-        {intro ? (
-          <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-            {intro}
-          </p>
-        ) : null}
+        </Heading>
+        {intro ? <p className="os-lede os-mt-20">{intro}</p> : null}
       </header>
 
-      <div
-        className={[
-          "text-[15px] leading-7 text-foreground/90",
-          "[&>h2]:mt-12 [&>h2]:mb-3 [&>h2]:text-lg [&>h2]:font-semibold [&>h2]:tracking-tight [&>h2]:text-foreground",
-          "[&>h3]:mt-8 [&>h3]:mb-2 [&>h3]:text-base [&>h3]:font-semibold [&>h3]:text-foreground",
-          "[&>p]:mt-4",
-          "[&>ul]:mt-4 [&>ul]:space-y-2 [&>ul]:pl-5 [&>ul]:list-disc [&>ul]:marker:text-muted-foreground",
-          "[&>ol]:mt-4 [&>ol]:space-y-2 [&>ol]:pl-5 [&>ol]:list-decimal [&>ol]:marker:text-muted-foreground",
-          "[&_a]:font-medium [&_a]:text-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:decoration-border hover:[&_a]:decoration-foreground",
-          "[&_strong]:font-semibold [&_strong]:text-foreground",
-          "[&>h2:first-child]:mt-0",
-        ].join(" ")}
-      >
-        {children}
-      </div>
+      <div className="os-prose">{children}</div>
 
-      <p className="mt-14 border-t border-border/60 pt-6 text-sm text-muted-foreground">
+      <p className="os-legal__foot">
         Questions about this document? Email{" "}
-        <a
-          href="mailto:legal@marketer.sh"
-          className="font-medium text-foreground underline underline-offset-4"
-        >
+        <a className="os-link" href="mailto:legal@marketer.sh">
           legal@marketer.sh
         </a>
         .

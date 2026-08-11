@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaSlot } from "@/components/site/sections";
 import {
   MockBand,
   OutcomesBand,
@@ -80,13 +81,11 @@ export default function CreatorsPage() {
         lede="This is the queue for a faceless channel. Two posts approved, one waiting on you, all scheduled for the evening window."
         scene="dusk"
       >
-        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
-          <TaggedPlaceholder
-            kind="image"
-            label="Creators workflow — screenshot"
-            tone="warm"
-          />
-        </div>
+        <MediaSlot
+          className="os-aspect-43"
+          kind="image"
+          label="Creators workflow — screenshot"
+        />
       </MockBand>
       <OutcomesBand
         heading="The cadence, without the grind."

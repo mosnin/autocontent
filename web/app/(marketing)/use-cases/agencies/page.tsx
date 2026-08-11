@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaSlot } from "@/components/site/sections";
 import {
   MockBand,
   OutcomesBand,
@@ -81,13 +82,11 @@ export default function AgenciesPage() {
         lede="Three clients, three caps, three gates. The dental account runs strict, the yoga studio earned autopilot, and nothing can pass its cap."
         scene="steel"
       >
-        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
-          <TaggedPlaceholder
-            kind="image"
-            label="Agencies workflow — screenshot"
-            tone="violet"
-          />
-        </div>
+        <MediaSlot
+          className="os-aspect-43"
+          kind="image"
+          label="Agencies workflow — screenshot"
+        />
       </MockBand>
       <OutcomesBand
         heading="Margin that survives client ten."

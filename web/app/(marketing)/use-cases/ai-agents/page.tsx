@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaSlot } from "@/components/site/sections";
 import { FaqBand, type FaqItem } from "@/components/marketing/use-cases/faq";
 import {
   MockBand,
@@ -114,13 +115,11 @@ export default function AiAgentsPage() {
         lede="An ops agent gets a one-line instruction, calls the tools, checks its budget, and parks the whole push at your approval gate."
         scene="aurora"
       >
-        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
-          <TaggedPlaceholder
-            kind="image"
-            label="AI agents workflow — screenshot"
-            tone="warm"
-          />
-        </div>
+        <MediaSlot
+          className="os-aspect-43"
+          kind="image"
+          label="AI agents workflow — screenshot"
+        />
       </MockBand>
       <OutcomesBand
         heading="Autonomy, with receipts."

@@ -6,6 +6,7 @@ import {
 } from "@/components/marketing/resources/changelog-timeline";
 import { PageHero } from "@/components/marketing/resources/page-hero";
 import { SectionCta } from "@/components/marketing/system";
+import { Section } from "@/components/site/sections";
 
 const DESCRIPTION =
   "What shipped in marketer.sh and when: the articles pipeline, agent surfaces, prepaid credits, approval gates, performance-fed ideation, and more, newest first.";
@@ -89,17 +90,15 @@ export default function ChangelogPage() {
     <main>
       <PageHero
         headline="Shipped, dated, and honest."
+        highlight="and honest."
         kicker="Changelog"
         sub="What changed in marketer.sh, newest first. Product releases only, no 'various improvements'."
         variant="pearl"
       />
 
-      <section
-        aria-label="Release history"
-        className="mx-auto max-w-4xl px-6 py-24 md:py-32"
-      >
+      <Section label="Release history">
         <ChangelogTimeline entries={ENTRIES} />
-      </section>
+      </Section>
 
       <SectionCta
         headline="Use what shipped this month."

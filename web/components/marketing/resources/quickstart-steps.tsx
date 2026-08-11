@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Reveal, TaggedPlaceholder } from "@/components/marketing/system";
+import { Body, MediaSlot, Stage, Title } from "@/components/site/sections";
 
 const STEPS: Array<{
   title: string;
@@ -40,45 +40,33 @@ const STEPS: Array<{
 ];
 
 /**
- * The quickstart's numbered rail: a vertical hairline with numbered nodes,
- * step copy on the left and a screenshot slot on the right.
+ * The quickstart's numbered rail: a vertical hairline with a node per step,
+ * step copy on the left and a staged screenshot slot on the right.
  */
 export function QuickstartSteps() {
   return (
-    <ol className="relative space-y-16 md:space-y-20">
-      {/* the rail */}
-      <span
-        aria-hidden
-        className="absolute inset-y-4 left-[1.1875rem] w-px bg-zinc-900/[0.08]"
-      />
+    <ol className="os-quicksteps">
       {STEPS.map((step, i) => (
-        <li className="relative pl-16" key={step.title}>
-          <span
-            aria-hidden
-            className="absolute left-0 top-0 flex size-10 items-center justify-center rounded-full border border-zinc-900/10 bg-white font-display text-sm font-semibold tabular-nums text-zinc-900 shadow-[0_2px_12px_rgba(15,23,42,0.08)]"
-          >
-            {i + 1}
-          </span>
-          <Reveal>
-            <div className="grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
-              <div>
-                <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 md:text-3xl">
-                  {step.title}
-                </h2>
-                <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-zinc-600 md:text-[17px]">
-                  {step.copy}
-                </p>
-              </div>
-              <div className="w-full max-w-sm lg:justify-self-end lg:pt-1">
-                <div className="aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-inset ring-zinc-900/[0.05]">
-                  <TaggedPlaceholder
-                    kind="image"
-                    label={`${step.shot} — screenshot`}
-                  />
-                </div>
-              </div>
+        <li className="os-rail" key={step.title}>
+          <span aria-hidden className="os-rail__node" />
+          <div className="os-quickstep">
+            <div>
+              <span className="os-num">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <Title className="os-mt-12" level={2}>
+                {step.title}
+              </Title>
+              <Body className="os-mt-16 os-measure">{step.copy}</Body>
             </div>
-          </Reveal>
+            <Stage>
+              <MediaSlot
+                className="os-aspect-43"
+                kind="image"
+                label={`${step.shot} — screenshot`}
+              />
+            </Stage>
+          </div>
         </li>
       ))}
     </ol>

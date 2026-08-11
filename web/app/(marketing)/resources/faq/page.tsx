@@ -4,6 +4,7 @@ import { FaqAccordion } from "@/components/marketing/resources/faq-accordion";
 import { FAQ_ITEMS } from "@/components/marketing/resources/faq-data";
 import { PageHero } from "@/components/marketing/resources/page-hero";
 import { SectionCta } from "@/components/marketing/system";
+import { Section } from "@/components/site/sections";
 
 const DESCRIPTION =
   "Straight answers about marketer.sh: how spend caps work, what happens at the limit, approval gates, supported platforms, content ownership, refunds, and data handling.";
@@ -38,17 +39,17 @@ export default function FaqPage() {
       />
       <PageHero
         headline="Questions, answered plainly."
+        highlight="answered plainly."
         kicker="FAQ"
         sub="The things people actually ask before handing marketing to a machine: money, control, ownership, and what happens at the limits."
         variant="pearl"
       />
 
-      <section
-        aria-label="Frequently asked questions"
-        className="mx-auto max-w-3xl px-6 py-24 md:py-32"
-      >
-        <FaqAccordion items={FAQ_ITEMS} />
-      </section>
+      <Section label="Frequently asked questions">
+        <div className="os-narrow">
+          <FaqAccordion items={FAQ_ITEMS} />
+        </div>
+      </Section>
 
       <SectionCta
         headline="Still curious? Run it on five dollars."
