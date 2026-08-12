@@ -1,0 +1,629 @@
+/* ---------------------------------------------------------------------
+   Homepage hero — Originkit "hero-19" (section-26) re-tokenised to the
+   marketer.sh design.
+
+   The delivered section shipped on BLACK with warm orange light
+   (#FF3B00 / #ED3D11 / #D96811 / #F06B49), an Instrument Serif headline
+   at 88px, its own nav and a wellness logo strip. None of that survives
+   contact with this site, so every colour and every face below is read
+   from a variable rather than written as a literal: re-pointing the two
+   brand tokens in app/globals.css recolours the whole composition.
+
+   Geometry is deliberately a copy of the Framer "Hero" section this
+   replaces (`.framer-1bmzqsa` / `.framer-lr1g1s` in site.css): the same
+   92px nav clearance, the same 74/46/0 gutters, the same 1570/1170 inner
+   cap and the same 1px hairline rails. That is what makes the band below
+   it line up rather than merely sit underneath.
+   --------------------------------------------------------------------- */
+
+.mkt-hero {
+  /* --- ground ------------------------------------------------------ */
+  /* Identical to the page ground the next section sits on, so the two
+     meet with no colour step. Nothing here is #000: the delivered
+     section's black artboard is gone. */
+  --hero-ground: #151e1d;
+  --hero-surface: #0f1514;
+  --hero-hairline: rgb(42, 60, 58);
+  --hero-hairline-soft: rgb(42, 59, 58);
+  --hero-chip: #1f2d2b;
+
+  /* --- ink --------------------------------------------------------- */
+  --hero-ink: #fcfdfd;
+  --hero-ink-2: #bcc8c7;
+  --hero-ink-3: #819895;
+  /* Ink that stays legible on the accent chip and the primary button. */
+  --hero-ink-on-accent: hsl(var(--brand-primary-ink, 96 22% 14%));
+
+  /* --- accent ------------------------------------------------------ */
+  /* Both read from the global brand palette; the literals are only the
+     fallback for a page that somehow loads without globals.css. */
+  --hero-accent: var(--brand-primary, #9ab08d);
+  --hero-accent-soft: var(--brand-secondary, #edddc5);
+
+  /* Everything the orange used to do, derived from the two above. */
+  --hero-halo: var(--hero-accent);
+  --hero-halo-lift: var(--hero-accent-soft);
+  --hero-wash: color-mix(in srgb, var(--hero-accent) 70%, var(--hero-accent-soft));
+  --hero-bloom: color-mix(in srgb, var(--hero-accent) 12%, transparent);
+  --hero-haze-near: color-mix(in srgb, var(--hero-surface) 80%, var(--hero-accent));
+  --hero-haze-far: color-mix(in srgb, var(--hero-accent) 22%, var(--hero-surface));
+  /* The orb's dark core. Was #090402 (a warm near-black); now the page
+     ground pushed one step darker, so it reads as shadow, not as a hole. */
+  --hero-core: color-mix(in srgb, var(--hero-ground) 62%, var(--hero-surface));
+
+  /* --- faces ------------------------------------------------------- */
+  /* The site's triad, self-hosted by site.css. Replaces the delivered
+     font-instrument-serif / font-tight / font-sans. */
+  --hero-font-display: "Pretendard Variable Variable", sans-serif;
+  --hero-font-sans: "Inter Display", "Inter Display Placeholder", sans-serif;
+  --hero-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* --- rhythm ------------------------------------------------------ */
+  /* 92px is the Framer hero's clearance under the fixed nav. */
+  --hero-gutter: 0px;
+  --hero-cap: 100%;
+  --hero-stage: 740px;
+  /* The hand export is 1200x667 with wide transparent margins — the hand
+     itself is only ~33% of the frame — so the orb and the palm are keyed
+     off one width instead of being positioned independently. 0.556 is the
+     export's aspect ratio; 0.339 puts the orb's centre in the cup. */
+  --hero-hand-w: 190vw;
+  --hero-orb: calc(var(--hero-hand-w) * 0.274);
+
+  position: relative;
+  z-index: 1;
+  /* Isolate so the light layers' `screen` blend resolves against this
+     ground and nothing above the hero. */
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 92px var(--hero-gutter) 0;
+  background-color: var(--hero-ground);
+  overflow: hidden;
+}
+
+@media (min-width: 810px) {
+  .mkt-hero {
+    --hero-gutter: 46px;
+    --hero-cap: 1170px;
+    --hero-stage: 820px;
+    --hero-hand-w: 112vw;
+  }
+}
+
+@media (min-width: 1320px) {
+  .mkt-hero {
+    --hero-gutter: 74px;
+    --hero-cap: 1570px;
+    /* The section it replaces was height:100vh including its 92px of nav
+       clearance; capped so a tall desktop does not strand the copy. */
+    --hero-stage: clamp(600px, calc(100dvh - 92px), 860px);
+    --hero-hand-w: min(1240px, 96vw);
+  }
+}
+
+/* --- light rig -------------------------------------------------------
+   The delivered <Backdrop /> renders six flat exports baked against a
+   black artboard and blended with `screen`, which is why they can be
+   recoloured from the outside: `screen` drops the black, and a per-image
+   filter runs BEFORE the blend. Filtering the wrapper instead would
+   group the layers first and paint the artboard's black back in. */
+.mkt-hero__light {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.mkt-hero__light > img {
+  /* Orange (~14°) to sage (~98°), then pulled well back: at the delivered
+     intensity the rig floods the whole panel and the hero stops looking
+     like the rest of this site, which is a flat dark ground with hairline
+     rules. What is left is a halo, not a wash. */
+  filter: hue-rotate(84deg) saturate(0.34) brightness(0.34);
+  opacity: 0.9;
+  /* Per image, not on the wrapper: masking the wrapper would group the
+     layers and paint their black artboard back in under `screen`. */
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 34%,
+    rgba(0, 0, 0, 0.45) 66%,
+    transparent 92%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 34%,
+    rgba(0, 0, 0, 0.45) 66%,
+    transparent 92%
+  );
+}
+
+/* --- rails ----------------------------------------------------------- */
+.mkt-hero__rails {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: var(--hero-cap);
+  flex: 1 0 auto;
+}
+
+@media (min-width: 810px) {
+  .mkt-hero__rails {
+    border-left: 1px solid var(--hero-hairline);
+    border-right: 1px solid var(--hero-hairline);
+  }
+}
+
+/* --- stage ----------------------------------------------------------- */
+.mkt-hero__stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  height: var(--hero-stage);
+  overflow: hidden;
+}
+
+@media (min-width: 1320px) {
+  .mkt-hero__stage {
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+}
+
+/* --- copy ------------------------------------------------------------ */
+.mkt-hero__copy {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 640px;
+  padding: 44px 16px 0;
+  text-align: center;
+}
+
+@media (min-width: 810px) {
+  .mkt-hero__copy {
+    max-width: 700px;
+    padding: 56px 24px 0;
+  }
+}
+
+@media (min-width: 1320px) {
+  .mkt-hero__copy {
+    align-items: flex-start;
+    max-width: 620px;
+    padding: 0 0 128px 62px;
+    text-align: left;
+  }
+}
+
+/* Eyebrow — the same chip the Framer hero carried, so the two read as
+   one system: hairline shell, accent tab, muted second label. */
+.mkt-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 10px 4px 4px;
+  border: 0.6px solid var(--hero-hairline-soft);
+  border-radius: 2px;
+  background-color: var(--hero-chip);
+}
+
+.mkt-hero__eyebrow-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 6px 4px;
+  border-radius: 2px;
+  background-color: var(--hero-accent);
+  color: var(--hero-ink-on-accent);
+  font-family: var(--hero-font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 125%;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mkt-hero__eyebrow-note {
+  color: var(--hero-ink-2);
+  font-family: var(--hero-font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 150%;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+@media (min-width: 810px) {
+  .mkt-hero__eyebrow-tag { font-size: 15px; }
+  .mkt-hero__eyebrow-note { font-size: 15px; }
+}
+
+/* Headline — the site's display face at the site's own scale. The
+   delivered section shipped Instrument Serif at 88px; 56px is the
+   largest heading anywhere on this site and this matches it exactly,
+   including the 32/44/56 steps of the preset it replaces. */
+.mkt-hero__title {
+  margin: 0;
+  max-width: 18ch;
+  color: var(--hero-ink);
+  font-family: var(--hero-font-display);
+  font-size: 32px;
+  font-weight: 1000;
+  line-height: 115%;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+@media (min-width: 810px) {
+  .mkt-hero__title { font-size: 44px; }
+}
+
+@media (min-width: 1320px) {
+  .mkt-hero__title {
+    font-size: 56px;
+    max-width: 14ch;
+    text-wrap: pretty;
+  }
+}
+
+.mkt-hero__title em {
+  color: var(--hero-accent);
+  font-style: normal;
+}
+
+.mkt-hero__lede {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--hero-ink-2);
+  font-family: var(--hero-font-sans);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 160%;
+  letter-spacing: -0.01em;
+}
+
+@media (min-width: 810px) {
+  .mkt-hero__lede { font-size: 16px; }
+}
+
+/* CTA — the nav's primary button, rebuilt from its own measurements:
+   1px hairline frame at radius 4, ink panel at radius 2, mono uppercase
+   label. Same component language, no second visual vocabulary. */
+.mkt-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+.mkt-hero__cta {
+  display: inline-flex;
+  padding: 1px;
+  border: 1px solid var(--hero-hairline);
+  border-radius: 4px;
+  background-color: color-mix(in srgb, var(--hero-surface) 40%, transparent);
+  text-decoration: none;
+  transition: transform 0.18s ease-out, border-color 0.18s ease-out;
+}
+
+.mkt-hero__cta-face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0 20px;
+  border-radius: 2px;
+  background-color: var(--hero-ink);
+  color: var(--hero-ink-on-accent);
+  font-family: var(--hero-font-mono);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 125%;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 1px 1px color-mix(in srgb, var(--hero-ink) 20%, transparent),
+    0 1px 1px -0.5px color-mix(in srgb, var(--hero-ground) 45%, transparent);
+}
+
+.mkt-hero__cta:hover { border-color: var(--hero-accent); }
+.mkt-hero__cta:focus-visible {
+  outline: 2px solid var(--hero-accent);
+  outline-offset: 3px;
+}
+
+.mkt-hero__cta-note {
+  color: var(--hero-ink-3);
+  font-family: var(--hero-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 125%;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+/* --- composition ------------------------------------------------------
+   Hand, orb and card, in the arrangement the delivered section uses:
+   hand centred on the floor, orb resting above it, card at the right. */
+.mkt-hero__hand {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 2;
+  display: block;
+  width: var(--hero-hand-w);
+  height: auto;
+  max-width: none;
+  transform: translateX(-50%);
+  pointer-events: none;
+  /* The export is a warm-lit hand on a warm-lit set. Desaturated and
+     cooled so it reads as a silhouette under sage light instead of
+     dragging the original palette back in. */
+  filter: saturate(0.32) hue-rotate(14deg) brightness(0.78) contrast(1.06);
+  /* Feather the hard top and bottom edges into the ground. */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 7%,
+    #000 22%,
+    #000 84%,
+    rgba(0, 0, 0, 0.45) 95%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 0, 0, 0.35) 7%,
+    #000 22%,
+    #000 84%,
+    rgba(0, 0, 0, 0.45) 95%,
+    transparent 100%
+  );
+}
+
+.mkt-hero__orb {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--hero-hand-w) * 0.339 - var(--hero-orb) / 2);
+  z-index: 1;
+  width: var(--hero-orb);
+  height: var(--hero-orb);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+/* The particle sphere wants pointer events; the wrappers around it must
+   not eat them. */
+.mkt-hero__orb-sphere {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: auto;
+}
+
+.mkt-hero__orb-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 2;
+  width: 92%;
+  height: 92%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  filter: blur(18px);
+  background-image: radial-gradient(
+    circle at 50% 50%,
+    var(--hero-core) 0%,
+    var(--hero-core) 58%,
+    color-mix(in srgb, var(--hero-core) 55%, transparent) 84%,
+    transparent 100%
+  );
+}
+
+/* Halo + floor wash. The delivered version is an inline SVG with three
+   hard-coded fills (#ED3D11, #D96811, #F06B49) behind two feGaussianBlur
+   filters; the same two shapes as gradients cost no filter passes and
+   take their colour from the brand tokens. */
+.mkt-hero__orb-glow {
+  position: absolute;
+  inset: -60%;
+  z-index: 1;
+  background-image:
+    radial-gradient(
+      closest-side circle at 50% 62%,
+      color-mix(in srgb, var(--hero-halo-lift) 26%, transparent) 0%,
+      color-mix(in srgb, var(--hero-halo-lift) 10%, transparent) 42%,
+      transparent 68%
+    ),
+    radial-gradient(
+      closest-side circle at 50% 50%,
+      color-mix(in srgb, var(--hero-halo) 34%, transparent) 0%,
+      color-mix(in srgb, var(--hero-halo) 14%, transparent) 40%,
+      transparent 72%
+    ),
+    radial-gradient(
+      52% 30% at 50% 78%,
+      color-mix(in srgb, var(--hero-wash) 22%, transparent) 0%,
+      transparent 100%
+    );
+  filter: blur(10px);
+}
+
+/* Bottom bloom — the delivered rgba(180,52,26,.1) plate, in sage. */
+.mkt-hero__bloom {
+  position: absolute;
+  left: 50%;
+  bottom: -30px;
+  z-index: 2;
+  width: min(663px, 82%);
+  height: 92px;
+  transform: translateX(-50%);
+  filter: blur(34px);
+  background-color: var(--hero-bloom);
+  pointer-events: none;
+}
+
+/* Haze over the wrist — the delivered warm twin, in our surface + sage. */
+.mkt-hero__haze {
+  position: absolute;
+  left: 50%;
+  bottom: -26px;
+  z-index: 4;
+  width: min(663px, 78%);
+  height: 96px;
+  transform: translateX(-50%);
+  filter: blur(34px);
+  background-image: linear-gradient(
+    178.5deg,
+    color-mix(in srgb, var(--hero-haze-near) 22%, transparent) 28%,
+    color-mix(in srgb, var(--hero-haze-far) 22%, transparent) 93%
+  );
+  pointer-events: none;
+}
+
+/* --- card ------------------------------------------------------------
+   The delivered "Recommendation" card, re-labelled with the site's own
+   capability copy. Desktop only, exactly as delivered. */
+.mkt-hero__card {
+  display: none;
+}
+
+@media (min-width: 1320px) {
+  .mkt-hero__card {
+    position: absolute;
+    right: 68px;
+    bottom: 128px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    width: 250px;
+    padding: 20px;
+    border: 1px solid var(--hero-hairline);
+    border-radius: 12px;
+    background-image:
+      radial-gradient(
+        120% 100% at 0% 50%,
+        color-mix(in srgb, var(--hero-accent) 8%, transparent) 0%,
+        transparent 100%
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--hero-surface) 55%, transparent) 0%,
+        color-mix(in srgb, var(--hero-surface) 55%, transparent) 100%
+      );
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+}
+
+.mkt-hero__card-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--hero-hairline);
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--hero-accent) 14%, transparent);
+  color: var(--hero-accent);
+}
+
+.mkt-hero__card-title {
+  margin: 0;
+  color: var(--hero-ink);
+  font-family: var(--hero-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 125%;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.mkt-hero__card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mkt-hero__card-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--hero-ink-2);
+  font-family: var(--hero-font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 140%;
+  letter-spacing: -0.01em;
+}
+
+.mkt-hero__card-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--hero-accent);
+}
+
+/* --- floor -----------------------------------------------------------
+   Lands the whole composition back on the exact page ground, so the
+   hero's last pixel row and the "Trusted By" band that follows are the
+   same colour. No border, no shadow: a hairline here would be the seam
+   this hero is meant not to have. */
+.mkt-hero__floor {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  /* Above the light rig, below the rails: it has to reach the full width
+     of the section (the rig is full-bleed and the rails are capped), and
+     it must not wash the copy or the button sitting over it. */
+  z-index: 1;
+  height: 34%;
+  pointer-events: none;
+  background-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--hero-ground) 45%, transparent) 46%,
+    color-mix(in srgb, var(--hero-ground) 92%, transparent) 78%,
+    var(--hero-ground) 100%
+  );
+}
+
+/* --- motion ----------------------------------------------------------
+   The orb is the only animated thing left in this hero (the delivered
+   logo marquee is gone — the page's own "Trusted By" band does that job
+   one section down). Under reduced motion the WebGL sphere is never
+   mounted at all; the static disc below stands in for it. */
+.mkt-hero__orb-still {
+  position: absolute;
+  inset: 8%;
+  z-index: 3;
+  border-radius: 50%;
+  background-image: radial-gradient(
+    circle at 50% 42%,
+    color-mix(in srgb, var(--hero-accent) 85%, transparent) 0%,
+    color-mix(in srgb, var(--hero-accent) 45%, transparent) 46%,
+    color-mix(in srgb, var(--hero-accent) 12%, transparent) 72%,
+    transparent 100%
+  );
+}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
-import { HomeBody } from "@/components/site";
+import { HomeBodyNoHero } from "@/components/site";
+import { SiteHero } from "@/components/site/hero";
 import { HomeShowcase } from "@/components/site/media";
 
 
@@ -41,7 +42,12 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         type="application/ld+json"
       />
-      <HomeBody />
+      {/* The Framer export's own first <section data-framer-name="Hero"> is
+          dropped by the extractor (`HomeBodyNoHero`) and this stands in its
+          place, so the two replace rather than stack. Everything below the
+          fold is still the generated transcription, unchanged. */}
+      <SiteHero />
+      <HomeBodyNoHero />
       {/* The generated body can't be hand-edited, so the showcase band is
           appended here. It is built from the shared section primitives and
           reads as another band of the same page. Its contents come from

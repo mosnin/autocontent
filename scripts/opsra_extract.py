@@ -35,6 +35,7 @@ BANNER = (
 COMPONENTS = {
     "SitePage": ("", "", ""),
     "HomeBody": ("", "", ""),
+    "HomeBodyNoHero": ("", "", ""),
     "SiteShell": (", ReactNode", "{ children }: { children: ReactNode }", "{children}"),
 }
 
@@ -616,6 +617,23 @@ if __name__ == "__main__":
     print(f"shell      head={first:,}  body={last-first:,}  foot={len(main)-last:,}")
     print(f"page-full  {len(main):>8,} bytes html")
 
+    # The homepage body again, minus its first <section> — the Framer "Hero".
+    # The page composes `components/site/hero` above this instead, so the two
+    # heroes replace rather than stack. Sliced by balanced <section> depth for
+    # the same reason the per-section pass is: a byte-offset slice to the next
+    # `<section` lands inside the hero's own nested markup.
+    hero_start, hero_end = element_ranges(main, "section")[0]
+    hero_name = FRAMER_NAME_ATTR.search(main[hero_start:hero_end])
+    assert hero_start == first, "first <section> is not where the body starts"
+    assert hero_name and hero_name.group(1) == "Hero", (
+        "the first section is no longer the Hero — check what the export leads "
+        f"with before trusting home-nohero: {hero_name and hero_name.group(1)!r}"
+    )
+    (OUT / "home-body-nohero.jsx.txt").write_text(
+        to_jsx(main[hero_end:last]), encoding="utf-8")
+    print(f"nohero     dropped {hero_end - hero_start:,} bytes of "
+          f"<section data-framer-name=\"Hero\">")
+
     # --- sections ---
     marks = [(m.start(), m.group(1)) for m in
              re.finditer(r'<section[^>]*data-framer-name="([^"]+)"', body)]
@@ -653,5 +671,6 @@ if __name__ == "__main__":
                                    encoding="utf-8")
     write_component("page-full.tsx", "SitePage", ["page-full.jsx.txt"])
     write_component("home.tsx", "HomeBody", ["home-body.jsx.txt"])
+    write_component("home-nohero.tsx", "HomeBodyNoHero", ["home-body-nohero.jsx.txt"])
     write_component("shell.tsx", "SiteShell", ["shell-head.jsx.txt", "shell-foot.jsx.txt"])
     print(f"installed   -> {SITE}")
