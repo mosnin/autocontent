@@ -110,12 +110,12 @@ user's payment method on the ad platform — so it is engineered around a strict
 - **Transcription**: OpenAI Whisper
 - **SERP research**: Exa
 - **Video**: ffmpeg
-- **Storage**: Modal volumes for clips/assets, Supabase Postgres metadata
+- **Storage**: Modal volumes for clips/assets, Postgres metadata
 
 ## Multi-tenant
 
 Every user is a Clerk identity. Per-user records (`niches`, `jobs`,
-`spend_ledger`) live in Supabase Postgres. Posting goes through one
+`spend_ledger`) live in Postgres. Posting goes through one
 Ayrshare account using per-user profile keys. Artifacts on the Modal
 volume are partitioned by `user_id`. Each niche has its own daily spend
 cap that the pipeline checks before every credit-spending stage.

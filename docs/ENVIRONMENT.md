@@ -22,7 +22,8 @@ That makes "what do I actually need" non-obvious. Only these have no
 graceful degradation:
 
 ```bash
-MARKETER_DATABASE_URL=postgres://...   # db.py get_pool() raises RuntimeError
+MARKETER_DATABASE_URL=postgresql://...  # pooled; db.py get_pool() raises without it
+MARKETER_DATABASE_DIRECT_URL=...        # unpooled; migrations only, falls back to the above
 MARKETER_OPENAI_API_KEY=sk-...         # the only preflight ERROR
 MARKETER_CLERK_JWKS_URL=https://<app>.clerk.accounts.dev/.well-known/jwks.json
 MARKETER_CLERK_ISSUER=https://<app>.clerk.accounts.dev
@@ -120,7 +121,7 @@ modal token set --token-id <id> --token-secret <secret>
 | `marketer-openai` | `MARKETER_OPENAI_API_KEY` |
 | `marketer-xai` | `MARKETER_XAI_API_KEY` |
 | `marketer-ayrshare` | `MARKETER_AYRSHARE_API_KEY` |
-| `marketer-supabase` | `MARKETER_DATABASE_URL` |
+| `marketer-database` | `MARKETER_DATABASE_URL`, `MARKETER_DATABASE_DIRECT_URL` |
 | `marketer-clerk` | `MARKETER_CLERK_JWKS_URL`, `MARKETER_CLERK_ISSUER` |
 
 ```bash

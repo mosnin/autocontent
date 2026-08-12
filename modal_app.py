@@ -45,7 +45,7 @@ secrets = [
     modal.Secret.from_name("marketer-openai"),
     modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
     modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
-    modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
+    modal.Secret.from_name("marketer-database"),  # MARKETER_DATABASE_URL
     modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
 ]
 

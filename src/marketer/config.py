@@ -9,8 +9,22 @@ class Settings(BaseSettings):
     ayrshare_api_key: str = ""
     pixabay_api_key: str = ""
 
-    # Supabase Postgres (use the pooler URL for the runtime app).
+    # Postgres. Any provider — the app uses plain asyncpg and no vendor SDK.
+    # Use the POOLED endpoint here: Modal starts a container per invocation
+    # and a direct endpoint runs out of connections quickly.
     database_url: str = ""
+    # Optional unpooled endpoint, used only for migrations. Poolers run
+    # PgBouncer in transaction mode, where a multi-statement DDL migration
+    # can land on different backends mid-run. Neon and Supabase both expose
+    # a direct host for this. Empty falls back to database_url.
+    database_direct_url: str = ""
+    # asyncpg prepares statements and caches them by name. PgBouncer in
+    # transaction mode hands the next query to a different backend, which
+    # has never seen that name — the symptom is
+    # `prepared statement "__asyncpg_stmt_N__" already exists` under load.
+    # 0 disables the cache, which is what a pooled endpoint requires.
+    # Raise it only when pointing at a direct, unpooled endpoint.
+    db_statement_cache_size: int = 0
 
     # Clerk JWT verification.
     clerk_jwks_url: str = ""

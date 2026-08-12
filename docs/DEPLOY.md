@@ -17,7 +17,7 @@ https://<your-modal-workspace>--marketer-sh-api.modal.run
 
 | Service | What you need from it |
 |---|---|
-| Supabase | Postgres **pooler** connection string |
+| Neon | Postgres **pooled** connection string, and the **direct** one |
 | Clerk | publishable key, secret key, JWKS URL, issuer |
 | OpenAI | API key |
 | xAI | API key (the default video backend) |
@@ -42,8 +42,9 @@ modal token set --token-id <id> --token-secret <secret>
 ## Step 3 — create the five Modal secrets
 
 ```bash
-modal secret create marketer-supabase \
-  MARKETER_DATABASE_URL='postgres://postgres.<ref>:<pw>@aws-0-<region>.pooler.supabase.com:5432/postgres'
+modal secret create marketer-database \
+  MARKETER_DATABASE_URL='postgresql://<user>:<pw>@ep-xxx-pooler.<region>.aws.neon.tech/<db>?sslmode=require' \
+  MARKETER_DATABASE_DIRECT_URL='postgresql://<user>:<pw>@ep-xxx.<region>.aws.neon.tech/<db>?sslmode=require'
 
 modal secret create marketer-openai \
   MARKETER_OPENAI_API_KEY='sk-...'
@@ -61,6 +62,18 @@ modal secret create marketer-clerk \
 
 Quote every value — connection strings and keys contain characters the
 shell will otherwise eat.
+
+**Neon gives you two connection strings and you need both.** The pooled
+host has `-pooler` in it; the direct host does not. Copy them from the
+Neon dashboard's connection widget by toggling "Connection pooling".
+
+- `MARKETER_DATABASE_URL` — the **pooled** one. Modal starts a container
+  per invocation, so a direct endpoint runs out of connections fast.
+- `MARKETER_DATABASE_DIRECT_URL` — the **direct** one, used only by
+  migrations. A pooler runs PgBouncer in transaction mode, where a
+  multi-statement DDL migration can land on different backends mid-run.
+
+Keep `?sslmode=require`; Neon refuses plaintext connections.
 
 `marketer-ayrshare` can be empty for now, but the secret must **exist**:
 `modal_app.py` names all five, and a missing one fails the deploy.
@@ -202,5 +215,5 @@ separate copies of the same values.
 
 **Not verified:** this runbook is assembled from `modal_app.py`,
 `config.py`, `scripts/migrate.py`, `db.py`, the preflight service and the
-`web/` tree. Nobody has executed it end to end against live Supabase,
+`web/` tree. Nobody has executed it end to end against live Neon,
 Clerk, Modal and Vercel accounts.

@@ -1,6 +1,6 @@
 # db
 
-Supabase Postgres schema for marketer. Migrations are plain SQL files
+Postgres schema for marketer. Migrations are plain SQL files
 managed by **yoyo-migrations** — a lightweight, file-based runner that
 records applied versions in a `_yoyo_migration` table it creates automatically.
 

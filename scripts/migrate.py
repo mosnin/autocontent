@@ -42,9 +42,12 @@ def _get_database_url() -> str:
     try:
         from marketer.config import settings  # noqa: PLC0415
 
-        url = settings.database_url
+        url = settings.database_direct_url or settings.database_url
     except Exception:  # noqa: BLE001
-        url = os.environ.get("MARKETER_DATABASE_URL", "")
+        url = (
+            os.environ.get("MARKETER_DATABASE_DIRECT_URL", "")
+            or os.environ.get("MARKETER_DATABASE_URL", "")
+        )
 
     if not url:
         print(
