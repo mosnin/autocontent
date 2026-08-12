@@ -218,6 +218,80 @@ ASSETS: dict[str, str] = {
     "images/lfeZiiae73i8RP2GmJfKrw9zJs.f7a17.png": "/brand/marketer-wordmark.svg",
 }
 
+# --- internal navigation --------------------------------------------------
+# Framer's static export flattens every internal link to the exported file
+# name: a nav item, a footer link and a call to action all come out as
+# `href="index.html"` or `href="contact-us.html"`, and a link the design file
+# never wired up comes out with no href at all. Nothing in the export says
+# where any of them was meant to go.
+#
+# So they are not recovered — they are *replaced*. The template's information
+# architecture (Home / Features / process / Testimonial / Pricing / FAQ) is
+# not ours; the site it now wears the design of has its own, and this map is
+# where the two are reconciled. The destinations and the labels below come
+# from `web/components/marketing/system/nav.tsx`, which is the original
+# site's navigation and the source of truth for both.
+#
+# Keyed by zone first, because the export reuses the same word in places that
+# must not go to the same page — "Home" is a nav item, a footer link and a
+# footer column heading; "Get Started Free" is both the nav button and the
+# hero button. Zone is the anchor's nearest `<nav>` / `<footer>` ancestor, or
+# `body` for everything in the page itself. Two keys carry a suffix the
+# extractor appends from the DOM:
+#   "@<layer name>"  the link has no text of its own (the logo)
+#   " @current"      Framer marks a *page* link pointing at the page you are
+#                    on with data-framer-page-link-current; that is what
+#                    separates the footer's "Pages > Home" from the "Home"
+#                    one column to its left.
+#
+# Each value is (href, label). A label of None leaves the link's words alone,
+# for the ones whose copy the TEXT map above already owns. Every label given
+# here is protected from the TEXT pass afterwards, so "Home" as a nav label
+# and "Home" as a column heading can differ.
+HREFS: dict[str, dict[str, tuple[str, str | None]]] = {
+    # The top bar. Six text slots and one button, against our six top-level
+    # destinations. "Features" keeps its word: the Product dropdown is
+    # attached to that item by name.
+    "nav": {
+        "@Logo":            ("/", None),
+        "Home":             ("/", "Home"),
+        "Features":         ("/features", "Features"),
+        "process":          ("/use-cases", "Use cases"),
+        "Testimonial":      ("/resources", "Resources"),
+        "Pricing":          ("/pricing", "Pricing"),
+        "FAQ":              ("/company", "Company"),
+        "Get Started Free": ("/sign-up", "Sign up"),
+    },
+    # The footer's first column repeats the top-level routes (its heading
+    # becomes "Product" via the TEXT map); the second column, headed "Pages",
+    # holds the ones that are not product pages. The two legal links at the
+    # very bottom are the only place terms and privacy are linked, so they
+    # keep their own words.
+    "footer": {
+        "Home":                   ("/features", "Platform"),
+        "Features":               ("/use-cases", "Use cases"),
+        "Process":                ("/resources", "Resources"),
+        "Testimonial":            ("/pricing", "Pricing"),
+        "Pricing":                ("/company", "Company"),
+        "Home @current":          ("/", "Home"),
+        "Contact":                ("/company", "Contact sales"),
+        "Privacy policy":         ("/legal/privacy", "Privacy policy"),
+        "Terms &amp; conditions": ("/legal/terms", "Terms &amp; conditions"),
+    },
+    # In the page itself. These keep their copy — the TEXT map above writes
+    # it — and only gain a destination. The three workflow tabs are the
+    # section's own Brief / Produce / Publish steps, so each one goes to the
+    # page that explains that step.
+    "body": {
+        "Get Started Free": ("/sign-up", None),        # hero
+        "get started":      ("/sign-up", None),        # pricing + closing CTA
+        "Read more":        ("/company", None),        # signs off the hero letter
+        "Connect":          ("/resources/quickstart", None),   # "Brief"
+        "Process":          ("/features/video", None),         # "Produce"
+        "Execute":          ("/features/analytics", None),     # "Publish"
+    },
+}
+
 # --- outbound links -------------------------------------------------------
 # NOTE: the social handles below are placeholders following the usual
 # convention. Swap them for the real accounts before this goes live —

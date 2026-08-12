@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 
+import {
+  FeatureIndex,
+  HubStats,
+  SharedSpine,
+} from "@/components/marketing/features/detail-b/hub-index";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
-import { HubBands } from "@/components/marketing/features/hub-bands";
 import { SectionCta } from "@/components/marketing/system";
 import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
-  "Two production pipelines from one niche brief: short-form video and SEO articles, plus an agent surface and spend controls that keep every dollar capped.";
+  "Fourteen surfaces on one platform: six ways to make the work, three to get it out, and five that keep it measured, automated, and inside the caps you set.";
 
 export const metadata: Metadata = {
   title: "Features — marketer.sh",
@@ -26,22 +30,24 @@ export default function FeaturesPage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Platform overview still"
+            label="Platform overview — the fourteen surfaces"
             ratio="4/3"
           />
         }
         kicker="Features"
-        lede="One niche brief drives two production pipelines, an agent surface, and a ledger that watches every dollar. Nothing to stitch together, nothing to babysit."
+        lede="Video, articles, UGC, dramas, motion, templates. Scheduling, campaigns, ads. Niches, analytics, agents, library, audits. All of it on one ledger, under one set of caps."
         magneticPrimary
         titleText="Everything the campaign needs. One system."
         variant="sky"
       />
-      <HubBands />
+      <FeatureIndex />
+      <SharedSpine />
+      <HubStats />
       <SectionCta
-        className="pt-6"
-        headline="See the whole system work."
+        headline="Turn on the parts you need."
+        highlight="the parts you need."
         kicker="Get started"
-        sub="One brief. Video and articles ideated, produced, published, and improved, inside caps you set."
+        sub="Every feature works on every credit pack. Start at five dollars and add surfaces as you go."
       />
     </main>
   );

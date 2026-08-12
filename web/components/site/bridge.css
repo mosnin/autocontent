@@ -94,3 +94,97 @@ body:has(#main) {
   --color-zinc-900: #fcfdfd;
   --color-zinc-950: #ffffff;
 }
+
+
+/* ---------------------------------------------------------------------
+   Brand palette override for the transcribed marketing site.
+
+   The Framer export drives its entire accent through ONE design token
+   (`--token-41e408ae-…`, originally #41fff3 teal). Re-pointing that single
+   variable recolours every accent on the page — headings' highlighted
+   phrase, eyebrow chips, bullets, buttons, the orbit and ticker marks —
+   without editing site.css, which is generated and would lose the change
+   on the next extractor run.
+
+   Sage is much lighter than the teal it replaces, so anything that sat as
+   dark-ink-on-teal still works, but teal-as-text on the dark ground drops
+   from 13.6:1 to roughly 9:1 — still well clear of AA.
+   --------------------------------------------------------------------- */
+#main {
+  --token-41e408ae-9b81-4329-a07e-7c0b5bd5e224: var(--brand-primary);
+  --brand-accent: var(--brand-primary);
+  --brand-accent-soft: var(--brand-secondary);
+}
+
+/* Literal teal that predates the palette, in hand-written CSS we own.
+   site.css is generated and is handled by the token above. */
+#main .os-highlight,
+#main [data-accent] {
+  color: var(--brand-primary);
+}
+
+
+/* --- 404 -------------------------------------------------------------
+   Lives here rather than in sections.css because not-found.tsx renders
+   outside the (marketing) group and must not depend on that group's
+   chunk being loaded. */
+.os-notfound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: 68vh;
+  padding: 96px 24px 120px;
+  text-align: center;
+}
+.os-notfound__code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin: 0;
+}
+.os-notfound__title {
+  margin: 18px 0 0;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #fcfdfd;
+}
+.os-notfound__body {
+  margin: 16px 0 0;
+  max-width: 44ch;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #bcc8c7;
+}
+.os-notfound__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+.os-notfound__cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1px solid var(--brand-primary);
+  background: var(--brand-primary);
+  color: hsl(var(--brand-primary-ink));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: opacity 0.18s ease;
+}
+.os-notfound__cta:hover { opacity: 0.88; }
+.os-notfound__cta--ghost {
+  background: transparent;
+  color: #fcfdfd;
+  border-color: rgb(42, 60, 58);
+}
