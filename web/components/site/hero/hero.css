@@ -62,7 +62,7 @@
   /* 92px is the Framer hero's clearance under the fixed nav. */
   --hero-gutter: 0px;
   --hero-cap: 100%;
-  --hero-stage: 740px;
+  --hero-stage: 790px;
   /* The hand export is 1200x667 with wide transparent margins — the hand
      itself is only ~33% of the frame — so the orb and the palm are keyed
      off one width instead of being positioned independently. 0.556 is the
@@ -92,7 +92,7 @@
   .mkt-hero {
     --hero-gutter: 46px;
     --hero-cap: 1170px;
-    --hero-stage: 820px;
+    --hero-stage: 940px;
     --hero-hand-w: 112vw;
   }
 }

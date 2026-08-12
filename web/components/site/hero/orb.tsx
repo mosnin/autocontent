@@ -1,8 +1,18 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 
-import ParticleSphere from "@/components/originkit/ui/hero-19/particle-sphere";
+/**
+ * three.js is ~150KB of the homepage's JS and only ever runs inside this
+ * one decoration, so it is loaded on demand: a reader on reduced motion,
+ * or one who never reaches the hero, never downloads it at all. `ssr:
+ * false` because the engine touches WebGL during mount.
+ */
+const ParticleSphere = dynamic(
+  () => import("@/components/originkit/ui/hero-19/particle-sphere"),
+  { ssr: false },
+);
 
 /**
  * The hero's orb.
