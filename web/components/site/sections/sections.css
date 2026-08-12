@@ -232,7 +232,10 @@
   margin: 0;
 }
 
-#main .os-h--xl { font-size: clamp(38px, 5.4vw, 68px); }
+/* Caps at 56px because that is the homepage's largest heading
+   ("Autopilot your brand's"). At 68 the inner pages out-shouted the page
+   they are supposed to sit beneath. */
+#main .os-h--xl { font-size: clamp(38px, 4.6vw, 56px); }
 #main .os-h--lg { font-size: clamp(32px, 3.9vw, 50px); }
 #main .os-h--md { font-size: clamp(26px, 2.6vw, 34px); }
 #main .os-h--sm {
@@ -251,7 +254,11 @@
 #main .os-title {
   font-family: var(--os-sans);
   font-weight: 400;
-  font-size: 22px;
+  /* 24px, not 22 — measured off the homepage's "Scattered tooling" tiles.
+     The lighter 400 weight at a large size is the design's signature
+     contrast against the 1000-weight display headings; landing a few px
+     short reads as a different, smaller type system. */
+  font-size: 24px;
   line-height: 1.15;
   letter-spacing: -0.01em;
   color: var(--os-ink);
@@ -261,6 +268,12 @@
 #main .os-title--sm {
   font-size: 18px;
   font-weight: 500;
+}
+
+/* The homepage's largest card title — "Hey there" — measures 32px/400. */
+#main .os-title--lg {
+  font-size: clamp(26px, 2.4vw, 32px);
+  font-weight: 400;
 }
 
 #main .os-lede {
@@ -296,10 +309,15 @@
 }
 
 #main .os-num {
+  /* Inline step label. The homepage's only numeral is a 155px display
+     watermark behind the AI-workflow steps, which is a different device —
+     every one of this class's six call sites is an inline `01` in a step
+     list, so it stays a label. */
   font-family: var(--os-mono);
   font-size: 12px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   color: var(--os-accent);
 }
 
@@ -421,7 +439,8 @@
   border-radius: 2px;
   border: 1px solid transparent;
   font-family: var(--os-mono);
-  font-size: 14px;
+  /* 16px to match the nav's "Sign up" button, the site's reference control. */
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: -0.01em;
   text-transform: uppercase;
