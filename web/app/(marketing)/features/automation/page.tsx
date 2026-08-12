@@ -52,8 +52,10 @@ const REST_SAMPLE = [
 const SDK_SAMPLE = [
   "from marketer.sdk import MarketerClient",
   "",
+  "# today_spend() returns a model, not a dict: a total and a",
+  "# per-niche breakdown, both as decimals.",
   "async with MarketerClient() as c:",
-  "    spend = await c.today_spend()          # typed, per niche",
+  "    spend = await c.today_spend()",
   "    if spend.total_usd < budget:",
   "        job = await c.enqueue_job(",
   '            niche_id=niche.id, platform="tiktok",',
