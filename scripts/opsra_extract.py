@@ -475,7 +475,19 @@ def check_hrefs(html: str) -> int:
 # bridge.css because site.css is generated: a hand-patch would be lost on
 # the next run, which is how the three survivors got there in the first
 # place.
-OLD_ACCENT = r"#41fff3|rgb\(\s*65\s*,\s*255\s*,\s*243\s*\)"
+# Three shades, not one. `#41fff3` is the design token's value; the other
+# two appear ONLY in inline styles — `rgb(0,245,230)` as the far stop of
+# the hero headline's gradient fill, and `rgba(0,229,215,.05)` as a wash.
+# The gradient one is why the hero's highlighted phrase stayed teal after
+# the palette swap: the element's `color` is white, so every scan that
+# looked at computed colour reported clean while the phrase painted teal
+# through `background-image` + `background-clip`.
+OLD_ACCENT = (
+    r"#41fff3"
+    r"|rgb\(\s*65\s*,\s*255\s*,\s*243\s*\)"
+    r"|rgb\(\s*0\s*,\s*245\s*,\s*230\s*\)"
+    r"|rgba\(\s*0\s*,\s*229\s*,\s*215\s*,\s*[\d.]+\s*\)"
+)
 ACCENT_LITERAL = re.compile(OLD_ACCENT, re.I)
 # A literal already serving as a var() fallback is fine: the token in
 # front of it is what actually paints, and the fallback is the standalone
@@ -504,6 +516,33 @@ def retoken_accent(css: str) -> str:
     print(f"accent     {n} bare literal(s) routed through --brand-primary, "
           f"{len(kept)} already tokenised")
     return css
+
+
+def retoken_accent_html(html: str) -> str:
+    """Same rewrite, over inline `style="…"` attributes.
+
+    Doing only the stylesheet left 62 bare literals in the markup, because
+    Framer writes per-element colour inline. CSS custom properties resolve
+    the same way in a style attribute, so the substitution is identical.
+    """
+    def one(m: re.Match[str]) -> str:
+        return f'style="{retoken_accent_quiet(m.group(1))}"'
+
+    return re.sub(r'style="([^"]*)"', one, html)
+
+
+def retoken_accent_quiet(value: str) -> str:
+    """`retoken_accent` without the per-call log line."""
+    kept: list[str] = []
+
+    def stash(m: re.Match[str]) -> str:
+        kept.append(m.group(0))
+        return f"{GUARD}{len(kept) - 1}{GUARD}"
+
+    value = ACCENT_FALLBACK.sub(stash, value)
+    value = ACCENT_LITERAL.sub(
+        lambda m: f"var(--brand-primary, {m.group(0)})", value)
+    return re.sub(rf"{GUARD}(\d+){GUARD}", lambda m: kept[int(m.group(1))], value)
 
 
 def check_accent(css: str) -> int:
@@ -671,7 +710,7 @@ if __name__ == "__main__":
         stale_accent += check_accent(inline_css)
         with (OUT / "opsra.css").open("a", encoding="utf-8") as fh:
             fh.write("\n" + inline_css)
-    main = strip_loader(apply_content(main))
+    main = retoken_accent_html(strip_loader(apply_content(main)))
     dead = check_hrefs(main)
     (OUT / "page-full.jsx.txt").write_text(to_jsx(main), encoding="utf-8")
 

@@ -188,3 +188,22 @@ body:has(#main) {
   color: #fcfdfd;
   border-color: rgb(42, 60, 58);
 }
+
+
+/* ---------------------------------------------------------------------
+   The hero's art is raster, not CSS.
+
+   Three full-bleed PNGs ship from the export with the old teal baked into
+   the pixels — the halftone field most visibly. No token can reach them,
+   so they are shifted in hue instead: teal sits near 175deg at full
+   saturation, sage near 98deg at 18%, hence the rotation and the heavy
+   desaturation.
+
+   Scoped to `data-framer-background-image-wrapper`, which Framer puts only
+   on decorative fills. Filtering every `img` in the section would also hit
+   the author photo in the "Hey there" card and turn a person green.
+   --------------------------------------------------------------------- */
+#main section[data-framer-name="Hero"]
+  [data-framer-background-image-wrapper="true"] img {
+  filter: hue-rotate(-72deg) saturate(0.42) brightness(1.04);
+}
