@@ -76,7 +76,7 @@ async def _job_attempt_at(job_id: str):
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
-    concurrency_limit=_settings.pipeline_global_concurrency,
+    max_containers=_settings.pipeline_global_concurrency,
 )
 async def run_pipeline(
     user_id: str, niche_id: str, platform: str, job_id: str | None = None
