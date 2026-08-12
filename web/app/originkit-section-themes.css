@@ -33,3 +33,11 @@
   --font-instrument-serif: "Instrument Serif", Inter, ui-sans-serif, sans-serif;
   --font-tight: "Inter Tight", Inter, ui-sans-serif, sans-serif;
 }
+
+/* originkit:hero-19 */
+/* components/originkit/hero-19.css */
+@theme {
+  --font-instrument-serif: "Instrument Serif", Georgia, serif;
+  --font-tight: "Inter Tight", Inter, ui-sans-serif, sans-serif;
+  --animate-logo-marquee: logo-marquee 28s linear infinite;
+}
