@@ -5,7 +5,7 @@
  *
  * Everything here is derived from `components/site/site.css` + the generated
  * homepage body: the ground is #151E1D, surfaces are #0F1514, hairlines are
- * rgb(42,60,58), the single accent is rgb(65,255,243), headings are the
+ * rgb(42,60,58), the single accent is var(--brand-primary), headings are the
  * heavy Pretendard display face and every eyebrow is uppercase JetBrains
  * Mono. Those three faces are already @font-face'd by site.css, so nothing
  * here loads a webfont.
@@ -36,7 +36,7 @@
   --os-ink-4: #6c8481;
 
   /* The one accent. */
-  --os-accent: var(--token-41e408ae-9b81-4329-a07e-7c0b5bd5e224, #41fff3);
+  --os-accent: var(--token-41e408ae-9b81-4329-a07e-7c0b5bd5e224, var(--brand-primary));
   --os-accent-ink: #0b1211;
 
   /* Type */
