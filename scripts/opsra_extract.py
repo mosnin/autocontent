@@ -35,6 +35,7 @@ BANNER = (
 COMPONENTS = {
     "SitePage": ("", "", ""),
     "HomeBody": ("", "", ""),
+    "HomeBodyNoHero": ("", "", ""),
     "SiteShell": (", ReactNode", "{ children }: { children: ReactNode }", "{children}"),
 }
 
@@ -465,6 +466,70 @@ def check_hrefs(html: str) -> int:
     return len(bad)
 
 
+# --- accent -----------------------------------------------------------
+# The export's accent, in every notation its stylesheet writes it in.
+# Opsra drove almost all of it through one design token, which
+# `components/site/bridge.css` re-points at `--brand-primary` — but a
+# handful of rules skip the token and write the colour out, and those
+# stayed teal on a sage site. They are rewritten here rather than in
+# bridge.css because site.css is generated: a hand-patch would be lost on
+# the next run, which is how the three survivors got there in the first
+# place.
+OLD_ACCENT = r"#41fff3|rgb\(\s*65\s*,\s*255\s*,\s*243\s*\)"
+ACCENT_LITERAL = re.compile(OLD_ACCENT, re.I)
+# A literal already serving as a var() fallback is fine: the token in
+# front of it is what actually paints, and the fallback is the standalone
+# rendering. Left exactly as authored.
+ACCENT_FALLBACK = re.compile(
+    r"var\(\s*--[\w-]+\s*,\s*(?:" + OLD_ACCENT + r")\s*\)", re.I)
+GUARD = "\x01"
+
+
+def retoken_accent(css: str) -> str:
+    """Route every bare accent literal through `--brand-primary`.
+
+    The original stays as the var() fallback, so the stylesheet still
+    renders on its own if the brand variable is ever absent.
+    """
+    kept: list[str] = []
+
+    def stash(m: re.Match[str]) -> str:
+        kept.append(m.group(0))
+        return f"{GUARD}{len(kept) - 1}{GUARD}"
+
+    css = ACCENT_FALLBACK.sub(stash, css)
+    css, n = ACCENT_LITERAL.subn(
+        lambda m: f"var(--brand-primary, {m.group(0)})", css)
+    css = re.sub(rf"{GUARD}(\d+){GUARD}", lambda m: kept[int(m.group(1))], css)
+    print(f"accent     {n} bare literal(s) routed through --brand-primary, "
+          f"{len(kept)} already tokenised")
+    return css
+
+
+def check_accent(css: str) -> int:
+    """Report any accent literal the rewrite above did not reach.
+
+    Same job as the dead-href check, one layer down: a stale accent is
+    invisible to the type checker and to a build, and a re-pull that adds
+    a fourth hardcoded swatch would otherwise ship the wrong colour in
+    silence.
+    """
+    stray: list[tuple[str, str]] = []
+    for sel, body in re.findall(r"([^{}]*)\{([^{}]*)\}", css):
+        # Drop every literal that is a var() fallback — including the ones
+        # this pass just wrote — and see what is left painting directly.
+        if ACCENT_LITERAL.search(ACCENT_FALLBACK.sub("", body)):
+            stray.append((sel.strip()[-90:], body.strip()[:90]))
+    if stray:
+        print(f"\n!! {len(stray)} rule(s) still write the export's teal accent "
+              f"outside a var() fallback — teach retoken_accent about them:")
+        for sel, body in stray:
+            print(f"    {sel}  {{{body}…}}")
+    else:
+        print("accent     no bare accent literals left in the stylesheet")
+    return len(stray)
+
+
 def apply_content(html: str) -> str:
     """Swap Opsra's words and marks for ours, on raw HTML.
 
@@ -557,6 +622,7 @@ if __name__ == "__main__":
     css = "\n".join(b for b in blocks if len(b) > 200)
     css = re.sub(r'url\(["\']?(?!data:|https?:|/)([^)"\']+)["\']?\)',
                  lambda m: f'url("/site/{m.group(1)}")', css)
+    css = retoken_accent(css)
     # The export is a whole document: it assumes the initial values for
     # anything its own reset does not set. Mounted inside our app it also
     # inherits `globals.css`, whose base line-height reached every text
@@ -570,6 +636,7 @@ if __name__ == "__main__":
         "font-weight:400;font-style:normal}\n"
     )
     (OUT / "opsra.css").write_text(css, encoding="utf-8")
+    stale_accent = check_accent(css)
     print(f"css        {len(css):>8,} bytes")
 
     # --- the whole page wrapper ---
@@ -598,6 +665,10 @@ if __name__ == "__main__":
     main = re.sub(r"<style[^>]*>.*?</style>", "", main, flags=re.S)
     main = re.sub(r"<script[^>]*>.*?</script>", "", main, flags=re.S)
     if inline_css:
+        # Same accent treatment as the main sheet — this is CSS too, it
+        # just happened to be written inside the tree.
+        inline_css = retoken_accent(inline_css)
+        stale_accent += check_accent(inline_css)
         with (OUT / "opsra.css").open("a", encoding="utf-8") as fh:
             fh.write("\n" + inline_css)
     main = strip_loader(apply_content(main))
@@ -615,6 +686,23 @@ if __name__ == "__main__":
     (OUT / "home-body.jsx.txt").write_text(to_jsx(main[first:last]), encoding="utf-8")
     print(f"shell      head={first:,}  body={last-first:,}  foot={len(main)-last:,}")
     print(f"page-full  {len(main):>8,} bytes html")
+
+    # The homepage body again, minus its first <section> — the Framer "Hero".
+    # The page composes `components/site/hero` above this instead, so the two
+    # heroes replace rather than stack. Sliced by balanced <section> depth for
+    # the same reason the per-section pass is: a byte-offset slice to the next
+    # `<section` lands inside the hero's own nested markup.
+    hero_start, hero_end = element_ranges(main, "section")[0]
+    hero_name = FRAMER_NAME_ATTR.search(main[hero_start:hero_end])
+    assert hero_start == first, "first <section> is not where the body starts"
+    assert hero_name and hero_name.group(1) == "Hero", (
+        "the first section is no longer the Hero — check what the export leads "
+        f"with before trusting home-nohero: {hero_name and hero_name.group(1)!r}"
+    )
+    (OUT / "home-body-nohero.jsx.txt").write_text(
+        to_jsx(main[hero_end:last]), encoding="utf-8")
+    print(f"nohero     dropped {hero_end - hero_start:,} bytes of "
+          f"<section data-framer-name=\"Hero\">")
 
     # --- sections ---
     marks = [(m.start(), m.group(1)) for m in
@@ -647,11 +735,15 @@ if __name__ == "__main__":
     if dead:
         print("\nrefusing to write components/site: fix the links above first")
         raise SystemExit(1)
+    if stale_accent:
+        print(f"\n!! {stale_accent} stale accent rule(s) above will ship teal "
+              "on a sage site — fix before relying on this run")
 
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "site.css").write_text((OUT / "opsra.css").read_text(encoding="utf-8"),
                                    encoding="utf-8")
     write_component("page-full.tsx", "SitePage", ["page-full.jsx.txt"])
     write_component("home.tsx", "HomeBody", ["home-body.jsx.txt"])
+    write_component("home-nohero.tsx", "HomeBodyNoHero", ["home-body-nohero.jsx.txt"])
     write_component("shell.tsx", "SiteShell", ["shell-head.jsx.txt", "shell-foot.jsx.txt"])
     print(f"installed   -> {SITE}")

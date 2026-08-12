@@ -996,7 +996,9 @@ const MENU_ITEM_FROM_OPACITY = 0.001;
  *   rgb(21, 30, 29)    #151E1D  page ground (nav background token)
  *   rgb(15, 21, 20)    #0F1514  card surface
  *   rgb(42, 60, 58)    borders  (token-6f736482…)
- *   rgb(65, 255, 243)  teal accent
+ *   var(--brand-primary)  brand accent (was a teal literal; the
+ *                         overlay renders outside #main, where
+ *                         bridge.css's token override cannot reach)
  *   rgb(129, 152, 149) muted text (token-8d29ccb4…)
  *   rgb(252, 253, 253) foreground (token-d51e9d36…)
  * Type is the nav's own: JetBrains Mono 500, uppercase, tight tracking.
@@ -1007,7 +1009,7 @@ const MENU_CSS = `
 .site-menu{position:fixed;top:0;left:0;right:0;height:100vh;height:100dvh;
   z-index:2147483000;display:flex;flex-direction:column;box-sizing:border-box;
   background-color:rgba(21,30,29,.97);
-  background-image:radial-gradient(120% 55% at 50% 118%,rgba(65,255,243,.13),rgba(65,255,243,0) 68%);
+  background-image:radial-gradient(120% 55% at 50% 118%,color-mix(in srgb, var(--brand-primary, #41fff3) 13%, transparent),color-mix(in srgb, var(--brand-primary, #41fff3) 0%, transparent) 68%);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
   overflow:hidden;will-change:clip-path,opacity;-webkit-tap-highlight-color:transparent}
 .site-menu__scroll{flex:1 1 auto;display:flex;flex-direction:column;
@@ -1019,7 +1021,7 @@ const MENU_CSS = `
   font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;font-weight:500;
   line-height:1;letter-spacing:.12em;text-transform:uppercase;color:rgb(129,152,149)}
 .site-menu__title::before{content:"";flex:none;width:6px;height:6px;border-radius:1px;
-  background:rgb(65,255,243);box-shadow:0 0 12px rgba(65,255,243,.55)}
+  background:var(--brand-primary, #41fff3);box-shadow:0 0 12px color-mix(in srgb, var(--brand-primary, #41fff3) 55%, transparent)}
 .site-menu__title::after{content:"";flex:1 1 auto;height:1px;background:rgb(42,60,58)}
 .site-menu__list{list-style:none;margin:0;padding:0;border-top:1px solid rgb(42,60,58)}
 .site-menu__item{border-bottom:1px solid rgb(42,60,58)}
@@ -1028,14 +1030,14 @@ const MENU_CSS = `
   font-weight:500;line-height:1.15;letter-spacing:-.02em;text-transform:uppercase;
   color:rgb(252,253,253);transition:color .18s ease-out}
 .site-menu__index{flex:none;min-width:24px;font-size:11px;letter-spacing:.06em;
-  color:rgb(65,255,243);opacity:.7}
+  color:var(--brand-primary, #41fff3);opacity:.7}
 .site-menu__label{flex:1 1 auto}
 .site-menu__arrow{flex:none;font-size:15px;color:rgb(129,152,149);opacity:0;
   transform:translateX(-4px);transition:opacity .18s ease-out,transform .18s ease-out,color .18s ease-out}
-.site-menu__link:hover,.site-menu__link:focus-visible{color:rgb(65,255,243)}
+.site-menu__link:hover,.site-menu__link:focus-visible{color:var(--brand-primary, #41fff3)}
 .site-menu__link:hover .site-menu__arrow,
-.site-menu__link:focus-visible .site-menu__arrow{opacity:1;transform:translateX(0);color:rgb(65,255,243)}
-.site-menu__link:focus-visible{outline:1px solid rgb(65,255,243);outline-offset:2px}
+.site-menu__link:focus-visible .site-menu__arrow{opacity:1;transform:translateX(0);color:var(--brand-primary, #41fff3)}
+.site-menu__link:focus-visible{outline:1px solid var(--brand-primary, #41fff3);outline-offset:2px}
 .site-menu__cta{margin-top:26px}
 .site-menu__cta>a{display:flex!important;width:100%!important;box-sizing:border-box}
 .site-menu__cta>a>div{flex:1 0 auto!important;width:auto!important;justify-content:center}

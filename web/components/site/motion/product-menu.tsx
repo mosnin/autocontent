@@ -201,7 +201,15 @@ const BORDER = "rgb(42, 60, 58)";
 /** The nav link colour (`--token-8d29ccb4…`). */
 const MUTED = "rgb(129, 152, 149)";
 const TEXT = "rgb(252, 253, 253)";
-const ACCENT = "rgb(65, 255, 243)";
+/* Resolves through the brand variable rather than a literal. This panel is
+ * injected into the nav, which lives OUTSIDE `#main` — and `bridge.css`
+ * re-points the export's accent token only inside `#main`. So a literal
+ * here survives a palette change invisibly: the menu is 0x0 while closed,
+ * and flashes the old colour the first time someone opens it. The fallback
+ * keeps it rendering if the variable is ever absent. */
+const ACCENT = "var(--brand-primary, #9ab08d)";
+/** Same colour at 6% for hover fills, via color-mix so one source stays. */
+const ACCENT_WASH = "color-mix(in srgb, var(--brand-primary, #9ab08d) 6%, transparent)";
 
 /* ------------------------------------------------------------------ *
  * Timing                                                              *
@@ -263,7 +271,7 @@ const CSS = `
 .pm-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .pm-item{display:block;padding:8px 10px;border-radius:4px;text-decoration:none;
   border:1px solid transparent;transition:background-color .12s ease,border-color .12s ease}
-.pm-item:hover,.pm-item:focus-visible{background:rgba(65,255,243,.06);border-color:${BORDER};outline:none}
+.pm-item:hover,.pm-item:focus-visible{background:${ACCENT_WASH};border-color:${BORDER};outline:none}
 .pm-item:focus-visible{border-color:${ACCENT}}
 .pm-label{display:block;font-family:"JetBrains Mono",monospace;font-size:13px;
   font-weight:500;line-height:18px;letter-spacing:-.13px;text-transform:uppercase;
