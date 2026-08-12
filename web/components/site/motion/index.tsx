@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { initControls } from "./controls";
+import { initProductMenu } from "./product-menu";
 import { initReveal } from "./reveal";
 import { initTicker } from "./ticker";
 
@@ -23,7 +24,12 @@ export function SiteMotion() {
   useEffect(() => {
     const root = document.getElementById("main");
     if (!root) return;
-    const teardown = [initReveal(root), initTicker(root), initControls(root)];
+    const teardown = [
+      initReveal(root),
+      initTicker(root),
+      initControls(root),
+      initProductMenu(root),
+    ];
     return () => teardown.forEach((fn) => fn?.());
   }, []);
 

@@ -933,13 +933,27 @@ function initCounters(root: HTMLElement): Disposer {
  * The Nav component has five variants; the hamburger ("Menu Icon", variants
  * Closed / Open State) flips the nav from Phone -> Phone Open or
  * Tablet -> Tab Open, which is the only condition under which the
- * `.framer-bwjtjp` Menu panel is rendered at all. The panel appears instantly
- * (Framer's variant root is `initial:false`, so there is no enter animation)
- * and clicking any menu link closes it again.
+ * `.framer-bwjtjp` Menu panel is rendered at all.
  *
- * The transcription only kept the closed variants, so the panel is rebuilt
- * here from the export's own classes (all present in site.css) with the link
- * labels/hrefs and CTA cloned out of the Desktop nav so nothing is invented.
+ * DELIBERATE DEVIATION FROM THE ORIGINAL (product decision, not a port bug):
+ * the original opens a 220x360 dropdown pinned under the hamburger, with no
+ * enter or exit animation at all (Framer's variant root is `initial:false`).
+ * This module replaces that presentation with a full-screen menu that wipes
+ * open and wipes closed. Everything else the original did — variant/icon swap,
+ * link labels + hrefs and the CTA cloned live out of the Desktop nav, close on
+ * link tap — is preserved, and nothing about the nav bar itself changes.
+ *
+ * Motion, all of it borrowed from values already extracted elsewhere in this
+ * folder rather than invented here (see MENU_SPRING_IN / _OUT below):
+ *
+ *   ground   clip-path wipe from the nav's lower edge, spring bounce 0, 0.6s
+ *   links    opacity .001 -> 1, y 10 -> 0, spring bounce 0 0.6s, 75ms apart
+ *   exit     the same wipe in reverse plus a flat fade, spring bounce 0, 0.4s
+ *
+ * The panel is appended to `document.body`, not to the nav: it must be
+ * impossible for an ancestor's `overflow` or stacking context to clip a
+ * viewport-sized element. The nav's own fixed container is lifted above it
+ * while open so the logo and the X stay visible and tappable.
  */
 const NAV_OPEN_VARIANTS: Record<string, { cls: string; name: string }> = {
   // Phone -> Phone Open

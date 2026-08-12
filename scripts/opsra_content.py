@@ -220,65 +220,75 @@ ASSETS: dict[str, str] = {
 
 # --- internal navigation --------------------------------------------------
 # Framer's static export flattens every internal link to the exported file
-# name: a nav item that smooth-scrolled to a section on the same page and a
-# genuine link to the home page both come out as `href="index.html"`, and a
-# link that was never wired up in the design file comes out with no href at
-# all. The target is only recoverable from the link's own copy and the
-# section ids the export still carries (`#hero`, `#features`, `#ai-workflow`,
-# `#social-proof`, `#pricing`, `#faq`, …), so the map is keyed on both:
-# outer key is the href as exported, inner key is the link's visible text.
+# name: a nav item, a footer link and a call to action all come out as
+# `href="index.html"` or `href="contact-us.html"`, and a link the design file
+# never wired up comes out with no href at all. Nothing in the export says
+# where any of them was meant to go.
 #
-# Two links share text and href but differ in intent, so the inner key can
-# carry a suffix the extractor appends from the DOM:
-#   "@<layer name>"  the link has no text at all (the logo)
-#   " @current"      the anchor is marked data-framer-page-link-current,
-#                    which is how Framer marks a real *page* link pointing at
-#                    the page you are on. That is what separates the footer's
-#                    "Pages > Home" (a page link) from the nav's "Home" (a
-#                    scroll-to-top link) — same word, same exported href.
+# So they are not recovered — they are *replaced*. The template's information
+# architecture (Home / Features / process / Testimonial / Pricing / FAQ) is
+# not ours; the site it now wears the design of has its own, and this map is
+# where the two are reconciled. The destinations and the labels below come
+# from `web/components/marketing/system/nav.tsx`, which is the original
+# site's navigation and the source of truth for both.
 #
-# In-page targets are written `/#section`, not `#section`. The nav and footer
-# live in SiteShell, which wraps every marketing route, so a bare fragment
-# would be a dead link on /pricing, /legal/privacy and the rest. `/#pricing`
-# scrolls when you are already on the home page and navigates-then-scrolls
-# when you are not.
-HREFS: dict[str, dict[str, str]] = {
-    # The home page — nav and footer "Product" column. Every one of these
-    # scrolled to a section of the home page in the original, so every one
-    # stays an in-page anchor rather than becoming a route of its own.
-    "index.html": {
-        "@Logo": "/",                    # wordmark, top left of the nav
-        "Home": "/#hero",                # nav + footer: scroll back to the top
-        "Home @current": "/",            # footer "Pages" column: real page link
-        "Features": "/#features",
-        "process": "/#ai-workflow",      # nav casing
-        "Process": "/#ai-workflow",      # footer + workflow step tab
-        "Connect": "/#ai-workflow",      # workflow step tabs, same section
-        "Execute": "/#ai-workflow",
-        "Testimonial": "/#social-proof",
-        "Pricing": "/#pricing",
-        "FAQ": "/#faq",
+# Keyed by zone first, because the export reuses the same word in places that
+# must not go to the same page — "Home" is a nav item, a footer link and a
+# footer column heading; "Get Started Free" is both the nav button and the
+# hero button. Zone is the anchor's nearest `<nav>` / `<footer>` ancestor, or
+# `body` for everything in the page itself. Two keys carry a suffix the
+# extractor appends from the DOM:
+#   "@<layer name>"  the link has no text of its own (the logo)
+#   " @current"      Framer marks a *page* link pointing at the page you are
+#                    on with data-framer-page-link-current; that is what
+#                    separates the footer's "Pages > Home" from the "Home"
+#                    one column to its left.
+#
+# Each value is (href, label). A label of None leaves the link's words alone,
+# for the ones whose copy the TEXT map above already owns. Every label given
+# here is protected from the TEXT pass afterwards, so "Home" as a nav label
+# and "Home" as a column heading can differ.
+HREFS: dict[str, dict[str, tuple[str, str | None]]] = {
+    # The top bar. Six text slots and one button, against our six top-level
+    # destinations. "Features" keeps its word: the Product dropdown is
+    # attached to that item by name.
+    "nav": {
+        "@Logo":            ("/", None),
+        "Home":             ("/", "Home"),
+        "Features":         ("/features", "Features"),
+        "process":          ("/use-cases", "Use cases"),
+        "Testimonial":      ("/resources", "Resources"),
+        "Pricing":          ("/pricing", "Pricing"),
+        "FAQ":              ("/company", "Company"),
+        "Get Started Free": ("/sign-up", "Sign up"),
     },
-    # contact-us.html was a real page, and every link into it is a
-    # conversion CTA — except the footer's "Contact", which is a genuine
-    # "how do we reach you" link and belongs on the company page.
-    "contact-us.html": {
-        "Get Started Free": "/sign-up",
-        "get started": "/sign-up",
-        "Contact": "/company",
+    # The footer's first column repeats the top-level routes (its heading
+    # becomes "Product" via the TEXT map); the second column, headed "Pages",
+    # holds the ones that are not product pages. The two legal links at the
+    # very bottom are the only place terms and privacy are linked, so they
+    # keep their own words.
+    "footer": {
+        "Home":                   ("/features", "Platform"),
+        "Features":               ("/use-cases", "Use cases"),
+        "Process":                ("/resources", "Resources"),
+        "Testimonial":            ("/pricing", "Pricing"),
+        "Pricing":                ("/company", "Company"),
+        "Home @current":          ("/", "Home"),
+        "Contact":                ("/company", "Contact sales"),
+        "Privacy policy":         ("/legal/privacy", "Privacy policy"),
+        "Terms &amp; conditions": ("/legal/terms", "Terms &amp; conditions"),
     },
-    # privacy-policy.html carried both notices in the original; we have a
-    # page for each.
-    "privacy-policy.html": {
-        "Privacy policy": "/legal/privacy",
-        "Terms &amp; conditions": "/legal/terms",
-    },
-    # Links the design file never wired up — they render as <a> with no href,
-    # so they are not focusable and do nothing at all. The empty key is the
-    # missing href. "Read more" closes the signed letter in the hero, so it
-    # goes where the rest of that letter lives.
-    "": {
-        "Read more": "/company",
+    # In the page itself. These keep their copy — the TEXT map above writes
+    # it — and only gain a destination. The three workflow tabs are the
+    # section's own Brief / Produce / Publish steps, so each one goes to the
+    # page that explains that step.
+    "body": {
+        "Get Started Free": ("/sign-up", None),        # hero
+        "get started":      ("/sign-up", None),        # pricing + closing CTA
+        "Read more":        ("/company", None),        # signs off the hero letter
+        "Connect":          ("/resources/quickstart", None),   # "Brief"
+        "Process":          ("/features/video", None),         # "Produce"
+        "Execute":          ("/features/analytics", None),     # "Publish"
     },
 }
 

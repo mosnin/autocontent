@@ -317,23 +317,35 @@ HREF_ATTR = re.compile(r'\shref="([^"]*)"')
 FRAMER_NAME_ATTR = re.compile(r'data-framer-name="([^"]*)"')
 
 
-def anchor_span(html: str, start: int) -> int:
-    """End offset of the </a> closing the <a> that opens at `start`."""
+def anchor_span(html: str, start: int) -> tuple[int, int]:
+    """(start of `</a>`, end of `</a>`) for the `<a>` opening at `start`."""
     depth = 0
     for tok in re.finditer(r"</?a\b[^>]*>", html[start:]):
         depth += -1 if tok.group(0).startswith("</") else 1
         if depth == 0:
-            return start + tok.end()
-    return len(html)
+            return start + tok.start(), start + tok.end()
+    return len(html), len(html)
+
+
+def element_ranges(html: str, tag: str) -> list[tuple[int, int]]:
+    """Every (start, end) span of `<tag>` in `html`, nesting-aware."""
+    spans = []
+    for m in re.finditer(rf"<{tag}\b[^>]*>", html):
+        depth = 0
+        for tok in re.finditer(rf"</?{tag}\b[^>]*>", html[m.start():]):
+            depth += -1 if tok.group(0).startswith("</") else 1
+            if depth == 0:
+                spans.append((m.start(), m.start() + tok.end()))
+                break
+    return spans
 
 
 def anchor_label(tag: str, inner_html: str) -> str:
-    """The key an anchor is looked up under in `content.HREFS`.
+    """The key an anchor is looked up under inside its zone in `HREFS`.
 
     Normally the link's visible text, entities left as authored so the map
-    reads like the page (`Terms &amp; conditions`). Two disambiguators are
-    appended from the DOM, because the export flattens links that differ in
-    intent onto identical text + href — see the note over `HREFS`.
+    reads like the page (`Terms &amp; conditions`), plus the two suffixes
+    described over `HREFS`.
     """
     text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", inner_html)).strip()
     if not text:
@@ -344,12 +356,39 @@ def anchor_label(tag: str, inner_html: str) -> str:
     return text
 
 
-def apply_hrefs(html: str) -> tuple[str, list[str]]:
-    """Point the export's internal links at our routes.
+# Wraps a label written by apply_hrefs so the TEXT pass afterwards cannot
+# see it. Without this, one key ("Home") would have to mean the same thing
+# as a nav item, as a footer link and as a footer column heading, which is
+# exactly the collision the zone keys exist to avoid. Stripped again at the
+# end of apply_content, before anything is parsed into JSX.
+KEPT = "\x00"
 
-    Run before the TEXT swap so the lookup keys are the original copy, the
+
+def relabel(inner_html: str, label: str) -> str:
+    """Replace a link's visible words, leaving its markup alone."""
+    protected = f"{KEPT}{label}{KEPT}"
+    if "<" not in inner_html:
+        return protected
+    # The first text node inside the button's wrapper divs is the label; the
+    # rest of the element is icons and hover layers with no text at all.
+    new, n = re.subn(r">\s*[^<>\s][^<>]*<", f">{protected}<", inner_html, count=1)
+    return new if n else inner_html
+
+
+def link_zone(offset: int, zones: dict[str, list[tuple[int, int]]]) -> str:
+    for name, spans in zones.items():
+        if any(a <= offset < b for a, b in spans):
+            return name
+    return "body"
+
+
+def apply_hrefs(html: str) -> tuple[str, list[str]]:
+    """Point the export's internal links at our routes, and relabel them.
+
+    Run before the TEXT swap: the lookup keys are the original copy, the
     same as every other map in `opsra_content`.
     """
+    zones = {"nav": element_ranges(html, "nav"), "footer": element_ranges(html, "footer")}
     seen: set[tuple[str, str]] = set()
     out: list[str] = []
     pos = 0
@@ -359,17 +398,20 @@ def apply_hrefs(html: str) -> tuple[str, list[str]]:
         tag = m.group(0)
         href_match = HREF_ATTR.search(tag)
         href = href_match.group(1) if href_match else ""
-        by_label = content.HREFS.get(href)
-        if by_label is None:
-            continue  # outbound/absolute — LINKS owns those
-        label = anchor_label(tag, html[m.end():anchor_span(html, m.start())])
-        dst = by_label.get(label)
-        if dst is None:
-            # An internal link the map does not describe. Left alone on
-            # purpose so the emitted-href guard reports it by name rather
-            # than this pass guessing a destination.
+        if href.startswith(("http://", "https://", "mailto:", "tel:")):
+            continue  # outbound — LINKS owns those
+        close_start, _ = anchor_span(html, m.start())
+        inner = html[m.end():close_start]
+        zone = link_zone(m.start(), zones)
+        label = anchor_label(tag, inner)
+        entry = content.HREFS.get(zone, {}).get(label)
+        if entry is None:
+            # A link the map does not describe. Left alone on purpose, so
+            # the emitted-href guard reports it by zone and name rather than
+            # this pass inventing a destination for it.
             continue
-        seen.add((href, label))
+        dst, new_label = entry
+        seen.add((zone, label))
         if href_match:
             new_tag = tag[:href_match.start()] + f' href="{dst}"' + tag[href_match.end():]
         else:
@@ -378,12 +420,13 @@ def apply_hrefs(html: str) -> tuple[str, list[str]]:
             new_tag = f'<a href="{dst}"' + tag[2:]
         out.append(html[pos:m.start()])
         out.append(new_tag)
-        pos = m.end()
+        out.append(relabel(inner, new_label) if new_label else inner)
+        pos = close_start
     out.append(html[pos:])
 
-    unused = [f"HREFS: {src or '(no href)'} -> {label}"
-              for src, labels in content.HREFS.items()
-              for label in labels if (src, label) not in seen]
+    unused = [f"HREFS: {zone} -> {label}"
+              for zone, links in content.HREFS.items()
+              for label in links if (zone, label) not in seen]
     return "".join(out), unused
 
 

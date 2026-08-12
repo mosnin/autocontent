@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { HomeBody } from "@/components/site";
+import { HomeShowcase } from "@/components/site/media";
 
 
 const DESCRIPTION =
@@ -41,6 +42,11 @@ export default function HomePage() {
         type="application/ld+json"
       />
       <HomeBody />
+      {/* The generated body can't be hand-edited, so the showcase band is
+          appended here. It is built from the shared section primitives and
+          reads as another band of the same page. Its contents come from
+          `components/site/media/showcase.config.ts`. */}
+      <HomeShowcase />
     </>
   );
 }
