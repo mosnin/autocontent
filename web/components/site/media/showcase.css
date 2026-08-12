@@ -1,0 +1,365 @@
+/*
+ * Showcase media — the frames real platform output drops into.
+ *
+ * Nothing here invents colour. Every value resolves through the `--os-*`
+ * tokens defined by `components/site/sections/sections.css` (ground #151E1D,
+ * surface #0F1514, hairline rgb(42,60,58), one accent), so if the brand
+ * accent is re-pointed at the token level these frames follow it.
+ *
+ * Scoped to `#main` for the same two reasons the section primitives are: it
+ * keeps the marketing language out of the authenticated app, and (1,1,0)
+ * specificity means these rules survive whatever utility CSS lands beside
+ * them.
+ *
+ * Layout-shift rule: every slot's box carries `aspect-ratio` from an inline
+ * `--ms-aspect`, set from the registry. The space is reserved before a single
+ * byte of media arrives, so a slot going live never moves the page.
+ */
+
+/* ------------------------------------------------------------------ */
+/* The frame                                                           */
+/* ------------------------------------------------------------------ */
+
+#main .ms-slot {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* The corner-ticked frame (`.os-frame`) is reused as the outer shell; this
+   only removes its padding so media sits flush inside the hairline. */
+#main .ms-slot__frame {
+  padding: 0;
+  overflow: hidden;
+}
+
+#main .ms-slot__box {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--ms-aspect, 16 / 9);
+  overflow: hidden;
+  border-radius: calc(var(--os-radius) - 1px);
+  background-color: var(--os-surface);
+}
+
+/* Live media fills the reserved box, never stretches. */
+#main .ms-slot__media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ------------------------------------------------------------------ */
+/* Placeholder — "your generated asset goes here"                      */
+/* ------------------------------------------------------------------ */
+
+/*
+ * Deliberately designed, not broken: the surface, a faint accent dot-matrix
+ * and one corner wash, exactly the treatment the rest of the site gives an
+ * unfilled media slot — plus the three lines you need to fill it.
+ */
+#main .ms-ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+  background-color: var(--os-surface);
+  background-image:
+    radial-gradient(
+      120% 120% at 85% -10%,
+      color-mix(in srgb, var(--os-accent) 8%, transparent) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at center,
+      color-mix(in srgb, var(--os-accent) 22%, transparent) 1px,
+      transparent 1px
+    );
+  background-size:
+    100% 100%,
+    14px 14px;
+}
+
+/* A dashed inner keyline says "reserved space" without looking like an
+   error state. */
+#main .ms-ph::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px dashed color-mix(in srgb, var(--os-accent) 22%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+#main .ms-ph__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1px solid var(--os-line);
+  border-radius: 2px;
+  background-color: var(--os-chip);
+  color: var(--os-accent);
+}
+
+/* The kind badge: mono, uppercase, accent keyline. Never colour alone —
+   it always carries its word. */
+#main .ms-ph__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border: 1px solid color-mix(in srgb, var(--os-accent) 45%, var(--os-line));
+  border-radius: 2px;
+  background-color: rgba(15, 21, 20, 0.9);
+  font-family: var(--os-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--os-accent);
+  max-width: 100%;
+}
+
+/* Spec + path. `--os-ink-2` on the surface is ~11:1, comfortably past AA,
+   and the opaque chip behind it keeps the dot-matrix out of the ratio. */
+#main .ms-ph__spec,
+#main .ms-ph__path {
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 1px solid var(--os-line);
+  border-radius: 2px;
+  background-color: rgba(15, 21, 20, 0.94);
+  font-family: var(--os-mono);
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: var(--os-ink-2);
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+#main .ms-ph__path {
+  color: var(--os-ink-2);
+  font-size: 10.5px;
+}
+
+/* Portrait and vertical slots get tight: drop the least-critical line
+   rather than letting text overflow the frame. */
+#main .ms-slot--dense .ms-ph {
+  gap: 9px;
+  padding: 12px;
+}
+
+#main .ms-slot--dense .ms-ph__icon {
+  width: 28px;
+  height: 28px;
+}
+
+@media (max-width: 719px) {
+  #main .ms-ph {
+    gap: 9px;
+    padding: 12px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Caption under the frame                                             */
+/* ------------------------------------------------------------------ */
+
+#main .ms-slot__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 12px;
+}
+
+#main .ms-slot__title {
+  font-family: var(--os-sans);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--os-ink);
+  margin: 0;
+}
+
+#main .ms-slot__note {
+  font-family: var(--os-sans);
+  font-weight: 500;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--os-ink-3);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Video controls                                                      */
+/* ------------------------------------------------------------------ */
+
+#main .ms-video {
+  position: absolute;
+  inset: 0;
+}
+
+#main .ms-video__btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px 6px 8px;
+  border: 1px solid var(--os-line);
+  border-radius: 2px;
+  background-color: rgba(15, 21, 20, 0.92);
+  font-family: var(--os-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--os-ink);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+#main .ms-video__btn:hover {
+  border-color: color-mix(in srgb, var(--os-accent) 55%, var(--os-line));
+  color: var(--os-accent);
+}
+
+#main .ms-video__btn:focus-visible {
+  outline: 2px solid var(--os-accent);
+  outline-offset: 2px;
+}
+
+#main .ms-video__btn svg {
+  flex: none;
+  color: var(--os-accent);
+}
+
+/* Visually hidden, still announced. Local rather than borrowed from a
+   utility layer, so the button's accessible name can never be dropped by a
+   CSS purge. */
+#main .ms-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Layouts                                                             */
+/* ------------------------------------------------------------------ */
+
+#main .ms-grid {
+  display: grid;
+  gap: 16px;
+}
+
+#main .ms-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+#main .ms-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+#main .ms-grid--4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1023px) {
+  #main .ms-grid--3,
+  #main .ms-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 719px) {
+  #main .ms-grid--2,
+  #main .ms-grid--3,
+  #main .ms-grid--4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/*
+ * The rail. Scrolls inside its own box — the page itself never gains a
+ * horizontal scrollbar, at any width.
+ */
+#main .ms-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(190px, 1fr);
+  gap: 16px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--os-line) transparent;
+}
+
+#main .ms-rail > * {
+  scroll-snap-align: start;
+}
+
+@media (max-width: 1023px) {
+  #main .ms-rail {
+    grid-auto-columns: minmax(190px, 46%);
+  }
+}
+
+@media (max-width: 719px) {
+  #main .ms-rail {
+    grid-auto-columns: minmax(170px, 68%);
+  }
+}
+
+#main .ms-rail::-webkit-scrollbar {
+  height: 6px;
+}
+
+#main .ms-rail::-webkit-scrollbar-thumb {
+  background-color: var(--os-line);
+  border-radius: 3px;
+}
+
+/* The mono "scroll" affordance sitting beside a rail's label. */
+#main .ms-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--os-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--os-ink-3);
+}
+
+#main .ms-rowhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}

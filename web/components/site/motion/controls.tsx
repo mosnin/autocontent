@@ -954,17 +954,166 @@ const HAMBURGER_OPEN_CLASS = "framer-v-jcqq8b";
 const HAMBURGER_OPEN_ICON =
   'url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 xmlns:xlink=%22http://www.w3.org/1999/xlink%22 viewBox=%220 0 22 22%22><path d=%22M 5.123 5.35 C 5.389 5.083 5.821 5.083 6.087 5.35 L 10.795 10.057 L 9.831 11.021 L 5.123 6.314 C 4.857 6.047 4.857 5.616 5.123 5.35 Z M 16.694 15.956 C 16.96 16.222 16.96 16.654 16.694 16.92 C 16.428 17.187 15.996 17.187 15.73 16.92 L 10.795 11.986 L 11.759 11.021 Z M 6.087 16.693 L 10.795 11.986 L 9.831 11.021 L 5.123 15.729 C 4.857 15.995 4.857 16.427 5.123 16.693 C 5.389 16.959 5.821 16.959 6.087 16.693 Z M 16.694 6.086 C 16.96 5.82 16.96 5.389 16.694 5.122 C 16.428 4.856 15.996 4.856 15.73 5.122 L 10.795 10.057 L 11.759 11.021 Z%22 fill=%22rgb(255,255,255)%22></path></svg>")';
 
-/** Menu link wrapper classes, in the order the original renders them. */
-const MENU_LINK_CLASSES = [
-  "framer-1ff9kds",
-  "framer-19wp6jq",
-  "framer-1jrfh26",
-  "framer-e4qt6s",
-  "framer-iiama6",
-  "framer-xs02o7",
-];
+/* --- motion -------------------------------------------------------- *
+ *
+ * Nothing here is a new curve. The site knows exactly two bounce-0 spring
+ * speeds and one stagger, all extracted from the original:
+ *
+ *   0.6s  the split-text reveal (`reveal.tsx` TEXT_TRANSITION) — "content
+ *         arriving", used here for the ground wipe and the link entrance
+ *   0.4s  the Faq Item variant transition (FAQ_SPRING, above) — the site's
+ *         speed for a UI control changing state, used here for the exit
+ *   75ms  the split-text per-line stagger (`reveal.tsx` TEXT_LINE_STAGGER)
+ *   100ms the offset between a heading's reveal and the block under it
+ *         (`reveal.tsx` SPRING_DELAY_200 vs SPRING_DELAY_300), used as the
+ *         lead the ground gets over the first link
+ */
+const MENU_SPRING_IN = { type: "spring", bounce: 0, duration: 0.6 } as const;
+const MENU_SPRING_OUT = { type: "spring", bounce: 0, duration: 0.4 } as const;
+const MENU_ITEM_STAGGER = 0.075;
+const MENU_CONTENT_DELAY = 0.1;
+/** Split-text enter values, verbatim: `{effect: {opacity: .001, y: 10}}`. */
+const MENU_ITEM_FROM_Y = 10;
+const MENU_ITEM_FROM_OPACITY = 0.001;
 
-function buildMenuPanel(root: HTMLElement, panelId: string): HTMLElement | null {
+/* --- design -------------------------------------------------------- *
+ *
+ * Colours are the export's own tokens:
+ *   rgb(21, 30, 29)    #151E1D  page ground (nav background token)
+ *   rgb(15, 21, 20)    #0F1514  card surface
+ *   rgb(42, 60, 58)    borders  (token-6f736482…)
+ *   rgb(65, 255, 243)  teal accent
+ *   rgb(129, 152, 149) muted text (token-8d29ccb4…)
+ *   rgb(252, 253, 253) foreground (token-d51e9d36…)
+ * Type is the nav's own: JetBrains Mono 500, uppercase, tight tracking.
+ */
+const MENU_STYLE_ID = "site-menu-style";
+
+const MENU_CSS = `
+.site-menu{position:fixed;top:0;left:0;right:0;height:100vh;height:100dvh;
+  z-index:2147483000;display:flex;flex-direction:column;box-sizing:border-box;
+  background-color:rgba(21,30,29,.97);
+  background-image:radial-gradient(120% 55% at 50% 118%,rgba(65,255,243,.13),rgba(65,255,243,0) 68%);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  overflow:hidden;will-change:clip-path,opacity;-webkit-tap-highlight-color:transparent}
+.site-menu__scroll{flex:1 1 auto;display:flex;flex-direction:column;
+  overflow-y:auto;overscroll-behavior:contain;
+  padding-top:calc(var(--site-menu-top,92px) + 22px);
+  padding-bottom:calc(36px + env(safe-area-inset-bottom,0px))}
+.site-menu__sheet{width:100%;max-width:640px;margin:0 auto;padding:0 16px;box-sizing:border-box}
+.site-menu__title{display:flex;align-items:center;gap:12px;margin:0 0 16px;
+  font-family:"JetBrains Mono",ui-monospace,monospace;font-size:12px;font-weight:500;
+  line-height:1;letter-spacing:.12em;text-transform:uppercase;color:rgb(129,152,149)}
+.site-menu__title::before{content:"";flex:none;width:6px;height:6px;border-radius:1px;
+  background:rgb(65,255,243);box-shadow:0 0 12px rgba(65,255,243,.55)}
+.site-menu__title::after{content:"";flex:1 1 auto;height:1px;background:rgb(42,60,58)}
+.site-menu__list{list-style:none;margin:0;padding:0;border-top:1px solid rgb(42,60,58)}
+.site-menu__item{border-bottom:1px solid rgb(42,60,58)}
+.site-menu__link{display:flex;align-items:center;gap:14px;padding:17px 2px;
+  text-decoration:none;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:20px;
+  font-weight:500;line-height:1.15;letter-spacing:-.02em;text-transform:uppercase;
+  color:rgb(252,253,253);transition:color .18s ease-out}
+.site-menu__index{flex:none;min-width:24px;font-size:11px;letter-spacing:.06em;
+  color:rgb(65,255,243);opacity:.7}
+.site-menu__label{flex:1 1 auto}
+.site-menu__arrow{flex:none;font-size:15px;color:rgb(129,152,149);opacity:0;
+  transform:translateX(-4px);transition:opacity .18s ease-out,transform .18s ease-out,color .18s ease-out}
+.site-menu__link:hover,.site-menu__link:focus-visible{color:rgb(65,255,243)}
+.site-menu__link:hover .site-menu__arrow,
+.site-menu__link:focus-visible .site-menu__arrow{opacity:1;transform:translateX(0);color:rgb(65,255,243)}
+.site-menu__link:focus-visible{outline:1px solid rgb(65,255,243);outline-offset:2px}
+.site-menu__cta{margin-top:26px}
+.site-menu__cta>a{display:flex!important;width:100%!important;box-sizing:border-box}
+.site-menu__cta>a>div{flex:1 0 auto!important;width:auto!important;justify-content:center}
+@media (min-width:810px){
+  .site-menu__sheet{max-width:720px;padding:0 46px}
+  .site-menu__title{font-size:13px;margin-bottom:22px}
+  .site-menu__link{font-size:30px;padding:24px 2px;gap:20px}
+  .site-menu__index{font-size:12px;min-width:34px}
+  .site-menu__cta{margin-top:34px}
+}
+@media (prefers-reduced-motion: reduce){.site-menu *{transition:none!important}}
+`;
+
+/** Installed once per document, removed when the last nav is torn down. */
+function ensureMenuStyles(): Disposer {
+  let style = document.getElementById(MENU_STYLE_ID);
+  if (!style) {
+    style = document.createElement("style");
+    style.id = MENU_STYLE_ID;
+    style.textContent = MENU_CSS;
+    document.head.appendChild(style);
+  }
+  return () => style?.remove();
+}
+
+/* --- scroll lock ---------------------------------------------------- *
+ *
+ * `overflow:hidden` on <html> alone does not hold on iOS, so the panel takes
+ * the page out of flow and pins it at its current offset. The saved offset is
+ * mirrored onto a data attribute so a mount that finds a stranded lock (a hot
+ * reload, a crashed teardown) can still undo it.
+ */
+type BodyStyleSnapshot = Record<string, string>;
+const LOCKED_PROPS = [
+  "position",
+  "top",
+  "left",
+  "right",
+  "width",
+  "overflow",
+  "paddingRight",
+] as const;
+
+let scrollSnapshot: BodyStyleSnapshot | null = null;
+let scrollOffset = 0;
+
+function lockBodyScroll(): void {
+  if (scrollSnapshot) return;
+  const body = document.body;
+  const snapshot: BodyStyleSnapshot = {};
+  for (const prop of LOCKED_PROPS) snapshot[prop] = body.style[prop];
+  scrollSnapshot = snapshot;
+  scrollOffset = window.scrollY;
+
+  // Compensate for the scrollbar the lock removes, so nothing reflows.
+  const gutter = window.innerWidth - document.documentElement.clientWidth;
+  body.style.position = "fixed";
+  body.style.top = `${-scrollOffset}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "100%";
+  body.style.overflow = "hidden";
+  if (gutter > 0) body.style.paddingRight = `${gutter}px`;
+  body.dataset.siteMenuScrollLock = String(scrollOffset);
+}
+
+function unlockBodyScroll(): void {
+  const body = document.body;
+  const stranded = body.dataset.siteMenuScrollLock;
+  if (!scrollSnapshot && stranded === undefined) return;
+  const offset = scrollSnapshot ? scrollOffset : Number(stranded) || 0;
+  for (const prop of LOCKED_PROPS) body.style[prop] = scrollSnapshot?.[prop] ?? "";
+  delete body.dataset.siteMenuScrollLock;
+  scrollSnapshot = null;
+  window.scrollTo(0, offset);
+}
+
+/* --- panel ---------------------------------------------------------- */
+
+type MenuOverlay = {
+  overlay: HTMLElement;
+  sheet: HTMLElement;
+  /** Rows that carry the staggered entrance, in visual order. */
+  stagger: HTMLElement[];
+};
+
+/**
+ * Labels, hrefs and the CTA are cloned out of the live Desktop nav on every
+ * open, so whatever the routes are at that moment is what the menu links to —
+ * nothing about the destinations is hard-coded here.
+ */
+function buildMenuOverlay(root: HTMLElement, panelId: string): MenuOverlay | null {
   const source = Array.from(root.querySelectorAll<HTMLElement>("nav")).find(
     (n) => n.querySelector('[data-framer-name="Nav Links Wrap"]'),
   );
@@ -979,78 +1128,95 @@ function buildMenuPanel(root: HTMLElement, panelId: string): HTMLElement | null 
     '[data-framer-name="Primary Button"]',
   );
 
-  const panel = document.createElement("div");
-  panel.className = "framer-bwjtjp";
-  panel.setAttribute("data-border", "true");
-  panel.setAttribute("data-framer-name", "Menu");
-  panel.id = panelId;
-  panel.setAttribute("role", "dialog");
-  panel.setAttribute("aria-modal", "false");
-  panel.setAttribute("aria-label", "Site menu");
-  panel.style.cssText = [
-    "--border-bottom-width: 1px",
-    "--border-color: var(--token-6f736482-00f8-4928-8b5f-342942aa76e8, rgb(42, 60, 58))",
-    "--border-left-width: 1px",
-    "--border-right-width: 1px",
-    "--border-style: solid",
-    "--border-top-width: 1px",
-    "background-color: var(--token-5ba75b1b-325e-49a3-a831-486521e69d36, rgb(32, 45, 44))",
-    "border-radius: 2px",
-    "opacity: 1",
-  ].join("; ");
+  const titleId = `${panelId}-title`;
 
-  const wrap = document.createElement("div");
-  wrap.className = "framer-13vrg8f";
-  wrap.setAttribute("data-framer-name", "Nav Links Wrap");
-  wrap.style.borderRadius = "8px";
+  const overlay = document.createElement("div");
+  overlay.className = "site-menu";
+  overlay.id = panelId;
+  overlay.setAttribute("data-framer-name", "Menu");
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-labelledby", titleId);
+
+  const scroll = document.createElement("div");
+  scroll.className = "site-menu__scroll";
+
+  const sheet = document.createElement("div");
+  sheet.className = "site-menu__sheet";
+
+  const title = document.createElement("h2");
+  title.className = "site-menu__title";
+  title.id = titleId;
+  title.textContent = "Menu";
+  sheet.appendChild(title);
+
+  const stagger: HTMLElement[] = [];
+
+  const list = document.createElement("ul");
+  list.className = "site-menu__list";
 
   links.forEach((link, i) => {
     const anchor = link.querySelector("a");
-    const item = document.createElement("div");
-    item.className = MENU_LINK_CLASSES[i] ?? MENU_LINK_CLASSES[MENU_LINK_CLASSES.length - 1];
-    item.setAttribute("data-framer-name", "Text Button");
-    item.setAttribute("data-highlight", "true");
-    item.setAttribute("data-framer-component-type", "RichTextContainer");
-    item.style.cssText = [
-      "--extracted-r6o4lv: var(--token-8d29ccb4-0aa8-491a-8788-1d8fc78460b8, rgb(129, 152, 149))",
-      "--framer-paragraph-spacing: 0px",
-      "transform: none",
-      "opacity: 1",
-    ].join("; ");
+    const href = anchor?.getAttribute("href");
+    const label = (anchor?.textContent ?? link.textContent ?? "").trim();
+    if (!label) return;
 
-    const p = document.createElement("p");
-    p.className = "framer-text framer-styles-preset-x1k7r";
-    p.setAttribute("data-styles-preset", "MuF1m_OLL");
-    p.setAttribute("dir", "auto");
-    p.style.setProperty(
-      "--framer-text-color",
-      "var(--extracted-r6o4lv, var(--token-8d29ccb4-0aa8-491a-8788-1d8fc78460b8, rgb(129, 152, 149)))",
-    );
+    const item = document.createElement("li");
+    item.className = "site-menu__item";
 
     const a = document.createElement("a");
-    a.className = "framer-text framer-styles-preset-de286j";
-    a.setAttribute("data-styles-preset", "e_3Rjy2bC");
-    a.setAttribute("href", anchor?.getAttribute("href") ?? "#");
-    a.textContent = anchor?.textContent ?? link.textContent ?? "";
+    a.className = "site-menu__link";
+    if (href) a.setAttribute("href", href);
+    for (const attr of ["target", "rel", "download"]) {
+      const value = anchor?.getAttribute(attr);
+      if (value) a.setAttribute(attr, value);
+    }
 
-    p.appendChild(a);
-    item.appendChild(p);
-    wrap.appendChild(item);
+    const index = document.createElement("span");
+    index.className = "site-menu__index";
+    index.setAttribute("aria-hidden", "true");
+    index.textContent = String(i + 1).padStart(2, "0");
+
+    const text = document.createElement("span");
+    text.className = "site-menu__label";
+    text.textContent = label;
+
+    const arrow = document.createElement("span");
+    arrow.className = "site-menu__arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "→";
+
+    a.append(index, text, arrow);
+    item.appendChild(a);
+    list.appendChild(item);
+    stagger.push(item);
   });
 
-  panel.appendChild(wrap);
+  sheet.appendChild(list);
 
   if (cta) {
     const ctaWrap = document.createElement("div");
-    ctaWrap.className = "framer-1szd0kb-container";
-    ctaWrap.style.opacity = "1";
+    ctaWrap.className = "site-menu__cta";
     const clone = cta.cloneNode(true) as HTMLElement;
     clone.removeAttribute("id");
     ctaWrap.appendChild(clone);
-    panel.appendChild(ctaWrap);
+    sheet.appendChild(ctaWrap);
+    stagger.push(ctaWrap);
   }
 
-  return panel;
+  scroll.appendChild(sheet);
+  overlay.appendChild(scroll);
+
+  return { overlay, sheet, stagger };
+}
+
+/** The wipe: 0 = fully closed (clipped to the top edge), 1 = fully open. */
+function paintWipe(overlay: HTMLElement, progress: number): void {
+  const hidden = Math.max(0, Math.min(1, 1 - progress)) * 100;
+  overlay.style.clipPath = `inset(0% 0% ${hidden.toFixed(2)}% 0%)`;
+  // A short fade under the wipe softens the leading edge without washing the
+  // panel out: opaque by the time the wipe is a third of the way down.
+  overlay.style.opacity = Math.max(0, Math.min(1, progress * 3)).toFixed(3);
 }
 
 function initNavMenus(root: HTMLElement, signal: AbortSignal): Disposer {
@@ -1059,11 +1225,19 @@ function initNavMenus(root: HTMLElement, signal: AbortSignal): Disposer {
   const navs = Array.from(root.querySelectorAll<HTMLElement>("nav")).filter(
     (nav) => nav.querySelector(".framer-TYMUs"),
   );
+  if (!navs.length) return () => {};
+
+  // A previous mount that could not finish its teardown (hot reload, an
+  // exception mid-cleanup) would otherwise leave a panel and a scroll lock
+  // behind, and the next mount would stack a second panel on top of it.
+  document.querySelectorAll(".site-menu").forEach((stale) => stale.remove());
+  unlockBodyScroll();
+
+  disposers.push(ensureMenuStyles());
 
   for (const nav of navs) {
     const trigger = nav.querySelector<HTMLElement>(".framer-TYMUs");
-    const host = nav.querySelector<HTMLElement>('[data-framer-name="Sub Container"]');
-    if (!trigger || !host) continue;
+    if (!trigger) continue;
 
     const closedNavVariant = variantClass(nav);
     const openNav = closedNavVariant
@@ -1075,46 +1249,142 @@ function initNavMenus(root: HTMLElement, signal: AbortSignal): Disposer {
     const icon = trigger.querySelector<HTMLElement>('[data-framer-name="Icon"]');
     const closedIconBg = icon?.style.backgroundImage ?? "";
 
+    /**
+     * The nav lives in its own `position: fixed` container. Lifting that
+     * container above the panel keeps the logo and the X painted on top of the
+     * full-screen ground and keeps the X clickable, which is what makes the
+     * trigger a real close button.
+     */
+    const navLayer = ((): HTMLElement => {
+      let el: HTMLElement | null = nav;
+      while (el && el !== document.body) {
+        const position = getComputedStyle(el).position;
+        if (position === "fixed" || position === "sticky") return el;
+        el = el.parentElement;
+      }
+      return nav;
+    })();
+    const navLayerZ = navLayer.style.zIndex;
+
     const panelId = nextId("nav-menu");
-    let panel: HTMLElement | null = null;
+    let overlay: MenuOverlay | null = null;
     let open = false;
-    let lastFocus: HTMLElement | null = null;
+    let locked = false;
+    let lifted = false;
+    /** Bumped on every state change so a stale tween cannot land a stale state. */
+    let generation = 0;
+    let running: { stop: () => void }[] = [];
+    /** 0 = clipped shut, 1 = fully wiped open. Survives interruption. */
+    let wipe = 0;
 
     trigger.setAttribute("role", "button");
-    trigger.setAttribute("aria-haspopup", "menu");
+    trigger.setAttribute("aria-haspopup", "dialog");
     trigger.setAttribute("aria-expanded", "false");
     trigger.setAttribute("aria-controls", panelId);
     trigger.setAttribute("aria-label", "Open menu");
+    // The export renders the hamburger as a plain div, so it is not reachable
+    // by keyboard and cannot receive focus back when the panel closes.
+    const hadTabIndex = trigger.hasAttribute("tabindex");
+    if (!hadTabIndex) trigger.setAttribute("tabindex", "0");
 
     const focusables = (): HTMLElement[] => {
       const list: HTMLElement[] = [trigger];
-      if (panel) {
+      if (overlay) {
         list.push(
           ...Array.from(
-            panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+            overlay.overlay.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
           ).filter(isFocusable),
         );
       }
       return list;
     };
 
+    const stopAll = () => {
+      for (const controls of running) {
+        try {
+          controls.stop();
+        } catch {
+          /* a stopped animation must not block the rest */
+        }
+      }
+      running = [];
+    };
+
+    /** Runs only when the exit has played all the way through. */
+    const finishClose = (token: number) => {
+      if (token !== generation || open) return;
+      overlay?.overlay.remove();
+      overlay = null;
+      if (locked) {
+        locked = false;
+        unlockBodyScroll();
+      }
+      if (lifted) {
+        lifted = false;
+        navLayer.style.zIndex = navLayerZ;
+      }
+    };
+
     const setOpen = (value: boolean) => {
       if (value === open) return;
       open = value;
+      generation += 1;
+      const token = generation;
+      const reduce = prefersReducedMotion();
+
+      // Both directions animate from wherever the panel currently is, so
+      // tapping open/close/open mid-flight never snaps.
+      stopAll();
 
       if (value) {
-        lastFocus = (document.activeElement as HTMLElement | null) ?? trigger;
-        panel = buildMenuPanel(root, panelId);
-        if (panel) {
-          host.appendChild(panel);
+        const fresh = !overlay;
+        if (!overlay) overlay = buildMenuOverlay(root, panelId);
+        if (!overlay) {
+          open = false;
+          return;
+        }
+        const { overlay: panel, sheet, stagger } = overlay;
+
+        if (fresh) {
+          wipe = 0;
+          paintWipe(panel, 0);
+          for (const el of stagger) {
+            el.style.opacity = String(MENU_ITEM_FROM_OPACITY);
+            el.style.transform = `translateY(${MENU_ITEM_FROM_Y}px)`;
+          }
+          document.body.appendChild(panel);
+          // Tapping the ground outside the link column is the backdrop tap;
+          // tapping a link closes the menu behind the navigation.
           panel.addEventListener(
             "click",
             (event) => {
-              if ((event.target as Element | null)?.closest("a")) setOpen(false);
+              const target = event.target as Element | null;
+              if (target?.closest("a")) {
+                setOpen(false);
+                return;
+              }
+              if (!target || !sheet.contains(target)) setOpen(false);
             },
             { signal },
           );
         }
+
+        panel.removeAttribute("aria-hidden");
+        panel.style.pointerEvents = "";
+        panel.style.setProperty(
+          "--site-menu-top",
+          `${Math.round(nav.getBoundingClientRect().height)}px`,
+        );
+
+        if (!locked) {
+          locked = true;
+          lockBodyScroll();
+        }
+        if (!lifted) {
+          lifted = true;
+          navLayer.style.zIndex = "2147483001";
+        }
+
         if (openNav && closedNavVariant) {
           swapVariantClass(nav, closedNavVariant, openNav.cls);
           nav.setAttribute("data-framer-name", openNav.name);
@@ -1124,11 +1394,46 @@ function initNavMenus(root: HTMLElement, signal: AbortSignal): Disposer {
         if (icon) icon.style.backgroundImage = HAMBURGER_OPEN_ICON;
         trigger.setAttribute("aria-expanded", "true");
         trigger.setAttribute("aria-label", "Close menu");
-        const first = focusables()[1];
-        first?.focus();
+
+        if (reduce) {
+          wipe = 1;
+          paintWipe(panel, 1);
+          for (const el of stagger) {
+            el.style.opacity = "1";
+            el.style.transform = "none";
+          }
+        } else {
+          running.push(
+            animate(wipe, 1, {
+              ...MENU_SPRING_IN,
+              onUpdate: (v: number) => {
+                wipe = v;
+                paintWipe(panel, v);
+              },
+              onComplete: () => {
+                wipe = 1;
+                paintWipe(panel, 1);
+              },
+            }),
+          );
+          stagger.forEach((el, i) => {
+            running.push(
+              animate(
+                el,
+                { opacity: 1, y: 0 },
+                {
+                  ...MENU_SPRING_IN,
+                  delay: MENU_CONTENT_DELAY + i * MENU_ITEM_STAGGER,
+                },
+              ),
+            );
+          });
+        }
+
+        focusables()[1]?.focus({ preventScroll: true });
       } else {
-        panel?.remove();
-        panel = null;
+        const panel = overlay?.overlay;
+
         if (openNav && closedNavVariant) {
           swapVariantClass(nav, openNav.cls, closedNavVariant);
           nav.setAttribute("data-framer-name", closedNavName);
@@ -1138,8 +1443,37 @@ function initNavMenus(root: HTMLElement, signal: AbortSignal): Disposer {
         if (icon) icon.style.backgroundImage = closedIconBg;
         trigger.setAttribute("aria-expanded", "false");
         trigger.setAttribute("aria-label", "Open menu");
-        (lastFocus ?? trigger).focus();
-        lastFocus = null;
+        // Synchronously, while the exit is still playing: a keyboard user must
+        // land back on the trigger the moment Escape is pressed.
+        trigger.focus({ preventScroll: true });
+
+        if (!panel || !overlay) {
+          finishClose(token);
+          return;
+        }
+
+        // Out of the a11y tree and inert for the whole of the exit, so the
+        // menu can never be read or tapped while it is leaving.
+        panel.setAttribute("aria-hidden", "true");
+        panel.style.pointerEvents = "none";
+
+        if (reduce) {
+          finishClose(token);
+          return;
+        }
+
+        for (const el of overlay.stagger) {
+          running.push(animate(el, { opacity: 0 }, MENU_SPRING_OUT));
+        }
+        const wipeOut = animate(wipe, 0, {
+          ...MENU_SPRING_OUT,
+          onUpdate: (v: number) => {
+            wipe = v;
+            paintWipe(panel, v);
+          },
+        });
+        running.push(wipeOut);
+        wipeOut.then(() => finishClose(token));
       }
     };
 
@@ -1193,19 +1527,55 @@ function initNavMenus(root: HTMLElement, signal: AbortSignal): Disposer {
       (event) => {
         if (!open) return;
         const target = event.target as Node | null;
-        if (trigger.contains(target) || panel?.contains(target)) return;
+        if (trigger.contains(target) || overlay?.overlay.contains(target)) return;
         setOpen(false);
       },
       { signal },
     );
 
+    // Browser chrome collapsing, an orientation change or a breakpoint switch
+    // all move the nav's lower edge; the panel's top inset follows it.
+    window.addEventListener(
+      "resize",
+      () => {
+        if (!open || !overlay) return;
+        overlay.overlay.style.setProperty(
+          "--site-menu-top",
+          `${Math.round(nav.getBoundingClientRect().height)}px`,
+        );
+      },
+      { signal },
+    );
+
     disposers.push(() => {
-      if (open) setOpen(false);
+      // Teardown is immediate — an unmounting tree must not be left waiting on
+      // an exit animation. `generation` invalidates any tween still in flight.
+      generation += 1;
+      open = false;
+      stopAll();
+      overlay?.overlay.remove();
+      overlay = null;
+      if (locked) {
+        locked = false;
+        unlockBodyScroll();
+      }
+      if (lifted) {
+        lifted = false;
+        navLayer.style.zIndex = navLayerZ;
+      }
+      if (openNav && closedNavVariant) {
+        swapVariantClass(nav, openNav.cls, closedNavVariant);
+        nav.setAttribute("data-framer-name", closedNavName);
+      }
+      swapVariantClass(trigger, HAMBURGER_OPEN_CLASS, closedTriggerVariant);
+      trigger.setAttribute("data-framer-name", closedTriggerName);
+      if (icon) icon.style.backgroundImage = closedIconBg;
       trigger.removeAttribute("role");
       trigger.removeAttribute("aria-haspopup");
       trigger.removeAttribute("aria-expanded");
       trigger.removeAttribute("aria-controls");
       trigger.removeAttribute("aria-label");
+      if (!hadTabIndex) trigger.removeAttribute("tabindex");
     });
   }
 

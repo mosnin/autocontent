@@ -218,6 +218,70 @@ ASSETS: dict[str, str] = {
     "images/lfeZiiae73i8RP2GmJfKrw9zJs.f7a17.png": "/brand/marketer-wordmark.svg",
 }
 
+# --- internal navigation --------------------------------------------------
+# Framer's static export flattens every internal link to the exported file
+# name: a nav item that smooth-scrolled to a section on the same page and a
+# genuine link to the home page both come out as `href="index.html"`, and a
+# link that was never wired up in the design file comes out with no href at
+# all. The target is only recoverable from the link's own copy and the
+# section ids the export still carries (`#hero`, `#features`, `#ai-workflow`,
+# `#social-proof`, `#pricing`, `#faq`, …), so the map is keyed on both:
+# outer key is the href as exported, inner key is the link's visible text.
+#
+# Two links share text and href but differ in intent, so the inner key can
+# carry a suffix the extractor appends from the DOM:
+#   "@<layer name>"  the link has no text at all (the logo)
+#   " @current"      the anchor is marked data-framer-page-link-current,
+#                    which is how Framer marks a real *page* link pointing at
+#                    the page you are on. That is what separates the footer's
+#                    "Pages > Home" (a page link) from the nav's "Home" (a
+#                    scroll-to-top link) — same word, same exported href.
+#
+# In-page targets are written `/#section`, not `#section`. The nav and footer
+# live in SiteShell, which wraps every marketing route, so a bare fragment
+# would be a dead link on /pricing, /legal/privacy and the rest. `/#pricing`
+# scrolls when you are already on the home page and navigates-then-scrolls
+# when you are not.
+HREFS: dict[str, dict[str, str]] = {
+    # The home page — nav and footer "Product" column. Every one of these
+    # scrolled to a section of the home page in the original, so every one
+    # stays an in-page anchor rather than becoming a route of its own.
+    "index.html": {
+        "@Logo": "/",                    # wordmark, top left of the nav
+        "Home": "/#hero",                # nav + footer: scroll back to the top
+        "Home @current": "/",            # footer "Pages" column: real page link
+        "Features": "/#features",
+        "process": "/#ai-workflow",      # nav casing
+        "Process": "/#ai-workflow",      # footer + workflow step tab
+        "Connect": "/#ai-workflow",      # workflow step tabs, same section
+        "Execute": "/#ai-workflow",
+        "Testimonial": "/#social-proof",
+        "Pricing": "/#pricing",
+        "FAQ": "/#faq",
+    },
+    # contact-us.html was a real page, and every link into it is a
+    # conversion CTA — except the footer's "Contact", which is a genuine
+    # "how do we reach you" link and belongs on the company page.
+    "contact-us.html": {
+        "Get Started Free": "/sign-up",
+        "get started": "/sign-up",
+        "Contact": "/company",
+    },
+    # privacy-policy.html carried both notices in the original; we have a
+    # page for each.
+    "privacy-policy.html": {
+        "Privacy policy": "/legal/privacy",
+        "Terms &amp; conditions": "/legal/terms",
+    },
+    # Links the design file never wired up — they render as <a> with no href,
+    # so they are not focusable and do nothing at all. The empty key is the
+    # missing href. "Read more" closes the signed letter in the hero, so it
+    # goes where the rest of that letter lives.
+    "": {
+        "Read more": "/company",
+    },
+}
+
 # --- outbound links -------------------------------------------------------
 # NOTE: the social handles below are placeholders following the usual
 # convention. Swap them for the real accounts before this goes live —
