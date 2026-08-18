@@ -62,6 +62,14 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
             detail=f"platform {body.platform} not enabled for this niche",
         )
 
+    # Prepaid-credit gate, up front. Without this a $0-balance user gets a
+    # "queued" job that dies deep in the pipeline on SpendCapExceeded — the
+    # audit's "first five minutes" failure. Refuse at the button instead,
+    # with a message a human can act on (the client offers "Add credit").
+    from marketer.services.run_estimate import refuse_if_credit_short
+
+    await refuse_if_credit_short(ctx.user_id, niche)
+
     job = await jobs_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, platform=body.platform
     )
@@ -161,6 +169,21 @@ async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     """Re-run a previously failed job from scratch. Only works on jobs in
     `failed` state owned by the caller."""
     import modal
+
+    from marketer.config import settings as marketer_settings
+
+    # Credit-gate BEFORE the atomic reset so a refused retry leaves the job
+    # untouched in `failed` (resetting first would strand it in `queued`).
+    # Only fetched when billing is on — self-hosted deploys skip the reads.
+    if marketer_settings.billing_enabled:
+        from marketer.repos import niches as niches_repo
+        from marketer.services.run_estimate import refuse_if_credit_short
+
+        existing = await jobs_repo.get(job_id, user_id=ctx.user_id)
+        if existing is not None:
+            niche = await niches_repo.get(existing.niche_id, user_id=ctx.user_id)
+            if niche is not None:
+                await refuse_if_credit_short(ctx.user_id, niche)
 
     job = await jobs_repo.reset_for_retry(job_id, user_id=ctx.user_id)
     if job is None:

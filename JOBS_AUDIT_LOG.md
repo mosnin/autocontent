@@ -24,3 +24,27 @@ Goal: see JOBS_AUDIT_GOAL.md. Audit source: STEVE_JOBS_AUDIT.md.
 - Validation: tsc clean, next build clean.
 - Next: Cycle 2 = Workstream 2 (the $0 first run — credit check at enqueue,
   Add-credit CTAs, Failures inbox hidden when empty).
+
+## Cycle 2 — 2026-08-18 · Workstream 2: The $0 first run
+- New `src/marketer/services/run_estimate.py`: whole-run cost estimate from
+  the authoritative pricing tables (portrait 1024x1536 image tier — the
+  client preview's square-tier under-estimate is noted for the money cycle),
+  margin-inclusive `estimated_charge_usd`, and `refuse_if_credit_short`.
+- `POST /api/v1/jobs` and `POST /jobs/{id}/retry` now refuse up front with
+  402 and a human message ("This run is estimated at $X and you have $Y of
+  credit. Add credit to run it.") when billing is on and the balance is
+  short — no more queued jobs dying deep in the pipeline on their first run.
+  Retry gates BEFORE the atomic reset so a refused retry stays `failed`.
+- Run-confirm dialog: 402 keeps the dialog open and renders the server's
+  message with an "Add credit" button (→ /settings/billing) instead of
+  toasting a raw status line.
+- Failures inbox: renders nothing when there are no failures (no more
+  "Failures inbox" as the first thing a new user sees on Queue) and
+  spend-cap rows now carry an "Add credit" action next to Retry.
+- Tests: 3 new route tests (402 enqueue, 202 with balance, 402 retry leaves
+  job untouched). ruff clean; pytest: my delta +3 passing/0 new failures
+  (31 pre-existing env failures on this container — no ffmpeg/DATABASE_URL;
+  identical on the clean tree, green in CI).
+- Validation: tsc clean, next build clean.
+- Next: Cycle 3 = re-audit pass over Cycles 1–2 surfaces, then Workstream 3
+  (glossary purge) — per protocol, audit after every 2–3 fix cycles.

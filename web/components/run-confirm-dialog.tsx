@@ -35,6 +35,18 @@ interface OpenArgs {
   platform: Platform;
 }
 
+/** Pull the human `detail` message out of a `"<status> <json-body>"` error
+ * string from the API client; null when the body isn't that shape. */
+function extractDetail(raw: string): string | null {
+  const body = raw.replace(/^\d{3}\s*/, "");
+  try {
+    const parsed = JSON.parse(body) as { detail?: unknown };
+    return typeof parsed.detail === "string" ? parsed.detail : null;
+  } catch {
+    return null;
+  }
+}
+
 interface Ctx {
   openRunConfirm: (args: OpenArgs) => void;
 }
@@ -100,6 +112,12 @@ function RunConfirmDialog({
 
   const niche = niches?.find((n) => n.id === args?.nicheId);
   const [submitting, setSubmitting] = React.useState(false);
+  const [creditError, setCreditError] = React.useState<string | null>(null);
+
+  // A fresh open is a fresh decision — don't carry a stale refusal over.
+  React.useEffect(() => {
+    if (open) setCreditError(null);
+  }, [open, args?.nicheId, args?.platform]);
 
   const breakdown = niche
     ? estimateVideoCostUsd({
@@ -133,6 +151,10 @@ function RunConfirmDialog({
     if (res.ok) {
       toast.success(`Run enqueued on ${args.platform}`);
       onOpenChange(false);
+    } else if (res.error?.startsWith("402")) {
+      // Out of credit: keep the dialog open and offer the fix, instead of
+      // toasting a raw status line. The server message is human-written.
+      setCreditError(extractDetail(res.error) ?? "You're out of credit for this run.");
     } else {
       toast.error(res.error ?? "Failed to enqueue");
     }
@@ -239,6 +261,15 @@ function RunConfirmDialog({
         ) : (
           <div className="flex h-24 items-center justify-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        )}
+
+        {creditError && (
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+            <p className="text-sm">{creditError}</p>
+            <Button asChild size="sm" className="shrink-0">
+              <a href="/settings/billing">Add credit</a>
+            </Button>
           </div>
         )}
 

@@ -337,3 +337,169 @@ def test_get_job_video_streams_when_file_exists(monkeypatch, tmp_path):
     )
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("video/mp4")
+
+
+# ---------------------------------------------------------------------------
+# POST / — prepaid-credit gate (hosted billing)
+# ---------------------------------------------------------------------------
+
+def _full_niche_stub(niche_id):
+    """Niche stub with every field the run estimator reads."""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        id=niche_id,
+        platforms=["tiktok", "reels", "shorts"],
+        scene_count=6,
+        image_quality="medium",
+        scene_max_duration_sec=5,
+        target_duration_sec=60,
+        video_provider="grok",
+        fal_model="",
+    )
+
+
+def _stub_modal(monkeypatch):
+    class _FakeFunction:
+        @staticmethod
+        def from_name(app: str, func: str):
+            return _FakeFunction()
+
+        def spawn(self, *args, **kwargs):
+            pass
+
+    import sys
+    import types
+
+    fake_modal = types.ModuleType("modal")
+    fake_modal.Function = _FakeFunction  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+
+
+def test_enqueue_refused_402_when_credit_short(monkeypatch):
+    """Billing on + balance below the estimated charge → 402 with a human
+    message, and no job row is created (the audit's up-front refusal)."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _niche_get(niche_id, *, user_id):
+        return _full_niche_stub(niche_id)
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    created = []
+
+    async def _create(*, user_id, niche_id, platform):
+        created.append(niche_id)
+        return _make_job()
+
+    monkeypatch.setattr(jobs_repo, "create", _create)
+    _stub_modal(monkeypatch)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 402
+    detail = resp.json()["detail"]
+    assert "Add credit" in detail
+    assert "$0.00" in detail
+    assert created == []  # refused before any row was inserted
+
+
+def test_enqueue_allowed_when_credit_covers_estimate(monkeypatch):
+    """Billing on + ample balance → 202 as before."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _niche_get(niche_id, *, user_id):
+        return _full_niche_stub(niche_id)
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+
+    async def _balance(user_id):
+        return Decimal("50")
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    async def _create(*, user_id, niche_id, platform):
+        return _make_job()
+
+    monkeypatch.setattr(jobs_repo, "create", _create)
+    _stub_modal(monkeypatch)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 202
+
+
+def test_retry_refused_402_when_credit_short(monkeypatch):
+    """Billing on + $0 balance → retry refused up front, job left failed."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    failed_job = _make_job(status=JobStatus.failed)
+
+    async def _get(job_id, *, user_id):
+        return failed_job
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    async def _niche_get(niche_id, *, user_id):
+        return _full_niche_stub(niche_id)
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    reset_called = []
+
+    async def _reset(job_id, *, user_id):
+        reset_called.append(job_id)
+        return _make_job(status=JobStatus.queued)
+
+    monkeypatch.setattr(jobs_repo, "reset_for_retry", _reset)
+    _stub_modal(monkeypatch)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/retry",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 402
+    assert reset_called == []  # the job was not touched

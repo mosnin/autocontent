@@ -169,7 +169,14 @@ function FailureRow({
           {item.error ?? "(no error message recorded)"}
         </p>
       </div>
-      <ReplayButton item={item} onReplayed={onReplayed} />
+      <div className="flex shrink-0 items-center gap-2">
+        {item.category === "spend_cap" && (
+          <Button asChild size="sm">
+            <a href="/settings/billing">Add credit</a>
+          </Button>
+        )}
+        <ReplayButton item={item} onReplayed={onReplayed} />
+      </div>
     </div>
   );
 }
@@ -183,15 +190,10 @@ export function FailuresInbox() {
 
   const [activeCategory, setActiveCategory] = React.useState<FailureCategory | "all">("all");
 
+  // Never flash a "Failures" card while we don't yet know whether there
+  // are any — for most users, most of the time, this component is invisible.
   if (isLoading && !data) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Failures inbox</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">Loading failures…</CardContent>
-      </Card>
-    );
+    return null;
   }
 
   if (error) {
@@ -209,6 +211,12 @@ export function FailuresInbox() {
 
   const failures = data?.failures ?? [];
   const counts = data?.counts ?? {};
+
+  // Nothing failed → no card at all. A brand-new user's Queue must not
+  // open with a "Failures inbox"; the queue table is the page.
+  if (failures.length === 0) {
+    return null;
+  }
   const visible =
     activeCategory === "all"
       ? failures
@@ -246,11 +254,7 @@ export function FailuresInbox() {
         </div>
 
         {visible.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {failures.length === 0
-              ? "No failures — everything's healthy."
-              : "No failures in this category."}
-          </p>
+          <p className="text-sm text-muted-foreground">No failures in this category.</p>
         ) : (
           <div className="space-y-2">
             {visible.map((item) => (
