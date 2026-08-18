@@ -38,7 +38,7 @@ const HOW_IT_WORKS = [
   },
   {
     title: "Every render is metered",
-    copy: "Each video and article draws down your balance at provider cost plus a flat margin. You see the estimate before a job runs and the exact cost after.",
+    copy: "Each video and article draws down your balance at provider cost plus a flat margin. You see the estimate before a job runs and every charge in your billing history after.",
   },
   {
     title: "Caps stop overruns",
@@ -53,7 +53,7 @@ const MINI_FAQ = [
   },
   {
     q: "What does one video cost?",
-    a: "It depends on length, style, and voice; the Starter pack's $5 renders roughly 8 to 12 videos. Articles cost less. Every job shows its estimate before it runs.",
+    a: "About $2.75 at default settings \u2014 metered provider cost plus our flat margin, with the estimate shown before every run. Shorter or leaner videos cost less, and articles cost far less.",
   },
   {
     q: "Is anything gated by pack?",
@@ -61,7 +61,7 @@ const MINI_FAQ = [
   },
   {
     q: "What if I want out?",
-    a: "Stop buying packs; there is nothing to cancel. If you have unused balance, contact support and we refund the remainder of your last purchase.",
+    a: "Stop buying packs; there is nothing to cancel. If you have unused balance, contact support within 30 days of purchase and we refund the remainder of your last purchase.",
   },
 ];
 
@@ -104,8 +104,9 @@ export default function PricingPage() {
                 A balance, a meter, and a hard limit.
               </TextReveal>
               <Lede className="mt-5">
-                The billing model is three moving parts, and all three are
-                visible on your dashboard at all times.
+                The billing model is three moving parts, all visible in your
+                workspace: the estimate before every run, your balance in
+                Billing, and the caps in Settings.
               </Lede>
             </Reveal>
             <Reveal className="mt-10 overflow-hidden rounded-[1.75rem] border border-white/60 shadow-[0_8px_40px_rgba(15,23,42,0.06)]" delay={0.1}>
@@ -217,7 +218,7 @@ export default function PricingPage() {
         primaryLabel="Start creating"
         secondaryHref="/resources/faq"
         secondaryLabel="Read the FAQ"
-        sub="The Starter pack renders roughly 8 to 12 videos with every feature on. Nothing publishes until you approve it."
+        sub="Five dollars renders your first videos with every feature on. Nothing publishes until you approve it."
       />
     </main>
   );

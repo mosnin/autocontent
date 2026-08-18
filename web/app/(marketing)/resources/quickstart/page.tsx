@@ -33,7 +33,7 @@ export default function QuickstartPage() {
           <TaggedPlaceholder
             className="h-full w-full"
             kind="video"
-            label="Quickstart — first short in 10 minutes"
+            label="Quickstart — from sign-up to first short"
             tone="sky"
           />
         </div>
@@ -47,13 +47,13 @@ export default function QuickstartPage() {
       </section>
 
       <SectionCta
-        headline="Your first video costs about fifty cents."
+        headline="Your first video costs a few dollars."
         kicker="Get started"
         primaryHref="/sign-up"
         primaryLabel="Start step one"
         secondaryHref="/resources/guides/first-channel"
         secondaryLabel="Read the full guide"
-        sub="No subscription, no trial clock. If the first render isn't good, that is all you spent, and you approved nothing."
+        sub="No subscription, no trial clock. A default-settings short runs about $2.75 all-in \u2014 if the first render isn't good, that is all you spent, and you approved nothing."
       />
     </main>
   );

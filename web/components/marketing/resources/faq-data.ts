@@ -35,7 +35,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How do credits and refunds work?",
-    a: "Credit is prepaid through Stripe and drawn down as work renders, at provider cost plus a flat margin. Credits don't expire. If you have unused balance and want out, contact support and we refund the remainder of your last purchase.",
+    a: "Credit is prepaid through Stripe and drawn down as work renders, at provider cost plus a flat margin. Credits don't expire. If you have unused balance and want out, contact support within 30 days of purchase and we refund the remainder of your last purchase.",
   },
   {
     q: "How is my data handled?",
@@ -47,7 +47,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How many videos does a pack make?",
-    a: "The $5 Starter pack renders roughly 8 to 12 videos, the $20 Creator pack roughly 35 to 50, and the $50 Studio pack roughly 90 to 125. The range depends on length, style, and voice; articles cost less than videos.",
+    a: "A default-settings short costs about $2.75 all-in (metered provider cost plus our flat margin), so the $5 Starter pack renders 1\u20132 videos, the $20 Creator pack roughly 7\u201312, and the $50 Studio pack roughly 18\u201330. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
   },
   {
     q: "Can I run several niches at once?",

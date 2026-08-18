@@ -9,12 +9,12 @@ const STEPS: Array<{
 }> = [
   {
     title: "Sign up",
-    copy: "Create an account with your email. There is nothing to install and no card required, your workspace is live in under a minute.",
+    copy: "Create an account with your email. There is nothing to install \u2014 your workspace is live in under a minute, and you load a $5 credit pack when you're ready to render.",
     shot: "Sign-up screen",
   },
   {
     title: "Describe your channel in one sentence",
-    copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full niche from it: audience, tone, topic pillars, and a starting posting plan.",
+    copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full channel from it: audience, tone, topic pillars, and a starting posting plan.",
     shot: "Niche brief form",
   },
   {

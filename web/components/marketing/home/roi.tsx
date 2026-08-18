@@ -30,9 +30,8 @@ const STATS: Array<{
   },
   {
     value: 10,
-    suffix: " min",
-    title: "from brief to first short",
-    desc: "Ideation, script, visuals, voiceover, captions, and QA run as one pipeline.",
+    title: "stages from brief to published short",
+    desc: "Ideation, script, visuals, animation, voiceover, music, edit, captions, QA, and publish run as one pipeline.",
   },
   {
     value: 100,
