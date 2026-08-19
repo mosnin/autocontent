@@ -236,3 +236,18 @@ Room; this cycle folds everything else.)
 - Next: Cycle 12 = re-audit (cycles 9-11) + Workstream 8/9 slices
   (ad-lane dropdown, repurpose save, front door) and the marketing
   truth-of-fence items.
+
+## Cycle 12 (part 1) — 2026-08-19 · Workstream 8/10 slices
+- **The UUID field is dead**: linking an ad campaign into a campaign lane
+  is now a dropdown of your ad campaigns by name (best-effort fetch, empty
+  when Ads is off, with a "Create an ad campaign" escape hatch); lane rows
+  show the campaign's name instead of a uuid8.
+- New-ad-campaign form: account options read "Google Ads — <name>" (no
+  more "google ads — 3f2a1b9c"), and the no-accounts state links to
+  /ads/connect.
+- **Every route has a loading state now**: 15 new skeletons — /home,
+  /campaigns(+detail), all seven /ads pages, /templates,
+  /settings/billing, /settings/kits, /admin/media, /admin/templates —
+  in the standard kicker+header+content pattern.
+- Validation: tsc clean, next build clean. Re-audit of cycles 9–11
+  running in parallel.
