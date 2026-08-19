@@ -592,9 +592,20 @@ export function QueueClient({
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                    {filter === "all" && !searchQuery
-                      ? "No videos yet. Run one from the dashboard, or press ⌘K."
-                      : "No videos match this filter."}
+                    {filter === "all" && !searchQuery ? (
+                      <>
+                        No videos yet.{" "}
+                        <Link
+                          className="font-medium text-brand underline-offset-2 hover:underline"
+                          href="/dashboard"
+                        >
+                          Run one from the dashboard
+                        </Link>
+                        , or press ⌘K.
+                      </>
+                    ) : (
+                      "No videos match this filter."
+                    )}
                   </TableCell>
                 </TableRow>
               )}

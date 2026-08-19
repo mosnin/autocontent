@@ -62,8 +62,8 @@ export function TemplatesClient({ initial }: { initial: Template[] }) {
       {initial.length === 0 && (
         <Card className="rounded-lg border bg-card">
           <CardContent className="pt-6 text-sm text-muted-foreground">
-            No templates published yet. Admins add them from the admin
-            console (or via the API) with a reference image + prompt.
+            No templates yet. Curated looks land here as they&apos;re
+            published — check back soon.
           </CardContent>
         </Card>
       )}

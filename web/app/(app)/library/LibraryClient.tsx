@@ -263,7 +263,7 @@ export function LibraryClient({
           <AssetGrid
             assets={finals ?? []}
             nicheTitle={nicheTitle}
-            empty="No final videos yet — run a job from the queue and it lands here."
+            empty="No final videos yet — run a video from the dashboard and it lands here."
           />
         </TabsContent>
 

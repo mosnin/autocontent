@@ -480,9 +480,19 @@ export function CalendarClient({
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                    {searchQuery
-                      ? "No scheduled posts match this search."
-                      : `Nothing scheduled in the next ${range} days.`}
+                    {searchQuery ? (
+                      "No scheduled posts match this search."
+                    ) : (
+                      <>
+                        Nothing scheduled in the next {range} days.{" "}
+                        <Link
+                          className="font-medium text-brand underline-offset-2 hover:underline"
+                          href="/dashboard"
+                        >
+                          Run a video
+                        </Link>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               )}

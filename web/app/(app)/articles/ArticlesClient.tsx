@@ -733,7 +733,10 @@ function NewArticleDialog({
               </DialogSelect>
               {active.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  You need at least one active channel to write an article.
+                  You need at least one active channel to write an article.{" "}
+                  <Link className="font-medium text-brand underline-offset-2 hover:underline" href="/onboarding">
+                    Create a channel
+                  </Link>
                 </p>
               )}
             </div>

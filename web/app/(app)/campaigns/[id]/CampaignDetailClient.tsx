@@ -4,6 +4,7 @@
 // orchestrates (video content, SEO articles, linked ad campaigns).
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -192,11 +193,21 @@ export function CampaignDetailClient({
                 <select id="lane-ref" value={refId}
                   onChange={(e) => setRefId(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="">Pick a channel…</option>
+                  <option value="">
+                    {niches.length === 0 ? "No channels yet" : "Pick a channel…"}
+                  </option>
                   {niches.map((n) => (
                     <option key={n.id} value={n.id}>{n.title}</option>
                   ))}
                 </select>
+              )}
+              {kind !== "ad" && niches.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <Link className="font-medium text-brand underline-offset-2 hover:underline" href="/onboarding">
+                    Create a channel
+                  </Link>{" "}
+                  to add this lane.
+                </p>
               )}
             </div>
             <div className="space-y-1.5">
