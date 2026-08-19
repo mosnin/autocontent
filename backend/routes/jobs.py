@@ -180,7 +180,10 @@ async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
         from marketer.services.run_estimate import refuse_if_credit_short
 
         existing = await jobs_repo.get(job_id, user_id=ctx.user_id)
-        if existing is not None:
+        # Gate only jobs that are actually retryable — a retry of a
+        # done/queued job must keep returning 409 (below), not 402, or the
+        # client would offer "Add credit" for a job no balance can retry.
+        if existing is not None and existing.status == JobStatus.failed:
             niche = await niches_repo.get(existing.niche_id, user_id=ctx.user_id)
             if niche is not None:
                 await refuse_if_credit_short(ctx.user_id, niche)

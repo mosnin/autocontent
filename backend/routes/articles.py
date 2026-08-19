@@ -78,6 +78,12 @@ async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> A
     if niche is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
 
+    # Up-front credit gate: refuse at the button with a human 402 instead of
+    # creating a row that dies mid-pipeline on the spend guard.
+    from marketer.services.run_estimate import ARTICLE_ESTIMATE_USD, refuse_if_credit_below
+
+    await refuse_if_credit_below(ctx.user_id, ARTICLE_ESTIMATE_USD, what="This article")
+
     article = await articles_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, topic=body.topic
     )
@@ -125,7 +131,15 @@ async def repurpose_to_social(
         # Cap tripped or provider error — surface a clean 4xx/5xx.
         from marketer.repos.spend import SpendCapExceeded
         if isinstance(exc, SpendCapExceeded):
-            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, str(exc)) from exc
+            # Human message, not the guard's internal string: the client
+            # shows this detail verbatim (with an "Add credit" action on
+            # the credits case).
+            detail = (
+                "You're out of credit for this — add credit to continue."
+                if exc.scope == "credits"
+                else "Daily spend cap reached for this channel — raise the cap or try tomorrow."
+            )
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, detail) from exc
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "generation failed") from exc
     return {"snippets": [s.model_dump() for s in snippets]}
 
@@ -149,6 +163,11 @@ async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> File
 async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
     """Re-run a failed article from scratch (same row, same topic)."""
     import modal
+
+    from marketer.services.run_estimate import ARTICLE_ESTIMATE_USD, refuse_if_credit_below
+
+    # Gate BEFORE the atomic claim so a refused retry leaves the row failed.
+    await refuse_if_credit_below(ctx.user_id, ARTICLE_ESTIMATE_USD, what="This retry")
 
     article = await articles_repo.claim_for_retry(article_id, user_id=ctx.user_id)
     if article is None:

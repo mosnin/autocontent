@@ -178,7 +178,7 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
         {
           title: "Quickstart",
           href: "/resources/quickstart",
-          desc: "First video out the door in ten minutes",
+          desc: "First video out the door in your first session",
         },
         {
           title: "API & MCP",

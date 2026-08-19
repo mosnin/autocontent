@@ -41,7 +41,7 @@ const STATS: Array<{
   decimals?: number;
   label: string;
 }> = [
-  { value: 10, suffix: " min", label: "brief to first published short" },
+  { value: 10, label: "pipeline stages from brief to published short" },
   { value: 0, prefix: "$", decimals: 2, label: "ever spent past your cap" },
   { value: 24, suffix: "/7", label: "the pipeline keeps shipping" },
 ];

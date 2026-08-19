@@ -89,6 +89,7 @@ import {
 import { clientFetch } from "@/lib/client-fetcher";
 import { jobStatusLabel } from "@/lib/status-badge";
 import type { Job, JobStatus } from "@/lib/types";
+import { toastActionError } from "@/lib/errors";
 
 const POLL_MS = 5000;
 
@@ -298,7 +299,7 @@ export function QueueClient({
     } else {
       // Revert optimistic update.
       void mutate(prevJobs, false);
-      toast.error(res.error ?? "Retry failed");
+      toastActionError(res.error, "Retry failed");
     }
   }
 

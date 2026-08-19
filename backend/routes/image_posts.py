@@ -43,6 +43,15 @@ async def enqueue_image_post(
 ) -> dict:
     if await niches_repo.get(body.niche_id, user_id=ctx.user_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+
+    # Up-front credit gate — refuse with a human 402 before creating state.
+    from marketer.services.run_estimate import (
+        IMAGE_POST_ESTIMATE_USD,
+        refuse_if_credit_below,
+    )
+
+    await refuse_if_credit_below(ctx.user_id, IMAGE_POST_ESTIMATE_USD, what="This post")
+
     post = await image_posts_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, kind=body.kind,
         topic=body.topic.strip(), slide_count=body.slide_count,
@@ -65,6 +74,14 @@ async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dic
 @router.post("/{image_post_id}/retry", status_code=status.HTTP_202_ACCEPTED)
 async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Re-run a failed post from the top (fresh plan + renders)."""
+    from marketer.services.run_estimate import (
+        IMAGE_POST_ESTIMATE_USD,
+        refuse_if_credit_below,
+    )
+
+    # Gate BEFORE the atomic claim so a refused retry leaves the row failed.
+    await refuse_if_credit_below(ctx.user_id, IMAGE_POST_ESTIMATE_USD, what="This retry")
+
     if not await image_posts_repo.claim_for_retry(image_post_id, user_id=ctx.user_id):
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:

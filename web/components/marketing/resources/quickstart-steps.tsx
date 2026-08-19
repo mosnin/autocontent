@@ -9,7 +9,7 @@ const STEPS: Array<{
 }> = [
   {
     title: "Sign up",
-    copy: "Create an account with your email. There is nothing to install \u2014 your workspace is live in under a minute, and you load a $5 credit pack when you're ready to render.",
+    copy: "Create an account with your email. There is nothing to install — your workspace is live in under a minute, and you load a $5 credit pack when you're ready to render.",
     shot: "Sign-up screen",
   },
   {

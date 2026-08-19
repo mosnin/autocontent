@@ -47,7 +47,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How many videos does a pack make?",
-    a: "A default-settings short costs about $2.75 all-in (metered provider cost plus our flat margin), so the $5 Starter pack renders 1\u20132 videos, the $20 Creator pack roughly 7\u201312, and the $50 Studio pack roughly 18\u201330. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
+    a: "A default-settings short costs about $3 all-in (metered provider cost plus our flat margin — a touch more with generated music on), so the $5 Starter pack renders 1–2 videos, the $20 Creator pack roughly 5–8, and the $50 Studio pack roughly 12–20. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
   },
   {
     q: "Can I run several niches at once?",

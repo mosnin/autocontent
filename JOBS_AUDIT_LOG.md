@@ -48,3 +48,34 @@ Goal: see JOBS_AUDIT_GOAL.md. Audit source: STEVE_JOBS_AUDIT.md.
 - Validation: tsc clean, next build clean.
 - Next: Cycle 3 = re-audit pass over Cycles 1–2 surfaces, then Workstream 3
   (glossary purge) — per protocol, audit after every 2–3 fix cycles.
+
+## Cycle 3 — 2026-08-18/19 · Re-audit + middleware/dead-code (part 1) and audit-fix fold (part 2)
+Part 1 (4d21bb4): /campaigns, /library, /templates added to the Clerk
+middleware; five zero-importer components deleted (820-line ui/sidebar kit,
+dashboard-switcher, marketing site-nav/site-footer/final-cta).
+
+Part 2 — re-audit verdicts folded (fresh-eyes agent report):
+- **Every spend entry point now credit-gated up front**: failures replay
+  (job/image_post/article), article enqueue + retry, image-post enqueue +
+  retry, template remix (before the upload is stored). Repurpose-to-social's
+  402 now speaks human per scope (credits vs cap).
+- Retry 402-before-409 precedence fixed (gate only `failed` jobs).
+- run_estimate now includes generated music (only when it would actually
+  run: brief on + provider resolves to generated on this deploy), a 6-call
+  LLM allowance, and portrait 1024x1536 image tiers; negative balances
+  format as -$0.50.
+- Five surviving false marketing claims fixed: homepage autopilot "10 min"
+  stat, two "$0.50 per short" stats (creators use-case, features/video),
+  FAQ-page CTA "8 to 12 videos", nav "ten minutes"; local-business "couple
+  dollars a day" → five. Pack math re-harmonized to the honest ~$3 default
+  (1–2 / 5–8 / 12–20) across tiles, FAQ, pricing mini-FAQ, quickstart.
+  Literal \u escapes from Cycle 1's heredoc cleaned to real dashes.
+- Client: cost-estimator switched to the portrait tier the pipeline
+  actually bills; run dialog fetches billing margin and shows the true
+  charge (headline, margin line item, "Run for $X" button) while cap math
+  stays pre-margin to match server semantics; new lib/errors.ts humanizes
+  402s with an "Add credit" toast action on queue retry, job-detail retry,
+  and failures replay.
+- Tests: +1 article 402 gate test (69 passing across touched routes).
+  ruff clean, tsc clean, next build clean.
+- Next: Cycle 4 = Workstream 3 (glossary purge) — then re-audit again.

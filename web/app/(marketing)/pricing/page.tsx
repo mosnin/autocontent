@@ -53,7 +53,7 @@ const MINI_FAQ = [
   },
   {
     q: "What does one video cost?",
-    a: "About $2.75 at default settings \u2014 metered provider cost plus our flat margin, with the estimate shown before every run. Shorter or leaner videos cost less, and articles cost far less.",
+    a: "About $3 at default settings — metered provider cost plus our flat margin, with the estimate shown before every run. Shorter or leaner videos cost less, and articles cost far less.",
   },
   {
     q: "Is anything gated by pack?",

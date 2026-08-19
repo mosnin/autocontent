@@ -37,7 +37,7 @@ const ENTRIES: ChangelogEntry[] = [
   {
     date: "Jun 9, 2026",
     title: "Prepaid credits",
-    body: "Billing moved to prepaid credit packs through Stripe: buy once, draw down as work renders, no subscription. Your balance and every charge live in Settings \u2192 Billing, and the spend guard refuses any call your balance can't cover.",
+    body: "Billing moved to prepaid credit packs through Stripe: buy once, draw down as work renders, no subscription. Your balance and every charge live in Settings → Billing, and the spend guard refuses any call your balance can't cover.",
     tags: ["Billing"],
   },
   {

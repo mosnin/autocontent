@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { enqueueJobAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
+import { extractDetail, isCreditError } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Niche, Platform, TodaySpend } from "@/lib/types";
@@ -35,17 +36,6 @@ interface OpenArgs {
   platform: Platform;
 }
 
-/** Pull the human `detail` message out of a `"<status> <json-body>"` error
- * string from the API client; null when the body isn't that shape. */
-function extractDetail(raw: string): string | null {
-  const body = raw.replace(/^\d{3}\s*/, "");
-  try {
-    const parsed = JSON.parse(body) as { detail?: unknown };
-    return typeof parsed.detail === "string" ? parsed.detail : null;
-  } catch {
-    return null;
-  }
-}
 
 interface Ctx {
   openRunConfirm: (args: OpenArgs) => void;
@@ -109,6 +99,13 @@ function RunConfirmDialog({
     enabled ? "/api/v1/spend/today" : null,
     clientFetch,
   );
+  // Hosted deploys bill at cost × margin — the button must show the number
+  // that will actually hit the balance, not the raw provider cost.
+  const { data: billing } = useSWR<{ billing_enabled: boolean; margin: number }>(
+    enabled ? "/api/v1/billing/balance" : null,
+    clientFetch,
+  );
+  const margin = billing?.billing_enabled ? billing.margin : 1;
 
   const niche = niches?.find((n) => n.id === args?.nicheId);
   const [submitting, setSubmitting] = React.useState(false);
@@ -151,7 +148,7 @@ function RunConfirmDialog({
     if (res.ok) {
       toast.success(`Run enqueued on ${args.platform}`);
       onOpenChange(false);
-    } else if (res.error?.startsWith("402")) {
+    } else if (isCreditError(res.error)) {
       // Out of credit: keep the dialog open and offer the fix, instead of
       // toasting a raw status line. The server message is human-written.
       setCreditError(extractDetail(res.error) ?? "You're out of credit for this run.");
@@ -185,7 +182,7 @@ function RunConfirmDialog({
                   Estimated cost
                 </span>
                 <span className="font-mono text-2xl font-semibold tabular-nums">
-                  {formatUsd(breakdown.total)}
+                  {formatUsd(breakdown.total * margin)}
                 </span>
               </div>
 
@@ -255,6 +252,14 @@ function RunConfirmDialog({
                     {formatUsd(breakdown.character_sheet)}
                   </span>
                 </li>
+                {margin > 1 && (
+                  <li className="flex justify-between">
+                    <span>billing margin (+{Math.round((margin - 1) * 100)}%)</span>
+                    <span className="font-mono tabular-nums">
+                      {formatUsd(breakdown.total * (margin - 1))}
+                    </span>
+                  </li>
+                )}
               </ul>
             </div>
           </div>
@@ -284,7 +289,7 @@ function RunConfirmDialog({
                 Working…
               </>
             ) : breakdown ? (
-              `Run for ${formatUsd(breakdown.total)}`
+              `Run for ${formatUsd(breakdown.total * margin)}`
             ) : (
               "Run"
             )}

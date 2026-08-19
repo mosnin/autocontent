@@ -53,7 +53,7 @@ export default function QuickstartPage() {
         primaryLabel="Start step one"
         secondaryHref="/resources/guides/first-channel"
         secondaryLabel="Read the full guide"
-        sub="No subscription, no trial clock. A default-settings short runs about $2.75 all-in \u2014 if the first render isn't good, that is all you spent, and you approved nothing."
+        sub="No subscription, no trial clock. A default-settings short runs about $3 all-in — if the first render isn't good, that is all you spent, and you approved nothing."
       />
     </main>
   );

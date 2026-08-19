@@ -25,6 +25,7 @@ import { Badge } from "@/components/square/ui/badge";
 import { Button } from "@/components/square/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
 import { clientFetch } from "@/lib/client-fetcher";
+import { toastActionError } from "@/lib/errors";
 
 const POLL_MS = 15000;
 
@@ -130,7 +131,7 @@ function ReplayButton({
       toast.success("Replay enqueued");
       onReplayed();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Replay failed");
+      toastActionError(e instanceof Error ? e.message : undefined, "Replay failed");
     } finally {
       setPending(false);
     }

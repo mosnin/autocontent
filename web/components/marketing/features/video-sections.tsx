@@ -245,10 +245,9 @@ export function VideoStats() {
         stats={[
           { value: 10, label: "stages from brief to post" },
           {
-            value: 0.5,
+            value: 3,
             prefix: "$",
-            decimals: 2,
-            label: "typical cost of a finished short",
+            label: "typical cost of a default finished short",
           },
           { value: 3, label: "platforms from one render" },
         ]}
