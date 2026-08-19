@@ -61,7 +61,8 @@ export type JobStatus =
   | "awaiting_approval"
   | "done"
   | "failed"
-  | "skipped";
+  | "skipped"
+  | "rejected";
 
 export interface Job {
   id: string;

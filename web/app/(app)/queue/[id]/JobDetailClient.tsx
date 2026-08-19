@@ -21,7 +21,18 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import { approveJobAction, rejectJobAction } from "@/lib/actions";
+import { toastActionError } from "@/lib/errors";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
@@ -39,6 +50,7 @@ const TERMINAL: ReadonlySet<JobStatus> = new Set<JobStatus>([
   "done",
   "failed",
   "skipped",
+  "rejected",
   "awaiting_approval",
 ]);
 
@@ -109,6 +121,92 @@ function ProgressRail({ status }: { status: JobStatus }) {
           </li>
         ))}
       </ol>
+    </div>
+  );
+}
+
+/**
+ * The Review Room bar: the approve/reject decision lives on the page where
+ * the video actually plays — never only on a table row.
+ */
+function ReviewBar({
+  jobId,
+  onDecided,
+}: {
+  jobId: string;
+  onDecided: () => void;
+}) {
+  const [pending, setPending] = React.useState<"approve" | "reject" | null>(null);
+  const [confirmReject, setConfirmReject] = React.useState(false);
+
+  async function decide(kind: "approve" | "reject") {
+    setPending(kind);
+    const fd = new FormData();
+    fd.set("job_id", jobId);
+    const res =
+      kind === "approve"
+        ? await approveJobAction({ ok: false }, fd)
+        : await rejectJobAction({ ok: false }, fd);
+    setPending(null);
+    setConfirmReject(false);
+    if (res.ok) {
+      toast.success(
+        kind === "approve"
+          ? "Approved — scheduling the post now"
+          : "Rejected — it will not post",
+      );
+      onDecided();
+    } else {
+      toastActionError(res.error, "Something went wrong — try again");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-brand/30 bg-brand/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-medium">This video is waiting for your review.</p>
+        <p className="text-xs text-muted-foreground">
+          Watch it below, then approve to schedule it for the channel&apos;s next
+          posting window — or reject and nothing posts.
+        </p>
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <Button
+          variant="ghost"
+          disabled={pending !== null}
+          onClick={() => setConfirmReject(true)}
+        >
+          Reject
+        </Button>
+        <Button disabled={pending !== null} onClick={() => decide("approve")}>
+          {pending === "approve" ? "Approving…" : "Approve & schedule"}
+        </Button>
+      </div>
+
+      <Dialog open={confirmReject} onOpenChange={setConfirmReject}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject this video?</DialogTitle>
+            <DialogDescription>
+              It will never post. The decision is recorded as a rejection —
+              not a failure — and the rendered clips stay in your library
+              for remixing.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setConfirmReject(false)}>
+              Keep reviewing
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={pending !== null}
+              onClick={() => decide("reject")}
+            >
+              {pending === "reject" ? "Rejecting…" : "Reject video"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -240,6 +338,12 @@ export function JobDetailClient({
         </div>
       </Reveal>
 
+      {job.status === "awaiting_approval" && (
+        <Reveal delay={0.03}>
+          <ReviewBar jobId={job.id} onDecided={() => void mutate()} />
+        </Reveal>
+      )}
+
       {(inProgress || job.status === "queued") && (
         <Reveal delay={0.03}>
           <ProgressRail status={job.status} />
@@ -263,6 +367,15 @@ export function JobDetailClient({
                   >
                     Your browser doesn&apos;t support the video tag.
                   </video>
+                </div>
+              ) : null}
+              {videoPath ? (
+                <div className="mt-3 text-center">
+                  <Button asChild size="sm" variant="outline">
+                    <a href={videoPath} download={`${nicheTitle ?? "video"}.mp4`}>
+                      Download MP4
+                    </a>
+                  </Button>
                 </div>
               ) : (
                 <div className="rounded-lg border border-brand/20 bg-card/40 p-4">
@@ -291,7 +404,7 @@ export function JobDetailClient({
                     <TabsTrigger value="script">Script</TabsTrigger>
                     <TabsTrigger value="scenes">Scenes</TabsTrigger>
                     <TabsTrigger value="costs">Costs</TabsTrigger>
-                    <TabsTrigger value="logs">Logs</TabsTrigger>
+                    <TabsTrigger value="logs">Issues</TabsTrigger>
                     <TabsTrigger value="metrics">Metrics</TabsTrigger>
                   </TabsList>
                   <ScrollBar orientation="horizontal" />
@@ -327,7 +440,7 @@ export function JobDetailClient({
                       {job.error}
                     </pre>
                   ) : (
-                    <Empty>No errors</Empty>
+                    <Empty>No issues — this run is clean</Empty>
                   )}
                 </TabsContent>
 

@@ -92,7 +92,7 @@ async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
 
 
 async def claim_for_rejection(job_id: UUID, *, user_id: str) -> Job | None:
-    """Atomically mark an `awaiting_approval` job `failed` (operator veto).
+    """Atomically mark an `awaiting_approval` job `rejected` (operator veto).
 
     Like reset_for_retry, the `and status = 'awaiting_approval'` predicate is
     re-checked under a row lock at UPDATE time. This closes a race with
@@ -111,8 +111,8 @@ async def claim_for_rejection(job_id: UUID, *, user_id: str) -> Job | None:
              where id = $1 and user_id = $2 and status = 'awaiting_approval'
         )
         update jobs j
-           set status = 'failed'::job_status,
-               error = 'rejected by operator before posting',
+           set status = 'rejected'::job_status,
+               error = null,
                updated_at = now()
           from prev
          where j.id = prev.id and j.status = 'awaiting_approval'
@@ -123,8 +123,8 @@ async def claim_for_rejection(job_id: UUID, *, user_id: str) -> Job | None:
     if row is None:
         return None
     job = Job.model_validate(json.loads(row["old_payload"]))
-    job.status = JobStatus.failed
-    job.error = "rejected by operator before posting"
+    job.status = JobStatus.rejected
+    job.error = None
     await save_snapshot(job)
     return job
 

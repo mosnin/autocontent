@@ -169,3 +169,21 @@ Cycle 6 — glossary re-audit verdicts folded:
 - Validation: tsc clean, next build clean.
 - Next: Cycle 9 = re-audit of Cycles 7–8, then the Review Room
   (Workstream 5).
+
+## Cycle 9 (part 1) — 2026-08-19 · Workstream 5: The Review Room
+- **A rejection is a decision, not a failure**: migration 0026 adds a real
+  `rejected` job status (PG enum); reject now lands there with no error
+  text, stays out of the Failures inbox and the red badges, and isn't
+  retryable. Python enum, TS union, and status labels updated; queue badge
+  renders neutral "Rejected" (was falling through to "Failed").
+- **Review where the video plays**: the job page shows a review bar for
+  awaiting_approval — "Approve & schedule" and a styled Reject dialog
+  (replacing decisions made blind from a table row; the row buttons
+  remain as a quick path).
+- **Download MP4** button under every rendered video — the first way to
+  take your own video out of the product.
+- "Logs" tab renamed "Issues" (it never showed logs) with honest empty
+  copy. Deferred: "Post now" (needs backend scheduling param), caption
+  editing (backend caption override), unified image-post approvals.
+- Validation: ruff clean, approval/jobs/failures tests green, tsc clean,
+  next build clean. Re-audit of Cycles 7–8 running in parallel.

@@ -43,6 +43,7 @@ const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   done: "Done",
   failed: "Failed",
   skipped: "Skipped",
+  rejected: "Rejected",
 };
 
 export function jobStatusLabel(status: JobStatus): string {
@@ -52,7 +53,7 @@ export function jobStatusLabel(status: JobStatus): string {
 export function statusVariant(status: JobStatus): Variant {
   if (status === "done") return "success";
   if (status === "failed") return "destructive";
-  if (status === "queued" || status === "skipped") return "secondary";
+  if (status === "queued" || status === "skipped" || status === "rejected") return "secondary";
   if (status === "awaiting_approval") return "outline";
   return "outline";
 }

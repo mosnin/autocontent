@@ -159,7 +159,7 @@ function PlatformIcon({ platform }: { platform: string }) {
 // Campaign does. Same technique as campaigns-table.tsx: Badge
 // variant="outline" plus a tonal bg/text/border class per status.
 function StatusBadge({ status }: { status: JobStatus }) {
-  if (status === "queued" || status === "skipped") {
+  if (status === "queued" || status === "skipped" || status === "rejected") {
     return (
       <Badge variant="outline" className="text-xs font-medium px-2 py-0.5 border text-muted-foreground bg-transparent">
         {jobStatusLabel(status)}
