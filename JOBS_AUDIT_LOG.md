@@ -313,3 +313,33 @@ Room; this cycle folds everything else.)
 - Validation: tsc clean, next build clean.
 - Next: Cycle 16 = final full re-audit through the original lens; fold
   anything found; then assess loop completion against the goal.
+
+## Cycle 16/17 — 2026-08-19 · Final re-audit + fold: ONE number
+Final full re-audit verdict: ~30 of 45 original findings fully fixed, 8
+partial, 7 remaining — "coherent, honest, humane — with one asterisk the
+size of a price tag": the fix cycles had left four different prices for
+the same video ($1.96 settings / $2.94 dialog / ~$3 marketing / $3.39+
+server gate). This cycle closes it:
+- **THE number**: new `POST /api/v1/niches/estimate` — the server's own
+  gate/ledger arithmetic (portrait tier, LLM allowance, music-when-real,
+  margin) — and every price surface now reads from it: run dialog
+  (headline, button, cap math on the pre-margin figure, "agents & music
+  allowance" breakdown line), onboarding step-2 preview + step-3
+  videos/day, edit-form preview, SpendCapForm reference figure. The
+  client rate card survives only as instant-feedback fallback. +1 test
+  asserting endpoint ≡ gate arithmetic.
+- Raw JSON toasts humanized at the last three holdouts (home hub,
+  campaigns create, template remix); spend-cap failure rows show a human
+  sentence instead of the guard's internal string.
+- "You can never owe us money" replaced with the true statement (a few
+  cents below zero, then it stops; no invoice ever).
+- Templates finally keep their on-screen promise: the exact prompt is
+  shown and copyable on every card.
+- Stragglers: "Create niche" button, "Niche" kicker, privacy-list nouns,
+  quickstart "QA", and the `profile_key` label → "Posting profile".
+- Validation: ruff clean, jobs+niches tests green, tsc clean, next build
+  clean.
+- Remaining (ranked by the final audit, for future cycles): onboarding
+  money moment, /home+/dashboard merge, Press stage rail + quality-grid
+  scales, repurpose persistence, connect disconnect + named voices,
+  caption edit / post now, x402 surfacing, design-system consolidation.

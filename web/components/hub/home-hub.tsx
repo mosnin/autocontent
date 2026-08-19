@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/errors";
 
 import TextType from "@/components/reactbits/TextType";
 import { HubHeading, Rise, hubCardClass } from "@/components/hub/primitives";
@@ -49,7 +50,7 @@ export function HomeHub() {
       toast.success("Campaign created — add lanes and press start");
       router.push(`/campaigns/${campaign.id}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toastActionError(e instanceof Error ? e.message : undefined, "Couldn't create the campaign");
     } finally {
       setBusy(false);
     }

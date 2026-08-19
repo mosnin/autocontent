@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { enqueueJobAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
+import { estimateKey, fetchVideoEstimate, type VideoEstimate } from "@/lib/estimates";
 import { extractDetail, isCreditError } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
 import { platformLabel } from "@/lib/labels";
@@ -127,6 +128,37 @@ function RunConfirmDialog({
       })
     : null;
 
+  // THE number: the server's own estimate — identical arithmetic to the
+  // enqueue gate and the ledger. The client breakdown above is only the
+  // itemized preview; totals and the button always show this.
+  const { data: serverEst } = useSWR<VideoEstimate>(
+    niche
+      ? estimateKey({
+          scene_count: niche.scene_count,
+          image_quality: niche.image_quality,
+          scene_max_duration_sec: niche.scene_max_duration_sec,
+          target_duration_sec: niche.target_duration_sec,
+          video_provider: niche.video_provider,
+          fal_model: niche.fal_model,
+          music_provider: niche.music_provider,
+        })
+      : null,
+    () =>
+      fetchVideoEstimate({
+        scene_count: niche!.scene_count,
+        image_quality: niche!.image_quality,
+        scene_max_duration_sec: niche!.scene_max_duration_sec,
+        target_duration_sec: niche!.target_duration_sec,
+        video_provider: niche!.video_provider,
+        fal_model: niche!.fal_model,
+        music_provider: niche!.music_provider,
+      }),
+    { revalidateOnFocus: false },
+  );
+  const preMargin = serverEst ? Number(serverEst.estimated_usd) : breakdown?.total ?? 0;
+  const charge = serverEst ? Number(serverEst.charge_usd) : (breakdown?.total ?? 0) * margin;
+  const allowance = breakdown ? Math.max(0, preMargin - breakdown.total) : 0;
+
   const spentToday = niche && spend ? Number(spend.by_niche[niche.id] ?? "0") : 0;
   const cap = niche ? Number(niche.daily_spend_cap_usd) : 0;
   const remaining = Math.max(0, cap - spentToday);
@@ -134,9 +166,8 @@ function RunConfirmDialog({
 
   // "Tight" = this run would eat most/all of what's left of the daily cap.
   // We surface that in brand orange so the operator sees it before spending.
-  const tight =
-    !!breakdown && cap > 0 && breakdown.total > remaining - breakdown.total;
-  const overCap = !!breakdown && cap > 0 && breakdown.total > remaining;
+  const tight = !!breakdown && cap > 0 && preMargin > remaining - preMargin;
+  const overCap = !!breakdown && cap > 0 && preMargin > remaining;
 
   async function onConfirm() {
     if (!args) return;
@@ -183,7 +214,7 @@ function RunConfirmDialog({
                   Estimated cost
                 </span>
                 <span className="font-mono text-2xl font-semibold tabular-nums">
-                  {formatUsd(breakdown.total * margin)}
+                  {formatUsd(charge)}
                 </span>
               </div>
 
@@ -253,11 +284,19 @@ function RunConfirmDialog({
                     {formatUsd(breakdown.character_sheet)}
                   </span>
                 </li>
+                {allowance > 0.005 && (
+                  <li className="flex justify-between">
+                    <span>agents &amp; music allowance</span>
+                    <span className="font-mono tabular-nums">
+                      {formatUsd(allowance)}
+                    </span>
+                  </li>
+                )}
                 {margin > 1 && (
                   <li className="flex justify-between">
                     <span>billing margin (+{Math.round((margin - 1) * 100)}%)</span>
                     <span className="font-mono tabular-nums">
-                      {formatUsd(breakdown.total * (margin - 1))}
+                      {formatUsd(preMargin * (margin - 1))}
                     </span>
                   </li>
                 )}
@@ -290,7 +329,7 @@ function RunConfirmDialog({
                 Working…
               </>
             ) : breakdown ? (
-              `Run for ${formatUsd(breakdown.total * margin)}`
+              `Run for ${formatUsd(charge)}`
             ) : (
               "Run"
             )}

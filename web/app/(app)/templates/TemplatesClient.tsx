@@ -12,6 +12,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/errors";
 
 import { Badge } from "@/components/square/ui/badge";
 import { Button } from "@/components/square/ui/button";
@@ -93,7 +94,7 @@ function TemplateCard({ template }: { template: Template }) {
       if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
       toast.success("Remix started — check Library → Images in a minute");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toastActionError(e instanceof Error ? e.message : undefined, "Couldn't start the remix");
     } finally {
       setBusy(false);
     }
@@ -141,6 +142,29 @@ function TemplateCard({ template }: { template: Template }) {
             Video template — copy its prompt into a channel&apos;s visual style
             to use this look.
           </p>
+        )}
+        {template.prompt && (
+          <details className="text-xs">
+            <summary className="cursor-pointer select-none text-muted-foreground">
+              The exact prompt
+            </summary>
+            <p className="mt-2 whitespace-pre-wrap rounded-md border bg-muted/40 p-2 font-mono text-[11px] leading-relaxed">
+              {template.prompt}
+            </p>
+            <Button
+              className="mt-2"
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(template.prompt)
+                  .then(() => toast.success("Prompt copied"))
+                  .catch(() => toast.error("Couldn't copy"));
+              }}
+            >
+              Copy prompt
+            </Button>
+          </details>
         )}
       </CardContent>
     </Card>

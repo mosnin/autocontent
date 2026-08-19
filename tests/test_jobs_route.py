@@ -543,3 +543,35 @@ def test_job_receipt_returns_metered_and_charged(monkeypatch):
     assert body["metered_usd"] == "1.9620"
     assert body["charged_usd"] == "2.9430"
     assert body["billing_enabled"] is True
+
+
+def test_video_estimate_matches_gate_arithmetic(monkeypatch):
+    """POST /niches/estimate returns the same number the enqueue gate uses."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+    monkeypatch.setattr(settings, "elevenlabs_api_key", "", raising=False)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/niches/estimate",
+        json={
+            "scene_count": 6,
+            "image_quality": "medium",
+            "scene_max_duration_sec": 5,
+            "target_duration_sec": 60,
+        },
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["billing_enabled"] is True
+    # Cross-check against the gate's own arithmetic.
+    from marketer.services.run_estimate import estimate_run_cost_usd
+
+    est = estimate_run_cost_usd(_full_niche_stub(None))
+    assert Decimal(body["estimated_usd"]) == est.quantize(Decimal("0.01"))
+    assert Decimal(body["charge_usd"]) == (est * Decimal("1.5")).quantize(Decimal("0.01"))

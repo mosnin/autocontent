@@ -40,6 +40,7 @@ import { clientFetch } from "@/lib/client-fetcher";
 import { updateNicheAction } from "@/lib/actions";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
+import { useVideoEstimate } from "@/hooks/use-video-estimate";
 import { formatUsd } from "@/lib/format";
 import { platformLabel, titleWord } from "@/lib/labels";
 import {
@@ -146,6 +147,15 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
     scene_max_duration_sec: Number(cost.scene_max_duration_sec) || 1,
     target_duration_sec: Number(cost.target_duration_sec) || 1,
   });
+  const serverEst = useVideoEstimate({
+    scene_count: Number(cost.scene_count) || 1,
+    image_quality: cost.image_quality,
+    scene_max_duration_sec: Number(cost.scene_max_duration_sec) || 1,
+    target_duration_sec: Number(cost.target_duration_sec) || 1,
+  });
+  const shownCost = serverEst
+    ? Number(serverEst.billing_enabled ? serverEst.charge_usd : serverEst.estimated_usd)
+    : breakdown.total;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -353,7 +363,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               Estimated cost per video
             </span>
             <span className="font-mono text-lg font-semibold tabular-nums">
-              {formatUsd(breakdown.total)}
+              {formatUsd(shownCost)}
             </span>
           </CardContent>
         </Card>

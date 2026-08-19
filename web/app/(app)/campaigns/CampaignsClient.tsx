@@ -7,6 +7,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/errors";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,7 @@ export function CampaignsClient({
       toast.success("Campaign created — add lanes and press start");
       router.push(`/campaigns/${campaign.id}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toastActionError(e instanceof Error ? e.message : undefined, "Couldn't create the campaign");
     } finally {
       setBusy(false);
     }

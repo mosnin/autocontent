@@ -250,3 +250,47 @@ async def character_sheet_image(
             detail="character sheet not generated yet — run a video first",
         )
     return FileResponse(path, media_type="image/png")
+
+
+class VideoEstimateBody(BaseModel):
+    """Config for a one-video estimate — the same knobs the wizard shows."""
+
+    scene_count: int = Field(default=6, ge=1, le=12)
+    image_quality: Literal["low", "medium", "high"] = "medium"
+    scene_max_duration_sec: int = Field(default=5, ge=1, le=15)
+    target_duration_sec: int = Field(default=60, ge=15, le=90)
+    video_provider: Literal["grok", "fal"] = "grok"
+    fal_model: str = ""
+    music_provider: Literal["auto", "library", "generated"] = "auto"
+
+
+class VideoEstimateResponse(BaseModel):
+    estimated_usd: str      # pre-margin — what the caps are checked against
+    charge_usd: str         # margin included — what the balance is debited
+    billing_enabled: bool
+    margin: float
+
+
+@router.post("/estimate", response_model=VideoEstimateResponse)
+async def estimate_video(body: VideoEstimateBody, ctx: AuthCtx = CurrentUser) -> VideoEstimateResponse:
+    """THE number. One authoritative per-video estimate — the same arithmetic
+    the enqueue gate and the ledger use (portrait image tier, LLM allowance,
+    music when it would actually generate). Every price the UI shows must
+    come from here, never from a client-side rate card."""
+    from decimal import Decimal
+
+    from marketer.config import settings as marketer_settings
+    from marketer.services.run_estimate import estimate_run_cost_usd
+
+    est = estimate_run_cost_usd(body)
+    margin = (
+        Decimal(str(marketer_settings.billing_margin))
+        if marketer_settings.billing_enabled
+        else Decimal("1")
+    )
+    return VideoEstimateResponse(
+        estimated_usd=str(est.quantize(Decimal("0.01"))),
+        charge_usd=str((est * margin).quantize(Decimal("0.01"))),
+        billing_enabled=marketer_settings.billing_enabled,
+        margin=float(margin),
+    )

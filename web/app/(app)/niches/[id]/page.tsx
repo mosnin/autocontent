@@ -160,7 +160,7 @@ export default async function NichePage({
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
               <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-                Niche
+                Channel
               </p>
               {live && (
                 <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-brand">

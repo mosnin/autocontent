@@ -24,7 +24,7 @@ const STEPS: Array<{
   },
   {
     title: "Your first video renders. Approve it",
-    copy: "The pipeline runs end to end: script, on-model keyframes, animation, voiceover, captions, QA. You watch the result and approve or reject with one click.",
+    copy: "The pipeline runs end to end: script, on-model keyframes, animation, voiceover, captions, quality checks. You watch the result and approve or reject with one click.",
     shot: "First-video approval",
   },
   {

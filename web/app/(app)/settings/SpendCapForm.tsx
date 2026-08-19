@@ -13,6 +13,7 @@ import { Badge } from "@/components/square/ui/badge";
 import { Separator } from "@/components/square/ui/separator";
 import { ElasticSlider } from "@/components/elastic-slider";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
+import { useVideoEstimate } from "@/hooks/use-video-estimate";
 import { updateUserSettingsAction } from "@/lib/actions";
 import { cn } from "@/lib/utils";
 
@@ -40,7 +41,7 @@ const REFERENCE_NICHE = {
   target_duration_sec: 60,
 } as const;
 
-const PER_VIDEO_USD = estimateVideoCostUsd(REFERENCE_NICHE).total;
+const CLIENT_PER_VIDEO_USD = estimateVideoCostUsd(REFERENCE_NICHE).total;
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
@@ -54,6 +55,17 @@ function formatUsd(value: number) {
 }
 
 export function SpendCapForm({ initialCap }: Props) {
+  // The server's authoritative per-video figure (pre-margin — the same
+  // number the caps are checked against); client rate card as fallback.
+  const serverEst = useVideoEstimate({
+    scene_count: REFERENCE_NICHE.scene_count,
+    image_quality: REFERENCE_NICHE.image_quality,
+    scene_max_duration_sec: REFERENCE_NICHE.scene_max_duration_sec,
+    target_duration_sec: REFERENCE_NICHE.target_duration_sec,
+  });
+  const PER_VIDEO_USD = serverEst
+    ? Number(serverEst.estimated_usd)
+    : CLIENT_PER_VIDEO_USD;
   const [state, formAction, pending] = useActionState(
     updateUserSettingsAction,
     INITIAL_STATE,

@@ -167,7 +167,9 @@ function FailureRow({
           <span className="text-xs text-muted-foreground">{relative(item.created_at)}</span>
         </div>
         <p className="line-clamp-2 break-words text-sm text-muted-foreground">
-          {item.error ?? "(no error message recorded)"}
+          {item.category === "spend_cap"
+            ? "Stopped by a spending limit — the daily cap was reached or credit ran out before this could finish."
+            : (item.error ?? "(no error message recorded)")}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">

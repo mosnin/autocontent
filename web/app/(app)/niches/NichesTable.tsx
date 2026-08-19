@@ -304,7 +304,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
         <Button size="sm" className="h-8 gap-1.5 ml-auto" asChild>
           <Link href="/onboarding">
             <Plus className="size-3.5" />
-            <span className="hidden sm:inline">Create niche</span>
+            <span className="hidden sm:inline">Create channel</span>
           </Link>
         </Button>
       </div>

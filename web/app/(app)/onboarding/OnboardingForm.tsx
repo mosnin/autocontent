@@ -51,6 +51,7 @@ import { formatUsd } from "@/lib/format";
 import { PLATFORMS, QUALITIES, RESOLUTIONS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { titleWord } from "@/lib/labels";
+import { useVideoEstimate } from "@/hooks/use-video-estimate";
 
 const VOICE_OPTIONS = [
   "alloy",
@@ -504,6 +505,17 @@ function StepCreative() {
     scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
     target_duration_sec: Number(watch.target_duration_sec) || 1,
   });
+  // The server's authoritative figure (gate + ledger arithmetic); the
+  // client breakdown above is only instant feedback while it loads.
+  const serverEst = useVideoEstimate({
+    scene_count: Number(watch.scene_count) || 1,
+    image_quality: watch.image_quality,
+    scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
+    target_duration_sec: Number(watch.target_duration_sec) || 1,
+  });
+  const shown = serverEst
+    ? Number(serverEst.billing_enabled ? serverEst.charge_usd : serverEst.estimated_usd)
+    : breakdown.total;
 
   return (
     <>
@@ -712,10 +724,10 @@ function StepCreative() {
       <Card className="bg-muted/30">
         <CardContent className="flex items-baseline justify-between pt-6">
           <span className="text-sm text-muted-foreground">
-            Estimated cost per video
+            Estimated cost per video{serverEst?.billing_enabled ? ", all-in" : ""}
           </span>
           <span className="font-mono text-lg font-semibold">
-            {formatUsd(breakdown.total)}
+            {formatUsd(shown)}
           </span>
         </CardContent>
       </Card>
@@ -726,13 +738,21 @@ function StepCreative() {
 function StepSchedule() {
   const watch = useFormWatch();
   const cap = Number(watch.daily_spend_cap_usd) || 0;
-  const perVideo = estimateVideoCostUsd({
+  const clientPerVideo = estimateVideoCostUsd({
     scene_count: Number(watch.scene_count) || 1,
     image_quality: watch.image_quality,
     video_resolution: watch.video_resolution,
     scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
     target_duration_sec: Number(watch.target_duration_sec) || 1,
   }).total;
+  const serverEst = useVideoEstimate({
+    scene_count: Number(watch.scene_count) || 1,
+    image_quality: watch.image_quality,
+    scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
+    target_duration_sec: Number(watch.target_duration_sec) || 1,
+  });
+  // Caps are checked against the pre-margin figure — divide with that one.
+  const perVideo = serverEst ? Number(serverEst.estimated_usd) : clientPerVideo;
   const perDay = perVideo > 0 ? Math.floor(cap / perVideo) : 0;
 
   return (
