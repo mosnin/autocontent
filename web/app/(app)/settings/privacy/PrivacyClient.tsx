@@ -36,8 +36,8 @@ interface Props {
 // place so both cards read from the same source of truth.
 const DATA_ITEMS = [
   "Your profile and account details",
-  "Every niche and its configuration",
-  "All pipeline jobs and their spend records",
+  "Every channel and its configuration",
+  "All video runs and their spend records",
   "Generated articles and video metadata",
   "Personal access token prefixes (never the secrets)",
 ] as const;

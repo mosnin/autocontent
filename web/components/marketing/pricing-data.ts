@@ -33,7 +33,7 @@ export const PACKS: Pack[] = [
     featured: true,
   },
   {
-    label: "Studio",
+    label: "Scale",
     amount: 50,
     blurb: "Several channels at once",
     points: ["≈ 12–20 videos", "Sized for several channels", "Same features as every pack"],

@@ -219,7 +219,7 @@ export function LibraryClient({
         title,
         audio_mode: "keep",
       });
-      toast.success("Remix queued — rendering now");
+      toast.success("Remix started — rendering now");
       setSelected([]);
       setTitle("");
       await mutateCompositions();
@@ -237,11 +237,11 @@ export function LibraryClient({
           Library
         </DashHeading>
         <Select value={nicheFilter} onValueChange={setNicheFilter}>
-          <SelectTrigger className="w-48" aria-label="Filter by niche">
+          <SelectTrigger className="w-48" aria-label="Filter by channel">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All niches</SelectItem>
+            <SelectItem value="all">All channels</SelectItem>
             {niches.map((n) => (
               <SelectItem key={n.id} value={n.id}>
                 {n.title}

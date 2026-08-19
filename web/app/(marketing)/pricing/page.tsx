@@ -182,7 +182,7 @@ export default function PricingPage() {
                   Running many niches, or a fleet of agents?
                 </h3>
                 <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-zinc-400">
-                  The Studio pack covers most of it: per-niche caps, API and
+                  The Scale pack covers most of it: per-channel caps, API and
                   MCP access, several channels in parallel. If your setup is
                   bigger or stranger than that, talk to us and we&apos;ll make
                   it work.

@@ -267,7 +267,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
         <div className="relative flex-1 w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search niches..."
+            placeholder="Search channels..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-8 text-sm"

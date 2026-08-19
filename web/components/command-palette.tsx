@@ -102,7 +102,7 @@ export function CommandPalette() {
 
         <CommandGroup heading="Actions" className={KICKER}>
           <CommandItem onSelect={() => go("/onboarding")}>
-            Create niche
+            Create channel
           </CommandItem>
           <CommandItem onSelect={() => go("/articles?new=1")}>
             New article
@@ -118,7 +118,7 @@ export function CommandPalette() {
         {niches && niches.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Enqueue a run" className={KICKER}>
+            <CommandGroup heading="Run a video" className={KICKER}>
               {niches.flatMap((n) =>
                 n.platforms.map((p) => (
                   <CommandItem

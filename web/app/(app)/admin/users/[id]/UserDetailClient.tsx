@@ -148,7 +148,7 @@ export function UserDetailClient({
 
       {/* rollups */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Niches" value={String(data.niche_count)} />
+        <StatCard label="Channels" value={String(data.niche_count)} />
         <StatCard label="Jobs" value={String(data.job_count)} />
         <StatCard label="Articles" value={String(data.article_count)} />
         <StatCard label="Total spend" value={formatUsd(data.spend_total_usd)} mono />

@@ -28,6 +28,7 @@ import { clientFetch } from "@/lib/client-fetcher";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { extractDetail, isCreditError } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
+import { platformLabel } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import type { Niche, Platform, TodaySpend } from "@/lib/types";
 
@@ -146,7 +147,7 @@ function RunConfirmDialog({
     const res = await enqueueJobAction({ ok: false }, fd);
     setSubmitting(false);
     if (res.ok) {
-      toast.success(`Run enqueued on ${args.platform}`);
+      toast.success(`Run started — ${platformLabel(args.platform)}`);
       onOpenChange(false);
     } else if (isCreditError(res.error)) {
       // Out of credit: keep the dialog open and offer the fix, instead of
@@ -165,10 +166,10 @@ function RunConfirmDialog({
             Confirm run
           </p>
           <DialogTitle>
-            Run {niche?.title ?? "niche"} on {args?.platform ?? ""}
+            Run {niche?.title ?? "channel"} on {args ? platformLabel(args.platform) : ""}
           </DialogTitle>
           <DialogDescription>
-            We&apos;ll spawn a new pipeline run and post on the niche&apos;s next
+            We&apos;ll produce a new video and post it in this channel&apos;s next
             posting window.
           </DialogDescription>
         </DialogHeader>

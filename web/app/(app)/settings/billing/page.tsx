@@ -22,7 +22,7 @@ export default async function BillingPage() {
           Billing
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Pipeline credits
+          Credits
         </h1>
         {balance ? (
           <p className="mt-1.5 text-sm text-muted-foreground">

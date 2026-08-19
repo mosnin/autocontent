@@ -20,12 +20,12 @@ export default async function NichesPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <DashHeading as="h1" sub="Every niche you run, each its own self-driving pipeline.">
-          Niches
+        <DashHeading as="h1" sub="Every channel you run, each under its own budget and schedule.">
+          Channels
         </DashHeading>
         {niches.length === 0 && (
           <Button asChild>
-            <Link href="/onboarding">Create niche</Link>
+            <Link href="/onboarding">Create channel</Link>
           </Button>
         )}
       </div>
@@ -38,13 +38,13 @@ export default async function NichesPage() {
 function EmptyState() {
   return (
     <div className="rounded-lg border border-dashed bg-card p-12 text-center">
-      <h3 className="text-lg font-semibold">No niches yet</h3>
+      <h3 className="text-lg font-semibold">No channels yet</h3>
       <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-        Create one to start the pipeline. You can have as many as you want;
+        Create one and it starts producing. You can have as many as you want;
         each runs under its own daily spend cap.
       </p>
       <Button asChild className="mt-4">
-        <Link href="/onboarding">Create your first niche</Link>
+        <Link href="/onboarding">Create your first channel</Link>
       </Button>
     </div>
   );

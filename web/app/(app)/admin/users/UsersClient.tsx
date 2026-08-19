@@ -179,7 +179,7 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
         accessorKey: "niche_count",
         header: ({ column }) => (
           <SortableHeader
-            label="Niches"
+            label="Channels"
             className="ml-auto"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />

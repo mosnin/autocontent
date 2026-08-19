@@ -58,8 +58,8 @@ interface FailuresInboxResponse {
 
 const CATEGORY_LABELS: Record<FailureCategory, string> = {
   spend_cap: "Spend cap",
-  render_qa: "Render QA",
-  content_qa: "Content QA",
+  render_qa: "Render check",
+  content_qa: "Content check",
   provider_error: "Provider error",
   timeout_stuck: "Timeout / stuck",
   other: "Other",
@@ -128,7 +128,7 @@ function ReplayButton({
         const body = await res.text();
         throw new Error(`${res.status} ${body}`);
       }
-      toast.success("Replay enqueued");
+      toast.success("Retry started");
       onReplayed();
     } catch (e) {
       toastActionError(e instanceof Error ? e.message : undefined, "Replay failed");

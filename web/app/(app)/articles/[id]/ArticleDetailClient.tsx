@@ -104,7 +104,7 @@ export function ArticleDetailClient({
                 In progress — updates every {POLL_MS / 1000}s
               </span>
             )}
-            {nicheTitle && <span>Niche: {nicheTitle}</span>}
+            {nicheTitle && <span>Channel: {nicheTitle}</span>}
             <span className="tabular-nums">
               Created: {new Date(article.created_at).toLocaleString()}
             </span>
@@ -177,7 +177,7 @@ export function ArticleDetailClient({
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
                   {article.status === "failed"
-                    ? "The pipeline failed before a draft was produced."
+                    ? "This run failed before a draft was produced."
                     : "The article body appears here as soon as the writing step finishes."}
                 </p>
               </div>

@@ -79,3 +79,28 @@ Part 2 — re-audit verdicts folded (fresh-eyes agent report):
 - Tests: +1 article 402 gate test (69 passing across touched routes).
   ruff clean, tsc clean, next build clean.
 - Next: Cycle 4 = Workstream 3 (glossary purge) — then re-audit again.
+
+## Cycle 4 — 2026-08-19 · Workstream 3: Glossary purge
+- **Channel, not niche**: all user-facing copy across dashboard, niches
+  pages, queue, articles, calendar, library, campaigns, onboarding,
+  settings (caps/billing/privacy), command palette, admin, and the
+  marketing FAQ now says "channel". Routes, API fields, and identifiers
+  unchanged (/niches stays /niches).
+- **Product names aligned with marketing**: sidebar now says Studio and
+  Press (was Content / SEO); the $50 credit pack renamed Studio → Scale in
+  the app, pricing tiles, FAQ, and pricing page — "Studio" now means
+  exactly one thing.
+- **Pipeline jargon gone from user copy**: "spawn a pipeline run" →
+  "produce a new video"; "Run enqueued on reels" → "Run started — Reels"
+  (new lib/labels.ts platformLabel; raw platform enums no longer render);
+  "Retry/Replay enqueued" → "Retry started"; "All pipeline runs" → "Every
+  video run"; "New job" → "New video"; "Enqueuing…" → "Starting…";
+  "Pipeline credits" → "Credits"; QA status → "Quality check";
+  article Metadata/Imaging → "SEO metadata"/"Hero image"; failure
+  categories "Render/Content QA" → "Render/Content check".
+- Job-detail header: kicker "Job" → "Video" and the raw UUID removed from
+  the header; queue fallback titles no longer print UUID prefixes.
+- Validation: tsc clean, next build clean (backend untouched this cycle).
+- Next: Cycle 5 = re-audit of the glossary + remaining raw-enum surfaces
+  (remix statuses, image-post statuses, calendar ad rows), then
+  Workstream 6 (money transparency) or 4 (first video on creation).

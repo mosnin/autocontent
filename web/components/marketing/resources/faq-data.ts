@@ -7,15 +7,15 @@ export type FaqItem = { q: string; a: string };
 export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "How do spend caps work?",
-    a: "Every niche has a daily budget you set, and your account has a global daily cap on top. Before any render starts, the system estimates its cost and checks both caps. If the estimate fits, the job runs and the actual metered cost is drawn from your prepaid balance.",
+    a: "Every channel has a daily budget you set, and your account has a global daily cap on top. Before any render starts, the system estimates its cost and checks both caps. If the estimate fits, the job runs and the actual metered cost is drawn from your prepaid balance.",
   },
   {
     q: "What happens when a cap is hit?",
-    a: "The system fails closed. A job that would push a niche past its daily cap, or your account past the global cap, is refused before any money moves. Nothing is billed, nothing renders, and the job shows exactly which cap stopped it. Work resumes when the cap resets or you raise it.",
+    a: "The system fails closed. A job that would push a channel past its daily cap, or your account past the global cap, is refused before any money moves. Nothing is billed, nothing renders, and the job shows exactly which cap stopped it. Work resumes when the cap resets or you raise it.",
   },
   {
     q: "Do I have to approve every post?",
-    a: "Only if you want to. Each niche starts in review-before-post mode: drafts wait in a queue until you approve them. Once you trust the output, you can widen autonomy per niche and let approved formats publish on schedule. You can tighten back to full review at any time.",
+    a: "Only if you want to. Each channel starts in review-before-post mode: drafts wait in a queue until you approve them. Once you trust the output, you can widen autonomy per channel and let approved formats publish on schedule. You can tighten back to full review at any time.",
   },
   {
     q: "Which platforms can it publish to?",
@@ -39,18 +39,18 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How is my data handled?",
-    a: "Your briefs, niches, and generated assets stay yours and are not used to train models. Access tokens are hashed at rest and shown only once at creation. Every render, publish, and dollar spent is written to an audit log you can read.",
+    a: "Your briefs, channels, and generated assets stay yours and are not used to train models. Access tokens are hashed at rest and shown only once at creation. Every render, publish, and dollar spent is written to an audit log you can read.",
   },
   {
     q: "Can I bring my own topics?",
-    a: "Yes. Ideation proposes topics from your niche and past performance, but you can enqueue your own at any time, from the dashboard, the API, the CLI, or an agent. Your topics run through the same pipeline, QA, and caps as generated ones.",
+    a: "Yes. Ideation proposes topics from your channel and past performance, but you can enqueue your own at any time, from the dashboard, the API, the CLI, or an agent. Your topics run through the same pipeline, QA, and caps as generated ones.",
   },
   {
     q: "How many videos does a pack make?",
-    a: "A default-settings short costs about $3 all-in (metered provider cost plus our flat margin — a touch more with generated music on), so the $5 Starter pack renders 1–2 videos, the $20 Creator pack roughly 5–8, and the $50 Studio pack roughly 12–20. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
+    a: "A default-settings short costs about $3 all-in (metered provider cost plus our flat margin — a touch more with generated music on), so the $5 Starter pack renders 1–2 videos, the $20 Creator pack roughly 5–8, and the $50 Scale pack roughly 12–20. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
   },
   {
     q: "Can I run several niches at once?",
-    a: "Yes. Each niche gets its own voice, style, posting windows, and daily cap, and the global cap bounds the total across all of them. The Studio pack is sized for people running several niches in parallel.",
+    a: "Yes. Each channel gets its own voice, style, posting windows, and daily cap, and the global cap bounds the total across all of them. The Scale pack is sized for people running several channels in parallel.",
   },
 ];

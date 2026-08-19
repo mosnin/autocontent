@@ -26,7 +26,7 @@ export function RetryButton({
     const res = await retryJobAction({ ok: false }, fd);
     setPending(false);
     if (res.ok) {
-      toast.success("Retry enqueued");
+      toast.success("Retry started");
       onRetried?.();
     } else {
       toastActionError(res.error, "Retry failed");

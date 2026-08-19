@@ -30,7 +30,7 @@ interface Pack {
 const PACKS: Pack[] = [
   { key: "starter", label: "Starter", amount: 5, blurb: "Try the machine" },
   { key: "creator", label: "Creator", amount: 20, blurb: "A daily channel", featured: true },
-  { key: "studio", label: "Studio", amount: 50, blurb: "Several niches" },
+  { key: "studio", label: "Scale", amount: 50, blurb: "Several channels" },
 ];
 
 export function BillingClient({ initial }: { initial: BillingBalance }) {
@@ -97,7 +97,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
           </p>
           {low && (
             <p className="text-xs text-brand">
-              Running low — the pipeline pauses at zero.
+              Running low — rendering pauses at zero.
             </p>
           )}
         </CardContent>

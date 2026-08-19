@@ -131,7 +131,7 @@ export function CampaignsClient({
           <Button onClick={create} disabled={busy}>Create campaign</Button>
           {niches.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Tip: create a niche in Studio first — campaign lanes pull from
+              Tip: create a channel in Studio first — campaign lanes pull from
               your existing niches and ad campaigns.
             </p>
           )}

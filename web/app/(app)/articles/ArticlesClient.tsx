@@ -368,7 +368,7 @@ export function ArticlesClient({
         accessorFn: (article) => nicheTitles.get(article.niche_id) ?? "",
         header: ({ column }) => (
           <SortableHeader
-            label="Niche"
+            label="Channel"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />
         ),
@@ -559,7 +559,7 @@ export function ArticlesClient({
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                     {filter === "all" && !searchQuery
-                      ? "No articles yet. Kick off the written-content pipeline for one of your niches."
+                      ? "No articles yet. Write the first one for one of your channels."
                       : "No articles match this filter."}
                   </TableCell>
                 </TableRow>
@@ -682,7 +682,7 @@ function NewArticleDialog({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nicheId) {
-      toast.error("Pick a niche first");
+      toast.error("Pick a channel first");
       return;
     }
     setSubmitting(true);
@@ -692,7 +692,7 @@ function NewArticleDialog({
     const res = await createArticleAction({ ok: false }, fd);
     setSubmitting(false);
     if (res.ok && res.article) {
-      toast.success("Article enqueued — the pipeline is on it");
+      toast.success("Article started — writing now");
       onOpenChange(false);
       setTopic("");
       onCreated(res.article);
@@ -711,17 +711,17 @@ function NewArticleDialog({
             </p>
             <DialogTitle>Write an SEO article</DialogTitle>
             <DialogDescription>
-              The pipeline researches, outlines, writes, and QAs the piece.
+              We research, outline, write, and quality-check the piece.
               Leave the topic blank and it picks one for the niche.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="article-niche">Niche</Label>
+              <Label htmlFor="article-niche">Channel</Label>
               <DialogSelect value={nicheId} onValueChange={setNicheId}>
                 <DialogSelectTrigger id="article-niche" className="w-full">
-                  <DialogSelectValue placeholder="Pick a niche" />
+                  <DialogSelectValue placeholder="Pick a channel" />
                 </DialogSelectTrigger>
                 <DialogSelectContent>
                   {active.map((n) => (
@@ -733,7 +733,7 @@ function NewArticleDialog({
               </DialogSelect>
               {active.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  You need at least one active niche to write an article.
+                  You need at least one active channel to write an article.
                 </p>
               )}
             </div>
@@ -764,7 +764,7 @@ function NewArticleDialog({
               Cancel
             </DialogButton>
             <DialogButton type="submit" disabled={!nicheId || submitting}>
-              {submitting ? "Enqueuing…" : "Write article"}
+              {submitting ? "Starting…" : "Write article"}
             </DialogButton>
           </DialogFooter>
         </form>

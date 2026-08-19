@@ -134,7 +134,7 @@ export default async function AdminOverviewPage() {
             Platform health
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:flex sm:items-center sm:gap-8">
-            <HealthStat label="Niches" value={fmtCompact(o.total_niches)} />
+            <HealthStat label="Channels" value={fmtCompact(o.total_niches)} />
             <HealthStat label="Jobs" value={fmtCompact(o.total_jobs)} />
             <HealthStat label="Articles" value={fmtCompact(o.total_articles)} />
             <HealthStat

@@ -37,7 +37,7 @@ export interface Product {
 
 const STUDIO: Product = {
   id: "studio",
-  label: "Content",
+  label: "Studio",
   tagline: "Short-form video content — TikTok, Reels, Shorts",
   home: "/dashboard",
   match: ["/dashboard", "/niches", "/queue", "/calendar", "/library", "/templates", "/onboarding"],
@@ -46,7 +46,7 @@ const STUDIO: Product = {
       label: "Operate",
       items: [
         { href: "/dashboard", label: "Dashboard" },
-        { href: "/niches", label: "Niches" },
+        { href: "/niches", label: "Channels" },
         { href: "/queue", label: "Queue" },
         { href: "/calendar", label: "Calendar" },
         { href: "/library", label: "Library" },
@@ -58,7 +58,7 @@ const STUDIO: Product = {
 
 const PRESS: Product = {
   id: "press",
-  label: "SEO",
+  label: "Press",
   tagline: "Long-form articles, SEO, and search performance",
   home: "/articles",
   match: ["/articles"],

@@ -293,7 +293,7 @@ export function QueueClient({
     const res = await retryJobAction({ ok: false }, fd);
 
     if (res.ok) {
-      toast.success("Retry enqueued");
+      toast.success("Retry started");
       // Revalidate to get the real server state.
       void mutate();
     } else {
@@ -358,7 +358,7 @@ export function QueueClient({
         accessorFn: (job) => job.script?.idea?.hook ?? job.script?.idea?.topic ?? "",
         header: ({ column }) => (
           <SortableHeader
-            label="Job"
+            label="Video"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />
         ),
@@ -371,7 +371,7 @@ export function QueueClient({
                 href={`/queue/${job.id}`}
                 className="text-sm font-medium truncate hover:underline"
               >
-                {hook ? `"${hook}"` : `Job ${job.id.slice(0, 8)}`}
+                {hook ? `"${hook}"` : "Untitled video"}
               </Link>
               <code className="font-mono text-xs text-muted-foreground">
                 {job.id.slice(0, 8)}
@@ -385,7 +385,7 @@ export function QueueClient({
         accessorFn: (job) => nicheTitles[job.niche_id] ?? "",
         header: ({ column }) => (
           <SortableHeader
-            label="Niche"
+            label="Channel"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />
         ),
@@ -493,7 +493,7 @@ export function QueueClient({
 
   return (
     <div className="space-y-6">
-      <DashHeading as="h1" sub={`All pipeline runs. Updates every ${POLL_MS / 1000}s.`}>
+      <DashHeading as="h1" sub={`Every video run. Updates every ${POLL_MS / 1000}s.`}>
         Queue
       </DashHeading>
 
@@ -550,7 +550,7 @@ export function QueueClient({
             className="h-8 gap-1.5 ml-auto"
             onClick={() => openCommandPalette()}
           >
-            <span className="hidden sm:inline">New job</span>
+            <span className="hidden sm:inline">New video</span>
             <span className="sm:hidden">New</span>
           </Button>
         </div>
@@ -593,8 +593,8 @@ export function QueueClient({
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                     {filter === "all" && !searchQuery
-                      ? "No jobs yet. Trigger one from the dashboard or via the command palette (⌘K)."
-                      : "No jobs match this filter."}
+                      ? "No videos yet. Run one from the dashboard, or press ⌘K."
+                      : "No videos match this filter."}
                   </TableCell>
                 </TableRow>
               )}

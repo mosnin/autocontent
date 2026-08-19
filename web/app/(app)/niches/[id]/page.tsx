@@ -264,7 +264,7 @@ export default async function NichePage({
           <CardHeader>
             <CardTitle>Recent jobs</CardTitle>
             <CardDescription>
-              Last 20 pipeline runs for this niche
+              The last 20 runs for this channel
             </CardDescription>
           </CardHeader>
           <CardContent className={hasJobs ? "p-0" : undefined}>

@@ -134,16 +134,13 @@ export function JobDetailClient({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-              Job
+              Video
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <StatusBadge status={job.status} />
-              <code className="font-mono text-sm tabular-nums text-muted-foreground">
-                {job.id}
-              </code>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              {nicheTitle ?? "Job"} ·{" "}
+              {nicheTitle ?? "Video"} ·{" "}
               <span className="capitalize text-muted-foreground">
                 {job.platform}
               </span>
@@ -214,8 +211,8 @@ export function JobDetailClient({
                   <Skeleton className="aspect-[9/16] w-full rounded-md" />
                   <p className="mt-3 text-xs text-muted-foreground">
                     {job.status === "failed"
-                      ? "The pipeline failed before a video was produced."
-                      : "The video appears here as soon as the pipeline finishes editing and captioning."}
+                      ? "This run failed before a video was produced."
+                      : "The video appears here as soon as editing and captions captioning."}
                   </p>
                 </div>
               )}
@@ -256,7 +253,7 @@ export function JobDetailClient({
                   {breakdown ? (
                     <CostsPanel breakdown={breakdown} />
                   ) : (
-                    <Empty>Niche data unavailable</Empty>
+                    <Empty>Channel data unavailable</Empty>
                   )}
                 </TabsContent>
 

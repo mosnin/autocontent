@@ -305,7 +305,7 @@ export function CalendarClient({
         id: "niche",
         accessorFn: (item) => nicheTitles[item.niche_id] ?? "",
         header: ({ column }) => (
-          <SortableHeader label="Niche" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} />
+          <SortableHeader label="Channel" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} />
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground truncate max-w-[200px] inline-block align-middle">

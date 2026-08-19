@@ -496,7 +496,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           </Labelled>
           <Labelled
             label="Writing kit"
-            hint="Article voice — used by Press for this niche"
+            hint="Article voice — used by Press for this channel"
             htmlFor="niche-writing_kit"
           >
             <select

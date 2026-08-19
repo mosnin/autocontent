@@ -90,7 +90,7 @@ export function SpendCapForm({ initialCap }: Props) {
             Enforce a global daily cap
           </Label>
           <p className="max-w-md text-xs text-muted-foreground">
-            An account-wide ceiling across every niche. Checked before each
+            An account-wide ceiling across every channel. Checked before each
             job runs — anything that would push the day&apos;s spend over the
             cap is refused, not truncated.
           </p>
@@ -177,7 +177,7 @@ export function SpendCapForm({ initialCap }: Props) {
               </div>
             </div>
             <p className="pb-2.5 text-xs text-muted-foreground">
-              At ≈ ${formatUsd(PER_VIDEO_USD)} per video for a typical niche.
+              At ≈ ${formatUsd(PER_VIDEO_USD)} per video for a typical channel.
             </p>
           </div>
         </div>
@@ -191,8 +191,8 @@ export function SpendCapForm({ initialCap }: Props) {
             </span>
           </div>
           <p className="max-w-md text-xs text-muted-foreground">
-            No account-wide limit. Spending is bounded only by each niche&apos;s
-            own per-niche cap. Turn the toggle on to set a global ceiling.
+            No account-wide limit. Spending is bounded only by each channel&apos;s
+            own daily cap. Turn the toggle on to set a global ceiling.
           </p>
         </div>
       )}

@@ -66,7 +66,7 @@ export function CampaignDetailClient({
 
   const addLane = () =>
     act(async () => {
-      if (!refId) throw new Error(kind === "ad" ? "Paste an ad campaign id" : "Pick a niche");
+      if (!refId) throw new Error(kind === "ad" ? "Paste an ad campaign id" : "Pick a channel");
       await campaignMutate(`/api/v1/campaigns/${c.id}/items`, "POST", {
         kind, ref_id: refId, cadence_per_week: cadence,
       });
@@ -182,7 +182,7 @@ export function CampaignDetailClient({
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="lane-ref">
-                {kind === "ad" ? "Ad campaign id" : "Niche"}
+                {kind === "ad" ? "Ad campaign id" : "Channel"}
               </Label>
               {kind === "ad" ? (
                 <Input id="lane-ref" value={refId}
@@ -192,7 +192,7 @@ export function CampaignDetailClient({
                 <select id="lane-ref" value={refId}
                   onChange={(e) => setRefId(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="">Pick a niche…</option>
+                  <option value="">Pick a channel…</option>
                   {niches.map((n) => (
                     <option key={n.id} value={n.id}>{n.title}</option>
                   ))}
