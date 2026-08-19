@@ -24,7 +24,7 @@ import {
 } from "@/components/square/ui/table";
 import { createCheckoutAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
-import { formatUsd } from "@/lib/format";
+import { formatUsd, formatUsdPrecise } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { BillingBalance } from "@/lib/types";
 
@@ -71,14 +71,20 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
 
   async function buy(pack: string) {
     setBuying(pack);
-    const fd = new FormData();
-    fd.set("pack", pack);
-    const res = await createCheckoutAction({ ok: false }, fd);
-    setBuying(null);
-    if (res.ok && res.url) {
-      window.location.href = res.url;
-    } else {
-      toast.error(res.error ?? "Checkout failed");
+    try {
+      const fd = new FormData();
+      fd.set("pack", pack);
+      const res = await createCheckoutAction({ ok: false }, fd);
+      if (res.ok && res.url) {
+        window.location.href = res.url;
+      } else {
+        toast.error(res.error ?? "Checkout failed");
+      }
+    } catch {
+      toast.error("Checkout failed — try again");
+    } finally {
+      // Always release the buttons: a thrown action must not brick the page.
+      setBuying(null);
     }
   }
 
@@ -224,7 +230,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
                             {row.detail.map((d, i) => (
                               <li key={i} className="flex justify-between gap-4">
                                 <span>{d.label}</span>
-                                <span className="tabular-nums">{fmtAmount(d.amount)}</span>
+                                <span className="tabular-nums">{formatUsdPrecise(d.amount)}</span>
                               </li>
                             ))}
                           </ul>
@@ -242,7 +248,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
                       )}
                     >
                       {row.amount > 0 ? "+" : ""}
-                      {fmtAmount(row.amount)}
+                      {formatUsdPrecise(row.amount)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -255,20 +261,16 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
                 </Button>
               </div>
             )}
+            {showAll && (fullLedger?.transactions.length ?? 0) >= 500 && (
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                Showing the most recent 500 entries.
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
     </div>
   );
-}
-
-/** Cents lie at two decimals: show tiny per-call debits at four. */
-function fmtAmount(n: number): string {
-  const abs = Math.abs(n);
-  if (abs > 0 && abs < 0.01) {
-    return `${n < 0 ? "-" : ""}$${abs.toFixed(4)}`;
-  }
-  return formatUsd(n);
 }
 
 interface LedgerRow {

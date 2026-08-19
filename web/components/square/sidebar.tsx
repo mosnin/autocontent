@@ -36,6 +36,7 @@ import { openCommandPalette } from "@/components/command-palette";
 import { PRODUCTS, productForPath, type ProductId } from "@/lib/products";
 import useSWR from "swr";
 import { clientFetch } from "@/lib/client-fetcher";
+import { formatUsd } from "@/lib/format";
 
 export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
   campaigns: Megaphone,
@@ -203,9 +204,7 @@ function CreditFooterLink() {
       className="text-sm font-medium tabular-nums hover:underline"
       title="Your prepaid credit — click to top up"
     >
-      {balance === null
-        ? "Credits"
-        : `$${balance.toFixed(2)} credit`}
+      {balance === null ? "Credits" : `${formatUsd(balance)} credit`}
     </Link>
   );
 }

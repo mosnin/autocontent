@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/errors";
 import { Coins, Eye, MoreHorizontal, Users, WalletMinimal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,21 @@ const PLATFORM_LABEL: Record<Platform, string> = {
   reels: "Reels",
   shorts: "Shorts",
 };
+
+function FirstRenderOutcomeToast() {
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("first_render") === "failed") {
+      const reason = params.get("reason") ?? "";
+      toastActionError(
+        reason || undefined,
+        "Your channel was created, but the first render couldn't start.",
+      );
+      window.history.replaceState({}, "", "/dashboard");
+    }
+  }, []);
+  return null;
+}
 
 export function DashboardClient({ initial }: { initial: InitialData }) {
   const { data: niches, error: nichesError, mutate: mutateNiches } = useSWR<Niche[]>(
@@ -162,6 +178,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
   return (
     <div className="space-y-10">
+      <FirstRenderOutcomeToast />
       <DashHeading as="h1" sub="Every channel runs itself — queue a short, cap the spend, ship to every feed.">
         Bring any idea to the feed
       </DashHeading>

@@ -187,3 +187,27 @@ Cycle 6 — glossary re-audit verdicts folded:
   editing (backend caption override), unified image-post approvals.
 - Validation: ruff clean, approval/jobs/failures tests green, tsc clean,
   next build clean. Re-audit of Cycles 7–8 running in parallel.
+
+## Cycle 10 — 2026-08-19 · Fold of the Cycles 7–8 re-audit
+(The re-audit's H2 + download-gap were already fixed by Cycle 9's Review
+Room; this cycle folds everything else.)
+- **H1**: a failed first-run enqueue no longer dies silently — the reason
+  travels to /dashboard (?first_render=failed&reason=…) and toasts, with
+  the Add-credit action on a 402.
+- **H3**: awaiting_approval slow-polls (30s) instead of freezing, so an
+  approval made anywhere else updates the open page.
+- **M1**: buy() is exception-safe (try/finally) — a thrown checkout action
+  can't brick the billing page.
+- **M2/M3**: receipts render at 4-decimal precision via a shared
+  formatUsdPrecise (lib/format), and terminal zero-spend runs say "no
+  metered spend" instead of promising a number that never comes.
+- **L1/L2/L3**: full-history ledger notes its 500-entry boundary; sidebar
+  formats negative balances as -$3.21; ProgressRail counts the current
+  stage as half-done (no more full bar mid-scheduling).
+- **Gap 4**: the first-video celebration now fires on the job page where
+  the moment happens (same one-shot localStorage key).
+- **Honorable mention**: the ReviewBar warns when socials aren't connected
+  — before the user approves into a late scheduling failure.
+- Validation: ruff clean, tsc clean, next build clean.
+- Next: Cycle 11 = ads governance UI (Workstream 7) or marketing niche
+  sweep; re-audit after.

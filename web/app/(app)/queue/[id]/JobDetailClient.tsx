@@ -35,7 +35,7 @@ import { approveJobAction, rejectJobAction } from "@/lib/actions";
 import { toastActionError } from "@/lib/errors";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { estimateVideoCostUsd } from "@/lib/cost-estimator";
-import { formatUsd } from "@/lib/format";
+import { formatUsd, formatUsdPrecise } from "@/lib/format";
 import { platformLabel } from "@/lib/labels";
 import { StatusBadge } from "@/lib/status-badge";
 import type { Job, JobStatus, PostMetrics } from "@/lib/types";
@@ -88,7 +88,7 @@ function ProgressRail({ status }: { status: JobStatus }) {
   if (idx === -1 && !isQueued) return null;
 
   const current = isQueued ? 0 : idx;
-  const pct = isQueued ? 4 : ((current + 1) / STAGES.length) * 100;
+  const pct = isQueued ? 4 : ((current + 0.5) / STAGES.length) * 100;
   return (
     <div className="rounded-lg border border-brand/20 bg-card/40 p-4">
       <div className="flex items-baseline justify-between gap-4">
@@ -138,6 +138,12 @@ function ReviewBar({
 }) {
   const [pending, setPending] = React.useState<"approve" | "reject" | null>(null);
   const [confirmReject, setConfirmReject] = React.useState(false);
+  // Approving without a posting profile fails late, inside scheduling —
+  // warn here, where the decision is being made.
+  const { data: connect } = useSWR<{ connected: boolean }>(
+    "/api/v1/connect/ayrshare/status",
+    clientFetch,
+  );
 
   async function decide(kind: "approve" | "reject") {
     setPending(kind);
@@ -169,6 +175,16 @@ function ReviewBar({
           Watch it below, then approve to schedule it for the channel&apos;s next
           posting window — or reject and nothing posts.
         </p>
+        {connect && !connect.connected && (
+          <p className="mt-1 text-xs font-medium text-brand">
+            Your socials aren&apos;t connected yet — the post can&apos;t ship until
+            you{" "}
+            <Link className="underline underline-offset-2" href="/connect">
+              connect them
+            </Link>
+            .
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 gap-2">
         <Button
@@ -253,9 +269,14 @@ export function JobDetailClient({
     clientFetch,
     {
       fallbackData: initial,
-      // Poll while the pipeline is working; stop once terminal.
-      refreshInterval: (latest) =>
-        TERMINAL.has((latest ?? initial).status) ? 0 : POLL_MS,
+      // Poll fast while producing; slow-poll awaiting_approval (a decision
+      // made in another tab must still update this page); stop when the
+      // run can never change again.
+      refreshInterval: (latest) => {
+        const s = (latest ?? initial).status;
+        if (s === "awaiting_approval") return 30_000;
+        return TERMINAL.has(s) ? 0 : POLL_MS;
+      },
     },
   );
 
@@ -277,6 +298,20 @@ export function JobDetailClient({
     : null;
 
   const inProgress = IN_PROGRESS.has(job.status);
+
+  // First-video celebration: fire once per browser, in the room where it
+  // actually happens (this page), not on a homepage the user may not visit.
+  const [celebrate, setCelebrate] = React.useState(false);
+  React.useEffect(() => {
+    if (
+      (job.status === "awaiting_approval" || job.status === "done") &&
+      typeof window !== "undefined" &&
+      !window.localStorage.getItem("marketer_first_video_seen")
+    ) {
+      window.localStorage.setItem("marketer_first_video_seen", "1");
+      setCelebrate(true);
+    }
+  }, [job.status]);
 
   return (
     <div className="space-y-6">
@@ -337,6 +372,21 @@ export function JobDetailClient({
           </div>
         </div>
       </Reveal>
+
+      <Dialog open={celebrate} onOpenChange={setCelebrate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Your machine shipped its first video</DialogTitle>
+            <DialogDescription>
+              Ideated, written, animated, voiced, and mixed — start to finish,
+              no hands on the wheel. It&apos;s below, waiting for you.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setCelebrate(false)}>Watch it</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {job.status === "awaiting_approval" && (
         <Reveal delay={0.03}>
@@ -579,7 +629,7 @@ function CostsPanel({
                 Actual metered cost
               </TableCell>
               <TableCell className="py-2 pr-0 text-right font-mono font-semibold tabular-nums">
-                {formatUsd(metered)}
+                {formatUsdPrecise(metered)}
               </TableCell>
             </TableRow>
             {charged !== null && (
@@ -588,7 +638,7 @@ function CostsPanel({
                   Charged to your balance
                 </TableCell>
                 <TableCell className="py-2 pr-0 text-right font-mono font-semibold tabular-nums">
-                  {formatUsd(charged)}
+                  {formatUsdPrecise(charged)}
                 </TableCell>
               </TableRow>
             )}
@@ -598,7 +648,9 @@ function CostsPanel({
       <p className="text-xs text-muted-foreground">
         {metered !== null && metered > 0
           ? "The estimate comes from the channel's config; the actual figures are summed from this run's metered provider calls."
-          : "Estimated from the channel's current config — the actual cost appears here once the run finishes."}
+          : metered !== null
+            ? "This run recorded no metered spend."
+            : "Estimated from the channel's current config — the actual cost appears here once the run finishes."}
       </p>
     </div>
   );

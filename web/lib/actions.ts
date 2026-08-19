@@ -219,6 +219,7 @@ export async function createNicheAction(
   // failure (e.g. out of credit) falls back to the dashboard — the
   // channel exists either way and the run button there explains the 402.
   let firstJobId: string | null = null;
+  let firstRunError: string | null = null;
   if (formData.get("render_first") === "on") {
     try {
       const job = await api<Job>("/api/v1/jobs", {
@@ -226,14 +227,20 @@ export async function createNicheAction(
         body: JSON.stringify({ niche_id: created.id, platform: platforms[0] }),
       });
       firstJobId = job.id;
-    } catch {
-      firstJobId = null;
+    } catch (e) {
+      // The channel exists; the render didn't start. Carry the reason to
+      // the dashboard so the promise of the checkbox isn't silently broken.
+      firstRunError = errorMessage(e);
     }
   }
 
   revalidatePath("/dashboard");
   revalidatePath("/queue");
-  redirect(firstJobId ? `/queue/${firstJobId}` : "/dashboard");
+  if (firstJobId) redirect(`/queue/${firstJobId}`);
+  if (firstRunError) {
+    redirect(`/dashboard?first_render=failed&reason=${encodeURIComponent(firstRunError)}`);
+  }
+  redirect("/dashboard");
 }
 
 export async function updateNicheAction(
