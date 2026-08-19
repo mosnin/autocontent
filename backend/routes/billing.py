@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
 from marketer.config import settings
@@ -56,14 +56,17 @@ class BalanceResponse(BaseModel):
 
 
 @router.get("/balance", response_model=BalanceResponse)
-async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
+async def get_balance(
+    ctx: AuthCtx = CurrentUser,
+    limit: int = Query(default=50, ge=1, le=500),
+) -> BalanceResponse:
     bal = (
         await billing_repo.balance(ctx.user_id)
         if settings.billing_enabled
         else Decimal("0")
     )
     txs = (
-        await billing_repo.transactions(ctx.user_id, limit=50)
+        await billing_repo.transactions(ctx.user_id, limit=limit)
         if settings.billing_enabled
         else []
     )

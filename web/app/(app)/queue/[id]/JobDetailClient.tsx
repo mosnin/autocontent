@@ -252,7 +252,7 @@ export function JobDetailClient({
 
                 <TabsContent value="costs" className="m-0 p-6">
                   {breakdown ? (
-                    <CostsPanel breakdown={breakdown} />
+                    <CostsPanel breakdown={breakdown} jobId={job.id} terminal={TERMINAL.has(job.status)} />
                   ) : (
                     <Empty>Channel data unavailable</Empty>
                   )}
@@ -347,16 +347,30 @@ function ScenesPanel({ scenes }: { scenes: Scene[] }) {
 
 function CostsPanel({
   breakdown,
+  jobId,
+  terminal,
 }: {
   breakdown: ReturnType<typeof estimateVideoCostUsd>;
+  jobId: string;
+  terminal: boolean;
 }) {
+  // The receipt: what the run actually consumed once real calls were
+  // metered — fetched once the run has stopped changing.
+  const { data: receipt } = useSWR<{
+    metered_usd: string;
+    charged_usd: string | null;
+    billing_enabled: boolean;
+  }>(terminal ? `/api/v1/jobs/${jobId}/receipt` : null, clientFetch);
+
   const rows: [string, number][] = [
-    ["Images", breakdown.image],
-    ["Video (Grok Imagine)", breakdown.video],
-    ["TTS", breakdown.tts],
-    ["Whisper", breakdown.whisper],
+    ["Scene images", breakdown.image],
+    ["Animation", breakdown.video],
+    ["Voiceover", breakdown.tts],
+    ["Captions", breakdown.whisper],
     ["Character sheet", breakdown.character_sheet],
   ];
+  const metered = receipt ? Number(receipt.metered_usd) : null;
+  const charged = receipt?.charged_usd != null ? Number(receipt.charged_usd) : null;
   return (
     <div className="space-y-4 text-sm">
       <Table>
@@ -381,9 +395,34 @@ function CostsPanel({
           </TableRow>
         </TableBody>
       </Table>
+      {metered !== null && metered > 0 && (
+        <Table>
+          <TableBody>
+            <TableRow className="border-t border-border/60 hover:bg-transparent">
+              <TableCell className="py-2 pl-0 font-medium">
+                Actual metered cost
+              </TableCell>
+              <TableCell className="py-2 pr-0 text-right font-mono font-semibold tabular-nums">
+                {formatUsd(metered)}
+              </TableCell>
+            </TableRow>
+            {charged !== null && (
+              <TableRow className="border-0 hover:bg-transparent">
+                <TableCell className="py-2 pl-0 font-medium">
+                  Charged to your balance
+                </TableCell>
+                <TableCell className="py-2 pr-0 text-right font-mono font-semibold tabular-nums">
+                  {formatUsd(charged)}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      )}
       <p className="text-xs text-muted-foreground">
-        Estimated from the channel&apos;s current config — the actual run is
-        billed from real provider invoices.
+        {metered !== null && metered > 0
+          ? "The estimate comes from the channel's config; the actual figures are summed from this run's metered provider calls."
+          : "Estimated from the channel's current config — the actual cost appears here once the run finishes."}
       </p>
     </div>
   );

@@ -503,3 +503,43 @@ def test_retry_refused_402_when_credit_short(monkeypatch):
     )
     assert resp.status_code == 402
     assert reset_called == []  # the job was not touched
+
+
+def test_job_receipt_returns_metered_and_charged(monkeypatch):
+    """Receipt = metered spend + charged credit (billing on)."""
+    _reset_limiter()
+    from decimal import Decimal
+    from uuid import UUID as _UUID
+
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.spend as spend_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _get(job_id, *, user_id):
+        return _make_job(status=JobStatus.done)
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    async def _cost_by_job(job_ids, *, user_id):
+        return {jid: Decimal("1.9620") for jid in job_ids}
+
+    monkeypatch.setattr(spend_repo, "cost_by_job", _cost_by_job)
+
+    async def _charged(user_id, job_id: _UUID):
+        return Decimal("2.9430")
+
+    monkeypatch.setattr(billing_repo, "charged_for_job", _charged)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/jobs/{_JOB_ID}/receipt",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["metered_usd"] == "1.9620"
+    assert body["charged_usd"] == "2.9430"
+    assert body["billing_enabled"] is True

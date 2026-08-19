@@ -34,6 +34,8 @@ import {
 import { Button } from "@/components/square/ui/button";
 import { openCommandPalette } from "@/components/command-palette";
 import { PRODUCTS, productForPath, type ProductId } from "@/lib/products";
+import useSWR from "swr";
+import { clientFetch } from "@/lib/client-fetcher";
 
 export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
   campaigns: Megaphone,
@@ -169,14 +171,41 @@ export function SquareSidebar({
 
         <div className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm w-full bg-background group-data-[collapsible=icon]:hidden">
           {account ?? <UserButton afterSignOutUrl="/" />}
-          <Link
-            href="/settings/billing"
-            className="text-sm font-medium hover:underline"
-          >
-            Get more credits
-          </Link>
+          <CreditFooterLink />
         </div>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+/**
+ * The shell's ambient money affordance: the actual balance, always visible,
+ * linking to billing. Falls back to a plain "Credits" link until the number
+ * loads; renders nothing extra when billing is disabled (self-hosted).
+ */
+function CreditFooterLink() {
+  const { data } = useSWR<{ balance_usd: string; billing_enabled: boolean }>(
+    "/api/v1/billing/balance?limit=1",
+    clientFetch,
+    { refreshInterval: 60_000 },
+  );
+  if (data && !data.billing_enabled) {
+    return (
+      <Link href="/settings/billing" className="text-sm font-medium hover:underline">
+        Billing
+      </Link>
+    );
+  }
+  const balance = data ? Number(data.balance_usd) : null;
+  return (
+    <Link
+      href="/settings/billing"
+      className="text-sm font-medium tabular-nums hover:underline"
+      title="Your prepaid credit — click to top up"
+    >
+      {balance === null
+        ? "Credits"
+        : `$${balance.toFixed(2)} credit`}
+    </Link>
   );
 }

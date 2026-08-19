@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -198,3 +199,39 @@ async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     # Reuse the job's own row: the retried id is the id that progresses.
     fn.spawn(ctx.user_id, str(job.niche_id), job.platform, str(job.id))
     return job
+
+
+class JobReceipt(BaseModel):
+    """What one video actually cost: the metered provider spend and the
+    amount charged to the prepaid balance (margin included)."""
+
+    metered_usd: str
+    charged_usd: str | None  # None when billing is disabled (self-hosted)
+    billing_enabled: bool
+
+
+@router.get("/{job_id}/receipt", response_model=JobReceipt)
+async def get_job_receipt(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobReceipt:
+    """The per-video receipt: estimate lives on the client; this is what
+    the run actually consumed once real calls were metered."""
+    from marketer.config import settings as marketer_settings
+    from marketer.repos import spend as spend_repo
+
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    costs = await spend_repo.cost_by_job([job_id], user_id=ctx.user_id)
+    metered = costs.get(job_id) or Decimal("0")
+
+    charged: Decimal | None = None
+    if marketer_settings.billing_enabled:
+        from marketer.repos import billing as billing_repo
+
+        charged = await billing_repo.charged_for_job(ctx.user_id, job_id)
+
+    return JobReceipt(
+        metered_usd=str(metered.quantize(Decimal("0.0001"))),
+        charged_usd=str(charged.quantize(Decimal("0.0001"))) if charged is not None else None,
+        billing_enabled=marketer_settings.billing_enabled,
+    )

@@ -133,3 +133,24 @@ Cycle 6 — glossary re-audit verdicts folded:
 - Validation: ruff clean, route tests green, tsc clean, next build clean.
 - Next: Cycle 7 = Workstream 6 (money transparency: receipts, balance in
   shell, ledger rollups) or Workstream 4 (first video on creation).
+
+## Cycle 7 — 2026-08-19 · Workstream 6: Money transparency
+- **Balance in the shell**: the sidebar footer's permanent "Get more
+  credits" is now the live balance ("$12.40 credit", 60s refresh) linking
+  to billing; plain "Billing" when billing is disabled.
+- **Per-video receipt**: new `GET /jobs/{id}/receipt` (metered spend from
+  spend_ledger + actual charged credit from the run's debit rows via new
+  `billing.charged_for_job`); the job Costs tab now shows "Actual metered
+  cost" and "Charged to your balance" once a run is terminal, with vendor
+  names dropped from the estimate rows (Scene images / Animation /
+  Voiceover / Captions).
+- **Ledger legible**: per-call debits roll up into one row per video run
+  ("Video run · 12 metered calls", per-call detail one click away);
+  sub-cent amounts render at 4 decimals instead of $0.00; "Show full
+  history" fetches up to 500 rows (backend limit param added).
+- **No more one-click Stripe redirect**: pack cards open a confirm dialog
+  ("Buy $20 of credit? … No subscription, no auto-renew") before checkout.
+- Tests: +1 receipt route test. ruff clean, route tests green, tsc clean,
+  next build clean.
+- Next: Cycle 8 = Workstream 4 (first video on channel creation + staged
+  progress) or the Review Room (Workstream 5); re-audit after.
