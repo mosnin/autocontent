@@ -293,7 +293,7 @@ const BANNER_SEGMENTS = [
   "One brief, every format",
   "Hard caps on every dollar",
   "Your agents ship the campaign",
-  "See what shipped this week",
+  "See what's new",
 ];
 
 function AnnouncementBanner() {

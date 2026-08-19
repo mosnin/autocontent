@@ -8,7 +8,7 @@ import { Reveal, Stagger, TextReveal } from "@/components/marketing/system";
 const PILLARS = [
   {
     title: "Hard spend caps",
-    desc: "Per-niche and per-campaign daily caps, enforced fail-closed. If the cap is hit, the system stops, not the budget.",
+    desc: "Per-channel and per-campaign daily caps, enforced fail-closed. If the cap is hit, the system stops, not the budget.",
   },
   {
     title: "Human approval gates",
@@ -74,17 +74,19 @@ export function Enterprise() {
           ))}
         </Stagger>
 
-        {/* Compliance badge slots — real marks land when certifications do. */}
-        <div className="mt-12 flex flex-wrap items-center gap-3 border-t border-zinc-900/[0.06] pt-8">
+        {/* Only claims the product actually backs — certification marks can
+            join here when the certifications are real. */}
+        <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-zinc-900/[0.06] pt-8">
           <p className="mr-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
-            Compliance
+            Data &amp; controls
           </p>
-          {["soc2.svg", "gdpr.svg", "ccpa.svg"].map((f) => (
-            <span
-              className="flex h-10 w-24 items-center justify-center rounded-lg border border-dashed border-zinc-900/10 bg-zinc-50 font-mono text-[10px] text-zinc-300"
-              key={f}
-            >
-              {f}
+          {[
+            "GDPR export & erasure built in",
+            "Append-only audit logs",
+            "Fail-closed spend guardrails",
+          ].map((claim) => (
+            <span className="text-sm text-zinc-600" key={claim}>
+              {claim}
             </span>
           ))}
         </div>

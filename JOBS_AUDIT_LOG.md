@@ -294,3 +294,22 @@ Room; this cycle folds everything else.)
   build clean.
 - Deferred (logged): decided-approvals history view, per-day ad metrics
   table, marketing back-of-fence sweep.
+
+## Cycle 15 — 2026-08-19 · Workstream 10: The back of the fence (marketing truth)
+- **Fabricated social proof is gone**: the four invented testimonials +
+  placeholder portraits + fake award marks become "Built to be trusted" —
+  four first-party guarantees the product actually enforces, each with
+  where to verify it; the fake customer-logo band becomes an honest
+  "One brief ships to" destinations strip; the SOC2/GDPR/CCPA badge
+  slots become truthful "Data & controls" claims (certification marks can
+  join when real).
+- Nav banner "See what shipped this week" → "See what's new" (the
+  changelog's age no longer contradicts the banner).
+- **Marketing channel sweep**: the word "niche" replaced with "channel"
+  across 27 marketing files (guides, use-cases, features, resources,
+  home sections), skipping API/code literals (niche_id, /niches routes,
+  CLI and SDK samples stay accurate). Marketing and app now speak one
+  language end to end.
+- Validation: tsc clean, next build clean.
+- Next: Cycle 16 = final full re-audit through the original lens; fold
+  anything found; then assess loop completion against the goal.

@@ -37,7 +37,7 @@ const STATS: Array<{
     value: 100,
     suffix: "%",
     title: "of spend under a cap",
-    desc: "Every niche and every campaign has a hard daily cap the system cannot cross.",
+    desc: "Every channel and every campaign has a hard daily cap the system cannot cross.",
   },
 ];
 

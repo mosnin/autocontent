@@ -17,7 +17,7 @@ const CARDS = [
   {
     kicker: "Always on",
     title: "Autopilot runs the channel 24/7",
-    desc: "Give it a niche and a daily cap. It plans, produces, and publishes on schedule, and never spends past the cap.",
+    desc: "Give it a channel and a daily cap. It plans, produces, and publishes on schedule, and never spends past the cap.",
     placeholder: { label: "Autopilot queue — screenshot", tone: "warm" as const },
   },
   {

@@ -130,11 +130,11 @@ const SURFACES: Surface[] = [
     code: (
       <CodeBlock title="terminal">
         <P>$ </P>
-        <K>marketer</K> niches list{"\n"}
+        <K>marketer</K> channels list{"\n"}
         <C> nch_9f2c1e home-espresso cap $10/day 2 windows</C>
         {"\n\n"}
         <P>$ </P>
-        <K>marketer</K> articles generate <F>--niche</F> nch_9f2c1e \{"\n"}
+        <K>marketer</K> articles generate <F>--channel</F> nch_9f2c1e \{"\n"}
         {"    "}
         <F>--topic</F> <S>&quot;best budget espresso grinders&quot;</S>
         {"\n"}

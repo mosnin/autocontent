@@ -34,7 +34,7 @@ export function SurfaceCards() {
         <Reveal className="max-w-2xl">
           <Kicker>Four surfaces, one platform</Kicker>
           <TextReveal as="h2" className={cn(H2_CLASS, "mt-4")}>
-            Create a niche. Enqueue a video. Check the spend.
+            Create a channel. Enqueue a video. Check the spend.
           </TextReveal>
           <Lede className="mt-5">
             The same three calls, from whichever surface fits the stack:
@@ -131,7 +131,7 @@ export function WindowsBand() {
               The schedule runs itself.
             </TextReveal>
             <Lede className="mt-5">
-              Each niche has posting windows. When one opens, the pipeline
+              Each channel has posting windows. When one opens, the pipeline
               produces, checks, and publishes without anyone at the
               keyboard. Your approval gate, if you set one, still applies.
             </Lede>
@@ -148,7 +148,7 @@ export function WindowsBand() {
             <ProofList
               className="mt-8"
               items={[
-                "Windows are per niche, tuned to when that audience actually watches.",
+                "Windows are per channel, tuned to when that audience actually watches.",
                 "Agents can add or move windows through any surface.",
                 "Caps are checked before each run, so autopilot can't outspend you.",
               ]}
@@ -160,7 +160,7 @@ export function WindowsBand() {
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                   <TaggedPlaceholder
                     kind="illustration"
-                    label="Posting schedule — per-niche windows"
+                    label="Posting schedule — per-channel windows"
                     tone="violet"
                   />
                 </div>
