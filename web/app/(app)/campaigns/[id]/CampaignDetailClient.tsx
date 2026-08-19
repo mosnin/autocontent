@@ -131,7 +131,7 @@ export function CampaignDetailClient({
           <CardTitle className="text-base">Lanes</CardTitle>
           <CardDescription>
             What this campaign runs. Video lanes generate and post to the
-            niche&apos;s socials; article lanes publish SEO content; ad lanes
+            channel&apos;s socials; article lanes produce SEO content; ad lanes
             link a governed ad campaign for one view of the push.
           </CardDescription>
         </CardHeader>

@@ -15,7 +15,7 @@ const STEPS: Array<{
   {
     title: "Describe your channel in one sentence",
     copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full channel from it: audience, tone, topic pillars, and a starting posting plan.",
-    shot: "Niche brief form",
+    shot: "Channel brief form",
   },
   {
     title: "Review voice, style, and caps",
@@ -29,7 +29,7 @@ const STEPS: Array<{
   },
   {
     title: "Add articles",
-    copy: "Turn on the SEO pipeline for the same niche. It researches the SERP, outlines, writes sections in parallel, then ships metadata, JSON-LD, and a hero image with every draft.",
+    copy: "Turn on SEO articles for the same channel. It researches the SERP, outlines, writes sections in parallel, then ships metadata, JSON-LD, and a hero image with every draft.",
     shot: "Article pipeline toggle",
   },
   {

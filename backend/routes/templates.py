@@ -194,7 +194,7 @@ async def remix_template(
     if template.kind == "video":
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="video templates apply as a niche style, not an image remix",
+            detail="video templates apply as a channel style, not an image remix",
         )
 
     # Up-front credit gate — before the upload is decoded/stored, so a

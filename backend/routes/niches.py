@@ -242,7 +242,7 @@ async def character_sheet_image(
     hides the card in that case."""
     niche = await niches_repo.get(niche_id, user_id=ctx.user_id)
     if niche is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="channel not found")
     path = sheet_path(niche_id)
     if not path.exists():
         raise HTTPException(

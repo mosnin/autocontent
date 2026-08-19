@@ -50,6 +50,7 @@ import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
 import { PLATFORMS, QUALITIES, RESOLUTIONS } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { titleWord } from "@/lib/labels";
 
 const VOICE_OPTIONS = [
   "alloy",
@@ -555,7 +556,7 @@ function StepCreative() {
                   <SelectContent>
                     {VOICE_OPTIONS.map((v) => (
                       <SelectItem key={v} value={v}>
-                        {v}
+                        {titleWord(v)}
                       </SelectItem>
                     ))}
                   </SelectContent>

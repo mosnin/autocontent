@@ -55,11 +55,11 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     # and only fails later, inside the Modal container.
     niche = await niches_repo.get(body.niche_id, user_id=ctx.user_id)
     if niche is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="channel not found")
     if body.platform not in niche.platforms:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"platform {body.platform} not enabled for this niche",
+            detail=f"{body.platform} isn't enabled for this channel",
         )
 
     # Prepaid-credit gate, up front. Without this a $0-balance user gets a

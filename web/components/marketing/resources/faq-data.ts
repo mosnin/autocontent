@@ -43,14 +43,14 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Can I bring my own topics?",
-    a: "Yes. Ideation proposes topics from your channel and past performance, but you can enqueue your own at any time, from the dashboard, the API, the CLI, or an agent. Your topics run through the same pipeline, QA, and caps as generated ones.",
+    a: "Yes. Ideation proposes topics from your channel and past performance, but you can add your own at any time, from the dashboard, the API, the CLI, or an agent. Your topics run through the same production, quality checks, and caps as generated ones.",
   },
   {
     q: "How many videos does a pack make?",
     a: "A default-settings short costs about $3 all-in (metered provider cost plus our flat margin — a touch more with generated music on), so the $5 Starter pack renders 1–2 videos, the $20 Creator pack roughly 5–8, and the $50 Scale pack roughly 12–20. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
   },
   {
-    q: "Can I run several niches at once?",
+    q: "Can I run several channels at once?",
     a: "Yes. Each channel gets its own voice, style, posting windows, and daily cap, and the global cap bounds the total across all of them. The Scale pack is sized for people running several channels in parallel.",
   },
 ];

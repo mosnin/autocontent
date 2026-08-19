@@ -26,9 +26,9 @@ router = APIRouter()
 # amount_cents is what Stripe charges; credit_usd is what lands on the
 # balance. 1:1 today — the margin is applied on the debit side.
 PACKS: dict[str, dict] = {
-    "starter": {"amount_cents": 500, "credit_usd": Decimal("5.00"), "name": "Starter — $5 of pipeline credit"},
-    "creator": {"amount_cents": 2000, "credit_usd": Decimal("20.00"), "name": "Creator — $20 of pipeline credit"},
-    "studio": {"amount_cents": 5000, "credit_usd": Decimal("50.00"), "name": "Studio — $50 of pipeline credit"},
+    "starter": {"amount_cents": 500, "credit_usd": Decimal("5.00"), "name": "Starter — $5 of credit"},
+    "creator": {"amount_cents": 2000, "credit_usd": Decimal("20.00"), "name": "Creator — $20 of credit"},
+    "studio": {"amount_cents": 5000, "credit_usd": Decimal("50.00"), "name": "Scale — $50 of credit"},
 }
 
 

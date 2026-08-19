@@ -76,7 +76,7 @@ async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> A
 
     niche = await niches_repo.get(body.niche_id, user_id=ctx.user_id)
     if niche is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="channel not found")
 
     # Up-front credit gate: refuse at the button with a human 402 instead of
     # creating a row that dies mid-pipeline on the spend guard.

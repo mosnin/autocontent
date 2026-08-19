@@ -17,6 +17,7 @@ import { DialogTitle } from "@/components/ui/dialog";
 import { useRunConfirm } from "@/components/run-confirm-dialog";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { Niche, Platform } from "@/lib/types";
+import { platformLabel } from "@/lib/labels";
 
 // Brand-kicker treatment for cmdk group headings: uppercase, wide tracking,
 // recording-orange. Matches the marketing/dashboard section kickers.
@@ -127,9 +128,9 @@ export function CommandPalette() {
                     onSelect={() => enqueue(n.id, p)}
                     className="data-[selected=true]:border-brand/30 border border-transparent"
                   >
-                    <span className="font-medium">Enqueue {n.title}</span>
+                    <span className="font-medium">Run {n.title}</span>
                     <CommandShortcut className="font-mono uppercase tracking-normal">
-                      {p}
+                      {platformLabel(p)}
                     </CommandShortcut>
                   </CommandItem>
                 )),

@@ -67,7 +67,7 @@ export function ArticleDetailClient({
     const res = await retryArticleAction({ ok: false }, fd);
     setRetrying(false);
     if (res.ok) {
-      toast.success("Retry enqueued");
+      toast.success("Retry started");
       void mutate();
     } else {
       toast.error(res.error ?? "Retry failed");

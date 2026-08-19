@@ -138,7 +138,7 @@ function TemplateCard({ template }: { template: Template }) {
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Video template — copy its prompt into a niche&apos;s visual style
+            Video template — copy its prompt into a channel&apos;s visual style
             to use this look.
           </p>
         )}

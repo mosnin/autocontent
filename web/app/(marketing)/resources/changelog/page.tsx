@@ -43,7 +43,7 @@ const ENTRIES: ChangelogEntry[] = [
   {
     date: "May 27, 2026",
     title: "One-sentence onboarding",
-    body: "Describe your channel in a single sentence and the AI drafts the entire niche: audience, tone, topic pillars, voice, visual style, and a starting posting plan. Everything is editable before the first render.",
+    body: "Describe your channel in a single sentence and the AI drafts the entire channel: audience, tone, topic pillars, voice, visual style, and a starting posting plan. Everything is editable before the first render.",
     tags: ["Onboarding"],
   },
   {
@@ -55,7 +55,7 @@ const ENTRIES: ChangelogEntry[] = [
   {
     date: "Apr 24, 2026",
     title: "Performance-fed ideation",
-    body: "The loop closed: ideation now reads your last 30 days of results and briefs itself on your top and bottom performers. Topics that worked spawn neighbors; topics that flopped stop coming back.",
+    body: "The loop closed: ideation now reads your last 30 days of results and briefs itself on your top and bottom performers. Topics that worked seed neighbors; topics that flopped stop coming back.",
     tags: ["Ideation", "Analytics"],
   },
   {

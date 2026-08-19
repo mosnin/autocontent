@@ -373,9 +373,7 @@ export function QueueClient({
               >
                 {hook ? `"${hook}"` : "Untitled video"}
               </Link>
-              <code className="font-mono text-xs text-muted-foreground">
-                {job.id.slice(0, 8)}
-              </code>
+
             </div>
           );
         },

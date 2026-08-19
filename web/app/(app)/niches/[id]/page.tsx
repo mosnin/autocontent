@@ -262,7 +262,7 @@ export default async function NichePage({
       <Reveal delay={0.1}>
         <Card>
           <CardHeader>
-            <CardTitle>Recent jobs</CardTitle>
+            <CardTitle>Recent videos</CardTitle>
             <CardDescription>
               The last 20 runs for this channel
             </CardDescription>

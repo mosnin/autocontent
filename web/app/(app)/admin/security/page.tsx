@@ -36,7 +36,7 @@ const CONTROLS: Control[] = [
   {
     color: "orange",
     title: "Access revocation",
-    body: "Suspending an account immediately blocks access and halts new pipeline runs; demoting an admin revokes privileged access on the next request. Both actions take effect without a deploy and are fully audited.",
+    body: "Suspending an account immediately blocks access and halts new runs; demoting an admin revokes privileged access on the next request. Both actions take effect without a deploy and are fully audited.",
     link: { href: "/admin/users", label: "Manage users" },
   },
   {

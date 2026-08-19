@@ -41,6 +41,7 @@ import { updateNicheAction } from "@/lib/actions";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
+import { platformLabel, titleWord } from "@/lib/labels";
 import {
   HOOK_MECHANISMS,
   PLATFORMS,
@@ -226,7 +227,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               <SelectContent>
                 {VOICES.map((v) => (
                   <SelectItem key={v} value={v}>
-                    {v}
+                    {titleWord(v)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -749,7 +750,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
                   defaultChecked={niche.platforms.includes(p)}
                   className="h-4 w-4 rounded border-input accent-primary"
                 />
-                {p}
+                {platformLabel(p)}
               </label>
             ))}
           </div>

@@ -66,7 +66,7 @@ const GROUPS: CapGroup[] = [
       { label: "Analytics", href: "/features/analytics" },
       { label: "Learning loop", href: "/features/analytics" },
       { label: "Brand kit", href: "/features" },
-      { label: "Niches", href: "/features" },
+      { label: "Channels", href: "/features" },
       { label: "REST API", href: "/resources/api" },
       { label: "MCP server", href: "/resources/api" },
     ],

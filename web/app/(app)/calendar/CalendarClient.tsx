@@ -94,6 +94,7 @@ import {
 } from "@/components/calendar/types";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { ArticleStatus, JobStatus } from "@/lib/types";
+import { humanizeStatus } from "@/lib/labels";
 
 // Posting windows move slowly; a 60s refresh keeps the agenda fresh
 // without the aggressive polling the live pipeline views use.
@@ -145,7 +146,7 @@ function itemHref(item: CalendarItem): string {
 
 function statusText(item: CalendarItem): string {
   if (item.kind === "video") return jobStatusLabel(item.status as JobStatus);
-  if (item.kind === "ad") return item.status;
+  if (item.kind === "ad") return humanizeStatus(item.status);
   return articleStatusLabel(item.status as ArticleStatus);
 }
 

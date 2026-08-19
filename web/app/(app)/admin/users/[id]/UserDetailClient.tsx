@@ -329,7 +329,7 @@ function SuspendDialog({
             </p>
             <DialogTitle>Suspend {email}?</DialogTitle>
             <DialogDescription>
-              The user immediately loses access and no new pipeline runs will
+              The user immediately loses access and no new runs will
               start. You can reinstate them at any time. {AUDIT_NOTE}
             </DialogDescription>
           </DialogHeader>
@@ -405,7 +405,7 @@ function UnsuspendDialog({
           </p>
           <DialogTitle>Reinstate {email}?</DialogTitle>
           <DialogDescription>
-            Access is restored immediately and the account can run pipelines
+            Access is restored immediately and the account can run content
             again. {AUDIT_NOTE}
           </DialogDescription>
         </DialogHeader>

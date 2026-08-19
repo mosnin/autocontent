@@ -25,6 +25,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
+import { platformLabel } from "@/lib/labels";
 import { StatusBadge } from "@/lib/status-badge";
 import type { Job, JobStatus, PostMetrics } from "@/lib/types";
 import { MetricsTab } from "./MetricsTab";
@@ -141,8 +142,8 @@ export function JobDetailClient({
             </div>
             <h1 className="text-2xl font-semibold tracking-tight">
               {nicheTitle ?? "Video"} ·{" "}
-              <span className="capitalize text-muted-foreground">
-                {job.platform}
+              <span className="text-muted-foreground">
+                {platformLabel(job.platform)}
               </span>
             </h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -212,7 +213,7 @@ export function JobDetailClient({
                   <p className="mt-3 text-xs text-muted-foreground">
                     {job.status === "failed"
                       ? "This run failed before a video was produced."
-                      : "The video appears here as soon as editing and captions captioning."}
+                      : "The video appears here as soon as editing and captioning finish."}
                   </p>
                 </div>
               )}
@@ -381,7 +382,7 @@ function CostsPanel({
         </TableBody>
       </Table>
       <p className="text-xs text-muted-foreground">
-        Estimated from the niche&apos;s current config — the actual run is
+        Estimated from the channel&apos;s current config — the actual run is
         billed from real provider invoices.
       </p>
     </div>

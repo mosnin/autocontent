@@ -104,3 +104,32 @@ Part 2 — re-audit verdicts folded (fresh-eyes agent report):
 - Next: Cycle 5 = re-audit of the glossary + remaining raw-enum surfaces
   (remix statuses, image-post statuses, calendar ad rows), then
   Workstream 6 (money transparency) or 4 (first video on creation).
+
+## Cycle 5/6 — 2026-08-19 · Empty-state CTAs + glossary re-audit fold
+Cycle 5 (403beeb): every dead-end empty state links to its action (article
+dialog, campaigns tip, campaign-lane picker, queue + calendar cells,
+library finals); templates empty state stops naming the admin console.
+
+Cycle 6 — glossary re-audit verdicts folded:
+- P0s: garbled "captions captioning" sentence fixed; Stripe pack names
+  corrected (checkout now says "Scale — $50 of credit", no "pipeline
+  credit"); job header renders "TikTok" via platformLabel, not
+  CSS-capitalized "Tiktok".
+- Same-screen collisions fixed: NichesTable (header/button/empty/footer),
+  article dialog "for the channel", campaign lanes copy, FAQ question,
+  templates prompt hint, "Recent jobs" → "Recent videos", uuid8 subtitle
+  removed from queue rows, "Open job <uuid>" aria-labels humanized.
+- Jargon survivors fixed: article toasts, command palette "Enqueue" →
+  "Run" + platform labels, kits/admin/spend-cap copy, spend chart.
+- Backend user-visible detail strings now say "channel" ("channel not
+  found", "tiktok isn't enabled for this channel", template style).
+- Raw enums humanized via lib/labels (humanizeStatus/titleWord): remix
+  statuses, image-post strip, calendar ad rows, edit-form platform
+  checkboxes, voice names in both selects.
+- Deferred (logged): full marketing "niche" sweep (~80 sites — agencies/
+  features/guides positioning language), ads dotted-action enums +
+  account labels (Workstream 7 cycle), consolidating duplicate platform
+  maps onto lib/labels.
+- Validation: ruff clean, route tests green, tsc clean, next build clean.
+- Next: Cycle 7 = Workstream 6 (money transparency: receipts, balance in
+  shell, ledger rollups) or Workstream 4 (first video on creation).

@@ -42,7 +42,7 @@ async def enqueue_image_post(
     body: ImagePostCreate, ctx: AuthCtx = CurrentUser
 ) -> dict:
     if await niches_repo.get(body.niche_id, user_id=ctx.user_id) is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="channel not found")
 
     # Up-front credit gate — refuse with a human 402 before creating state.
     from marketer.services.run_estimate import (

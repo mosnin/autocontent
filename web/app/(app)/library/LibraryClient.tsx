@@ -47,6 +47,7 @@ import { DashHeading } from "@/components/hub/dashboard-kit";
 import { cn } from "@/lib/utils";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { Composition, ImagePost, MediaAsset, Niche } from "@/lib/types";
+import { humanizeStatus } from "@/lib/labels";
 
 const POLL_MS = 5000;
 
@@ -99,7 +100,7 @@ function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string })
                   : "border text-muted-foreground bg-transparent",
               )}
             >
-              {p.status.replaceAll("_", " ")}
+              {humanizeStatus(p.status)}
             </Badge>
             <span className="font-medium">
               {p.kind === "carousel"
@@ -478,7 +479,7 @@ function StatusBadge({ status }: { status: Composition["status"] }) {
         : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 dark:border-blue-900";
   return (
     <Badge variant="outline" className={cn("text-xs font-medium px-2 py-0.5", tone)}>
-      {status}
+      {humanizeStatus(status)}
     </Badge>
   );
 }

@@ -347,7 +347,7 @@ export function PerformanceCard({ performance }: Props) {
                           router.push(`/queue/${job.job_id}`);
                         }
                       }}
-                      aria-label={`Open job ${job.job_id.slice(0, 8)}`}
+                      aria-label={"Open video"}
                       className="cursor-pointer hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
                     >
                       <TableCell className="max-w-[180px]">

@@ -141,7 +141,7 @@ const SUITE: Product = {
   ],
 };
 
-/** Ordered for the launcher + switcher: Campaigns, Content, SEO, Ads,
+/** Ordered for the launcher + switcher: Campaigns, Studio, Press, Ads,
  *  then Suite intentionally last. */
 export const PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS, SUITE];
 

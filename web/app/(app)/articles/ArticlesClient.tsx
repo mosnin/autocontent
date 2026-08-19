@@ -276,7 +276,7 @@ export function ArticlesClient({
     const res = await retryArticleAction({ ok: false }, fd);
 
     if (res.ok) {
-      toast.success("Retry enqueued");
+      toast.success("Retry started");
       void mutate();
     } else {
       void mutate(prevArticles, false);
@@ -697,7 +697,7 @@ function NewArticleDialog({
       setTopic("");
       onCreated(res.article);
     } else {
-      toast.error(res.error ?? "Failed to enqueue article");
+      toast.error(res.error ?? "Couldn't start the article");
     }
   }
 
@@ -712,7 +712,7 @@ function NewArticleDialog({
             <DialogTitle>Write an SEO article</DialogTitle>
             <DialogDescription>
               We research, outline, write, and quality-check the piece.
-              Leave the topic blank and it picks one for the niche.
+              Leave the topic blank and it picks one for the channel.
             </DialogDescription>
           </DialogHeader>
 
