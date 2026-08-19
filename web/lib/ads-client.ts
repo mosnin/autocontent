@@ -34,10 +34,13 @@ export interface AdsOverview {
   spend_30d_usd: string;
   pending_approvals: number;
   month_start: string;
+  ads_enabled: boolean;
+  approval_threshold_usd: string;
 }
 
 export interface AdApproval {
   id: string;
+  campaign_id: string | null;
   action: string;
   summary: string;
   dollar_delta_usd: string;

@@ -26,6 +26,8 @@ from marketer.services.ad_actions_exec import (
     propose_budget_change,
 )
 from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_budget_action
+from marketer.config import settings
+from marketer.services import composio_client
 from marketer.services.composio_client import AdsDisabled
 
 from ..auth import AuthCtx, CurrentUser
@@ -350,4 +352,8 @@ async def overview(ctx: AuthCtx = CurrentUser) -> dict:
         "spend_30d_usd": str(spend_30d),
         "pending_approvals": len(pending),
         "month_start": month_start.isoformat(),
+        # Governance facts the UI must be able to show: whether the product
+        # can actually connect on this deploy, and the human-approval line.
+        "ads_enabled": composio_client.is_enabled(),
+        "approval_threshold_usd": str(settings.ads_approval_threshold_usd),
     }

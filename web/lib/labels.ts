@@ -22,3 +22,22 @@ export function humanizeStatus(status: string): string {
 export function titleWord(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
+
+/** Human names for the ads audit/approval action enums. */
+const AD_ACTION_LABEL: Record<string, string> = {
+  "campaign.create": "Campaign created",
+  "campaign.activate": "Activate campaign",
+  "campaign.activate.approval_requested": "Activation sent for approval",
+  "campaign.paused": "Campaign paused",
+  "campaign.ended": "Campaign ended",
+  "budget.change": "Budget change",
+  "budget.denied": "Budget change denied",
+  "budget.approval_requested": "Budget change sent for approval",
+  "approval.approved": "Approval granted",
+  "approval.rejected": "Approval rejected",
+  "account.governance": "Guardrails updated",
+};
+
+export function adActionLabel(action: string): string {
+  return AD_ACTION_LABEL[action] ?? humanizeStatus(action.replaceAll(".", " — "));
+}

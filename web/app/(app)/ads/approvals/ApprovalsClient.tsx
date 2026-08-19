@@ -26,9 +26,20 @@ import {
 } from "@/components/square/ui/table";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
-import { adsKeys, decideApproval, type AdApproval } from "@/lib/ads-client";
+import Link from "next/link";
+import { adsKeys, decideApproval, type AdApproval, type AdsOverview } from "@/lib/ads-client";
+import { adActionLabel } from "@/lib/labels";
 
-export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
+export function ApprovalsClient({
+  initial,
+  campaignNames = {},
+  approvalThresholdUsd,
+}: {
+  initial: AdApproval[];
+  /** campaign_id -> name, resolved server-side so rows can say what they govern. */
+  campaignNames?: Record<string, string>;
+  approvalThresholdUsd?: string;
+}) {
   const { data, mutate } = useSWR<AdApproval[]>(
     adsKeys.approvals("pending"),
     clientFetch,
@@ -57,6 +68,9 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
         <p className="text-sm text-muted-foreground">
           Spend-affecting changes proposed by agents wait here. Nothing is
           applied to a platform until you approve it.
+          {approvalThresholdUsd && (
+            <> Changes above {formatUsd(approvalThresholdUsd)} per day always stop here.</>
+          )}
         </p>
       </div>
 
@@ -66,7 +80,8 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
             <h3 className="text-lg font-semibold">Nothing to review</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               When an agent proposes a budget change above your approval
-              threshold, it shows up here for a one-click decision.
+              threshold{approvalThresholdUsd ? <> ({formatUsd(approvalThresholdUsd)}/day)</> : null},
+              it shows up here for a one-click decision.
             </p>
           </CardContent>
         </Card>
@@ -99,13 +114,21 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
                     <TableCell className="py-3 whitespace-nowrap">
                       <Badge
                         variant="outline"
-                        className="font-mono text-xs font-medium px-2 py-0.5 border text-muted-foreground bg-transparent"
+                        className="text-xs font-medium px-2 py-0.5 border text-muted-foreground bg-transparent"
                       >
-                        {a.action}
+                        {adActionLabel(a.action)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-3 text-sm font-medium max-w-[320px] truncate">
-                      {a.summary}
+                    <TableCell className="py-3 text-sm font-medium max-w-[360px]">
+                      <span className="block truncate">{a.summary}</span>
+                      {a.campaign_id && (
+                        <Link
+                          className="text-xs font-normal text-brand underline-offset-2 hover:underline"
+                          href={`/ads/campaigns/${a.campaign_id}`}
+                        >
+                          {campaignNames[a.campaign_id] ?? "View campaign"}
+                        </Link>
+                      )}
                     </TableCell>
                     <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                       {a.requested_by}

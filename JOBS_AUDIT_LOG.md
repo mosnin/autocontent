@@ -211,3 +211,28 @@ Room; this cycle folds everything else.)
 - Validation: ruff clean, tsc clean, next build clean.
 - Next: Cycle 11 = ads governance UI (Workstream 7) or marketing niche
   sweep; re-audit after.
+
+## Cycle 11 — 2026-08-19 · Workstream 7: Ads governance UI
+- **Guardrails visible and editable**: each connected ad account on
+  /ads/connect gets a "Spending guardrails" editor — daily/monthly caps
+  and the kill-switch (the setGovernance client that no component ever
+  called is finally wired), with an explicit warning while the
+  kill-switch is on and honest copy when no cap is set.
+- **Approvals name what they govern**: rows now show and link the
+  campaign (server-resolved name map), the action enum renders as human
+  words via a shared adActionLabel, and both the header and the empty
+  state state the approval threshold ("Changes above $50/day always stop
+  here") — sourced from a new overview field, no more invisible env var.
+- **The audit log is traceable**: actions render as human labels,
+  ad_campaign targets link to the campaign, and denial rows show the
+  guard's actual reason (after_json.reason, previously recorded but never
+  displayed).
+- **Disabled state labeled**: /ads and /ads/connect show an explicit
+  "Ads isn't enabled on this workspace yet" banner (new ads_enabled
+  overview field) and connect buttons disable, instead of a raw 409
+  toast being the only signal.
+- Validation: ruff clean, ads route tests green, tsc clean, next build
+  clean.
+- Next: Cycle 12 = re-audit (cycles 9-11) + Workstream 8/9 slices
+  (ad-lane dropdown, repurpose save, front door) and the marketing
+  truth-of-fence items.
