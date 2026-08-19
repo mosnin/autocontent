@@ -154,3 +154,18 @@ Cycle 6 — glossary re-audit verdicts folded:
   next build clean.
 - Next: Cycle 8 = Workstream 4 (first video on channel creation + staged
   progress) or the Review Room (Workstream 5); re-audit after.
+
+## Cycle 8 — 2026-08-19 · Workstream 4: First video on creation + staged progress
+- Onboarding's final step now carries "Render my first video now" (default
+  on); the submit button becomes "Create channel & render my first video".
+  The create action enqueues the first run on the first chosen platform
+  and lands the user on the live job page — the wait is the show. Any
+  enqueue failure (e.g. out of credit) falls back to the dashboard; the
+  channel exists either way.
+- Job detail gains a production rail: "Step 4 of 9 · Animating scenes",
+  animated progress bar, and the full stage list with the current step
+  lit — replacing a lone badge word as the only in-flight feedback.
+  Queued runs show "Waiting for a machine…".
+- Validation: tsc clean, next build clean.
+- Next: Cycle 9 = re-audit of Cycles 7–8, then the Review Room
+  (Workstream 5).

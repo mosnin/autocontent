@@ -56,6 +56,63 @@ const IN_PROGRESS: ReadonlySet<JobStatus> = new Set<JobStatus>([
   "scheduling",
 ]);
 
+// The production line, in order. The wait is the show: while a run is in
+// flight the page names the exact step and how far along the machine is.
+const STAGES: { key: JobStatus; label: string }[] = [
+  { key: "ideating", label: "Finding the idea" },
+  { key: "scripting", label: "Writing the script" },
+  { key: "generating_images", label: "Rendering scene images" },
+  { key: "animating", label: "Animating scenes" },
+  { key: "voicing", label: "Recording the voiceover" },
+  { key: "editing", label: "Editing the cut" },
+  { key: "captioning", label: "Burning in captions" },
+  { key: "qa", label: "Quality check" },
+  { key: "scheduling", label: "Scheduling the post" },
+];
+
+function ProgressRail({ status }: { status: JobStatus }) {
+  const idx = STAGES.findIndex((s) => s.key === status);
+  const isQueued = status === "queued";
+  if (idx === -1 && !isQueued) return null;
+
+  const current = isQueued ? 0 : idx;
+  const pct = isQueued ? 4 : ((current + 1) / STAGES.length) * 100;
+  return (
+    <div className="rounded-lg border border-brand/20 bg-card/40 p-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="text-sm font-medium">
+          {isQueued ? "Waiting for a machine…" : STAGES[current].label}
+        </p>
+        <p className="text-xs tabular-nums text-muted-foreground">
+          {isQueued ? "Starting" : `Step ${current + 1} of ${STAGES.length}`}
+        </p>
+      </div>
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+        <div
+          className="h-full rounded-full bg-brand transition-[width] duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <ol className="mt-3 hidden flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground sm:flex">
+        {STAGES.map((s, i) => (
+          <li
+            key={s.key}
+            className={
+              i < current
+                ? "line-through opacity-60"
+                : i === current && !isQueued
+                  ? "font-medium text-brand"
+                  : undefined
+            }
+          >
+            {s.label}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 // Recording-light pulse — reused verbatim from the design system for anything
 // "live" / in-progress.
 function RecordingDot() {
@@ -182,6 +239,12 @@ export function JobDetailClient({
           </div>
         </div>
       </Reveal>
+
+      {(inProgress || job.status === "queued") && (
+        <Reveal delay={0.03}>
+          <ProgressRail status={job.status} />
+        </Reveal>
+      )}
 
       <Reveal delay={0.05}>
         <div className="flex flex-col gap-6 lg:flex-row">

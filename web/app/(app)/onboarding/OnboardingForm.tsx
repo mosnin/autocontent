@@ -120,6 +120,7 @@ const schema = z.object({
   platforms: z.array(z.enum(["tiktok", "reels", "shorts"])).min(1, "Pick one"),
   daily_spend_cap_usd: z.coerce.number().min(0.5),
   approve_before_post: z.boolean(),
+  render_first: z.boolean(),
 });
 
 type Values = z.infer<typeof schema>;
@@ -143,6 +144,7 @@ const STEP_FIELDS: Record<StepKey, (keyof Values)[]> = {
     "platforms",
     "daily_spend_cap_usd",
     "approve_before_post",
+    "render_first",
   ],
 };
 
@@ -207,6 +209,7 @@ export function OnboardingForm({
       platforms: [],
       daily_spend_cap_usd: 5,
       approve_before_post: true,
+      render_first: true,
     },
   });
 
@@ -242,6 +245,7 @@ export function OnboardingForm({
     for (const p of values.platforms) fd.append("platforms", p);
     fd.set("daily_spend_cap_usd", String(values.daily_spend_cap_usd));
     if (values.approve_before_post) fd.set("approve_before_post", "on");
+    if (values.render_first) fd.set("render_first", "on");
 
     const res = await createNicheAction({ ok: false }, fd);
     // createNicheAction redirects on success — we only reach here on
@@ -333,7 +337,9 @@ export function OnboardingForm({
           ) : (
             <Button type="submit" disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create channel
+              {form.watch("render_first")
+                ? "Create channel & render my first video"
+                : "Create channel"}
             </Button>
           )}
         </div>
@@ -849,6 +855,35 @@ function StepSchedule() {
                   Rendered videos wait for your approval in the queue instead
                   of posting on schedule. Turn this off any time to go fully
                   autonomous.
+                </span>
+              </span>
+            </label>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        name="render_first"
+        render={({ field }) => (
+          <FormItem>
+            <label
+              className="flex cursor-pointer items-start gap-3 rounded-lg border p-4"
+              htmlFor={undefined}
+            >
+              <Checkbox
+                checked={field.value}
+                className="mt-0.5"
+                onCheckedChange={field.onChange}
+              />
+              <span>
+                <span className="block text-sm font-medium">
+                  Render my first video now
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Start producing the moment the channel exists and watch it
+                  come together live. Otherwise the first video waits for the
+                  posting window.
                 </span>
               </span>
             </label>

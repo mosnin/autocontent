@@ -204,8 +204,9 @@ export async function createNicheAction(
     approve_before_post: formData.get("approve_before_post") === "on",
   };
 
+  let created: Niche;
   try {
-    await api<Niche>("/api/v1/niches", {
+    created = await api<Niche>("/api/v1/niches", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -213,8 +214,26 @@ export async function createNicheAction(
     return { ok: false, error: errorMessage(e) };
   }
 
+  // First-run render: the wait becomes the show. Start producing on the
+  // first chosen platform and land the user on the live job page. Any
+  // failure (e.g. out of credit) falls back to the dashboard — the
+  // channel exists either way and the run button there explains the 402.
+  let firstJobId: string | null = null;
+  if (formData.get("render_first") === "on") {
+    try {
+      const job = await api<Job>("/api/v1/jobs", {
+        method: "POST",
+        body: JSON.stringify({ niche_id: created.id, platform: platforms[0] }),
+      });
+      firstJobId = job.id;
+    } catch {
+      firstJobId = null;
+    }
+  }
+
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  revalidatePath("/queue");
+  redirect(firstJobId ? `/queue/${firstJobId}` : "/dashboard");
 }
 
 export async function updateNicheAction(
