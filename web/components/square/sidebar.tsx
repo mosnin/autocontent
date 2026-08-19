@@ -72,8 +72,7 @@ export function SquareSidebar({
   const isAdmin = me?.role === "admin";
   const activePages = active.groups
     .filter((g) => g.label !== "Admin" || isAdmin)
-    .flatMap((g) => g.items)
-    .filter((i) => !i.soon);
+    .flatMap((g) => g.items);
 
   return (
     <Sidebar collapsible="offcanvas" className="!border-r-0" {...props}>
@@ -148,6 +147,23 @@ export function SquareSidebar({
                 const current =
                   pathname === item.href ||
                   pathname.startsWith(`${item.href}/`);
+                if (item.soon) {
+                  // Coming-soon pages announce themselves instead of being
+                  // silently absent — visible, labeled, not clickable.
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <div
+                        aria-disabled
+                        className="flex h-8 items-center justify-between rounded-md px-2 text-sm text-muted-foreground/60"
+                      >
+                        {item.label}
+                        <span className="rounded-full border px-1.5 text-[10px] uppercase tracking-wide">
+                          Soon
+                        </span>
+                      </div>
+                    </SidebarMenuItem>
+                  );
+                }
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton

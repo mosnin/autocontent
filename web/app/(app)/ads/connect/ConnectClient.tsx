@@ -22,6 +22,7 @@ import {
   type AdPlatform,
 } from "@/lib/ads-client";
 import { formatUsd } from "@/lib/format";
+import { toastActionError } from "@/lib/errors";
 
 const PLATFORMS: { id: AdPlatform; label: string; blurb: string }[] = [
   {
@@ -211,7 +212,7 @@ export function ConnectClient({
                     {conns.map((a) => {
                       return (
                         <li key={`${a.id}-governance`}>
-                          <GuardrailsEditor account={a} onSaved={() => void mutate()} />
+                          <GuardrailsEditor key={`${a.id}-${a.updated_at}`} account={a} onSaved={() => void mutate()} />
                         </li>
                       );
                     })}
@@ -264,7 +265,7 @@ function GuardrailsEditor({
       toast.success("Guardrails updated");
       onSaved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save guardrails");
+      toastActionError(e instanceof Error ? e.message : undefined, "Couldn't save guardrails");
     } finally {
       setSaving(false);
     }
@@ -316,9 +317,15 @@ function GuardrailsEditor({
       </div>
       <div className="mt-3 flex items-center justify-between gap-2">
         <p className="text-xs text-muted-foreground">
-          {account.daily_cap_usd
-            ? `Enforced today: ${formatUsd(account.daily_cap_usd)}/day`
-            : "No daily cap set — only the kill-switch protects this account."}
+          {account.daily_cap_usd || account.monthly_cap_usd
+            ? [
+                account.daily_cap_usd && `${formatUsd(account.daily_cap_usd)}/day`,
+                account.monthly_cap_usd && `${formatUsd(account.monthly_cap_usd)}/month`,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+                .replace(/^/, "Enforced: ")
+            : "No caps set — only the kill-switch protects this account."}
         </p>
         <Button size="sm" onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save guardrails"}

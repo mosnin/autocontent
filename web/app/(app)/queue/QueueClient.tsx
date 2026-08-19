@@ -81,11 +81,7 @@ import {
 } from "@/components/square/ui/table";
 import { DashHeading } from "@/components/hub/dashboard-kit";
 import { openCommandPalette } from "@/components/command-palette";
-import {
-  approveJobAction,
-  rejectJobAction,
-  retryJobAction,
-} from "@/lib/actions";
+import { retryJobAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { jobStatusLabel } from "@/lib/status-badge";
 import type { Job, JobStatus } from "@/lib/types";
@@ -105,9 +101,9 @@ const IN_PROGRESS = new Set<JobStatus>([
   "scheduling",
 ]);
 
-type Filter = "all" | "awaiting" | "in_progress" | "done" | "failed";
+type Filter = "all" | "awaiting" | "in_progress" | "done" | "failed" | "rejected";
 
-const FILTERS: Filter[] = ["all", "awaiting", "in_progress", "done", "failed"];
+const FILTERS: Filter[] = ["all", "awaiting", "in_progress", "done", "failed", "rejected"];
 
 const FILTER_LABEL: Record<Filter, string> = {
   all: "All statuses",
@@ -115,6 +111,7 @@ const FILTER_LABEL: Record<Filter, string> = {
   in_progress: "In progress",
   done: "Done",
   failed: "Failed",
+  rejected: "Rejected",
 };
 
 function matches(job: Job, filter: Filter): boolean {
@@ -122,6 +119,7 @@ function matches(job: Job, filter: Filter): boolean {
   if (filter === "awaiting") return job.status === "awaiting_approval";
   if (filter === "done") return job.status === "done";
   if (filter === "failed") return job.status === "failed";
+  if (filter === "rejected") return job.status === "rejected";
   if (filter === "in_progress")
     return job.status === "queued" || IN_PROGRESS.has(job.status);
   return true;
@@ -275,6 +273,7 @@ export function QueueClient({
       in_progress: jobs.filter((j) => matches(j, "in_progress")).length,
       done: jobs.filter((j) => matches(j, "done")).length,
       failed: jobs.filter((j) => matches(j, "failed")).length,
+      rejected: jobs.filter((j) => matches(j, "rejected")).length,
     }),
     [jobs],
   );
@@ -300,31 +299,6 @@ export function QueueClient({
       // Revert optimistic update.
       void mutate(prevJobs, false);
       toastActionError(res.error, "Retry failed");
-    }
-  }
-
-  async function handleApprove(job: Job) {
-    const fd = new FormData();
-    fd.set("job_id", job.id);
-    const res = await approveJobAction({ ok: false }, fd);
-    if (res.ok) {
-      toast.success("Approved — scheduling the post now");
-      void mutate();
-    } else {
-      toast.error(res.error ?? "Approve failed");
-    }
-  }
-
-  async function handleReject(job: Job) {
-    if (!confirm("Reject this video? It will never post.")) return;
-    const fd = new FormData();
-    fd.set("job_id", job.id);
-    const res = await rejectJobAction({ ok: false }, fd);
-    if (res.ok) {
-      toast.success("Rejected — it will not post");
-      void mutate();
-    } else {
-      toast.error(res.error ?? "Reject failed");
     }
   }
 
@@ -440,8 +414,6 @@ export function QueueClient({
           <RowActions
             job={row.original}
             onRetry={handleRetry}
-            onApprove={handleApprove}
-            onReject={handleReject}
           />
         ),
       },
@@ -659,30 +631,11 @@ export function QueueClient({
 function RowActions({
   job,
   onRetry,
-  onApprove,
-  onReject,
 }: {
   job: Job;
   onRetry: (job: Job) => Promise<void>;
-  onApprove: (job: Job) => Promise<void>;
-  onReject: (job: Job) => Promise<void>;
 }) {
   const [retrying, setRetrying] = React.useState(false);
-  const [acting, setActing] = React.useState(false);
-
-  async function handleApproveClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    setActing(true);
-    await onApprove(job);
-    setActing(false);
-  }
-
-  async function handleRejectClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    setActing(true);
-    await onReject(job);
-    setActing(false);
-  }
 
   async function handleRetryClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -699,7 +652,7 @@ function RowActions({
         className="h-7 text-xs"
         onClick={handleRetryClick}
         disabled={retrying}
-        aria-label={`Retry job ${job.id.slice(0, 8)}`}
+        aria-label="Retry video"
       >
         {retrying ? "…" : "Retry"}
       </Button>
@@ -707,28 +660,14 @@ function RowActions({
   }
 
   if (job.status === "awaiting_approval") {
+    // The decision is made where the video plays — the Review Room — never
+    // blind from a table row.
     return (
-      <span className="flex items-center justify-end gap-1.5">
-        <Button
-          aria-label={`Reject job ${job.id.slice(0, 8)}`}
-          disabled={acting}
-          onClick={handleRejectClick}
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs"
-        >
-          Reject
-        </Button>
-        <Button
-          aria-label={`Approve and post job ${job.id.slice(0, 8)}`}
-          disabled={acting}
-          onClick={handleApproveClick}
-          size="sm"
-          className="h-7 text-xs"
-        >
-          {acting ? "…" : "Approve"}
-        </Button>
-      </span>
+      <Button asChild size="sm" className="h-7 text-xs">
+        <Link href={`/queue/${job.id}`} onClick={(e) => e.stopPropagation()}>
+          Review
+        </Link>
+      </Button>
     );
   }
 

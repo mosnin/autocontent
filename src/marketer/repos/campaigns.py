@@ -185,7 +185,7 @@ async def work_counts(campaign_id: UUID, *, user_id: str) -> dict:
                max(created_at) as last_at
         from jobs
         where campaign_id = $1 and user_id = $2
-          and status not in ('failed', 'skipped')
+          and status not in ('failed', 'skipped', 'rejected')
         group by niche_id
         """,
         campaign_id, user_id,
@@ -239,7 +239,7 @@ async def pending_work_count(campaign_id: UUID, *, user_id: str) -> int:
         select
           (select count(*) from jobs
             where campaign_id = $1 and user_id = $2
-              and status not in ('done', 'failed', 'skipped')) +
+              and status not in ('done', 'failed', 'skipped', 'rejected')) +
           (select count(*) from articles
             where campaign_id = $1 and user_id = $2
               and status not in ('done', 'failed')) +

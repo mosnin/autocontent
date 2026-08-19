@@ -15,6 +15,7 @@ import {
   adsKeys,
   changeBudget,
   changeCampaignStatus,
+  type AdAccount,
   type AdCampaign,
   type AdMetricsDaily,
 } from "@/lib/ads-client";
@@ -25,7 +26,13 @@ interface Detail {
   metrics: AdMetricsDaily[];
 }
 
-export function CampaignDetailClient({ initial }: { initial: Detail }) {
+export function CampaignDetailClient({
+  initial,
+  account = null,
+}: {
+  initial: Detail;
+  account?: AdAccount | null;
+}) {
   const id = initial.campaign.id;
   const { data, mutate } = useSWR<Detail>(adsKeys.campaign(id), clientFetch, {
     fallbackData: initial,
@@ -152,6 +159,32 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
         <CardContent className="pt-6">
           <form onSubmit={onBudget} className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
+              {account && (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Account:{" "}
+                  <span className="font-medium text-foreground">
+                    {account.name || account.external_account_id || "Account"}
+                  </span>
+                  {" · "}
+                  {account.daily_cap_usd
+                    ? `cap ${formatUsd(account.daily_cap_usd)}/day`
+                    : "no daily cap"}
+                  {account.monthly_cap_usd
+                    ? ` · ${formatUsd(account.monthly_cap_usd)}/month`
+                    : ""}
+                  {account.killswitch && (
+                    <span className="ml-1 font-medium text-destructive">
+                      · kill-switch ON
+                    </span>
+                  )}{" "}
+                  <Link
+                    className="text-brand underline-offset-2 hover:underline"
+                    href="/ads/connect"
+                  >
+                    Edit guardrails
+                  </Link>
+                </p>
+              )}
               <Label htmlFor="daily-budget">Daily budget</Label>
               <div className="relative w-40">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

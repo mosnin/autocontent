@@ -266,3 +266,31 @@ Room; this cycle folds everything else.)
   admins, so non-admins never see a door that opens onto "Not authorized".
 - Validation: tsc clean, next build clean.
 - Remaining front-door work (logged): the full /home + /dashboard merge.
+
+## Cycle 14 — 2026-08-19 · Fold of the Cycles 9–11 re-audit
+- **F1 (HIGH)**: rejected jobs no longer count as pending work in the
+  campaign budget projector (they could permanently stall a campaign's
+  scheduling); also excluded from cadence "produced" totals (F4) and the
+  admin active-jobs gauge (F2).
+- **F3**: migration 0026 rollback now remaps the payload snapshot too, so
+  rolled-back rejected rows don't vanish from listings.
+- **F5**: a $0 ad cap audits as $0, not "cleared".
+- **F6**: approvals page fetches independently — a failed enrichment can't
+  blank the approvals list.
+- **F7**: GuardrailsEditor remounts on account updates (no stale inputs).
+- **F8**: ads toasts humanize 402s via toastActionError; unused import
+  dropped.
+- **Rejected discoverability**: the queue gains a "Rejected" filter with
+  counts; the dead TERMINAL_STATUSES constant is deleted.
+- **One review path**: queue rows now offer a single "Review" button into
+  the Review Room for awaiting videos — no more blind approve/reject or
+  window.confirm from a table row.
+- **D2**: ads campaign detail shows its account's name, caps, and
+  kill-switch state next to the budget form, with an Edit-guardrails link.
+- **D5**: coming-soon pages (Insights, Creatives) render disabled with a
+  "Soon" badge instead of being silently absent; campaigns-table account
+  labels humanized (D4), guardrails "Enforced" line includes monthly.
+- Validation: ruff clean, jobs/ads/approval tests green, tsc clean, next
+  build clean.
+- Deferred (logged): decided-approvals history view, per-day ad metrics
+  table, marketing back-of-fence sweep.

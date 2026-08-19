@@ -5,20 +5,27 @@ import { ApprovalsClient } from "./ApprovalsClient";
 export const dynamic = "force-dynamic";
 
 export default async function AdsApprovalsPage() {
+  // Independent best-effort fetches: a failed enrichment (names, threshold)
+  // must never blank the approvals themselves.
   let initial: AdApproval[] = [];
   let campaignNames: Record<string, string> = {};
   let threshold: string | undefined;
   try {
-    const [approvals, campaigns, overview] = await Promise.all([
-      api<AdApproval[]>("/api/v1/ads/approvals?status_filter=pending"),
-      api<AdCampaign[]>("/api/v1/ads/campaigns"),
-      api<AdsOverview>("/api/v1/ads/overview"),
-    ]);
-    initial = approvals;
-    campaignNames = Object.fromEntries(campaigns.map((c) => [c.id, c.name]));
-    threshold = overview.approval_threshold_usd;
+    initial = await api<AdApproval[]>("/api/v1/ads/approvals?status_filter=pending");
   } catch {
     initial = [];
+  }
+  try {
+    const campaigns = await api<AdCampaign[]>("/api/v1/ads/campaigns");
+    campaignNames = Object.fromEntries(campaigns.map((c) => [c.id, c.name]));
+  } catch {
+    campaignNames = {};
+  }
+  try {
+    const overview = await api<AdsOverview>("/api/v1/ads/overview");
+    threshold = overview.approval_threshold_usd;
+  } catch {
+    threshold = undefined;
   }
   return (
     <ApprovalsClient

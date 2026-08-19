@@ -104,8 +104,8 @@ async def set_governance(
         action="account.governance", platform=acc.platform,
         target_type="ad_account", target_id=str(acc.id),
         after={
-            "daily_cap_usd": str(acc.daily_cap_usd) if acc.daily_cap_usd else None,
-            "monthly_cap_usd": str(acc.monthly_cap_usd) if acc.monthly_cap_usd else None,
+            "daily_cap_usd": str(acc.daily_cap_usd) if acc.daily_cap_usd is not None else None,
+            "monthly_cap_usd": str(acc.monthly_cap_usd) if acc.monthly_cap_usd is not None else None,
             "killswitch": acc.killswitch,
         },
     )

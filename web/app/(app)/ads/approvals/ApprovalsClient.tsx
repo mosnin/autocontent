@@ -27,8 +27,9 @@ import {
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import Link from "next/link";
-import { adsKeys, decideApproval, type AdApproval, type AdsOverview } from "@/lib/ads-client";
+import { adsKeys, decideApproval, type AdApproval } from "@/lib/ads-client";
 import { adActionLabel } from "@/lib/labels";
+import { toastActionError } from "@/lib/errors";
 
 export function ApprovalsClient({
   initial,
@@ -55,7 +56,7 @@ export function ApprovalsClient({
       toast.success(decision === "approved" ? "Approved" : "Rejected");
       void mutate();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed");
+      toastActionError(e instanceof Error ? e.message : undefined, "Couldn't record the decision");
     } finally {
       setBusy(null);
     }

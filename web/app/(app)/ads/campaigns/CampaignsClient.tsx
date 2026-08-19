@@ -159,7 +159,7 @@ export function CampaignsClient({
   const accountLabel = React.useMemo(() => {
     const map: Record<string, string> = {};
     for (const a of accounts) {
-      map[a.id] = a.name || a.external_account_id || a.platform.replace("_", " ");
+      map[a.id] = a.name || a.external_account_id || (a.platform === "google_ads" ? "Google Ads" : a.platform === "meta_ads" ? "Meta Ads" : a.platform);
     }
     return map;
   }, [accounts]);
