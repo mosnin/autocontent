@@ -128,7 +128,9 @@ const SUITE: Product = {
         { href: "/settings/kits", label: "Kits" },
         { href: "/connect", label: "Connect socials" },
         { href: "/settings/tokens", label: "Tokens" },
+        { href: "/settings/webhooks", label: "Webhooks" },
         { href: "/settings/billing", label: "Billing" },
+        { href: "/settings/privacy", label: "Privacy" },
       ],
     },
     {

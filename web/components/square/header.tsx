@@ -32,6 +32,17 @@ export function SquareHeader() {
     .sort((a, b) => b.href.length - a.href.length)[0];
   const label = isHome ? "Home" : (page?.label ?? active.label);
 
+  // The primary action follows the product you're standing in — a "New
+  // campaign" button on the privacy page helps nobody.
+  const primary: { label: string; href: string } =
+    active.id === "studio"
+      ? { label: "New video", href: "/dashboard" }
+      : active.id === "press"
+        ? { label: "New article", href: "/articles?new=1" }
+        : active.id === "ads"
+          ? { label: "New ad campaign", href: "/ads/campaigns/new" }
+          : { label: "New campaign", href: "/campaigns" };
+
   return (
     <header className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3 border-b bg-card sticky top-0 z-10 w-full shrink-0">
       <div className="flex items-center gap-3">
@@ -55,7 +66,7 @@ export function SquareHeader() {
         </button>
         <ThemeToggle />
         <Button size="sm" asChild>
-          <Link href="/campaigns">New campaign</Link>
+          <Link href={primary.href}>{primary.label}</Link>
         </Button>
       </div>
     </header>

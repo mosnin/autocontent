@@ -251,3 +251,18 @@ Room; this cycle folds everything else.)
   in the standard kicker+header+content pattern.
 - Validation: tsc clean, next build clean. Re-audit of cycles 9–11
   running in parallel.
+
+## Cycle 13 — 2026-08-19 · Workstream 9: One front door (quick wins)
+- Topbar primary action is now context-aware: "New video" in Studio,
+  "New article" in Press, "New ad campaign" in Ads, "New campaign" in
+  Campaigns/Suite — no more global New-campaign button on the privacy page.
+- Webhooks and Privacy join their siblings in the Suite sidebar (they were
+  reachable only through the settings index); topbar breadcrumb labels for
+  those routes come along for free.
+- Help opens the FAQ in a new tab — it no longer ejects the user out of
+  the authed shell with no way back.
+- On /home the sidebar no longer falsely highlights Studio (the chrome
+  stops disagreeing with itself); the Admin sidebar group renders only for
+  admins, so non-admins never see a door that opens onto "Not authorized".
+- Validation: tsc clean, next build clean.
+- Remaining front-door work (logged): the full /home + /dashboard merge.

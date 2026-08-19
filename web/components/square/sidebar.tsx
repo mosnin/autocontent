@@ -47,7 +47,9 @@ export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
 };
 
 const bottomNavItems = [
-  { title: "Help", icon: HelpCircle, href: "/resources/faq" },
+  // Opens in a new tab: the FAQ lives on the marketing site, and Help must
+  // never eject someone out of the app they were working in.
+  { title: "Help", icon: HelpCircle, href: "/resources/faq", newTab: true },
   { title: "Settings", icon: Settings, href: "/settings" },
 ];
 
@@ -60,7 +62,16 @@ export function SquareSidebar({
 }) {
   const pathname = usePathname();
   const active = productForPath(pathname);
+  // The hub is home to every product — highlighting one there is a lie.
+  const onHub = pathname === "/home";
+  // Admin destinations render only for admins; everyone else never sees a
+  // door that opens onto "Not authorized".
+  const { data: me } = useSWR<{ role?: string }>("/api/v1/users/me", clientFetch, {
+    revalidateOnFocus: false,
+  });
+  const isAdmin = me?.role === "admin";
   const activePages = active.groups
+    .filter((g) => g.label !== "Admin" || isAdmin)
     .flatMap((g) => g.items)
     .filter((i) => !i.soon);
 
@@ -110,7 +121,7 @@ export function SquareSidebar({
                   <SidebarMenuItem key={product.id}>
                     <SidebarMenuButton
                       asChild
-                      isActive={product.id === active.id}
+                      isActive={!onHub && product.id === active.id}
                       className="h-9"
                     >
                       <Link href={product.home}>
@@ -161,7 +172,11 @@ export function SquareSidebar({
           {bottomNavItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild className="h-9">
-                <Link href={item.href}>
+                <Link
+                  href={item.href}
+                  rel={"newTab" in item && item.newTab ? "noreferrer" : undefined}
+                  target={"newTab" in item && item.newTab ? "_blank" : undefined}
+                >
                   <item.icon className="size-4 shrink-0 text-muted-foreground" />
                   <span className="text-sm">{item.title}</span>
                 </Link>
