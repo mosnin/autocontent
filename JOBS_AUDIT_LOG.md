@@ -357,3 +357,22 @@ server gate). This cycle closes it:
   keyword density as "1.2%", with one sentence naming the 60 pass bar and
   the healthy density range — no more unscaled 0.82 beside 0.01.
 - Validation: ruff clean, tsc clean, next build clean.
+
+## Loop conclusion — 2026-08-19
+Eighteen cycles, four independent re-audits in between, all pushed green.
+Final scorecard against STEVE_JOBS_AUDIT.md: ~35 of 45 findings fully
+fixed, the rest partial or deliberately deferred. The final full re-audit's
+verdict: "coherent, honest, humane" — its one asterisk (four different
+prices for one video) and its top follow-ups (onboarding money moment,
+Press rail, raw-JSON toasts, template promise) were closed in Cycles 17–18.
+
+Remaining, deliberately left for product-owner direction (not autonomous
+iteration):
+1. The /home + /dashboard merge — the product's identity question.
+2. Repurpose persistence (save & schedule social posts; needs a table).
+3. Caption editing + Post now on the Review Room (backend params).
+4. Connect: disconnect action + named voice picker (replacing raw
+   ElevenLabs IDs); decided-approvals history; per-day ad metrics.
+5. Design-system consolidation (15 files still mix the two kits) and
+   x402 surfacing on billing/docs.
+Restart with /loop anytime to continue into these.
