@@ -343,3 +343,17 @@ server gate). This cycle closes it:
   money moment, /home+/dashboard merge, Press stage rail + quality-grid
   scales, repurpose persistence, connect disconnect + named voices,
   caption edit / post now, x402 surfacing, design-system consolidation.
+
+## Cycle 18 — 2026-08-19 · The money moment + Press gets the Studio treatment
+- **Onboarding money moment** (final audit #2): step 3 now states the
+  balance against the first render's actual charge ("Your balance is
+  $0.00; the first render will charge about $3.39") with an Add-credit
+  link that opens billing in a new tab so the wizard isn't lost — the 402
+  is now impossible to hit unwarned.
+- **Press production rail** (final audit #8): the article page shows
+  "Step 3 of 6 · Writing sections" with the full stage list, replacing
+  the permanent "Writing" kicker (now stage-accurate as well).
+- **Quality scores make sense**: 0–1 model scores render as "82 / 100",
+  keyword density as "1.2%", with one sentence naming the 60 pass bar and
+  the healthy density range — no more unscaled 0.82 beside 0.01.
+- Validation: ruff clean, tsc clean, next build clean.

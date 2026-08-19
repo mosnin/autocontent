@@ -9,6 +9,8 @@
 // the entire payload before the server round trip.
 
 import * as React from "react";
+import useSWR from "swr";
+import { clientFetch } from "@/lib/client-fetcher";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFormContext } from "react-hook-form";
@@ -755,6 +757,20 @@ function StepSchedule() {
   const perVideo = serverEst ? Number(serverEst.estimated_usd) : clientPerVideo;
   const perDay = perVideo > 0 ? Math.floor(cap / perVideo) : 0;
 
+  // The money moment: on hosted deploys, say what the first render will
+  // charge and whether the balance covers it — BEFORE the button, not as
+  // a 402 after it.
+  const { data: billing } = useSWR<{ balance_usd: string; billing_enabled: boolean }>(
+    "/api/v1/billing/balance?limit=1",
+    clientFetch,
+    { revalidateOnFocus: false },
+  );
+  const firstRunCharge =
+    serverEst && serverEst.billing_enabled ? Number(serverEst.charge_usd) : null;
+  const balance = billing?.billing_enabled ? Number(billing.balance_usd) : null;
+  const creditShort =
+    balance !== null && firstRunCharge !== null && balance < firstRunCharge;
+
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-3">
@@ -911,6 +927,36 @@ function StepSchedule() {
           </FormItem>
         )}
       />
+
+      {balance !== null && firstRunCharge !== null && (
+        <div
+          className={
+            creditShort
+              ? "rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm"
+              : "rounded-lg border p-3 text-sm text-muted-foreground"
+          }
+        >
+          <span className="tabular-nums">
+            Your balance is {formatUsd(balance)}; the first render will charge
+            about {formatUsd(firstRunCharge)}.
+          </span>{" "}
+          {creditShort ? (
+            <>
+              <a
+                className="font-medium text-brand underline-offset-2 hover:underline"
+                href="/settings/billing"
+                rel="noreferrer"
+                target="_blank"
+              >
+                Add credit
+              </a>{" "}
+              first (opens in a new tab) — your channel setup stays right here.
+            </>
+          ) : (
+            "You're covered."
+          )}
+        </div>
+      )}
     </>
   );
 }
