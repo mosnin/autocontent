@@ -389,6 +389,8 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Connected accounts" in overview
     assert "Active accounts" not in overview
     assert "draft, launch" not in overview
+    assert "to market" not in overview
+    assert "Draft and mark campaigns active" in overview
     assert "external campaign id" in overview
     assert "Approved — spend guard is applying it" in approvals
     billing = (repo / "src/marketer/repos/billing.py").read_text()
@@ -398,6 +400,7 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "_checkout_session_id_for_refunded_charge" in webhook
     assert "Session.list" in webhook
     assert 'first.get("mode") != "payment"' in webhook
+    assert "charge_currency_is_usd(first)" in webhook
     assert "PaymentIntent.modify" in webhook
     assert "PaymentIntent.retrieve" in webhook
     assert "charge_currency_is_usd" in webhook
@@ -448,8 +451,12 @@ def test_cron_generate_paths_refuse_unbilled_before_spawn():
     modal = (repo / "modal_app.py").read_text()
     runner = (repo / "src/marketer/services/campaign_runner.py").read_text()
     assert "unbilled_generate_blocked" in runner
-    assert modal.count("unbilled_generate_blocked") >= 2
+    assert modal.count("unbilled_generate_blocked") >= 3
     assert "skipped_unbilled" in modal
+    assert "async def campaign_tick" in modal
+    tick = modal.split("async def campaign_tick")[1].split("async def reap_stale_jobs")[0]
+    assert "unbilled_generate_blocked" in tick
+    assert "skipped_unbilled" in tick
 
 
 _MODAL_GENERATE_WORKERS = (

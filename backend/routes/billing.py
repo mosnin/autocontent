@@ -258,10 +258,15 @@ def _checkout_session_id_from_session_list(payment_intent: str) -> str | None:
         first = {
             "id": getattr(first, "id", None),
             "mode": getattr(first, "mode", None),
+            "currency": getattr(first, "currency", None),
         }
     # Fail-closed: a listed session without mode=payment must not reverse
     # a pack. Stripe always sends mode; missing mode is not a payment.
     if first.get("mode") != "payment":
+        return None
+    # Pack amounts are USD cents. A listed JPY/EUR payment session must
+    # not reverse a dollar credit even if the id is cs_….
+    if not charge_currency_is_usd(first):
         return None
     return as_checkout_session_id(first.get("id"))
 

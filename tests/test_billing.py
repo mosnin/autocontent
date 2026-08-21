@@ -679,7 +679,11 @@ def test_webhook_full_refund_resolves_session_from_payment_intent(client, monkey
     monkeypatch.setattr(
         stripe_mod.checkout.Session,
         "list",
-        staticmethod(lambda **kw: {"data": [{"id": "cs_from_pi", "mode": "payment"}]}),
+        staticmethod(
+            lambda **kw: {
+                "data": [{"id": "cs_from_pi", "mode": "payment", "currency": "usd"}]
+            }
+        ),
     )
     reversed_sessions: list[str] = []
 
@@ -815,7 +819,9 @@ def test_webhook_full_refund_reads_payment_session_from_list(client, monkeypatch
         stripe_mod.checkout.Session,
         "list",
         staticmethod(
-            lambda **kw: {"data": [{"id": "cs_from_list", "mode": "payment"}]}
+            lambda **kw: {
+                "data": [{"id": "cs_from_list", "mode": "payment", "currency": "usd"}]
+            }
         ),
     )
     reversed_sessions: list[str] = []
@@ -920,6 +926,104 @@ def test_webhook_full_refund_listed_session_missing_mode_does_not_reverse(
 
     async def explode(**kwargs):
         raise AssertionError("must not reverse a listed session with no mode")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_listed_non_usd_does_not_reverse(client, monkeypatch):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_jpy_list",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_jpy_list",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_jpy_list",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {
+                "data": [{"id": "cs_jpy_list", "mode": "payment", "currency": "jpy"}]
+            }
+        ),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a listed non-USD session")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_listed_session_missing_currency_does_not_reverse(
+    client, monkeypatch
+):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_noccy_list",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_noccy_list",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_noccy_list",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {"data": [{"id": "cs_noccy_list", "mode": "payment"}]}
+        ),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a listed session with no currency")
 
     monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
     resp = client.post(

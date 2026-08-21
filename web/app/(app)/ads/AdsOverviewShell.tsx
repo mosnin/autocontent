@@ -20,7 +20,7 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
         as="h1"
         sub="Create, manage, and scale paid campaigns across Google and Meta — driven by agents, governed by hard budget guardrails."
       >
-        Bring any campaign to market
+        Draft and mark campaigns active
       </DashHeading>
 
       <DashPanel delay={0.12} title="Today">

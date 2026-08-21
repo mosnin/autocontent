@@ -392,8 +392,14 @@ async def campaign_tick() -> dict:
     hourly pass over every campaign."
     """
     from datetime import datetime, timezone
+    from marketer.billing.gates import unbilled_generate_blocked
     from marketer.services import idempotency
     from marketer.services.campaign_runner import tick_all
+
+    # Skip before claiming the hour slot so an unbilled deploy does not
+    # consume the tick and block a later billed pass in the same hour.
+    if unbilled_generate_blocked():
+        return {"campaigns": 0, "errors": 0, "results": [], "skipped_unbilled": True}
 
     bucket = idempotency.floor_bucket(datetime.now(timezone.utc), minutes=60)
     guard_key = idempotency.campaign_tick_key(bucket)
