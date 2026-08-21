@@ -25,6 +25,7 @@ from marketer.drama.schemas import (
 from marketer.repos import dramas as dramas_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -154,6 +155,7 @@ async def get_drama(drama_id: UUID, ctx: AuthCtx = CurrentUser) -> DramaDetail:
 async def enqueue_drama(body: DramaEnqueue, ctx: AuthCtx = CurrentUser) -> Drama:
     """Create the drama row and spawn the Modal pipeline against it.
     Poll GET /{drama_id} for status."""
+    refuse_unbilled_generate()
     import modal
 
     from marketer.repos import niches as niches_repo
@@ -220,6 +222,7 @@ async def get_character_image(
 async def retry_drama(drama_id: UUID, ctx: AuthCtx = CurrentUser) -> Drama:
     """Resume a failed drama. The plan is kept, so the screenplay, locked
     portraits, and already-rendered shots are inherited rather than re-bought."""
+    refuse_unbilled_generate()
     import modal
 
     drama = await dramas_repo.claim_for_retry(drama_id, user_id=ctx.user_id)

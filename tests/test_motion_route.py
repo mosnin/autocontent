@@ -149,6 +149,17 @@ def test_styles_returns_the_catalog_with_type_previews(monkeypatch, env):
 # ---------------------------------------------------------------- create
 
 
+def test_create_refuses_when_unbilled_usage_disabled(monkeypatch, env):
+    """Motion generate must 402 before a row exists when unbilled is off."""
+    _reset_limiter()
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    resp = _client(monkeypatch).post("/api/v1/motion/projects", json=body(), headers=AUTH)
+    assert resp.status_code == 402
+    assert env["spawns"] == []
+    assert env["store"].rows == {}
+
+
 def test_create_returns_202_and_spawns_the_worker(monkeypatch, env):
     _reset_limiter()
     resp = _client(monkeypatch).post("/api/v1/motion/projects", json=body(), headers=AUTH)
