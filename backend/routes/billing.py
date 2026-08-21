@@ -23,7 +23,6 @@ from marketer.billing.packs import (
     checkout_session_id_from_refund_source,
     credit_usd_for_paid_session,
     list_packs,
-    object_livemode_agrees,
     object_livemode_matches,
     stripe_livemode_matches_secret,
 )
@@ -274,7 +273,8 @@ def _checkout_session_id_from_session_list(
     # not reverse a dollar credit even if the id is cs_….
     if not charge_currency_is_usd(first):
         return None
-    if not object_livemode_agrees(first, livemode):
+    # Stripe always sends livemode. Missing must not reverse a pack.
+    if not object_livemode_matches(first, livemode):
         return None
     return as_checkout_session_id(first.get("id"))
 
@@ -396,6 +396,13 @@ async def stripe_webhook(request: Request) -> dict:
                 session.get("id"),
             )
             return {"ok": True}
+        if session.get("mode") not in {None, "payment"}:
+            logger.warning(
+                "async payment failed session %s not reversed (mode=%s)",
+                session.get("id"),
+                session.get("mode"),
+            )
+            return {"ok": True}
         if session.get("currency") is not None and not charge_currency_is_usd(session):
             logger.warning(
                 "async payment failed session %s not reversed (currency=%s)",
@@ -450,9 +457,9 @@ async def stripe_webhook(request: Request) -> dict:
                 charge.get("currency"),
             )
             return {"ok": True}
-        if not object_livemode_agrees(charge, event.get("livemode")):
+        if not object_livemode_matches(charge, event.get("livemode")):
             logger.error(
-                "fully refunded charge %s livemode contradicts event; "
+                "fully refunded charge %s livemode missing or contradicts event; "
                 "reconcile manually",
                 charge.get("id"),
             )

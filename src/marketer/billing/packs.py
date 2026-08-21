@@ -130,8 +130,8 @@ def object_livemode_agrees(obj: dict[str, Any], event_livemode: object) -> bool:
 
 
 def object_livemode_matches(obj: dict[str, Any], event_livemode: object) -> bool:
-    """Paid Checkout objects always carry ``livemode``. Missing or a
-    non-bool must not credit or reverse."""
+    """Stripe Checkout/Charge objects always carry ``livemode``. Missing
+    or a non-bool must not credit or reverse."""
     live = obj.get("livemode")
     return isinstance(live, bool) and live is event_livemode
 

@@ -410,8 +410,8 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "charge_currency_is_usd" in webhook
     assert "as_checkout_session_id" in webhook
     assert "checkout_session_id_for_livemode" in webhook
-    assert "object_livemode_agrees" in webhook
     assert "object_livemode_matches" in webhook
+    assert "object_livemode_agrees" not in webhook
     assert "checkout_session_id" in webhook
     new_campaign = (
         repo / "web/app/(app)/ads/campaigns/new/NewCampaignClient.tsx"
