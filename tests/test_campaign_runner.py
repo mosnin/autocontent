@@ -59,6 +59,9 @@ def env(monkeypatch):
     async def fake_counts(cid, *, user_id):
         return state["counts"]
 
+    async def fake_pending(cid, *, user_id):
+        return 0
+
     async def fake_status(cid, *, user_id, status):
         state["status_calls"].append(status)
         return state["campaign"].model_copy(update={"status": status})
@@ -69,6 +72,7 @@ def env(monkeypatch):
     monkeypatch.setattr(campaigns_repo, "spent_usd", fake_spent)
     monkeypatch.setattr(campaigns_repo, "list_items", fake_items)
     monkeypatch.setattr(campaigns_repo, "work_counts", fake_counts)
+    monkeypatch.setattr(campaigns_repo, "pending_work_count", fake_pending)
     monkeypatch.setattr(campaigns_repo, "set_status", fake_status)
     monkeypatch.setattr(niches_repo, "get", fake_niche_get)
 
