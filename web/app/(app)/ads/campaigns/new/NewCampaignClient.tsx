@@ -71,7 +71,7 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
                 onChange={(e) => setAccountId(e.target.value)}
                 className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus-visible:border-primary focus-visible:outline-none"
               >
-                {active.length === 0 && <option value="">No active accounts</option>}
+                {active.length === 0 && <option value="">No connected accounts</option>}
                 {active.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.platform.replace("_", " ")} —{" "}
