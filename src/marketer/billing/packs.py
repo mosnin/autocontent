@@ -119,6 +119,16 @@ def stripe_livemode_matches_secret(livemode: object, secret_key: str) -> bool:
     return False
 
 
+def object_livemode_agrees(obj: dict[str, Any], event_livemode: object) -> bool:
+    """A Checkout/Charge ``livemode`` that contradicts the event must not
+    credit or reverse. Missing is allowed so a stamp-only refund still
+    resolves; the event already passed the secret-prefix check."""
+    live = obj.get("livemode")
+    if live is None:
+        return True
+    return isinstance(live, bool) and live is event_livemode
+
+
 def _session_is_payment_mode(session: dict[str, Any]) -> bool:
     """Pack checkout is ``mode=payment``. Subscriptions and setup sessions
     must not grant prepaid generate credit even if ``amount_total`` matches."""

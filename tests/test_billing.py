@@ -508,6 +508,27 @@ def test_webhook_test_session_id_on_live_event_credits_nothing(client, monkeypat
     assert resp.status_code == 200
 
 
+def test_webhook_session_livemode_contradicts_event_credits_nothing(
+    client, monkeypatch
+):
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_test_obj_live", livemode=False)
+    event["data"]["object"]["livemode"] = True
+    _patch_webhook(monkeypatch, event, secret_key="sk_test_x")
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit when session livemode contradicts event")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
 def test_webhook_subscription_mode_credits_nothing(client, monkeypatch):
     from marketer.repos import billing as billing_repo
 
@@ -1126,6 +1147,99 @@ def test_webhook_full_refund_listed_session_missing_currency_does_not_reverse(
 
     async def explode(**kwargs):
         raise AssertionError("must not reverse a listed session with no currency")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_listed_livemode_contradicts_event_does_not_reverse(
+    client, monkeypatch
+):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_list_live",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_list_live",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_list_live",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {
+                "data": [
+                    {
+                        "id": "cs_list_live_obj",
+                        "mode": "payment",
+                        "currency": "usd",
+                        "livemode": True,
+                    }
+                ]
+            }
+        ),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a listed session whose livemode contradicts")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_charge_livemode_contradicts_event_does_not_reverse(
+    client, monkeypatch
+):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_ch_live",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_obj_live",
+                "livemode": True,
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "metadata": {"checkout_session_id": "cs_obj_live"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse when charge livemode contradicts event")
 
     monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
     resp = client.post(

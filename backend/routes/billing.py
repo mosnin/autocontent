@@ -23,6 +23,7 @@ from marketer.billing.packs import (
     checkout_session_id_from_refund_source,
     credit_usd_for_paid_session,
     list_packs,
+    object_livemode_agrees,
     stripe_livemode_matches_secret,
 )
 from marketer.config import settings
@@ -238,7 +239,9 @@ def _checkout_session_id_from_retrieved_payment_intent(
     return as_checkout_session_id(stamped)
 
 
-def _checkout_session_id_from_session_list(payment_intent: str) -> str | None:
+def _checkout_session_id_from_session_list(
+    payment_intent: str, *, livemode: object
+) -> str | None:
     import stripe
 
     stripe.api_key = settings.stripe_secret_key
@@ -260,6 +263,7 @@ def _checkout_session_id_from_session_list(payment_intent: str) -> str | None:
             "id": getattr(first, "id", None),
             "mode": getattr(first, "mode", None),
             "currency": getattr(first, "currency", None),
+            "livemode": getattr(first, "livemode", None),
         }
     # Fail-closed: a listed session without mode=payment must not reverse
     # a pack. Stripe always sends mode; missing mode is not a payment.
@@ -269,10 +273,14 @@ def _checkout_session_id_from_session_list(payment_intent: str) -> str | None:
     # not reverse a dollar credit even if the id is cs_….
     if not charge_currency_is_usd(first):
         return None
+    if not object_livemode_agrees(first, livemode):
+        return None
     return as_checkout_session_id(first.get("id"))
 
 
-def _checkout_session_id_for_refunded_charge(charge: dict) -> str | None:
+def _checkout_session_id_for_refunded_charge(
+    charge: dict, *, livemode: object
+) -> str | None:
     """Production ``charge.refunded`` events do not carry the Checkout
     session id. Prefer a stamp (charge metadata, then expanded PI
     metadata), then the retrieved PI, then Stripe's session list."""
@@ -290,7 +298,9 @@ def _checkout_session_id_for_refunded_charge(charge: dict) -> str | None:
     retrieved = _checkout_session_id_from_retrieved_payment_intent(payment_intent)
     if retrieved:
         return retrieved
-    return _checkout_session_id_from_session_list(payment_intent)
+    return _checkout_session_id_from_session_list(
+        payment_intent, livemode=livemode
+    )
 
 
 @router.post("/webhook")
@@ -342,6 +352,12 @@ async def stripe_webhook(request: Request) -> dict:
                 session.get("id"), session.get("payment_status"),
             )
             return {"ok": True}
+        if not object_livemode_agrees(session, event.get("livemode")):
+            logger.error(
+                "paid checkout session %s livemode contradicts event; not crediting",
+                session.get("id"),
+            )
+            return {"ok": True}
         meta = session.get("metadata") or {}
         user_id = meta.get("user_id")
         credit = credit_usd_for_paid_session(session)
@@ -371,6 +387,12 @@ async def stripe_webhook(request: Request) -> dict:
             )
     elif event["type"] == "checkout.session.async_payment_failed":
         session = event["data"]["object"]
+        if not object_livemode_agrees(session, event.get("livemode")):
+            logger.warning(
+                "async payment failed session %s livemode contradicts event; not reversing",
+                session.get("id"),
+            )
+            return {"ok": True}
         session_id = checkout_session_id_for_livemode(
             session.get("id"), event.get("livemode")
         )
@@ -418,8 +440,17 @@ async def stripe_webhook(request: Request) -> dict:
                 charge.get("currency"),
             )
             return {"ok": True}
+        if not object_livemode_agrees(charge, event.get("livemode")):
+            logger.error(
+                "fully refunded charge %s livemode contradicts event; "
+                "reconcile manually",
+                charge.get("id"),
+            )
+            return {"ok": True}
         session_id = checkout_session_id_for_livemode(
-            _checkout_session_id_for_refunded_charge(charge),
+            _checkout_session_id_for_refunded_charge(
+                charge, livemode=event.get("livemode")
+            ),
             event.get("livemode"),
         )
         if not session_id:

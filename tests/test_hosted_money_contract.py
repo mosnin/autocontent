@@ -380,7 +380,8 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     ).read_text()
     assert "Marked active" in campaigns
     assert "Live on platform" in campaigns
-    assert "mark active" in campaigns
+    assert "mark campaigns active" in campaigns
+    assert "scale campaigns" not in campaigns
     assert "external campaign id" in campaigns
     assert "live on platform" in overview
     assert "marked active" in overview
@@ -407,6 +408,7 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "charge_currency_is_usd" in webhook
     assert "as_checkout_session_id" in webhook
     assert "checkout_session_id_for_livemode" in webhook
+    assert "object_livemode_agrees" in webhook
     assert "checkout_session_id" in webhook
     new_campaign = (
         repo / "web/app/(app)/ads/campaigns/new/NewCampaignClient.tsx"

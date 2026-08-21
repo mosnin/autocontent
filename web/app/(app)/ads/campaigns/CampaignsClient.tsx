@@ -325,7 +325,7 @@ export function CampaignsClient({
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
         <p className="text-sm text-muted-foreground">
-          Draft, mark active, and scale campaigns. Budgets and activation pass
+          Draft and mark campaigns active. Budgets and activation pass
           the spend guard; live-on-platform requires an external campaign id.
         </p>
       </div>
