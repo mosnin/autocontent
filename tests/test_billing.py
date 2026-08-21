@@ -172,6 +172,31 @@ def test_checkout_unknown_pack_422(client, monkeypatch):
     assert resp.status_code == 422
 
 
+def test_webhook_missing_secret_is_503_not_200(client, monkeypatch):
+    """An unconfigured Stripe webhook must not accept events."""
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "")
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 503
+    assert "not configured" in resp.json()["detail"]
+    assert "whsec" not in resp.text.lower()
+
+
+def test_webhook_missing_signature_header_is_401(client, monkeypatch):
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+    resp = client.post("/api/v1/billing/webhook", content=b"{}")
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "invalid webhook"
+    assert "whsec" not in resp.text.lower()
+
+
 def test_webhook_rejects_bad_signature(client, monkeypatch):
     from marketer.config import settings
 
@@ -281,6 +306,50 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
     )
     assert resp.status_code == 200
     assert credited == [("user_a", Decimal("20.00"), "cs_test_123")]
+
+
+def test_webhook_replay_same_session_credits_once(client, monkeypatch):
+    """Stripe retry of the same checkout.session.completed must not double-credit."""
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+    event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": {
+                "id": "cs_replay",
+                "payment_status": "paid",
+                "amount_total": 2000,
+                "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+            }
+        },
+    }
+    monkeypatch.setattr(
+        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
+    )
+
+    applied: list[Decimal] = []
+    seen: set[str] = set()
+
+    async def fake_credit(*, user_id, amount_usd, checkout_session_id, description):
+        # Mirrors credit_purchase ON CONFLICT DO NOTHING on session id.
+        if checkout_session_id in seen:
+            return None
+        seen.add(checkout_session_id)
+        applied.append(amount_usd)
+        return amount_usd
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", fake_credit)
+    headers = {"stripe-signature": "t=1,v1=ok"}
+    first = client.post("/api/v1/billing/webhook", content=b"{}", headers=headers)
+    second = client.post("/api/v1/billing/webhook", content=b"{}", headers=headers)
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert applied == [Decimal("20.00")]
+    assert seen == {"cs_replay"}
 
 
 async def test_email_noop_without_key(monkeypatch):

@@ -185,3 +185,93 @@ def test_http_drama_generate_refuses_without_creating_a_row(monkeypatch):
     )
     assert resp.status_code == 402
     assert created == []
+
+
+def test_credit_purchase_sql_is_idempotent_on_session_id():
+    """Never-skipped pin: webhook replay depends on this clause, not live Stripe."""
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parent.parent / "src/marketer/repos/billing.py"
+    ).read_text()
+    assert "on conflict do nothing" in source.lower()
+    assert "checkout_session_id" in source
+
+
+def test_security_headers_and_leaks_recertify(monkeypatch):
+    """Healthz/webhook must keep class-name-only errors and baseline headers."""
+    import sys
+    import types
+
+    from fastapi.testclient import TestClient
+
+    from backend.main import create_app
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "web_origin", "")
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_secret_value")
+
+    fake_migrate = types.ModuleType("scripts.migrate")
+    fake_migrate.status = lambda **_: {"applied": 3, "pending": 0}  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "scripts.migrate", fake_migrate)
+
+    import backend.routes.healthz as healthz_mod
+
+    async def _failing_get_pool():
+        raise ConnectionRefusedError(
+            "could not connect to postgres://user:supersecret@db/marketer"
+        )
+
+    monkeypatch.setattr(healthz_mod, "get_pool", _failing_get_pool)
+
+    class _FakeResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+    class _FakeHTTPClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            pass
+
+        async def head(self, url: str):
+            return _FakeResponse()
+
+    monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FakeHTTPClient())
+
+    client = TestClient(create_app(), raise_server_exceptions=False)
+
+    live = client.get("/healthz")
+    assert live.status_code == 200
+    assert live.json() == {"ok": True}
+    assert live.headers["x-content-type-options"] == "nosniff"
+    assert live.headers["x-frame-options"] == "DENY"
+    assert live.headers["referrer-policy"] == "strict-origin-when-cross-origin"
+    assert "whsec_secret_value" not in live.text
+
+    deep = client.get("/healthz/deep")
+    assert deep.status_code == 503
+    assert deep.json()["checks"]["db"]["error"] == "ConnectionRefusedError"
+    assert "supersecret" not in deep.text
+    assert "postgres://" not in deep.text
+
+    hook = client.post("/api/v1/billing/webhook", content=b"{}")
+    assert hook.status_code == 401
+    assert hook.json()["detail"] == "invalid webhook"
+    assert "whsec_secret_value" not in hook.text
+    assert "supersecret" not in hook.text
+
+
+def test_settings_ui_does_not_claim_email_when_unconfigured():
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent
+    shell = (repo / "web/app/(app)/settings/SettingsShell.tsx").read_text()
+    form = (repo / "web/app/(app)/settings/NotificationsForm.tsx").read_text()
+    assert "Email delivery is not configured" in shell
+    assert "will not send mail" in form
+    assert "emailConfigured" in shell

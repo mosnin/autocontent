@@ -19,6 +19,7 @@ export default async function SettingsPage() {
     <SettingsShell
       initialCap={user?.global_daily_cap_usd ?? null}
       initialNotifications={user?.email_notifications ?? true}
+      emailConfigured={user?.email_configured === true}
     />
   );
 }
