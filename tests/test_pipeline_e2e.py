@@ -403,6 +403,32 @@ async def test_approval_gate_parks_job_before_scheduling(stub_all, stage_log):
 
 # --------------------------------------------------------------------------- notifications
 
+async def test_notify_skips_when_resend_unconfigured(monkeypatch):
+    """_notify must not attempt mail when the deployment has no provider key."""
+    from uuid import uuid4
+
+    from marketer.config import settings
+    from marketer.models import Job, JobStatus
+    from marketer.pipeline import _notify
+    from marketer.services import email as email_svc
+
+    monkeypatch.setattr(settings, "resend_api_key", "")
+
+    async def explode(**kwargs):
+        raise AssertionError("send_email must not run when Resend is off")
+
+    monkeypatch.setattr(email_svc, "send_email", explode)
+
+    job = Job(
+        id=uuid4(),
+        user_id="user_a",
+        niche_id=uuid4(),
+        platform="tiktok",
+        status=JobStatus.failed,
+    )
+    await _notify(job, kind="failed")
+
+
 async def test_notify_respects_email_optout(monkeypatch):
     """_notify sends when the user is opted in, and stays silent when they've
     turned email notifications off — without ever touching job state."""

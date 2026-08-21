@@ -426,6 +426,57 @@ def test_webhook_credits_on_async_payment_succeeded(client, monkeypatch):
     assert credited == [("user_a", Decimal("20.00"), "cs_async")]
 
 
+def test_webhook_async_payment_failed_reverses_prior_credit(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_async_fail",
+        "livemode": False,
+        "type": "checkout.session.async_payment_failed",
+        "data": {
+            "object": {
+                "id": "cs_async_fail",
+                "metadata": {"user_id": "user_a"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("15.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_async_fail"]
+
+
+def test_webhook_missing_livemode_credits_nothing(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_no_livemode")
+    del event["livemode"]
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit when livemode is missing")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
 async def test_email_noop_without_key(monkeypatch):
     from marketer.config import settings
     from marketer.services import email as email_svc

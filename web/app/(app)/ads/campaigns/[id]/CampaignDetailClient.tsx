@@ -102,7 +102,10 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
             <h1 className="text-2xl font-semibold tracking-tight">
               {campaign.name}
             </h1>
-            <AdStatusBadge status={campaign.status} />
+            <AdStatusBadge
+              status={campaign.status}
+              externalCampaignId={campaign.external_campaign_id}
+            />
           </div>
           <p className="text-sm capitalize text-muted-foreground">
             {campaign.objective || "no objective"}

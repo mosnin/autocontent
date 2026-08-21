@@ -41,7 +41,11 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
     setBusy(id);
     try {
       await decideApproval(id, decision);
-      toast.success(decision === "approved" ? "Approved" : "Rejected");
+      toast.success(
+        decision === "approved"
+          ? "Approved — spend guard is applying it"
+          : "Rejected",
+      );
       void mutate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -55,8 +59,9 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Approvals</h1>
         <p className="text-sm text-muted-foreground">
-          Spend-affecting changes proposed by agents wait here. Nothing is
-          applied to a platform until you approve it.
+          Spend-affecting changes proposed by agents wait here. Approval runs
+          them through the spend guard; a platform may still be local-only
+          until an external campaign id exists.
         </p>
       </div>
 

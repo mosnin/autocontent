@@ -70,7 +70,7 @@ def credit_usd_for_amount_cents(amount_cents: object) -> Decimal | None:
         cents = int(amount_cents)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return None
-    if cents < 0:
+    if cents <= 0:
         return None
     for pack in PACKS.values():
         if pack["amount_cents"] == cents:
@@ -127,10 +127,12 @@ def credit_usd_for_paid_session(session: dict[str, Any]) -> Decimal | None:
         return None
     if not _session_currency_is_usd(session):
         return None
+    # Never fall back to amount_subtotal — discounts can make subtotal differ
+    # from what Stripe actually collected; only amount_total is authoritative.
     amount = session.get("amount_total")
-    from_amount = (
-        credit_usd_for_amount_cents(amount) if amount is not None else None
-    )
+    if amount is None:
+        return None
+    from_amount = credit_usd_for_amount_cents(amount)
     if from_amount is None:
         # No recognised charge — do not fall back to metadata. A session
         # without amount_total, or with an unknown amount, is reconciled

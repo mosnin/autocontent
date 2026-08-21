@@ -21,6 +21,7 @@ from marketer.repos import ads as ads_repo
 from marketer.services import ad_connections
 from marketer.services.ad_actions_exec import (
     AdSpendDenied,
+    execute_activation,
     execute_approved_activation,
     execute_approved_budget_change,
     guard_activation,
@@ -230,6 +231,17 @@ async def change_status(
             )
             return {"status": "pending_approval", "approval_id": str(approval.id)}
 
+        try:
+            result = await execute_activation(
+                user_id=ctx.user_id,
+                campaign_id=campaign_id,
+                actor="user",
+                actor_email=ctx.email,
+            )
+        except AdSpendDenied as e:
+            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+        return result["campaign"]
+
     updated = await ads_repo.update_campaign(
         campaign_id, user_id=ctx.user_id, status=body.status
     )
@@ -341,13 +353,17 @@ async def overview(ctx: AuthCtx = CurrentUser) -> dict:
         )
 
     pending = await ad_approvals.list_(user_id=ctx.user_id, status="pending")
-    active = [c for c in campaigns if c.status == "active"]
+    marked_active = [c for c in campaigns if c.status == "active"]
+    platform_active = [
+        c for c in marked_active if (c.external_campaign_id or "").strip()
+    ]
     return {
         "enabled": bool(settings.ads_enabled),
         "accounts": len(accounts),
         "active_accounts": len([a for a in accounts if a.status == "active"]),
         "campaigns": len(campaigns),
-        "active_campaigns": len(active),
+        "active_campaigns": len(platform_active),
+        "marked_active_campaigns": len(marked_active),
         "spend_today_usd": str(spend_today),
         "spend_30d_usd": str(spend_30d),
         "pending_approvals": len(pending),

@@ -223,9 +223,25 @@ async def stripe_webhook(request: Request) -> dict:
             )
     elif event["type"] == "checkout.session.async_payment_failed":
         session = event["data"]["object"]
-        logger.warning(
-            "async payment failed for checkout session %s (user_id=%s)",
-            session.get("id"), (session.get("metadata") or {}).get("user_id"),
+        session_id = session.get("id")
+        user_id = (session.get("metadata") or {}).get("user_id")
+        reversed_balance = await billing_repo.reverse_purchase(
+            checkout_session_id=session_id,
+            description="async payment failed — purchase reversed",
         )
+        if reversed_balance is not None:
+            logger.warning(
+                "reversed credit for async payment failure "
+                "(session_id=%s user_id=%s new_balance=%s)",
+                session_id,
+                user_id,
+                reversed_balance,
+            )
+        else:
+            logger.warning(
+                "async payment failed for checkout session %s (user_id=%s)",
+                session_id,
+                user_id,
+            )
 
     return {"ok": True}

@@ -237,10 +237,13 @@ async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
 async def _notify(job: Job, *, kind: str) -> None:
     """Email the operator at a terminal moment. Fail-open: notification
     problems never affect job state. Skips silently when the user has opted
-    out of email notifications."""
+    out of email notifications or mail is not configured."""
     try:
+        from .config import settings
         from .repos import users as users_repo
 
+        if not settings.resend_api_key:
+            return
         user = await users_repo.get(job.user_id)
         if user is None or not user.email or not user.email_notifications:
             return

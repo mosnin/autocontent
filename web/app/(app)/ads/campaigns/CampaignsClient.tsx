@@ -91,11 +91,13 @@ const STATUSES: Status[] = [
 const STATUS_LABEL: Record<Status, string> = {
   draft: "Draft",
   pending: "Pending",
-  active: "Active",
+  active: "Marked active",
   paused: "Paused",
   ended: "Ended",
   failed: "Failed",
 };
+
+const PLATFORM_LIVE_LABEL = "Live on platform";
 
 // Template palette (border-neutral / emerald / amber / pink), extended with
 // blue + rose the same way QueueClient extended it for job states.
@@ -113,8 +115,20 @@ const STATUS_TONE: Record<Status, string> = {
     "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900",
 };
 
-export function AdStatusBadge({ status }: { status: string }) {
+export function AdStatusBadge({
+  status,
+  externalCampaignId,
+}: {
+  status: string;
+  externalCampaignId?: string;
+}) {
   const s = (STATUSES as string[]).includes(status) ? (status as Status) : null;
+  const label =
+    s === "active" && (externalCampaignId || "").trim()
+      ? PLATFORM_LIVE_LABEL
+      : s
+        ? STATUS_LABEL[s]
+        : status;
   return (
     <Badge
       variant="outline"
@@ -123,7 +137,7 @@ export function AdStatusBadge({ status }: { status: string }) {
         s ? STATUS_TONE[s] : "border text-muted-foreground bg-transparent",
       )}
     >
-      {s ? STATUS_LABEL[s] : status}
+      {label}
     </Badge>
   );
 }
@@ -218,7 +232,12 @@ export function CampaignsClient({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />
         ),
-        cell: ({ row }) => <AdStatusBadge status={row.original.status} />,
+        cell: ({ row }) => (
+          <AdStatusBadge
+            status={row.original.status}
+            externalCampaignId={row.original.external_campaign_id}
+          />
+        ),
       },
       {
         id: "account",
@@ -307,7 +326,7 @@ export function CampaignsClient({
         <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
         <p className="text-sm text-muted-foreground">
           Draft, launch, and scale campaigns. Budgets and activation pass the
-          spend guard before anything goes live.
+          spend guard before status changes are recorded.
         </p>
       </div>
 

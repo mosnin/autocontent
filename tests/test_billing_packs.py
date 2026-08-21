@@ -26,6 +26,18 @@ def test_known_stripe_amounts_map_to_pack_credit():
     assert credit_usd_for_amount_cents(True) is None
     assert credit_usd_for_amount_cents(2000.5) is None
     assert credit_usd_for_amount_cents(-500) is None
+    assert credit_usd_for_amount_cents(0) is None
+
+
+def test_amount_subtotal_without_total_is_refused():
+    """Subtotal alone must never grant credit — only amount_total counts."""
+    session = {
+        "mode": "payment",
+        "amount_subtotal": 2000,
+        "currency": "usd",
+        "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+    }
+    assert credit_usd_for_paid_session(session) is None
 
 
 def test_paid_session_credits_from_amount_not_metadata():

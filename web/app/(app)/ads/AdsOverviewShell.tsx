@@ -65,6 +65,7 @@ function buildStats(ov: AdsOverview): SquareStat[] {
   const spendToday = Number(ov.spend_today_usd);
   const spend30d = Number(ov.spend_30d_usd);
   const avgDaily30d = spend30d / 30;
+  const markedActive = ov.marked_active_campaigns ?? ov.active_campaigns;
 
   let spendDelta: SquareStat["delta"] = null;
   if (Number.isFinite(avgDaily30d) && avgDaily30d > 0) {
@@ -105,7 +106,14 @@ function buildStats(ov: AdsOverview): SquareStat[] {
       label: "Campaigns",
       icon: Megaphone,
       value: String(ov.campaigns),
-      delta: { text: `${ov.active_campaigns} active` },
+      delta: {
+        text:
+          ov.active_campaigns > 0
+            ? `${ov.active_campaigns} live on platform`
+            : markedActive > 0
+              ? `${markedActive} marked active`
+              : "none active",
+      },
     },
   ];
 }

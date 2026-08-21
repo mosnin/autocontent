@@ -65,6 +65,62 @@ async def credit_purchase(
     return Decimal(str(new_balance))
 
 
+async def reverse_purchase(
+    *,
+    checkout_session_id: str,
+    description: str = "checkout async payment failed",
+) -> Decimal | None:
+    """Reverse a prior credit for this Stripe checkout session. Returns the
+    new balance, or None when no purchase existed or this session was already
+    reversed — safe to 200 on webhook retry."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            purchase = await conn.fetchrow(
+                """
+                select user_id, amount_usd
+                  from credit_transactions
+                 where reference = $1 and kind = 'purchase'
+                """,
+                checkout_session_id,
+            )
+            if purchase is None:
+                return None
+            already = await conn.fetchval(
+                """
+                select id from credit_transactions
+                 where reference = $1 and kind = 'refund'
+                """,
+                checkout_session_id,
+            )
+            if already is not None:
+                return None
+            user_id = purchase["user_id"]
+            amount = Decimal(str(purchase["amount_usd"]))
+            await conn.execute(
+                """
+                insert into credit_transactions
+                    (user_id, amount_usd, kind, reference, description)
+                values ($1, $2, 'refund', $3, $4)
+                """,
+                user_id,
+                -amount,
+                checkout_session_id,
+                description,
+            )
+            new_balance = await conn.fetchval(
+                """
+                update users
+                   set credit_balance_usd = credit_balance_usd - $1
+                 where id = $2
+                returning credit_balance_usd
+                """,
+                amount,
+                user_id,
+            )
+    return Decimal(str(new_balance)) if new_balance is not None else None
+
+
 async def debit(
     *,
     user_id: str,

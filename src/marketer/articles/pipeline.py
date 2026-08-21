@@ -108,9 +108,12 @@ async def _notify(article: Article, *, kind: str) -> None:
     and gated on the user's email-notification preference — matches the video
     pipeline so both content types notify consistently."""
     try:
+        from ..config import settings
         from ..repos import users as users_repo
         from ..services import email as email_svc
 
+        if not settings.resend_api_key:
+            return
         user = await users_repo.get(article.user_id)
         if user is None or not user.email or not user.email_notifications:
             return
