@@ -37,17 +37,29 @@ image = (
 artifacts = modal.Volume.from_name("marketer-artifacts", create_if_missing=True)
 assets = modal.Volume.from_name("marketer-assets", create_if_missing=True)
 
-secrets = [
-    # OPENAI_API_KEY; also carries the optional article-pipeline vars
-    # (MARKETER_EXA_API_KEY, MARKETER_ARTICLE_WRITER_MODEL,
-    # MARKETER_ARTICLE_HERO_IMAGE) — unset Exa degrades SERP research
-    # to model knowledge rather than failing runs.
-    modal.Secret.from_name("marketer-openai"),
-    modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
-    modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
-    modal.Secret.from_name("marketer-database"),  # MARKETER_DATABASE_URL
-    modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
-]
+# Named Modal secrets mounted into every function. A missing name fails
+# deploy (same contract as marketer-ayrshare): create the extra/providers
+# secrets even if every value is empty, so later keys actually reach
+# production instead of silently failing closed.
+#
+# marketer-extra:     WEB_ORIGIN, APP_URL, billing/Stripe, Resend, Sentry,
+#                     Clerk audience, bootstrap admin, hosted-safety flags
+# marketer-providers: fal, ElevenLabs, OpenRouter, Exa, Wasabi, Composio,
+#                     Inngest, Context.dev, MuAPI, Pexels, Pixabay
+CORE_SECRET_NAMES = (
+    "marketer-openai",
+    "marketer-xai",
+    "marketer-ayrshare",
+    "marketer-database",
+    "marketer-clerk",
+)
+EXTRA_SECRET_NAMES = (
+    "marketer-extra",
+    "marketer-providers",
+)
+SECRET_NAMES = (*CORE_SECRET_NAMES, *EXTRA_SECRET_NAMES)
+
+secrets = [modal.Secret.from_name(name) for name in SECRET_NAMES]
 
 app = modal.App(APP_NAME, image=image, secrets=secrets)
 

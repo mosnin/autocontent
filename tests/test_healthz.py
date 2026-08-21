@@ -158,7 +158,8 @@ def test_healthz_deep_db_failure(monkeypatch):
     data = resp.json()
     assert data["ok"] is False
     assert data["checks"]["db"]["ok"] is False
-    assert "error" in data["checks"]["db"]
+    assert data["checks"]["db"]["error"] == "ConnectionRefusedError"
+    assert "postgres is down" not in resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +209,8 @@ def test_healthz_deep_jwks_failure(monkeypatch):
     data = resp.json()
     assert data["ok"] is False
     assert data["checks"]["clerk_jwks"]["ok"] is False
-    assert "error" in data["checks"]["clerk_jwks"]
+    assert data["checks"]["clerk_jwks"]["error"] == "ConnectError"
+    assert "connection refused" not in resp.text.lower()
 
 
 # ---------------------------------------------------------------------------

@@ -29,6 +29,12 @@ def _clear_all(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "billing_enabled", False)
     monkeypatch.setattr(settings, "stripe_secret_key", "")
     monkeypatch.setattr(settings, "stripe_webhook_secret", "")
+    monkeypatch.setattr(settings, "allow_unbilled_usage", True)
+    monkeypatch.setattr(settings, "bootstrap_admin_email", "")
+    monkeypatch.setattr(settings, "web_origin", "")
+    monkeypatch.setattr(settings, "app_url", "")
+    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "clerk_audience", "")
     monkeypatch.setattr(settings, "ads_enabled", False)
     monkeypatch.setattr(settings, "composio_api_key", "")
     monkeypatch.setattr(settings, "composio_googleads_auth_config_id", "")
@@ -72,6 +78,9 @@ def test_all_disabled_is_clean(monkeypatch):
     assert _find(report, "inngest").status == "ok"
     assert _find(report, "x402").status == "ok"
     assert _find(report, "fal_price_overrides").status == "ok"
+    assert _find(report, "hosted_safety").status == "ok"
+    assert _find(report, "clerk_audience").status == "ok"
+    assert _find(report, "web_origin").status == "warn"
 
 
 def test_all_disabled_except_openai_is_fully_clean(monkeypatch):
@@ -315,6 +324,38 @@ def test_overall_status_is_worst_of_all_checks(monkeypatch):
     report = preflight.run_preflight()
     assert report.overall_status == "error"
     assert len(report.errors) >= 1
+
+
+def test_hosted_safety_warns_when_clerk_on_and_billing_off(monkeypatch):
+    _clear_all(monkeypatch)
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", True)
+    report = preflight.run_preflight()
+    assert _find(report, "hosted_safety").status == "warn"
+
+
+def test_hosted_safety_errors_when_unbilled_usage_refused(monkeypatch):
+    _clear_all(monkeypatch)
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    report = preflight.run_preflight()
+    assert _find(report, "hosted_safety").status == "error"
+
+
+def test_web_origin_ok_when_set(monkeypatch):
+    _clear_all(monkeypatch)
+    monkeypatch.setattr(settings, "web_origin", "https://app.marketer.sh")
+    report = preflight.run_preflight()
+    assert _find(report, "web_origin").status == "ok"
+
+
+def test_clerk_audience_warns_when_jwks_set_without_aud(monkeypatch):
+    _clear_all(monkeypatch)
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    report = preflight.run_preflight()
+    assert _find(report, "clerk_audience").status == "warn"
 
 
 def test_run_preflight_never_raises_even_if_a_check_blows_up(monkeypatch):

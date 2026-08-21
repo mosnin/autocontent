@@ -110,6 +110,15 @@ class Settings(BaseSettings):
     # Public origin for checkout redirects + email links,
     # e.g. https://app.marketer.dev
     app_url: str = ""
+    # Self-host escape hatch. When False, pipeline spend is refused unless
+    # billing_enabled is on (prepaid credit). Default True keeps existing
+    # self-host behaviour: owner's keys, spend caps only. Public Clerk +
+    # this left True is a hosted-SaaS footgun — preflight warns.
+    allow_unbilled_usage: bool = True
+    # First-admin bootstrap. When set, the matching Clerk email is promoted
+    # to role=admin on upsert if and only if no admin exists yet. Empty =
+    # no automatic promotion (SQL / existing admin UI only).
+    bootstrap_admin_email: str = ""
 
     # --- Ads product (paid campaigns) ---------------------------------
     # Master switch. When false, the Ads product is inert: no Composio calls,

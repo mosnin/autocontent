@@ -257,6 +257,20 @@ export interface BillingBalance {
   transactions: CreditTransaction[];
 }
 
+export interface BillingPack {
+  key: string;
+  amount_cents: number;
+  credit_usd: string;
+  label: string;
+  blurb: string;
+  featured: boolean;
+}
+
+export interface BillingPacks {
+  billing_enabled: boolean;
+  packs: BillingPack[];
+}
+
 export interface TokenCreateResponse {
   token: string;
   info: PersonalAccessToken;

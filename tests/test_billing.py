@@ -182,6 +182,65 @@ def test_webhook_rejects_bad_signature(client, monkeypatch):
         headers={"stripe-signature": "t=1,v1=bogus"},
     )
     assert resp.status_code == 401
+    assert resp.json()["detail"] == "invalid webhook"
+    assert "whsec" not in resp.text.lower()
+
+
+def test_webhook_does_not_echo_constructor_error(client, monkeypatch):
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+
+    def _boom(payload, sig, secret):
+        raise ValueError("internal stripe secret leak xyz")
+
+    monkeypatch.setattr(stripe_mod.Webhook, "construct_event", staticmethod(_boom))
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "invalid webhook"
+    assert "xyz" not in resp.text
+    assert "secret leak" not in resp.text
+
+
+def test_webhook_refuses_inflated_credit_metadata(client, monkeypatch):
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+    event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": {
+                "id": "cs_inflated",
+                "payment_status": "paid",
+                "amount_total": 500,
+                "metadata": {"user_id": "user_a", "credit_usd": "50.00"},
+            }
+        },
+    }
+    monkeypatch.setattr(
+        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit a mismatched session")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
 
 
 def test_webhook_credits_on_completed_session(client, monkeypatch):
@@ -198,6 +257,7 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
             "object": {
                 "id": "cs_test_123",
                 "payment_status": "paid",
+                "amount_total": 2000,
                 "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
             }
         },

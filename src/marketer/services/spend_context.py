@@ -140,6 +140,15 @@ class SpendContext:
                     f"call would charge ${charge}. Top up to continue.",
                     scope="credits",
                 )
+        elif not settings.allow_unbilled_usage:
+            # Hosted deploy that has not enabled Stripe yet: refuse spend
+            # rather than burning the operator's provider keys.
+            self._trip("credits")
+            raise SpendCapExceeded(
+                f"user {self.user_id} cannot spend: billing is required "
+                "on this deployment (MARKETER_ALLOW_UNBILLED_USAGE=false).",
+                scope="credits",
+            )
 
     async def log(
         self,

@@ -6,7 +6,7 @@ this stack half-works.
 
 | # | Surface | Where it is set | Count |
 |---|---|---|---|
-| 1 | FastAPI backend | `.env` / Modal secrets | 98 settings, `MARKETER_` prefix |
+| 1 | FastAPI backend | `.env` / Modal secrets | 100 settings, `MARKETER_` prefix |
 | 2 | Next.js web app | `web/.env.local` / Vercel | 4 |
 | 3 | SDK / CLI / MCP client | the caller's shell | 2 |
 | 4 | Modal deployment | `modal secret create` | 5 named secrets |
@@ -52,17 +52,17 @@ r=run_preflight();print(r.overall_status);\
 [print(c.to_dict()['status'], c.to_dict()['capability'], c.to_dict()['message'][:90]) for c in r.checks]"
 ```
 
-Against a completely empty environment it returns **16 checks, 1 error,
-5 warnings** — error: OpenAI; warnings: Grok, fal, OpenRouter, ElevenLabs
-voice, generated music. Everything else reports `ok` because it is
-feature-flagged off.
+Against a completely empty environment it returns **19 checks, 1 error,
+and several warnings** — error: OpenAI; warnings include Grok, fal,
+OpenRouter, ElevenLabs voice, generated music, and unset WEB_ORIGIN.
+Everything else reports `ok` because it is feature-flagged off.
 
 `MARKETER_PREFLIGHT_STRICT=true` turns those warnings into a hard startup
 failure.
 
 ---
 
-## 2. Backend — all 98 settings
+## 2. Backend — all 100 settings
 
 `src/marketer/config.py` sets `env_prefix="MARKETER_"`.
 
@@ -114,7 +114,7 @@ Modal auth is not an env var:
 modal token set --token-id <id> --token-secret <secret>
 ```
 
-`modal_app.py` mounts exactly **five** named secrets, app-wide:
+`modal_app.py` mounts **seven** named secrets, app-wide:
 
 | Secret | Supplies |
 |---|---|
@@ -123,31 +123,22 @@ modal token set --token-id <id> --token-secret <secret>
 | `marketer-ayrshare` | `MARKETER_AYRSHARE_API_KEY` |
 | `marketer-database` | `MARKETER_DATABASE_URL`, `MARKETER_DATABASE_DIRECT_URL` |
 | `marketer-clerk` | `MARKETER_CLERK_JWKS_URL`, `MARKETER_CLERK_ISSUER` |
+| `marketer-extra` | `MARKETER_WEB_ORIGIN`, `MARKETER_APP_URL`, billing/Stripe, Clerk audience, hosted-safety flags, Resend, Sentry, bootstrap admin |
+| `marketer-providers` | fal, ElevenLabs, OpenRouter, Exa, Wasabi, Composio, Inngest, Context.dev, MuAPI, Pexels, Pixabay |
 
 ```bash
 modal secret create marketer-openai MARKETER_OPENAI_API_KEY=sk-...
 # ...one per row above
 ```
 
-**The gap:** every other key has no secret wired. fal, ElevenLabs,
-OpenRouter, Stripe, MuAPI/UGC, Seedance, Context.dev, Resend, Pexels,
-Exa, Wasabi, Composio and Inngest are all read by the backend but are
-**not mounted into the Modal deployment**. Setting them in a local `.env`
-makes them work locally and silently not in production — the feature just
-fails closed on the deployed app.
+Both extra secrets are mounted. They must **exist** in the Modal
+workspace (empty values are fine) or the next deploy fails. Fill keys
+in the dashboard; they reach production on the following deploy
+without another code change.
 
-Fix by creating a secret and adding it to the `secrets` list in
-`modal_app.py`, e.g.:
-
-```bash
-modal secret create marketer-providers \
-  MARKETER_FAL_API_KEY=... MARKETER_ELEVENLABS_API_KEY=...
-```
-
-```python
-# modal_app.py
-modal.Secret.from_name("marketer-providers"),
-```
+A remaining owner gap: the secrets exist in code but the *values* are
+still owner-held (Stripe, Wasabi, OpenAI, …). Creating empty
+placeholders is required before `modal deploy` after this change.
 
 ---
 

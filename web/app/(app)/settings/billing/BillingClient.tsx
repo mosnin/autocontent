@@ -17,7 +17,7 @@ import { createCheckoutAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { BillingBalance } from "@/lib/types";
+import type { BillingBalance, BillingPacks } from "@/lib/types";
 
 interface Pack {
   key: string;
@@ -38,7 +38,21 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
     refreshInterval: 15000,
     fallbackData: initial,
   });
+  const { data: packPayload } = useSWR<BillingPacks>(
+    "/api/v1/billing/packs",
+    clientFetch,
+  );
   const billing = data ?? initial;
+  const packs: Pack[] =
+    packPayload?.packs?.length
+      ? packPayload.packs.map((p) => ({
+          key: p.key,
+          label: p.label,
+          amount: p.amount_cents / 100,
+          blurb: p.blurb,
+          featured: p.featured,
+        }))
+      : PACKS;
   const [buying, setBuying] = React.useState<string | null>(null);
 
   // Surface the checkout redirect result once.
@@ -106,7 +120,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Add credit</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          {PACKS.map((p) => (
+          {packs.map((p) => (
             <Card
               aria-disabled={buying !== null}
               className={cn(

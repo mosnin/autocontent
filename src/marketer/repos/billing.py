@@ -55,6 +55,13 @@ async def credit_purchase(
                 """,
                 amount_usd, user_id,
             )
+            if new_balance is None:
+                # FK on credit_transactions.user_id should have failed the
+                # insert already; this is a last-line guard so a missing
+                # user can never look like a successful credit.
+                raise RuntimeError(
+                    f"credit_purchase: user {user_id!r} does not exist"
+                )
     return Decimal(str(new_balance))
 
 
