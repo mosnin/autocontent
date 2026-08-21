@@ -18,6 +18,7 @@ from marketer.articles.models import Article, ArticleStatus
 from marketer.repos import articles as articles_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import require_spendable_credit
 
 router = APIRouter()
 
@@ -70,6 +71,7 @@ async def get_article_markdown(
 async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> Article:
     """Create the article row and spawn the Modal pipeline against it.
     Poll GET /{article_id} for status."""
+    await require_spendable_credit(ctx.user_id)
     import modal
 
     from marketer.repos import niches as niches_repo
@@ -148,6 +150,7 @@ async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> File
 @router.post("/{article_id}/retry", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
 async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
     """Re-run a failed article from scratch (same row, same topic)."""
+    await require_spendable_credit(ctx.user_id)
     import modal
 
     article = await articles_repo.claim_for_retry(article_id, user_id=ctx.user_id)

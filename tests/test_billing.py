@@ -7,10 +7,10 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from marketer.services.spend_context import SpendContext
 from backend.auth import AuthCtx, require_user
 from backend.main import create_app
 from backend.rate_limit import limiter
+from marketer.services.spend_context import SpendContext
 
 
 @pytest.fixture()
@@ -40,13 +40,13 @@ async def test_preflight_blocks_when_credit_short(monkeypatch):
     monkeypatch.setattr(settings, "billing_enabled", True)
     monkeypatch.setattr(settings, "billing_margin", 1.5)
 
-    async def fake_balance(user_id):
-        return Decimal("0.10")
+    async def fake_reserve(*, user_id, amount_usd, job_id, description):
+        assert amount_usd == Decimal("0.15")
 
-    monkeypatch.setattr(billing_repo, "balance", fake_balance)
+    monkeypatch.setattr(billing_repo, "reserve", fake_reserve)
 
     ctx = _ctx()
-    # 0.10 estimated * 1.5 margin = 0.15 charge > 0.10 balance
+    # 0.10 estimated * 1.5 margin = 0.15 charge; reserve refuses
     with pytest.raises(SpendCapExceeded) as e:
         await ctx.ensure_can_spend(Decimal("0.10"))
     assert e.value.scope == "credits"
@@ -58,10 +58,10 @@ async def test_preflight_allows_with_credit(monkeypatch):
 
     monkeypatch.setattr(settings, "billing_enabled", True)
 
-    async def fake_balance(user_id):
-        return Decimal("10.00")
+    async def fake_reserve(*, user_id, amount_usd, job_id, description):
+        return Decimal("9.85")
 
-    monkeypatch.setattr(billing_repo, "balance", fake_balance)
+    monkeypatch.setattr(billing_repo, "reserve", fake_reserve)
     await _ctx().ensure_can_spend(Decimal("0.10"))  # no raise
 
 
@@ -71,11 +71,13 @@ async def test_billing_disabled_never_touches_repo(monkeypatch):
 
     monkeypatch.setattr(settings, "billing_enabled", False)
 
-    async def explode(user_id):
-        raise AssertionError("balance() must not be called when disabled")
+    async def explode(*args, **kwargs):
+        raise AssertionError("billing repo must not be called when disabled")
 
     monkeypatch.setattr(billing_repo, "balance", explode)
-    await _ctx().ensure_can_spend(Decimal("100"))  # no raise, no DB
+    monkeypatch.setattr(billing_repo, "reserve", explode)
+    monkeypatch.setattr(billing_repo, "debit", explode)
+    await _ctx().ensure_can_spend(Decimal(100))  # no raise, no DB
 
 
 async def test_log_debits_at_margin(monkeypatch):
@@ -95,7 +97,7 @@ async def test_log_debits_at_margin(monkeypatch):
 
     ctx = _ctx()
     await ctx.log(
-        provider="openai", sku="tts", units=Decimal("1"), cost_usd=Decimal("0.05")
+        provider="openai", sku="tts", units=Decimal(1), cost_usd=Decimal("0.05")
     )
     assert debits == [Decimal("0.10")]  # 0.05 * 2.0
 
@@ -127,7 +129,7 @@ async def test_log_trips_abort_when_credit_crosses_zero(monkeypatch):
     )
     with pytest.raises(SpendCapExceeded) as e:
         await ctx.log(
-            provider="grok", sku="imagine", units=Decimal("1"),
+            provider="grok", sku="imagine", units=Decimal(1),
             cost_usd=Decimal("0.25"),
         )
     assert e.value.scope == "credits"
@@ -191,12 +193,18 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
     from marketer.repos import billing as billing_repo
 
     monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_x")
 
     event = {
         "type": "checkout.session.completed",
+        "livemode": False,
         "data": {
             "object": {
                 "id": "cs_test_123",
+                "livemode": False,
+                "mode": "payment",
+                "currency": "usd",
+                "amount_total": 2000,
                 "payment_status": "paid",
                 "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
             }

@@ -79,6 +79,49 @@ async def test_credit_purchase_is_idempotent_on_session(pool):
     assert await billing.balance(uid) == Decimal("20.0000")
 
 
+async def test_reserve_refuses_when_balance_too_small(pool):
+    from marketer.repos import billing
+
+    uid = await _mkuser(pool, credit="1.00")
+    assert await billing.reserve(
+        user_id=uid, amount_usd=Decimal("2.00"), job_id=None, description="hold"
+    ) is None
+    assert await billing.balance(uid) == Decimal("1.0000")
+
+
+async def test_reserve_then_second_call_fails_closed(pool):
+    from marketer.repos import billing
+
+    uid = await _mkuser(pool, credit="5.00")
+    first = await billing.reserve(
+        user_id=uid, amount_usd=Decimal("3.00"), job_id=None, description="a"
+    )
+    assert first == Decimal("2.0000")
+    assert await billing.reserve(
+        user_id=uid, amount_usd=Decimal("3.00"), job_id=None, description="b"
+    ) is None
+    assert await billing.balance(uid) == Decimal("2.0000")
+
+
+async def test_reverse_purchase_is_idempotent(pool):
+    from marketer.repos import billing
+
+    uid = await _mkuser(pool)
+    session = f"cs_{uuid4().hex}"
+    await billing.credit_purchase(
+        user_id=uid, amount_usd=Decimal("20"), checkout_session_id=session
+    )
+    first = await billing.reverse_purchase(
+        checkout_session_id=session, description="refund"
+    )
+    assert first == Decimal("0.0000")
+    again = await billing.reverse_purchase(
+        checkout_session_id=session, description="refund"
+    )
+    assert again is None
+    assert await billing.balance(uid) == Decimal("0.0000")
+
+
 async def test_debit_mirrors_ledger_atomically(pool):
     from marketer.repos import billing
 

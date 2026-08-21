@@ -13,6 +13,7 @@ from marketer.repos import jobs as jobs_repo
 from marketer.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import require_spendable_credit
 
 router = APIRouter()
 
@@ -46,6 +47,7 @@ async def get_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
 async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     """Spawn a pipeline run on Modal. Returns the queued Job row;
     poll GET /{job_id} for status."""
+    await require_spendable_credit(ctx.user_id)
     import modal
 
     from marketer.repos import niches as niches_repo
@@ -160,6 +162,7 @@ async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
 async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     """Re-run a previously failed job from scratch. Only works on jobs in
     `failed` state owned by the caller."""
+    await require_spendable_credit(ctx.user_id)
     import modal
 
     job = await jobs_repo.reset_for_retry(job_id, user_id=ctx.user_id)

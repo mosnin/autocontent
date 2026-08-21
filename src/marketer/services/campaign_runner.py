@@ -122,6 +122,16 @@ async def run_campaign_tick(
             "reason": f"budget exhausted (${spent} >= ${campaign.budget_usd})",
         }
 
+    from ..billing.gates import has_spendable_credit
+
+    if not await has_spendable_credit(uid):
+        return {
+            "campaign_id": str(campaign.id),
+            "action": "skipped",
+            "reason": "prepaid credit exhausted",
+            "spawned": [],
+        }
+
     items = [i for i in await campaigns_repo.list_items(campaign.id, user_id=uid) if i.enabled]
     counts = await campaigns_repo.work_counts(campaign.id, user_id=uid)
 

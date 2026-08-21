@@ -304,8 +304,12 @@ async def nightly_batch() -> dict:
 
     spawned = 0
     skipped = 0
+    from marketer.billing.gates import has_spendable_credit
+
     for r in rows:
         user_id = r["id"]
+        if not await has_spendable_credit(user_id):
+            continue
         for niche in await niches_repo.list_for_user(user_id):
             # Scan a week of forward windows so we don't silently miss
             # a slot whose tz puts today's instance in the past (or

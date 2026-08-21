@@ -201,7 +201,7 @@ class CreditTransaction(BaseModel):
     id: UUID
     user_id: str
     amount_usd: Decimal
-    kind: str  # 'purchase' | 'debit' | 'grant'
+    kind: str  # 'purchase' | 'debit' | 'grant' | 'refund'
     reference: str | None = None
     description: str = ""
     created_at: datetime = Field(default_factory=datetime.utcnow)
