@@ -180,6 +180,9 @@ async def submit(
     params: dict[str, Any],
 ) -> str:
     """Enqueue a render; return MUAPI's request id."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     require_enabled()
     body = build_payload(
         prompt=prompt,

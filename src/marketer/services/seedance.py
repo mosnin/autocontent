@@ -635,6 +635,9 @@ async def _get(client: httpx.AsyncClient, path: str) -> dict:
 
 async def submit(req: SeedanceRequest) -> str:
     """Enqueue a validated render; return the gateway's request id."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     require_enabled()
     async with _client() as client:
         data = await _post(client, req.endpoint, req.body())

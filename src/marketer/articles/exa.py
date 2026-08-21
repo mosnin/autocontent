@@ -39,6 +39,9 @@ async def serp_pages(keyword: str, num_results: int = 8) -> list[dict]:
         log.info("exa not configured; skipping SERP research")
         return []
 
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     payload = {
         "query": keyword,
         "numResults": num_results,

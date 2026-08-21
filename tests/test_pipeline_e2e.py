@@ -435,8 +435,10 @@ async def test_notify_respects_email_optout(monkeypatch):
     from datetime import datetime, timezone
 
     import marketer.repos.users as _users_repo
+    from marketer.config import settings
     from marketer.services import email as email_svc
 
+    monkeypatch.setattr(settings, "resend_api_key", "re_test")
     sent: list[str] = []
 
     async def fake_send_email(*, to, subject, html):

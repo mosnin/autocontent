@@ -53,6 +53,9 @@ async def search(
     Raises `PixabayError` on 401 (bad key), 429 (rate-limit), or 5xx.
     Returns an empty list if the API returns zero hits.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     key = settings.pixabay_api_key
     if not key:
         raise PixabayError(0, "pixabay_api_key is not configured")
@@ -107,6 +110,9 @@ async def download(track_url: str, dest: Path) -> Path:
         log.info("pixabay.download.cache_hit", extra={"dest": str(dest)})
         return dest
 
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     dest.parent.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix(".tmp")
 

@@ -399,6 +399,9 @@ async def search(
     project pulled which vendor) and so an unexpected vendor bill would
     show up in the same place as every other one.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     key = api_key()
     if not key:
         raise PexelsError(0, "pexels_api_key is not configured")

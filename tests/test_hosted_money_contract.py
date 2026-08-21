@@ -276,6 +276,14 @@ def test_credit_purchase_sql_is_idempotent_on_session_id():
     ).read_text()
     assert "on conflict do nothing" in source.lower()
     assert "checkout_session_id" in source
+    assert "reverse_purchase" in source
+    assert "kind = 'refund'" in source
+    refund_idx = (
+        Path(__file__).resolve().parent.parent
+        / "db/migrations/0040_credit_refund_idempotency.sql"
+    ).read_text()
+    assert "credit_tx_refund_ref_idx" in refund_idx
+    assert "kind = 'refund'" in refund_idx
 
 
 def test_security_headers_and_leaks_recertify(monkeypatch):
@@ -362,6 +370,20 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Ads → Approvals" in ads
     assert "Activation needs approval" in ads
     assert "Campaign marked" in ads
+    campaigns = (
+        repo / "web/app/(app)/ads/campaigns/CampaignsClient.tsx"
+    ).read_text()
+    overview = (repo / "web/app/(app)/ads/AdsOverviewShell.tsx").read_text()
+    approvals = (
+        repo / "web/app/(app)/ads/approvals/ApprovalsClient.tsx"
+    ).read_text()
+    assert "Marked active" in campaigns
+    assert "Live on platform" in campaigns
+    assert "live on platform" in overview
+    assert "marked active" in overview
+    assert "Approved — spend guard is applying it" in approvals
+    billing = (repo / "src/marketer/repos/billing.py").read_text()
+    assert "async def reverse_purchase" in billing
     email = (repo / "src/marketer/services/email.py").read_text()
     assert "Your video is scheduled" in email
     assert "queued to publish" in email
@@ -482,6 +504,12 @@ _PAID_PIPELINE_FILES = (
     "src/marketer/services/seedance.py",
     "src/marketer/articles/llm.py",
     "src/marketer/adcreative/brief.py",
+    "src/marketer/services/muapi.py",
+    "src/marketer/services/context_dev.py",
+    "src/marketer/articles/exa.py",
+    "src/marketer/services/pixabay_music.py",
+    "src/marketer/motion/stock.py",
+    "src/marketer/adcreative/planner.py",
 )
 
 
@@ -598,3 +626,52 @@ def test_http_niche_draft_refuses_unbilled(monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 402
+
+
+async def test_muapi_submit_refuses_unbilled_before_provider(monkeypatch):
+    from marketer.config import settings
+    from marketer.services import muapi
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    def explode(*_a, **_k):
+        raise AssertionError("muapi.submit must not touch the gateway when unbilled")
+
+    monkeypatch.setattr(muapi, "require_enabled", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await muapi.submit(endpoint="x", prompt="p", image_urls=[], params={})
+
+
+async def test_plan_ad_run_refuses_unbilled_before_context_dev(monkeypatch):
+    from marketer.adcreative import planner
+    from marketer.config import settings
+    from marketer.services import context_dev
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    monkeypatch.setattr(settings, "ad_creative_enabled", True)
+    monkeypatch.setattr(settings, "context_dev_api_key", "ctx-test")
+
+    async def explode(*_a, **_k):
+        raise AssertionError("plan_ad_run must not call context.dev when unbilled")
+
+    monkeypatch.setattr(context_dev, "retrieve_brand", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await planner.plan_ad_run("stripe.com")
+
+
+async def test_exa_serp_refuses_unbilled_before_http(monkeypatch):
+    from marketer.articles import exa
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    monkeypatch.setattr(settings, "exa_api_key", "exa-test")
+
+    async def explode(*_a, **_k):
+        raise AssertionError("exa.serp_pages must not POST when unbilled")
+
+    monkeypatch.setattr(exa.httpx, "AsyncClient", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await exa.serp_pages("coffee")

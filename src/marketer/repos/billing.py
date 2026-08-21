@@ -97,17 +97,21 @@ async def reverse_purchase(
                 return None
             user_id = purchase["user_id"]
             amount = Decimal(str(purchase["amount_usd"]))
-            await conn.execute(
+            inserted = await conn.fetchrow(
                 """
                 insert into credit_transactions
                     (user_id, amount_usd, kind, reference, description)
                 values ($1, $2, 'refund', $3, $4)
+                on conflict (reference) where kind = 'refund' do nothing
+                returning id
                 """,
                 user_id,
                 -amount,
                 checkout_session_id,
                 description,
             )
+            if inserted is None:
+                return None
             new_balance = await conn.fetchval(
                 """
                 update users
