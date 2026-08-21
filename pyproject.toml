@@ -59,3 +59,10 @@ include = ["marketer*", "scripts*"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+# Historical ruff default. `ruff>=0.5` now resolves to 0.16, which
+# enables I/UP/FURB/… and fails this tree on ~600 pre-existing nits
+# before pytest can run. Keep the publish PR on the same surface the
+# last green run of this branch used (E4/E7/E9/F).
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
