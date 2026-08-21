@@ -1,33 +1,69 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-const isProtected = createRouteMatcher([
-  "/home(.*)",
-  "/onboarding(.*)",
-  "/dashboard(.*)",
-  "/queue(.*)",
-  "/calendar(.*)",
-  "/articles(.*)",
-  "/ads(.*)",
-  "/connect(.*)",
-  "/settings(.*)",
-  "/niches(.*)",
-  "/admin(.*)",
-]);
+// Every first-level segment under `app/(app)/`. This list is the auth
+// boundary for the whole product, and it is checked against the actual
+// directory listing by `tests/test_web_route_protection.py` — a new page
+// added under (app)/ without a matching entry here fails CI rather than
+// shipping unprotected. It has silently drifted before (library,
+// templates, and campaigns were all live and unauthenticated).
+const APP_SEGMENTS = [
+  "admin",
+  "ads",
+  "articles",
+  "calendar",
+  "campaigns",
+  "connect",
+  "dashboard",
+  "home",
+  "library",
+  "niches",
+  "onboarding",
+  "queue",
+  "settings",
+  "templates",
+] as const;
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtected(req)) await auth.protect();
-});
+const APP_GROUP = `/(${APP_SEGMENTS.join("|")})(.*)`;
+
+const isProtected = createRouteMatcher([APP_GROUP]);
+
+// Must be a real app path. When signInUrl is unset, Clerk's protect()
+// rewrites the request to Next's /_not-found (x-clerk-auth-reason:
+// protect-rewrite). That is the logged-out /dashboard 404 — the route
+// exists, the session does not, and the user never reaches /sign-in.
+const SIGN_IN_URL = "/sign-in";
+const SIGN_UP_URL = "/sign-up";
+
+export default clerkMiddleware(
+  async (auth, req) => {
+    if (isProtected(req)) {
+      await auth.protect({
+        unauthenticatedUrl: new URL(SIGN_IN_URL, req.url).toString(),
+      });
+    }
+  },
+  { signInUrl: SIGN_IN_URL, signUpUrl: SIGN_UP_URL },
+);
 
 export const config = {
   // Auth middleware runs ONLY where auth exists: the app, the auth pages,
   // and the JWT-attaching proxy. Marketing pages never touch Clerk — no
   // handshake redirects, no auth latency, no clerk-js in their bundles.
+  // That exemption is why this stays an allow-list rather than being
+  // inverted to "everything except marketing".
   matcher: [
-    "/(home|onboarding|dashboard|queue|calendar|articles|ads|connect|settings|niches|admin)(.*)",
+    // This MUST be a literal. Next statically analyses `config` at build
+    // time and refuses anything it cannot fold to a constant — building it
+    // from APP_SEGMENTS above fails the build with "Unknown identifier
+    // APP_GROUP". So it is duplicated here and kept honest by
+    // test_web_route_protection.py, which recomputes it from APP_SEGMENTS
+    // and diffs the two.
+    "/(admin|ads|articles|calendar|campaigns|connect|dashboard|home|library|niches|onboarding|queue|settings|templates)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
-    // Media manager: GET stays public, POST/DELETE check auth() in-route —
-    // clerkMiddleware just needs to run here so auth() is available.
+    // Media manager: GET stays public, POST/DELETE check requireAdmin()
+    // in-route — clerkMiddleware just needs to run here so auth() is
+    // available. A session alone is not enough; the API role must be admin.
     "/api/media",
   ],
 };
