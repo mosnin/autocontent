@@ -216,8 +216,16 @@ async def test_migration_0024_apply_rollback_reapply(pool):
     # Roll back one migration at a time until 0024 (idempotency_keys) is
     # undone. Robust to any later migrations (0025+) stacked on top of it,
     # rather than assuming 0024 is the current head.
+    # Head is 0039 today (15 migrations after 0024). Bound the loop by
+    # the number of forward files so this stays true as more land.
+    later = sum(
+        1
+        for path in (REPO_ROOT / "db" / "migrations").glob("*.sql")
+        if not path.name.endswith(".rollback.sql") and path.name[:4].isdigit()
+        and int(path.name[:4]) > 24
+    )
     rolled_back = 0
-    for _ in range(10):
+    for _ in range(later + 1):
         down = _run_migrate("down", "1")
         assert down.returncode == 0, down.stderr
         rolled_back += 1

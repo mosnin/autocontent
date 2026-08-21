@@ -149,7 +149,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", format_key="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
@@ -600,7 +600,7 @@ async def test_qa_regenerate_script_retries_once_then_succeeds(monkeypatch, stub
 
     async def counting_scriptwriter(idea, *, scene_count, target_duration_sec,
                                     audience_context="", brief=None,
-                                    script_model="", spend=None):
+                                    script_model="", format_key="", spend=None):
         script_calls["n"] += 1
         return _make_script()
 

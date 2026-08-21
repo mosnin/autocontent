@@ -157,7 +157,7 @@ def stub_env(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
     async def fake_scriptwriter(idea, *, scene_count, target_duration_sec,
-                                audience_context="", brief=None, script_model="", spend=None):
+                                audience_context="", brief=None, script_model="", format_key="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 

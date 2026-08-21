@@ -540,7 +540,7 @@ def stub_pipeline_fallback(monkeypatch, tmp_path: Path, passing_render_qa):
         return Idea(topic="t", angle="a", hook="h", target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", format_key="", spend=None):
         return _make_pipe_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
