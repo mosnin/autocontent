@@ -37,7 +37,7 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Feature
             title="Agent-run campaigns"
-            body="Agents draft, launch, and iterate on campaigns using your brand kit and existing content."
+            body="Agents draft and mark campaigns active using your brand kit and existing content. Live on platform requires an external campaign id."
           />
           <Feature
             title="Durable optimization"
@@ -112,7 +112,7 @@ function buildStats(ov: AdsOverview): SquareStat[] {
             ? `${ov.active_campaigns} live on platform`
             : markedActive > 0
               ? `${markedActive} marked active`
-              : "none active",
+              : "none marked active",
       },
     },
   ];

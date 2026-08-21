@@ -32,6 +32,44 @@ def _ctx() -> SpendContext:
     )
 
 
+async def test_credit_purchase_refuses_non_ledger_reference(monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    async def explode():
+        raise AssertionError("must not touch the pool for a non-ledger reference")
+
+    monkeypatch.setattr(billing_repo, "get_pool", explode)
+    assert (
+        await billing_repo.credit_purchase(
+            user_id="user_a",
+            amount_usd=Decimal("20.00"),
+            checkout_session_id="pi_not_checkout",
+        )
+        is None
+    )
+    assert (
+        await billing_repo.reverse_purchase(checkout_session_id="ch_not_checkout")
+        is None
+    )
+    assert await billing_repo.reverse_purchase(checkout_session_id="x402:") is None
+    assert await billing_repo.reverse_purchase(checkout_session_id="cs_") is None
+
+
+async def test_credit_purchase_allows_x402_settlement_reference(monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    async def explode():
+        raise RuntimeError("pool")
+
+    monkeypatch.setattr(billing_repo, "get_pool", explode)
+    with pytest.raises(RuntimeError, match="pool"):
+        await billing_repo.credit_purchase(
+            user_id="user_a",
+            amount_usd=Decimal("5.00"),
+            checkout_session_id="x402:0xtxhash",
+        )
+
+
 async def test_preflight_blocks_when_credit_short(monkeypatch):
     from marketer.config import settings
     from marketer.repos import billing as billing_repo
@@ -641,7 +679,7 @@ def test_webhook_full_refund_resolves_session_from_payment_intent(client, monkey
     monkeypatch.setattr(
         stripe_mod.checkout.Session,
         "list",
-        staticmethod(lambda **kw: {"data": [{"id": "cs_from_pi"}]}),
+        staticmethod(lambda **kw: {"data": [{"id": "cs_from_pi", "mode": "payment"}]}),
     )
     reversed_sessions: list[str] = []
 
@@ -736,6 +774,152 @@ def test_webhook_full_refund_ignores_non_checkout_list_id(client, monkeypatch):
 
     async def explode(**kwargs):
         raise AssertionError("must not reverse a non-cs_ session id")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_reads_payment_session_from_list(client, monkeypatch):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_list",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_list",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_list",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {"data": [{"id": "cs_from_list", "mode": "payment"}]}
+        ),
+    )
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("0.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_from_list"]
+
+
+def test_webhook_full_refund_listed_non_payment_mode_does_not_reverse(
+    client, monkeypatch
+):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_sub_list",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_sub_list",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_sub_list",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {"data": [{"id": "cs_subscription", "mode": "subscription"}]}
+        ),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a listed non-payment session")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_listed_session_missing_mode_does_not_reverse(
+    client, monkeypatch
+):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_nomode_list",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_nomode_list",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_nomode_list",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(lambda **kw: {"data": [{"id": "cs_nomode"}]}),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a listed session with no mode")
 
     monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
     resp = client.post(

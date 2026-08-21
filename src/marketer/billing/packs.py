@@ -128,7 +128,24 @@ def _session_is_payment_mode(session: dict[str, Any]) -> bool:
 def as_checkout_session_id(value: object) -> str | None:
     """Checkout session ids are ``cs_…``. Anything else must not reverse."""
     sid = str(value or "").strip()
-    return sid if sid.startswith("cs_") else None
+    if not sid.startswith("cs_") or len(sid) <= 3:
+        return None
+    return sid
+
+
+def ledger_purchase_reference(value: object) -> str | None:
+    """Ids that may credit or reverse prepaid balance.
+
+    Stripe Checkout is ``cs_…``. Agent x402 top-ups are ``x402:…``.
+    PaymentIntent / Charge ids must never become ledger references.
+    """
+    sid = as_checkout_session_id(value)
+    if sid:
+        return sid
+    raw = str(value or "").strip()
+    if raw.startswith("x402:") and len(raw) > 5:
+        return raw
+    return None
 
 
 def checkout_session_id_from_refund_source(obj: dict[str, Any]) -> str | None:

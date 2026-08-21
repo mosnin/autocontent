@@ -10,6 +10,7 @@ from __future__ import annotations
 from decimal import Decimal
 from uuid import UUID
 
+from ..billing.packs import ledger_purchase_reference
 from ..db import get_pool
 from ..models import CreditTransaction
 
@@ -31,6 +32,9 @@ async def credit_purchase(
 ) -> Decimal | None:
     """Apply a Stripe purchase. Returns the new balance, or None when this
     checkout session was already credited (webhook retry) — safe to 200."""
+    checkout_session_id = ledger_purchase_reference(checkout_session_id)
+    if not checkout_session_id:
+        return None
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -73,7 +77,8 @@ async def reverse_purchase(
     """Reverse a prior credit for this Stripe checkout session. Returns the
     new balance, or None when no purchase existed or this session was already
     reversed — safe to 200 on webhook retry."""
-    if not (checkout_session_id or "").strip():
+    checkout_session_id = ledger_purchase_reference(checkout_session_id)
+    if not checkout_session_id:
         return None
     pool = await get_pool()
     async with pool.acquire() as conn:

@@ -259,8 +259,9 @@ def _checkout_session_id_from_session_list(payment_intent: str) -> str | None:
             "id": getattr(first, "id", None),
             "mode": getattr(first, "mode", None),
         }
-    mode = first.get("mode")
-    if mode is not None and mode != "payment":
+    # Fail-closed: a listed session without mode=payment must not reverse
+    # a pack. Stripe always sends mode; missing mode is not a payment.
+    if first.get("mode") != "payment":
         return None
     return as_checkout_session_id(first.get("id"))
 

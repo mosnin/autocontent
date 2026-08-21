@@ -8,11 +8,13 @@ from fastapi.testclient import TestClient
 
 from marketer.billing.packs import (
     PACKS,
+    as_checkout_session_id,
     charge_currency_is_usd,
     charge_is_fully_refunded,
     checkout_session_id_from_refund_source,
     credit_usd_for_amount_cents,
     credit_usd_for_paid_session,
+    ledger_purchase_reference,
     stripe_livemode_matches_secret,
 )
 
@@ -138,6 +140,13 @@ def test_refund_source_resolves_stamped_session_only():
     assert charge_is_fully_refunded(
         {"refunded": False, "amount": 2000, "amount_refunded": 2000}
     ) is True
+    assert ledger_purchase_reference("cs_abc") == "cs_abc"
+    assert ledger_purchase_reference("x402:0xtxhash") == "x402:0xtxhash"
+    assert ledger_purchase_reference("x402:") is None
+    assert ledger_purchase_reference("cs_") is None
+    assert as_checkout_session_id("cs_") is None
+    assert ledger_purchase_reference("pi_not_checkout") is None
+    assert ledger_purchase_reference("ch_charge") is None
     assert charge_currency_is_usd({"currency": "usd"}) is True
     assert charge_currency_is_usd({"currency": "USD"}) is True
     assert charge_currency_is_usd({"currency": "jpy"}) is False

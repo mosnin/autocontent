@@ -384,14 +384,20 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "external campaign id" in campaigns
     assert "live on platform" in overview
     assert "marked active" in overview
+    assert "none marked active" in overview
+    assert "none active" not in overview
     assert "Connected accounts" in overview
     assert "Active accounts" not in overview
+    assert "draft, launch" not in overview
+    assert "external campaign id" in overview
     assert "Approved — spend guard is applying it" in approvals
     billing = (repo / "src/marketer/repos/billing.py").read_text()
     assert "async def reverse_purchase" in billing
+    assert "ledger_purchase_reference" in billing
     webhook = (repo / "backend/routes/billing.py").read_text()
     assert "_checkout_session_id_for_refunded_charge" in webhook
     assert "Session.list" in webhook
+    assert 'first.get("mode") != "payment"' in webhook
     assert "PaymentIntent.modify" in webhook
     assert "PaymentIntent.retrieve" in webhook
     assert "charge_currency_is_usd" in webhook
