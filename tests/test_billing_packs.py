@@ -149,6 +149,9 @@ def test_refund_source_resolves_stamped_session_only():
         {"refunded": False, "amount": 2000, "amount_refunded": 500}
     ) is False
     assert charge_is_fully_refunded(
+        {"refunded": True, "amount": 2000, "amount_refunded": 500}
+    ) is False
+    assert charge_is_fully_refunded(
         {"refunded": False, "amount": 2000, "amount_refunded": 2000}
     ) is True
     assert checkout_session_id_for_livemode("cs_test_123", False) == "cs_test_123"

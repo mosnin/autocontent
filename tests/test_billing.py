@@ -1939,6 +1939,41 @@ def test_webhook_partial_charge_refund_does_not_reverse(client, monkeypatch):
     assert resp.status_code == 200
 
 
+def test_webhook_refunded_flag_with_partial_amount_does_not_reverse(
+    client, monkeypatch
+):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_partial_flag",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_partial_flag",
+                "livemode": False,
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 500,
+                "currency": "usd",
+                "metadata": {"checkout_session_id": "cs_partial_flag"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a partial refund flagged refunded")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
 async def test_email_noop_without_key(monkeypatch):
     from marketer.config import settings
     from marketer.services import email as email_svc

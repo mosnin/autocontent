@@ -199,16 +199,19 @@ def checkout_session_id_from_refund_source(obj: dict[str, Any]) -> str | None:
 
 
 def charge_is_fully_refunded(charge: dict[str, Any]) -> bool:
-    """Partial refunds must not claw back a whole pack."""
-    if charge.get("refunded") is True:
-        return True
+    """Partial refunds must not claw back a whole pack.
+
+    When Stripe sends both amounts, they are authoritative — ``refunded:
+    true`` with ``amount_refunded < amount`` must not reverse a pack.
+    ``refunded: true`` alone still counts as full when amounts are missing.
+    """
     amount = charge.get("amount")
     refunded = charge.get("amount_refunded")
     try:
         total = int(amount)  # type: ignore[arg-type]
         taken = int(refunded)  # type: ignore[arg-type]
     except (TypeError, ValueError):
-        return False
+        return charge.get("refunded") is True
     return total > 0 and taken >= total
 
 
