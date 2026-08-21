@@ -4,7 +4,7 @@ import os
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -13,6 +13,8 @@ from marketer.repos import jobs as jobs_repo
 from marketer.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
+from ..rate_limit import limiter
 
 router = APIRouter()
 
@@ -43,9 +45,13 @@ async def get_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
 
 
 @router.post("", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
-async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit("20/minute")
+async def enqueue_job(
+    request: Request, body: JobEnqueue, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Spawn a pipeline run on Modal. Returns the queued Job row;
     poll GET /{job_id} for status."""
+    refuse_unbilled_generate()
     import modal
 
     from marketer.repos import niches as niches_repo
@@ -157,9 +163,13 @@ async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
 
 
 @router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
-async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit("20/minute")
+async def retry_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Re-run a previously failed job from scratch. Only works on jobs in
     `failed` state owned by the caller."""
+    refuse_unbilled_generate()
     import modal
 
     job = await jobs_repo.reset_for_retry(job_id, user_id=ctx.user_id)

@@ -26,6 +26,7 @@ export interface AdAccount {
 }
 
 export interface AdsOverview {
+  enabled?: boolean;
   accounts: number;
   active_accounts: number;
   campaigns: number;

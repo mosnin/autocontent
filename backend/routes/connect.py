@@ -12,9 +12,10 @@ GET /api/v1/connect/ayrshare/status
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
+from marketer.config import settings
 from marketer.repos import users as users_repo
 from marketer.services import ayrshare_profiles
 
@@ -31,12 +32,22 @@ class ConnectResponse(BaseModel):
 
 class ConnectStatusResponse(BaseModel):
     connected: bool
+    configured: bool
     profile_key: str | None
+
+
+def _ayrshare_configured() -> bool:
+    return bool(settings.ayrshare_api_key)
 
 
 @router.post("/ayrshare", response_model=ConnectResponse)
 @limiter.limit("5/minute")
 async def connect_ayrshare(request: Request, ctx: AuthCtx = CurrentUser) -> ConnectResponse:
+    if not _ayrshare_configured():
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="social publishing is not configured on this deployment",
+        )
     user = await users_repo.get(ctx.user_id)
     profile_key = user.ayrshare_profile_key if user else None
 
@@ -51,6 +62,13 @@ async def connect_ayrshare(request: Request, ctx: AuthCtx = CurrentUser) -> Conn
 
 @router.get("/ayrshare/status", response_model=ConnectStatusResponse)
 async def connect_ayrshare_status(ctx: AuthCtx = CurrentUser) -> ConnectStatusResponse:
+    configured = _ayrshare_configured()
     user = await users_repo.get(ctx.user_id)
     key = user.ayrshare_profile_key if user else None
-    return ConnectStatusResponse(connected=bool(key), profile_key=key)
+    # A profile_key without a live API key is not "connected" — publish
+    # would raise. Never tell the UI socials are online when they are not.
+    return ConnectStatusResponse(
+        connected=configured and bool(key),
+        configured=configured,
+        profile_key=key if configured else None,
+    )

@@ -10,7 +10,7 @@ from uuid import UUID
 
 import os
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -18,6 +18,8 @@ from marketer.articles.models import Article, ArticleStatus
 from marketer.repos import articles as articles_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
+from ..rate_limit import limiter
 
 router = APIRouter()
 
@@ -67,9 +69,13 @@ async def get_article_markdown(
 
 
 @router.post("", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
-async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit("20/minute")
+async def enqueue_article(
+    request: Request, body: ArticleEnqueue, ctx: AuthCtx = CurrentUser
+) -> Article:
     """Create the article row and spawn the Modal pipeline against it.
     Poll GET /{article_id} for status."""
+    refuse_unbilled_generate()
     import modal
 
     from marketer.repos import niches as niches_repo
@@ -146,8 +152,12 @@ async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> File
 
 
 @router.post("/{article_id}/retry", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
-async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit("20/minute")
+async def retry_article(
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Article:
     """Re-run a failed article from scratch (same row, same topic)."""
+    refuse_unbilled_generate()
     import modal
 
     article = await articles_repo.claim_for_retry(article_id, user_id=ctx.user_id)

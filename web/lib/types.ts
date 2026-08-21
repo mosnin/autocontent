@@ -98,6 +98,7 @@ export interface SpendHistory {
 
 export interface AyrshareConnectStatus {
   connected: boolean;
+  configured: boolean;
   profile_key: string | null;
 }
 

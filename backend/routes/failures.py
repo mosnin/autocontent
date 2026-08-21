@@ -37,6 +37,7 @@ from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import jobs as jobs_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -141,6 +142,7 @@ async def replay_failure(
     logic is introduced here — this is the existing per-surface retry,
     just reachable from the consolidated inbox.
     """
+    refuse_unbilled_generate()
     import modal
 
     if kind == "job":

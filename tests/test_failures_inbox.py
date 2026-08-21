@@ -391,3 +391,23 @@ def test_replay_article_delegates_to_atomic_claim(monkeypatch):
     resp = client.post(f"/api/v1/failures/replay/article/{_ARTICLE_ID}")
     assert resp.status_code == 202
     assert claims and claims[0][0] == _ARTICLE_ID
+
+
+def test_replay_refuses_when_unbilled_usage_disabled(monkeypatch):
+    """Replay must not spawn a pipeline when unbilled usage is refused."""
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    called = []
+
+    async def _reset(job_id: UUID, *, user_id: str):
+        called.append(job_id)
+        return None
+
+    monkeypatch.setattr(jobs_repo, "reset_for_retry", _reset)
+    client = _make_app(monkeypatch)
+    resp = client.post(f"/api/v1/failures/replay/job/{_JOB_ID}")
+    assert resp.status_code == 402
+    assert called == []

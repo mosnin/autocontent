@@ -15,6 +15,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
+from marketer.config import settings
 from marketer.repos import ad_actions, ad_approvals
 from marketer.repos import ads as ads_repo
 from marketer.services import ad_connections
@@ -342,6 +343,7 @@ async def overview(ctx: AuthCtx = CurrentUser) -> dict:
     pending = await ad_approvals.list_(user_id=ctx.user_id, status="pending")
     active = [c for c in campaigns if c.status == "active"]
     return {
+        "enabled": bool(settings.ads_enabled),
         "accounts": len(accounts),
         "active_accounts": len([a for a in accounts if a.status == "active"]),
         "campaigns": len(campaigns),

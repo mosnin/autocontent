@@ -12,6 +12,7 @@ import type { AdsOverview } from "@/lib/ads-client";
 
 export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
   const hasAccounts = (ov?.accounts ?? 0) > 0;
+  const adsOff = ov?.enabled === false;
 
   return (
     <div className="space-y-10">
@@ -23,7 +24,9 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
       </DashHeading>
 
       <DashPanel delay={0.12} title="Today">
-        {hasAccounts && ov ? (
+        {adsOff ? (
+          <NotConfiguredCallout />
+        ) : hasAccounts && ov ? (
           <SquareStatsCards stats={buildStats(ov)} />
         ) : (
           <ConnectCallout />
@@ -105,6 +108,21 @@ function buildStats(ov: AdsOverview): SquareStat[] {
       delta: { text: `${ov.active_campaigns} active` },
     },
   ];
+}
+
+function NotConfiguredCallout() {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+        <h2 className="text-lg font-semibold">Ads are not configured</h2>
+        <p className="max-w-md text-sm text-muted-foreground">
+          This deployment has no ad-platform credentials. Nothing is live,
+          and connecting an account will stay dark until the operator
+          enables ads.
+        </p>
+      </CardContent>
+    </Card>
+  );
 }
 
 function ConnectCallout() {
