@@ -85,6 +85,16 @@ async def _job_attempt_at(job_id: str):
     return row["updated_at"] if row else None
 
 
+def _unbilled_skip() -> dict | None:
+    """HTTP 402 is the edge. Workers must still refuse if invoked via
+    ``modal run``, a leftover queue row, or a cron that missed the gate."""
+    from marketer.billing.gates import unbilled_generate_blocked
+
+    if unbilled_generate_blocked():
+        return {"status": "skipped_unbilled"}
+    return None
+
+
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
@@ -93,6 +103,9 @@ async def _job_attempt_at(job_id: str):
 async def run_pipeline(
     user_id: str, niche_id: str, platform: str, job_id: str | None = None
 ) -> dict:
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.pipeline import run_job
     from marketer.services import idempotency
@@ -159,6 +172,9 @@ async def finish_scheduling(user_id: str, job_id: str) -> dict:
 async def render_composition(user_id: str, composition_id: str) -> dict:
     """Render a library composition (remix of existing clips) to a new
     video. Spawned by `POST /api/v1/library/compositions`."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.services.compose import render_composition as _render
 
@@ -173,6 +189,9 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
 )
 async def run_image_post(user_id: str, image_post_id: str) -> dict:
     """Drive one image post (still or carousel) to a terminal state."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.services.image_posts import run_image_post as _run
 
@@ -202,6 +221,9 @@ async def run_template_remix(
     user_id: str, template_id: str, product_path: str, count: int, note: str
 ) -> dict:
     """Generate template-aesthetic remixes with the user's product."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.services.template_remix import run_remix
 
@@ -223,6 +245,9 @@ async def prewarm_voice_previews() -> dict:
 
         modal run modal_app.py::prewarm_voice_previews
     """
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from backend.routes.voices import ALLOWED_VOICES, PREVIEW_LINE, preview_path
     from marketer.services import openai_tts
 
@@ -442,6 +467,9 @@ async def run_article_pipeline(
     """One article, end-to-end: research → outline → write → QA →
     metadata/JSON-LD → hero image. The written-content half of the
     platform; spend is metered into the same ledger/caps as video."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.articles.pipeline import run_article
     from marketer.services.otel import force_flush
@@ -467,6 +495,9 @@ async def run_ad_creative_run(user_id: str, run_id: str) -> dict:
     """One Ad Run: brand research → planning → every slot rendered.
     Slot fan-out is bounded inside execute_run; a failed slot fails
     alone and is individually retryable."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.adcreative.renderer import execute_run
 
@@ -481,6 +512,9 @@ async def run_ad_creative_run(user_id: str, run_id: str) -> dict:
 )
 async def retry_ad_creative_slot(user_id: str, run_id: str, slot_id: str) -> dict:
     """Re-render one failed Ad Slot without re-planning the run."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.adcreative.renderer import retry_slot
 
@@ -500,6 +534,9 @@ async def run_headshot_batch(user_id: str, batch_id: str) -> dict:
     source photos, settle done/partial/failed. Variant fan-out is bounded
     inside the pipeline; a failed variant fails alone and the batch is
     retryable from the gaps."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.headshots.pipeline import run_headshot_batch as _run
 
@@ -516,6 +553,9 @@ async def run_drama_pipeline(user_id: str, drama_id: str) -> dict:
     """One micro-drama end-to-end: screenplay → locked cast → per-shot
     keyframes/clips → stitch. Resumable: a retry keeps the already-paid
     screenplay, character references, and completed shots."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.drama.pipeline import run_drama
 
@@ -532,6 +572,9 @@ async def run_motion_project(user_id: str, project_id: str) -> dict:
     """One motion project end-to-end: narration -> beats -> b-roll +
     kinetic type -> composited mp4. Resumable: keyframes already on the
     volume are reused instead of re-bought."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.motion.pipeline import run_motion_project as _run
 
@@ -579,6 +622,9 @@ async def run_trend_research(user_id: str, report_id: str) -> dict:
     """One trend-research run for a niche: up to three Exa searches plus
     one metered LLM call, stored on the report row. Degrades to model
     knowledge (grounded=false) when Exa is unconfigured."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.research.trends import run_trend_research as _run
 
@@ -628,6 +674,9 @@ async def run_design_project(
 ) -> dict:
     """Drive one design project: plan (one metered call) then execute the
     validated step graph. `from_step_id` re-runs a step + downstream."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.design.executor import run_design_project as _run
 

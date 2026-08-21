@@ -57,6 +57,17 @@ def test_non_usd_amount_total_credits_nothing():
     assert credit_usd_for_paid_session(
         {"amount_total": 2000, "metadata": {"credit_usd": "20.00"}}
     ) is None
+    # Metadata alone, even with a USD stamp, is not an authority.
+    assert credit_usd_for_paid_session(
+        {"currency": "usd", "metadata": {"user_id": "user_a", "credit_usd": "20.00"}}
+    ) is None
+    assert credit_usd_for_paid_session(
+        {
+            "amount_total": "2000",
+            "currency": "USD",
+            "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+        }
+    ) == Decimal("20.00")
 
 
 async def test_spend_refused_when_billing_off_and_unbilled_false(monkeypatch):
@@ -317,3 +328,59 @@ def test_cron_generate_paths_refuse_unbilled_before_spawn():
     assert "unbilled_generate_blocked" in runner
     assert modal.count("unbilled_generate_blocked") >= 2
     assert "skipped_unbilled" in modal
+
+
+_MODAL_GENERATE_WORKERS = (
+    "run_pipeline",
+    "run_article_pipeline",
+    "run_drama_pipeline",
+    "run_motion_project",
+    "run_image_post",
+    "run_ad_creative_run",
+    "retry_ad_creative_slot",
+    "run_design_project",
+    "run_headshot_batch",
+    "run_trend_research",
+    "render_composition",
+    "run_template_remix",
+    "prewarm_voice_previews",
+)
+
+
+def test_modal_generate_workers_skip_unbilled_before_provider():
+    """HTTP 402 is not enough — leftover Modal invokes must skip too."""
+    import re
+    from pathlib import Path
+
+    source = (
+        Path(__file__).resolve().parent.parent / "modal_app.py"
+    ).read_text()
+    missing: list[str] = []
+    for name in _MODAL_GENERATE_WORKERS:
+        match = re.search(
+            rf"async def {name}\(.*?\n(?:.*\n){{0,16}}", source
+        )
+        if match is None or "_unbilled_skip" not in match.group(0):
+            missing.append(name)
+    assert not missing, f"generate workers missing unbilled skip: {missing}"
+
+
+async def test_run_job_refuses_unbilled_before_niche_lookup(monkeypatch):
+    from marketer.config import settings
+    from marketer.pipeline import run_job
+    from marketer.repos import niches as niches_repo
+    from marketer.repos.spend import SpendCapExceeded
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*_a, **_k):
+        raise AssertionError("run_job must not look up a niche after HTTP 402")
+
+    monkeypatch.setattr(niches_repo, "get", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await run_job(
+            user_id="user_a",
+            niche_id=uuid4(),
+            platform="tiktok",
+        )

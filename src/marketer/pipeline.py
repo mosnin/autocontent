@@ -337,6 +337,9 @@ async def _obtain_job(
 async def run_job(
     *, user_id: str, niche_id: UUID, platform: str, job_id: UUID | None = None
 ) -> Job:
+    from .billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     niche = await niches_repo.get(niche_id, user_id=user_id)
     if niche is None:
         raise ValueError(f"niche {niche_id} not found for user {user_id}")

@@ -175,6 +175,9 @@ async def run_article(
     article_id: UUID | None = None,
     topic: str = "",
 ) -> Article:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     niche = await niches_repo.get(niche_id, user_id=user_id)
     if niche is None:
         raise ValueError(f"niche {niche_id} not found for user {user_id}")
