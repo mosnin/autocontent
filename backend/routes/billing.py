@@ -245,7 +245,7 @@ def _checkout_session_id_from_retrieved_payment_intent(
     stamped = meta.get("checkout_session_id") if isinstance(meta, dict) else getattr(
         meta, "checkout_session_id", None
     )
-    return as_checkout_session_id(stamped)
+    return checkout_session_id_for_livemode(stamped, livemode)
 
 
 def _checkout_session_id_from_session_list(
@@ -285,7 +285,7 @@ def _checkout_session_id_from_session_list(
     # Stripe always sends livemode. Missing must not reverse a pack.
     if not object_livemode_matches(first, livemode):
         return None
-    return as_checkout_session_id(first.get("id"))
+    return checkout_session_id_for_livemode(first.get("id"), livemode)
 
 
 def _checkout_session_id_for_refunded_charge(
@@ -301,7 +301,7 @@ def _checkout_session_id_for_refunded_charge(
     if isinstance(pi, dict) and object_livemode_matches(pi, livemode):
         from_pi = checkout_session_id_from_refund_source(pi)
         if from_pi:
-            return from_pi
+            return checkout_session_id_for_livemode(from_pi, livemode)
     payment_intent = _payment_intent_id(charge)
     if not payment_intent or not settings.stripe_secret_key:
         return None

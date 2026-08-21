@@ -207,6 +207,13 @@ def charge_is_fully_refunded(charge: dict[str, Any]) -> bool:
     """
     amount = charge.get("amount")
     refunded = charge.get("amount_refunded")
+    # bool is a subclass of int — True/True must not count as a $0.01 pack.
+    if isinstance(amount, bool) or isinstance(refunded, bool):
+        return False
+    if isinstance(amount, float) and not amount.is_integer():
+        return False
+    if isinstance(refunded, float) and not refunded.is_integer():
+        return False
     try:
         total = int(amount)  # type: ignore[arg-type]
         taken = int(refunded)  # type: ignore[arg-type]
