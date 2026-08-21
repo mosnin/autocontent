@@ -203,10 +203,14 @@ def charge_is_fully_refunded(charge: dict[str, Any]) -> bool:
 
     When Stripe sends both amounts, they are authoritative — ``refunded:
     true`` with ``amount_refunded < amount`` must not reverse a pack.
-    ``refunded: true`` alone still counts as full when amounts are missing.
+    ``refunded: true`` alone still counts as full when both amounts are
+    missing. A present-but-unparseable amount must not fall back to the
+    flag.
     """
     amount = charge.get("amount")
     refunded = charge.get("amount_refunded")
+    if amount is None and refunded is None:
+        return charge.get("refunded") is True
     # bool is a subclass of int — True/True must not count as a $0.01 pack.
     if isinstance(amount, bool) or isinstance(refunded, bool):
         return False
@@ -218,7 +222,9 @@ def charge_is_fully_refunded(charge: dict[str, Any]) -> bool:
         total = int(amount)  # type: ignore[arg-type]
         taken = int(refunded)  # type: ignore[arg-type]
     except (TypeError, ValueError):
-        return charge.get("refunded") is True
+        # Present-but-unparseable amounts (e.g. "2000.5") must not
+        # fall back to the refunded flag.
+        return False
     return total > 0 and taken >= total
 
 

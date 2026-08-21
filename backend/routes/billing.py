@@ -296,7 +296,7 @@ def _checkout_session_id_for_refunded_charge(
     metadata), then the retrieved PI, then Stripe's session list."""
     stamped = checkout_session_id_from_refund_source(charge)
     if stamped:
-        return stamped
+        return checkout_session_id_for_livemode(stamped, livemode)
     pi = charge.get("payment_intent")
     if isinstance(pi, dict) and object_livemode_matches(pi, livemode):
         from_pi = checkout_session_id_from_refund_source(pi)

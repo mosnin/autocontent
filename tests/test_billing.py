@@ -1363,6 +1363,65 @@ def test_webhook_full_refund_listed_livemode_contradicts_event_does_not_reverse(
     assert resp.status_code == 200
 
 
+def test_webhook_full_refund_listed_live_id_on_test_event_does_not_reverse(
+    client, monkeypatch
+):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_list_live_id",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_list_live_id",
+                "livemode": False,
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_list_live_id",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"livemode": False, "metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {
+                "data": [
+                    {
+                        "id": "cs_live_from_list",
+                        "mode": "payment",
+                        "currency": "usd",
+                        "livemode": False,
+                    }
+                ]
+            }
+        ),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a listed live session id on a test event")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
 def test_webhook_full_refund_charge_livemode_contradicts_event_does_not_reverse(
     client, monkeypatch
 ):
@@ -2050,6 +2109,39 @@ def test_webhook_refunded_bool_amounts_do_not_reverse(client, monkeypatch):
 
     async def explode(**kwargs):
         raise AssertionError("must not reverse a refund whose amounts are bools")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_refunded_unparseable_amounts_do_not_reverse(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_bad_amt",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_bad_amt",
+                "livemode": False,
+                "refunded": True,
+                "amount": "2000.5",
+                "amount_refunded": "2000.5",
+                "currency": "usd",
+                "metadata": {"checkout_session_id": "cs_bad_amt"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a refund whose amounts do not parse")
 
     monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
     resp = client.post(
