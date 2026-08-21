@@ -86,7 +86,7 @@ function buildStats(ov: AdsOverview): SquareStat[] {
     },
     {
       key: "active_accounts",
-      label: "Active accounts",
+      label: "Connected accounts",
       icon: Users,
       value: String(ov.active_accounts),
       delta: { text: `${ov.accounts} total` },

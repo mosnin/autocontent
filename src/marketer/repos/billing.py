@@ -73,6 +73,8 @@ async def reverse_purchase(
     """Reverse a prior credit for this Stripe checkout session. Returns the
     new balance, or None when no purchase existed or this session was already
     reversed — safe to 200 on webhook retry."""
+    if not (checkout_session_id or "").strip():
+        return None
     pool = await get_pool()
     async with pool.acquire() as conn:
         async with conn.transaction():

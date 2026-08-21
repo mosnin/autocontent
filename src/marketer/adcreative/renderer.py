@@ -235,6 +235,9 @@ async def _generate_fal(request: RenderRequest, *, spend: SpendContext | None) -
     Priced from the pinned table rather than a response field: fal does
     not return a charge, and an unpriced render is an unmetered one.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not settings.fal_api_key:
         raise RenderFailure(
             f"image model {request.model.id} needs MARKETER_FAL_API_KEY", retryable=False

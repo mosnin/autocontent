@@ -8,6 +8,8 @@ from fastapi.testclient import TestClient
 
 from marketer.billing.packs import (
     PACKS,
+    charge_is_fully_refunded,
+    checkout_session_id_from_refund_source,
     credit_usd_for_amount_cents,
     credit_usd_for_paid_session,
     stripe_livemode_matches_secret,
@@ -103,6 +105,26 @@ def test_livemode_must_match_secret_prefix():
 def test_missing_amount_total_is_refused():
     session = {"metadata": {"user_id": "user_a", "credit_usd": "20.00"}}
     assert credit_usd_for_paid_session(session) is None
+
+
+def test_refund_source_resolves_stamped_session_only():
+    assert (
+        checkout_session_id_from_refund_source(
+            {"metadata": {"checkout_session_id": "cs_abc"}}
+        )
+        == "cs_abc"
+    )
+    assert checkout_session_id_from_refund_source({"metadata": {}}) is None
+    assert checkout_session_id_from_refund_source(
+        {"object": "checkout.session", "id": "cs_from_session"}
+    ) == "cs_from_session"
+    assert charge_is_fully_refunded({"refunded": True, "amount": 2000}) is True
+    assert charge_is_fully_refunded(
+        {"refunded": False, "amount": 2000, "amount_refunded": 500}
+    ) is False
+    assert charge_is_fully_refunded(
+        {"refunded": False, "amount": 2000, "amount_refunded": 2000}
+    ) is True
 
 
 def test_marketing_and_billing_ui_pack_amounts_match_backend():

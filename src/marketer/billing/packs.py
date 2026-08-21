@@ -115,6 +115,37 @@ def _session_is_payment_mode(session: dict[str, Any]) -> bool:
     return session.get("mode") == "payment"
 
 
+def checkout_session_id_from_refund_source(obj: dict[str, Any]) -> str | None:
+    """Resolve the Checkout session id we credited, from a refund event object.
+
+    Prefers an explicit metadata stamp so tests and operators can pin the
+    session without a Stripe list call. Empty / missing ids reverse nothing.
+    """
+    meta = obj.get("metadata") or {}
+    stamped = meta.get("checkout_session_id")
+    if stamped:
+        sid = str(stamped).strip()
+        return sid or None
+    if obj.get("object") == "checkout.session" and obj.get("id"):
+        sid = str(obj["id"]).strip()
+        return sid or None
+    return None
+
+
+def charge_is_fully_refunded(charge: dict[str, Any]) -> bool:
+    """Partial refunds must not claw back a whole pack."""
+    if charge.get("refunded") is True:
+        return True
+    amount = charge.get("amount")
+    refunded = charge.get("amount_refunded")
+    try:
+        total = int(amount)  # type: ignore[arg-type]
+        taken = int(refunded)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return False
+    return total > 0 and taken >= total
+
+
 def credit_usd_for_paid_session(session: dict[str, Any]) -> Decimal | None:
     """Fail-closed credit for a paid Stripe Checkout session.
 

@@ -16,6 +16,8 @@ from pydantic import BaseModel
 
 from marketer.billing.packs import (
     PACKS,
+    charge_is_fully_refunded,
+    checkout_session_id_from_refund_source,
     credit_usd_for_paid_session,
     list_packs,
     stripe_livemode_matches_secret,
@@ -142,6 +144,13 @@ async def create_checkout(
             "credit_usd": str(pack["credit_usd"]),
             "pack": pack["key"],
         },
+        payment_intent_data={
+            "metadata": {
+                "user_id": ctx.user_id,
+                "credit_usd": str(pack["credit_usd"]),
+                "pack": pack["key"],
+            }
+        },
         success_url=f"{base}/settings/billing?purchase=success",
         cancel_url=f"{base}/settings/billing?purchase=cancelled",
     )
@@ -242,6 +251,37 @@ async def stripe_webhook(request: Request) -> dict:
                 "async payment failed for checkout session %s (user_id=%s)",
                 session_id,
                 user_id,
+            )
+    elif event["type"] == "charge.refunded":
+        charge = event["data"]["object"]
+        if not charge_is_fully_refunded(charge):
+            logger.warning(
+                "partial charge refund %s not reversed (amount=%s refunded=%s); "
+                "reconcile manually",
+                charge.get("id"),
+                charge.get("amount"),
+                charge.get("amount_refunded"),
+            )
+            return {"ok": True}
+        session_id = checkout_session_id_from_refund_source(charge)
+        if not session_id:
+            logger.error(
+                "fully refunded charge %s has no checkout_session_id; "
+                "reconcile manually",
+                charge.get("id"),
+            )
+            return {"ok": True}
+        reversed_balance = await billing_repo.reverse_purchase(
+            checkout_session_id=session_id,
+            description="stripe charge refunded — purchase reversed",
+        )
+        if reversed_balance is not None:
+            logger.warning(
+                "reversed credit for refunded charge "
+                "(charge_id=%s session_id=%s new_balance=%s)",
+                charge.get("id"),
+                session_id,
+                reversed_balance,
             )
 
     return {"ok": True}

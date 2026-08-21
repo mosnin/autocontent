@@ -381,6 +381,8 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Live on platform" in campaigns
     assert "live on platform" in overview
     assert "marked active" in overview
+    assert "Connected accounts" in overview
+    assert "Active accounts" not in overview
     assert "Approved — spend guard is applying it" in approvals
     billing = (repo / "src/marketer/repos/billing.py").read_text()
     assert "async def reverse_purchase" in billing
