@@ -118,7 +118,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               onClick={() => onStatus("active")}
               disabled={busy !== null}
             >
-              {busy === "active" ? "…" : "Activate"}
+              {busy === "active" ? "…" : "Mark active"}
             </Button>
           )}
           {campaign.status === "active" && (

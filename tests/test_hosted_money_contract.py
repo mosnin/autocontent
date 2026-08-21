@@ -370,6 +370,7 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Ads → Approvals" in ads
     assert "Activation needs approval" in ads
     assert "Campaign marked" in ads
+    assert "Mark active" in ads
     campaigns = (
         repo / "web/app/(app)/ads/campaigns/CampaignsClient.tsx"
     ).read_text()
@@ -386,6 +387,16 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Approved — spend guard is applying it" in approvals
     billing = (repo / "src/marketer/repos/billing.py").read_text()
     assert "async def reverse_purchase" in billing
+    webhook = (repo / "backend/routes/billing.py").read_text()
+    assert "_checkout_session_id_for_refunded_charge" in webhook
+    assert "Session.list" in webhook
+    assert "PaymentIntent.modify" in webhook
+    assert "checkout_session_id" in webhook
+    detail = (
+        repo / "web/app/(app)/ads/campaigns/[id]/CampaignDetailClient.tsx"
+    ).read_text()
+    assert "Mark active" in detail
+    assert ">Activate<" not in detail
     email = (repo / "src/marketer/services/email.py").read_text()
     assert "Your video is scheduled" in email
     assert "queued to publish" in email

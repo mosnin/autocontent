@@ -118,6 +118,18 @@ def test_refund_source_resolves_stamped_session_only():
     assert checkout_session_id_from_refund_source(
         {"object": "checkout.session", "id": "cs_from_session"}
     ) == "cs_from_session"
+    assert (
+        checkout_session_id_from_refund_source(
+            {"metadata": {"checkout_session_id": "not_a_session"}}
+        )
+        is None
+    )
+    assert (
+        checkout_session_id_from_refund_source(
+            {"object": "checkout.session", "id": "ch_not_checkout"}
+        )
+        is None
+    )
     assert charge_is_fully_refunded({"refunded": True, "amount": 2000}) is True
     assert charge_is_fully_refunded(
         {"refunded": False, "amount": 2000, "amount_refunded": 500}

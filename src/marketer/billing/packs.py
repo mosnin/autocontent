@@ -115,20 +115,25 @@ def _session_is_payment_mode(session: dict[str, Any]) -> bool:
     return session.get("mode") == "payment"
 
 
+def as_checkout_session_id(value: object) -> str | None:
+    """Checkout session ids are ``cs_…``. Anything else must not reverse."""
+    sid = str(value or "").strip()
+    return sid if sid.startswith("cs_") else None
+
+
 def checkout_session_id_from_refund_source(obj: dict[str, Any]) -> str | None:
     """Resolve the Checkout session id we credited, from a refund event object.
 
     Prefers an explicit metadata stamp so tests and operators can pin the
-    session without a Stripe list call. Empty / missing ids reverse nothing.
+    session without a Stripe list call. Empty / missing / non-``cs_`` ids
+    reverse nothing.
     """
     meta = obj.get("metadata") or {}
-    stamped = meta.get("checkout_session_id")
+    stamped = as_checkout_session_id(meta.get("checkout_session_id"))
     if stamped:
-        sid = str(stamped).strip()
-        return sid or None
-    if obj.get("object") == "checkout.session" and obj.get("id"):
-        sid = str(obj["id"]).strip()
-        return sid or None
+        return stamped
+    if obj.get("object") == "checkout.session":
+        return as_checkout_session_id(obj.get("id"))
     return None
 
 

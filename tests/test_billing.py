@@ -172,6 +172,55 @@ def test_checkout_unknown_pack_422(client, monkeypatch):
     assert resp.status_code == 422
 
 
+def test_checkout_stamps_session_id_on_payment_intent(client, monkeypatch):
+    """charge.refunded inherits PI metadata — stamp the session id after create."""
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_x")
+    monkeypatch.setattr(settings, "app_url", "https://app.example")
+
+    class FakeSession:
+        id = "cs_new"
+        url = "https://checkout.stripe.com/pay/cs_new"
+        payment_intent = "pi_new"
+
+    modified: list[tuple[str, dict]] = []
+
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "create",
+        staticmethod(lambda **kw: FakeSession()),
+    )
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "modify",
+        staticmethod(lambda pi, **kw: modified.append((pi, kw))),
+    )
+    resp = client.post(
+        "/api/v1/billing/checkout",
+        json={"pack": "creator"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["url"] == "https://checkout.stripe.com/pay/cs_new"
+    assert modified == [
+        (
+            "pi_new",
+            {
+                "metadata": {
+                    "user_id": "user_a",
+                    "credit_usd": "20.00",
+                    "pack": "creator",
+                    "checkout_session_id": "cs_new",
+                }
+            },
+        )
+    ]
+
+
 def test_webhook_missing_secret_is_503_not_200(client, monkeypatch):
     """An unconfigured Stripe webhook must not accept events."""
     from marketer.config import settings
@@ -509,6 +558,168 @@ def test_webhook_full_charge_refund_reverses_credit(client, monkeypatch):
     )
     assert resp.status_code == 200
     assert reversed_sessions == ["cs_refunded"]
+
+
+def test_webhook_full_refund_resolves_session_from_payment_intent(client, monkeypatch):
+    """Production charges do not carry checkout_session_id — look it up."""
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_pi",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_pi",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "payment_intent": "pi_lookup",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(lambda **kw: {"data": [{"id": "cs_from_pi"}]}),
+    )
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("0.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_from_pi"]
+
+
+def test_webhook_full_refund_reads_session_from_expanded_payment_intent(
+    client, monkeypatch
+):
+    """Stripe may expand payment_intent; metadata on the PI is enough."""
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_pi_meta",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_pi_meta",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "payment_intent": {
+                    "id": "pi_expanded",
+                    "metadata": {"checkout_session_id": "cs_from_pi_meta"},
+                },
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("0.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_from_pi_meta"]
+
+
+def test_webhook_full_refund_ignores_non_checkout_list_id(client, monkeypatch):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_garbage",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_garbage",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "payment_intent": "pi_garbage",
+                "metadata": {"checkout_session_id": "not_a_session"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(lambda **kw: {"data": [{"id": "ch_not_checkout"}]}),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a non-cs_ session id")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_without_session_does_not_reverse(client, monkeypatch):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_orphan",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_orphan",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "payment_intent": "pi_unknown",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(lambda **kw: {"data": []}),
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse when no checkout session is found")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
 
 
 def test_webhook_partial_charge_refund_does_not_reverse(client, monkeypatch):

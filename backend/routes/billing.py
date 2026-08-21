@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from marketer.billing.packs import (
     PACKS,
+    as_checkout_session_id,
     charge_is_fully_refunded,
     checkout_session_id_from_refund_source,
     credit_usd_for_paid_session,
@@ -154,7 +155,95 @@ async def create_checkout(
         success_url=f"{base}/settings/billing?purchase=success",
         cancel_url=f"{base}/settings/billing?purchase=cancelled",
     )
+    _stamp_checkout_session_on_payment_intent(
+        session, user_id=ctx.user_id, pack=pack
+    )
     return CheckoutResponse(url=session.url)
+
+
+def _payment_intent_id(obj: dict) -> str | None:
+    pi = obj.get("payment_intent")
+    if isinstance(pi, dict):
+        pi = pi.get("id")
+    if not pi:
+        return None
+    sid = str(pi).strip()
+    return sid if sid.startswith("pi_") else None
+
+
+def _stamp_checkout_session_on_payment_intent(
+    session: object, *, user_id: str, pack: dict
+) -> None:
+    """Charge.refunded inherits PaymentIntent metadata. Session.create
+    cannot stamp its own id, so write it back onto the PI."""
+    import stripe
+
+    session_id = as_checkout_session_id(
+        getattr(session, "id", None)
+        if not isinstance(session, dict)
+        else session.get("id")
+    )
+    raw_pi = (
+        getattr(session, "payment_intent", None)
+        if not isinstance(session, dict)
+        else session.get("payment_intent")
+    )
+    if isinstance(raw_pi, dict):
+        raw_pi = raw_pi.get("id")
+    payment_intent = str(raw_pi).strip() if raw_pi else ""
+    if not session_id or not payment_intent.startswith("pi_"):
+        return
+    try:
+        stripe.PaymentIntent.modify(
+            payment_intent,
+            metadata={
+                "user_id": user_id,
+                "credit_usd": str(pack["credit_usd"]),
+                "pack": pack["key"],
+                "checkout_session_id": session_id,
+            },
+        )
+    except Exception:
+        logger.warning(
+            "could not stamp checkout_session_id on payment_intent %s",
+            payment_intent,
+            exc_info=True,
+        )
+
+
+def _checkout_session_id_for_refunded_charge(charge: dict) -> str | None:
+    """Production ``charge.refunded`` events do not carry the Checkout
+    session id. Prefer a stamp (charge metadata, then expanded PI
+    metadata), then Stripe's session list for that PaymentIntent."""
+    stamped = checkout_session_id_from_refund_source(charge)
+    if stamped:
+        return stamped
+    pi = charge.get("payment_intent")
+    if isinstance(pi, dict):
+        from_pi = checkout_session_id_from_refund_source(pi)
+        if from_pi:
+            return from_pi
+    payment_intent = _payment_intent_id(charge)
+    if not payment_intent or not settings.stripe_secret_key:
+        return None
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    try:
+        listed = stripe.checkout.Session.list(payment_intent=payment_intent, limit=1)
+    except Exception:
+        logger.error(
+            "could not list checkout sessions for payment_intent %s",
+            payment_intent,
+            exc_info=True,
+        )
+        return None
+    data = listed.get("data") if isinstance(listed, dict) else getattr(listed, "data", None)
+    if not isinstance(data, list) or not data:
+        return None
+    first = data[0]
+    sid = first.get("id") if isinstance(first, dict) else getattr(first, "id", None)
+    return as_checkout_session_id(sid)
 
 
 @router.post("/webhook")
@@ -263,12 +352,13 @@ async def stripe_webhook(request: Request) -> dict:
                 charge.get("amount_refunded"),
             )
             return {"ok": True}
-        session_id = checkout_session_id_from_refund_source(charge)
+        session_id = _checkout_session_id_for_refunded_charge(charge)
         if not session_id:
             logger.error(
-                "fully refunded charge %s has no checkout_session_id; "
-                "reconcile manually",
+                "fully refunded charge %s has no checkout session "
+                "(payment_intent=%s); reconcile manually",
                 charge.get("id"),
+                charge.get("payment_intent"),
             )
             return {"ok": True}
         reversed_balance = await billing_repo.reverse_purchase(
