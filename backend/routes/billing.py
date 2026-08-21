@@ -24,6 +24,7 @@ from marketer.billing.packs import (
     credit_usd_for_paid_session,
     list_packs,
     object_livemode_agrees,
+    object_livemode_matches,
     stripe_livemode_matches_secret,
 )
 from marketer.config import settings
@@ -352,9 +353,10 @@ async def stripe_webhook(request: Request) -> dict:
                 session.get("id"), session.get("payment_status"),
             )
             return {"ok": True}
-        if not object_livemode_agrees(session, event.get("livemode")):
+        if not object_livemode_matches(session, event.get("livemode")):
             logger.error(
-                "paid checkout session %s livemode contradicts event; not crediting",
+                "paid checkout session %s livemode missing or contradicts event; "
+                "not crediting",
                 session.get("id"),
             )
             return {"ok": True}
@@ -387,10 +389,18 @@ async def stripe_webhook(request: Request) -> dict:
             )
     elif event["type"] == "checkout.session.async_payment_failed":
         session = event["data"]["object"]
-        if not object_livemode_agrees(session, event.get("livemode")):
+        if not object_livemode_matches(session, event.get("livemode")):
             logger.warning(
-                "async payment failed session %s livemode contradicts event; not reversing",
+                "async payment failed session %s livemode missing or contradicts event; "
+                "not reversing",
                 session.get("id"),
+            )
+            return {"ok": True}
+        if session.get("currency") is not None and not charge_currency_is_usd(session):
+            logger.warning(
+                "async payment failed session %s not reversed (currency=%s)",
+                session.get("id"),
+                session.get("currency"),
             )
             return {"ok": True}
         session_id = checkout_session_id_for_livemode(

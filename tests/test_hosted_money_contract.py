@@ -368,7 +368,8 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "emailConfigured" in shell
     assert "sent to your inbox" not in ads
     assert "Ads → Approvals" in ads
-    assert "Activation needs approval" in ads
+    assert "Mark active needs approval" in ads
+    assert "Activation needs approval" not in ads
     assert "Campaign marked" in ads
     assert "Mark active" in ads
     campaigns = (
@@ -382,6 +383,7 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Live on platform" in campaigns
     assert "mark campaigns active" in campaigns
     assert "scale campaigns" not in campaigns
+    assert "activation" not in campaigns
     assert "external campaign id" in campaigns
     assert "live on platform" in overview
     assert "marked active" in overview
@@ -409,6 +411,7 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "as_checkout_session_id" in webhook
     assert "checkout_session_id_for_livemode" in webhook
     assert "object_livemode_agrees" in webhook
+    assert "object_livemode_matches" in webhook
     assert "checkout_session_id" in webhook
     new_campaign = (
         repo / "web/app/(app)/ads/campaigns/new/NewCampaignClient.tsx"

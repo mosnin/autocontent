@@ -14,6 +14,7 @@ from marketer.billing.packs import (
     checkout_session_id_for_livemode,
     checkout_session_id_from_refund_source,
     object_livemode_agrees,
+    object_livemode_matches,
     credit_usd_for_amount_cents,
     credit_usd_for_paid_session,
     ledger_purchase_reference,
@@ -104,6 +105,9 @@ def test_livemode_must_match_secret_prefix():
     assert object_livemode_agrees({"livemode": True}, False) is False
     assert object_livemode_agrees({"livemode": True}, True) is True
     assert object_livemode_agrees({"livemode": "false"}, False) is False
+    assert object_livemode_matches({}, False) is False
+    assert object_livemode_matches({"livemode": False}, False) is True
+    assert object_livemode_matches({"livemode": True}, False) is False
     assert stripe_livemode_matches_secret(False, "sk_test_x") is True
     assert stripe_livemode_matches_secret(True, "sk_live_x") is True
     assert stripe_livemode_matches_secret(True, "sk_test_x") is False

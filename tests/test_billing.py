@@ -337,6 +337,7 @@ def _paid_checkout_event(
         "data": {
             "object": {
                 "id": session_id,
+                "livemode": livemode,
                 "mode": mode,
                 "payment_status": "paid",
                 "amount_total": amount_total,
@@ -508,6 +509,25 @@ def test_webhook_test_session_id_on_live_event_credits_nothing(client, monkeypat
     assert resp.status_code == 200
 
 
+def test_webhook_missing_session_livemode_credits_nothing(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_session_nolive", livemode=False)
+    del event["data"]["object"]["livemode"]
+    _patch_webhook(monkeypatch, event, secret_key="sk_test_x")
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit when session livemode is missing")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
 def test_webhook_session_livemode_contradicts_event_credits_nothing(
     client, monkeypatch
 ):
@@ -601,6 +621,7 @@ def test_webhook_async_payment_failed_reverses_prior_credit(client, monkeypatch)
         "data": {
             "object": {
                 "id": "cs_async_fail",
+                "livemode": False,
                 "metadata": {"user_id": "user_a"},
             }
         },
@@ -622,6 +643,66 @@ def test_webhook_async_payment_failed_reverses_prior_credit(client, monkeypatch)
     assert reversed_sessions == ["cs_async_fail"]
 
 
+def test_webhook_async_payment_failed_missing_livemode_does_not_reverse(
+    client, monkeypatch
+):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_async_fail_nolive",
+        "livemode": False,
+        "type": "checkout.session.async_payment_failed",
+        "data": {
+            "object": {
+                "id": "cs_async_fail_nolive",
+                "metadata": {"user_id": "user_a"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse when session livemode is missing")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_async_payment_failed_non_usd_does_not_reverse(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_async_fail_jpy",
+        "livemode": False,
+        "type": "checkout.session.async_payment_failed",
+        "data": {
+            "object": {
+                "id": "cs_async_fail_jpy",
+                "livemode": False,
+                "currency": "jpy",
+                "metadata": {"user_id": "user_a"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a non-USD async failure")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
 def test_webhook_async_payment_failed_live_id_on_test_event_does_not_reverse(
     client, monkeypatch
 ):
@@ -634,6 +715,7 @@ def test_webhook_async_payment_failed_live_id_on_test_event_does_not_reverse(
         "data": {
             "object": {
                 "id": "cs_live_async_fail",
+                "livemode": False,
                 "metadata": {"user_id": "user_a"},
             }
         },
@@ -664,6 +746,7 @@ def test_webhook_async_payment_failed_non_checkout_id_does_not_reverse(
         "data": {
             "object": {
                 "id": "pi_not_checkout",
+                "livemode": False,
                 "metadata": {"user_id": "user_a"},
             }
         },

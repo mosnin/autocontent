@@ -74,7 +74,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     try {
       const res = await changeCampaignStatus(id, status);
       if (res.status === "pending_approval") {
-        toast.message("Activation needs approval. Review it under Ads → Approvals.");
+        toast.message("Mark active needs approval. Review it under Ads → Approvals.");
       } else {
         toast.success(`Campaign marked ${status} in Autocontent`);
       }
