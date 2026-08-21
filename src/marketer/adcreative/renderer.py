@@ -441,8 +441,10 @@ async def execute_run(user_id: str, run_id: UUID) -> dict:
     Planning failures fail the whole run (there is nothing to show);
     render failures fail only their own Ad Slot.
     """
+    from ..billing.gates import raise_if_unbilled
     from .planner import AdRunPlanningError, plan_ad_run
 
+    raise_if_unbilled()
     run = await runs_repo.get_run(run_id, user_id=user_id)
     if run is None:
         raise RuntimeError(f"ad creative run {run_id} not found for {user_id}")
@@ -484,6 +486,9 @@ async def execute_run(user_id: str, run_id: UUID) -> dict:
 
 async def retry_slot(user_id: str, run_id: UUID, slot_id: UUID) -> dict:
     """Re-render one already-claimed Ad Slot against its stored plan."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     run = await runs_repo.get_run(run_id, user_id=user_id)
     slot = await runs_repo.get_slot(slot_id, user_id=user_id)
     if run is None or slot is None:

@@ -33,6 +33,9 @@ async def run_remix(
     count: int = 2,
     note: str = "",
 ) -> dict:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     template = await templates_repo.get(template_id)
     if template is None or not template.is_published:
         return {"status": "failed", "error": "template not found"}

@@ -68,6 +68,14 @@ def test_non_usd_amount_total_credits_nothing():
             "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
         }
     ) == Decimal("20.00")
+    # usdc is not usd — do not treat a stablecoin code as dollar cents.
+    assert credit_usd_for_paid_session(
+        {
+            "amount_total": 2000,
+            "currency": "usdc",
+            "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+        }
+    ) is None
 
 
 async def test_spend_refused_when_billing_off_and_unbilled_false(monkeypatch):
@@ -384,3 +392,51 @@ async def test_run_job_refuses_unbilled_before_niche_lookup(monkeypatch):
             niche_id=uuid4(),
             platform="tiktok",
         )
+
+
+_PAID_PIPELINE_FILES = (
+    "src/marketer/pipeline.py",
+    "src/marketer/articles/pipeline.py",
+    "src/marketer/drama/pipeline.py",
+    "src/marketer/motion/pipeline.py",
+    "src/marketer/services/image_posts.py",
+    "src/marketer/headshots/pipeline.py",
+    "src/marketer/design/executor.py",
+    "src/marketer/research/trends.py",
+    "src/marketer/services/compose.py",
+    "src/marketer/services/template_remix.py",
+    "src/marketer/adcreative/renderer.py",
+    "src/marketer/ugc/render.py",
+    "src/marketer/seoaudit/audit.py",
+)
+
+
+def test_paid_pipeline_entries_raise_if_unbilled():
+    """A queued worker that forgets the in-process gate can still spend
+    after HTTP 402. Every paid entry must call raise_if_unbilled."""
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent
+    missing = [
+        rel
+        for rel in _PAID_PIPELINE_FILES
+        if "raise_if_unbilled" not in (repo / rel).read_text()
+    ]
+    assert not missing, f"paid pipelines missing raise_if_unbilled: {missing}"
+
+
+async def test_run_drama_refuses_unbilled_before_lookup(monkeypatch):
+    from marketer.config import settings
+    from marketer.drama import pipeline as drama_pipeline
+    from marketer.repos import dramas as dramas_repo
+    from marketer.repos.spend import SpendCapExceeded
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*_a, **_k):
+        raise AssertionError("run_drama must not load a row after HTTP 402")
+
+    monkeypatch.setattr(dramas_repo, "get", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await drama_pipeline.run_drama(user_id="user_a", drama_id=uuid4())

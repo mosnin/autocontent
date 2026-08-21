@@ -343,11 +343,13 @@ async def run_trend_research(*, user_id: str, report_id: UUID) -> dict:
     message: a report stuck in `researching` is invisible to the user and
     un-retryable.
     """
+    from ..billing.gates import raise_if_unbilled
     from ..repos import jobs as jobs_repo
     from ..repos import niches as niches_repo
     from ..repos import trend_reports as reports_repo
     from ..services.spend_context import default_context
 
+    raise_if_unbilled()
     row = await reports_repo.get(report_id, user_id=user_id)
     if row is None:
         raise ValueError(f"trend report {report_id} not found for {user_id}")

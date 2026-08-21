@@ -532,7 +532,10 @@ async def run_motion_project(*, user_id: str, project_id: UUID) -> dict:
     Every exit path settles the row: `done` with a video, or `failed`
     with a reason, so a project is never left invisible and un-retryable.
     """
+    from ..billing.gates import raise_if_unbilled
     from ..repos import motion_projects as projects_repo
+
+    raise_if_unbilled()
 
     project = await projects_repo.get(project_id, user_id=user_id)
     if project is None:

@@ -86,6 +86,9 @@ async def run_image_post(
 ) -> dict:
     """Drive one image post to a terminal state. `apply_schedule` is
     injectable for tests; production posts through Ayrshare."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     post = await image_posts_repo.get(image_post_id, user_id=user_id)
     if post is None:
         raise ValueError(f"image post {image_post_id} not found for {user_id}")
