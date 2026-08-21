@@ -264,13 +264,13 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
       {/* Template two-column slot (app/page.tsx + dashboard/content.tsx):
           chart + recent uploads, fed with real jobs data. Jobs carry no
-          per-video view metric, so the chart plots videos published per
+          per-video view metric, so the chart plots videos scheduled per
           bucket and is titled accordingly. */}
       <DashRise delay={0.16}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <MonthlyViewsChart
             periodData={buildPublishedSeries(doneJobs ?? [])}
-            title="Videos published"
+            title="Videos scheduled"
             unit="videos"
           />
           <RecentUploads uploads={toRecentUploads(doneJobs ?? [])} />

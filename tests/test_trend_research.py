@@ -311,6 +311,20 @@ async def test_research_runs_unmetered_when_no_context_is_given(monkeypatch):
     assert report.themes
 
 
+async def test_research_refuses_unbilled_before_exa(monkeypatch):
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*_a, **_k):
+        raise AssertionError("Exa must not run when unbilled usage is off")
+
+    monkeypatch.setattr(exa, "serp_pages", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await trends.research_trends(make_niche(), spend=None)
+
+
 # --------------------------------------------------------- the modal driver
 
 

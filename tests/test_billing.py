@@ -233,29 +233,52 @@ def test_webhook_does_not_echo_constructor_error(client, monkeypatch):
     assert "secret leak" not in resp.text
 
 
-def test_webhook_refuses_inflated_credit_metadata(client, monkeypatch):
-    import stripe as stripe_mod
-
-    from marketer.config import settings
-    from marketer.repos import billing as billing_repo
-
-    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
-    event = {
-        "type": "checkout.session.completed",
+def _paid_checkout_event(
+    *,
+    session_id: str,
+    amount_total: int = 2000,
+    currency: str = "usd",
+    credit: str = "20.00",
+    typ: str = "checkout.session.completed",
+    livemode: bool = False,
+    mode: str = "payment",
+) -> dict:
+    return {
+        "id": f"evt_{session_id}",
+        "livemode": livemode,
+        "type": typ,
         "data": {
             "object": {
-                "id": "cs_inflated",
+                "id": session_id,
+                "mode": mode,
                 "payment_status": "paid",
-                "amount_total": 500,
-                "currency": "usd",
-                "metadata": {"user_id": "user_a", "credit_usd": "50.00"},
+                "amount_total": amount_total,
+                "currency": currency,
+                "metadata": {"user_id": "user_a", "credit_usd": credit},
             }
         },
     }
+
+
+def _patch_webhook(monkeypatch, event, *, secret_key: str = "sk_test_x") -> None:
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+    monkeypatch.setattr(settings, "stripe_secret_key", secret_key)
     monkeypatch.setattr(
         stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
     )
 
+
+def test_webhook_refuses_inflated_credit_metadata(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(
+        session_id="cs_inflated", amount_total=500, credit="50.00"
+    )
+    _patch_webhook(monkeypatch, event)
     async def explode(**kwargs):
         raise AssertionError("must not credit a mismatched session")
 
@@ -270,28 +293,10 @@ def test_webhook_refuses_inflated_credit_metadata(client, monkeypatch):
 
 
 def test_webhook_credits_on_completed_session(client, monkeypatch):
-    import stripe as stripe_mod
-
-    from marketer.config import settings
     from marketer.repos import billing as billing_repo
 
-    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
-
-    event = {
-        "type": "checkout.session.completed",
-        "data": {
-            "object": {
-                "id": "cs_test_123",
-                "payment_status": "paid",
-                "amount_total": 2000,
-                "currency": "usd",
-                "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
-            }
-        },
-    }
-    monkeypatch.setattr(
-        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
-    )
+    event = _paid_checkout_event(session_id="cs_test_123")
+    _patch_webhook(monkeypatch, event)
 
     credited: list[tuple] = []
 
@@ -312,27 +317,10 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
 
 def test_webhook_replay_same_session_credits_once(client, monkeypatch):
     """Stripe retry of the same checkout.session.completed must not double-credit."""
-    import stripe as stripe_mod
-
-    from marketer.config import settings
     from marketer.repos import billing as billing_repo
 
-    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
-    event = {
-        "type": "checkout.session.completed",
-        "data": {
-            "object": {
-                "id": "cs_replay",
-                "payment_status": "paid",
-                "amount_total": 2000,
-                "currency": "usd",
-                "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
-            }
-        },
-    }
-    monkeypatch.setattr(
-        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
-    )
+    event = _paid_checkout_event(session_id="cs_replay")
+    _patch_webhook(monkeypatch, event)
 
     applied: list[Decimal] = []
     seen: set[str] = set()
@@ -357,27 +345,10 @@ def test_webhook_replay_same_session_credits_once(client, monkeypatch):
 
 def test_webhook_non_usd_currency_credits_nothing(client, monkeypatch):
     """A matching cent amount in JPY must not grant the USD pack."""
-    import stripe as stripe_mod
-
-    from marketer.config import settings
     from marketer.repos import billing as billing_repo
 
-    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
-    event = {
-        "type": "checkout.session.completed",
-        "data": {
-            "object": {
-                "id": "cs_jpy",
-                "payment_status": "paid",
-                "amount_total": 2000,
-                "currency": "jpy",
-                "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
-            }
-        },
-    }
-    monkeypatch.setattr(
-        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
-    )
+    event = _paid_checkout_event(session_id="cs_jpy", currency="jpy")
+    _patch_webhook(monkeypatch, event)
 
     async def explode(**kwargs):
         raise AssertionError("must not credit a non-USD session")
@@ -390,6 +361,69 @@ def test_webhook_non_usd_currency_credits_nothing(client, monkeypatch):
     )
     assert resp.status_code == 200
     assert resp.json() == {"ok": True}
+
+
+def test_webhook_livemode_mismatch_credits_nothing(client, monkeypatch):
+    """A live Stripe event must not credit a test secret (and vice versa)."""
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_live_on_test", livemode=True)
+    _patch_webhook(monkeypatch, event, secret_key="sk_test_x")
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit a livemode-mismatched event")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
+def test_webhook_subscription_mode_credits_nothing(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_sub", mode="subscription")
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit a non-payment checkout mode")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
+def test_webhook_credits_on_async_payment_succeeded(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(
+        session_id="cs_async",
+        typ="checkout.session.async_payment_succeeded",
+    )
+    _patch_webhook(monkeypatch, event)
+    credited: list[tuple] = []
+
+    async def fake_credit(*, user_id, amount_usd, checkout_session_id, description):
+        credited.append((user_id, amount_usd, checkout_session_id))
+        return Decimal("20.00")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", fake_credit)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert credited == [("user_a", Decimal("20.00"), "cs_async")]
 
 
 async def test_email_noop_without_key(monkeypatch):
@@ -456,3 +490,9 @@ def test_email_templates_render_links_and_prefs(monkeypatch):
     _, vfailed = email_svc.render_video_failed("job_9", "a hook")
     assert "https://app.marketer.sh/queue/job_9" in vfailed
     assert "Manage email notifications" in vfailed
+
+    subj, scheduled = email_svc.render_video_scheduled("job_8", "a hook")
+    assert subj == "Your video is scheduled"
+    assert "queued to publish" in scheduled
+    assert "just went out" not in scheduled
+    assert "https://app.marketer.sh/queue/job_8" in scheduled

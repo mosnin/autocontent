@@ -95,6 +95,9 @@ async def synthesize(
     spend: SpendContext | None = None,
 ) -> Path:
     """Synthesize `text` into a mono 24kHz WAV at `out_path`."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not enabled():
         raise ElevenLabsError(
             "elevenlabs voice selected but MARKETER_ELEVENLABS_API_KEY is not set"

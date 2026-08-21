@@ -72,8 +72,12 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
   async function onStatus(status: "active" | "paused" | "ended") {
     setBusy(status);
     try {
-      await changeCampaignStatus(id, status);
-      toast.success(`Campaign ${status}`);
+      const res = await changeCampaignStatus(id, status);
+      if (res.status === "pending_approval") {
+        toast.message("Activation needs approval. Review it under Ads → Approvals.");
+      } else {
+        toast.success(`Campaign marked ${status} in Autocontent`);
+      }
       void mutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";

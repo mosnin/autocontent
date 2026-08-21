@@ -70,6 +70,9 @@ async def synthesize(
     style_directions: str | None = None,
     spend: SpendContext | None = None,
 ) -> Path:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(tts_cost_estimated(len(text)))
     out_path.parent.mkdir(parents=True, exist_ok=True)

@@ -70,6 +70,8 @@ def credit_usd_for_amount_cents(amount_cents: object) -> Decimal | None:
         cents = int(amount_cents)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return None
+    if cents < 0:
+        return None
     for pack in PACKS.values():
         if pack["amount_cents"] == cents:
             return pack["credit_usd"]
@@ -95,6 +97,24 @@ def _session_currency_is_usd(session: dict[str, Any]) -> bool:
     return str(currency).strip().lower() == "usd"
 
 
+def stripe_livemode_matches_secret(livemode: object, secret_key: str) -> bool:
+    """Test events must not credit a live key; live events must not credit a test key."""
+    if not isinstance(livemode, bool):
+        return False
+    key = (secret_key or "").strip()
+    if key.startswith("sk_live_"):
+        return livemode is True
+    if key.startswith("sk_test_"):
+        return livemode is False
+    return False
+
+
+def _session_is_payment_mode(session: dict[str, Any]) -> bool:
+    """Pack checkout is ``mode=payment``. Subscriptions and setup sessions
+    must not grant prepaid generate credit even if ``amount_total`` matches."""
+    return session.get("mode") == "payment"
+
+
 def credit_usd_for_paid_session(session: dict[str, Any]) -> Decimal | None:
     """Fail-closed credit for a paid Stripe Checkout session.
 
@@ -103,6 +123,8 @@ def credit_usd_for_paid_session(session: dict[str, Any]) -> Decimal | None:
     an operator can reconcile, rather than granting unearned balance.
     Currency must be USD — pack amounts are dollar cents.
     """
+    if not _session_is_payment_mode(session):
+        return None
     if not _session_currency_is_usd(session):
         return None
     amount = session.get("amount_total")

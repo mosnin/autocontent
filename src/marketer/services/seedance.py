@@ -736,6 +736,9 @@ async def render(
     With `wait=False` the call returns as soon as the job is accepted and
     metered — for the async/webhook style the UGC studio uses.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     require_enabled()
     req = build_request(
         model_id,

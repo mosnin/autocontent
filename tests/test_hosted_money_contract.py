@@ -20,6 +20,7 @@ from marketer.services.spend_context import SpendContext
 
 def test_webhook_credits_from_amount_total_only():
     session = {
+        "mode": "payment",
         "amount_total": 2000,
         "currency": "usd",
         "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
@@ -29,6 +30,7 @@ def test_webhook_credits_from_amount_total_only():
 
 def test_metadata_mismatch_credits_nothing():
     session = {
+        "mode": "payment",
         "amount_total": 500,
         "currency": "usd",
         "metadata": {"user_id": "user_a", "credit_usd": "50.00"},
@@ -39,7 +41,12 @@ def test_metadata_mismatch_credits_nothing():
 def test_unknown_or_missing_amount_credits_nothing():
     assert (
         credit_usd_for_paid_session(
-            {"amount_total": 9999, "currency": "usd", "metadata": {"credit_usd": "5.00"}}
+            {
+                "mode": "payment",
+                "amount_total": 9999,
+                "currency": "usd",
+                "metadata": {"credit_usd": "5.00"},
+            }
         )
         is None
     )
@@ -49,20 +56,26 @@ def test_unknown_or_missing_amount_credits_nothing():
 def test_non_usd_amount_total_credits_nothing():
     """2000 JPY matching a pack's cent amount must not grant $20."""
     session = {
+        "mode": "payment",
         "amount_total": 2000,
         "currency": "jpy",
         "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
     }
     assert credit_usd_for_paid_session(session) is None
     assert credit_usd_for_paid_session(
-        {"amount_total": 2000, "metadata": {"credit_usd": "20.00"}}
+        {"mode": "payment", "amount_total": 2000, "metadata": {"credit_usd": "20.00"}}
     ) is None
     # Metadata alone, even with a USD stamp, is not an authority.
     assert credit_usd_for_paid_session(
-        {"currency": "usd", "metadata": {"user_id": "user_a", "credit_usd": "20.00"}}
+        {
+            "mode": "payment",
+            "currency": "usd",
+            "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+        }
     ) is None
     assert credit_usd_for_paid_session(
         {
+            "mode": "payment",
             "amount_total": "2000",
             "currency": "USD",
             "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
@@ -71,16 +84,43 @@ def test_non_usd_amount_total_credits_nothing():
     # usdc is not usd — do not treat a stablecoin code as dollar cents.
     assert credit_usd_for_paid_session(
         {
+            "mode": "payment",
             "amount_total": 2000,
             "currency": "usdc",
             "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
         }
     ) is None
     assert credit_usd_for_paid_session(
-        {"amount_total": True, "currency": "usd", "metadata": {"credit_usd": "5.00"}}
+        {
+            "mode": "payment",
+            "amount_total": True,
+            "currency": "usd",
+            "metadata": {"credit_usd": "5.00"},
+        }
     ) is None
     assert credit_usd_for_paid_session(
-        {"amount_total": 2000.5, "currency": "usd", "metadata": {"credit_usd": "20.00"}}
+        {
+            "mode": "payment",
+            "amount_total": 2000.5,
+            "currency": "usd",
+            "metadata": {"credit_usd": "20.00"},
+        }
+    ) is None
+    # Subscription / missing mode must not grant pack credit.
+    assert credit_usd_for_paid_session(
+        {
+            "mode": "subscription",
+            "amount_total": 2000,
+            "currency": "usd",
+            "metadata": {"credit_usd": "20.00"},
+        }
+    ) is None
+    assert credit_usd_for_paid_session(
+        {
+            "amount_total": 2000,
+            "currency": "usd",
+            "metadata": {"credit_usd": "20.00"},
+        }
     ) is None
 
 
@@ -320,6 +360,16 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "emailConfigured" in shell
     assert "sent to your inbox" not in ads
     assert "Ads → Approvals" in ads
+    assert "Activation needs approval" in ads
+    assert "Campaign marked" in ads
+    email = (repo / "src/marketer/services/email.py").read_text()
+    assert "Your video is scheduled" in email
+    assert "queued to publish" in email
+    assert "just went out" not in email
+    assert "shipped a video" not in email
+    dash = (repo / "web/app/(app)/dashboard/DashboardClient.tsx").read_text()
+    assert "Videos scheduled" in dash
+    assert "Videos published" not in dash
 
 
 def test_inline_paid_http_routes_refuse_unbilled():
@@ -327,7 +377,13 @@ def test_inline_paid_http_routes_refuse_unbilled():
     from pathlib import Path
 
     routes = Path(__file__).resolve().parent.parent / "backend" / "routes"
-    for name in ("articles.py", "personas.py", "seo_audits.py", "voices.py"):
+    for name in (
+        "articles.py",
+        "personas.py",
+        "seo_audits.py",
+        "voices.py",
+        "niches.py",
+    ):
         source = (routes / name).read_text()
         assert "refuse_unbilled_generate" in source, name
 
@@ -416,6 +472,16 @@ _PAID_PIPELINE_FILES = (
     "src/marketer/seoaudit/audit.py",
     "src/marketer/services/spend_context.py",
     "src/marketer/agents/metered.py",
+    "src/marketer/services/openai_images.py",
+    "src/marketer/services/openai_tts.py",
+    "src/marketer/services/elevenlabs_tts.py",
+    "src/marketer/services/fal_video.py",
+    "src/marketer/services/grok_imagine.py",
+    "src/marketer/services/music_gen.py",
+    "src/marketer/services/openai_whisper.py",
+    "src/marketer/services/seedance.py",
+    "src/marketer/articles/llm.py",
+    "src/marketer/adcreative/brief.py",
 )
 
 
@@ -466,3 +532,69 @@ async def test_run_drama_refuses_unbilled_before_lookup(monkeypatch):
     monkeypatch.setattr(dramas_repo, "get", explode)
     with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
         await drama_pipeline.run_drama(user_id="user_a", drama_id=uuid4())
+
+
+async def test_research_trends_refuses_unbilled_before_exa(monkeypatch):
+    """Direct research_trends leftover must not hit Exa after HTTP 402."""
+    from marketer.config import settings
+    from marketer.research import trends
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*_a, **_k):
+        raise AssertionError("research_trends must not call Exa when unbilled")
+
+    monkeypatch.setattr(trends, "gather_sources", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await trends.research_trends(
+            type("N", (), {"title": "x", "description": "y"})()
+        )
+
+
+async def test_openai_tts_refuses_unbilled_when_spend_is_none(monkeypatch, tmp_path):
+    """Provider leftover with spend=None must fail before the OpenAI call."""
+    from marketer.config import settings
+    from marketer.services import openai_tts
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*_a, **_k):
+        raise AssertionError("openai_tts must not call the provider when unbilled")
+
+    monkeypatch.setattr(openai_tts, "_call_api", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await openai_tts.synthesize("hello", tmp_path / "v.wav", spend=None)
+
+
+def test_http_niche_draft_refuses_unbilled(monkeypatch):
+    from fastapi.testclient import TestClient
+
+    from backend.auth import AuthCtx, require_user
+    from backend.main import create_app
+    from backend.rate_limit import limiter
+    from marketer.agents import niche_draft as nd
+    from marketer.config import settings
+
+    limiter._storage.reset()
+    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*_a, **_k):
+        raise AssertionError("draft_niche must not run after HTTP 402")
+
+    monkeypatch.setattr(nd, "draft_niche", explode)
+    app = create_app()
+    app.dependency_overrides[require_user] = lambda: AuthCtx(
+        user_id="user_a", email="a@a"
+    )
+    client = TestClient(app, raise_server_exceptions=False)
+    resp = client.post(
+        "/api/v1/niches/draft",
+        json={"description": "claymation videos explaining economics for adults"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402

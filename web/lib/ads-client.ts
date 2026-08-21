@@ -162,6 +162,6 @@ export function changeBudget(
 export function changeCampaignStatus(
   id: string,
   status: "active" | "paused" | "ended",
-): Promise<AdCampaign> {
+): Promise<AdCampaign | { status: string; approval_id?: string }> {
   return proxy("POST", `${ADS}/campaigns/${id}/status`, { status });
 }

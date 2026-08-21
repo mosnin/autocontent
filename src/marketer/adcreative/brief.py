@@ -161,6 +161,9 @@ async def _call_planner(
     stages: a pre-flight cap check, then the real token cost logged."""
     import openai
 
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     model = settings.ad_creative_planner_model
     if spend is not None:
         await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)

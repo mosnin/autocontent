@@ -65,6 +65,9 @@ async def transcribe_word_level(
     spend: SpendContext | None = None,
 ) -> list[dict]:
     """Returns a list of {"word", "start", "end"} dicts."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(whisper_cost(_audio_duration_seconds(audio_path)))
     result = await _call_api(audio_path)

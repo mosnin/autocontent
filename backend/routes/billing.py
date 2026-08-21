@@ -14,7 +14,12 @@ from decimal import Decimal
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
-from marketer.billing.packs import PACKS, credit_usd_for_paid_session, list_packs
+from marketer.billing.packs import (
+    PACKS,
+    credit_usd_for_paid_session,
+    list_packs,
+    stripe_livemode_matches_secret,
+)
 from marketer.config import settings
 from marketer.models import CreditTransaction
 from marketer.repos import billing as billing_repo
@@ -166,6 +171,16 @@ async def stripe_webhook(request: Request) -> dict:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED, detail="invalid webhook"
         ) from None
+
+    if not stripe_livemode_matches_secret(
+        event.get("livemode"), settings.stripe_secret_key
+    ):
+        logger.error(
+            "stripe webhook livemode mismatch (event_id=%s livemode=%s); not crediting",
+            event.get("id"),
+            event.get("livemode"),
+        )
+        return {"ok": True}
 
     if event["type"] in (
         "checkout.session.completed",

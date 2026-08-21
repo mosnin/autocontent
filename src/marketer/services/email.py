@@ -85,12 +85,12 @@ def render_video_scheduled(job_id: str, hook: str | None) -> tuple[str, str]:
     """Subject + HTML for a done/scheduled notification."""
     base = settings.app_url.rstrip("/") or "http://localhost:3000"
     hook_line = f"<p style='font-style:italic'>&ldquo;{hook}&rdquo;</p>" if hook else ""
-    subject = "Your machine shipped a video"
+    subject = "Your video is scheduled"
     html = _shell(
-        "<h2 style='margin:0 0 12px'>A new video just went out</h2>"
+        "<h2 style='margin:0 0 12px'>A new video is queued to publish</h2>"
         f"{hook_line}"
-        "<p>Rendered, mixed, captioned, and scheduled — start to finish, "
-        "no hands on the wheel.</p>"
+        "<p>Rendered, mixed, captioned, and scheduled. It has not posted "
+        "yet — open the job to see the slot.</p>"
         f"<p style='margin-top:24px'>{_button(f'{base}/queue/{job_id}', 'Watch it')}</p>"
     )
     return subject, html

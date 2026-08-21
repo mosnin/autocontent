@@ -163,7 +163,7 @@ export function LatestVideos() {
               <span aria-hidden className="relative flex size-2.5">
                 <span className="relative inline-flex size-2.5 rounded-full bg-brand" />
               </span>
-              Your machine shipped its first video
+              Your first video is scheduled
             </DialogTitle>
             <DialogDescription>
               Ideated, written, animated, voiced, and mixed — start to finish,

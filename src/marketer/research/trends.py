@@ -300,7 +300,11 @@ async def research_trends(
 ) -> TrendReport:
     """Produce one trend report for a niche (one metered LLM call)."""
     from ..agents.metered import run_metered
+    from ..billing.gates import raise_if_unbilled
 
+    # Exa is a paid research vendor. Refuse before gather_sources so an
+    # in-process leftover cannot spend after HTTP 402 even when spend=None.
+    raise_if_unbilled()
     pages, queries = await gather_sources(niche)
     grounded = bool(pages)
     if not grounded:

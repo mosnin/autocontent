@@ -99,6 +99,9 @@ async def compose(
 ) -> Path:
     """Compose an original instrumental track. Raises MusicGenError on any
     problem — the caller falls back to the stock library chain."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not enabled():
         raise MusicGenError("MARKETER_ELEVENLABS_API_KEY is not set")
 

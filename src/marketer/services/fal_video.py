@@ -446,6 +446,9 @@ async def animate(
     spend: SpendContext | None = None,
 ) -> Path:
     """Render one scene clip through a Fal image-to-video model."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not enabled():
         raise FalVideoError(
             "fal video provider selected but MARKETER_FAL_API_KEY is not set"
@@ -524,6 +527,9 @@ async def animate_avatar(
     there is no duration knob — the pre-flight estimate and the billed
     units both come from the audio (or the provider-reported render
     duration when present)."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not enabled():
         raise FalVideoError(
             "fal video provider selected but MARKETER_FAL_API_KEY is not set"
