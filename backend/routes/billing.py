@@ -420,7 +420,7 @@ async def stripe_webhook(request: Request) -> dict:
                 session.get("id"),
             )
             return {"ok": True}
-        if session.get("currency") is not None and not charge_currency_is_usd(session):
+        if not charge_currency_is_usd(session):
             logger.warning(
                 "async payment failed session %s not reversed (currency=%s)",
                 session.get("id"),
