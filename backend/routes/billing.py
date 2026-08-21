@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from marketer.billing.packs import (
     PACKS,
     as_checkout_session_id,
+    charge_currency_is_usd,
     charge_is_fully_refunded,
     checkout_session_id_from_refund_source,
     credit_usd_for_paid_session,
@@ -211,21 +212,32 @@ def _stamp_checkout_session_on_payment_intent(
         )
 
 
-def _checkout_session_id_for_refunded_charge(charge: dict) -> str | None:
-    """Production ``charge.refunded`` events do not carry the Checkout
-    session id. Prefer a stamp (charge metadata, then expanded PI
-    metadata), then Stripe's session list for that PaymentIntent."""
-    stamped = checkout_session_id_from_refund_source(charge)
-    if stamped:
-        return stamped
-    pi = charge.get("payment_intent")
-    if isinstance(pi, dict):
-        from_pi = checkout_session_id_from_refund_source(pi)
-        if from_pi:
-            return from_pi
-    payment_intent = _payment_intent_id(charge)
-    if not payment_intent or not settings.stripe_secret_key:
+def _checkout_session_id_from_retrieved_payment_intent(
+    payment_intent: str,
+) -> str | None:
+    """Read the session id stamped onto the PI at checkout time."""
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    try:
+        pi = stripe.PaymentIntent.retrieve(payment_intent)
+    except Exception:
+        logger.error(
+            "could not retrieve payment_intent %s for refund",
+            payment_intent,
+            exc_info=True,
+        )
         return None
+    meta = pi.get("metadata") if isinstance(pi, dict) else getattr(pi, "metadata", None)
+    if meta is None:
+        return None
+    stamped = meta.get("checkout_session_id") if isinstance(meta, dict) else getattr(
+        meta, "checkout_session_id", None
+    )
+    return as_checkout_session_id(stamped)
+
+
+def _checkout_session_id_from_session_list(payment_intent: str) -> str | None:
     import stripe
 
     stripe.api_key = settings.stripe_secret_key
@@ -242,8 +254,36 @@ def _checkout_session_id_for_refunded_charge(charge: dict) -> str | None:
     if not isinstance(data, list) or not data:
         return None
     first = data[0]
-    sid = first.get("id") if isinstance(first, dict) else getattr(first, "id", None)
-    return as_checkout_session_id(sid)
+    if not isinstance(first, dict):
+        first = {
+            "id": getattr(first, "id", None),
+            "mode": getattr(first, "mode", None),
+        }
+    mode = first.get("mode")
+    if mode is not None and mode != "payment":
+        return None
+    return as_checkout_session_id(first.get("id"))
+
+
+def _checkout_session_id_for_refunded_charge(charge: dict) -> str | None:
+    """Production ``charge.refunded`` events do not carry the Checkout
+    session id. Prefer a stamp (charge metadata, then expanded PI
+    metadata), then the retrieved PI, then Stripe's session list."""
+    stamped = checkout_session_id_from_refund_source(charge)
+    if stamped:
+        return stamped
+    pi = charge.get("payment_intent")
+    if isinstance(pi, dict):
+        from_pi = checkout_session_id_from_refund_source(pi)
+        if from_pi:
+            return from_pi
+    payment_intent = _payment_intent_id(charge)
+    if not payment_intent or not settings.stripe_secret_key:
+        return None
+    retrieved = _checkout_session_id_from_retrieved_payment_intent(payment_intent)
+    if retrieved:
+        return retrieved
+    return _checkout_session_id_from_session_list(payment_intent)
 
 
 @router.post("/webhook")
@@ -350,6 +390,14 @@ async def stripe_webhook(request: Request) -> dict:
                 charge.get("id"),
                 charge.get("amount"),
                 charge.get("amount_refunded"),
+            )
+            return {"ok": True}
+        if not charge_currency_is_usd(charge):
+            logger.error(
+                "fully refunded charge %s not reversed (currency=%s); "
+                "reconcile manually",
+                charge.get("id"),
+                charge.get("currency"),
             )
             return {"ok": True}
         session_id = _checkout_session_id_for_refunded_charge(charge)

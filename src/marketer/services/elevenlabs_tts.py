@@ -73,6 +73,9 @@ def _write_wav(pcm: bytes, out_path: Path) -> None:
     retry=retry_if_exception(_is_retryable),
 )
 async def _call_api(text: str, voice_id: str) -> bytes:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SEC) as client:
         resp = await client.post(
             f"{API_BASE}/text-to-speech/{voice_id}",

@@ -71,6 +71,9 @@ async def _call_api(
     size: str,
     reference_image_path: Path | None,
 ):
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     client = _get_client()
     if reference_image_path is not None:
         with reference_image_path.open("rb") as fp:
@@ -188,6 +191,9 @@ async def generate_remix(
     retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_remix_api(prompt: str, *, files: list, quality: str, size: str):
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     client = _get_client()
     return await client.images.edit(
         model=SKU,

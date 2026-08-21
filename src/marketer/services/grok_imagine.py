@@ -78,6 +78,9 @@ def _image_to_data_uri(path: Path) -> str:
     retry=retry_if_exception_type((httpx.HTTPError,)),
 )
 async def _submit(client: httpx.AsyncClient, body: dict[str, Any]) -> str:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     resp = await client.post("/videos/generations", json=body)
     resp.raise_for_status()
     request_id = resp.json().get("request_id")

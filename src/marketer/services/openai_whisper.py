@@ -49,6 +49,9 @@ def _audio_duration_seconds(path: Path) -> float:
     retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_api(audio_path: Path):
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     client = _get_client()
     with audio_path.open("rb") as fp:
         return await client.audio.transcriptions.create(

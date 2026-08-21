@@ -88,13 +88,23 @@ def credit_usd_for_known_balance(amount: object) -> Decimal | None:
     return value if value in known else None
 
 
-def _session_currency_is_usd(session: dict[str, Any]) -> bool:
-    """Checkout packs are USD-only. A matching cent amount in another
-    currency must not grant dollar credit (2000 JPY is not $20)."""
-    currency = session.get("currency")
+def _currency_is_usd(obj: dict[str, Any]) -> bool:
+    """Pack amounts are dollar cents. Missing / non-USD codes credit nothing."""
+    currency = obj.get("currency")
     if currency is None:
         return False
     return str(currency).strip().lower() == "usd"
+
+
+def _session_currency_is_usd(session: dict[str, Any]) -> bool:
+    """Checkout packs are USD-only. A matching cent amount in another
+    currency must not grant dollar credit (2000 JPY is not $20)."""
+    return _currency_is_usd(session)
+
+
+def charge_currency_is_usd(charge: dict[str, Any]) -> bool:
+    """A full refund in JPY must not reverse a USD pack credit."""
+    return _currency_is_usd(charge)
 
 
 def stripe_livemode_matches_secret(livemode: object, secret_key: str) -> bool:

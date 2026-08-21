@@ -539,6 +539,7 @@ def test_webhook_full_charge_refund_reverses_credit(client, monkeypatch):
                 "refunded": True,
                 "amount": 2000,
                 "amount_refunded": 2000,
+                "currency": "usd",
                 "metadata": {"checkout_session_id": "cs_refunded"},
             }
         },
@@ -576,12 +577,18 @@ def test_webhook_full_refund_resolves_session_from_payment_intent(client, monkey
                 "refunded": True,
                 "amount": 2000,
                 "amount_refunded": 2000,
+                "currency": "usd",
                 "payment_intent": "pi_lookup",
                 "metadata": {},
             }
         },
     }
     _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
     monkeypatch.setattr(
         stripe_mod.checkout.Session,
         "list",
@@ -619,6 +626,7 @@ def test_webhook_full_refund_reads_session_from_expanded_payment_intent(
                 "refunded": True,
                 "amount": 2000,
                 "amount_refunded": 2000,
+                "currency": "usd",
                 "payment_intent": {
                     "id": "pi_expanded",
                     "metadata": {"checkout_session_id": "cs_from_pi_meta"},
@@ -659,12 +667,18 @@ def test_webhook_full_refund_ignores_non_checkout_list_id(client, monkeypatch):
                 "refunded": True,
                 "amount": 2000,
                 "amount_refunded": 2000,
+                "currency": "usd",
                 "payment_intent": "pi_garbage",
                 "metadata": {"checkout_session_id": "not_a_session"},
             }
         },
     }
     _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
     monkeypatch.setattr(
         stripe_mod.checkout.Session,
         "list",
@@ -698,12 +712,18 @@ def test_webhook_full_refund_without_session_does_not_reverse(client, monkeypatc
                 "refunded": True,
                 "amount": 2000,
                 "amount_refunded": 2000,
+                "currency": "usd",
                 "payment_intent": "pi_unknown",
                 "metadata": {},
             }
         },
     }
     _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"metadata": {}}),
+    )
     monkeypatch.setattr(
         stripe_mod.checkout.Session,
         "list",
@@ -712,6 +732,118 @@ def test_webhook_full_refund_without_session_does_not_reverse(client, monkeypatc
 
     async def explode(**kwargs):
         raise AssertionError("must not reverse when no checkout session is found")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_reads_session_from_retrieved_payment_intent(
+    client, monkeypatch
+):
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_retrieve",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_retrieve",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_stamped",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(
+            lambda *_a, **_k: {
+                "metadata": {"checkout_session_id": "cs_from_retrieve"}
+            }
+        ),
+    )
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("0.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_from_retrieve"]
+
+
+def test_webhook_full_refund_non_usd_does_not_reverse(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_jpy",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_jpy",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "jpy",
+                "metadata": {"checkout_session_id": "cs_jpy_refund"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a non-USD refund")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_full_refund_missing_currency_does_not_reverse(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_noccy",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_noccy",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "metadata": {"checkout_session_id": "cs_noccy"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a refund with no currency")
 
     monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
     resp = client.post(
@@ -735,6 +867,7 @@ def test_webhook_partial_charge_refund_does_not_reverse(client, monkeypatch):
                 "refunded": False,
                 "amount": 2000,
                 "amount_refunded": 500,
+                "currency": "usd",
                 "metadata": {"checkout_session_id": "cs_partial"},
             }
         },

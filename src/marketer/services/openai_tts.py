@@ -53,6 +53,9 @@ def _wav_duration_seconds(path: Path) -> float:
     retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_api(out_path: Path, kwargs: dict) -> None:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     client = _get_client()
     tmp_path = out_path.with_suffix(out_path.suffix + ".part")
     async with client.audio.speech.with_streaming_response.create(**kwargs) as response:

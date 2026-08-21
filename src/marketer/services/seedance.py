@@ -609,6 +609,9 @@ def _is_retryable(exc: BaseException) -> bool:
     retry=retry_if_exception(_is_retryable),
 )
 async def _post(client: httpx.AsyncClient, endpoint: str, body: dict[str, Any]) -> dict:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     # NOTE: this enqueues a *paid* render. Retries only fire for transport
     # faults and 429/5xx — never for a request the gateway actually
     # rejected — but a lost response on a request that did land would

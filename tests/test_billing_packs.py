@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from marketer.billing.packs import (
     PACKS,
+    charge_currency_is_usd,
     charge_is_fully_refunded,
     checkout_session_id_from_refund_source,
     credit_usd_for_amount_cents,
@@ -137,6 +138,10 @@ def test_refund_source_resolves_stamped_session_only():
     assert charge_is_fully_refunded(
         {"refunded": False, "amount": 2000, "amount_refunded": 2000}
     ) is True
+    assert charge_currency_is_usd({"currency": "usd"}) is True
+    assert charge_currency_is_usd({"currency": "USD"}) is True
+    assert charge_currency_is_usd({"currency": "jpy"}) is False
+    assert charge_currency_is_usd({}) is False
 
 
 def test_marketing_and_billing_ui_pack_amounts_match_backend():

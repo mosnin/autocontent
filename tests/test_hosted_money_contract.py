@@ -391,6 +391,8 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "_checkout_session_id_for_refunded_charge" in webhook
     assert "Session.list" in webhook
     assert "PaymentIntent.modify" in webhook
+    assert "PaymentIntent.retrieve" in webhook
+    assert "charge_currency_is_usd" in webhook
     assert "checkout_session_id" in webhook
     detail = (
         repo / "web/app/(app)/ads/campaigns/[id]/CampaignDetailClient.tsx"
@@ -688,3 +690,44 @@ async def test_exa_serp_refuses_unbilled_before_http(monkeypatch):
     monkeypatch.setattr(exa.httpx, "AsyncClient", explode)
     with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
         await exa.serp_pages("coffee")
+
+
+async def test_vendor_http_primitives_refuse_unbilled_before_post(monkeypatch):
+    """Leftover queued workers can skip public wrappers — the paid POST
+    itself must still refuse when unbilled usage is off."""
+    from marketer.config import settings
+    from marketer.services import (
+        elevenlabs_tts,
+        fal_video,
+        grok_imagine,
+        muapi,
+        music_gen,
+        openai_images,
+        openai_tts,
+        openai_whisper,
+        seedance,
+    )
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await fal_video._submit(object(), "fal-ai/x", {})
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await grok_imagine._submit(object(), {})
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await elevenlabs_tts._call_api("hi", "voice")
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await music_gen._call_api("mood", 1000)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await openai_tts._call_api(object(), {})
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await openai_whisper._call_api(object())
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await openai_images._call_api("p", quality="low", size="1024x1024", reference_image_path=None)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await openai_images._call_remix_api("p", files=[], quality="low", size="1024x1024")
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await seedance._post(object(), "x", {})
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await muapi._post(object(), "x", {})
