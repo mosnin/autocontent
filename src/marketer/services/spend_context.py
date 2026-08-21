@@ -261,8 +261,10 @@ async def default_context(
     users-repo lookup without coupling the pipeline to a synchronous
     construction pattern or adding a separate init step.
     """
+    from ..billing.gates import raise_if_unbilled
     from ..repos import users as users_repo
 
+    raise_if_unbilled()
     user = await users_repo.get(user_id)
     global_cap_usd = user.global_daily_cap_usd if user is not None else None
 

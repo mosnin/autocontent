@@ -60,6 +60,12 @@ def list_packs() -> list[Pack]:
 
 def credit_usd_for_amount_cents(amount_cents: object) -> Decimal | None:
     """Map a Stripe ``amount_total`` (cents) to the matching pack credit."""
+    if isinstance(amount_cents, bool):
+        return None
+    if isinstance(amount_cents, float):
+        if not amount_cents.is_integer():
+            return None
+        amount_cents = int(amount_cents)
     try:
         cents = int(amount_cents)  # type: ignore[arg-type]
     except (TypeError, ValueError):

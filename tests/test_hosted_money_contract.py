@@ -76,6 +76,12 @@ def test_non_usd_amount_total_credits_nothing():
             "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
         }
     ) is None
+    assert credit_usd_for_paid_session(
+        {"amount_total": True, "currency": "usd", "metadata": {"credit_usd": "5.00"}}
+    ) is None
+    assert credit_usd_for_paid_session(
+        {"amount_total": 2000.5, "currency": "usd", "metadata": {"credit_usd": "20.00"}}
+    ) is None
 
 
 async def test_spend_refused_when_billing_off_and_unbilled_false(monkeypatch):
@@ -408,7 +414,27 @@ _PAID_PIPELINE_FILES = (
     "src/marketer/adcreative/renderer.py",
     "src/marketer/ugc/render.py",
     "src/marketer/seoaudit/audit.py",
+    "src/marketer/services/spend_context.py",
+    "src/marketer/agents/metered.py",
 )
+
+
+async def test_default_context_refuses_unbilled_before_user_lookup(monkeypatch):
+    """In-process leftovers that skip named pipelines still hit default_context."""
+    from marketer.config import settings
+    from marketer.repos import users as users_repo
+    from marketer.repos.spend import SpendCapExceeded
+    from marketer.services.spend_context import default_context
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*_a, **_k):
+        raise AssertionError("default_context must not load a user after HTTP 402")
+
+    monkeypatch.setattr(users_repo, "get", explode)
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await default_context(user_id="user_a", niche_id=uuid4(), job_id=None)
 
 
 def test_paid_pipeline_entries_raise_if_unbilled():

@@ -22,6 +22,8 @@ def test_known_stripe_amounts_map_to_pack_credit():
     assert credit_usd_for_amount_cents(1) is None
     assert credit_usd_for_amount_cents("nope") is None
     assert credit_usd_for_amount_cents(None) is None
+    assert credit_usd_for_amount_cents(True) is None
+    assert credit_usd_for_amount_cents(2000.5) is None
 
 
 def test_paid_session_credits_from_amount_not_metadata():
