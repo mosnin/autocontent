@@ -215,7 +215,7 @@ def _stamp_checkout_session_on_payment_intent(
 
 
 def _checkout_session_id_from_retrieved_payment_intent(
-    payment_intent: str,
+    payment_intent: str, *, livemode: object
 ) -> str | None:
     """Read the session id stamped onto the PI at checkout time."""
     import stripe
@@ -230,7 +230,16 @@ def _checkout_session_id_from_retrieved_payment_intent(
             exc_info=True,
         )
         return None
-    meta = pi.get("metadata") if isinstance(pi, dict) else getattr(pi, "metadata", None)
+    if not isinstance(pi, dict):
+        pi = {
+            "metadata": getattr(pi, "metadata", None),
+            "livemode": getattr(pi, "livemode", None),
+        }
+    # Stripe always sends livemode. A retrieved PI that omits it, or
+    # contradicts the event, must not reverse a pack.
+    if not object_livemode_matches(pi, livemode):
+        return None
+    meta = pi.get("metadata")
     if meta is None:
         return None
     stamped = meta.get("checkout_session_id") if isinstance(meta, dict) else getattr(
@@ -289,14 +298,16 @@ def _checkout_session_id_for_refunded_charge(
     if stamped:
         return stamped
     pi = charge.get("payment_intent")
-    if isinstance(pi, dict):
+    if isinstance(pi, dict) and object_livemode_matches(pi, livemode):
         from_pi = checkout_session_id_from_refund_source(pi)
         if from_pi:
             return from_pi
     payment_intent = _payment_intent_id(charge)
     if not payment_intent or not settings.stripe_secret_key:
         return None
-    retrieved = _checkout_session_id_from_retrieved_payment_intent(payment_intent)
+    retrieved = _checkout_session_id_from_retrieved_payment_intent(
+        payment_intent, livemode=livemode
+    )
     if retrieved:
         return retrieved
     return _checkout_session_id_from_session_list(
@@ -396,11 +407,17 @@ async def stripe_webhook(request: Request) -> dict:
                 session.get("id"),
             )
             return {"ok": True}
-        if session.get("mode") not in {None, "payment"}:
+        if session.get("mode") != "payment":
             logger.warning(
                 "async payment failed session %s not reversed (mode=%s)",
                 session.get("id"),
                 session.get("mode"),
+            )
+            return {"ok": True}
+        if session.get("payment_status") == "paid":
+            logger.warning(
+                "async payment failed session %s not reversed (payment_status=paid)",
+                session.get("id"),
             )
             return {"ok": True}
         if session.get("currency") is not None and not charge_currency_is_usd(session):

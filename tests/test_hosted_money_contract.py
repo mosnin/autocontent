@@ -404,6 +404,8 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "_checkout_session_id_for_refunded_charge" in webhook
     assert "Session.list" in webhook
     assert 'first.get("mode") != "payment"' in webhook
+    assert 'session.get("mode") != "payment"' in webhook
+    assert 'session.get("payment_status") == "paid"' in webhook
     assert "charge_currency_is_usd(first)" in webhook
     assert "PaymentIntent.modify" in webhook
     assert "PaymentIntent.retrieve" in webhook
