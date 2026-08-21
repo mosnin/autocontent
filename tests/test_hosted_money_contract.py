@@ -297,6 +297,16 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Ads → Approvals" in ads
 
 
+def test_inline_paid_http_routes_refuse_unbilled():
+    """LLM/scrape/TTS routes that skip Modal still share the HTTP gate."""
+    from pathlib import Path
+
+    routes = Path(__file__).resolve().parent.parent / "backend" / "routes"
+    for name in ("articles.py", "personas.py", "seo_audits.py", "voices.py"):
+        source = (routes / name).read_text()
+        assert "refuse_unbilled_generate" in source, name
+
+
 def test_cron_generate_paths_refuse_unbilled_before_spawn():
     """Campaign / nightly crons bypass HTTP — they must share the gate."""
     from pathlib import Path
