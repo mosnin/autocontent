@@ -261,3 +261,81 @@ class TestMainDispatch:
         with pytest.raises(SystemExit) as exc_info:
             migrate_mod.main(["up"])
         assert exc_info.value.code == 1
+
+
+# ---------------------------------------------------------------------------
+# Empty / comment-only SQL (CI: "can't execute an empty query")
+# ---------------------------------------------------------------------------
+
+
+class TestEmptySqlSkip:
+    def test_comment_only_is_empty(self):
+        import scripts.migrate as migrate_mod  # noqa: PLC0415
+
+        assert migrate_mod._is_empty_sql("-- just a note")
+        assert migrate_mod._is_empty_sql(";\n")
+        assert migrate_mod._is_empty_sql("   ")
+        assert migrate_mod._is_empty_sql(None)
+
+    def test_real_ddl_is_not_empty(self):
+        import scripts.migrate as migrate_mod  # noqa: PLC0415
+
+        assert not migrate_mod._is_empty_sql(
+            "alter type job_status add value if not exists 'skipped';"
+        )
+        assert not migrate_mod._is_empty_sql("select 1")
+
+    def test_0031_trailing_note_is_the_empty_query_ci_hit(self):
+        """yoyo splits 0031's trailing NOTE into its own apply statement.
+
+        That fragment is why CI `migrate.py up` exited 1 with
+        ``can't execute an empty query`` — Postgres rejects comment-only
+        SQL. The runner must classify it as empty so apply can skip it.
+        """
+        from yoyo.migrations import read_sql_migration  # noqa: PLC0415
+
+        import scripts.migrate as migrate_mod  # noqa: PLC0415
+
+        path = (
+            migrate_mod.MIGRATIONS_DIR / "0031_scheduled_posts.sql"
+        )
+        _, _, statements = read_sql_migration(str(path))
+        empties = [s for s in statements if migrate_mod._is_empty_sql(s)]
+        assert empties, (
+            "0031 must still end with a comment-only statement — if the "
+            "file was rewritten, keep this test pointed at whatever "
+            "comment-only apply fragment remains, or delete it"
+        )
+        assert any("deliberately NO" in s for s in empties)
+
+    def test_every_apply_statement_is_executable_or_empty(self):
+        """No forward file may produce an apply fragment we neither
+        execute nor skip. Catches a future `;` / comment split before CI
+        Postgres does."""
+        from yoyo.migrations import read_sql_migration  # noqa: PLC0415
+
+        import scripts.migrate as migrate_mod  # noqa: PLC0415
+
+        for path in sorted(migrate_mod.MIGRATIONS_DIR.glob("*.sql")):
+            if path.name.endswith(".rollback.sql"):
+                continue
+            _, _, statements = read_sql_migration(str(path))
+            assert statements, f"{path.name} has no apply SQL"
+            for stmt in statements:
+                # Either real SQL (must be sent) or empty (must be skipped).
+                # The predicate is total — this just forces the helper to
+                # run on every live fragment so a parse crash fails here.
+                migrate_mod._is_empty_sql(stmt)
+
+    def test_execute_skips_empty_and_runs_real_sql(self):
+        from yoyo.migrations import MigrationStep  # noqa: PLC0415
+
+        import scripts.migrate as migrate_mod  # noqa: PLC0415
+
+        migrate_mod._install_empty_sql_skip()
+        step = MigrationStep(0, "select 1", None)
+        cursor = MagicMock()
+        step._execute(cursor, "-- Intentionally empty: cannot drop enum value.")
+        cursor.execute.assert_not_called()
+        step._execute(cursor, "select 1")
+        cursor.execute.assert_called_once_with("select 1")

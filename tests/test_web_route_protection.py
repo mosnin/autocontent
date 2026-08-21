@@ -92,3 +92,26 @@ def test_matcher_and_protection_share_one_source() -> None:
         "config.matcher's app-group pattern has drifted from APP_SEGMENTS; "
         f"it must contain exactly {expected}"
     )
+
+
+@pytest.mark.skipif(not _MIDDLEWARE.is_file(), reason="web middleware not present")
+def test_signed_out_app_routes_go_to_sign_in_not_not_found() -> None:
+    """Logged-out /dashboard must challenge at /sign-in.
+
+    Production reproduced this as HTTP 404 with
+    ``x-clerk-auth-reason: protect-rewrite`` and
+    ``x-matched-path: /_not-found``. Clerk does that rewrite when
+    ``auth.protect()`` has no sign-in URL. The marketing 404 is the
+    wrong page; the SignIn route already exists and returns 200.
+    """
+    source = _MIDDLEWARE.read_text()
+    assert "signInUrl: SIGN_IN_URL" in source or 'signInUrl: "/sign-in"' in source, (
+        "clerkMiddleware must be given signInUrl=/sign-in; without it "
+        "protect() rewrites signed-out app routes to /_not-found"
+    )
+    assert 'SIGN_IN_URL = "/sign-in"' in source or 'unauthenticatedUrl' in source
+    assert "unauthenticatedUrl" in source, (
+        "auth.protect() must pass unauthenticatedUrl so a missing env "
+        "var cannot fall back to the 404 rewrite"
+    )
+    assert "/sign-in" in source

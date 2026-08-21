@@ -141,6 +141,8 @@ Environment variables (Production and Preview both):
 ```
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = pk_...
 CLERK_SECRET_KEY                  = sk_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL     = /sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL     = /sign-up
 NEXT_PUBLIC_API_BASE_URL          = https://<workspace>--marketer-sh-api.modal.run
 NEXT_PUBLIC_SITE_URL              = https://<your-domain>
 ```

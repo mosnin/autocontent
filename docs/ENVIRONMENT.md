@@ -83,6 +83,8 @@ Set in `web/.env.local` locally, or the Vercel project env.
 |---|---|---|
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `@clerk/nextjs` | Needed at **build** time, not just runtime |
 | `CLERK_SECRET_KEY` | `middleware.ts` | Without it every protected route 500s |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `middleware.ts` / Clerk | `/sign-in`. Unset, `auth.protect()` rewrites to `/_not-found` (logged-out `/dashboard` 404). Hardcoded in middleware too. |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | Clerk | `/sign-up` |
 | `NEXT_PUBLIC_API_BASE_URL` | `lib/api.ts`, `app/api/proxy/[...path]/route.ts` | Also re-exported in `next.config.js` |
 | `NEXT_PUBLIC_SITE_URL` | `app/robots.ts`, `app/sitemap.ts` | Canonical origin for SEO output |
 
