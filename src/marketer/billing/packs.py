@@ -133,6 +133,23 @@ def as_checkout_session_id(value: object) -> str | None:
     return sid
 
 
+def checkout_session_id_for_livemode(value: object, livemode: object) -> str | None:
+    """Checkout ids must match the event's livemode.
+
+    Live events credit/reverse only ``cs_live_…``. Test events must not
+    touch a live session id even when the event already passed the
+    secret-prefix livemode check.
+    """
+    sid = as_checkout_session_id(value)
+    if not sid:
+        return None
+    if livemode is True:
+        return sid if sid.startswith("cs_live_") else None
+    if livemode is False:
+        return None if sid.startswith("cs_live_") else sid
+    return None
+
+
 def ledger_purchase_reference(value: object) -> str | None:
     """Ids that may credit or reverse prepaid balance.
 

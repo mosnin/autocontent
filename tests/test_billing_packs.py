@@ -11,6 +11,7 @@ from marketer.billing.packs import (
     as_checkout_session_id,
     charge_currency_is_usd,
     charge_is_fully_refunded,
+    checkout_session_id_for_livemode,
     checkout_session_id_from_refund_source,
     credit_usd_for_amount_cents,
     credit_usd_for_paid_session,
@@ -140,6 +141,13 @@ def test_refund_source_resolves_stamped_session_only():
     assert charge_is_fully_refunded(
         {"refunded": False, "amount": 2000, "amount_refunded": 2000}
     ) is True
+    assert checkout_session_id_for_livemode("cs_test_123", False) == "cs_test_123"
+    assert checkout_session_id_for_livemode("cs_abc", False) == "cs_abc"
+    assert checkout_session_id_for_livemode("cs_live_abc", False) is None
+    assert checkout_session_id_for_livemode("cs_live_abc", True) == "cs_live_abc"
+    assert checkout_session_id_for_livemode("cs_test_123", True) is None
+    assert checkout_session_id_for_livemode("cs_abc", True) is None
+    assert checkout_session_id_for_livemode("cs_test_123", None) is None
     assert ledger_purchase_reference("cs_abc") == "cs_abc"
     assert ledger_purchase_reference("x402:0xtxhash") == "x402:0xtxhash"
     assert ledger_purchase_reference("x402:") is None

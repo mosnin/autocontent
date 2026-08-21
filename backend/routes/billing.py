@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from marketer.billing.packs import (
     PACKS,
     as_checkout_session_id,
+    checkout_session_id_for_livemode,
     charge_currency_is_usd,
     charge_is_fully_refunded,
     checkout_session_id_from_refund_source,
@@ -344,7 +345,9 @@ async def stripe_webhook(request: Request) -> dict:
         meta = session.get("metadata") or {}
         user_id = meta.get("user_id")
         credit = credit_usd_for_paid_session(session)
-        session_id = as_checkout_session_id(session.get("id"))
+        session_id = checkout_session_id_for_livemode(
+            session.get("id"), event.get("livemode")
+        )
         if user_id and credit is not None and session_id:
             await billing_repo.credit_purchase(
                 user_id=user_id,
@@ -368,7 +371,9 @@ async def stripe_webhook(request: Request) -> dict:
             )
     elif event["type"] == "checkout.session.async_payment_failed":
         session = event["data"]["object"]
-        session_id = as_checkout_session_id(session.get("id"))
+        session_id = checkout_session_id_for_livemode(
+            session.get("id"), event.get("livemode")
+        )
         user_id = (session.get("metadata") or {}).get("user_id")
         if not session_id:
             logger.warning(
@@ -413,7 +418,10 @@ async def stripe_webhook(request: Request) -> dict:
                 charge.get("currency"),
             )
             return {"ok": True}
-        session_id = _checkout_session_id_for_refunded_charge(charge)
+        session_id = checkout_session_id_for_livemode(
+            _checkout_session_id_for_refunded_charge(charge),
+            event.get("livemode"),
+        )
         if not session_id:
             logger.error(
                 "fully refunded charge %s has no checkout session "

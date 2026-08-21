@@ -18,7 +18,7 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
     <div className="space-y-10">
       <DashHeading
         as="h1"
-        sub="Create, manage, and scale paid campaigns across Google and Meta — driven by agents, governed by hard budget guardrails."
+        sub="Create and mark campaigns active across Google and Meta — driven by agents, governed by hard budget guardrails. Live on platform requires an external campaign id."
       >
         Draft and mark campaigns active
       </DashHeading>

@@ -390,6 +390,7 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "Active accounts" not in overview
     assert "draft, launch" not in overview
     assert "to market" not in overview
+    assert "scale paid campaigns" not in overview
     assert "Draft and mark campaigns active" in overview
     assert "external campaign id" in overview
     assert "Approved — spend guard is applying it" in approvals
@@ -405,6 +406,7 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     assert "PaymentIntent.retrieve" in webhook
     assert "charge_currency_is_usd" in webhook
     assert "as_checkout_session_id" in webhook
+    assert "checkout_session_id_for_livemode" in webhook
     assert "checkout_session_id" in webhook
     new_campaign = (
         repo / "web/app/(app)/ads/campaigns/new/NewCampaignClient.tsx"

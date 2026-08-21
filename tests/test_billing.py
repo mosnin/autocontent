@@ -470,6 +470,44 @@ def test_webhook_livemode_mismatch_credits_nothing(client, monkeypatch):
     assert resp.json() == {"ok": True}
 
 
+def test_webhook_live_session_id_on_test_event_credits_nothing(client, monkeypatch):
+    """livemode=false + sk_test_ still must not credit a cs_live_ id."""
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_live_on_test_event", livemode=False)
+    _patch_webhook(monkeypatch, event, secret_key="sk_test_x")
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit a live session id on a test event")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_test_session_id_on_live_event_credits_nothing(client, monkeypatch):
+    """livemode=true + sk_live_ still must not credit a cs_test_ id."""
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_test_on_live_event", livemode=True)
+    _patch_webhook(monkeypatch, event, secret_key="sk_live_x")
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit a test session id on a live event")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
 def test_webhook_subscription_mode_credits_nothing(client, monkeypatch):
     from marketer.repos import billing as billing_repo
 
@@ -563,6 +601,36 @@ def test_webhook_async_payment_failed_reverses_prior_credit(client, monkeypatch)
     assert reversed_sessions == ["cs_async_fail"]
 
 
+def test_webhook_async_payment_failed_live_id_on_test_event_does_not_reverse(
+    client, monkeypatch
+):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_async_fail_live",
+        "livemode": False,
+        "type": "checkout.session.async_payment_failed",
+        "data": {
+            "object": {
+                "id": "cs_live_async_fail",
+                "metadata": {"user_id": "user_a"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a live session id on a test event")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+
+
 def test_webhook_async_payment_failed_non_checkout_id_does_not_reverse(
     client, monkeypatch
 ):
@@ -646,6 +714,40 @@ def test_webhook_full_charge_refund_reverses_credit(client, monkeypatch):
     )
     assert resp.status_code == 200
     assert reversed_sessions == ["cs_refunded"]
+
+
+def test_webhook_full_refund_live_session_id_on_test_event_does_not_reverse(
+    client, monkeypatch
+):
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_live_id",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_live_id",
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "metadata": {"checkout_session_id": "cs_live_refund"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not reverse a live session id on a test refund")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
 
 
 def test_webhook_full_refund_resolves_session_from_payment_intent(client, monkeypatch):
