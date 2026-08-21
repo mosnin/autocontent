@@ -295,13 +295,18 @@ def _checkout_session_id_for_refunded_charge(
     session id. Prefer a stamp (charge metadata, then expanded PI
     metadata), then the retrieved PI, then Stripe's session list."""
     stamped = checkout_session_id_from_refund_source(charge)
-    if stamped:
-        return checkout_session_id_for_livemode(stamped, livemode)
+    matched = checkout_session_id_for_livemode(stamped, livemode) if stamped else None
+    if matched:
+        return matched
+    # A livemode-mismatched stamp must not block PI retrieve / Session.list.
     pi = charge.get("payment_intent")
     if isinstance(pi, dict) and object_livemode_matches(pi, livemode):
         from_pi = checkout_session_id_from_refund_source(pi)
-        if from_pi:
-            return checkout_session_id_for_livemode(from_pi, livemode)
+        matched = (
+            checkout_session_id_for_livemode(from_pi, livemode) if from_pi else None
+        )
+        if matched:
+            return matched
     payment_intent = _payment_intent_id(charge)
     if not payment_intent or not settings.stripe_secret_key:
         return None

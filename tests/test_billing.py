@@ -895,6 +895,204 @@ def test_webhook_full_refund_live_session_id_on_test_event_does_not_reverse(
     assert resp.status_code == 200
 
 
+def test_webhook_full_refund_mismatched_stamp_falls_through_to_list(
+    client, monkeypatch
+):
+    """A live stamp on a test charge must not hide the listed test session."""
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_stamp_fallthrough",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_stamp_fallthrough",
+                "livemode": False,
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_stamp_fallthrough",
+                "metadata": {"checkout_session_id": "cs_live_junk"},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"livemode": False, "metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {
+                "data": [
+                    {
+                        "id": "cs_from_fallthrough",
+                        "mode": "payment",
+                        "currency": "usd",
+                        "livemode": False,
+                    }
+                ]
+            }
+        ),
+    )
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("0.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_from_fallthrough"]
+
+
+def test_webhook_full_refund_expanded_pi_mismatched_stamp_falls_through_to_list(
+    client, monkeypatch
+):
+    """A live stamp on an expanded test PI must not hide the listed session."""
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_exp_stamp_fallthrough",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_exp_stamp_fallthrough",
+                "livemode": False,
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": {
+                    "id": "pi_exp_stamp_fallthrough",
+                    "livemode": False,
+                    "metadata": {"checkout_session_id": "cs_live_exp_junk"},
+                },
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(lambda *_a, **_k: {"livemode": False, "metadata": {}}),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {
+                "data": [
+                    {
+                        "id": "cs_from_exp_fallthrough",
+                        "mode": "payment",
+                        "currency": "usd",
+                        "livemode": False,
+                    }
+                ]
+            }
+        ),
+    )
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("0.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_from_exp_fallthrough"]
+
+
+def test_webhook_full_refund_retrieved_pi_mismatched_stamp_falls_through_to_list(
+    client, monkeypatch
+):
+    """A live stamp on a retrieved test PI must not hide the listed session."""
+    import stripe as stripe_mod
+
+    from marketer.repos import billing as billing_repo
+
+    event = {
+        "id": "evt_refund_pi_stamp_fallthrough",
+        "livemode": False,
+        "type": "charge.refunded",
+        "data": {
+            "object": {
+                "id": "ch_pi_stamp_fallthrough",
+                "livemode": False,
+                "refunded": True,
+                "amount": 2000,
+                "amount_refunded": 2000,
+                "currency": "usd",
+                "payment_intent": "pi_stamp_fallthrough_retrieve",
+                "metadata": {},
+            }
+        },
+    }
+    _patch_webhook(monkeypatch, event)
+    monkeypatch.setattr(
+        stripe_mod.PaymentIntent,
+        "retrieve",
+        staticmethod(
+            lambda *_a, **_k: {
+                "livemode": False,
+                "metadata": {"checkout_session_id": "cs_live_pi_junk"},
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "list",
+        staticmethod(
+            lambda **kw: {
+                "data": [
+                    {
+                        "id": "cs_from_pi_fallthrough",
+                        "mode": "payment",
+                        "currency": "usd",
+                        "livemode": False,
+                    }
+                ]
+            }
+        ),
+    )
+    reversed_sessions: list[str] = []
+
+    async def fake_reverse(*, checkout_session_id, description):
+        reversed_sessions.append(checkout_session_id)
+        return Decimal("0.00")
+
+    monkeypatch.setattr(billing_repo, "reverse_purchase", fake_reverse)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert reversed_sessions == ["cs_from_pi_fallthrough"]
+
+
 def test_webhook_full_refund_resolves_session_from_payment_intent(client, monkeypatch):
     """Production charges do not carry checkout_session_id — look it up."""
     import stripe as stripe_mod
