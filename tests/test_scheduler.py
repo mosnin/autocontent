@@ -93,6 +93,7 @@ async def test_schedule_post_uploads_then_schedules(
         platform="reels",
         scheduled_for=datetime(2026, 5, 17, 16, 0, tzinfo=timezone.utc),
         user_id="user_abc",
+        idempotency_key="job:abc",
     )
 
     assert post_id == POST_ID
@@ -105,6 +106,7 @@ async def test_schedule_post_uploads_then_schedules(
     assert body["mediaUrls"] == [UPLOAD_URL]
     assert body["platforms"] == ["instagram"]  # "reels" -> "instagram"
     assert body["scheduleDate"] == "2026-05-17T16:00:00Z"
+    assert body["idempotencyKey"] == "job:abc"
     assert "duck explains macro" in body["post"]
     assert "#econ" in body["post"] and "#fed" in body["post"]
 
@@ -178,3 +180,66 @@ def test_format_caption_appends_hashtags():
     assert "#econ" in out and "#fed" in out
     # Hashtag with leading # isn't double-prefixed
     assert "##fed" not in out
+
+
+def _make_error_transport(*, status_code: int, payload: dict) -> httpx.MockTransport:
+    def handler(request: httpx.Request) -> httpx.Response:
+        path = request.url.path
+        if request.method == "POST" and path.endswith("/media/upload"):
+            return httpx.Response(200, json={
+                "id": "upload-1",
+                "url": UPLOAD_URL,
+                "fileName": "final.mp4",
+            })
+        if request.method == "POST" and path.endswith("/post"):
+            return httpx.Response(status_code, json=payload)
+        return httpx.Response(404, json={"error": f"unhandled {request.method} {path}"})
+
+    return httpx.MockTransport(handler)
+
+
+async def test_duplicate_idempotency_key_surfaces_existing_id(
+    tmp_path: Path, patch_async_client, stub_user_lookup
+):
+    """Timeout-after-accept retry: Ayrshare already stored the key.
+    We must not treat that as a fresh failure that would rotate the key
+    and create a second social post."""
+    video = tmp_path / "final.mp4"
+    video.write_bytes(b"\x00" * 1024)
+    patch_async_client(_make_error_transport(
+        status_code=400,
+        payload={
+            "status": "error",
+            "code": 400,
+            "message": "Duplicate idempotency key found",
+            "id": POST_ID,
+        },
+    ))
+
+    with pytest.raises(scheduler.AyrshareDuplicate) as excinfo:
+        await scheduler.schedule_post(
+            video_path=video, caption="x", hashtags=[], platform="tiktok",
+            scheduled_for=datetime(2026, 5, 17, tzinfo=timezone.utc),
+            user_id="user_abc", idempotency_key="job:abc",
+        )
+    assert excinfo.value.post_id == POST_ID
+
+
+async def test_client_error_is_rejected_not_transport(
+    tmp_path: Path, patch_async_client, stub_user_lookup
+):
+    """A 4xx that is not a duplicate must be AyrshareRejected so the
+    caller rotates the idempotency key and a later retry can succeed."""
+    video = tmp_path / "final.mp4"
+    video.write_bytes(b"\x00" * 1024)
+    patch_async_client(_make_error_transport(
+        status_code=400,
+        payload={"status": "error", "message": "media URL is not reachable"},
+    ))
+
+    with pytest.raises(scheduler.AyrshareRejected, match="rejected"):
+        await scheduler.schedule_post(
+            video_path=video, caption="x", hashtags=[], platform="tiktok",
+            scheduled_for=datetime(2026, 5, 17, tzinfo=timezone.utc),
+            user_id="user_abc", idempotency_key="job:abc",
+        )

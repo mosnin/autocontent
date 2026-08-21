@@ -204,7 +204,8 @@ def stub_no_music(monkeypatch, tmp_path: Path, passing_render_qa):
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)
 
     async def fake_schedule_post(*, video_path, caption, hashtags, platform,
-                                 scheduled_for, profile_key, user_id):
+                                 scheduled_for, profile_key, user_id,
+                                 idempotency_key=None):
         return "post-id-no-music"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
 

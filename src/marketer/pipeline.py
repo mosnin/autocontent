@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterator
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from opentelemetry import trace
 
@@ -844,6 +844,16 @@ async def _run_job_inner(
     return await _schedule_stage(job, niche)
 
 
+def _rotate_publish_key(job: Job) -> None:
+    """Mint a new Ayrshare idempotency key after a definitive rejection.
+
+    Ayrshare stores the key even when the post errors, so retrying the
+    same key can never succeed. Timeouts must NOT call this — they
+    reuse the key so a lost 200 cannot become a second social post.
+    """
+    job.publish_idempotency_key = f"job:{job.id}:{uuid4().hex[:8]}"
+
+
 async def _schedule_stage(job: Job, niche: Niche) -> Job:
     """Upload + schedule the rendered video, then mark the job done.
 
@@ -852,17 +862,31 @@ async def _schedule_stage(job: Job, niche: Niche) -> Job:
     assert job.rendered is not None and job.script is not None
     with _stage(JobStatus.scheduling.value):
         job.status = JobStatus.scheduling
+        # Persist the idempotency key BEFORE the network call so a
+        # timeout-after-accept retry (reap + user retry, Modal replay)
+        # sends the same Ayrshare key and cannot double-post.
+        if not job.publish_idempotency_key:
+            job.publish_idempotency_key = f"job:{job.id}"
         await _persist(job)
         when = _next_posting_slot(niche)
-        post_id = await scheduler.schedule_post(
-            video_path=Path(job.rendered.path),
-            caption=job.script.idea.hook,
-            hashtags=niche.hashtags,
-            platform=job.platform,
-            scheduled_for=when,
-            profile_key=None,  # resolved inside scheduler from user_id
-            user_id=job.user_id,
-        )
+        try:
+            post_id = await scheduler.schedule_post(
+                video_path=Path(job.rendered.path),
+                caption=job.script.idea.hook,
+                hashtags=niche.hashtags,
+                platform=job.platform,
+                scheduled_for=when,
+                profile_key=None,  # resolved inside scheduler from user_id
+                user_id=job.user_id,
+                idempotency_key=job.publish_idempotency_key,
+            )
+        except scheduler.AyrshareDuplicate as dup:
+            # Same key was already accepted — recover rather than
+            # rotating (which would create a second social post).
+            post_id = dup.post_id or f"idempotent:{job.publish_idempotency_key}"
+        except scheduler.AyrshareRejected:
+            _rotate_publish_key(job)
+            raise
         job.scheduled_for = when
         job.provider_post_id = post_id
         job.status = JobStatus.done

@@ -158,3 +158,94 @@ async def test_schedule_approved_job_rejects_wrong_status(monkeypatch):
 
     with pytest.raises(ValueError, match="not awaiting_approval"):
         await pipeline.schedule_approved_job(user_id="user_a", job_id=job.id)
+
+
+def _schedulable_job() -> Job:
+    from marketer.models import Idea, RenderedVideo, Scene, Script
+
+    job = _job(status=JobStatus.scheduling)
+    job.script = Script(
+        idea=Idea(
+            topic="t", angle="a", hook="hook",
+            target_audience="x", why_it_works="y",
+        ),
+        scenes=[Scene(index=0, narration="n", visual_prompt="v",
+                      motion_prompt="m", duration_sec=3)],
+        total_duration_sec=3,
+    )
+    job.rendered = RenderedVideo(path="/tmp/final.mp4", duration_sec=3)
+    return job
+
+
+async def test_schedule_stage_recovers_duplicate_instead_of_reposting(monkeypatch):
+    """Timeout-after-accept: Ayrshare already has the key. Recover the
+    existing post id — do not rotate and do not call /post again."""
+    from marketer import pipeline
+    from marketer.services.scheduler import AyrshareDuplicate
+
+    job = _schedulable_job()
+    niche = _niche(approve=False)
+    saved: list[Job] = []
+
+    async def fake_get(job_id, *, user_id):
+        return job
+
+    async def fake_niche(nid, *, user_id):
+        return niche
+
+    async def fake_persist(j):
+        saved.append(j.model_copy(deep=True))
+
+    async def fake_schedule_post(**kwargs):
+        assert kwargs["idempotency_key"] == f"job:{job.id}"
+        raise AyrshareDuplicate("duplicate idempotency key", post_id="ayr-existing")
+
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_get)
+    monkeypatch.setattr(pipeline.niches_repo, "get", fake_niche)
+    monkeypatch.setattr(pipeline, "_persist", fake_persist)
+    monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
+    async def fake_notify(*a, **k):
+        return None
+
+    async def fake_emit(*a, **k):
+        return None
+
+    monkeypatch.setattr(pipeline, "_notify", fake_notify)
+    monkeypatch.setattr(pipeline, "_emit_webhook", fake_emit)
+
+    result = await pipeline.schedule_approved_job(user_id="user_a", job_id=job.id)
+    assert result.status == JobStatus.done
+    assert result.provider_post_id == "ayr-existing"
+    assert result.publish_idempotency_key == f"job:{job.id}"
+
+
+async def test_schedule_stage_rotates_key_on_rejection(monkeypatch):
+    """A definitive 4xx must rotate the key so a later retry can post."""
+    from marketer import pipeline
+    from marketer.services.scheduler import AyrshareRejected
+
+    job = _schedulable_job()
+    niche = _niche(approve=False)
+
+    async def fake_get(job_id, *, user_id):
+        return job
+
+    async def fake_niche(nid, *, user_id):
+        return niche
+
+    async def fake_persist(j):
+        return None
+
+    async def fake_schedule_post(**kwargs):
+        raise AyrshareRejected("media URL is not reachable")
+
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_get)
+    monkeypatch.setattr(pipeline.niches_repo, "get", fake_niche)
+    monkeypatch.setattr(pipeline, "_persist", fake_persist)
+    monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
+
+    result = await pipeline.schedule_approved_job(user_id="user_a", job_id=job.id)
+    assert result.status == JobStatus.failed
+    assert result.publish_idempotency_key is not None
+    assert result.publish_idempotency_key != f"job:{job.id}"
+    assert result.publish_idempotency_key.startswith(f"job:{job.id}:")

@@ -380,12 +380,16 @@ async def test_schedule_image_post_failure_marks_failed(monkeypatch):
     async def fake_set_status(p, *, user_id, status):
         return {"status": status}
 
+    async def fake_save_payload(p, *, user_id, payload):
+        return {"payload": payload}
+
     async def fake_fail(p, *, user_id, error):
         state["failed"] = error
         return {"status": "failed", "error": error}
 
     monkeypatch.setattr(repo, "get", fake_get)
     monkeypatch.setattr(repo, "set_status", fake_set_status)
+    monkeypatch.setattr(repo, "save_payload", fake_save_payload)
     monkeypatch.setattr(repo, "fail", fake_fail)
     monkeypatch.setattr(niches_repo, "get", fake_niche)
 

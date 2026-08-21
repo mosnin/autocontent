@@ -290,7 +290,8 @@ def stub_env(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline.video_qa, "check_render", fake_check_render)
 
     async def fake_schedule_post(*, video_path, caption, hashtags, platform,
-                                 scheduled_for, profile_key, user_id):
+                                 scheduled_for, profile_key, user_id,
+                                 idempotency_key=None):
         return "post-id-resume-hardening"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
 

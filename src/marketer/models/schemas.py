@@ -180,6 +180,11 @@ class Job(BaseModel):
     rendered: RenderedVideo | None = None
     scheduled_for: datetime | None = None
     provider_post_id: str | None = None
+    # Stable Ayrshare idempotencyKey for this publish attempt. Persisted
+    # BEFORE the /post call so a timeout-after-accept retry reuses it
+    # instead of creating a second social post. Rotated only on a
+    # definitive Ayrshare 4xx that is not a duplicate-key error.
+    publish_idempotency_key: str | None = None
     error: str | None = None
 
 

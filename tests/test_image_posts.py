@@ -145,6 +145,12 @@ async def test_carousel_flow_slide1_is_reference_and_posts(env):
     assert len(env["posted"]["image_paths"]) == 3
     assert env["posted"]["caption"].startswith("Hook line")
     assert "planning" in env["statuses"] and "generating" in env["statuses"]
+    # Must use the niche posting window, not datetime.now() — Ayrshare
+    # publishes immediately when scheduleDate is in the past.
+    when = env["posted"]["scheduled_for"]
+    assert when.tzinfo is not None
+    assert when.hour == 9 and when.minute == 0
+    assert env["posted"]["idempotency_key"] == f"image:{POST_ID}"
 
 
 async def test_approval_gate_parks_image_post(env):
@@ -168,6 +174,40 @@ async def test_generation_failure_is_terminal_not_zombie(env, monkeypatch):
     )
     assert result["status"] == "failed"
     assert "image provider down" in result["error"]
+
+
+async def test_schedule_skips_already_published(env):
+    """A second finish_image_post / Modal replay must not hit Ayrshare."""
+    env["post"]["status"] = "done"
+    env["post"]["provider_post_id"] = "ayr-already"
+    env["post"]["payload"] = {
+        "slides": [{"index": 0, "path": "/tmp/s.png"}],
+        "caption": "c",
+        "hashtags": [],
+    }
+    result = await svc.schedule_image_post(
+        user_id=USER, image_post_id=POST_ID, apply_schedule=env["poster"],
+    )
+    assert result["status"] == "done"
+    assert result["provider_post_id"] == "ayr-already"
+    assert env["posted"] is None
+
+
+async def test_schedule_fails_closed_without_image_platform(env):
+    """Do not fail-open to Instagram Reels when the niche cannot take stills."""
+    env["niche"] = _niche(platforms=["shorts"])
+    env["post"]["payload"] = {
+        "slides": [{"index": 0, "path": "/tmp/s.png"}],
+        "caption": "c",
+        "hashtags": [],
+        "platform": "shorts",
+    }
+    result = await svc.schedule_image_post(
+        user_id=USER, image_post_id=POST_ID, apply_schedule=env["poster"],
+    )
+    assert result["status"] == "failed"
+    assert "image-capable" in result["error"]
+    assert env["posted"] is None
 
 
 # --------------------------------------------------------------------------- remix
