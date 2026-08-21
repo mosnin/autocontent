@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from fastapi import HTTPException, status
 
-from marketer.config import settings
+from marketer.billing.gates import unbilled_generate_blocked
 
 
 def refuse_unbilled_generate() -> None:
-    if not settings.billing_enabled and not settings.allow_unbilled_usage:
+    if unbilled_generate_blocked():
         raise HTTPException(
             status.HTTP_402_PAYMENT_REQUIRED,
             detail="unbilled usage is disabled on this deployment",

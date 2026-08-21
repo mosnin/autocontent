@@ -27,6 +27,7 @@ def test_known_stripe_amounts_map_to_pack_credit():
 def test_paid_session_credits_from_amount_not_metadata():
     session = {
         "amount_total": 500,
+        "currency": "usd",
         "metadata": {"user_id": "user_a", "credit_usd": "5.00"},
     }
     assert credit_usd_for_paid_session(session) == Decimal("5.00")
@@ -36,6 +37,7 @@ def test_inflated_metadata_is_refused():
     """$5 collected + metadata claiming $50 must not grant $50."""
     session = {
         "amount_total": 500,
+        "currency": "usd",
         "metadata": {"user_id": "user_a", "credit_usd": "50.00"},
     }
     assert credit_usd_for_paid_session(session) is None
@@ -44,7 +46,17 @@ def test_inflated_metadata_is_refused():
 def test_unknown_amount_is_refused():
     session = {
         "amount_total": 9999,
+        "currency": "usd",
         "metadata": {"user_id": "user_a", "credit_usd": "5.00"},
+    }
+    assert credit_usd_for_paid_session(session) is None
+
+
+def test_non_usd_currency_is_refused():
+    session = {
+        "amount_total": 2000,
+        "currency": "eur",
+        "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
     }
     assert credit_usd_for_paid_session(session) is None
 

@@ -104,6 +104,7 @@ async def repurpose_to_social(
     """Repurpose a finished article into platform-native social posts. One
     metered LLM call (charged to the article's niche daily cap). The article
     must be done and have content."""
+    refuse_unbilled_generate()
     from marketer.articles import llm
     from marketer.articles.models import ArticleStatus
     from marketer.repos import niches as niches_repo

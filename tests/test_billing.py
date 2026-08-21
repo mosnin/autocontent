@@ -247,6 +247,7 @@ def test_webhook_refuses_inflated_credit_metadata(client, monkeypatch):
                 "id": "cs_inflated",
                 "payment_status": "paid",
                 "amount_total": 500,
+                "currency": "usd",
                 "metadata": {"user_id": "user_a", "credit_usd": "50.00"},
             }
         },
@@ -283,6 +284,7 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
                 "id": "cs_test_123",
                 "payment_status": "paid",
                 "amount_total": 2000,
+                "currency": "usd",
                 "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
             }
         },
@@ -323,6 +325,7 @@ def test_webhook_replay_same_session_credits_once(client, monkeypatch):
                 "id": "cs_replay",
                 "payment_status": "paid",
                 "amount_total": 2000,
+                "currency": "usd",
                 "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
             }
         },
@@ -350,6 +353,43 @@ def test_webhook_replay_same_session_credits_once(client, monkeypatch):
     assert second.status_code == 200
     assert applied == [Decimal("20.00")]
     assert seen == {"cs_replay"}
+
+
+def test_webhook_non_usd_currency_credits_nothing(client, monkeypatch):
+    """A matching cent amount in JPY must not grant the USD pack."""
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+    event = {
+        "type": "checkout.session.completed",
+        "data": {
+            "object": {
+                "id": "cs_jpy",
+                "payment_status": "paid",
+                "amount_total": 2000,
+                "currency": "jpy",
+                "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+            }
+        },
+    }
+    monkeypatch.setattr(
+        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
+    )
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit a non-USD session")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
 
 
 async def test_email_noop_without_key(monkeypatch):

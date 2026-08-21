@@ -96,6 +96,29 @@ def test_repurpose_409_when_not_done(monkeypatch):
     assert resp.status_code == 409
 
 
+def test_repurpose_refuses_when_unbilled_usage_disabled(monkeypatch):
+    """Social remix is a paid LLM call — 402 before the article is loaded."""
+    _reset_limiter()
+    from marketer.config import settings
+    import marketer.repos.articles as arepo
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    async def explode(*a, **k):
+        raise AssertionError("must not load the article when unbilled is refused")
+
+    monkeypatch.setattr(arepo, "get", explode)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/articles/{_AID}/social",
+        json={},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402
+    assert "unbilled" in resp.json()["detail"]
+
+
 def test_repurpose_402_on_cap(monkeypatch):
     _reset_limiter()
     import marketer.repos.articles as arepo

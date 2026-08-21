@@ -32,6 +32,7 @@ from marketer.repos import brand_kit as brand_kit_repo
 from marketer.repos import personas as repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 from ..rate_limit import limiter
 
 router = APIRouter()
@@ -156,6 +157,7 @@ async def lock_persona_visual(
     Locking is write-once: a second call gets 409 rather than quietly
     redrawing a face that published creative already depends on.
     """
+    refuse_unbilled_generate()
     persona = await _load(persona_id, ctx.user_id)
     if persona.visual_locked_at is not None:
         raise HTTPException(
@@ -244,6 +246,7 @@ async def post_persona_message(
     persisted only after the reply lands, so a cap refusal (402) leaves
     the thread exactly as it was.
     """
+    refuse_unbilled_generate()
     persona = await _load(persona_id, ctx.user_id)
     kit = await brand_kit_repo.get(ctx.user_id)
     history = await repo.list_messages(

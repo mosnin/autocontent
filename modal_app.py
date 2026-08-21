@@ -260,9 +260,13 @@ async def run_niche_window(
     a replacement for the advisory lock.
     """
     from uuid import UUID
+    from marketer.billing.gates import unbilled_generate_blocked
     from marketer.pipeline import run_job
     from marketer.services import idempotency
     from marketer.services.otel import force_flush
+
+    if unbilled_generate_blocked():
+        return [{"status": "skipped_unbilled", "niche_id": niche_id}]
 
     if window_bucket:
         guard_key = idempotency.niche_window_key(niche_id, window_bucket)
@@ -300,10 +304,14 @@ async def nightly_batch() -> dict:
     cron tick can't double-enqueue the same window.
     """
     from datetime import datetime, timedelta, timezone
+    from marketer.billing.gates import unbilled_generate_blocked
     from marketer.db import get_pool
     from marketer.repos import jobs as jobs_repo
     from marketer.repos import niches as niches_repo
     from marketer.services import idempotency
+
+    if unbilled_generate_blocked():
+        return {"spawned": 0, "skipped_active": 0, "skipped_unbilled": True}
 
     pool = await get_pool()
     rows = await pool.fetch("select id from users")

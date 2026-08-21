@@ -198,11 +198,12 @@ async def stripe_webhook(request: Request) -> dict:
             # this must never be silent.
             logger.error(
                 "paid checkout session %s not credited "
-                "(user_id=%s amount_total=%s metadata_credit=%s); "
+                "(user_id=%s amount_total=%s currency=%s metadata_credit=%s); "
                 "reconcile manually",
                 session.get("id"),
                 user_id,
                 session.get("amount_total"),
+                session.get("currency"),
                 meta.get("credit_usd"),
             )
     elif event["type"] == "checkout.session.async_payment_failed":

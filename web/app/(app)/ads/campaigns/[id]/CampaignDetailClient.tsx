@@ -56,7 +56,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     try {
       const res = await changeBudget(id, budget || "0");
       if (res.status === "pending_approval") {
-        toast.message("Budget change needs approval — sent to your inbox.");
+        toast.message("Budget change needs approval. Review it under Ads → Approvals.");
       } else {
         toast.success("Budget updated");
       }

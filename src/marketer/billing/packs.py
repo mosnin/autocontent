@@ -80,13 +80,25 @@ def credit_usd_for_known_balance(amount: object) -> Decimal | None:
     return value if value in known else None
 
 
+def _session_currency_is_usd(session: dict[str, Any]) -> bool:
+    """Checkout packs are USD-only. A matching cent amount in another
+    currency must not grant dollar credit (2000 JPY is not $20)."""
+    currency = session.get("currency")
+    if currency is None:
+        return False
+    return str(currency).strip().lower() == "usd"
+
+
 def credit_usd_for_paid_session(session: dict[str, Any]) -> Decimal | None:
     """Fail-closed credit for a paid Stripe Checkout session.
 
     Prefers the amount Stripe collected. Metadata ``credit_usd`` is a
     consistency check, not an authority: a mismatch credits nothing so
     an operator can reconcile, rather than granting unearned balance.
+    Currency must be USD — pack amounts are dollar cents.
     """
+    if not _session_currency_is_usd(session):
+        return None
     amount = session.get("amount_total")
     from_amount = (
         credit_usd_for_amount_cents(amount) if amount is not None else None

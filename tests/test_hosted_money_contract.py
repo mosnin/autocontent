@@ -21,6 +21,7 @@ from marketer.services.spend_context import SpendContext
 def test_webhook_credits_from_amount_total_only():
     session = {
         "amount_total": 2000,
+        "currency": "usd",
         "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
     }
     assert credit_usd_for_paid_session(session) == Decimal("20.00")
@@ -29,6 +30,7 @@ def test_webhook_credits_from_amount_total_only():
 def test_metadata_mismatch_credits_nothing():
     session = {
         "amount_total": 500,
+        "currency": "usd",
         "metadata": {"user_id": "user_a", "credit_usd": "50.00"},
     }
     assert credit_usd_for_paid_session(session) is None
@@ -37,11 +39,24 @@ def test_metadata_mismatch_credits_nothing():
 def test_unknown_or_missing_amount_credits_nothing():
     assert (
         credit_usd_for_paid_session(
-            {"amount_total": 9999, "metadata": {"credit_usd": "5.00"}}
+            {"amount_total": 9999, "currency": "usd", "metadata": {"credit_usd": "5.00"}}
         )
         is None
     )
     assert credit_usd_for_paid_session({"metadata": {"credit_usd": "20.00"}}) is None
+
+
+def test_non_usd_amount_total_credits_nothing():
+    """2000 JPY matching a pack's cent amount must not grant $20."""
+    session = {
+        "amount_total": 2000,
+        "currency": "jpy",
+        "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+    }
+    assert credit_usd_for_paid_session(session) is None
+    assert credit_usd_for_paid_session(
+        {"amount_total": 2000, "metadata": {"credit_usd": "20.00"}}
+    ) is None
 
 
 async def test_spend_refused_when_billing_off_and_unbilled_false(monkeypatch):
@@ -272,6 +287,23 @@ def test_settings_ui_does_not_claim_email_when_unconfigured():
     repo = Path(__file__).resolve().parent.parent
     shell = (repo / "web/app/(app)/settings/SettingsShell.tsx").read_text()
     form = (repo / "web/app/(app)/settings/NotificationsForm.tsx").read_text()
+    ads = (
+        repo / "web/app/(app)/ads/campaigns/[id]/CampaignDetailClient.tsx"
+    ).read_text()
     assert "Email delivery is not configured" in shell
     assert "will not send mail" in form
     assert "emailConfigured" in shell
+    assert "sent to your inbox" not in ads
+    assert "Ads → Approvals" in ads
+
+
+def test_cron_generate_paths_refuse_unbilled_before_spawn():
+    """Campaign / nightly crons bypass HTTP — they must share the gate."""
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent
+    modal = (repo / "modal_app.py").read_text()
+    runner = (repo / "src/marketer/services/campaign_runner.py").read_text()
+    assert "unbilled_generate_blocked" in runner
+    assert modal.count("unbilled_generate_blocked") >= 2
+    assert "skipped_unbilled" in modal

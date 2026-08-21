@@ -270,7 +270,11 @@ def test_connect_and_ads_ui_do_not_fake_online_when_unconfigured():
     connect = (repo / "web/app/(app)/connect/page.tsx").read_text()
     ads = (repo / "web/app/(app)/ads/AdsOverviewShell.tsx").read_text()
     dash = (repo / "web/app/(app)/dashboard/page.tsx").read_text()
+    detail = (
+        repo / "web/app/(app)/ads/campaigns/[id]/CampaignDetailClient.tsx"
+    ).read_text()
     assert "Publishing is not configured" in connect
     assert "Ads are not configured" in ads
     assert "configured === false" in dash
     assert 'enabled === false' in ads or "adsOff" in ads
+    assert "sent to your inbox" not in detail

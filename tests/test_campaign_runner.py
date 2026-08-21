@@ -66,9 +66,13 @@ def env(monkeypatch):
     async def fake_niche_get(nid, *, user_id):
         return state["niches"].get(nid)
 
+    async def fake_pending(cid, *, user_id):
+        return state.get("pending", 0)
+
     monkeypatch.setattr(campaigns_repo, "spent_usd", fake_spent)
     monkeypatch.setattr(campaigns_repo, "list_items", fake_items)
     monkeypatch.setattr(campaigns_repo, "work_counts", fake_counts)
+    monkeypatch.setattr(campaigns_repo, "pending_work_count", fake_pending)
     monkeypatch.setattr(campaigns_repo, "set_status", fake_status)
     monkeypatch.setattr(niches_repo, "get", fake_niche_get)
 
@@ -177,6 +181,29 @@ async def test_disabled_lane_skipped(env):
     )]
     await _tick(env)
     assert env["videos"] == []
+
+
+async def test_tick_skips_when_unbilled_usage_disabled(monkeypatch, env):
+    """Cron must not spawn paid work when billing is off and unbilled is refused."""
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    vid_niche = uuid4()
+    env["niches"][vid_niche] = _niche(vid_niche)
+    env["items"] = [
+        CampaignItem(
+            id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+            kind="video", ref_id=vid_niche, cadence_per_week=7,
+        ),
+    ]
+    result = await _tick(env)
+    assert result["action"] == "skipped"
+    assert "unbilled" in result["reason"]
+    assert env["videos"] == [] and env["articles"] == []
+    fleet = await campaign_runner.tick_all()
+    assert fleet["skipped_unbilled"] is True
+    assert fleet["campaigns"] == 0
 
 
 async def test_tick_all_contains_per_campaign_failures(monkeypatch, env):
