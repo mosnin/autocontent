@@ -160,3 +160,80 @@ def test_expected_issuer_none_when_undeterminable(monkeypatch):
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://proxy.example/keys")
     # Non-standard JWKS path → can't derive; issuer verification is skipped.
     assert auth._expected_issuer() is None
+
+
+async def test_jwt_decode_verifies_issuer_and_optional_audience(monkeypatch):
+    """Audience is optional config, but when set it must actually reach
+    jwt.decode — otherwise a token minted for another frontend on the
+    same Clerk instance is accepted. Issuer is always passed when known."""
+    from backend import auth
+    from marketer.config import settings
+    from marketer.models import User
+    from marketer.repos import users as users_repo
+
+    async def _upsert(uid: str, email: str):
+        return User(id=uid, email=email)
+
+    monkeypatch.setattr(users_repo, "upsert", _upsert)
+    monkeypatch.setattr(settings, "clerk_issuer", "https://issuer.example")
+    monkeypatch.setattr(settings, "clerk_audience", "marketer.sh")
+
+    class _FakeJWKS:
+        def get_signing_key_from_jwt(self, token):
+            class K:
+                key = "fake"
+            return K()
+
+    seen: dict = {}
+
+    def _decode(*_a, **kw):
+        seen.update(kw)
+        return {"sub": "user_jwt", "email": "e@x"}
+
+    import jwt as pyjwt
+
+    monkeypatch.setattr(auth, "_jwks", lambda: _FakeJWKS())
+    monkeypatch.setattr(pyjwt, "decode", _decode)
+
+    ctx = await auth.require_user(_FakeRequest("Bearer eyJsomejwt"))
+    assert ctx.user_id == "user_jwt"
+    assert seen["issuer"] == "https://issuer.example"
+    assert seen["audience"] == "marketer.sh"
+    assert seen["options"]["verify_iss"] is True
+    assert seen["options"]["verify_aud"] is True
+
+
+async def test_jwt_skips_audience_when_unconfigured(monkeypatch):
+    from backend import auth
+    from marketer.config import settings
+    from marketer.models import User
+    from marketer.repos import users as users_repo
+
+    async def _upsert(uid: str, email: str):
+        return User(id=uid, email=email)
+
+    monkeypatch.setattr(users_repo, "upsert", _upsert)
+    monkeypatch.setattr(settings, "clerk_issuer", "https://issuer.example")
+    monkeypatch.setattr(settings, "clerk_audience", "")
+
+    class _FakeJWKS:
+        def get_signing_key_from_jwt(self, token):
+            class K:
+                key = "fake"
+            return K()
+
+    seen: dict = {}
+
+    def _decode(*_a, **kw):
+        seen.update(kw)
+        return {"sub": "user_jwt", "email": "e@x"}
+
+    import jwt as pyjwt
+
+    monkeypatch.setattr(auth, "_jwks", lambda: _FakeJWKS())
+    monkeypatch.setattr(pyjwt, "decode", _decode)
+
+    await auth.require_user(_FakeRequest("Bearer eyJsomejwt"))
+    assert seen["audience"] is None
+    assert seen["options"]["verify_aud"] is False
+    assert seen["options"]["verify_iss"] is True

@@ -63,9 +63,13 @@ def test_ssrf_blocks_loopback_and_metadata():
         "https://169.254.169.254/latest/meta-data",  # cloud metadata
         "https://10.0.0.5/x",
         "https://192.168.1.1/x",
+        "https://0.0.0.0/x",          # unspecified
+        "https://224.0.0.1/x",        # multicast
         "https://metadata.google.internal/x",
+        "https://metadata.goog/x",
         "http://example.com/x",  # not https
         "https://[::1]/x",       # ipv6 loopback
+        "https:///no-host",
     ):
         ok, reason = ssrf.check_public_url(bad)
         assert ok is False, f"{bad} should be blocked"
@@ -77,6 +81,70 @@ def test_ssrf_allows_public_ip_literal():
 
     ok, _ = ssrf.check_public_url("https://8.8.8.8/hook")
     assert ok is True
+
+
+def test_ssrf_blocks_hostname_that_resolves_private(monkeypatch):
+    """DNS rebinding defense: a public-looking host that resolves to a
+    loopback/RFC1918 address must be rejected. Delivery re-runs this
+    check so a host that was public at registration cannot later point
+    at metadata."""
+    import socket
+
+    from marketer.services import ssrf
+
+    def _private(_host, port, *a, **k):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port or 443))]
+
+    monkeypatch.setattr(ssrf.socket, "getaddrinfo", _private)
+    ok, reason = ssrf.check_public_url("https://evil.example/hook")
+    assert ok is False
+    assert "non-public" in reason
+
+
+def test_ssrf_blocks_if_any_resolved_address_is_private(monkeypatch):
+    import socket
+
+    from marketer.services import ssrf
+
+    def _mixed(_host, port, *a, **k):
+        p = port or 443
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", p)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.1.2.3", p)),
+        ]
+
+    monkeypatch.setattr(ssrf.socket, "getaddrinfo", _mixed)
+    ok, reason = ssrf.check_public_url("https://dual.example/hook")
+    assert ok is False
+    assert "10.1.2.3" in reason
+
+
+def test_ssrf_allows_hostname_that_resolves_public(monkeypatch):
+    import socket
+
+    from marketer.services import ssrf
+
+    def _public(_host, port, *a, **k):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", port or 443))]
+
+    monkeypatch.setattr(ssrf.socket, "getaddrinfo", _public)
+    ok, reason = ssrf.check_public_url("https://hooks.example/x")
+    assert ok is True
+    assert reason == ""
+
+
+def test_ssrf_unresolvable_host_is_blocked(monkeypatch):
+    import socket
+
+    from marketer.services import ssrf
+
+    def _nx(_host, port, *a, **k):
+        raise socket.gaierror(socket.EAI_NONAME, "Name or service not known")
+
+    monkeypatch.setattr(ssrf.socket, "getaddrinfo", _nx)
+    ok, reason = ssrf.check_public_url("https://no-such.example/x")
+    assert ok is False
+    assert "does not resolve" in reason
 
 
 # --------------------------------------------------------------------------- admin audit

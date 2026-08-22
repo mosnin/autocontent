@@ -53,6 +53,35 @@ async def test_deliver_one_signs_and_posts(monkeypatch):
     assert captured["headers"]["x-marketer-event"] == "job.done"
 
 
+async def test_deliver_one_does_not_post_when_ssrf_blocks(monkeypatch):
+    """A URL that later resolves internally (DNS rebinding) must never
+    receive the signed payload — fail closed on the HTTP call, fail open
+    for the pipeline (None status, no exception)."""
+    posted: list[str] = []
+
+    class _Client:
+        def __init__(self, *a, **k): ...
+        async def __aenter__(self):
+            return self
+        async def __aexit__(self, *a):
+            return False
+        async def post(self, url, *, content, headers):
+            posted.append(url)
+            raise AssertionError("must not POST a signed webhook to a blocked host")
+
+    monkeypatch.setattr(webhook_delivery.httpx, "AsyncClient", _Client)
+    monkeypatch.setattr(
+        "marketer.services.ssrf.check_public_url",
+        lambda url: (False, "host resolves to a non-public address (127.0.0.1)"),
+    )
+    code = await webhook_delivery.deliver_one(
+        "https://rebinder.example/x", "whsec_abc",
+        event="job.done", payload={"job_id": "j1"}, timestamp=111,
+    )
+    assert code is None
+    assert posted == []
+
+
 async def test_emit_is_fail_open_when_deliver_raises(monkeypatch):
     """A raising deliver_one (any error) must not escape emit — the pipeline
     that calls emit must never see a webhook failure."""
