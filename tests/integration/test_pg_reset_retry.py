@@ -197,3 +197,68 @@ async def test_reject_is_atomic_vs_concurrent(pool):
     jid2 = await _mk_awaiting_job(pool, uid, niche_id)
     await pool.execute("update jobs set status='scheduling' where id=$1", jid2)
     assert await jobs_repo.claim_for_rejection(jid2, user_id=uid) is None
+
+
+async def test_has_active_for_niche_blocks_old_awaiting_approval(pool):
+    """Parked approval jobs must keep the batch cron from re-spawning,
+    even after the 45-minute overlapping-tick window has elapsed."""
+    from marketer.repos import jobs as jobs_repo
+
+    uid = await _mkuser(pool)
+    niche_id = await _mkniche(pool, uid)
+    other = await _mkniche(pool, uid)
+
+    assert await jobs_repo.has_active_for_niche(niche_id) is False
+
+    jid = await _mk_awaiting_job(pool, uid, niche_id)
+    await pool.execute(
+        "update jobs set created_at = now() - interval '2 days' where id = $1",
+        jid,
+    )
+    assert await jobs_repo.has_active_for_niche(niche_id, within_minutes=45) is True
+    # Other niches stay free.
+    assert await jobs_repo.has_active_for_niche(other, within_minutes=45) is False
+
+    # Rejecting (or otherwise leaving awaiting_approval) unblocks the niche.
+    claimed = await jobs_repo.claim_for_rejection(jid, user_id=uid)
+    assert claimed is not None
+    assert await jobs_repo.has_active_for_niche(niche_id, within_minutes=45) is False
+
+
+async def test_has_active_for_niche_recent_inflight_still_counts(pool):
+    """Overlapping-cron semantics: a fresh in-flight job still blocks;
+    an old done job does not."""
+    from marketer.models import Job, JobStatus
+    from marketer.repos import jobs as jobs_repo
+
+    uid = await _mkuser(pool)
+    niche_id = await _mkniche(pool, uid)
+
+    inflight = await jobs_repo.create(
+        user_id=uid, niche_id=niche_id, platform="tiktok"
+    )
+    await pool.execute(
+        "update jobs set status = 'generating_images' where id = $1",
+        inflight.id,
+    )
+    assert await jobs_repo.has_active_for_niche(niche_id, within_minutes=45) is True
+
+    # A terminal job from an earlier window must not pin the niche forever.
+    done = Job(
+        id=uuid4(), user_id=uid, niche_id=niche_id, platform="tiktok",
+        status=JobStatus.done,
+    )
+    await pool.execute(
+        """
+        insert into jobs (id, user_id, niche_id, platform, status, payload, created_at)
+        values ($1,$2,$3,'tiktok','done',$4::jsonb, now() - interval '2 days')
+        """,
+        done.id, uid, niche_id, done.model_dump_json(),
+    )
+    # Still blocked by the in-flight job, not the done one.
+    assert await jobs_repo.has_active_for_niche(niche_id, within_minutes=45) is True
+
+    await pool.execute(
+        "update jobs set status = 'done' where id = $1", inflight.id
+    )
+    assert await jobs_repo.has_active_for_niche(niche_id, within_minutes=45) is False

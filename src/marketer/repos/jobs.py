@@ -168,16 +168,28 @@ async def reap_stale(*, older_than_minutes: int = 120) -> int:
 
 
 async def has_active_for_niche(niche_id: UUID, *, within_minutes: int = 45) -> bool:
-    """True if the niche already has a live (non-terminal) job created
-    recently — used by the batch scheduler as an idempotency guard so an
-    overlapping/delayed cron tick doesn't double-enqueue the same window."""
+    """True if the niche already has a live (non-terminal) job.
+
+    In-flight pipeline statuses only count when created recently — that
+    is the overlapping-cron guard so a delayed tick of the *same* window
+    does not double-enqueue. ``awaiting_approval`` is parking for a human
+    and must block the *next* posting window regardless of age: otherwise
+    ``approve_before_post`` niches (the onboarding default) re-render and
+    re-spend every window until an operator acts.
+
+    Do not fold ``awaiting_approval`` into ``_REAPABLE_STATUSES`` — the
+    reaper must keep treating parked jobs as healthy, not stale.
+    """
     pool = await get_pool()
     row = await pool.fetchrow(
         """
         select 1 from jobs
          where niche_id = $1
-           and status = any($2::job_status[])
-           and created_at > now() - make_interval(mins => $3)
+           and (
+                 (status = any($2::job_status[])
+                  and created_at > now() - make_interval(mins => $3))
+              or status = 'awaiting_approval'
+           )
          limit 1
         """,
         niche_id,
