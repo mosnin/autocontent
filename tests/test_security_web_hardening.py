@@ -394,6 +394,51 @@ def test_create_template_accepts_real_png(monkeypatch, tmp_path):
 # 5. image-post retry/approve are scoped to the caller's own posts
 # --------------------------------------------------------------------------- #
 
+def test_enqueue_image_post_404_on_foreign_niche(monkeypatch):
+    """Guessing another tenant's niche_id must not create a post or spawn."""
+    _reset_limiter()
+    import marketer.repos.image_posts as image_posts_repo
+    import marketer.repos.niches as niches_repo
+
+    async def _niche_get(niche_id, *, user_id):
+        assert user_id == _USER_ID
+        return None
+
+    async def explode(**kw):
+        raise AssertionError("must not create an image post for a foreign niche")
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    monkeypatch.setattr(image_posts_repo, "create", explode)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/image-posts",
+        json={"niche_id": str(_NICHE_ID), "kind": "carousel"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+
+
+def test_retry_image_post_conflicts_when_not_failed(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.image_posts as image_posts_repo
+
+    async def _claim_for_retry(image_post_id, *, user_id):
+        return False
+
+    async def _get(image_post_id, *, user_id):
+        return {"id": str(image_post_id), "status": "done"}
+
+    monkeypatch.setattr(image_posts_repo, "claim_for_retry", _claim_for_retry)
+    monkeypatch.setattr(image_posts_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/image-posts/{uuid4()}/retry",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 409
+    assert "not failed" in resp.json()["detail"]
+
+
 def test_retry_image_post_is_scoped_to_caller(monkeypatch):
     """The route must pass ctx.user_id through to claim_for_retry — a
     caller can't retry (or discover the existence of) someone else's

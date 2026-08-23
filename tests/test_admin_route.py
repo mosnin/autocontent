@@ -153,3 +153,113 @@ def test_grant_credits_rejects_nonpositive(monkeypatch):
         json={"amount_usd": "0"}, headers=_H,
     )
     assert resp.status_code == 422
+
+
+def test_cannot_demote_self(monkeypatch):
+    """An admin must not lock the org out by demoting their own role."""
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    import marketer.repos.admin as admin_repo
+
+    async def explode(*a, **k):
+        raise AssertionError("set_role must not run for self-demotion")
+
+    monkeypatch.setattr(admin_repo, "set_role", explode)
+    resp = client.post(
+        f"/api/v1/admin/users/{_ADMIN_ID}/role",
+        json={"role": "user"}, headers=_H,
+    )
+    assert resp.status_code == 400
+
+
+def test_set_role_rejects_unknown_role(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/admin/users/{_TARGET_ID}/role",
+        json={"role": "superadmin"}, headers=_H,
+    )
+    assert resp.status_code == 422
+
+
+def test_set_role_demotes_other_admin_and_audits(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    import marketer.repos.admin as admin_repo
+
+    async def _set_role(uid, role):
+        assert uid == _TARGET_ID
+        assert role == "user"
+        return True
+
+    async def _get_user(uid):
+        return AdminUserRow(
+            user=User(id=uid, email="t@t.com", role="user",
+                      created_at=datetime.now(timezone.utc)),
+            niche_count=0, job_count=0, article_count=0, spend_total_usd=Decimal("0"),
+        )
+
+    monkeypatch.setattr(admin_repo, "set_role", _set_role)
+    monkeypatch.setattr(admin_repo, "get_user", _get_user)
+    resp = client.post(
+        f"/api/v1/admin/users/{_TARGET_ID}/role",
+        json={"role": "user"}, headers=_H,
+    )
+    assert resp.status_code == 200
+    entry = next(r for r in client._recorded if r["action"] == "user.role")
+    assert entry["target_id"] == _TARGET_ID
+    assert entry["metadata"]["role"] == "user"
+
+
+def test_grant_credits_unknown_user_404(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    import marketer.repos.admin as admin_repo
+
+    async def _grant(uid, amount):
+        raise ValueError("user not found")
+
+    monkeypatch.setattr(admin_repo, "grant_credit", _grant)
+    resp = client.post(
+        f"/api/v1/admin/users/{_TARGET_ID}/credits",
+        json={"amount_usd": "25.00", "note": "promo"}, headers=_H,
+    )
+    assert resp.status_code == 404
+    assert not any(r["action"] == "credits.grant" for r in client._recorded)
+
+
+def test_upsert_flag_audits_and_rejects_oversize_key(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    import marketer.repos.feature_flags as flags_repo
+    from marketer.repos.feature_flags import FeatureFlag
+
+    upserted: list[dict] = []
+
+    async def _upsert(key, *, enabled, description, updated_by):
+        upserted.append({"key": key, "enabled": enabled, "updated_by": updated_by})
+        now = datetime.now(timezone.utc)
+        return FeatureFlag(
+            key=key, enabled=enabled, description=description,
+            updated_by=updated_by, updated_at=now, created_at=now,
+        )
+
+    monkeypatch.setattr(flags_repo, "upsert", _upsert)
+    ok = client.put(
+        "/api/v1/admin/flags/ads.enabled",
+        json={"enabled": False, "description": "kill ads"}, headers=_H,
+    )
+    assert ok.status_code == 200
+    assert upserted == [{
+        "key": "ads.enabled", "enabled": False, "updated_by": _ADMIN_ID,
+    }]
+    assert any(r["action"] == "flag.set" and r["target_id"] == "ads.enabled"
+               for r in client._recorded)
+
+    # FastAPI path param is never empty for `/flags/{key}`, so the route's
+    # `if not key` branch is unreachable; oversize keys still 422.
+    bad = client.put(
+        "/api/v1/admin/flags/" + ("x" * 101),
+        json={"enabled": True}, headers=_H,
+    )
+    assert bad.status_code == 422

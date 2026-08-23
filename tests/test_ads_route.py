@@ -288,3 +288,122 @@ def test_decide_approval_conflict_when_already_decided(monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 409
+
+
+def _approval(*, action="budget.change"):
+    from marketer.repos.ad_approvals import AdApproval
+    now = datetime.now(timezone.utc)
+    return AdApproval(
+        id=uuid4(), user_id="user_ads", action=action,
+        summary="Set daily budget to $50", dollar_delta_usd=Decimal("40"),
+        payload={"new_daily_budget_usd": "50"}, status="approved",
+        created_at=now, updated_at=now,
+    )
+
+
+def test_decide_approval_executes_budget_change(monkeypatch):
+    """Human 'yes' must run the safe-execute layer, not just flip the row."""
+    _reset_limiter()
+    import marketer.repos.ad_actions as ad_actions
+    import marketer.repos.ad_approvals as ad_approvals
+    import backend.routes.ads as ads_routes
+
+    decided = _approval()
+    executed: list[dict] = []
+
+    async def _decide(approval_id, *, user_id, status, decided_by):
+        assert status == "approved"
+        assert user_id == "user_ads"
+        return decided
+
+    async def _record(**kw):
+        return None
+
+    async def _execute(*, user_id, approval_id, actor_email):
+        executed.append({
+            "user_id": user_id, "approval_id": approval_id,
+            "actor_email": actor_email,
+        })
+        return {"status": "executed"}
+
+    monkeypatch.setattr(ad_approvals, "decide", _decide)
+    monkeypatch.setattr(ad_actions, "record", _record)
+    monkeypatch.setattr(ads_routes, "execute_approved_budget_change", _execute)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/ads/approvals/{decided.id}/decide",
+        json={"decision": "approved"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "executed"
+    assert executed == [{
+        "user_id": "user_ads",
+        "approval_id": decided.id,
+        "actor_email": "a@t.com",
+    }]
+
+
+def test_decide_approval_surfaces_re_guard_deny_as_402(monkeypatch):
+    """If state moved since the human approved, re-guard must fail closed."""
+    _reset_limiter()
+    import marketer.repos.ad_actions as ad_actions
+    import marketer.repos.ad_approvals as ad_approvals
+    import backend.routes.ads as ads_routes
+    from marketer.services.ad_actions_exec import AdSpendDenied
+
+    decided = _approval()
+
+    async def _decide(approval_id, *, user_id, status, decided_by):
+        return decided
+
+    async def _record(**kw):
+        return None
+
+    async def _execute(**kw):
+        raise AdSpendDenied("killswitch engaged")
+
+    monkeypatch.setattr(ad_approvals, "decide", _decide)
+    monkeypatch.setattr(ad_actions, "record", _record)
+    monkeypatch.setattr(ads_routes, "execute_approved_budget_change", _execute)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/ads/approvals/{decided.id}/decide",
+        json={"decision": "approved"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402
+    assert "killswitch" in resp.json()["detail"]
+
+
+def test_decide_approval_reject_does_not_execute(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.ad_actions as ad_actions
+    import marketer.repos.ad_approvals as ad_approvals
+    import backend.routes.ads as ads_routes
+
+    decided = _approval()
+    decided = decided.model_copy(update={"status": "rejected"})
+
+    async def _decide(approval_id, *, user_id, status, decided_by):
+        assert status == "rejected"
+        return decided
+
+    async def _record(**kw):
+        return None
+
+    async def explode(**kw):
+        raise AssertionError("reject must never execute a spend change")
+
+    monkeypatch.setattr(ad_approvals, "decide", _decide)
+    monkeypatch.setattr(ad_actions, "record", _record)
+    monkeypatch.setattr(ads_routes, "execute_approved_budget_change", explode)
+    monkeypatch.setattr(ads_routes, "execute_approved_activation", explode)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/ads/approvals/{decided.id}/decide",
+        json={"decision": "rejected"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "rejected"

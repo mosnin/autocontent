@@ -184,13 +184,24 @@ def test_webhook_rejects_bad_signature(client, monkeypatch):
     assert resp.status_code == 401
 
 
-def test_webhook_credits_on_completed_session(client, monkeypatch):
+def _post_signed_webhook(client, monkeypatch, event):
     import stripe as stripe_mod
 
     from marketer.config import settings
-    from marketer.repos import billing as billing_repo
 
     monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+    monkeypatch.setattr(
+        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
+    )
+    return client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+
+
+def test_webhook_credits_on_completed_session(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
 
     event = {
         "type": "checkout.session.completed",
@@ -202,9 +213,6 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
             }
         },
     }
-    monkeypatch.setattr(
-        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
-    )
 
     credited: list[tuple] = []
 
@@ -214,13 +222,105 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
 
     monkeypatch.setattr(billing_repo, "credit_purchase", fake_credit)
 
+    resp = _post_signed_webhook(client, monkeypatch, event)
+    assert resp.status_code == 200
+    assert credited == [("user_a", Decimal("20.00"), "cs_test_123")]
+
+
+def test_webhook_does_not_credit_unpaid_completed_session(client, monkeypatch):
+    """`checkout.session.completed` fires before delayed methods settle.
+    Crediting on payment_status=unpaid grants balance for money that may
+    never arrive — that must stay a no-op until async_payment_succeeded."""
+    from marketer.repos import billing as billing_repo
+
+    async def explode(**kw):
+        raise AssertionError("must not credit an unpaid checkout session")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+
+    resp = _post_signed_webhook(
+        client,
+        monkeypatch,
+        {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_unpaid",
+                    "payment_status": "unpaid",
+                    "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+                }
+            },
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
+def test_webhook_credits_on_async_payment_succeeded(client, monkeypatch):
+    from marketer.repos import billing as billing_repo
+
+    credited: list[tuple] = []
+
+    async def fake_credit(*, user_id, amount_usd, checkout_session_id, description):
+        credited.append((user_id, amount_usd, checkout_session_id))
+        return Decimal("5.00")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", fake_credit)
+
+    resp = _post_signed_webhook(
+        client,
+        monkeypatch,
+        {
+            "type": "checkout.session.async_payment_succeeded",
+            "data": {
+                "object": {
+                    "id": "cs_async",
+                    "payment_status": "paid",
+                    "metadata": {"user_id": "user_a", "credit_usd": "5.00"},
+                }
+            },
+        },
+    )
+    assert resp.status_code == 200
+    assert credited == [("user_a", Decimal("5.00"), "cs_async")]
+
+
+def test_webhook_does_not_credit_paid_session_missing_metadata(client, monkeypatch):
+    """A paid session we cannot attribute must not mint anonymous credit."""
+    from marketer.repos import billing as billing_repo
+
+    async def explode(**kw):
+        raise AssertionError("must not credit without user_id/credit_usd")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+
+    resp = _post_signed_webhook(
+        client,
+        monkeypatch,
+        {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_orphan",
+                    "payment_status": "paid",
+                    "metadata": {},
+                }
+            },
+        },
+    )
+    assert resp.status_code == 200
+
+
+def test_webhook_503_when_secret_unconfigured(client, monkeypatch):
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "")
     resp = client.post(
         "/api/v1/billing/webhook",
         content=b"{}",
         headers={"stripe-signature": "t=1,v1=ok"},
     )
-    assert resp.status_code == 200
-    assert credited == [("user_a", Decimal("20.00"), "cs_test_123")]
+    assert resp.status_code == 503
 
 
 async def test_email_noop_without_key(monkeypatch):

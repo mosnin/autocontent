@@ -219,6 +219,97 @@ def test_enqueue_job_returns_202(monkeypatch):
     assert resp.json()["status"] == "queued"
 
 
+def test_enqueue_job_404_on_foreign_niche(monkeypatch):
+    """A guessed niche_id must not insert a job or spawn Modal work."""
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+
+    async def _niche_get(niche_id, *, user_id):
+        return None
+
+    async def explode(**kw):
+        raise AssertionError("must not create a job for a foreign niche")
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    monkeypatch.setattr(jobs_repo, "create", explode)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+
+
+def test_enqueue_job_422_when_platform_not_enabled(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from types import SimpleNamespace
+
+    async def _niche_get(niche_id, *, user_id):
+        return SimpleNamespace(id=niche_id, platforms=["reels"])
+
+    async def explode(**kw):
+        raise AssertionError("must not enqueue a disabled platform")
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    monkeypatch.setattr(jobs_repo, "create", explode)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+
+
+def test_approve_job_404_for_other_user(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+
+    async def _claim(job_id, *, user_id):
+        assert user_id == _USER_ID
+        return None
+
+    async def _get(job_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(jobs_repo, "claim_for_scheduling", _claim)
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/approve",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+
+
+def test_reject_job_conflicts_when_not_awaiting(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+
+    async def _claim(job_id, *, user_id):
+        return None
+
+    async def _get(job_id, *, user_id):
+        return _make_job(status=JobStatus.done)
+
+    monkeypatch.setattr(jobs_repo, "claim_for_rejection", _claim)
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/reject",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 409
+
+
 def test_enqueue_job_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
