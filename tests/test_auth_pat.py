@@ -1,7 +1,7 @@
 """require_user's PAT branch — JWT path is covered by the Clerk lib itself."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -127,6 +127,60 @@ async def test_non_pat_token_falls_through_to_clerk(monkeypatch):
     ctx = await auth.require_user(_FakeRequest("Bearer eyJsomejwt"))
     assert ctx.user_id == "user_jwt"
     assert called["upsert"] == ("user_jwt", "e@x")
+
+
+async def test_pat_suspended_user_403(monkeypatch):
+    """Suspension is enforced on the auth path, not just the admin UI."""
+    from backend import auth
+    from marketer.repos import tokens as tokens_repo
+    from marketer.repos import users as users_repo
+
+    pat = PersonalAccessToken(
+        id=uuid4(),
+        user_id="user_banned",
+        name="ci",
+        prefix="mkt_test",
+        created_at=datetime.now(UTC),
+    )
+
+    async def _get(_plain: str):
+        return pat
+
+    async def _get_user(uid: str):
+        return User(
+            id=uid,
+            email="banned@x",
+            suspended_at=datetime.now(UTC),
+            suspended_reason="abuse",
+        )
+
+    monkeypatch.setattr(tokens_repo, "get_by_token", _get)
+    monkeypatch.setattr(users_repo, "get", _get_user)
+
+    with pytest.raises(HTTPException) as ei:
+        await auth.require_user(_FakeRequest("Bearer mkt_validtoken123"))
+    assert ei.value.status_code == 403
+    assert "suspended" in str(ei.value.detail).lower()
+
+
+async def test_jwt_missing_sub_is_401(monkeypatch):
+    import jwt as pyjwt
+
+    from backend import auth
+
+    class _FakeJWKS:
+        def get_signing_key_from_jwt(self, token):
+            class K:
+                key = "fake"
+            return K()
+
+    monkeypatch.setattr(auth, "_jwks", lambda: _FakeJWKS())
+    monkeypatch.setattr(pyjwt, "decode", lambda *a, **kw: {"email": "e@x"})
+
+    with pytest.raises(HTTPException) as ei:
+        await auth.require_user(_FakeRequest("Bearer eyJsomejwt"))
+    assert ei.value.status_code == 401
+    assert "sub" in str(ei.value.detail)
 
 
 def test_expected_issuer_prefers_explicit(monkeypatch):

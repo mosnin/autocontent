@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -170,6 +170,57 @@ def test_iso_utc_handles_naive_and_aware():
     assert scheduler._iso_utc(
         datetime(2026, 5, 17, 9, 0, tzinfo=timezone.utc)
     ) == "2026-05-17T09:00:00Z"
+
+
+async def test_schedule_image_post_rejects_empty_and_unknown_platform(
+    tmp_path, patch_async_client, stub_user_lookup
+):
+    """Empty carousels and unknown platforms must fail closed before any POST."""
+    patch_async_client(_make_transport(captured={}))
+    with pytest.raises(scheduler.AyrshareError, match="no images"):
+        await scheduler.schedule_image_post(
+            image_paths=[],
+            caption="x",
+            hashtags=[],
+            platform="tiktok",
+            scheduled_for=datetime.now(UTC),
+            user_id="user_abc",
+        )
+
+    slide = tmp_path / "slide.png"
+    slide.write_bytes(b"\x00")
+    with pytest.raises(scheduler.AyrshareError, match="unknown platform"):
+        await scheduler.schedule_image_post(
+            image_paths=[slide],
+            caption="x",
+            hashtags=[],
+            platform="threads",
+            scheduled_for=datetime.now(UTC),
+            user_id="user_abc",
+        )
+
+
+async def test_schedule_image_post_missing_profile_raises(
+    tmp_path, patch_async_client, monkeypatch
+):
+    from marketer.models import User
+
+    async def _get(_user_id: str):
+        return User(id="user_abc", email="x@y.z", ayrshare_profile_key=None)
+
+    monkeypatch.setattr(scheduler.users_repo, "get", _get)
+    slide = tmp_path / "slide.png"
+    slide.write_bytes(b"\x00")
+    patch_async_client(_make_transport(captured={}))
+    with pytest.raises(scheduler.AyrshareError, match="ayrshare_profile_key"):
+        await scheduler.schedule_image_post(
+            image_paths=[slide],
+            caption="x",
+            hashtags=[],
+            platform="tiktok",
+            scheduled_for=datetime.now(UTC),
+            user_id="user_abc",
+        )
 
 
 def test_format_caption_appends_hashtags():

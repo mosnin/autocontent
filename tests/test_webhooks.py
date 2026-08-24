@@ -172,6 +172,34 @@ def test_missing_secret_returns_503(monkeypatch):
     assert resp.status_code == 503
 
 
+def test_malformed_body_returns_200_so_ayrshare_stops_retrying(client):
+    """Unparseable JSON must 200 — a 4xx would retry forever and never heal."""
+    tc, saved = client
+    body = b"not-json{"
+    resp = tc.post(
+        "/api/v1/webhooks/ayrshare",
+        content=body,
+        headers={
+            "Content-Type": "application/json",
+            "x-ayrshare-signature": _make_sig(body),
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+    assert saved == []
+
+
+def test_error_summary_reads_message_error_or_string():
+    from backend.routes.webhooks import _error_summary
+
+    assert _error_summary([]) == "unknown error"
+    assert "TikTok" in _error_summary([{"message": "TikTok rejected"}])
+    assert "quota" in _error_summary([{"error": "quota"}])
+    assert _error_summary(["plain string"]) == "plain string"
+    mixed = _error_summary([{"message": "a"}, "b", {"other": 1}])
+    assert "a" in mixed and "b" in mixed
+
+
 def test_alternate_signature_header_accepted(client):
     """``x-webhook-signature`` should be accepted as an alias."""
     tc, saved = client

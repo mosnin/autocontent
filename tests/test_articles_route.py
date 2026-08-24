@@ -172,6 +172,70 @@ def test_enqueue_article_404_on_foreign_niche(monkeypatch):
     assert resp.status_code == 404
 
 
+def test_markdown_404_when_article_has_no_content(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.articles as articles_repo
+
+    art = _make_article(status=ArticleStatus.writing, markdown=None)
+
+    async def _get(article_id, *, user_id):
+        return art
+
+    monkeypatch.setattr(articles_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/articles/{_ARTICLE_ID}/markdown",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+
+
+def test_hero_image_404_when_missing_or_foreign(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.articles as articles_repo
+
+    async def _get(article_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(articles_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    headers = {"Authorization": "Bearer mkt_x"}
+    assert client.get(
+        f"/api/v1/articles/{_ARTICLE_ID}/hero-image", headers=headers
+    ).status_code == 404
+
+    art = _make_article(status=ArticleStatus.done, markdown="# x")
+    art.hero_image_path = None
+
+    async def _owned(article_id, *, user_id):
+        return art
+
+    monkeypatch.setattr(articles_repo, "get", _owned)
+    assert client.get(
+        f"/api/v1/articles/{_ARTICLE_ID}/hero-image", headers=headers
+    ).status_code == 404
+
+
+def test_retry_article_404_when_foreign(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.articles as articles_repo
+
+    async def _claim(article_id, *, user_id):
+        return None
+
+    async def _get(article_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(articles_repo, "claim_for_retry", _claim)
+    monkeypatch.setattr(articles_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/articles/{_ARTICLE_ID}/retry",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+
+
 def test_retry_article_conflicts_when_not_failed(monkeypatch):
     _reset_limiter()
     import marketer.repos.articles as articles_repo

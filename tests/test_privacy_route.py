@@ -44,6 +44,19 @@ def test_export_returns_bundle(monkeypatch):
     assert "attachment" in resp.headers["content-disposition"]
 
 
+def test_export_and_erasure_without_auth_401(monkeypatch):
+    from marketer.config import settings
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
+    from backend.main import create_app
+    from backend.rate_limit import limiter
+
+    limiter._storage.reset()
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    assert client.get("/api/v1/users/me/export").status_code == 401
+    assert client.delete("/api/v1/users/me").status_code == 401
+
+
 def test_erasure_calls_repo_and_204(monkeypatch):
     _reset_limiter()
     import marketer.repos.privacy as privacy

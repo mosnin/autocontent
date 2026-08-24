@@ -184,6 +184,93 @@ def test_webhook_rejects_bad_signature(client, monkeypatch):
     assert resp.status_code == 401
 
 
+def test_checkout_stamps_user_and_pack_credit(client, monkeypatch):
+    """Checkout must bind the session to the caller and the pack's credit.
+    A missing user_id/credit_usd pair is money taken with no grant."""
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_x")
+    monkeypatch.setattr(settings, "app_url", "https://app.marketer.sh")
+
+    captured: dict = {}
+
+    class _Session:
+        url = "https://checkout.stripe.com/c/pay/cs_test"
+
+    def _create(**kwargs):
+        captured.update(kwargs)
+        return _Session()
+
+    monkeypatch.setattr(stripe_mod.checkout.Session, "create", staticmethod(_create))
+    resp = client.post(
+        "/api/v1/billing/checkout",
+        json={"pack": "creator"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["url"] == _Session.url
+    assert captured["metadata"]["user_id"] == "user_a"
+    assert captured["metadata"]["credit_usd"] == "20.00"
+    assert captured["line_items"][0]["price_data"]["unit_amount"] == 2000
+    assert captured["line_items"][0]["price_data"]["currency"] == "usd"
+
+
+def test_balance_disabled_returns_zero_without_repo(client, monkeypatch):
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+
+    async def explode(user_id):
+        raise AssertionError("balance() must not be called when disabled")
+
+    monkeypatch.setattr(billing_repo, "balance", explode)
+    monkeypatch.setattr(billing_repo, "transactions", explode)
+    resp = client.get("/api/v1/billing/balance", headers={"Authorization": "Bearer mkt_x"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["billing_enabled"] is False
+    assert body["balance_usd"] == "0"
+
+
+def test_webhook_async_payment_failed_does_not_credit(client, monkeypatch):
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+    from marketer.repos import billing as billing_repo
+
+    monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
+
+    event = {
+        "type": "checkout.session.async_payment_failed",
+        "data": {
+            "object": {
+                "id": "cs_test_fail",
+                "payment_status": "unpaid",
+                "metadata": {"user_id": "user_a", "credit_usd": "20.00"},
+            }
+        },
+    }
+    monkeypatch.setattr(
+        stripe_mod.Webhook, "construct_event", staticmethod(lambda p, s, sec: event)
+    )
+
+    async def explode(**kw):
+        raise AssertionError("failed settlement must never credit")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
 def test_webhook_credits_on_completed_session(client, monkeypatch):
     import stripe as stripe_mod
 
