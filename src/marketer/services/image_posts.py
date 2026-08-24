@@ -17,10 +17,9 @@ all see it.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from ..agents.metered import run_metered
 from ..agents.carousel import CarouselPlan, build_carousel_agent
@@ -192,29 +191,63 @@ async def schedule_image_post(
     post = await image_posts_repo.get(image_post_id, user_id=user_id)
     if post is None:
         raise ValueError(f"image post {image_post_id} not found")
+    existing_id = post.get("provider_post_id")
+    if existing_id:
+        if post.get("status") == "done":
+            return post
+        return await image_posts_repo.complete(
+            image_post_id, user_id=user_id, provider_post_id=existing_id
+        )
     niche = await niches_repo.get(post["niche_id"], user_id=user_id)
     slides = post["payload"].get("slides", [])
     if not slides or niche is None:
         return await image_posts_repo.fail(
             image_post_id, user_id=user_id, error="nothing generated to post"
         )
+    platform = image_platform(niche, post["payload"].get("platform"))
+    if platform is None:
+        return await image_posts_repo.fail(
+            image_post_id, user_id=user_id,
+            error="no image-capable platform on this niche (YouTube/shorts "
+                  "can't take still-image posts) — add reels or tiktok",
+        )
 
     try:
         await image_posts_repo.set_status(image_post_id, user_id=user_id, status="scheduling")
         caption = post["payload"].get("caption", "")
         hashtags = post["payload"].get("hashtags", [])
-        platform = image_platform(niche, post["payload"].get("platform")) or "reels"
-        when = datetime.now(timezone.utc)
+        from ..pipeline import _next_posting_slot
+
+        when = _next_posting_slot(niche)
+        payload = dict(post["payload"])
+        key = payload.get("publish_idempotency_key") or f"image:{image_post_id}"
+        if payload.get("publish_idempotency_key") != key:
+            payload["publish_idempotency_key"] = key
+            await image_posts_repo.save_payload(
+                image_post_id, user_id=user_id, payload=payload
+            )
 
         poster = apply_schedule or scheduler.schedule_image_post
-        provider_post_id = await poster(
-            image_paths=[Path(s["path"]) for s in slides],
-            caption=caption,
-            hashtags=hashtags,
-            platform=platform,
-            scheduled_for=when,
-            user_id=user_id,
-        )
+        try:
+            provider_post_id = await poster(
+                image_paths=[Path(s["path"]) for s in slides],
+                caption=caption,
+                hashtags=hashtags,
+                platform=platform,
+                scheduled_for=when,
+                user_id=user_id,
+                idempotency_key=key,
+            )
+        except scheduler.AyrshareDuplicate as dup:
+            provider_post_id = dup.post_id or f"idempotent:{key}"
+        except scheduler.AyrshareRejected:
+            payload["publish_idempotency_key"] = (
+                f"image:{image_post_id}:{uuid4().hex[:8]}"
+            )
+            await image_posts_repo.save_payload(
+                image_post_id, user_id=user_id, payload=payload
+            )
+            raise
         return await image_posts_repo.complete(
             image_post_id, user_id=user_id, provider_post_id=provider_post_id
         )

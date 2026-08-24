@@ -70,7 +70,7 @@ export function HomeHub() {
             pauseDuration={2200}
             text={[
               "Describe the push. It becomes a campaign.",
-              "Content, SEO, and ads, under one cap.",
+              "Content and SEO, under one cap.",
               "Your agents are on the clock.",
             ]}
             typingSpeed={40}
@@ -118,7 +118,6 @@ export function HomeHub() {
           {[
             { label: "Queue a short", href: "/queue" },
             { label: "Draft an article", href: "/articles?new=1" },
-            { label: "Review ad approvals", href: "/ads/approvals" },
             { label: "Connect socials", href: "/connect" },
             { label: "Top up credits", href: "/settings/billing" },
           ].map((a) => (

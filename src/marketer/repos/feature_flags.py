@@ -32,6 +32,25 @@ async def is_enabled(key: str) -> bool:
     return bool(val)
 
 
+async def allowed(key: str) -> bool:
+    """True unless an operator explicitly disabled this key in the DB.
+
+    Missing row means "use the env gate" — generate/publish/billing stay
+    under ``MARKETER_*`` booleans. A row with ``enabled=false`` is the
+    kill switch the admin Flags UI actually applies.
+    """
+    try:
+        pool = await get_pool()
+        val = await pool.fetchval(
+            "select enabled from feature_flags where key = $1", key
+        )
+    except Exception:  # noqa: BLE001 — no pool / no table: do not fail jobs
+        return True
+    if val is None:
+        return True
+    return bool(val)
+
+
 async def upsert(key: str, *, enabled: bool, description: str, updated_by: str) -> FeatureFlag:
     pool = await get_pool()
     row = await pool.fetchrow(

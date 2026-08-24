@@ -171,4 +171,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass  # package not installed; tracing stays disabled
 
+    from .openapi import customize_openapi
+
+    customize_openapi(app)
     return app

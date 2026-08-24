@@ -188,6 +188,7 @@ class Job(BaseModel):
     rendered: RenderedVideo | None = None
     scheduled_for: datetime | None = None
     provider_post_id: str | None = None
+    publish_idempotency_key: str | None = None
     error: str | None = None
 
 

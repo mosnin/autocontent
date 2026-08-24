@@ -33,7 +33,8 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { openCommandPalette } from "@/components/command-palette";
-import { PRODUCTS, productForPath, type ProductId } from "@/lib/products";
+import { visibleProducts, productForPath, type ProductId } from "@/lib/products";
+import { useAdsEnabled } from "@/lib/use-ads-enabled";
 
 export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
   campaigns: Megaphone,
@@ -56,6 +57,8 @@ export function SquareSidebar({
   account?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const adsEnabled = useAdsEnabled();
+  const products = visibleProducts(adsEnabled);
   const active = productForPath(pathname);
   const activePages = active.groups
     .flatMap((g) => g.items)
@@ -101,7 +104,7 @@ export function SquareSidebar({
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu>
-              {PRODUCTS.map((product) => {
+              {products.map((product) => {
                 const Icon = PRODUCT_ICONS[product.id];
                 return (
                   <SidebarMenuItem key={product.id}>

@@ -18,7 +18,7 @@ from marketer.articles.models import Article, ArticleStatus
 from marketer.repos import articles as articles_repo
 
 from ..auth import AuthCtx, CurrentUser
-from ..hosted_safety import refuse_unbilled_generate
+from ..hosted_safety import refuse_if_flag_off, refuse_unbilled_generate
 from ..rate_limit import limiter
 
 router = APIRouter()
@@ -76,6 +76,7 @@ async def enqueue_article(
     """Create the article row and spawn the Modal pipeline against it.
     Poll GET /{article_id} for status."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     import modal
 
     from marketer.repos import niches as niches_repo
@@ -159,6 +160,7 @@ async def retry_article(
 ) -> Article:
     """Re-run a failed article from scratch (same row, same topic)."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     import modal
 
     article = await articles_repo.claim_for_retry(article_id, user_id=ctx.user_id)

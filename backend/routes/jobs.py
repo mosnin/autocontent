@@ -13,7 +13,7 @@ from marketer.repos import jobs as jobs_repo
 from marketer.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
-from ..hosted_safety import refuse_unbilled_generate
+from ..hosted_safety import refuse_if_flag_off, refuse_unbilled_generate
 from ..rate_limit import limiter
 
 router = APIRouter()
@@ -52,6 +52,7 @@ async def enqueue_job(
     """Spawn a pipeline run on Modal. Returns the queued Job row;
     poll GET /{job_id} for status."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     import modal
 
     from marketer.repos import niches as niches_repo
@@ -123,6 +124,7 @@ async def approve_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     """Operator sign-off on an `awaiting_approval` job. Spawns the Modal
     `finish_scheduling` function, which uploads + schedules the already
     rendered video and marks the job done."""
+    await refuse_if_flag_off("publish")
     import modal
 
     # Atomic claim: exactly one approve call transitions the row out of
@@ -170,6 +172,7 @@ async def retry_job(
     """Re-run a previously failed job from scratch. Only works on jobs in
     `failed` state owned by the caller."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     import modal
 
     job = await jobs_repo.reset_for_retry(job_id, user_id=ctx.user_id)

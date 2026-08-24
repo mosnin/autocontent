@@ -116,6 +116,15 @@ async def run_campaign_tick(
             "reason": "unbilled usage disabled",
             "spawned": [],
         }
+    from ..repos import feature_flags as flags_repo
+
+    if not await flags_repo.allowed("generate"):
+        return {
+            "campaign_id": str(campaign.id),
+            "action": "skipped",
+            "reason": "generate flag disabled",
+            "spawned": [],
+        }
     now = now or datetime.now(timezone.utc)
     uid = campaign.user_id
 
@@ -156,6 +165,10 @@ async def run_campaign_tick(
                 continue
             niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None or not niche.platforms:
+                continue
+            from ..repos import jobs as jobs_repo
+
+            if await jobs_repo.has_active_for_niche(niche.id):
                 continue
             # Rotate platforms across spawns so all socials get coverage.
             total = (counts["video"].get(item.ref_id) or {"total": 0})["total"]

@@ -5,7 +5,7 @@ import { HomeShowcase } from "@/components/site/media";
 
 
 const DESCRIPTION =
-  "The autonomous marketing platform. One brief in, video and SEO articles ideated, produced, published, and improved, with hard caps on every dollar spent.";
+  "Prepaid credits, a niche, and a daily cap. marketer.sh generates short-form video and SEO articles, parks them for approval, then schedules to the socials you connected."
 
 export const metadata: Metadata = {
   title: "marketer.sh — Marketing that runs itself",

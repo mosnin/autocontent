@@ -88,7 +88,10 @@ class Settings(BaseSettings):
     # Maximum number of run_pipeline jobs active at once for a single user.
     pipeline_per_user_concurrency: int = 3
     # Maximum number of run_pipeline jobs active at once for a single niche.
-    # Use 1 to serialize per-niche (avoids character-sheet write races).
+    # 1 (the production value) is an exclusive advisory lock so character-
+    # sheet writes cannot race. Values >1 are reserved; the lock stays
+    # exclusive until slotted niche locks ship — the knob is read so a
+    # mis-set value is visible in preflight rather than silently ignored.
     pipeline_per_niche_concurrency: int = 1
 
     # Sentry error reporting. Set sentry_dsn to enable; leave empty to disable.

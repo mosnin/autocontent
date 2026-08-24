@@ -18,11 +18,11 @@ Both caps are optional:
 Either can be active independently. ``ensure_can_spend`` and ``log``
 check whichever caps are configured.
 
-Prepaid credit (hosted product) gets the same treatment: ``log`` debits
-the ledger and then re-reads the returned balance, tripping ``abort_event``
-if it has gone non-positive. Without that post-debit check, N fan-out tasks
-in one stage could all clear the pre-flight balance snapshot and each debit,
-taking the balance negative and spending past what the user paid for.
+Prepaid credit (hosted product) is reserved atomically in
+``ensure_can_spend`` (``UPDATE … WHERE credit_balance_usd >= charge``).
+A snapshot read is not enough: N fan-out tasks would all see the same
+balance and each spend. ``log`` only true-ups when actual cost exceeds
+the reserve, and still trips ``abort_event`` if the balance is exhausted.
 """
 from __future__ import annotations
 
@@ -76,6 +76,11 @@ class SpendContext:
     # report the real reason (niche/global cap vs. exhausted credit) rather
     # than always blaming the niche cap.
     abort_scope: str = "niche"
+    # Running prepaid-credit bookkeeping for this job. Reserve happens in
+    # ensure_can_spend; log() true-ups when actual > reserved.
+    _credit_reserved: Decimal = field(default_factory=lambda: Decimal(0))
+    _credit_billed: Decimal = field(default_factory=lambda: Decimal(0))
+    _credit_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
     def _trip(self, scope: str) -> None:
         self.abort_scope = scope
@@ -121,9 +126,9 @@ class SpendContext:
                     scope="global",
                 )
 
-        # Hosted product: prepaid credit is the final gate. The estimated
-        # charge includes the billing margin so a call is refused before
-        # it would take the balance negative.
+        # Hosted product: atomically reserve estimated charge * margin so
+        # concurrent fan-out cannot all pass a shared snapshot and then
+        # spend past what the user paid for.
         from ..config import settings
 
         if settings.billing_enabled:
@@ -131,15 +136,27 @@ class SpendContext:
 
             from ..repos import billing as billing_repo
 
-            bal = await billing_repo.balance(self.user_id)
             charge = estimated_usd * _D(str(settings.billing_margin))
-            if bal < charge:
-                self._trip("credits")
-                raise SpendCapExceeded(
-                    f"user {self.user_id} has ${bal} credit; "
-                    f"call would charge ${charge}. Top up to continue.",
-                    scope="credits",
+            if charge > 0:
+                new_bal = await billing_repo.reserve(
+                    user_id=self.user_id,
+                    amount_usd=charge,
+                    job_id=self.job_id,
+                    description="preflight reserve",
                 )
+                if new_bal is None:
+                    self._trip("credits")
+                    raise SpendCapExceeded(
+                        f"user {self.user_id} has insufficient credit; "
+                        f"call would reserve ${charge}. Top up to continue.",
+                        scope="credits",
+                    )
+                async with self._credit_lock:
+                    self._credit_reserved += charge
+                if new_bal <= 0:
+                    # This call is allowed (it reserved the last of the
+                    # balance). Siblings and later stages must stop.
+                    self._trip("credits")
         elif not settings.allow_unbilled_usage:
             # Hosted deploy that has not enabled Stripe yet: refuse spend
             # rather than burning the operator's provider keys.
@@ -172,9 +189,9 @@ class SpendContext:
             )
         )
 
-        # Hosted product: mirror the spend into the credit ledger at
-        # cost * margin. Runs before the cap checks so the charge lands
-        # even when this call is the one that trips a cap.
+        # Hosted product: the estimate was already reserved. True-up only
+        # the remainder when actual * margin exceeds the reserve so we
+        # never double-charge, and still record underestimate overage.
         from ..config import settings as _settings
 
         new_balance: Decimal | None = None
@@ -183,12 +200,22 @@ class SpendContext:
 
             from ..repos import billing as billing_repo
 
-            new_balance = await billing_repo.debit(
-                user_id=self.user_id,
-                amount_usd=cost_usd * _D(str(_settings.billing_margin)),
-                job_id=self.job_id,
-                description=f"{provider}/{sku}",
-            )
+            actual = cost_usd * _D(str(_settings.billing_margin))
+            extra = Decimal(0)
+            async with self._credit_lock:
+                self._credit_billed += actual
+                extra = self._credit_billed - self._credit_reserved
+                if extra > 0:
+                    self._credit_reserved += extra
+            if extra > 0:
+                new_balance = await billing_repo.debit(
+                    user_id=self.user_id,
+                    amount_usd=extra,
+                    job_id=self.job_id,
+                    description=f"{provider}/{sku}",
+                )
+            else:
+                new_balance = await billing_repo.balance(self.user_id)
 
         # Late-imports so a `from .spend_context import SpendContext`
         # doesn't pull `db.get_pool` into modules that never spend.

@@ -110,6 +110,18 @@ async def healthz_deep() -> JSONResponse:
             settings.stripe_secret_key and settings.stripe_webhook_secret
         ),
     }
+    checks["wasabi"] = {
+        "enabled": settings.wasabi_enabled,
+        "configured": bool(
+            settings.wasabi_bucket
+            and settings.wasabi_access_key_id
+            and settings.wasabi_secret_access_key
+        ),
+    }
+    checks["rate_limit_redis"] = {
+        "configured": bool(settings.rate_limit_redis_url)
+    }
+    checks["ads"] = {"enabled": settings.ads_enabled}
 
     status_code = 200 if all_critical_ok else 503
     return JSONResponse(

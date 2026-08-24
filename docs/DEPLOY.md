@@ -186,6 +186,36 @@ Then in a browser: sign up, land on the dashboard, create a niche.
 
 ---
 
+## Launch rehearsal (required before public traffic)
+
+Do **not** set `MARKETER_BILLING_ENABLED=true` or `MARKETER_ADS_ENABLED=true`
+until this rehearsal is green on the production deploy. Extra suite flags
+(`MARKETER_UGC_ENABLED`, `MARKETER_AD_CREATIVE_ENABLED`, …) stay false.
+
+1. One operator Clerk account.
+2. Onboarding: create a niche → `/onboarding/next` → add a $5 pack →
+   connect TikTok or Reels via Ayrshare.
+3. Generate one video. It must park at `awaiting_approval`.
+4. Approve. Ayrshare must show a **scheduled** post in the niche window
+   (not an immediate publish). A timeout retry must not double-post.
+5. Stripe Dashboard: refund the $5 session. Credit balance must return
+   to ~$0 (`kind=refund` on the same `cs_…` reference).
+6. Confirm the nightly/campaign runner does **not** enqueue another video
+   while that job is still `awaiting_approval`.
+
+If any step fails, you are not launching.
+
+Recommended production extras (still fail-closed if empty):
+
+- `MARKETER_WASABI_ENABLED=true` plus bucket keys so renders survive
+  container recycle.
+- `MARKETER_RATE_LIMIT_REDIS_URL` so slowapi is not per-container memory.
+- `MARKETER_PREFLIGHT_STRICT=true` so a missing spend secret fails deploy.
+- `MARKETER_SENTRY_DSN` and `MARKETER_RESEND_API_KEY` for 5xx + job email.
+- `MARKETER_ALLOW_UNBILLED_USAGE=false` on the public deploy.
+
+---
+
 ## Step 8 — enable optional features
 
 Each is off by default and fails closed. For every one: add the keys to a
@@ -196,7 +226,7 @@ Modal secret, make sure that secret is in `modal_app.py`, and redeploy.
 | Voiceover / music | — | `MARKETER_ELEVENLABS_API_KEY` |
 | Alt video provider | — | `MARKETER_FAL_API_KEY` |
 | Social publishing | — | `MARKETER_AYRSHARE_API_KEY`, `MARKETER_AYRSHARE_WEBHOOK_SECRET` |
-| Billing | `MARKETER_BILLING_ENABLED=true` | `MARKETER_STRIPE_SECRET_KEY`, `MARKETER_STRIPE_WEBHOOK_SECRET` |
+| Billing | `MARKETER_BILLING_ENABLED=true` only after the launch rehearsal | `MARKETER_STRIPE_SECRET_KEY`, `MARKETER_STRIPE_WEBHOOK_SECRET` |
 | Ad creative studio | `MARKETER_AD_CREATIVE_ENABLED=true` | `MARKETER_CONTEXT_DEV_API_KEY` |
 | SEO auditor | `MARKETER_SEO_AUDIT_ENABLED=true` | `MARKETER_CONTEXT_DEV_API_KEY` |
 | UGC studio | `MARKETER_UGC_ENABLED=true` | `MARKETER_MUAPI_API_KEY`, `MARKETER_MUAPI_WEBHOOK_URL`, `MARKETER_MUAPI_WEBHOOK_SECRET` |

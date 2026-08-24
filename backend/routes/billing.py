@@ -31,6 +31,7 @@ from marketer.models import CreditTransaction
 from marketer.repos import billing as billing_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_if_flag_off
 from ..rate_limit import limiter
 
 logger = logging.getLogger(__name__)
@@ -123,6 +124,7 @@ async def create_checkout(
     request: Request, body: CheckoutRequest, ctx: AuthCtx = CurrentUser
 ) -> CheckoutResponse:
     _require_billing()
+    await refuse_if_flag_off("billing")
     pack = PACKS.get(body.pack)
     if pack is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="unknown pack")

@@ -130,7 +130,7 @@ const ADS: Product = {
 const CAMPAIGNS: Product = {
   id: "campaigns",
   label: "Campaigns",
-  tagline: "Run content, SEO, and ads together on a budget",
+  tagline: "Run video, articles, and image posts on a budget",
   home: "/campaigns",
   match: ["/campaigns"],
   groups: [
@@ -175,6 +175,14 @@ const SUITE: Product = {
 /** Ordered for the launcher + switcher: Campaigns, Content, SEO, Ads,
  *  then Suite intentionally last. */
 export const PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS, SUITE];
+
+/** Paid Ads stay out of the switcher until the backend flag is on.
+ *  The governance UI still exists at /ads; we just do not sell it as a
+ *  live product while apply_fn is a no-op. */
+export function visibleProducts(adsEnabled: boolean): Product[] {
+  if (adsEnabled) return PRODUCTS;
+  return PRODUCTS.filter((p) => p.id !== "ads");
+}
 
 
 export function productById(id: ProductId): Product {

@@ -78,13 +78,13 @@ async def test_preflight_blocks_when_credit_short(monkeypatch):
     monkeypatch.setattr(settings, "billing_enabled", True)
     monkeypatch.setattr(settings, "billing_margin", 1.5)
 
-    async def fake_balance(user_id):
-        return Decimal("0.10")
+    async def fake_reserve(*, user_id, amount_usd, job_id, description):
+        return None
 
-    monkeypatch.setattr(billing_repo, "balance", fake_balance)
+    monkeypatch.setattr(billing_repo, "reserve", fake_reserve)
 
     ctx = _ctx()
-    # 0.10 estimated * 1.5 margin = 0.15 charge > 0.10 balance
+    # 0.10 estimated * 1.5 margin = 0.15 charge; reserve refuses
     with pytest.raises(SpendCapExceeded) as e:
         await ctx.ensure_can_spend(Decimal("0.10"))
     assert e.value.scope == "credits"
@@ -96,10 +96,10 @@ async def test_preflight_allows_with_credit(monkeypatch):
 
     monkeypatch.setattr(settings, "billing_enabled", True)
 
-    async def fake_balance(user_id):
-        return Decimal("10.00")
+    async def fake_reserve(*, user_id, amount_usd, job_id, description):
+        return Decimal("9.85")
 
-    monkeypatch.setattr(billing_repo, "balance", fake_balance)
+    monkeypatch.setattr(billing_repo, "reserve", fake_reserve)
     await _ctx().ensure_can_spend(Decimal("0.10"))  # no raise
 
 
@@ -109,10 +109,11 @@ async def test_billing_disabled_never_touches_repo(monkeypatch):
 
     monkeypatch.setattr(settings, "billing_enabled", False)
 
-    async def explode(user_id):
-        raise AssertionError("balance() must not be called when disabled")
+    async def explode(*args, **kwargs):
+        raise AssertionError("billing repo must not be called when disabled")
 
     monkeypatch.setattr(billing_repo, "balance", explode)
+    monkeypatch.setattr(billing_repo, "reserve", explode)
     await _ctx().ensure_can_spend(Decimal("100"))  # no raise, no DB
 
 

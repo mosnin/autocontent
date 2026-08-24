@@ -10,6 +10,7 @@ import pytest
 
 from marketer.models import Campaign, CampaignItem, Niche, PostingWindow
 from marketer.repos import campaigns as campaigns_repo
+from marketer.repos import jobs as jobs_repo
 from marketer.repos import niches as niches_repo
 from marketer.services import campaign_runner
 
@@ -76,6 +77,11 @@ def env(monkeypatch):
     monkeypatch.setattr(campaigns_repo, "set_status", fake_status)
     monkeypatch.setattr(niches_repo, "get", fake_niche_get)
 
+    async def fake_has_active(nid, *, within_minutes=45):
+        return False
+
+    monkeypatch.setattr(jobs_repo, "has_active_for_niche", fake_has_active)
+
     async def spawn_video(uid, nid, platform, cid):
         state["videos"].append((nid, platform))
 
@@ -125,6 +131,23 @@ async def test_due_lanes_spawn_video_and_article(env):
     assert result["action"] == "ticked"
     assert env["videos"] == [(vid_niche, "tiktok")]  # first platform
     assert env["articles"] == [art_niche]
+
+
+async def test_parked_approval_skips_video_lane(env, monkeypatch):
+    nid = uuid4()
+    env["niches"][nid] = _niche(nid)
+    env["items"] = [CampaignItem(
+        id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+        kind="video", ref_id=nid, cadence_per_week=7,
+    )]
+
+    async def busy(nid, *, within_minutes=45):
+        return True
+
+    monkeypatch.setattr(jobs_repo, "has_active_for_niche", busy)
+    result = await _tick(env)
+    assert env["videos"] == []
+    assert result["spawned"] == []
 
 
 async def test_weekly_quota_is_a_hard_stop(env):

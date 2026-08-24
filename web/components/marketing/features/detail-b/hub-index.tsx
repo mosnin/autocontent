@@ -210,9 +210,9 @@ export function SharedSpine() {
       <div className="os-split">
         <SectionHead
           eyebrow="One system"
-          heading="Fourteen surfaces. One spine."
+          heading="The surfaces you turn on. One spine."
           highlight="One spine."
-          lede="These aren't fourteen products stitched together. They share a ledger, a set of caps, an approval gate, and a queue — so turning on another one doesn't mean another bill to watch."
+          lede="These aren't separate products stitched together. They share a ledger, a set of caps, an approval gate, and a queue — so turning on another one doesn't mean another bill to watch."
         />
         <MediaCard
           kind="illustration"

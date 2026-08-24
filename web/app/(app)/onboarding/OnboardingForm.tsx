@@ -248,7 +248,7 @@ export function OnboardingForm({
     setSubmitting(false);
     if (res.ok) {
       toast.success("Niche created");
-      router.push("/dashboard");
+      router.push("/onboarding/next");
     } else if (res.error) {
       toast.error(res.error);
     }

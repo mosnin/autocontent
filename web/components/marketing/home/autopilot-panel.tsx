@@ -22,9 +22,9 @@ const CARDS = [
   },
   {
     kicker: "Instant answers",
-    title: "Ask your marketing anything",
+    title: "Spend and queue in one place",
     desc: "Spend, performance, and queue state live in one system, so the answer comes from data, not from a hunt across tabs.",
-    placeholder: { label: "Agent chat — screenshot", tone: "sky" as const },
+    placeholder: { label: "Dashboard spend — screenshot", tone: "sky" as const },
   },
   {
     kicker: "Agent surfaces",

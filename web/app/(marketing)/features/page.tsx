@@ -10,7 +10,7 @@ import { SectionCta } from "@/components/marketing/system";
 import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
-  "Fourteen surfaces on one platform: six ways to make the work, three to get it out, and five that keep it measured, automated, and inside the caps you set.";
+  "Video, articles, scheduling, and campaigns on one ledger, under one set of caps. Extra studios stay off until you turn them on.";
 
 export const metadata: Metadata = {
   title: "Features — marketer.sh",
@@ -30,12 +30,12 @@ export default function FeaturesPage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Platform overview — the fourteen surfaces"
+            label="Platform overview — the surfaces you turn on"
             ratio="4/3"
           />
         }
         kicker="Features"
-        lede="Video, articles, UGC, dramas, motion, templates. Scheduling, campaigns, ads. Niches, analytics, agents, library, audits. All of it on one ledger, under one set of caps."
+        lede="Video and articles ship today. Scheduling, campaigns, and analytics share the same ledger. Paid ads and extra studios stay off until they are actually live."
         magneticPrimary
         titleText="Everything the campaign needs. One system."
         variant="sky"

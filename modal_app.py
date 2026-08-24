@@ -699,16 +699,23 @@ async def run_design_project(
     timeout=60 * 30,
 )
 def gc_artifacts() -> dict:
-    """Daily GC: delete job artifact dirs older than 30 days.
-    DB rows in `jobs` and `spend_ledger` are untouched."""
+    """Daily GC: delete job artifact dirs older than 30 days,
+    plus aged Wasabi / media_assets rows. Job/spend ledger rows stay."""
+    import asyncio
+
     from marketer.storage.retention import gc_artifacts as _gc
+    from marketer.storage.retention import gc_media_library
 
     result = _gc(max_age_days=30)
+    library = asyncio.run(gc_media_library(max_age_days=30))
     artifacts.commit()
     return {
         "scanned": result.scanned,
         "removed": result.removed,
         "bytes_freed": result.bytes_freed,
+        "library_scanned": library.scanned,
+        "library_removed": library.removed,
+        "library_bytes_freed": library.bytes_freed,
     }
 
 

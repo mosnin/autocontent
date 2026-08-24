@@ -18,3 +18,14 @@ def refuse_unbilled_generate() -> None:
             status.HTTP_402_PAYMENT_REQUIRED,
             detail="unbilled usage is disabled on this deployment",
         )
+
+
+async def refuse_if_flag_off(key: str) -> None:
+    """Honor an explicit admin kill-switch. Missing flags do not deny."""
+    from marketer.repos import feature_flags as flags_repo
+
+    if not await flags_repo.allowed(key):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail=f"feature {key!r} is disabled",
+        )
