@@ -30,7 +30,7 @@ export default function FeaturesPage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Platform overview — the fourteen surfaces"
+            label="Platform overview — every surface on one ledger"
             ratio="4/3"
           />
         }

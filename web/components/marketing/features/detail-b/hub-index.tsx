@@ -246,7 +246,7 @@ export function SharedSpine() {
       <div className="os-split">
         <SectionHead
           eyebrow="One system"
-          heading="Fourteen surfaces. One spine."
+          heading="Twenty surfaces. One spine."
           highlight="One spine."
           lede="These aren't twenty products stitched together. They share a ledger, a set of caps, an approval gate, and a queue — so turning on another one doesn't mean another bill to watch."
         />
