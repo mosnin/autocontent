@@ -12,12 +12,9 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "Overview", href: "/#overview" },
-      { label: "Features", href: "/features" },
-      { label: "Video", href: "/features/video" },
-      { label: "Articles", href: "/features/articles" },
+      { label: "Content", href: "/features/content" },
+      { label: "SEO", href: "/features/seo" },
       { label: "Ads", href: "/features/ads" },
-      { label: "Campaigns", href: "/features/campaigns" },
       { label: "Pricing", href: "/pricing" },
     ],
   },

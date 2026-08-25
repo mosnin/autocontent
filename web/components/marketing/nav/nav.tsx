@@ -16,11 +16,11 @@ const PILL_LINKS = [
 ];
 
 const PRIMARY_LINKS = [
-  { label: "Overview", href: "/#overview" },
-  { label: "How it works", href: "/#how-it-works" },
-  { label: "Features", href: "/features" },
+  { label: "Content", href: "/features/content" },
+  { label: "SEO", href: "/features/seo" },
+  { label: "Ads", href: "/features/ads" },
+  { label: "Pricing", href: "/pricing" },
   { label: "Use cases", href: "/use-cases" },
-  { label: "Resources", href: "/resources" },
   { label: "Company", href: "/company" },
 ];
 
