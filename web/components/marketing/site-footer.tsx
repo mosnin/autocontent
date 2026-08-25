@@ -69,7 +69,7 @@ export function Footer(): ReactNode {
                 <h3 className="text-foreground text-sm font-medium tracking-tight">
                   {column.title}
                 </h3>
-                <ul className="mt-4 flex flex-col gap-3">
+                <ul className="mt-4 space-y-3">
                   {column.links.map((link) => (
                     <li key={link.href}>
                       <Link
