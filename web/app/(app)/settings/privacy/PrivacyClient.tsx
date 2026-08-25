@@ -5,14 +5,14 @@ import { useClerk } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/square/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/square/ui/card";
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +21,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/square/ui/input";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/square/ui/separator";
+import { Separator } from "@/components/ui/separator";
 import { DangerZone } from "@/components/settings/danger-zone";
 
 interface Props {

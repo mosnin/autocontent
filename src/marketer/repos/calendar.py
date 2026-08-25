@@ -11,7 +11,7 @@ from ..db import get_pool
 
 
 class CalendarItem(BaseModel):
-    kind: str  # 'video' | 'article' | 'ad'
+    kind: str  # 'video' | 'article' | 'ad' | 'scheduled_post'
     id: str
     niche_id: str
     title: str
@@ -50,6 +50,21 @@ async def items_for_user(
                c.status::text as status, a.platform, c.created_at as at
           from ad_campaigns c join ad_accounts a on a.id = c.ad_account_id
          where c.user_id = $1 and c.created_at >= $2 and c.created_at < $3
+        union all
+        -- Hand-authored scheduled posts. One row per post (not per
+        -- variant) so the item stays clickable as one thing; the
+        -- destinations are aggregated into `platform` as chips.
+        -- niche_id is '' because a scheduled post is account-level, not
+        -- channel-level (same as a niche-less ad campaign above).
+        select 'scheduled_post' as kind, p.id::text, '' as niche_id,
+               coalesce(nullif(left(p.content, 80), ''), 'Scheduled post') as title,
+               p.status::text as status,
+               (select string_agg(v.platform, ',' order by v.platform)
+                  from scheduled_post_variants v
+                 where v.scheduled_post_id = p.id) as platform,
+               p.scheduled_at as at
+          from scheduled_posts p
+         where p.user_id = $1 and p.scheduled_at >= $2 and p.scheduled_at < $3
          order by at
         """,
         user_id, start, end,

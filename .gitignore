@@ -15,6 +15,15 @@ artifacts/
 *.mp3
 *.png
 *.jpg
+# …but images under web/public are shipped UI, not generated media. Without
+# this the hero renders an empty tunnel everywhere except a dev machine that
+# happened to run the installer.
+!web/public/**/*.png
+!web/public/**/*.jpg
+
+# Framer static export fetched by `originkit add opsra`. 9MB of minified
+# runtime and hashed fonts — a separate deployable site, not source.
+web/opsra/
 
 # Tooling
 .ruff_cache/
@@ -25,3 +34,6 @@ artifacts/
 # Claude Code harness sub-agent worktrees (not project code)
 .claude/
 .coverage
+
+# Playwright scratch from verification runs
+web/.pwtmp/

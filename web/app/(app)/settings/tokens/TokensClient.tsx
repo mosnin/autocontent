@@ -5,8 +5,8 @@ import { useActionState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -21,8 +21,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/square/ui/dropdown-menu";
-import { Input } from "@/components/square/ui/input";
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Table,
@@ -31,7 +31,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { createTokenAction, revokeTokenAction } from "@/lib/actions";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import type { PersonalAccessToken } from "@/lib/types";

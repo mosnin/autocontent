@@ -143,6 +143,11 @@ class Niche(BaseModel):
     fal_model: str = ""
     script_model: str = ""
 
+    # Beat contract the scriptwriter writes to (see formats/registry.py).
+    # '' = "never chosen", which resolves to the default format — so the
+    # stored value records intent, not a snapshot of today's default.
+    video_format: str = ""
+
     # Audio providers: TTS engine (and voice) + music source. Defaults
     # preserve stock behavior; 'auto' music upgrades to generated tracks
     # only when the deploy has an ElevenLabs key.
@@ -242,6 +247,7 @@ class NicheCreatePayload(BaseModel):
     video_provider: Literal["grok", "fal"] = "grok"
     fal_model: str = ""
     script_model: str = ""
+    video_format: str = ""
     voice_provider: Literal["openai", "elevenlabs"] = "openai"
     elevenlabs_voice_id: str = ""
     music_provider: Literal["auto", "library", "generated"] = "auto"

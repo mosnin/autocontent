@@ -1,0 +1,209 @@
+/*
+ * Token bridge for the marketing surface.
+ *
+ * The thirty inner pages are now built from the section primitives in
+ * `components/site/sections`, which paint from `--os-*` and never from a
+ * Tailwind colour utility. This file is what remains around the edges:
+ *
+ *   1. the shadcn design tokens, re-pointed at the export's palette, so any
+ *      shared UI component that resolves colour through `--background`,
+ *      `--foreground`, `--border` and friends lands on the dark ground;
+ *   2. the three type faces, so `font-sans` / `font-display` / `font-mono`
+ *      resolve to the export's faces instead of Geist inside `#main`;
+ *   3. a safety net that inverts the zinc ramp, for any stray utility that
+ *      outlives a refactor. It is deliberately last and deliberately small:
+ *      the pages are not styled by it, and nothing new should rely on it.
+ *
+ * Values are the export's own tokens:
+ *   #151E1D  ground        rgb(252,253,253)  ink
+ *   #0F1514  surface       rgb(188,200,199)  ink-2
+ *   rgb(42,60,58) hairline rgb(65,255,243)   accent
+ *
+ * Everything is scoped to `#main` so it cannot reach the authenticated app.
+ */
+
+#main {
+  --background: 173 18% 10%;
+  --foreground: 180 20% 99%;
+
+  --card: 170 17% 7%;
+  --card-foreground: 180 20% 99%;
+  --popover: 170 17% 7%;
+  --popover-foreground: 180 20% 99%;
+
+  --muted: 173 18% 14%;
+  --muted-foreground: 172 10% 55%;
+
+  --secondary: 173 18% 14%;
+  --secondary-foreground: 180 20% 99%;
+
+  --accent: 173 18% 16%;
+  --accent-foreground: 180 20% 99%;
+
+  --border: 173 18% 20%;
+  --input: 173 18% 20%;
+  --ring: 176 100% 63%;
+
+  --primary: 176 100% 63%;
+  --primary-foreground: 173 18% 10%;
+
+  --brand: 176 100% 63%;
+  --brand-foreground: 173 18% 10%;
+
+  --page: 173 18% 10%;
+
+  /* Tailwind v4 emits `font-family: var(--font-display)` and friends, so
+     re-pointing the three variables here switches every `font-*` utility
+     inside the marketing shell to the export's faces. All three are
+     @font-face'd by site.css. */
+  --font-sans: "Inter Display", "Inter Display Placeholder", sans-serif;
+  --font-display: "Pretendard Variable Variable", "Inter Display", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+}
+
+/* The shell paints its own ground, but the document body sits behind it and
+   would otherwise flash light on overscroll. */
+body:has(#main) {
+  background-color: #151e1d;
+}
+
+/*
+ * Safety net. The zinc ramp is inverted rather than patched class by class:
+ * a utility that meant "near-black ink" now resolves to near-white ink, and
+ * one that meant "white card" resolves to the surface colour, so both the
+ * text and the surface it sits on stay in step. Alpha variants
+ * (`bg-zinc-900/[0.06]`) come along for free, because Tailwind v4 mixes
+ * these same variables.
+ */
+#main {
+  --color-white: #0f1514;
+  --color-black: #fcfdfd;
+
+  --color-zinc-50: #0f1514;
+  --color-zinc-100: #151e1d;
+  --color-zinc-200: #1f2d2b;
+  --color-zinc-300: #2a3c3a;
+  --color-zinc-400: #6c8481;
+  --color-zinc-500: #819895;
+  --color-zinc-600: #bcc8c7;
+  --color-zinc-700: #e2e9e9;
+  --color-zinc-800: #f1f4f4;
+  --color-zinc-900: #fcfdfd;
+  --color-zinc-950: #ffffff;
+}
+
+
+/* ---------------------------------------------------------------------
+   Brand palette override for the transcribed marketing site.
+
+   The Framer export drives its entire accent through ONE design token
+   (`--token-41e408ae-…`, originally #41fff3 teal). Re-pointing that single
+   variable recolours every accent on the page — headings' highlighted
+   phrase, eyebrow chips, bullets, buttons, the orbit and ticker marks —
+   without editing site.css, which is generated and would lose the change
+   on the next extractor run.
+
+   Sage is much lighter than the teal it replaces, so anything that sat as
+   dark-ink-on-teal still works, but teal-as-text on the dark ground drops
+   from 13.6:1 to roughly 9:1 — still well clear of AA.
+   --------------------------------------------------------------------- */
+#main {
+  --token-41e408ae-9b81-4329-a07e-7c0b5bd5e224: var(--brand-primary);
+  --brand-accent: var(--brand-primary);
+  --brand-accent-soft: var(--brand-secondary);
+}
+
+/* Literal teal that predates the palette, in hand-written CSS we own.
+   site.css is generated and is handled by the token above. */
+#main .os-highlight,
+#main [data-accent] {
+  color: var(--brand-primary);
+}
+
+
+/* --- 404 -------------------------------------------------------------
+   Lives here rather than in sections.css because not-found.tsx renders
+   outside the (marketing) group and must not depend on that group's
+   chunk being loaded. */
+.os-notfound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: 68vh;
+  padding: 96px 24px 120px;
+  text-align: center;
+}
+.os-notfound__code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin: 0;
+}
+.os-notfound__title {
+  margin: 18px 0 0;
+  font-size: clamp(32px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #fcfdfd;
+}
+.os-notfound__body {
+  margin: 16px 0 0;
+  max-width: 44ch;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #bcc8c7;
+}
+.os-notfound__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 34px;
+}
+.os-notfound__cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1px solid var(--brand-primary);
+  background: var(--brand-primary);
+  color: hsl(var(--brand-primary-ink));
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: opacity 0.18s ease;
+}
+.os-notfound__cta:hover { opacity: 0.88; }
+.os-notfound__cta--ghost {
+  background: transparent;
+  color: #fcfdfd;
+  border-color: rgb(42, 60, 58);
+}
+
+
+/* ---------------------------------------------------------------------
+   The hero's art is raster, not CSS.
+
+   Three full-bleed PNGs ship from the export with the old teal baked into
+   the pixels — the halftone field most visibly. No token can reach them,
+   so they are shifted in hue instead: teal sits near 175deg at full
+   saturation, sage near 98deg at 18%, hence the rotation and the heavy
+   desaturation.
+
+   Scoped to `data-framer-background-image-wrapper`, which Framer puts only
+   on decorative fills. Filtering every `img` in the section would also hit
+   the author photo in the "Hey there" card and turn a person green.
+   --------------------------------------------------------------------- */
+#main section[data-framer-name="Hero"]
+  [data-framer-background-image-wrapper="true"] img {
+  filter: hue-rotate(-72deg) saturate(0.42) brightness(1.04);
+}

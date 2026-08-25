@@ -1,14 +1,14 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { Badge } from "@/components/square/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/square/ui/card";
+} from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 

@@ -1,4 +1,13 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@300;400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Audiowide&family=DM+Mono:wght@400;500&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Hedvig+Letters+Serif:opsz@12..24&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Manrope:wght@400;500;600;700&family=Monda:wght@400;500;600;700&family=Outfit:wght@400;500;600&family=Playfair+Display:ital,wght@0,700;1,700&family=Red+Hat+Display:wght@400;500;600;700&family=Rethink+Sans:wght@400;500;600;700&family=Tillana:wght@400;500;600;700&family=Urbanist:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+@import "./originkit-section-theme.css";
+/* Written by `npx originkit add` — regenerated on every install, so never
+   hand-edit it. It is imported BEFORE our own @theme below on purpose:
+   anything it declares that we also own (--font-sans, --font-mono) must
+   lose to us. */
+@import "./originkit-section-themes.css";
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));
@@ -64,9 +73,25 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  /* Unified on Geist — headlines get presence from scale + tracking, not a
-     separate novelty face. */
+  /* The marketing site's display face. Stays Geist: those pages have their
+     own established language, and ~15 components set `font-display` at
+     small sizes with `font-semibold`, which a 400-only serif would have to
+     fake-bold. */
   --font-display: var(--font-geist-sans);
+
+  /* The APP's display face, and the identity carrier for the editorial
+     system. A high-contrast serif against a neutral grotesk UI is what
+     separates this from the single-family stack every AI-built dashboard
+     ships with. Reserved for page titles and figure captions — never for
+     UI chrome, labels, or anything below ~20px, where its thin strokes
+     stop being legible, and never with a weight utility, since Instrument
+     Serif ships 400 only and the browser would synthesize the rest. */
+  --font-editorial: var(--font-instrument-serif), Georgia, serif;
+
+  /* Editorial measure: prose stops being readable past ~72ch. Long-form
+     surfaces clamp to this instead of stretching to the shell's gutter. */
+  --measure: 68ch;
+  --measure-narrow: 46ch;
 
   /* Warm brand gradient (amber → rose), used for hero display text and the
      occasional accent. The single sanctioned gradient — no rainbow soup.
@@ -98,22 +123,44 @@
 }
 
 :root {
+  /* ---------------------------------------------------------------
+     Brand palette. One place to change the product's colours.
+
+       primary   #9AB08D  sage
+       secondary #EDDDC5  cream
+
+     Everything below that is brand-coloured derives from these two, so
+     a rebrand is an edit here rather than a sweep through component
+     files. The raw hex is exposed for CSS that needs a literal colour;
+     the HSL triplets feed the shadcn `hsl(var(--x))` tokens, which is
+     why they are stored unwrapped.
+     ---------------------------------------------------------------- */
+  --brand-primary: #9ab08d;
+  --brand-secondary: #edddc5;
+  --brand-primary-hsl: 98 18% 62%;
+  --brand-secondary-hsl: 36 53% 85%;
+  /* Ink that stays legible on each. Sage and cream are both light, so
+     both take a dark foreground — a white one fails contrast on either. */
+  --brand-primary-ink: 96 22% 14%;
+  --brand-secondary-ink: 36 25% 16%;
+}
+
+:root {
   /* Warm-stone light theme — a white content panel floats on this
      off-white page (see the floating-panel shell in site-shell.tsx). */
   --page: 40 16% 96%;
   --background: 40 16% 96%;
   --foreground: 30 8% 12%;
-  --brand: 11 93% 54%;
-  --brand-foreground: 0 0% 100%;
+  --brand: var(--brand-primary-hsl);
+  --brand-foreground: var(--brand-primary-ink);
   --card: 0 0% 100%;
   --card-foreground: 30 8% 12%;
   --popover: 0 0% 100%;
   --popover-foreground: 30 8% 12%;
-  /* Primary is near-black — matches the reference's black action button. */
-  --primary: 30 9% 12%;
-  --primary-foreground: 40 20% 98%;
-  --secondary: 40 14% 94%;
-  --secondary-foreground: 30 9% 15%;
+  --primary: var(--brand-primary-hsl);
+  --primary-foreground: var(--brand-primary-ink);
+  --secondary: var(--brand-secondary-hsl);
+  --secondary-foreground: var(--brand-secondary-ink);
   --muted: 40 14% 95%;
   --muted-foreground: 33 6% 46%;
   --accent: 40 14% 95%;
@@ -124,7 +171,7 @@
   --success-foreground: var(--color-emerald-700);
   --border: 36 12% 90%;
   --input: 36 12% 88%;
-  --ring: 30 9% 12%;
+  --ring: var(--brand-primary-hsl);
   --radius: 0.75rem;
   /* Functional blue — toggles, chart lines, progress fills. */
   --accent-blue: 217 89% 55%;
@@ -175,8 +222,8 @@
   --page: 240 10% 6%;
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
-  --brand: 11 100% 60%;
-  --brand-foreground: 240 10% 3.9%;
+  --brand: var(--brand-primary-hsl);
+  --brand-foreground: var(--brand-primary-ink);
   --accent-blue: 217 90% 62%;
   --cat-green: 152 52% 48%;
   --cat-orange: 24 90% 58%;

@@ -26,8 +26,8 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/square/ui/chart";
-import { Button } from "@/components/square/ui/button";
+} from "@/components/ui/chart";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,7 +38,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/square/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 
 export type Period = "1m" | "3m" | "6m" | "1y";
 

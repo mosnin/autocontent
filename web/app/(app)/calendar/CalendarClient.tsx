@@ -50,17 +50,17 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 
-import { Button } from "@/components/square/ui/button";
-import { Checkbox } from "@/components/square/ui/checkbox";
-import { Input } from "@/components/square/ui/input";
-import { Badge } from "@/components/square/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/square/ui/select";
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -68,7 +68,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/square/ui/dropdown-menu";
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -76,7 +76,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { DashHeading } from "@/components/hub/dashboard-kit";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
@@ -261,14 +261,14 @@ export function CalendarClient({
               table.getIsAllPageRowsSelected() ||
               (table.getIsSomePageRowsSelected() && "indeterminate")
             }
-            onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+            onCheckedChange={(d) => table.toggleAllPageRowsSelected(d.checked === true)}
             aria-label="Select all"
           />
         ),
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            onCheckedChange={(d) => row.toggleSelected(d.checked === true)}
             aria-label="Select row"
             onClick={(e) => e.stopPropagation()}
           />

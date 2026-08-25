@@ -9,8 +9,22 @@ class Settings(BaseSettings):
     ayrshare_api_key: str = ""
     pixabay_api_key: str = ""
 
-    # Supabase Postgres (use the pooler URL for the runtime app).
+    # Postgres. Any provider — the app uses plain asyncpg and no vendor SDK.
+    # Use the POOLED endpoint here: Modal starts a container per invocation
+    # and a direct endpoint runs out of connections quickly.
     database_url: str = ""
+    # Optional unpooled endpoint, used only for migrations. Poolers run
+    # PgBouncer in transaction mode, where a multi-statement DDL migration
+    # can land on different backends mid-run. Neon and Supabase both expose
+    # a direct host for this. Empty falls back to database_url.
+    database_direct_url: str = ""
+    # asyncpg prepares statements and caches them by name. PgBouncer in
+    # transaction mode hands the next query to a different backend, which
+    # has never seen that name — the symptom is
+    # `prepared statement "__asyncpg_stmt_N__" already exists` under load.
+    # 0 disables the cache, which is what a pooled endpoint requires.
+    # Raise it only when pointing at a direct, unpooled endpoint.
+    db_statement_cache_size: int = 0
 
     # Clerk JWT verification.
     clerk_jwks_url: str = ""
@@ -194,6 +208,74 @@ class Settings(BaseSettings):
     # Bounds on a single top-up, in USD.
     x402_min_topup_usd: float = 1.0
     x402_max_topup_usd: float = 1000.0
+
+    # --- Context.dev brand intelligence + web extraction ---------------
+    # One key powers brand lookup, page scraping (markdown + rendered HTML),
+    # styleguide extraction, and structured product extraction. Empty key =
+    # every feature built on it (ad creative studio, SEO auditor) reports
+    # "not configured" instead of failing mid-run.
+    context_dev_api_key: str = ""
+    context_dev_base_url: str = "https://api.context.dev"
+    context_dev_timeout_sec: float = 60.0
+
+    # --- Ad creative studio (domain -> on-brand ad images) -------------
+    # Generates a bounded "ad run" of 1:1 creatives from a public domain:
+    # brand research -> one LLM planning call -> N images, each a distinct
+    # creative direction rendered by a distinct image model. Off by default;
+    # inert without context_dev_api_key.
+    ad_creative_enabled: bool = False
+    # Model that picks creative directions and writes ad copy.
+    ad_creative_planner_model: str = "gpt-5.4-mini"
+    # Company-level creatives per run (the rest are product-level).
+    ad_creative_company_count: int = 3
+    # Bounds on product-level creatives extracted from the site.
+    ad_creative_product_min: int = 1
+    ad_creative_product_max: int = 3
+    # Maximum slots rendered concurrently within one ad run.
+    ad_creative_fanout_limit: int = 3
+
+    # --- SEO auditor (AI answer-engine readability) --------------------
+    # Scores a URL 0-100 across crawlability, chunking, schema, E-E-A-T,
+    # citation surface, and governance, then emits an agent-ready fix
+    # prompt. Off by default; inert without context_dev_api_key.
+    seo_audit_enabled: bool = False
+    # Serve a stored audit for the same URL when it is younger than this.
+    seo_audit_cache_ttl_sec: int = 86_400
+    # Milliseconds the scraper waits for client-side JSON-LD injectors.
+    seo_audit_html_wait_ms: int = 3_000
+
+    # --- UGC studio (script + reference images -> spokesperson video) --
+    # MUAPI-backed async render jobs across several video models. Off by
+    # default; inert without muapi_api_key.
+    ugc_enabled: bool = False
+    muapi_api_key: str = ""
+    muapi_base_url: str = "https://api.muapi.ai/api/v1"
+    # Public origin MUAPI posts completion webhooks back to. Empty =
+    # renders are reconciled by polling instead.
+    muapi_webhook_url: str = ""
+    # Shared secret appended to the webhook URL as ?token=... and required
+    # on delivery. Empty = the webhook endpoint refuses every request.
+    muapi_webhook_secret: str = ""
+    # Maximum reference images accepted per render.
+    ugc_max_reference_images: int = 7
+
+    # --- Seedance 2.5 video provider (services/seedance.py) -------------
+    # Text-to-video, image-to-video, first/last-frame, and omni/character
+    # reference. Served by the same MuAPI gateway as the UGC studio, so an
+    # unset key falls back to muapi_api_key; both empty = the provider is
+    # unavailable and says so loudly rather than silently substituting.
+    seedance_api_key: str = ""
+    seedance_base_url: str = "https://api.muapi.ai/api/v1"
+    # JSON {model_id | model_id@resolution: usd_per_second} correcting the
+    # pinned registry without a deploy, e.g.
+    # '{"seedance-2.5-omni-reference@720p": "0.18"}'. Same defensive-parse
+    # policy as fal_price_overrides: bad values are dropped, never fatal.
+    seedance_price_overrides: str = ""
+
+    # Stock footage for motion-graphics b-roll (Pexels). Empty key = the
+    # stock strategy finds nothing and every shot falls back to a generated
+    # keyframe, rather than failing the render.
+    pexels_api_key: str = ""
 
     # Transactional email (Resend). Empty key = emails silently skipped.
     resend_api_key: str = ""

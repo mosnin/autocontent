@@ -25,6 +25,8 @@ from .agents import (
 )
 from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
 from .agents.metered import run_metered
+from .formats import registry as formats
+from .logging import get_logger
 from .models import Idea, Niche, Script
 from .models.creative_brief import CreativeBrief
 from .agents.qa import QAReport
@@ -39,9 +41,13 @@ async def run_scriptwriter(
     audience_context: str = "",
     brief: CreativeBrief | None = None,
     script_model: str = "",
+    format_key: str = "",
     spend: SpendContext | None = None,
 ) -> Script:
-    agent = build_scriptwriter_agent()
+    # Empty key = the default explainer; an unknown key raises rather than
+    # silently writing a different (fully paid-for) video.
+    fmt = formats.resolve(format_key)
+    agent = build_scriptwriter_agent(fmt)
     prompt = (
         f"Idea:\n{idea.model_dump_json(indent=2)}\n\n"
         f"Target: {scene_count} scenes, {target_duration_sec}s total."
@@ -68,7 +74,16 @@ async def run_scriptwriter(
             }
 
     result = await run_metered(agent, prompt, spend=spend, **metered_kwargs)
-    return result.final_output_as(Script)
+    script = result.final_output_as(Script)
+    # Free, offline, deterministic grade against the format it was written
+    # to. Logged rather than raised — the QA agent owns the go/no-go, and a
+    # beat-contract miss is not worth discarding a paid-for script.
+    report = formats.check(script, fmt)
+    if not report["passed"]:
+        get_logger(__name__).info(
+            "beat contract issues", extra={"issues": report["issues"]}
+        )
+    return script
 
 
 async def run_visual_director(

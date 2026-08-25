@@ -14,7 +14,7 @@ from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import admin, ads, articles, billing, brand_kit, calendar, campaigns, connect, failures, healthz, image_posts, jobs, kits, library, metrics, niches, ops, performance, providers, spend, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, x402
+from .routes import ad_creatives, admin, ads, articles, billing, brand_kit, calendar, campaigns, cinema, cms, connect, design, dramas, failures, formats, gatekeeper, headshots, healthz, image_posts, jobs, kits, library, metrics, motion, niches, ops, performance, personas, providers, scheduled_posts, seo_audits, spend, style_presets, templates, tokens, ugc, users, voices, webhook_endpoints, webhooks, x402
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +130,24 @@ def create_app() -> FastAPI:
     app.include_router(providers.router, prefix="/api/v1/providers", tags=["providers"])
     app.include_router(ops.router, prefix="/api/v1/ops", tags=["ops"])
     app.include_router(failures.router, prefix="/api/v1/failures", tags=["failures"])
+
+    # ── Ported feature surfaces (each fails closed to 409 when its flag
+    # or key is absent — see the feature's settings in marketer.config).
+    app.include_router(ad_creatives.router, prefix="/api/v1/ad-creatives", tags=["ad-creatives"])
+    app.include_router(seo_audits.router, prefix="/api/v1/seo-audits", tags=["seo-audits"])
+    app.include_router(ugc.router, prefix="/api/v1/ugc", tags=["ugc"])
+    app.include_router(dramas.router, prefix="/api/v1/dramas", tags=["dramas"])
+    app.include_router(cinema.router, prefix="/api/v1/cinema", tags=["cinema"])
+    app.include_router(design.router, prefix="/api/v1/design", tags=["design"])
+    app.include_router(personas.router, prefix="/api/v1/personas", tags=["personas"])
+    app.include_router(headshots.router, prefix="/api/v1/headshots", tags=["headshots"])
+    app.include_router(motion.router, prefix="/api/v1/motion", tags=["motion"])
+    app.include_router(formats.router, prefix="/api/v1/formats", tags=["formats"])
+    app.include_router(
+        scheduled_posts.router, prefix="/api/v1/scheduled-posts", tags=["scheduled-posts"]
+    )
+    app.include_router(cms.router, prefix="/api/v1/cms", tags=["cms"])
+    app.include_router(gatekeeper.router, prefix="/api/v1/gatekeeper", tags=["gatekeeper"])
 
     # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
     # when enabled this serves the functions at /api/inngest.

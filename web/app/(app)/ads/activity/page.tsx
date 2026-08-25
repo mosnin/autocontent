@@ -5,8 +5,8 @@
 // Badge has no destructive/warning/success variants to reuse). No
 // toolbar — this table never had search/filter and stays read-only.
 
-import { Badge } from "@/components/square/ui/badge";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
 import { formatUsd } from "@/lib/format";

@@ -22,6 +22,10 @@ async def get_pool() -> asyncpg.Pool:
             min_size=1,
             max_size=5,
             command_timeout=30,
+            # Required for any PgBouncer transaction-mode pooler (Neon's
+            # `-pooler` host, Supabase's port 6543). See the setting's
+            # comment in config.py for the failure it prevents.
+            statement_cache_size=settings.db_statement_cache_size,
         )
     return _pool
 

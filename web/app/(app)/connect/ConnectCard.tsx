@@ -3,7 +3,7 @@
 import { CheckCircle2 } from "lucide-react";
 
 import { DotGridSpotlight } from "@/components/dot-grid-spotlight";
-import { Button } from "@/components/square/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,7 +11,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/square/ui/card";
+} from "@/components/ui/card";
 
 export function ConnectCard({
   action,

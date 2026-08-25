@@ -95,6 +95,7 @@ class NicheCreate(BaseModel):
     video_provider: Literal["grok", "fal"] = "grok"
     fal_model: str = ""
     script_model: str = ""
+    video_format: str = ""
     voice_provider: Literal["openai", "elevenlabs"] = "openai"
     elevenlabs_voice_id: str = ""
     music_provider: Literal["auto", "library", "generated"] = "auto"
@@ -136,6 +137,7 @@ class NicheUpdate(BaseModel):
     video_provider: Literal["grok", "fal"] | None = None
     fal_model: str | None = None
     script_model: str | None = None
+    video_format: str | None = None
     voice_provider: Literal["openai", "elevenlabs"] | None = None
     elevenlabs_voice_id: str | None = None
     music_provider: Literal["auto", "library", "generated"] | None = None
@@ -173,6 +175,26 @@ def _validate_voice_provider(voice_provider: str | None) -> None:
         )
 
 
+def _validate_video_format(video_format: str | None) -> None:
+    """Reject an unknown format key at the boundary.
+
+    Storing one is worse than it looks: `formats.resolve` raises on an
+    unknown key, so the niche would fail at the SCRIPTING stage of every
+    future run — after ideation has already been paid for. '' is the
+    legitimate "not chosen" value and resolves to the default.
+    """
+    if not video_format:
+        return
+    from marketer.formats import registry
+
+    if registry.get_format(video_format) is None:
+        known = ", ".join(f.key for f in registry.FORMATS)
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"unknown video_format '{video_format}' — known formats: {known}",
+        )
+
+
 async def _validate_kit_refs(
     user_id: str, design_kit_id, writing_kit_id
 ) -> None:
@@ -195,6 +217,7 @@ async def _validate_kit_refs(
 async def create_niche(body: NicheCreate, ctx: AuthCtx = CurrentUser) -> Niche:
     await _validate_kit_refs(ctx.user_id, body.design_kit_id, body.writing_kit_id)
     _validate_voice_provider(body.voice_provider)
+    _validate_video_format(body.video_format)
     return await niches_repo.create(ctx.user_id, **body.model_dump())
 
 
@@ -221,6 +244,8 @@ async def update_niche(
     )
     if "voice_provider" in fields:
         _validate_voice_provider(fields["voice_provider"])
+    if "video_format" in fields:
+        _validate_video_format(fields["video_format"])
     n = await niches_repo.update(niche_id, user_id=ctx.user_id, **fields)
     if n is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

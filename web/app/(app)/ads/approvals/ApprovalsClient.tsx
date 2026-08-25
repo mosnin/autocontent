@@ -13,9 +13,9 @@ import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -23,7 +23,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { adsKeys, decideApproval, type AdApproval } from "@/lib/ads-client";

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import * as React from "react";
 
 import {
   GuideCallout,
@@ -9,7 +10,8 @@ import {
   GuideStrong,
   type GuideSection,
 } from "@/components/marketing/resources/guide-layout";
-import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
+import { SectionCta } from "@/components/marketing/system";
+import { MediaCard } from "@/components/site/sections";
 
 const TITLE = "Rank with articles your agents write";
 const DESCRIPTION =
@@ -48,42 +50,37 @@ const SECTIONS: GuideSection[] = [
         </GuideP>
         <GuideList
           items={[
-            <>
+            <React.Fragment key={1}>
               <GuideStrong>SERP research.</GuideStrong> The pipeline reads
               what currently ranks for the topic: the angles taken, the
               questions answered, the gaps nobody covers. Your article is
               positioned against the real competition, not written into a
               void.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={2}>
               <GuideStrong>Outline.</GuideStrong> A structure is drafted
               first, sections, FAQs, and target headings, so the piece argues
               one thing instead of wandering.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={3}>
               <GuideStrong>Parallel writing.</GuideStrong> Sections are
               written concurrently against the shared outline, which keeps a
               2,000-word piece fast without letting it drift.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={4}>
               <GuideStrong>QA.</GuideStrong> A separate pass checks claims
               against the research, cuts filler, and rejects drafts that fail.
               Failed drafts cost you a retry, not a published embarrassment.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={5}>
               <GuideStrong>Metadata, JSON-LD, hero image.</GuideStrong> Every
               draft ships with title tag, meta description, Article structured
               data, and a generated hero image. Nothing to bolt on later.
-            </>,
+            </React.Fragment>,
           ]}
         />
-        <div className="mt-6 aspect-[16/10] overflow-hidden rounded-2xl">
-          <TaggedPlaceholder
-            className="h-full w-full"
-            kind="illustration"
-            label="Guide diagram — article pipeline"
-            tone="warm"
-          />
+        <div className="os-mt-24">
+          <MediaCard kind="illustration" label="Guide diagram — article pipeline" ratio="16/9" />
         </div>
       </>
     ),
@@ -127,25 +124,25 @@ const SECTIONS: GuideSection[] = [
         </GuideP>
         <GuideList
           items={[
-            <>
+            <React.Fragment key={6}>
               <GuideStrong>Topic pillars.</GuideStrong> Three to five themes
               the niche owns. Ideation proposes topics inside the pillars, so
               tight pillars produce a coherent site section instead of a
               scattershot blog.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={7}>
               <GuideStrong>Search intent mix.</GuideStrong> Decide the ratio
               of informational (&ldquo;how does x work&rdquo;) to commercial
               (&ldquo;best x for y&rdquo;) pieces. Early on, weight
               informational; it ranks sooner and builds the authority the
               commercial pieces need.
-            </>,
-            <>
+            </React.Fragment>,
+            <React.Fragment key={8}>
               <GuideStrong>The daily cap.</GuideStrong> Articles cost less
               than videos, so a mixed niche needs headroom for both. Check{" "}
               <GuideCode>today_spend</GuideCode> or the dashboard strip if
               article jobs are getting refused late in the day.
-            </>,
+            </React.Fragment>,
           ]}
         />
       </>

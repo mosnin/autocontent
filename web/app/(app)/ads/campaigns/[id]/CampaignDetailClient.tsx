@@ -5,9 +5,9 @@ import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
-import { Input } from "@/components/square/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";

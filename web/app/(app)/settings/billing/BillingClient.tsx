@@ -4,7 +4,7 @@ import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { createCheckoutAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";

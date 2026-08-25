@@ -110,12 +110,12 @@ user's payment method on the ad platform — so it is engineered around a strict
 - **Transcription**: OpenAI Whisper
 - **SERP research**: Exa
 - **Video**: ffmpeg
-- **Storage**: Modal volumes for clips/assets, Supabase Postgres metadata
+- **Storage**: Modal volumes for clips/assets, Postgres metadata
 
 ## Multi-tenant
 
 Every user is a Clerk identity. Per-user records (`niches`, `jobs`,
-`spend_ledger`) live in Supabase Postgres. Posting goes through one
+`spend_ledger`) live in Postgres. Posting goes through one
 Ayrshare account using per-user profile keys. Artifacts on the Modal
 volume are partitioned by `user_id`. Each niche has its own daily spend
 cap that the pipeline checks before every credit-spending stage.
@@ -180,10 +180,55 @@ falls back) and the rest of the platform is unaffected. Set them as
 | `MARKETER_PIXABAY_API_KEY` | Stock music fallback chain |
 | `MARKETER_WASABI_*` (`wasabi_enabled=true`, endpoint, region, bucket, keys) | Durable object storage for every produced artifact + template reference mirroring |
 | `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
+| `MARKETER_SEEDANCE_API_KEY` | Seedance 2.5 video (text-to-video, image-to-video, first/last frame, omni/character reference); falls back to `MARKETER_MUAPI_API_KEY` |
+| `MARKETER_SEEDANCE_PRICE_OVERRIDES` | JSON `{model_id\|model_id@resolution: usd_per_second}` correcting pinned Seedance prices without a deploy |
+| `MARKETER_CONTEXT_DEV_API_KEY` | Brand research + web extraction — required by the ad creative studio and the SEO auditor |
+| `MARKETER_MUAPI_API_KEY` | UGC studio render jobs |
 
 Deploy checklist when bumping to this version: `marketer-migrate up`
 (migrations through 0023), `modal deploy modal_app.py`, then set any new
 keys above.
+
+## Creative surfaces (ported feature suite)
+
+A wave of focused creation tools, each a self-contained package under
+`src/marketer/` with its own repo module, route module, and migration.
+They all follow the same architecture contract:
+
+- **One vendor seam per vendor.** Context.dev calls (brand data, page
+  markdown, rendered HTML, styleguide, structured extraction) go through
+  `services/context_dev.py`; MUAPI render jobs through `services/muapi.py`.
+  No feature fetches a researched or audited site directly.
+- **Metered like everything else.** Every LLM/image/video call runs
+  through `SpendContext` — per-niche daily cap, optional global cap,
+  prepaid credits — and fan-out is bounded.
+- **Fail-closed config.** A feature whose flag is off or whose key is
+  missing answers `409`, never a 500; boot preflight reports the
+  misconfiguration (`services/preflight.py`).
+- **Catalogs are pure data.** Creative directions, cinema presets, video
+  formats, headshot styles, and model capability tables are import-safe
+  pure modules with no I/O, so pipelines can consume them directly.
+
+| Surface | Package | API | What it does |
+| --- | --- | --- | --- |
+| Ad creative studio | `adcreative/` | `/api/v1/ad-creatives` | Public domain → brand research → one planning call → 4-6 on-brand 1:1 ads, each a distinct creative direction on a distinct image model |
+| SEO auditor | `seoaudit/` | `/api/v1/seo-audits` | URL → 0-100 AI answer-engine readability score across six weighted categories + an agent-ready fix prompt |
+| UGC studio | `ugc/` | `/api/v1/ugc` | Script + reference images → vertical spokesperson video via async provider jobs (secret-gated webhook + polling reconcile) |
+| Micro-drama | `drama/` | `/api/v1/dramas` | Idea → screenplay → locked cast portraits → per-shot keyframes/clips → stitched short with character consistency |
+| Cinema presets | `cinema/` | `/api/v1/cinema` | Cinematography catalog (lenses, stocks, grades) + deterministic structured prompt composer |
+| Design agent | `design/` | `/api/v1/design` | Brief → validated, bounded, inspectable plan → step-by-step canvas execution with per-step retry |
+| Brand personas | `personas/` | `/api/v1/personas` | Reusable brand voice (extends the brand kit) with injection-fenced chat and a locked visual reference |
+| Headshot studio | `headshots/` | `/api/v1/headshots` | Source photos + a style → a batch of consistent portraits; also mints a reusable AI actor for UGC and drama |
+| Motion graphics | `motion/` | `/api/v1/motion` | Narration → timed beats → beat-aligned b-roll (generated or stock) + kinetic type, composited to one MP4 |
+| Video formats + trends | `formats/`, `research/` | `/api/v1/formats` | Six selectable beat contracts (explainer, myth-buster, what-if, listicle, tutorial, UGC testimonial), a per-model gotchas KB the prompt builders consult, and niche trend research |
+| Scheduled posts | `scheduling/` | `/api/v1/scheduled-posts` | Hand-authored posts with per-platform variants, recurring slots, CSV import, and an idempotent dispatch loop |
+| Article CMS | `cms/` | `/api/v1/cms` | Editing with append-only revisions, guarded publication states, DB-enforced public slugs, collections, bulk topic queueing |
+| Seedance 2.5 | `services/seedance.py` | MCP tools | Text-to-video, image-to-video, first/last-frame, and omni/character reference behind the pluggable provider seam |
+
+Two of these upgrade existing surfaces rather than standing alone: a
+niche's `video_format` steers the scriptwriter through the beat contract
+it will be graded against, and scheduled posts join the unified
+`/calendar` feed.
 
 ## Platform surfaces
 

@@ -45,7 +45,7 @@ secrets = [
     modal.Secret.from_name("marketer-openai"),
     modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
     modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
-    modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
+    modal.Secret.from_name("marketer-database"),  # MARKETER_DATABASE_URL
     modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
 ]
 
@@ -76,7 +76,7 @@ async def _job_attempt_at(job_id: str):
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
-    concurrency_limit=_settings.pipeline_global_concurrency,
+    max_containers=_settings.pipeline_global_concurrency,
 )
 async def run_pipeline(
     user_id: str, niche_id: str, platform: str, job_id: str | None = None
@@ -374,10 +374,23 @@ async def reap_stale_jobs() -> dict:
     from marketer.repos import jobs as jobs_repo
 
     from marketer.repos import image_posts as image_posts_repo
+    from marketer.repos import gatekeeper as gatekeeper_repo
+    from marketer.repos import motion_projects as motion_repo
+    from marketer.repos import scheduled_posts as scheduled_posts_repo
 
     reaped = await jobs_repo.reap_stale(older_than_minutes=120)
     reaped_articles = await articles_repo.reap_stale(older_than_minutes=120)
     reaped_images = await image_posts_repo.reap_stale(older_than_minutes=120)
+    # A crashed dispatcher strands posts in `dispatching`, where nothing
+    # retries them and the user just never sees the post go out — shorter
+    # window than the render reapers because a scheduled post is late the
+    # moment it misses its slot.
+    reaped_scheduled = await scheduled_posts_repo.reap_stale(older_than_minutes=60)
+    reaped_motion = await motion_repo.reap_stale(older_than_minutes=120)
+    # An intent claimed for apply whose container died looks successful
+    # forever unless it is failed loudly.
+    reaped_intents = await gatekeeper_repo.reap_stale(older_than_minutes=60)
+    expired_intents = await gatekeeper_repo.expire_stale_pending(older_than_hours=168)
     # Idempotency claims expire on their own TTL (claim() treats an expired
     # row as reclaimable), so this is pure disk cleanup, not a correctness
     # dependency — safe to run on the same cadence as the other reapers.
@@ -392,6 +405,10 @@ async def reap_stale_jobs() -> dict:
         "reaped_articles": reaped_articles,
         "reaped_images": reaped_images,
         "reaped_idempotency_keys": reaped_idempotency_keys,
+        "reaped_scheduled_posts": reaped_scheduled,
+        "reaped_motion_projects": reaped_motion,
+        "reaped_gatekeeper_intents": reaped_intents,
+        "expired_gatekeeper_intents": expired_intents,
     }
 
 
@@ -420,6 +437,185 @@ async def run_article_pipeline(
         return article.model_dump(mode="json")
     finally:
         force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_ad_creative_run(user_id: str, run_id: str) -> dict:
+    """One Ad Run: brand research → planning → every slot rendered.
+    Slot fan-out is bounded inside execute_run; a failed slot fails
+    alone and is individually retryable."""
+    from uuid import UUID
+    from marketer.adcreative.renderer import execute_run
+
+    result = await execute_run(user_id=user_id, run_id=UUID(run_id))
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 10,
+)
+async def retry_ad_creative_slot(user_id: str, run_id: str, slot_id: str) -> dict:
+    """Re-render one failed Ad Slot without re-planning the run."""
+    from uuid import UUID
+    from marketer.adcreative.renderer import retry_slot
+
+    result = await retry_slot(
+        user_id=user_id, run_id=UUID(run_id), slot_id=UUID(slot_id)
+    )
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_headshot_batch(user_id: str, batch_id: str) -> dict:
+    """One headshot batch: claim, render every variant from the user's own
+    source photos, settle done/partial/failed. Variant fan-out is bounded
+    inside the pipeline; a failed variant fails alone and the batch is
+    retryable from the gaps."""
+    from uuid import UUID
+    from marketer.headshots.pipeline import run_headshot_batch as _run
+
+    result = await _run(user_id=user_id, batch_id=UUID(batch_id))
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 60,
+)
+async def run_drama_pipeline(user_id: str, drama_id: str) -> dict:
+    """One micro-drama end-to-end: screenplay → locked cast → per-shot
+    keyframes/clips → stitch. Resumable: a retry keeps the already-paid
+    screenplay, character references, and completed shots."""
+    from uuid import UUID
+    from marketer.drama.pipeline import run_drama
+
+    drama = await run_drama(user_id=user_id, drama_id=UUID(drama_id))
+    artifacts.commit()
+    return {"status": str(getattr(drama, "status", ""))}
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_motion_project(user_id: str, project_id: str) -> dict:
+    """One motion project end-to-end: narration -> beats -> b-roll +
+    kinetic type -> composited mp4. Resumable: keyframes already on the
+    volume are reused instead of re-bought."""
+    from uuid import UUID
+    from marketer.motion.pipeline import run_motion_project as _run
+
+    result = await _run(user_id=user_id, project_id=UUID(project_id))
+    artifacts.commit()
+    return result
+
+
+@app.function(
+    schedule=modal.Cron("*/4 * * * *"),
+    timeout=60 * 10,
+)
+async def apply_gatekeeper_intents() -> dict:
+    """Apply intents a human approved.
+
+    Runs off-request on purpose: a bulk approval of twenty campaign
+    changes must not depend on a browser tab staying open. Every apply
+    re-claims atomically, so overlapping runs cannot double-spend."""
+    from marketer.gatekeeper.production import DbAuditSink
+    from marketer.gatekeeper.reconcile import run_apply_queue
+    from marketer.gatekeeper.registry import resolve_capability
+
+    sink = DbAuditSink()
+
+    async def audit(**fields):
+        from marketer.gatekeeper.capability import GatekeeperContext
+
+        await sink.write(
+            capability=fields["capability"],
+            verdict=fields["verdict"],
+            summary=fields.get("summary", ""),
+            reason=fields.get("reason", ""),
+            ctx=GatekeeperContext(user_id=fields["user_id"], actor="system"),
+            intent_id=str(fields["intent_id"]) if fields.get("intent_id") else None,
+        )
+
+    return await run_apply_queue(resolve_capability, audit=audit)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 10,
+)
+async def run_trend_research(user_id: str, report_id: str) -> dict:
+    """One trend-research run for a niche: up to three Exa searches plus
+    one metered LLM call, stored on the report row. Degrades to model
+    knowledge (grounded=false) when Exa is unconfigured."""
+    from uuid import UUID
+    from marketer.research.trends import run_trend_research as _run
+
+    return await _run(user_id=user_id, report_id=UUID(report_id))
+
+
+@app.function(
+    schedule=modal.Cron("* * * * *"),  # minute resolution: a due post is late by <60s
+    timeout=60 * 10,
+)
+async def dispatch_scheduled_posts() -> dict:
+    """Publish every scheduled post that has come due.
+
+    Safe to run concurrently with itself and safe to retry: `claim_due` is
+    an atomic scheduled -> dispatching UPDATE, `claim_variant` is the same
+    trick per platform, and services/idempotency.py is the durable third
+    guard. See src/marketer/scheduling/dispatch.py."""
+    from marketer.repos.article_revisions import publish_due
+    from marketer.scheduling.dispatch import run_due_dispatch
+
+    result = await run_due_dispatch()
+    # Scheduled article publication rides the same minute tick: both are
+    # "something the user set a time for has come due", and giving them one
+    # clock keeps a post and the article it links to from going live in
+    # different minutes.
+    result["published_articles"] = await publish_due()
+    return result
+
+
+@app.function(timeout=60 * 10)
+async def publish_scheduled_post(user_id: str, post_id: str) -> dict:
+    """Publish-now path. The ROUTE already made the atomic claim before
+    spawning this, so do not re-claim — just fan the claimed post out."""
+    from uuid import UUID
+
+    from marketer.scheduling.dispatch import dispatch_claimed_post
+
+    return await dispatch_claimed_post(user_id=user_id, post_id=UUID(post_id))
+
+
+@app.function(
+    volumes={"/artifacts": artifacts},
+    timeout=60 * 30,
+)
+async def run_design_project(
+    user_id: str, project_id: str, from_step_id: str = ""
+) -> dict:
+    """Drive one design project: plan (one metered call) then execute the
+    validated step graph. `from_step_id` re-runs a step + downstream."""
+    from uuid import UUID
+    from marketer.design.executor import run_design_project as _run
+
+    result = await _run(
+        user_id=user_id, project_id=UUID(project_id), from_step_id=from_step_id
+    )
+    artifacts.commit()
+    return result
 
 
 @app.function(

@@ -5,9 +5,9 @@ import useSWR from "swr";
 import { toast } from "sonner";
 
 import { formatDateTime, relativeTime } from "@/components/admin/format";
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 // Dialogs (and everything inside them) stay on the app's own primitives —
 // dialog/label/textarea/switch have no square/ui counterpart the template
 // prescribes for this context (established precedent, see
@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button as DialogButton } from "@/components/ui/button";
-import { Skeleton } from "@/components/square/ui/skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -34,7 +34,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { adminKeys, adminUpsertFlag } from "@/lib/admin-api";
 import { clientFetch } from "@/lib/client-fetcher";
 import { cn } from "@/lib/utils";

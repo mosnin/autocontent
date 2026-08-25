@@ -38,8 +38,14 @@ async def erase_my_account(ctx: AuthCtx = CurrentUser) -> None:
     """GDPR right to erasure: permanently delete the account and all its data
     (niches, jobs, articles, spend history, tokens) via FK cascade. This is
     irreversible; the frontend must confirm before calling."""
+    from marketer.headshots.pipeline import purge_user_files
     from marketer.repos import privacy
 
+    # Volume sweep BEFORE the cascade: the rows are what tell us which files
+    # exist, so deleting them first would strand the bytes. Headshot sources
+    # are photographs of an identifiable person — precisely what an erasure
+    # request is about — so the files must go, not just the index.
+    await purge_user_files(ctx.user_id)
     await privacy.erase_user(ctx.user_id)
 
 

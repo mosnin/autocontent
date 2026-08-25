@@ -372,6 +372,94 @@ def check_x402() -> CheckResult:
     )
 
 
+def check_context_dev() -> CheckResult:
+    """Shared brand-intelligence seam for the ad-creative and SEO-audit
+    features. Checked once here; the per-feature checks below only add
+    their own flag logic on top so the gating never drifts."""
+    from . import context_dev
+
+    if context_dev.is_configured():
+        return _ok("context_dev", "Context.dev API key configured (brand research + web extraction).")
+    flags_on = [
+        name
+        for name, val in (
+            ("ad_creative_enabled", settings.ad_creative_enabled),
+            ("seo_audit_enabled", settings.seo_audit_enabled),
+        )
+        if val
+    ]
+    if flags_on:
+        return _error(
+            "context_dev",
+            "A Context.dev-backed feature flag is on but "
+            "MARKETER_CONTEXT_DEV_API_KEY is not set — those surfaces will "
+            "409 on every request.",
+            enabled_flags=flags_on,
+        )
+    return _ok("context_dev", "Context.dev not configured — ad-creative/SEO-audit surfaces stay dark.")
+
+
+def check_ad_creative() -> CheckResult:
+    if not settings.ad_creative_enabled:
+        return _ok("ad_creative", "Ad creative studio disabled.")
+    from . import context_dev
+
+    if not context_dev.is_configured():
+        return _error(
+            "ad_creative",
+            "MARKETER_AD_CREATIVE_ENABLED is true but Context.dev is not "
+            "configured — every ad-creative request will 409.",
+        )
+    if not settings.openai_api_key:
+        return _error(
+            "ad_creative",
+            "Ad creative studio is enabled but MARKETER_OPENAI_API_KEY is "
+            "not set — planning and rendering cannot run.",
+        )
+    return _ok("ad_creative", "Ad creative studio enabled with Context.dev + OpenAI configured.")
+
+
+def check_seo_audit() -> CheckResult:
+    if not settings.seo_audit_enabled:
+        return _ok("seo_audit", "SEO auditor disabled.")
+    from . import context_dev
+
+    if not context_dev.is_configured():
+        return _error(
+            "seo_audit",
+            "MARKETER_SEO_AUDIT_ENABLED is true but Context.dev is not "
+            "configured — every audit request will 409.",
+        )
+    return _ok("seo_audit", "SEO auditor enabled with Context.dev configured.")
+
+
+def check_ugc() -> CheckResult:
+    if not settings.ugc_enabled:
+        return _ok("ugc", "UGC studio disabled.")
+    if not settings.muapi_api_key:
+        return _error(
+            "ugc",
+            "MARKETER_UGC_ENABLED is true but MARKETER_MUAPI_API_KEY is "
+            "not set — every render request will 409.",
+        )
+    warnings: list[str] = []
+    if not settings.muapi_webhook_url:
+        warnings.append("muapi_webhook_url")
+    if not settings.muapi_webhook_secret:
+        warnings.append("muapi_webhook_secret")
+    if warnings:
+        # Renders still submit; completion just has no push path (and an
+        # unset secret means the webhook endpoint refuses every delivery),
+        # so finished videos only land via reconciliation polling.
+        return _warn(
+            "ugc",
+            "UGC enabled but webhook field(s) are unset — completions "
+            "arrive by polling only, not push.",
+            missing=warnings,
+        )
+    return _ok("ugc", "UGC studio enabled with MUAPI key and webhook configured.")
+
+
 _CHECKS = (
     check_openai,
     check_xai_video,
@@ -385,6 +473,10 @@ _CHECKS = (
     check_ads,
     check_inngest,
     check_x402,
+    check_context_dev,
+    check_ad_creative,
+    check_seo_audit,
+    check_ugc,
 )
 
 

@@ -5,12 +5,12 @@ import { useActionState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-import { Button } from "@/components/square/ui/button";
-import { Input } from "@/components/square/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/square/ui/badge";
-import { Separator } from "@/components/square/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { ElasticSlider } from "@/components/elastic-slider";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { updateUserSettingsAction } from "@/lib/actions";

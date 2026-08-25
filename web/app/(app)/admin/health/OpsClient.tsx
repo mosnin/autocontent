@@ -5,9 +5,9 @@ import useSWR from "swr";
 import { toast } from "sonner";
 
 import { AdminKpiCard } from "@/components/admin/kpi-card";
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/square/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -15,7 +15,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { clientFetch } from "@/lib/client-fetcher";
 import { cn } from "@/lib/utils";
 

@@ -52,7 +52,15 @@ async def save(article: Article) -> None:
                topic = $3,
                focus_keyword = $4,
                title = $5,
-               slug = $6,
+               -- A slug that has ever been public is frozen (see
+               -- db/migrations/0037 and cms.publish.guard_slug_change).
+               -- Rewriting it here would move a live URL and would trip
+               -- articles_user_public_slug_uniq, failing the run mid-flight.
+               slug = case
+                          when publication_state = 'draft' and published_at is null
+                          then $6
+                          else slug
+                      end,
                meta_description = $7,
                keywords = $8,
                article_markdown = $9,
@@ -156,7 +164,10 @@ async def interlink_candidates(user_id: str, *, limit: int = 25) -> list[dict]:
         select title, slug from articles
          where user_id = $1 and status = 'done'
            and title is not null and slug is not null
-         order by created_at desc
+         -- Prefer live articles: a link to an unpublished draft's slug is a
+         -- 404 in the finished piece. Ranked, not filtered, so a user who
+         -- has published nothing still gets suggestions.
+         order by (publication_state = 'published') desc, created_at desc
          limit $2
         """,
         user_id, limit,

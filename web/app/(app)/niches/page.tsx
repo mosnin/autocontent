@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Button } from "@/components/square/ui/button";
+import { Button } from "@/components/ui/button";
 import { DashHeading } from "@/components/hub/dashboard-kit";
 import { api } from "@/lib/api";
 import type { Niche } from "@/lib/types";

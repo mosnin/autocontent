@@ -22,18 +22,18 @@
 import * as React from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
-import { Checkbox } from "@/components/square/ui/checkbox";
-import { Input } from "@/components/square/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/square/ui/select";
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -41,7 +41,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/square/ui/table";
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashHeading } from "@/components/hub/dashboard-kit";
 import { cn } from "@/lib/utils";
