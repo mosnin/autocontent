@@ -18,13 +18,13 @@ import {
 } from "@/components/marketing/system";
 
 const DESCRIPTION =
-  "Prepaid credit packs from $5, no subscription. Every video and article is metered against your balance, and hard daily caps make overruns impossible by design.";
+  "Prepaid credit packs from $5. No subscription. You pay for the work that runs. A daily budget stops overspend.";
 
 export const metadata: Metadata = {
-  title: "Pricing — marketer.sh",
+  title: "Pricing · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Pricing — marketer.sh",
+    title: "Pricing · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -37,12 +37,12 @@ const HOW_IT_WORKS = [
     copy: "Buy a pack once through Stripe and it becomes your balance. No subscription, no seats, no renewal date. Credits don't expire.",
   },
   {
-    title: "Every render is metered",
-    copy: "Each video and article draws down your balance at provider cost plus a flat margin. You see the estimate before a job runs and the exact cost after.",
+    title: "You see the price first",
+    copy: "Each video and article takes credit from your balance. You see the estimate before a job runs, and the exact cost after.",
   },
   {
-    title: "Caps stop overruns",
-    copy: "Per-niche daily budgets plus a global cap, checked before every job. Work that would cross a cap is refused, not billed. The system fails closed.",
+    title: "A daily budget stops overspend",
+    copy: "Set a cap for each channel and one for the whole account. If a job would go over, it stops. You are not billed extra.",
   },
 ];
 
@@ -72,7 +72,7 @@ export default function PricingPage() {
         headline="Pay for what ships. Nothing else."
         kicker="Pricing"
         size="xl"
-        sub="Three prepaid credit packs. Every render metered, every dollar capped, no subscription anywhere."
+        sub="Three prepaid credit packs. Pay for the work that runs. No subscription."
       />
 
       {/* Packs */}
@@ -112,7 +112,7 @@ export default function PricingPage() {
               <div className="aspect-[16/7]">
                 <TaggedPlaceholder
                   kind="illustration"
-                  label="How credits work — diagram"
+                  label="How credits work - diagram"
                   tone="warm"
                 />
               </div>

@@ -1,7 +1,7 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table, ported to the
-// articles list — same TanStack table anatomy (toolbar with search +
+// articles list - same TanStack table anatomy (toolbar with search +
 // status filter dropdown with live counts + primary action, sortable
 // headers, row-selection checkbox column, template badge palette, full
 // pagination footer) as components/square/campaigns-table.tsx /
@@ -13,11 +13,11 @@
 //     failed -> queued retry + revert-on-failure.
 //   - the same ?new=1 deep link opens the dialog on arrival.
 //   - the template's single status "Filter" dropdown replaces the old
-//     Tabs, with the same Filter type and matches() semantics — now with
+//     Tabs, with the same Filter type and matches() semantics - now with
 //     live counts per option, same technique as queue/QueueClient.tsx.
 //   - mock `campaigns` become the polled `articles`; columns map to real
 //     fields: status, title (falls back to topic), niche (resolved via
-//     the nicheTitles map — real title or "—"), words, created (relative
+//     the nicheTitles map - real title or "-"), words, created (relative
 //     time, same helper as before).
 //   - the template's "New campaign" button becomes "New article", which
 //     still opens the exact-same NewArticleDialog component, unchanged.
@@ -146,7 +146,7 @@ function relative(iso: string): string {
 }
 
 // Template badge palette (border-neutral / blue / emerald / rose) mapped
-// onto the real ArticleStatus enum — same technique as
+// onto the real ArticleStatus enum - same technique as
 // queue/QueueClient.tsx / calendar/CalendarClient.tsx StatusBadge.
 function StatusBadge({ status }: { status: ArticleStatus }) {
   const label = articleStatusLabel(status);
@@ -374,7 +374,7 @@ export function ArticlesClient({
         ),
         cell: ({ row }) => (
           <span className="inline-block max-w-[200px] truncate align-middle text-sm text-muted-foreground">
-            {nicheTitles.get(row.original.niche_id) ?? "—"}
+            {nicheTitles.get(row.original.niche_id) ?? "-"}
           </span>
         ),
       },
@@ -390,7 +390,7 @@ export function ArticlesClient({
           <span className="text-sm tabular-nums text-muted-foreground">
             {row.original.word_count != null
               ? row.original.word_count.toLocaleString()
-              : "—"}
+              : "-"}
           </span>
         ),
       },
@@ -462,14 +462,14 @@ export function ArticlesClient({
     <div className="space-y-6">
       <DashHeading
         as="h1"
-        sub={`SEO-optimized written content — updates every ${POLL_MS / 1000}s.`}
+        sub={`SEO-optimized written content - updates every ${POLL_MS / 1000}s.`}
       >
         Bring any keyword to page one
       </DashHeading>
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused - {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -640,7 +640,7 @@ function RowActions({
   }
 
   if (article.status !== "failed") {
-    return <span className="text-xs text-muted-foreground">—</span>;
+    return <span className="text-xs text-muted-foreground">-</span>;
   }
 
   return (
@@ -660,7 +660,7 @@ function RowActions({
 // --- New-article dialog (unchanged wiring) ------------------------------
 // Kept on the app's own Dialog/Select/Input/Label primitives: dialog,
 // select-in-a-form, and label have no square/ui counterpart the template
-// prescribes for this context (established precedent — see repo-wide
+// prescribes for this context (established precedent - see repo-wide
 // notes), and this component's logic/markup is otherwise untouched.
 
 function NewArticleDialog({
@@ -692,7 +692,7 @@ function NewArticleDialog({
     const res = await createArticleAction({ ok: false }, fd);
     setSubmitting(false);
     if (res.ok && res.article) {
-      toast.success("Article enqueued — the pipeline is on it");
+      toast.success("Article enqueued - the pipeline is on it");
       onOpenChange(false);
       setTopic("");
       onCreated(res.article);

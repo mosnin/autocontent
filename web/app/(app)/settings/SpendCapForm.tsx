@@ -23,7 +23,7 @@ interface Props {
 const INITIAL_STATE = { ok: false as boolean, error: undefined as string | undefined };
 
 // Slider range. Caps above this can still be typed into the number
-// input — the slider simply pins to its max while the real submitted
+// input - the slider simply pins to its max while the real submitted
 // value keeps whatever was entered.
 const SLIDER_MIN = 0;
 const SLIDER_MAX = 100;
@@ -80,7 +80,7 @@ export function SpendCapForm({ initialCap }: Props) {
 
   return (
     <form action={formAction} className="space-y-6">
-      {/* Enforce toggle — off means no account-wide ceiling at all. */}
+      {/* Enforce toggle - off means no account-wide ceiling at all. */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
           <Label
@@ -91,7 +91,7 @@ export function SpendCapForm({ initialCap }: Props) {
           </Label>
           <p className="max-w-md text-xs text-muted-foreground">
             An account-wide ceiling across every niche. Checked before each
-            job runs — anything that would push the day&apos;s spend over the
+            job runs - anything that would push the day&apos;s spend over the
             cap is refused, not truncated.
           </p>
         </div>

@@ -1,14 +1,14 @@
 "use client";
 
 /**
- * Failures inbox — a consolidated, categorized view of everything that
+ * Failures inbox - a consolidated, categorized view of everything that
  * has terminally failed across a user's jobs, image posts, and articles.
  *
  * Today a failure is only visible on its own product's detail page, so
  * operators either miss it or have to hunt product-by-product. This
  * component groups the caller's recent failures by a coarse triage
  * category (spend cap, render QA, content QA, provider error,
- * timeout/stuck, other) and lets them replay any one of them in place —
+ * timeout/stuck, other) and lets them replay any one of them in place -
  * the Retry button hits the same consolidated replay endpoint, which
  * itself delegates to each surface's existing retry mechanism.
  *
@@ -248,7 +248,7 @@ export function FailuresInbox() {
         {visible.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             {failures.length === 0
-              ? "No failures — everything's healthy."
+              ? "No failures - everything's healthy."
               : "No failures in this category."}
           </p>
         ) : (

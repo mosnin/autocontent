@@ -21,7 +21,7 @@ type Step = {
 const STEPS: Step[] = [
   {
     title: "Brief the niche",
-    body: "One sentence is enough — audience, voice, and what you sell. marketer.sh drafts the rest of the channel spec.",
+    body: "One sentence is enough: who it is for, and what you sell. The agent fills in the rest.",
   },
   {
     title: "Produce the work",
@@ -33,7 +33,7 @@ const STEPS: Step[] = [
   },
   {
     title: "Publish on schedule",
-    body: "Approved work lands on TikTok, Reels, Shorts, and your site — inside posting windows and spend caps you set.",
+    body: "Approved work goes to TikTok, Reels, Shorts, and your site, on the schedule and budget you set.",
   },
 ];
 
@@ -462,7 +462,7 @@ export function AppShowcase(): ReactNode {
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <SectionHeading
           title="From sentence to a running channel"
-          description="The whole loop lives in one system. Brief, produce, review, publish — on repeat, inside caps you set."
+          description="The whole loop lives in one place. Brief, make, review, publish. Then do it again, inside the budget you set."
         />
       </div>
 

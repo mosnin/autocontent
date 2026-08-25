@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export default async function SeoAuditPage() {
   // The list endpoint does not check the auditor's feature flag (only the POST
-  // does), so a failure here is a real fetch failure — fall back to empty and
+  // does), so a failure here is a real fetch failure - fall back to empty and
   // let the surface render rather than erroring the whole page.
   let initial: SeoAuditSummary[] = [];
   try {

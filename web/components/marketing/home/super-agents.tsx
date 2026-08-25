@@ -21,7 +21,7 @@ export function SuperAgents() {
           <Reveal delay={0.05}>
             <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
               REST API, Python SDK, CLI, and an MCP server expose the same
-              pipeline a human runs by hand — briefs in, campaigns out.
+              pipeline a human runs by hand - briefs in, campaigns out.
             </p>
           </Reveal>
           <div className="mt-8">

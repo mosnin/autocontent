@@ -14,10 +14,10 @@ const DESCRIPTION =
   "marketer.sh gives AI agents a full marketing department: MCP tools with cost-aware descriptions, PAT auth, and hard spend caps so agents cannot overspend.";
 
 export const metadata: Metadata = {
-  title: "AI agents — marketer.sh",
+  title: "AI agents · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "AI agents — marketer.sh",
+    title: "AI agents · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -60,7 +60,7 @@ export default function AiAgentsPage() {
         headline={["Your agents are", "the marketing team."]}
         kicker="For AI agents · the namesake"
         lede="marketer.sh exists so software can run marketing. Every pipeline is a tool an agent can call, every cost is declared up front, and every dollar stops at a cap you set."
-        placeholderLabel="AI agents in the product — hero still"
+        placeholderLabel="AI agents in the product - hero still"
         placeholderTone="warm"
         primaryHref="/resources/api"
         primaryLabel="Read the API docs"
@@ -117,7 +117,7 @@ export default function AiAgentsPage() {
         <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-border shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
           <TaggedPlaceholder
             kind="image"
-            label="AI agents workflow — screenshot"
+            label="AI agents workflow - screenshot"
             tone="warm"
           />
         </div>

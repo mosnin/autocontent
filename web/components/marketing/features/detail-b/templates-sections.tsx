@@ -22,18 +22,18 @@ export function TemplateAnatomy() {
     <Band
       bullets={[
         "A reference image, so you can see the look before you spend anything.",
-        "The exact prompt that produces it — shown, not hidden behind a preset name.",
+        "The exact prompt that produces it - shown, not hidden behind a preset name.",
         "A kind: image, carousel, or video. Each is used a little differently.",
       ]}
       eyebrow="Anatomy"
       heading="A look you can borrow, prompt included."
       highlight="prompt included."
       label="What a template is"
-      lede="Templates are curated and published for everyone — a shelf of finished aesthetics rather than a blank prompt box. Each one carries the reference it was made from and the words that made it."
+      lede="Templates are curated and published for everyone - a shelf of finished aesthetics rather than a blank prompt box. Each one carries the reference it was made from and the words that made it."
       media={
         <MediaCard
           kind="image"
-          label="Template card — reference image, name, and kind"
+          label="Template card - reference image, name, and kind"
         />
       }
     />
@@ -51,7 +51,7 @@ const REMIX = [
   },
   {
     title: "Add your product",
-    copy: "Attach a photo of the thing you actually sell. Optional — without one you get the template's own subject, with one you get yours.",
+    copy: "Attach a photo of the thing you actually sell. Optional - without one you get the template's own subject, with one you get yours.",
   },
   {
     title: "Both references, one prompt",
@@ -71,7 +71,7 @@ export function RemixSection() {
         />
         <MediaCard
           kind="illustration"
-          label="Remix diagram — template plus product to output"
+          label="Remix diagram - template plus product to output"
         />
       </div>
       <ol className="os-steps os-mt-48">
@@ -114,7 +114,7 @@ export function OutputBand() {
       label="Remix output"
       lede="Remixes are queued, not blocking. Start one, keep working, and check the Images shelf of the library a minute later."
       media={
-        <MediaCard kind="image" label="Library images — remix results" />
+        <MediaCard kind="image" label="Library images - remix results" />
       }
       cta={{ label: "See the library", href: "/features/library" }}
     />
@@ -153,7 +153,7 @@ export function TemplateNotes() {
           <Title size="sm">Curated, not crowdsourced</Title>
           <Body className="os-mt-8">
             The shelf is published deliberately. If it is empty on your
-            deployment, nothing has been published yet — not a broken screen.
+            deployment, nothing has been published yet - not a broken screen.
           </Body>
         </Card>
       </CardGrid>
@@ -164,7 +164,7 @@ export function TemplateNotes() {
         <Body className="os-mt-8 os-measure">
           Every generated image is metered to the same ledger as everything
           else. A remix belongs to no niche, so a per-niche daily cap does not
-          govern it — your global daily cap and your prepaid balance do.
+          govern it - your global daily cap and your prepaid balance do.
         </Body>
       </Frame>
     </Section>

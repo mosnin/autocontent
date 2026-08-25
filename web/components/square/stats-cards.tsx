@@ -1,9 +1,9 @@
-// Square UI "marketing-dashboard" template stats-cards, ported verbatim —
+// Square UI "marketing-dashboard" template stats-cards, ported verbatim -
 // card chrome, label-row icons, and the trend/delta row all kept. The only
 // change is parameterization: the template's mock `dashboardStats` +
 // hardcoded `statsConfig` become props so the page supplies real values.
 // Delta slots carry real derivable values passed in by the page; a stat
-// with no real delta renders "—" (never an invented percentage).
+// with no real delta renders "-" (never an invented percentage).
 
 import {
   TrendingDown,
@@ -22,7 +22,7 @@ export interface SquareStat {
    * Real derivable delta for the template's trend slot (e.g. spend as % of
    * cap). `trend` picks the template's up (emerald) / down (destructive)
    * arrow + tone; omit `trend` to render the text muted with no arrow;
-   * omit `delta` entirely to render "—".
+   * omit `delta` entirely to render "-".
    */
   delta?: { text: string; trend?: "up" | "down" } | null;
 }
@@ -65,7 +65,7 @@ export function SquareStatsCards({ stats }: { stats: SquareStat[] }) {
                         : "text-destructive"
                   )}
                 >
-                  {delta ? delta.text : "—"}
+                  {delta ? delta.text : "-"}
                 </span>
               </div>
             </div>

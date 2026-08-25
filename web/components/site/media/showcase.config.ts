@@ -1,5 +1,5 @@
 /**
- * THE SHOWCASE REGISTRY — the one file you edit to put real media on the site.
+ * THE SHOWCASE REGISTRY - the one file you edit to put real media on the site.
  * ============================================================================
  *
  * Every showcase slot on the marketing site is declared here. Each entry says
@@ -13,7 +13,7 @@
  * ---------------------------------------------------------------------------
  *
  *   1. Drop the file at the path the placeholder prints on screen. That path is
- *      derived from the slot's `id` and `kind` by `expectedPath()` below — for
+ *      derived from the slot's `id` and `kind` by `expectedPath()` below - for
  *      example slot `ad-feed-a` (kind `ad`) expects:
  *
  *          web/public/showcase/ads/ad-feed-a.jpg
@@ -29,7 +29,7 @@
  *          src: "/showcase/ads/ad-feed-a.jpg",
  *          poster: "/showcase/ugc/ugc-testimonial.jpg",
  *
- *      Any path under `/showcase/...` works — the derived path is only a
+ *      Any path under `/showcase/...` works - the derived path is only a
  *      suggestion so the placeholder can tell you where to put things.
  *
  * That is the whole procedure. Nothing else in the codebase needs to change.
@@ -58,7 +58,7 @@ type KindMeta = {
   folder: string;
   /** Default file extension used by `expectedPath()`. */
   ext: string;
-  /** Still or moving picture — decides which component renders the slot. */
+  /** Still or moving picture - decides which component renders the slot. */
   medium: ShowcaseMedium;
   /** Uppercase mono badge printed on the placeholder. */
   badge: string;
@@ -97,13 +97,13 @@ export type ShowcaseSlot = {
   /** Accepted formats, e.g. "JPG / WEBP". Printed on the placeholder. */
   formats: string;
   /**
-   * Public URL of the real asset once it exists — `/showcase/...`.
+   * Public URL of the real asset once it exists - `/showcase/...`.
    * `null` renders the placeholder.
    */
   src: string | null;
   /**
    * Video only: public URL of the poster frame. Required whenever `src` is
-   * set on a video slot — it is the first paint, and the only thing shown
+   * set on a video slot - it is the first paint, and the only thing shown
    * under `prefers-reduced-motion: reduce`.
    */
   poster?: string | null;
@@ -159,7 +159,7 @@ export const SHOWCASE_SLOTS: ShowcaseSlot[] = [
     kind: "video",
     aspect: "16 / 9",
     title: "Brand spot",
-    note: "Brief in, finished 20-second spot out — script, shots, voice, cut.",
+    note: "Brief in, finished 20-second spot out - script, shots, voice, cut.",
     alt: "Twenty-second brand video ad produced end to end on marketer.sh.",
     dimensions: "1920 x 1080",
     formats: "MP4 (H.264) + JPG poster",
@@ -172,7 +172,7 @@ export const SHOWCASE_SLOTS: ShowcaseSlot[] = [
     id: "ad-feed-a",
     kind: "ad",
     aspect: "4 / 5",
-    title: "Feed ad — offer",
+    title: "Feed ad - offer",
     note: "Portrait paid-social creative, headline and offer baked in.",
     alt: "Portrait social ad creative generated on marketer.sh, showing the product with its headline offer.",
     dimensions: "1080 x 1350",
@@ -183,7 +183,7 @@ export const SHOWCASE_SLOTS: ShowcaseSlot[] = [
     id: "ad-feed-b",
     kind: "ad",
     aspect: "4 / 5",
-    title: "Feed ad — product",
+    title: "Feed ad - product",
     note: "Same brief, different angle: product-led variant for testing.",
     alt: "Portrait product-led social ad creative generated on marketer.sh.",
     dimensions: "1080 x 1350",
@@ -194,7 +194,7 @@ export const SHOWCASE_SLOTS: ShowcaseSlot[] = [
     id: "ad-feed-c",
     kind: "ad",
     aspect: "4 / 5",
-    title: "Feed ad — proof",
+    title: "Feed ad - proof",
     note: "Third variant leading with a customer proof point.",
     alt: "Portrait social ad creative generated on marketer.sh, leading with a customer proof point.",
     dimensions: "1080 x 1350",
@@ -232,7 +232,7 @@ export const SHOWCASE_SLOTS: ShowcaseSlot[] = [
     kind: "drama",
     aspect: "9 / 16",
     title: "Micro-drama hook",
-    note: "Episode one's cold open — the three seconds that decide the scroll.",
+    note: "Episode one's cold open - the three seconds that decide the scroll.",
     alt: "Opening hook of a vertical micro-drama episode produced on marketer.sh.",
     dimensions: "1080 x 1920",
     formats: "MP4 (H.264) + JPG poster",

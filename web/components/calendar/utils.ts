@@ -1,7 +1,7 @@
 // Grouping + formatting helpers for the agenda-style calendar. All date
 // math is done in the viewer's local timezone (posting windows carry an
 // absolute instant; we bucket them by the local calendar day so "Today"
-// means today where the marketer is sitting). No date library — native
+// means today where the marketer is sitting). No date library - native
 // Date + Intl only.
 import type { CalendarItem } from "./types";
 
@@ -89,7 +89,7 @@ export function formatTime(iso: string): string {
 
 /**
  * "3 videos and 1 article" style count phrase (handles singular/plural).
- * A kind with a zero count is dropped entirely — we say "3 videos", never
+ * A kind with a zero count is dropped entirely - we say "3 videos", never
  * "3 videos and 0 articles". With no items at all the phrase is empty; the
  * caller renders its own "nothing scheduled" copy in that case.
  */

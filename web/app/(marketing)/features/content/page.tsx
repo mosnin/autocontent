@@ -8,10 +8,10 @@ const DESCRIPTION =
   "Short-form video for TikTok, Reels, and Shorts. One brief in: script, frames, voice, captions, QA, publish.";
 
 export const metadata: Metadata = {
-  title: "Content — marketer.sh",
+  title: "Content · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Content — marketer.sh",
+    title: "Content · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -45,7 +45,7 @@ export default function ContentServicePage() {
       />
       <section className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-8 sm:pb-32 lg:px-10">
         <SectionHeading
-          description="This is the content line of the business — video that can run every day without a editor on payroll."
+          description="Short videos that can go out every day, without hiring an editor."
           title="What the content service does"
         />
         <div className="mt-12 grid gap-4 sm:grid-cols-3">

@@ -73,7 +73,7 @@ export function QuickstartSteps() {
                 <div className="aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-inset ring-border">
                   <TaggedPlaceholder
                     kind="image"
-                    label={`${step.shot} — screenshot`}
+                    label={`${step.shot} - screenshot`}
                   />
                 </div>
               </div>

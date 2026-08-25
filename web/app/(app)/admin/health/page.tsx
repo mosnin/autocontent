@@ -18,7 +18,7 @@ interface ConfigHealthReport {
 
 // The ops endpoints are new (Cycle-2 Team 4) and mounted by the orchestrator
 // separately from this file. Fetch defensively so a not-yet-wired router
-// degrades to "loading via client poll" instead of a 500 page — the
+// degrades to "loading via client poll" instead of a 500 page - the
 // OpsClient panel re-fetches client-side regardless.
 async function fetchOpsMetricsSafe(): Promise<OpsSnapshot | null> {
   try {

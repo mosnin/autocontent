@@ -8,7 +8,7 @@
 // Fields stay uncontrolled (defaultValue + name) so the native
 // <form action={formAction}> serialization is unchanged. A thin layer
 // of local state mirrors the five cost-relevant inputs purely to drive
-// the live "estimated cost per video" readout — it never gates submit.
+// the live "estimated cost per video" readout - it never gates submit.
 
 import * as React from "react";
 import { useActionState } from "react";
@@ -99,7 +99,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
   const brief = niche.creative_brief;
 
   // Provider catalogs + kits for the "Models & kits" selectors. Each also
-  // gets a "did this fetch settle" flag — options length alone is an
+  // gets a "did this fetch settle" flag - options length alone is an
   // unreliable proxy (an account with zero kits would leave `kits`
   // permanently empty, keeping the select's remount key stuck on
   // "loading" and hiding a real load failure).
@@ -334,7 +334,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
 
         <Labelled
           label="Custom characters"
-          hint="Optional — recurring cast rendered in every video. Editing regenerates the reference sheet on the next job."
+          hint="Optional - recurring cast rendered in every video. Editing regenerates the reference sheet on the next job."
           htmlFor="niche-character_description"
         >
           <Input
@@ -345,7 +345,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           />
         </Labelled>
 
-        {/* Live estimate — mirrors the onboarding wizard's readout. */}
+        {/* Live estimate - mirrors the onboarding wizard's readout. */}
         <Card className="border-border/60 bg-muted/30">
           <CardContent className="flex items-baseline justify-between p-4">
             <span className="text-sm text-muted-foreground">
@@ -394,7 +394,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
                   value={`${m.provider}:${m.model_id}`}
                   disabled={!m.available}
                 >
-                  {m.name} — ${m.usd_per_second}/s{m.available ? "" : " (key not configured)"}
+                  {m.name} - ${m.usd_per_second}/s{m.available ? "" : " (key not configured)"}
                 </option>
               ))}
             </select>
@@ -417,7 +417,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
               ).map((m) => (
                 <option key={m.model_id} value={m.model_id} disabled={!m.available}>
                   {m.name}
-                  {m.model_id ? ` — $${m.usd_per_m_input}/$${m.usd_per_m_output}` : ""}
+                  {m.model_id ? ` - $${m.usd_per_m_input}/$${m.usd_per_m_output}` : ""}
                   {m.available ? "" : " (key not configured)"}
                 </option>
               ))}
@@ -425,7 +425,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           </Labelled>
           <Labelled
             label="Voice engine"
-            hint="Who narrates — ElevenLabs needs a configured key"
+            hint="Who narrates - ElevenLabs needs a configured key"
             htmlFor="niche-voice_provider"
           >
             <select
@@ -446,7 +446,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           </Labelled>
           <Labelled
             label="ElevenLabs voice ID"
-            hint="Only used with the ElevenLabs engine — empty = deploy default"
+            hint="Only used with the ElevenLabs engine - empty = deploy default"
             htmlFor="niche-elevenlabs_voice_id"
           >
             <Input
@@ -478,7 +478,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           </Labelled>
           <Labelled
             label="Design kit"
-            hint="Your direction system — manage in Suite → Kits"
+            hint="Your direction system - manage in Suite → Kits"
             htmlFor="niche-design_kit"
           >
             <select
@@ -496,7 +496,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
           </Labelled>
           <Labelled
             label="Writing kit"
-            hint="Article voice — used by Press for this niche"
+            hint="Article voice - used by Press for this niche"
             htmlFor="niche-writing_kit"
           >
             <select
@@ -518,7 +518,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
       <SectionCard
         kicker="Creative DNA"
         title="Make it unmistakably yours"
-        description="Every field here steers the AI with precision — hooks, voice, visuals, music, captions. Empty fields use platform defaults."
+        description="Every field here steers the AI with precision - hooks, voice, visuals, music, captions. Empty fields use platform defaults."
       >
         <input type="hidden" name="brief_present" value="1" />
 
@@ -549,7 +549,7 @@ export function EditNicheForm({ niche }: { niche: Niche }) {
 
         <Labelled
           label="Hooks you love"
-          hint="One per line (max 10) — the AI matches their voice, never copies"
+          hint="One per line (max 10) - the AI matches their voice, never copies"
           htmlFor="brief-example_hooks"
         >
           <Textarea

@@ -6,7 +6,7 @@ import { HeroOrb } from "./orb";
 import "./hero.css";
 
 /**
- * Homepage hero — Originkit "hero-19" (section-26), re-tokenised.
+ * Homepage hero - Originkit "hero-19" (section-26), re-tokenised.
  *
  * What is kept from the delivered section: the composition. A ceiling
  * light rig behind everything, a cupped hand on the floor, a particle orb
@@ -14,13 +14,13 @@ import "./hero.css";
  * bottom-left on desktop and to the top when the stage narrows.
  *
  * What is not: its nav, wordmark and auth buttons (`SiteShell` already
- * renders the site's one nav — keeping these would have rendered two);
+ * renders the site's one nav - keeping these would have rendered two);
  * its wellness copy; its logo marquee, which the page's own "Trusted By"
  * band does properly one section down; its 88px Instrument Serif
  * headline; and every warm colour in it. See hero.css for the mapping.
  *
  * `Backdrop` and `ParticleSphere` are the delivered files, imported
- * unmodified — the light rig is recoloured with a per-image filter from
+ * unmodified - the light rig is recoloured with a per-image filter from
  * hero.css and the orb's colour is handed to the engine as a prop, so a
  * re-pull of hero-19 does not lose this work.
  */
@@ -42,7 +42,7 @@ export function SiteHero() {
       </div>
 
       {/* Lands the light back on the exact page ground. Full-bleed and
-          outside the rails, because the rig is full-bleed too — inside
+          outside the rails, because the rig is full-bleed too - inside
           them the outer 74px of light stepped straight into the next
           section. */}
       <div aria-hidden className="mkt-hero__floor" />

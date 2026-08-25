@@ -68,7 +68,7 @@ export function Section({
   );
 }
 
-/** Hairline with a tick at each end — the export's section divider. */
+/** Hairline with a tick at each end - the export's section divider. */
 export function Rule({ className }: { className?: string }) {
   return <div aria-hidden className={cn("os-rule", className)} />;
 }
@@ -436,7 +436,7 @@ export function Stats({
 
 /**
  * Where a screenshot, render, or diagram goes. Dark ground, a whisper of
- * the accent dot-matrix, one mono tag naming the asset — the dark-mode
+ * the accent dot-matrix, one mono tag naming the asset - the dark-mode
  * twin of the old `TaggedPlaceholder`.
  */
 export function MediaSlot({
@@ -560,7 +560,7 @@ export function Band({
   );
 }
 
-/** A staged media slot at a fixed aspect — the band's right-hand column. */
+/** A staged media slot at a fixed aspect - the band's right-hand column. */
 export function MediaCard({
   kind,
   label,

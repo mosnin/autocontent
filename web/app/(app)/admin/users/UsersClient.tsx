@@ -1,21 +1,21 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table anatomy, ported
-// onto the admin users list — same toolbar-with-search, sortable headers,
+// onto the admin users list - same toolbar-with-search, sortable headers,
 // template table chrome, and pagination-footer shape as
 // components/square/campaigns-table.tsx / queue/QueueClient.tsx /
 // articles/ArticlesClient.tsx. This list is server-paginated (25 rows per
 // request), so the adaptation differs from those two in one place: the
 // footer's Prev/Next buttons stay mapped to the existing `page` state and
 // `hasNext` probe-row logic (unchanged from before) rather than TanStack's
-// own pagination — sorting still runs client-side over the current page's
+// own pagination - sorting still runs client-side over the current page's
 // rows via getSortedRowModel, same as the other tables.
 //   - the search box (already existed) is wired into the template's
 //     toolbar box + icon.
-//   - no "New user" action — admins don't create user accounts, so
+//   - no "New user" action - admins don't create user accounts, so
 //     (like the template columns with no real counterpart) that primary
 //     action button is dropped rather than faked.
-//   - no status/role filter dropdown — the original list had none, so
+//   - no status/role filter dropdown - the original list had none, so
 //     none is invented.
 
 import * as React from "react";
@@ -275,7 +275,7 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused - {error.message ?? "fetch failed"}
         </p>
       )}
 

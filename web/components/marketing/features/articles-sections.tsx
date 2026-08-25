@@ -54,7 +54,7 @@ export function SerpBand() {
               <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                 <TaggedPlaceholder
                   kind="image"
-                  label="SERP research scan — ranked results for a topic"
+                  label="SERP research scan - ranked results for a topic"
                   tone="sky"
                 />
               </div>
@@ -103,7 +103,7 @@ export function OutlineBand() {
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                   <TaggedPlaceholder
                     kind="illustration"
-                    label="Outline structure — H1, H2 sections drafted in parallel"
+                    label="Outline structure - H1, H2 sections drafted in parallel"
                     tone="violet"
                   />
                 </div>
@@ -152,7 +152,7 @@ export function MetadataBand() {
               <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                 <TaggedPlaceholder
                   kind="image"
-                  label="SEO metadata card — title, slug, schema tags"
+                  label="SEO metadata card - title, slug, schema tags"
                   tone="warm"
                 />
               </div>
@@ -208,7 +208,7 @@ export function QaBand() {
           <div className="aspect-[4/3] overflow-hidden rounded-[1.75rem]">
             <TaggedPlaceholder
               kind="illustration"
-              label="QA gate diagram — draft, score, rewrite, ship"
+              label="QA gate diagram - draft, score, rewrite, ship"
               tone="violet"
             />
           </div>

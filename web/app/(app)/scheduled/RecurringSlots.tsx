@@ -2,7 +2,7 @@
 
 // Weekly slot templates ("Mon 09:00 America/New_York"). A slot stores local
 // wall-clock time, never an offset, so a post stays at 09:00 local across a
-// DST transition instead of drifting an hour for half the year — the UI says
+// DST transition instead of drifting an hour for half the year - the UI says
 // so rather than showing a converted time that would look wrong twice a year.
 //
 // Deleting a template never deletes the posts it already produced (the FK is
@@ -95,7 +95,7 @@ export function RecurringSlots({ initial }: { initial: RecurringSlot[] }) {
     try {
       await deleteRecurringSlot(id);
       await mutate((rows) => (rows ?? []).filter((s) => s.id !== id), { revalidate: true });
-      toast.success("Slot deleted — posts it already created are untouched");
+      toast.success("Slot deleted - posts it already created are untouched");
     } catch (err) {
       toast.error(scheduledErrorMessage(err));
     } finally {

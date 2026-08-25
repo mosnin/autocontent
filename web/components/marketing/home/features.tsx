@@ -26,21 +26,21 @@ const FEATURES: Feature[] = [
   {
     title: "Content",
     href: "/features/content",
-    body: "Short-form video for TikTok, Reels, and Shorts. One brief in: script, frames, voice, captions, QA, publish.",
+    body: "Short videos for TikTok, Reels, and Shorts. Your agent writes them, makes them, and can post them.",
     image:
       "https://images.unsplash.com/photo-1779881718722-5e7fa09fad7f?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     title: "SEO",
     href: "/features/seo",
-    body: "Long-form from live search research. Outline, draft, metadata, JSON-LD — and an audit for pages already live.",
+    body: "Blog posts from what people already search, plus a check-up for pages you already have live.",
     image:
       "https://images.unsplash.com/photo-1778051131564-192e359b601d?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
     title: "Ads",
     href: "/features/ads",
-    body: "Paid campaigns on Google and Meta. Agents can draft. Hard budgets refuse anything that would overrun.",
+    body: "Paid ads on Google and Meta. The agent drafts them. Your budget is the limit.",
     image:
       "https://images.unsplash.com/photo-1779630541798-1f3d987aa440?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
@@ -72,8 +72,8 @@ export function Features(): ReactNode {
     <section id="overview" className="scroll-mt-24 pb-24 sm:pb-32">
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <SectionHeading
-          title="Three services. One system."
-          description="Content, SEO, and ads. Same login, same prepaid balance, same caps."
+          title="Three things it can make for you."
+          description="Content, SEO, and ads. Same login. Same prepaid credits. Same daily budget."
         />
       </div>
 

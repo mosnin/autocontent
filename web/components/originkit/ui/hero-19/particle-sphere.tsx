@@ -4,8 +4,8 @@
 "use client";
 // @ts-nocheck
 
-// Particle Sphere — Originkit
-// Originkit — defaults rewritten to match preview.
+// Particle Sphere - Originkit
+// Originkit - defaults rewritten to match preview.
 import React, { useEffect, useRef } from "react";
 import {
   Scene,
@@ -630,7 +630,7 @@ export default function ParticleSphereRefactor(
             const distanceSquared = dx * dx + dy * dy;
 
             // Only the front layer (facing the camera, worldPos.z
-            // > 0) reacts — the back layer keeps rotating untouched.
+            // > 0) reacts - the back layer keeps rotating untouched.
             if (
               distanceSquared < cursorRadiusSquared &&
               distanceSquared > 0 &&

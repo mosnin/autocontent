@@ -3,7 +3,7 @@
 // Square UI "marketing-dashboard" template table anatomy, applied to the
 // approvals queue: real fields (action, summary, requested by, $/day
 // delta) are tabular, so this follows the table precedent (queue's
-// QueueClient / campaigns-table.tsx) rather than freeform cards — same
+// QueueClient / campaigns-table.tsx) rather than freeform cards - same
 // Table/TableRow/TableCell chrome, template badge tone for the action
 // chip, and an actions column with the real Approve/Reject buttons (same
 // pattern as QueueClient's per-row actions). No toolbar: this list is

@@ -17,10 +17,10 @@ const DESCRIPTION =
   "Score any page the way an AI answer engine reads it: 32 rules across six weighted categories, evidence for every finding, and a copy-paste prompt for the agent that will fix it.";
 
 export const metadata: Metadata = {
-  title: "AI SEO audit — marketer.sh",
+  title: "AI SEO audit · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "AI SEO audit — marketer.sh",
+    title: "AI SEO audit · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -98,7 +98,7 @@ export default function SeoAuditFeaturePage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Audit result — score, band, and the six categories"
+            label="Audit result - score, band, and the six categories"
             ratio="16/9"
           />
         }
@@ -109,7 +109,7 @@ export default function SeoAuditFeaturePage() {
         variant="pearl"
       />
 
-      {/* 1 — categories */}
+      {/* 1 - categories */}
       <Section label="The six categories">
         <SectionHead
           eyebrow="How it scores"
@@ -120,11 +120,11 @@ export default function SeoAuditFeaturePage() {
         <WeightCards className="os-mt-48" items={CATEGORIES} />
       </Section>
 
-      {/* 2 — rules */}
+      {/* 2 - rules */}
       <Band
         bullets={[
           "Every rule returns a status, the evidence it found on your page, and what to do about it.",
-          "A rule that doesn't apply is marked as such and removed from its category's denominator — it neither takes free credit nor shrinks the rules that did apply.",
+          "A rule that doesn't apply is marked as such and removed from its category's denominator - it neither takes free credit nor shrinks the rules that did apply.",
           "Rule ids are stable, so an audit you stored last month still means the same thing.",
         ]}
         eyebrow="The rules"
@@ -137,12 +137,12 @@ export default function SeoAuditFeaturePage() {
         media={
           <MediaCard
             kind="image"
-            label="Rule list — pass, partial, fail, didn't apply"
+            label="Rule list - pass, partial, fail, didn't apply"
           />
         }
       />
 
-      {/* 3 — bands */}
+      {/* 3 - bands */}
       <Section label="Score bands">
         <SectionHead
           eyebrow="Reading the number"
@@ -153,7 +153,7 @@ export default function SeoAuditFeaturePage() {
         <SpecCards className="os-mt-48" cols={3} items={BANDS} />
       </Section>
 
-      {/* 4 — agent prompts */}
+      {/* 4 - agent prompts */}
       <Band
         bullets={[
           "One full prompt covering every actionable finding, in priority order.",
@@ -164,26 +164,26 @@ export default function SeoAuditFeaturePage() {
         heading="The findings come back as a prompt, not a lecture."
         highlight="as a prompt"
         label="Agent fix prompts"
-        lede="Findings are sorted by the points they could win back and assembled into prompts a coding agent can act on. They are built from your results, not generated — the same audit always produces the same text."
+        lede="Findings are sorted by the points they could win back and assembled into prompts a coding agent can act on. They are built from your results, not generated - the same audit always produces the same text."
         media={
           <MediaCard
             kind="image"
-            label="Agent fix prompt — full and top-issue prompts"
+            label="Agent fix prompt - full and top-issue prompts"
           />
         }
       >
         <Note title="The prompts forbid inventing the signals they ask for.">
-          Several rules reward things an agent could trivially fake — authority,
+          Several rules reward things an agent could trivially fake - authority,
           reviews, authorship, credentials, dates, analytics evidence. The
           prompts say so out loud and forbid fabricating any of them, because
           inventing a signal is worse than failing the rule that looks for it.
         </Note>
       </Band>
 
-      {/* 5 — how it fetches */}
+      {/* 5 - how it fetches */}
       <Band
         bullets={[
-          "Page bytes come through a fetching vendor that owns rendering and robots compliance — never a direct request from us to your site.",
+          "Page bytes come through a fetching vendor that owns rendering and robots compliance - never a direct request from us to your site.",
           "Audits are stored per URL. A repeat inside twenty-four hours is served from the stored result unless you ask for a fresh one.",
           "Change the rules or the result shape and the whole cache generation retires at once, so a stale audit is never served as current.",
         ]}

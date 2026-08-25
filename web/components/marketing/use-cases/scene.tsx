@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Per-use-case section frames. Cortex is a flat canvas — scenes no longer
+ * Per-use-case section frames. Cortex is a flat canvas - scenes no longer
  * carry a colored wash; `name` is kept so existing pages type-check.
  */
 export type SceneName =

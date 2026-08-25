@@ -1,5 +1,5 @@
 // Square UI "marketing-dashboard" template recent-uploads, ported verbatim
-// — same card chrome, 4:5 tile strip, bottom gradient, and the floating
+// - same card chrome, 4:5 tile strip, bottom gradient, and the floating
 // label bar. Changes are real-data parameterization only:
 //   - the template's mock `recentUploads` become the `uploads` prop fed by
 //     the page from live jobs data;
@@ -20,7 +20,7 @@ export interface RecentUpload {
   timeAgo: string;
   /** Real video stream URL (proxy pattern from latest-videos). */
   videoSrc: string;
-  /** Real destination — the job's detail page. */
+  /** Real destination - the job's detail page. */
   href: string;
 }
 

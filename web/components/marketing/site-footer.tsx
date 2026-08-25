@@ -2,6 +2,12 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Logo } from "@/components/marketing/nav/logo";
+import {
+  LEGAL_LINKS,
+  PRODUCT_LINKS,
+  RESOURCE_LINKS,
+  SOCIAL_LINKS,
+} from "@/components/marketing/nav/menu-data";
 
 type FooterLink = {
   label: string;
@@ -12,37 +18,29 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
-      { label: "Content", href: "/features/content" },
-      { label: "SEO", href: "/features/seo" },
-      { label: "Ads", href: "/features/ads" },
+      ...PRODUCT_LINKS.map(({ label, href }) => ({ label, href })),
       { label: "Pricing", href: "/pricing" },
     ],
   },
   {
+    title: "Resources",
+    links: RESOURCE_LINKS.map(({ label, href }) => ({ label, href })),
+  },
+  {
     title: "Company",
     links: [
-      { label: "About", href: "/company" },
-      { label: "Use cases", href: "/use-cases" },
-      { label: "Resources", href: "/resources" },
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+      { label: "Legal", href: "/legal" },
     ],
   },
   {
     title: "Legal",
-    links: [
-      { label: "Legal", href: "/legal" },
-      { label: "Privacy Policy", href: "/legal/privacy" },
-      { label: "Terms of Service", href: "/legal/terms" },
-      { label: "Cookie Policy", href: "/legal/cookies" },
-      { label: "Acceptable Use", href: "/legal/acceptable-use" },
-      { label: "Refunds", href: "/legal/refund" },
-    ],
+    links: LEGAL_LINKS.filter((link) => link.href !== "/legal"),
   },
   {
     title: "Social",
-    links: [
-      { label: "X", href: "https://x.com" },
-      { label: "LinkedIn", href: "https://www.linkedin.com" },
-    ],
+    links: SOCIAL_LINKS,
   },
 ];
 
@@ -54,8 +52,8 @@ export function Footer(): ReactNode {
           <div className="max-w-xs">
             <Logo />
             <p className="text-muted-foreground mt-6 text-sm leading-relaxed">
-              Autonomous marketing for video, articles, and ads. One brief in,
-              every format out, every dollar capped.
+              An AI agent that makes your marketing: videos, SEO articles, and
+              ads. You set a budget. It does the work.
             </p>
             <Link
               href="/sign-up"
@@ -65,7 +63,7 @@ export function Footer(): ReactNode {
             </Link>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4 lg:gap-x-16">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-10">
             {COLUMNS.map((column) => (
               <div key={column.title}>
                 <h3 className="text-foreground text-sm font-medium tracking-tight">
@@ -73,7 +71,7 @@ export function Footer(): ReactNode {
                 </h3>
                 <ul className="mt-4 space-y-3">
                   {column.links.map((link) => (
-                    <li key={link.href}>
+                    <li key={`${column.title}-${link.href}`}>
                       <Link
                         href={link.href}
                         className="focus-ring text-muted-foreground hover:text-foreground text-sm transition-colors"

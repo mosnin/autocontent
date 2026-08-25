@@ -55,7 +55,7 @@ export default async function JobDetailPage({
   ]);
 
   // Cost breakdown depends only on the niche's static config, so it's
-  // computed once server-side and passed as a fixed prop — the client
+  // computed once server-side and passed as a fixed prop - the client
   // only re-polls the job itself.
   const breakdown = niche
     ? estimateVideoCostUsd({

@@ -11,7 +11,7 @@ const DESKTOP_SM_MIN = 1280;
 
 export type TunnelConfig = {
   tunnelSize: number;
-  /** Middle fade 0–100 — higher on larger screens to match design wash */
+  /** Middle fade 0–100 - higher on larger screens to match design wash */
   fade: number;
   boost: number;
 };
@@ -40,7 +40,7 @@ export const useTunnelConfig = (): TunnelConfig => {
         setConfig({ tunnelSize: 6, fade: 96, boost: 30 });
         return;
       }
-      // Bigger frames fill with nearer slabs — max fade + denser fog in tunnel
+      // Bigger frames fill with nearer slabs - max fade + denser fog in tunnel
       setConfig({ tunnelSize: 10, fade: 100, boost: 30 });
     };
 

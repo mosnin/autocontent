@@ -244,7 +244,7 @@ function Wordmark({ className }: { className?: string }) {
       )}
       href="/"
     >
-      {/* Mark: a closed loop — literally the product. */}
+      {/* Mark: a closed loop - literally the product. */}
       <svg
         aria-hidden
         className="size-5 text-foreground"
@@ -299,7 +299,7 @@ const BANNER_SEGMENTS = [
 function AnnouncementBanner() {
   return (
     <Link
-      aria-label="Announcement: Meet the marketer.sh suite — see what shipped"
+      aria-label="Announcement: Meet the marketer.sh suite - see what shipped"
       className="block bg-foreground text-[13px] text-muted-foreground transition-colors hover:text-white"
       href="/resources/changelog"
     >

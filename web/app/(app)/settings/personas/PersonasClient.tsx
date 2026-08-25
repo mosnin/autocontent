@@ -6,7 +6,7 @@
 // Two rules shape this screen:
 //
 //  1. EVERY TURN IS A METERED LLM CALL. So nothing here sends on the
-//     user's behalf — no auto-send, no retry-on-failure, no speculative
+//     user's behalf - no auto-send, no retry-on-failure, no speculative
 //     prefetch of a reply. A 402 leaves the thread untouched and says so.
 //  2. THE VISUAL REFERENCE IS WRITE-ONCE. Published creative can already
 //     depend on that face, so locking is presented as irreversible and the
@@ -50,7 +50,7 @@ import {
 
 function errorText(e: unknown): string {
   if (isSpendCapped(e)) {
-    return "Spend cap reached — this turn was not sent or charged. Raise the cap or top up to continue.";
+    return "Spend cap reached - this turn was not sent or charged. Raise the cap or top up to continue.";
   }
   if (isRateLimited(e)) return "Too many requests. Wait a moment and try again.";
   return e instanceof Error ? e.message : "Something went wrong";
@@ -244,7 +244,7 @@ function Conversation({ persona }: { persona: Persona }) {
         revalidate: false,
       });
     } catch (e) {
-      // Deliberately no retry — a retry is another charge the user did not ask for.
+      // Deliberately no retry - a retry is another charge the user did not ask for.
       toast.error(errorText(e));
     } finally {
       setSending(false);
@@ -452,7 +452,7 @@ export function PersonasClient({
                     src={visualUrl(selected)}
                   />
                 ) : (
-                  // No locked reference yet — the agent mark stands in,
+                  // No locked reference yet - the agent mark stands in,
                   // because "not yet given a face" is precisely what it
                   // depicts. A grey box would just read as a broken image.
                   <div className="grid size-20 place-items-center rounded-md bg-black">
@@ -492,7 +492,7 @@ export function PersonasClient({
                   {!hasVisual(selected) ? (
                     <p className="text-[11px] text-muted-foreground">
                       Locking generates one image and fixes this persona&apos;s look
-                      permanently — creative you publish later can depend on it.
+                      permanently - creative you publish later can depend on it.
                     </p>
                   ) : null}
                 </div>

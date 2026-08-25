@@ -4,7 +4,7 @@
 //
 // The transparency IS the feature: `motion_projects.beats` persists, per beat,
 // WHICH strategy supplied the picture (generated keyframe vs. stock footage)
-// and the exact keyword/prompt it used — including the keyword that missed
+// and the exact keyword/prompt it used - including the keyword that missed
 // when a stock lookup fell back to a generated frame (`stock_fallback:*` in
 // the beat's tags). None of that is re-derived here; it is read straight off
 // the row, so what the page says is what was actually rendered.
@@ -100,7 +100,7 @@ export function MotionDetailClient({
     setBusy(true);
     try {
       await retryMotionProject(id);
-      toast.success("Resuming — keyframes already on the volume are reused");
+      toast.success("Resuming - keyframes already on the volume are reused");
       void mutate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Retry failed");
@@ -126,7 +126,7 @@ export function MotionDetailClient({
             {project.narration.trim() ||
               (project.job_id
                 ? "Reusing an existing job's voiceover and transcript."
-                : "—")}
+                : "-")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -180,7 +180,7 @@ export function MotionDetailClient({
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* Proportional timeline — one block per beat, width = its share of
+          {/* Proportional timeline - one block per beat, width = its share of
               the runtime, colored by which strategy supplied the picture. */}
           {beats.length > 0 && total > 0 && (
             <section className="space-y-2">
@@ -463,7 +463,7 @@ function BeatCard({
 
             {fallback && (
               <p className="text-[10px] text-amber-700 dark:text-amber-400">
-                Stock lookup missed ({fallback}) — this beat was rescued by a
+                Stock lookup missed ({fallback}) - this beat was rescued by a
                 generated keyframe.
               </p>
             )}

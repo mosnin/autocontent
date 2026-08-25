@@ -33,7 +33,7 @@ const PLATFORMS: { id: AdPlatform; label: string; blurb: string }[] = [
 ];
 
 // Template badge tone technique (square Badge has no
-// success/warning/destructive-tint variants of its own) — same
+// success/warning/destructive-tint variants of its own) - same
 // outline + tonal bg/text/border classes used across the ads pages.
 function statusTone(status: string): { label: string; className: string } {
   switch (status) {
@@ -81,7 +81,7 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
         // Hand off to the platform's OAuth consent screen.
         window.location.href = redirect_url;
       } else {
-        toast.message("Connection started — refresh to check status.");
+        toast.message("Connection started - refresh to check status.");
         void mutate();
       }
     } catch (e) {
@@ -127,7 +127,7 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
         <h1 className="text-2xl font-semibold tracking-tight">Ad accounts</h1>
         <p className="text-sm text-muted-foreground">
           Connect a platform so agents can run campaigns on your behalf.
-          Connecting only grants access — nothing spends until you set a budget
+          Connecting only grants access - nothing spends until you set a budget
           and approve it.
         </p>
       </div>

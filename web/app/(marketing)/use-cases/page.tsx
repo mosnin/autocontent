@@ -5,13 +5,13 @@ import { HubGrid } from "@/components/marketing/use-cases/hub-grid";
 import { UseCaseHero } from "@/components/marketing/use-cases/template";
 
 const DESCRIPTION =
-  "Six ways teams run marketer.sh: solo creators, ecommerce, SaaS teams, agencies, local businesses, and AI agents. Same pipelines, same spend caps, your job.";
+  "Six ways people use marketer.sh: creators, shops, software teams, agencies, local businesses, and AI agents. Same videos, articles, and ads. Your job.";
 
 export const metadata: Metadata = {
-  title: "Use cases — marketer.sh",
+  title: "Use cases · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Use cases — marketer.sh",
+    title: "Use cases · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -24,7 +24,7 @@ export default function UseCasesPage() {
       <UseCaseHero
         headline={["Built for how", "you actually market."]}
         kicker="Use cases"
-        lede="One system, six jobs. The same video and article pipelines, the same caps and gates, pointed at whatever you're actually trying to grow."
+        lede="One platform, six jobs. The same videos, articles, and ads, pointed at whatever you are trying to grow."
         primaryHref="/sign-up"
         primaryLabel="Start creating"
         scene="pearl"

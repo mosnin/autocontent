@@ -18,19 +18,19 @@ const CARDS = [
     kicker: "Always on",
     title: "Autopilot runs the channel 24/7",
     desc: "Give it a niche and a daily cap. It plans, produces, and publishes on schedule, and never spends past the cap.",
-    placeholder: { label: "Autopilot queue — screenshot", tone: "warm" as const },
+    placeholder: { label: "Autopilot queue - screenshot", tone: "warm" as const },
   },
   {
     kicker: "Instant answers",
     title: "Ask your marketing anything",
     desc: "Spend, performance, and queue state live in one system, so the answer comes from data, not from a hunt across tabs.",
-    placeholder: { label: "Agent chat — screenshot", tone: "sky" as const },
+    placeholder: { label: "Agent chat - screenshot", tone: "sky" as const },
   },
   {
     kicker: "Agent surfaces",
     title: "Your agents ship the campaign",
     desc: "REST API, Python SDK, CLI, and an MCP server. Whatever runs your agents can run your marketing.",
-    placeholder: { label: "CLI session — screenshot", tone: "violet" as const },
+    placeholder: { label: "CLI session - screenshot", tone: "violet" as const },
   },
 ];
 

@@ -24,7 +24,7 @@ const TEAMS: Team[] = [
     label: "Creators",
     href: "/use-cases/creators",
     headline: "A daily channel, without the daily grind.",
-    desc: "Keep the ideas and the voice. Hand the production line — scripting, rendering, captioning, posting — to the pipeline.",
+    desc: "Keep the ideas and the voice. Hand the production line - scripting, rendering, captioning, posting - to the pipeline.",
     checks: [
       "One brief becomes a week of shorts",
       "Your recurring characters, your art style",

@@ -24,14 +24,14 @@ const ParticleSphere = dynamic(
  *   colour  the engine takes `sphereColor` as a string, so the brand token
  *           is read off the document at mount rather than written here as
  *           a literal. Changing `--brand-primary` changes the orb.
- *   motion  under `prefers-reduced-motion` the sphere is never mounted —
- *           no WebGL context, no rAF loop — and a static disc stands in.
+ *   motion  under `prefers-reduced-motion` the sphere is never mounted -
+ *           no WebGL context, no rAF loop - and a static disc stands in.
  *   cost    the engine runs an unconditional requestAnimationFrame loop
  *           and holds a WebGL context for as long as it is mounted, so it
  *           is mounted only while the hero is on screen. Unmounting runs
  *           the engine's own cleanup, which cancels the loop, disposes the
  *           renderer, the geometry and the materials, and removes the
- *           canvas — i.e. the context is released rather than parked.
+ *           canvas - i.e. the context is released rather than parked.
  */
 
 /** Falls back to the sage in globals.css if the variable is unreadable. */

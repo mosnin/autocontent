@@ -9,13 +9,13 @@ import { FeatureHero } from "@/components/marketing/features/feature-hero";
 import { SectionCta } from "@/components/marketing/system";
 
 const DESCRIPTION =
-  "Content, SEO, and ads on one platform. One brief in, every format out, every dollar capped.";
+  "Content, SEO, and ads on one platform. Your AI agent makes the work. You set a budget.";
 
 export const metadata: Metadata = {
-  title: "Product — marketer.sh",
+  title: "Product · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Product — marketer.sh",
+    title: "Product · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -27,7 +27,7 @@ export default function FeaturesPage() {
     <main>
       <FeatureHero
         kicker="Product"
-        lede="Three services: short-form content, SEO articles, and paid ads. One login, one ledger, prepaid credits from $5."
+        lede="Three services: short videos, SEO articles, and paid ads. One login. Prepaid credits from five dollars."
         titleText="Content. SEO. Ads."
       />
       <FeatureIndex />

@@ -7,7 +7,7 @@ import { Kicker } from "./typography";
 /**
  * The six vignette scene washes: soft, light-mode gradient backdrops the
  * product miniature is staged on. Cool scenes mirror `GradientScene`;
- * `dawn` / `warm` are the warm-family washes (Amendment 2 — no green,
+ * `dawn` / `warm` are the warm-family washes (Amendment 2 - no green,
  * no mint).
  */
 const MUTED = "bg-muted";
@@ -30,7 +30,7 @@ export type VignetteScene = keyof typeof VIGNETTE_SCENES;
  * Anatomy: hairline white card → inset vignette frame (fixed 16/10,
  * scene wash, inner hairline, overflow hidden) → text block. With `href`
  * the whole card is a link: it lifts on hover and the vignette scales a
- * touch. No self-animation beyond hover — pages wrap cards in
+ * touch. No self-animation beyond hover - pages wrap cards in
  * `<Reveal>`/`<Stagger>`.
  */
 export function VignetteCard({

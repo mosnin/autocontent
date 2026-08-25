@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 /** The UGC studio is fail-closed on config: with MARKETER_UGC_ENABLED false
  *  or MARKETER_MUAPI_API_KEY unset, every user-facing route answers 409 with
  *  a human-readable reason. That is a legitimate deployment state, not an
- *  error — we surface the reason and render a calm empty state. */
+ *  error - we surface the reason and render a calm empty state. */
 function configReason(e: unknown): string | null {
   const msg = e instanceof Error ? e.message : String(e);
   if (!msg.startsWith("409")) return null;
@@ -27,7 +27,7 @@ export default async function UgcPage() {
   } catch (e) {
     notConfigured = configReason(e);
     // A non-409 failure (backend down, network) also degrades to the empty
-    // state rather than crashing the route — same rule as ads/approvals.
+    // state rather than crashing the route - same rule as ads/approvals.
     if (!notConfigured) catalog = null;
   }
 

@@ -8,10 +8,10 @@ const DESCRIPTION =
   "SEO articles from live search research, and an audit that scores the pages you already have.";
 
 export const metadata: Metadata = {
-  title: "SEO — marketer.sh",
+  title: "SEO · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "SEO — marketer.sh",
+    title: "SEO · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -25,7 +25,7 @@ const POINTS = [
   },
   {
     title: "Ship-ready pages",
-    body: "Title, description, Article JSON-LD, and a hero image come with the draft — not as a second project.",
+    body: "Title, description, structured data, and a hero image come with the draft. Not as a second project.",
   },
   {
     title: "Audit what is live",
@@ -41,11 +41,11 @@ export default function SeoServicePage() {
         lede={DESCRIPTION}
         primary={{ label: "Start creating", href: "/sign-up" }}
         secondary={{ label: "See pricing", href: "/pricing" }}
-        titleText="Articles that start from the SERP."
+        titleText="Articles that start from search."
       />
       <section className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-8 sm:pb-32 lg:px-10">
         <SectionHeading
-          description="This is the SEO line of the business — long-form that can compound while content and ads run beside it."
+          description="Long articles that can keep bringing people in, while videos and ads run next to them."
           title="What the SEO service does"
         />
         <div className="mt-12 grid gap-4 sm:grid-cols-3">

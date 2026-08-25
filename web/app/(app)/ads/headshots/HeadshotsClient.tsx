@@ -5,7 +5,7 @@
 // Uploading is step one and it is the step that most often goes wrong, so the
 // picker does real drag/click upload with per-file state and surfaces the
 // server's own rejection text (type, size, magic-byte sniff) verbatim rather
-// than a generic "upload failed" — those messages are the only way a user
+// than a generic "upload failed" - those messages are the only way a user
 // learns *why* a photo was refused.
 
 import * as React from "react";
@@ -281,7 +281,7 @@ export function HeadshotsClient({
         <h1 className="text-2xl font-semibold tracking-tight">Headshot studio</h1>
         <p className="text-sm text-muted-foreground">
           Upload a few photos of one person, pick a look, and get a batch of
-          consistent professional portraits. Reference photos stay yours — you
+          consistent professional portraits. Reference photos stay yours - you
           can delete them here at any time.
         </p>
       </div>
@@ -418,7 +418,7 @@ export function HeadshotsClient({
             <div>
               <h2 className="text-sm font-semibold">2 · Style</h2>
               <p className="text-xs text-muted-foreground">
-                Each style is art direction across four axes — wardrobe,
+                Each style is art direction across four axes - wardrobe,
                 lighting, background, lens. Expand one to read the exact prompt
                 language it contributes.
               </p>
@@ -541,7 +541,7 @@ export function HeadshotsClient({
                 placeholder="Keeps her glasses on. Prefers a warmer, less formal look than a suit."
               />
               <p className="text-xs text-muted-foreground">
-                {notes.length}/{MAX_SUBJECT_NOTES_CHARS} — facts about the
+                {notes.length}/{MAX_SUBJECT_NOTES_CHARS} - facts about the
                 subject, not a credential the portrait should imply.
               </p>
             </div>
@@ -647,7 +647,7 @@ export function HeadshotsClient({
         )}
         {list.some(canRetryBatch) ? (
           <p className="text-xs text-muted-foreground">
-            A failed or partial batch can be resumed from its own page — retry
+            A failed or partial batch can be resumed from its own page - retry
             only re-renders the portraits that are missing.
           </p>
         ) : null}

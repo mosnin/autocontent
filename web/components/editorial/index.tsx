@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Editorial primitives — the product's own vocabulary.
+ * Editorial primitives - the product's own vocabulary.
  *
  * The app used to render every surface as cards-in-a-column, because that
  * is what the vendored dashboard template did. But a beat timeline, a
@@ -11,7 +11,7 @@
  *
  * These are the nouns this product actually has and no template ships:
  *
- *   PageTitle    display-serif page opening — no card, no icon
+ *   PageTitle    display-serif page opening - no card, no icon
  *   Figure       an artifact as the substrate, with its caption
  *   Provenance   which model made it, what it cost, how long it took
  *   Stages       where a piece of staged work has got to
@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * A page opening. Display serif, generous space beneath, optional lede
- * clamped to a readable measure. Deliberately not a Card — an editorial
+ * clamped to a readable measure. Deliberately not a Card - an editorial
  * page starts with type, not with chrome.
  */
 export function PageTitle({
@@ -101,7 +101,7 @@ export function Section({
 // ------------------------------------------------------------------- media
 
 /**
- * An artifact and its caption. The image/video is the substrate — it sits
+ * An artifact and its caption. The image/video is the substrate - it sits
  * flush at full width with no padding around it, and the caption hangs
  * beneath in small type. This is the inversion the redesign is about:
  * previously media was a thumbnail inside chrome.
@@ -242,7 +242,7 @@ const STAGE_TONE: Record<StageState, string> = {
 /**
  * Where staged work has got to. A status badge says "generating"; this
  * says which of nine stages ran, which is where it stopped, and what
- * remains — the difference between a label and an explanation.
+ * remains - the difference between a label and an explanation.
  */
 export function Stages({
   stages,
@@ -336,7 +336,7 @@ export function Metric({
  * Spend is the one number in this product that can stop work happening,
  * so it gets a dedicated primitive rather than a generic progress bar:
  * it always states the cap, and it changes tone before the cap is hit
- * rather than at the moment it is — a bar that only turns red on failure
+ * rather than at the moment it is - a bar that only turns red on failure
  * tells you something you already found out.
  */
 export function SpendMeter({
@@ -428,7 +428,7 @@ export function AgentWorking({
 // ------------------------------------------------------------------- empty
 
 /**
- * Nothing here yet. Type-led, no illustration, no icon — an empty state
+ * Nothing here yet. Type-led, no illustration, no icon - an empty state
  * should explain, and an illustration is one more thing that makes every
  * product look like every other product.
  */

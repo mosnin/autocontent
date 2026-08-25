@@ -55,7 +55,7 @@ export function LoopBand() {
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                   <TaggedPlaceholder
                     kind="image"
-                    label="This week's performers — top and bottom angles"
+                    label="This week's performers - top and bottom angles"
                     tone="warm"
                   />
                 </div>
@@ -105,7 +105,7 @@ export function SpendBand() {
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                   <TaggedPlaceholder
                     kind="image"
-                    label="Spend cap gauge — per-niche and global caps"
+                    label="Spend cap gauge - per-niche and global caps"
                     tone="sky"
                   />
                 </div>
@@ -151,7 +151,7 @@ export function MetricsMoment() {
               vignette={
                 <TaggedPlaceholder
                   kind="image"
-                  label="Post performance card — views, watch time, completion"
+                  label="Post performance card - views, watch time, completion"
                   tone="sky"
                 />
               }
@@ -163,7 +163,7 @@ export function MetricsMoment() {
               vignette={
                 <TaggedPlaceholder
                   kind="image"
-                  label="Cost ledger card — metered model calls"
+                  label="Cost ledger card - metered model calls"
                   tone="warm"
                 />
               }

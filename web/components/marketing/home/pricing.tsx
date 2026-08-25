@@ -20,7 +20,7 @@ type Tier = {
 const TIERS: Tier[] = [
   {
     name: "Starter",
-    blurb: "Try the machine.",
+    blurb: "See if it fits.",
     monthly: 5,
     yearly: 5,
     features: [
@@ -38,7 +38,7 @@ const TIERS: Tier[] = [
     yearly: 20,
     features: [
       "≈ 35–50 videos",
-      "Closed-loop optimization",
+      "Improves from what performed",
       "Review-before-post",
       "Every feature included",
     ],

@@ -137,7 +137,7 @@ export function CampaignDetailClient({
         <CardContent className="space-y-3">
           {ov.items.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              No lanes yet — add one below.
+              No lanes yet - add one below.
             </p>
           )}
           {ov.items.map((item) => (

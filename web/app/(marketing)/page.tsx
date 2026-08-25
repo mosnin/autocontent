@@ -13,13 +13,13 @@ import { Testimonials } from "@/components/marketing/home/testimonials";
 import { VideoShowcase } from "@/components/marketing/home/video-showcase";
 
 const DESCRIPTION =
-  "The autonomous marketing platform. One brief in, video and SEO articles ideated, produced, published, and improved, with hard caps on every dollar spent.";
+  "An agentic marketing platform. Your AI agent creates videos, SEO articles, and ads for you. You set a budget and review what ships.";
 
 export const metadata: Metadata = {
-  title: "marketer.sh — Marketing that runs itself",
+  title: "marketer.sh · Marketing that just gets made",
   description: DESCRIPTION,
   openGraph: {
-    title: "marketer.sh — Marketing that runs itself",
+    title: "marketer.sh · Marketing that just gets made",
     description: DESCRIPTION,
     type: "website",
   },

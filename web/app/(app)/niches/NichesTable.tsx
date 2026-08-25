@@ -1,7 +1,7 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table, ported
-// verbatim for the Niches list — same TanStack table wiring, sortable
+// verbatim for the Niches list - same TanStack table wiring, sortable
 // headers, row selection, toolbar (search + filter), and pagination
 // footer as components/square/campaigns-table.tsx. Adaptations are real
 // data mapping only:
@@ -178,7 +178,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
                 </Badge>
               ))
             ) : (
-              <span className="text-sm text-muted-foreground">—</span>
+              <span className="text-sm text-muted-foreground">-</span>
             )}
           </div>
         ),
@@ -208,7 +208,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
           <span className="text-sm text-muted-foreground">
             {row.original.created_at
               ? new Date(row.original.created_at).toLocaleDateString()
-              : "—"}
+              : "-"}
           </span>
         ),
       },
@@ -221,7 +221,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground max-w-[240px] truncate inline-block align-middle">
-            {row.original.character_description || "—"}
+            {row.original.character_description || "-"}
           </span>
         ),
       },

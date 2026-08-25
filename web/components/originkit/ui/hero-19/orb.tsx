@@ -9,24 +9,24 @@ import ParticleSphere from "@/components/originkit/ui/hero-19/particle-sphere";
 import { MaskGroup } from "@/components/originkit/ui/hero-19/mask-group";
 
 /**
- * Dotted orb resting above the hand — Figma "Group 2147241484" (2282:6148),
+ * Dotted orb resting above the hand - Figma "Group 2147241484" (2282:6148),
  * iPad 2280:5842.
  *
- * The group is placed against the frame (mobile 61.33, 499 — 228.39 x 269.82;
- * iPad 185.49, 607 — 324.3 x 383.12), but everything *inside* it is centred
+ * The group is placed against the frame (mobile 61.33, 499 - 228.39 x 269.82;
+ * iPad 185.49, 607 - 324.3 x 383.12), but everything *inside* it is centred
  * with layout rather than coordinates: the sphere box is centred horizontally
  * with flex, and the glow, disc and sphere share one grid cell with
  * `place-items-center`, so they stay concentric at any size.
  *
  * Layers, bottom to top:
- *   z-0  MaskGroup — halo + wash, unmasked, bleeding out around the sphere
+ *   z-0  MaskGroup - halo + wash, unmasked, bleeding out around the sphere
  *   z-20 dark core, between the glow and the sphere
  *   z-30 the particle sphere
  *
  * The core is masked with a soft hole that follows the cursor, sized to the
  * sphere's `cursorRadiusUI`. Where the particles scatter away from the pointer
  * the core dissolves with them, so no hard disc edge is exposed. It is an
- * approximation — the hole is a circle, the scatter is not.
+ * approximation - the hole is a circle, the scatter is not.
  */
 
 /** Projected diameter of the particle sphere, in px. */
@@ -35,7 +35,7 @@ const SPHERE_DIAMETER = 190;
 const TABLET_SCALE = 1.42;
 const SPHERE_DIAMETER_TABLET = SPHERE_DIAMETER * TABLET_SCALE;
 /**
- * Desktop — the sphere box is 396 x 362, and the engine projects the sphere at
+ * Desktop - the sphere box is 396 x 362, and the engine projects the sphere at
  * 2.5 / 6.994 of the canvas height (box x 2.5): 0.3574 * 905 = 323px, matched
  * to the same 1.078 visual bump the mobile value carries.
  */
@@ -44,7 +44,7 @@ const SPHERE_DIAMETER_DESKTOP = SPHERE_DIAMETER * DESKTOP_SCALE;
 
 /**
  * Matches the sphere's cursorRadiusUI, widened because particles fling well
- * past the cursor radius — the hole has to cover where they land, not just
+ * past the cursor radius - the hole has to cover where they land, not just
  * where they started.
  */
 const CURSOR_RADIUS = 75 * 1.6;
@@ -124,9 +124,9 @@ export const Orb = () => {
       aria-hidden
       className="absolute top-[499px] left-1/2 flex h-[269.816px] w-[228.39px] -translate-x-1/2 justify-center ipad:top-151.75 ipad:h-[383.119px] ipad:w-[324.3px] desktop-sm:top-[178px] desktop-sm:h-[311px] desktop-sm:w-[340px] desktop-sm:translate-y-10"
     >
-      {/* Sphere box — every layer below sits in the same grid cell, centred */}
+      {/* Sphere box - every layer below sits in the same grid cell, centred */}
       <div className="relative grid h-[197.32px] w-[215.853px] shrink-0 place-items-center ipad:h-[280.18px] ipad:w-[306.495px] desktop-sm:h-[311px] desktop-sm:w-[340px]">
-        {/* Glow behind the sphere — MaskGroup anchors to a zero-size point */}
+        {/* Glow behind the sphere - MaskGroup anchors to a zero-size point */}
         <div className="relative z-0 col-start-1 row-start-1 size-0 blur-md ipad:hidden">
           <MaskGroup size={SPHERE_DIAMETER} />
         </div>
@@ -137,7 +137,7 @@ export const Orb = () => {
           <MaskGroup size={SPHERE_DIAMETER_DESKTOP} />
         </div>
 
-        {/* Dark core — the same sphere in black, so the backdrop keeps its
+        {/* Dark core - the same sphere in black, so the backdrop keeps its
           particle structure and reacts to the cursor instead of reading as a
           flat disc once the orange layer scatters. */}
         {/* <div className="pointer-events-none z-20 col-start-1 row-start-1 size-full">
@@ -158,7 +158,7 @@ export const Orb = () => {
           sphereColor="#121212"
         />
       </div> */}
-        {/* Dark core — dissolves under the cursor, so the scattered particles
+        {/* Dark core - dissolves under the cursor, so the scattered particles
             never expose a hard disc edge */}
         <div
           ref={coreRef}

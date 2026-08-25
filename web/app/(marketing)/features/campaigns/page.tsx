@@ -16,10 +16,10 @@ const DESCRIPTION =
   "Set a budget and a window, add video and article lanes, link an ad campaign for reporting. An hourly runner paces the work and completes the campaign at the budget.";
 
 export const metadata: Metadata = {
-  title: "Campaigns — marketer.sh",
+  title: "Campaigns · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Campaigns — marketer.sh",
+    title: "Campaigns · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -33,7 +33,7 @@ export default function CampaignsFeaturePage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Campaign detail — lanes, budget, and status"
+            label="Campaign detail - lanes, budget, and status"
             ratio="16/9"
           />
         }

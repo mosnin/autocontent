@@ -5,7 +5,7 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-// Textarea has no square/ui counterpart the template prescribes here — kept
+// Textarea has no square/ui counterpart the template prescribes here - kept
 // on the app primitive (established precedent).
 import { Textarea } from "@/components/ui/textarea";
 import { draftNicheAction, type NicheDraft } from "@/lib/actions";
@@ -21,7 +21,7 @@ const EXAMPLES = [
 /**
  * The front door. Instead of a 16-field spec sheet, the user describes
  * their channel in a sentence; the model drafts every creative field and
- * drops them straight into the wizard's step 3 (schedule + cap) — the
+ * drops them straight into the wizard's step 3 (schedule + cap) - the
  * only things a human should still decide. "Fill it in myself" reveals
  * the full wizard cold for power users.
  */
@@ -42,13 +42,13 @@ export function OnboardingEntry() {
     const res = await draftNicheAction(description);
     setDrafting(false);
     if (!res.ok) {
-      toast.error(res.error || "Couldn't draft a channel — try the manual form");
+      toast.error(res.error || "Couldn't draft a channel - try the manual form");
       return;
     }
     setPrefill(toPrefill(res.draft));
     setStartStep(3); // creative fields are filled; land on schedule + cap
     setMode("wizard");
-    toast.success("Drafted your channel — review and launch");
+    toast.success("Drafted your channel - review and launch");
   }
 
   if (mode === "wizard") {
@@ -56,7 +56,7 @@ export function OnboardingEntry() {
       <div className="space-y-4">
         {prefill && (
           <div className="rounded-3xl border border-border bg-muted/50 px-4 py-2.5 text-sm text-muted-foreground">
-            Drafted from your description — tweak anything, then set the schedule
+            Drafted from your description - tweak anything, then set the schedule
             and cap.
           </div>
         )}

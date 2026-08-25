@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 /**
  * Thin server-side guard for the whole /admin surface. We probe the
  * admin overview: a 403 means the caller is not an admin, so we render a
- * clean "not authorized" state and nothing else — no admin chrome, no hint
+ * clean "not authorized" state and nothing else - no admin chrome, no hint
  * of what lives behind the wall. On success we wrap the page in a subtle
  * "Admin" band so the surface reads as visually distinct from the normal
  * dashboard while sharing the same shell.
@@ -49,7 +49,7 @@ export default async function AdminLayout({
 }
 
 function NotAuthorized() {
-  // Rendered inside the app shell's <main>, so this is a plain section —
+  // Rendered inside the app shell's <main>, so this is a plain section -
   // a nested <main> would be invalid and confuse assistive tech.
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-6">

@@ -1,6 +1,6 @@
 // Client-safe typed client for the Motion Graphics API (/api/v1/motion). SWR
 // keys are plain backend paths (clientFetch prefixes /api/proxy); mutations
-// POST through the proxy so the Clerk JWT is attached server-side — `auth()`
+// POST through the proxy so the Clerk JWT is attached server-side - `auth()`
 // can't run in the browser. No server-only imports.
 //
 // Types mirror backend/routes/motion.py, src/marketer/motion/styles.py
@@ -21,7 +21,7 @@ export interface MotionStylePreview {
   uppercase: boolean;
   position: string;
   animation: string;
-  /** Hex WITHOUT a leading '#' — these are ffmpeg drawtext colors. */
+  /** Hex WITHOUT a leading '#' - these are ffmpeg drawtext colors. */
   text_hex: string;
   outline_hex: string;
   /** A ready-to-use CSS gradient string. */
@@ -105,7 +105,7 @@ export interface MotionBroll {
   start: number;
   end: number;
   duration: number;
-  /** 'generated' | 'stock' — what actually happened, which can differ from
+  /** 'generated' | 'stock' - what actually happened, which can differ from
    *  the project's requested `source` when a stock lookup missed. */
   sourcing: string;
   camera_move: string;
@@ -113,12 +113,12 @@ export interface MotionBroll {
   prompt: string;
   /** The raw LLM search term (stock beats). */
   keyword: string;
-  /** The keyword after the style bias — what was actually searched. */
+  /** The keyword after the style bias - what was actually searched. */
   stock_query: string;
   stock_url: string | null;
   status: string;
   error: string | null;
-  /** e.g. "covered", "stock_fallback:no keyword" — the fallback audit trail. */
+  /** e.g. "covered", "stock_fallback:no keyword" - the fallback audit trail. */
   tags: string[];
 }
 
@@ -209,7 +209,7 @@ export function createMotionProject(body: MotionProjectCreate): Promise<MotionPr
   return proxy("POST", `${MOTION}/projects`, body);
 }
 
-/** 202. Resumes a failed project — keyframes already on the volume are
+/** 202. Resumes a failed project - keyframes already on the volume are
  *  reused rather than re-bought. Returns `{ status: "queued" }`, not the row. */
 export function retryMotionProject(id: string): Promise<{ status: string }> {
   return proxy("POST", `${MOTION}/projects/${id}/retry`);
@@ -227,7 +227,7 @@ export function cssHex(hex: string): string {
   return /^[0-9a-fA-F]{6}$/.test(clean) ? `#${clean}` : "#ffffff";
 }
 
-/** mm:ss.s — beat timings are seconds with sub-second precision. */
+/** mm:ss.s - beat timings are seconds with sub-second precision. */
 export function formatTimecode(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00.0";
   const m = Math.floor(seconds / 60);

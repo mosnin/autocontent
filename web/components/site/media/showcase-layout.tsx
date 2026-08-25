@@ -74,7 +74,7 @@ export function ShowcaseSlot({
   const posterPath = expectedPosterPath(slot);
 
   // No clip yet? Render the placeholder from the server and skip the client
-  // player entirely — an empty showcase costs zero JavaScript.
+  // player entirely - an empty showcase costs zero JavaScript.
   if (!slot.src) {
     return (
       <SlotFrame
@@ -148,7 +148,7 @@ export function ShowcaseGrid({
 }
 
 /**
- * Horizontally scrolling row — how the vertical formats (UGC, micro-drama,
+ * Horizontally scrolling row - how the vertical formats (UGC, micro-drama,
  * motion) are staged. It scrolls inside its own box, so the page itself
  * never gains a horizontal scrollbar however narrow the viewport is.
  */

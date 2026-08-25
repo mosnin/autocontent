@@ -24,10 +24,10 @@ const DESCRIPTION =
   "Per-post views, watch time, and completion feed the next ideation round. Every model call is metered to a ledger with hard caps that fail closed, not open.";
 
 export const metadata: Metadata = {
-  title: "Analytics & spend — marketer.sh",
+  title: "Analytics & spend · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Analytics & spend — marketer.sh",
+    title: "Analytics & spend · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
 
 /**
  * What actually happens around one provider call, in order. Taken from
- * `services/spend_context.py` — the pre-flight check, the ledger write,
+ * `services/spend_context.py` - the pre-flight check, the ledger write,
  * the debit, and the post-spend re-read that is the real guarantee.
  */
 const SPEND_PATH = [
@@ -47,7 +47,7 @@ const SPEND_PATH = [
   },
   {
     label: "Three ceilings are read",
-    copy: "Today's spend for this niche, today's spend across every niche, and your prepaid balance — including the margin the charge will carry. Any one of them short and the call is refused.",
+    copy: "Today's spend for this niche, today's spend across every niche, and your prepaid balance - including the margin the charge will carry. Any one of them short and the call is refused.",
   },
   {
     label: "The call happens",
@@ -55,7 +55,7 @@ const SPEND_PATH = [
   },
   {
     label: "The ledger row is written",
-    copy: "Provider, SKU, units, dollars, and the job, article or post it belongs to. This is the record — the dashboard reads it, it does not maintain a second one.",
+    copy: "Provider, SKU, units, dollars, and the job, article or post it belongs to. This is the record - the dashboard reads it, it does not maintain a second one.",
     tag: "append-only",
   },
   {
@@ -64,7 +64,7 @@ const SPEND_PATH = [
   },
   {
     label: "Then the ceilings are read again",
-    copy: "This is the part that matters. Re-reading after the write is what makes the cap hold when several jobs — or several scenes inside one job — are spending at the same moment.",
+    copy: "This is the part that matters. Re-reading after the write is what makes the cap hold when several jobs - or several scenes inside one job - are spending at the same moment.",
     tag: "the guarantee",
   },
   {
@@ -108,7 +108,7 @@ const POST_METRICS = [
   {
     name: "Attention",
     chips: ["avg watch", "total watch"],
-    copy: "Average watch time per viewer and total watch time across all of them — the difference between a hook that works and one that only gets clicked.",
+    copy: "Average watch time per viewer and total watch time across all of them - the difference between a hook that works and one that only gets clicked.",
   },
   {
     name: "Completion",
@@ -130,7 +130,7 @@ export default function AnalyticsFeaturePage() {
         illustration={
           <MediaCard
             kind="illustration"
-            label="Performance loop — spend caps diagram"
+            label="Performance loop - spend caps diagram"
             ratio="16/9"
           />
         }
@@ -150,18 +150,18 @@ export default function AnalyticsFeaturePage() {
             eyebrow="Per post"
             heading="Not a follower count. What the video actually did."
             highlight="What the video actually did."
-            lede="Metrics are pulled per published post and stored raw alongside the parsed fields, so a number that a platform stops reporting doesn't quietly become a zero — it becomes absent, which is a different thing."
+            lede="Metrics are pulled per published post and stored raw alongside the parsed fields, so a number that a platform stops reporting doesn't quietly become a zero - it becomes absent, which is a different thing."
           />
           <MediaCard
             kind="image"
-            label="Post performance card — views, watch time, completion"
+            label="Post performance card - views, watch time, completion"
           />
         </div>
         <SpecCards className="os-mt-48" cols={2} items={POST_METRICS} />
         <Note title="Platforms disagree about what to tell you.">
           TikTok, Reels and Shorts each expose a different subset of these,
           and every field is optional the whole way down. Where a platform
-          reports nothing, nothing is invented to fill the column — the
+          reports nothing, nothing is invented to fill the column - the
           learning loop simply reads what is there.
         </Note>
       </Section>
@@ -170,7 +170,7 @@ export default function AnalyticsFeaturePage() {
       <Band
         bullets={[
           "The top and bottom performers of the last thirty days are looked up per niche, and their original hooks and topics are loaded back.",
-          "Both ends are handed to ideation — a losing angle is as informative as a winning one, and cheaper to learn from twice.",
+          "Both ends are handed to ideation - a losing angle is as informative as a winning one, and cheaper to learn from twice.",
           "With no metrics yet, the context is empty and the agent works from its defaults. A cold start is not a broken one.",
         ]}
         eyebrow="The feedback loop"
@@ -182,7 +182,7 @@ export default function AnalyticsFeaturePage() {
         media={
           <MediaCard
             kind="image"
-            label="This week's performers — top and bottom angles"
+            label="This week's performers - top and bottom angles"
           />
         }
       />
@@ -200,7 +200,7 @@ export default function AnalyticsFeaturePage() {
           />
           <MediaCard
             kind="illustration"
-            label="Spend path — estimate, call, ledger, re-check"
+            label="Spend path - estimate, call, ledger, re-check"
           />
         </div>
         <StageRail className="os-mt-48" steps={SPEND_PATH} />
@@ -212,7 +212,7 @@ export default function AnalyticsFeaturePage() {
           eyebrow="Three ceilings"
           heading="Three limits, and any one of them is enough to stop a job."
           highlight="any one of them"
-          lede="They are independent. Set the ones you want, leave the ones you don't, and each is enforced on its own terms — the failure message names which ceiling it was, so you never have to guess what stopped a run."
+          lede="They are independent. Set the ones you want, leave the ones you don't, and each is enforced on its own terms - the failure message names which ceiling it was, so you never have to guess what stopped a run."
         />
         <FactCards className="os-mt-48" items={CEILINGS} />
       </Section>
@@ -227,7 +227,7 @@ export default function AnalyticsFeaturePage() {
           "Anything in it can be replayed in place, through the same retry path each surface already had.",
         ]}
         eyebrow="Failures"
-        extraCopy="A run that dies with no progress is failed on a timer rather than left in a non-terminal state — a job nobody can retry and no alert can see is the worst of both outcomes."
+        extraCopy="A run that dies with no progress is failed on a timer rather than left in a non-terminal state - a job nobody can retry and no alert can see is the worst of both outcomes."
         heading="Six categories, one inbox, and a retry button."
         highlight="one inbox,"
         label="The failures inbox"
@@ -235,7 +235,7 @@ export default function AnalyticsFeaturePage() {
         media={
           <MediaCard
             kind="image"
-            label="Failures inbox — categorized failures with retry"
+            label="Failures inbox - categorized failures with retry"
           />
         }
       />

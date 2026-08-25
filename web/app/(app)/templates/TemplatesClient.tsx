@@ -7,7 +7,7 @@
 // Chrome recladded to the Square UI marketing-dashboard kit
 // (components/square/ui/*): Card/Badge/Button/Input chrome swapped in.
 // square/ui has no Label primitive, so Label stays the existing app
-// primitive (@/components/ui/label) — same precedent as the niches
+// primitive (@/components/ui/label) - same precedent as the niches
 // port. No handler/logic changes.
 
 import * as React from "react";
@@ -54,7 +54,7 @@ export function TemplatesClient({ initial }: { initial: Template[] }) {
     <div className="space-y-6">
       <DashHeading
         as="h1"
-        sub="Curated looks with their exact prompt attached. Remix one with your product photo — same aesthetic, your product. Results land in Library → Images."
+        sub="Curated looks with their exact prompt attached. Remix one with your product photo - same aesthetic, your product. Results land in Library → Images."
       >
         Templates
       </DashHeading>
@@ -91,7 +91,7 @@ function TemplateCard({ template }: { template: Template }) {
         body: JSON.stringify({ product_image_b64, count: 2 }),
       });
       if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      toast.success("Remix started — check Library → Images in a minute");
+      toast.success("Remix started - check Library → Images in a minute");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
@@ -138,7 +138,7 @@ function TemplateCard({ template }: { template: Template }) {
           </>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Video template — copy its prompt into a niche&apos;s visual style
+            Video template - copy its prompt into a niche&apos;s visual style
             to use this look.
           </p>
         )}

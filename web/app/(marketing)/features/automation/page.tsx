@@ -26,10 +26,10 @@ const DESCRIPTION =
   "REST API, typed Python SDK, the marketer CLI, and an MCP server with cost-aware tools. Agents create niches, enqueue videos, and publish inside your caps.";
 
 export const metadata: Metadata = {
-  title: "Automation & agents — marketer.sh",
+  title: "Automation & agents · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Automation & agents — marketer.sh",
+    title: "Automation & agents · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -72,7 +72,7 @@ const CLI_SAMPLE = [
 
 /**
  * How the MCP tool descriptions are written. The strings quoted here are
- * the shape of the real descriptions in `mcp_server.py` — every
+ * the shape of the real descriptions in `mcp_server.py` - every
  * spend-affecting tool states its cost and asks for confirmation.
  */
 const TOOL_CLASSES = [
@@ -102,7 +102,7 @@ const TOOL_CLASSES = [
 const DISPATCH = [
   {
     label: "A slot is authored the way you think about it",
-    copy: "“Every Monday at 09:00, my time.” Not an offset from an epoch — a weekday and a wall-clock time in a named zone.",
+    copy: "“Every Monday at 09:00, my time.” Not an offset from an epoch - a weekday and a wall-clock time in a named zone.",
   },
   {
     label: "It is expanded in local calendar terms",
@@ -119,7 +119,7 @@ const DISPATCH = [
   },
   {
     label: "And a durable key catches the rest",
-    copy: "One key per post, platform and scheduled instant. Moving the post rewrites the instant — which is exactly the action that means “send this again”.",
+    copy: "One key per post, platform and scheduled instant. Moving the post rewrites the instant - which is exactly the action that means “send this again”.",
     tag: "idempotent",
   },
 ];
@@ -134,7 +134,7 @@ const UNATTENDED = [
   {
     kicker: "Reaping",
     title: "No zombies",
-    copy: "A run that stops making progress is failed on a timer, which is what makes it retryable and visible to alerts. A job parked for your approval is deliberately exempt — waiting for you is not being stuck.",
+    copy: "A run that stops making progress is failed on a timer, which is what makes it retryable and visible to alerts. A job parked for your approval is deliberately exempt - waiting for you is not being stuck.",
   },
   {
     kicker: "Concurrency",
@@ -156,7 +156,7 @@ export default function AutomationFeaturePage() {
         illustration={
           <MediaCard
             kind="video"
-            label="Agent demo — MCP call to shipped campaign"
+            label="Agent demo - MCP call to shipped campaign"
             ratio="16/9"
           />
         }
@@ -176,7 +176,7 @@ export default function AutomationFeaturePage() {
           eyebrow="One token, one base URL"
           heading="Every surface reads the same two environment variables."
           highlight="the same two"
-          lede="A personal access token and a base URL. The SDK, the CLI and the MCP server all take them from the environment or from an argument, and all three end up on the same authenticated HTTP API — there is no second, less-guarded path in."
+          lede="A personal access token and a base URL. The SDK, the CLI and the MCP server all take them from the environment or from an argument, and all three end up on the same authenticated HTTP API - there is no second, less-guarded path in."
         />
         <CardGrid className="os-mt-48" cols={2}>
           <CodeSample lines={REST_SAMPLE} title="rest" />
@@ -197,11 +197,11 @@ export default function AutomationFeaturePage() {
             eyebrow="MCP"
             heading="A tool description is the only warning a model gets."
             highlight="the only warning"
-            lede="An agent decides whether to call something from its description and nothing else. So the descriptions here say what an action costs and what it touches, in the text the model actually reads — not in documentation it will never open."
+            lede="An agent decides whether to call something from its description and nothing else. So the descriptions here say what an action costs and what it touches, in the text the model actually reads - not in documentation it will never open."
           />
           <MediaCard
             kind="image"
-            label="MCP tool call — cost-aware tool description"
+            label="MCP tool call - cost-aware tool description"
           />
         </div>
         <SpecCards className="os-mt-48" cols={2} items={TOOL_CLASSES} />
@@ -212,7 +212,7 @@ export default function AutomationFeaturePage() {
         bullets={[
           "A token is shown once and stored only as a hash. Lists show a short hint, never the secret.",
           "Nothing an agent can call bypasses the approval gate on a niche that has one.",
-          "There is an opt-in path for an agent to top its own credit up over HTTP 402 — off by default, bounded per top-up, and inert until a deploy configures it.",
+          "There is an opt-in path for an agent to top its own credit up over HTTP 402 - off by default, bounded per top-up, and inert until a deploy configures it.",
         ]}
         eyebrow="The important part"
         heading="An agent gets your permissions. It does not get an exception."
@@ -233,7 +233,7 @@ export default function AutomationFeaturePage() {
           />
           <MediaCard
             kind="illustration"
-            label="Dispatch — claim, per-platform claim, idempotency key"
+            label="Dispatch - claim, per-platform claim, idempotency key"
           />
         </div>
         <StageRail className="os-mt-48" steps={DISPATCH} />
@@ -241,7 +241,7 @@ export default function AutomationFeaturePage() {
           Every row of an uploaded schedule is validated before any row is
           written. One bad row and nothing is created, because the only sane
           response to a partial import is to fix the file and upload it again
-          — and a re-upload whose good rows already landed duplicates every
+          - and a re-upload whose good rows already landed duplicates every
           one of them.
         </Note>
       </Section>
@@ -275,7 +275,7 @@ export default function AutomationFeaturePage() {
         media={
           <MediaCard
             kind="illustration"
-            label="Posting schedule — per-niche windows"
+            label="Posting schedule - per-niche windows"
           />
         }
       />

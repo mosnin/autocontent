@@ -5,7 +5,7 @@ import * as React from "react";
 import { Marquee, Reveal, TextReveal } from "@/components/marketing/system";
 import { MediaSlot } from "@/components/media-slot";
 
-/** Testimonial rail — portrait video cards like the reference. Quotes and
+/** Testimonial rail - portrait video cards like the reference. Quotes and
  *  portraits are placeholders until real customer stories are uploaded. */
 const CARDS = [
   {
@@ -67,7 +67,7 @@ export function Loved() {
               >
                 <div className="group aspect-[4/5]">
                   <MediaSlot
-                    alt={`Customer portrait video — ${c.who}`}
+                    alt={`Customer portrait video - ${c.who}`}
                     id={c.slotId}
                     showChip={false}
                   />

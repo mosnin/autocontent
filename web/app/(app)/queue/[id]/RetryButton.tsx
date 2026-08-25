@@ -12,7 +12,7 @@ export function RetryButton({
 }: {
   jobId: string;
   // Called after a successful retry so a parent (the live job detail) can
-  // refetch — the status flips off "failed" and the retry button hides
+  // refetch - the status flips off "failed" and the retry button hides
   // without a manual reload.
   onRetried?: () => void;
 }) {

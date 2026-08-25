@@ -25,7 +25,7 @@ export const Section12Hero = () => {
 
   return (
     <section
-      aria-label="marketer.sh — marketing that runs itself"
+      aria-label="marketer.sh - marketing that runs itself"
       className="relative isolate w-full overflow-hidden bg-[#fffbe1]"
     >
       <div className="relative mx-auto flex h-screen w-full max-w-[1600px] flex-col wide-lg:max-w-none">

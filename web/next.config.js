@@ -10,6 +10,15 @@ const nextConfig = {
       { protocol: "https", hostname: "images.pexels.com" },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/company",
+        destination: "/about",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;

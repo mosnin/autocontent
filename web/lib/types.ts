@@ -389,7 +389,7 @@ export interface ImagePost {
   // queued | planning | generating | awaiting_approval | scheduling | done | failed
   status: string;
   // Plan/slide-path/caption snapshot. slide_count lives here (set at
-  // creation time), not as a top-level column — see
+  // creation time), not as a top-level column - see
   // marketer.repos.image_posts.create.
   payload: { slide_count?: number; [key: string]: unknown };
   provider_post_id: string | null;

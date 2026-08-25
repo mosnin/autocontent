@@ -26,7 +26,7 @@ const SHELVES = [
       "Every publish-grade render the pipeline has finished, newest first, playable in place.",
     scene: "sky" as const,
     kind: "video" as const,
-    label: "Final videos shelf — finished renders",
+    label: "Final videos shelf - finished renders",
   },
   {
     title: "Clips",
@@ -34,15 +34,15 @@ const SHELVES = [
       "Each individual scene, saved automatically as it renders. The raw material for a recut.",
     scene: "pearl" as const,
     kind: "video" as const,
-    label: "Clips shelf — individual scene renders",
+    label: "Clips shelf - individual scene renders",
   },
   {
     title: "Images",
     description:
-      "Keyframes, carousel slides, and template remixes — every still the platform has made for you.",
+      "Keyframes, carousel slides, and template remixes - every still the platform has made for you.",
     scene: "mist" as const,
     kind: "image" as const,
-    label: "Images shelf — keyframes and remixes",
+    label: "Images shelf - keyframes and remixes",
   },
   {
     title: "Remixes",
@@ -50,7 +50,7 @@ const SHELVES = [
       "Recuts you assembled from clips, with their render status and an inline preview when they finish.",
     scene: "dusk" as const,
     kind: "video" as const,
-    label: "Remixes shelf — composition status list",
+    label: "Remixes shelf - composition status list",
   },
 ];
 
@@ -64,7 +64,7 @@ export function ShelvesSection() {
           highlight="ever made for you."
           lede="Nothing lives only inside the job that produced it. Finished videos, the scenes they were cut from, every still, and every recut sit on four shelves you can filter by niche."
         />
-        <MediaCard kind="image" label="Library — shelves and niche filter" />
+        <MediaCard kind="image" label="Library - shelves and niche filter" />
       </div>
       <CardGrid className="os-mt-48" cols={2}>
         {SHELVES.map((s) => (
@@ -90,7 +90,7 @@ export function RecutBand() {
     <Band
       bullets={[
         "Select clips in the order you want them. The number on each one is its place in the cut.",
-        "Name it if you like, then queue it — the stitch happens server-side, not in your browser.",
+        "Name it if you like, then queue it - the stitch happens server-side, not in your browser.",
         "Queued, rendering, done. Finished recuts play inline and join the shelves.",
       ]}
       eyebrow="Recut"
@@ -98,11 +98,11 @@ export function RecutBand() {
       heading="Reassemble scenes into something new."
       highlight="into something new."
       label="Clip recuts"
-      lede="A scene that worked in one video can carry another. Pick any set of clips across your runs and stitch them into a fresh video — a straight concatenation, so nothing is regenerated and no model is called."
+      lede="A scene that worked in one video can carry another. Pick any set of clips across your runs and stitch them into a fresh video - a straight concatenation, so nothing is regenerated and no model is called."
       media={
         <MediaCard
           kind="image"
-          label="Clip selection — building a recut in order"
+          label="Clip selection - building a recut in order"
         />
       }
     />

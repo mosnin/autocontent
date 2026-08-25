@@ -5,7 +5,9 @@ const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://marketer.sh";
 const ROUTES = [
   "",
   "/pricing",
-  "/company",
+  "/about",
+  "/contact",
+  "/docs",
   "/features",
   "/features/content",
   "/features/seo",

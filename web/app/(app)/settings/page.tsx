@@ -12,7 +12,7 @@ export default async function SettingsPage() {
   try {
     user = await api<User>("/api/v1/users/me");
   } catch {
-    // ignore — form renders with empty default
+    // ignore - form renders with empty default
   }
 
   return (

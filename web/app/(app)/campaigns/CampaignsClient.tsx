@@ -71,7 +71,7 @@ export function CampaignsClient({
         budget_usd: budget || "50",
         ends_at: endsAt ? new Date(endsAt).toISOString() : null,
       });
-      toast.success("Campaign created — add lanes and press start");
+      toast.success("Campaign created - add lanes and press start");
       router.push(`/campaigns/${campaign.id}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -82,7 +82,7 @@ export function CampaignsClient({
 
   return (
     <div className="space-y-10">
-      <DashHeading as="h1" sub="Content, SEO, and ads in one push — set a budget, set a window, let it run.">
+      <DashHeading as="h1" sub="Content, SEO, and ads in one push - set a budget, set a window, let it run.">
         Bring your next campaign to life
       </DashHeading>
 
@@ -131,7 +131,7 @@ export function CampaignsClient({
           <Button onClick={create} disabled={busy}>Create campaign</Button>
           {niches.length === 0 && (
             <p className="text-xs text-muted-foreground">
-              Tip: create a niche in Studio first — campaign lanes pull from
+              Tip: create a niche in Studio first - campaign lanes pull from
               your existing niches and ad campaigns.
             </p>
           )}

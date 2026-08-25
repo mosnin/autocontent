@@ -12,11 +12,11 @@ export const HUB_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
  * reference-style hub language in light mode). Every product dashboard
  * composes these so the whole app breathes at one rhythm:
  *
- * - `<Rise>` — entrance: fade + 20px rise, optional delay for stagger.
- * - `<HubSection>` — section wrapper with a sparkle heading and staggered
+ * - `<Rise>` - entrance: fade + 20px rise, optional delay for stagger.
+ * - `<HubSection>` - section wrapper with a sparkle heading and staggered
  *   children entrances.
- * - `<HubPanel>` — the rounded-3xl light card chrome (non-link).
- * - `hubCardClass` — same chrome as a className, for Link/Card call sites.
+ * - `<HubPanel>` - the rounded-3xl light card chrome (non-link).
+ * - `hubCardClass` - same chrome as a className, for Link/Card call sites.
  *
  * All primitives honor prefers-reduced-motion (opacity-only, no lift).
  */

@@ -29,10 +29,10 @@ const DESCRIPTION =
   "Ideation, scene-by-scene scripts, on-model keyframes, voiceover, karaoke captions, QA, and scheduled publishing to TikTok, Reels, and Shorts. One brief in.";
 
 export const metadata: Metadata = {
-  title: "Video pipeline — marketer.sh",
+  title: "Video pipeline · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Video pipeline — marketer.sh",
+    title: "Video pipeline · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -67,7 +67,7 @@ const ENGINES: Array<{
   {
     kicker: "Motion graphics",
     title: "Narration into kinetic type",
-    copy: "Sentence boundaries become beats. Every beat gets its own picture — generated or real stock footage — and its own line of animated type, with the narration muxed on once at the end.",
+    copy: "Sentence boundaries become beats. Every beat gets its own picture - generated or real stock footage - and its own line of animated type, with the narration muxed on once at the end.",
     href: "/features/motion",
     linkLabel: "Motion graphics",
   },
@@ -103,7 +103,7 @@ const RENDER_CHECKS = [
   {
     name: "It is the length you asked for",
     chips: ["drift tolerance"],
-    copy: "Real duration is compared with the niche's target and refused if it has drifted too far — except in lip-sync mode, where the narration decides the length.",
+    copy: "Real duration is compared with the niche's target and refused if it has drifted too far - except in lip-sync mode, where the narration decides the length.",
   },
   {
     name: "It will actually upload",
@@ -113,7 +113,7 @@ const RENDER_CHECKS = [
   {
     name: "Then, and only then, the content pass",
     chips: ["llm judge"],
-    copy: "The content judge reads the script and the transcript — it never sees the file. Passing it is the only route to scheduling.",
+    copy: "The content judge reads the script and the transcript - it never sees the file. Passing it is the only route to scheduling.",
   },
 ];
 
@@ -125,7 +125,7 @@ export default function VideoFeaturePage() {
         illustration={
           <MediaCard
             kind="video"
-            label="Studio demo — brief to published short"
+            label="Studio demo - brief to published short"
             ratio="16/9"
           />
         }
@@ -149,7 +149,7 @@ export default function VideoFeaturePage() {
           />
           <MediaCard
             kind="illustration"
-            label="Render paths — scenes, drama, motion, UGC"
+            label="Render paths - scenes, drama, motion, UGC"
           />
         </div>
         <CardGrid className="os-mt-48" cols={2}>
@@ -167,7 +167,7 @@ export default function VideoFeaturePage() {
       {/* Fan-out */}
       <Band
         bullets={[
-          "Scene work runs concurrently, but the number of scenes in flight at once is capped — it is a spend-rate control as much as a rate-limit one.",
+          "Scene work runs concurrently, but the number of scenes in flight at once is capped - it is a spend-rate control as much as a rate-limit one.",
           "A scene that fails doesn't discard its siblings: the clips that succeeded are written to the job before the failure is raised.",
           "A retry resumes. The script, the finished clips and the voiceover are reused; only the missing pieces are bought again.",
         ]}
@@ -180,7 +180,7 @@ export default function VideoFeaturePage() {
         media={
           <MediaCard
             kind="illustration"
-            label="Scene fan-out — bounded concurrency and per-scene resume"
+            label="Scene fan-out - bounded concurrency and per-scene resume"
           />
         }
       />
@@ -193,20 +193,20 @@ export default function VideoFeaturePage() {
       <Band
         bullets={[
           "Fallback means a different vendor. A provider's own transient retries already ran inside that provider; the same model is never called twice in a row here.",
-          "A lip-synced job only ever falls back to another lip-sync model — silently dropping to a mute animation would destroy the format instead of failing loudly.",
+          "A lip-synced job only ever falls back to another lip-sync model - silently dropping to a mute animation would destroy the format instead of failing loudly.",
           "A spend-cap breach is never fallen back past. It propagates untouched from whichever attempt raised it.",
         ]}
         eyebrow="When a vendor fails"
-        extraCopy="A misconfigured voice provider is caught before the run starts, not at the voicing stage — after a script, six keyframes and six animations have already been paid for."
+        extraCopy="A misconfigured voice provider is caught before the run starts, not at the voicing stage - after a script, six keyframes and six animations have already been paid for."
         flip
         heading="A dead vendor shouldn't strand a video you already paid for."
         highlight="shouldn't strand a video"
         label="Provider fallback"
-        lede="Every provider's own retry policy is transient-only, so an error that escapes one is a real, persistent problem with that vendor — a rotated key, a retired model, an outage. The answer is to render the same thing somewhere else."
+        lede="Every provider's own retry policy is transient-only, so an error that escapes one is a real, persistent problem with that vendor - a rotated key, a retired model, an outage. The answer is to render the same thing somewhere else."
         media={
           <MediaCard
             kind="image"
-            label="Provider chain — primary model and its fallback"
+            label="Provider chain - primary model and its fallback"
           />
         }
       />
@@ -217,12 +217,12 @@ export default function VideoFeaturePage() {
           eyebrow="Two gates"
           heading="A machine checks the file. A judge checks the video."
           highlight="A judge checks the video."
-          lede="The first gate is deterministic and runs on the rendered mp4 itself — no model involved, no opinion. Only a file that clears it reaches the content pass, and only a video that clears both can be scheduled."
+          lede="The first gate is deterministic and runs on the rendered mp4 itself - no model involved, no opinion. Only a file that clears it reaches the content pass, and only a video that clears both can be scheduled."
         />
         <SpecCards className="os-mt-48" items={RENDER_CHECKS} />
         <Note title="One regenerate, and only when the script is the problem.">
           When the content judge says the script is what failed, the run
-          rewrites it once and tries again — failing there would throw away
+          rewrites it once and tries again - failing there would throw away
           rendering that came out fine. That second attempt is bounded: it
           cannot ask for a third, and every call it makes is metered and
           capped like the first.
@@ -236,7 +236,7 @@ export default function VideoFeaturePage() {
       <Panel
         body="A niche runs one job at a time, and an account runs a small fixed number at once. So a bad brief costs you one video, and a busy day can't quietly become a bill."
         bullets={[
-          "Every model call — ideation, script, images, animation, voice, transcription — is priced and written to the ledger as it happens.",
+          "Every model call - ideation, script, images, animation, voice, transcription - is priced and written to the ledger as it happens.",
           "Per-niche and global daily caps are re-checked after every one of those writes, not just before the job starts.",
           "The queue shows the estimate before you run anything, and what it actually cost afterwards.",
         ]}

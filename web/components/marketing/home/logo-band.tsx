@@ -3,7 +3,7 @@ import * as React from "react";
 import { Marquee, TaggedPlaceholder } from "@/components/marketing/system";
 
 /**
- * Trusted-by strip under the hero. Real customer logos land later —
+ * Trusted-by strip under the hero. Real customer logos land later -
  * each slot is a tagged placeholder drifting in a slow marquee until
  * the assets are uploaded (upload: web/public/logo/customers/logo-1.svg …).
  */

@@ -15,7 +15,7 @@ function K({ children }: { children: React.ReactNode }) {
   return <span className="text-sky-300">{children}</span>;
 }
 function S({ children }: { children: React.ReactNode }) {
-  // strings — warm amber tint (Amendment 2; never green)
+  // strings - warm amber tint (Amendment 2; never green)
   return <span className="text-amber-300">{children}</span>;
 }
 function C({ children }: { children: React.ReactNode }) {

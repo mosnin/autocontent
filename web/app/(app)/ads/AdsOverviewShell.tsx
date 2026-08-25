@@ -17,7 +17,7 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
     <div className="space-y-10">
       <DashHeading
         as="h1"
-        sub="Create, manage, and scale paid campaigns across Google and Meta — driven by agents, governed by hard budget guardrails."
+        sub="Create, manage, and scale paid campaigns across Google and Meta - driven by agents, governed by hard budget guardrails."
       >
         Bring any campaign to market
       </DashHeading>
@@ -55,7 +55,7 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
  * 30-day average daily spend (both real numbers); accounts/campaigns show
  * their real totals with no arrow (no meaningful up/down direction for a
  * plain count); pending approvals gets the destructive-tone arrow when
- * there's something to review, since that IS the real state — never an
+ * there's something to review, since that IS the real state - never an
  * invented percentage.
  */
 function buildStats(ov: AdsOverview): SquareStat[] {
@@ -113,7 +113,7 @@ function ConnectCallout() {
       <CardContent className="flex flex-col items-center justify-center gap-3 py-14 text-center">
         <h2 className="text-lg font-semibold">Connect an ad account to begin</h2>
         <p className="max-w-md text-sm text-muted-foreground">
-          Link Google Ads or Meta Ads. Connecting only grants access — nothing
+          Link Google Ads or Meta Ads. Connecting only grants access - nothing
           can spend until you set a budget and approve it.
         </p>
         <Button asChild>

@@ -13,7 +13,7 @@ async function fetchAudit(id: string): Promise<StoredAudit | null> {
     return await api<StoredAudit>(`/api/v1/seo-audits/${id}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    // A foreign or unknown id is a 404 by design — never someone else's audit.
+    // A foreign or unknown id is a 404 by design - never someone else's audit.
     if (msg.startsWith("404") || msg.startsWith("422")) return null;
     throw e;
   }

@@ -45,7 +45,7 @@ export function Sprawl() {
           <div className="mx-auto mt-14 max-w-4xl aspect-[16/4] overflow-hidden rounded-[2rem]">
             <TaggedPlaceholder
               kind="illustration"
-              label="Pipeline diagram — brief to campaign live"
+              label="Pipeline diagram - brief to campaign live"
               tone="warm"
             />
           </div>

@@ -18,7 +18,7 @@ export default async function DramaDetailPage({
     detail = await api<DramaDetail>(`/api/v1/dramas/${id}`);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    // A drama belonging to another user is a 404, never a 403 — ids can't be
+    // A drama belonging to another user is a 404, never a 403 - ids can't be
     // probed, so "missing" and "not yours" are the same page.
     if (msg.startsWith("404") || msg.startsWith("422")) notFound();
     throw e;

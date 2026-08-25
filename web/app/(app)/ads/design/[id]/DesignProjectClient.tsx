@@ -4,7 +4,7 @@
 //
 // Steps are grouped into the dependency layers the executor runs
 // concurrently, each step showing its operation, what it consumes, its
-// prompt, its status, and — once it has run — its output image. Per-step
+// prompt, its status, and - once it has run - its output image. Per-step
 // retry re-runs that step and everything downstream of it, which is exactly
 // what you want when one panel of an otherwise good canvas is wrong.
 
@@ -42,7 +42,7 @@ const POLL_MS = 6_000;
 function DependsOn({ ids }: { ids: string[] }) {
   if (ids.length === 0) {
     return (
-      <span className="text-[11px] text-muted-foreground">no inputs — starts fresh</span>
+      <span className="text-[11px] text-muted-foreground">no inputs - starts fresh</span>
     );
   }
   return (
@@ -202,7 +202,7 @@ export function DesignProjectClient({ initial }: { initial: DesignProject }) {
     setBusyProject(true);
     try {
       await retryDesignProject(project.id);
-      toast.success("Resuming — completed steps keep their output");
+      toast.success("Resuming - completed steps keep their output");
       await mutate();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Retry failed");
@@ -278,7 +278,7 @@ export function DesignProjectClient({ initial }: { initial: DesignProject }) {
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               The brief is turned into concrete steps and validated before a
-              single image is bought — nothing has been spent yet.
+              single image is bought - nothing has been spent yet.
             </p>
           </div>
         ) : (

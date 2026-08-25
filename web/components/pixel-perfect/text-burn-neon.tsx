@@ -28,7 +28,7 @@ export default function TextBurnNeon({
       const split = new SplitText(textRef.current, { type: "chars" });
       const chars = split.chars;
 
-      // The burn must land on the theme's foreground color, not hard white —
+      // The burn must land on the theme's foreground color, not hard white -
       // hard white disappears on the light theme.
       const settled = textRef.current
         ? getComputedStyle(textRef.current).color

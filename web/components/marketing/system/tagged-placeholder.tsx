@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /**
  * Tagged media placeholder: a plain flat surface with one small text tag
  * naming what belongs there (video, image, or illustration). No shapes,
- * no gradients, no fake art — it reads as "media goes here" and nothing
+ * no gradients, no fake art - it reads as "media goes here" and nothing
  * else. Parent sizes the frame (aspect + rounding + overflow-hidden).
  * Swapping in the real asset is a one-element change.
  */
@@ -21,7 +21,7 @@ export function TaggedPlaceholder({
   className,
 }: {
   kind: Kind;
-  /** What belongs here, e.g. "Feature demo — script to render". */
+  /** What belongs here, e.g. "Feature demo - script to render". */
   label: string;
   tone?: Tone;
   className?: string;
