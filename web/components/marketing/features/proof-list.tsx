@@ -18,7 +18,7 @@ export function ProofList({
     <ul className={cn("space-y-3.5", className)}>
       {items.map((item) => (
         <li
-          className="flex items-start gap-3 text-[15px] leading-relaxed text-zinc-600"
+          className="flex items-start gap-3 text-[15px] leading-relaxed text-muted-foreground"
           key={item}
         >
           <span

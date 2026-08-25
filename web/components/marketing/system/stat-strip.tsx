@@ -28,14 +28,14 @@ export function StatStrip({
   return (
     <Stagger
       className={cn(
-        "grid grid-cols-1 divide-y divide-zinc-900/[0.06] sm:grid-cols-3 sm:divide-x sm:divide-y-0",
+        "grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0",
         className,
       )}
       gap={0.08}
     >
       {stats.map((s) => (
         <div className="px-8 py-8 text-center sm:py-4" key={s.label}>
-          <p className="font-display text-4xl font-semibold tabular-nums tracking-tight text-zinc-900 md:text-5xl">
+          <p className="font-display text-4xl font-medium tabular-nums tracking-tight text-foreground md:text-5xl">
             <CountUp
               decimals={s.decimals ?? 0}
               prefix={s.prefix}
@@ -43,7 +43,7 @@ export function StatStrip({
               value={s.value}
             />
           </p>
-          <p className="mt-2 text-sm text-zinc-500">{s.label}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{s.label}</p>
         </div>
       ))}
     </Stagger>

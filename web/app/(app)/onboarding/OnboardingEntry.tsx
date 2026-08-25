@@ -55,7 +55,7 @@ export function OnboardingEntry() {
     return (
       <div className="space-y-4">
         {prefill && (
-          <div className="rounded-lg border border-border/60 bg-card/40 px-4 py-2.5 text-sm text-muted-foreground">
+          <div className="rounded-3xl border border-border bg-muted/50 px-4 py-2.5 text-sm text-muted-foreground">
             Drafted from your description — tweak anything, then set the schedule
             and cap.
           </div>
@@ -67,7 +67,7 @@ export function OnboardingEntry() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl bg-card/40 p-6 sm:p-8">
+      <div className="border-border rounded-3xl border p-6 sm:p-8">
         <label
           htmlFor="channel-sentence"
           className="text-sm font-medium text-foreground"
@@ -89,7 +89,7 @@ export function OnboardingEntry() {
         <div className="mt-3 flex flex-wrap gap-2">
           {EXAMPLES.map((ex) => (
             <button
-              className="rounded-full border border-border/60 px-3 py-1 text-xs text-muted-foreground transition-colors hover:border-brand/40 hover:text-foreground"
+              className="focus-ring border-border text-muted-foreground hover:text-foreground rounded-full border px-3 py-1 text-xs transition-colors"
               disabled={drafting}
               key={ex}
               onClick={() => setText(ex)}
@@ -101,7 +101,7 @@ export function OnboardingEntry() {
         </div>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button disabled={drafting} onClick={generate} size="lg">
+          <Button className="h-13 rounded-full px-8" disabled={drafting} onClick={generate} size="lg">
             {drafting ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
@@ -112,6 +112,7 @@ export function OnboardingEntry() {
             )}
           </Button>
           <Button
+            className="rounded-full"
             disabled={drafting}
             onClick={() => {
               setPrefill(undefined);

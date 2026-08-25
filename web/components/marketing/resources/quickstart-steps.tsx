@@ -49,28 +49,28 @@ export function QuickstartSteps() {
       {/* the rail */}
       <span
         aria-hidden
-        className="absolute inset-y-4 left-[1.1875rem] w-px bg-zinc-900/[0.08]"
+        className="absolute inset-y-4 left-[1.1875rem] w-px bg-muted"
       />
       {STEPS.map((step, i) => (
         <li className="relative pl-16" key={step.title}>
           <span
             aria-hidden
-            className="absolute left-0 top-0 flex size-10 items-center justify-center rounded-full border border-zinc-900/10 bg-white font-display text-sm font-semibold tabular-nums text-zinc-900 shadow-[0_2px_12px_rgba(15,23,42,0.08)]"
+            className="absolute left-0 top-0 flex size-10 items-center justify-center rounded-full border border-border bg-background font-display text-sm font-medium tabular-nums text-foreground shadow-[0_2px_12px_rgba(15,23,42,0.08)]"
           >
             {i + 1}
           </span>
           <Reveal>
             <div className="grid items-start gap-8 lg:grid-cols-[1fr_22rem]">
               <div>
-                <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 md:text-3xl">
+                <h2 className="font-display text-2xl font-medium tracking-tight text-foreground md:text-3xl">
                   {step.title}
                 </h2>
-                <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-zinc-600 md:text-[17px]">
+                <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-muted-foreground md:text-[17px]">
                   {step.copy}
                 </p>
               </div>
               <div className="w-full max-w-sm lg:justify-self-end lg:pt-1">
-                <div className="aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-inset ring-zinc-900/[0.05]">
+                <div className="aspect-[4/3] overflow-hidden rounded-2xl ring-1 ring-inset ring-border">
                   <TaggedPlaceholder
                     kind="image"
                     label={`${step.shot} — screenshot`}

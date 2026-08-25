@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-/** 11px uppercase eyebrow line above headings. */
+/** Tiny uppercase label used in menus and legal nav — never a colored kicker. */
 export function Kicker({
   children,
   className,
@@ -13,7 +13,7 @@ export function Kicker({
   return (
     <p
       className={cn(
-        "text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400",
+        "text-muted-foreground text-[11px] font-medium tracking-wider uppercase",
         className,
       )}
     >
@@ -23,8 +23,8 @@ export function Kicker({
 }
 
 /**
- * Display heading in the site's display face, tight tracking, ink color.
- * `level` controls the tag (exactly one h1 per page); `size` the scale.
+ * Display heading matching the Cortex section title: medium weight,
+ * tight tracking, clamp scale.
  */
 export function DisplayHeading({
   children,
@@ -41,9 +41,11 @@ export function DisplayHeading({
   return (
     <Tag
       className={cn(
-        "font-display font-semibold tracking-tight text-balance text-zinc-900",
-        size === "xl" && "text-5xl leading-[1.02] md:text-6xl lg:text-7xl",
-        size === "lg" && "text-4xl leading-[1.05] md:text-5xl",
+        "text-foreground font-medium tracking-tight text-balance",
+        size === "xl" &&
+          "text-[clamp(44px,7.5vw,84px)] leading-[1.02]",
+        size === "lg" &&
+          "text-[clamp(30px,4.5vw,52px)] leading-[1.05]",
         size === "md" && "text-2xl leading-tight md:text-3xl",
         className,
       )}
@@ -64,7 +66,7 @@ export function Lede({
   return (
     <p
       className={cn(
-        "max-w-xl text-[17px] leading-relaxed text-zinc-600",
+        "text-muted-foreground max-w-xl text-base leading-relaxed",
         className,
       )}
     >

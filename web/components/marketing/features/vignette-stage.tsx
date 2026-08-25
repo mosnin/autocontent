@@ -24,7 +24,7 @@ export function VignetteStage({
   return (
     <div
       className={cn(
-        "flex w-full max-w-md items-center justify-center rounded-2xl p-6 ring-1 ring-inset ring-zinc-900/[0.05] sm:p-8",
+        "flex w-full max-w-md items-center justify-center rounded-2xl p-6 ring-1 ring-inset ring-border sm:p-8",
         VIGNETTE_SCENES[scene],
         className,
       )}

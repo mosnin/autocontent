@@ -19,19 +19,19 @@ export type GuideSection = {
 
 export function GuideP({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mt-4 text-[16px] leading-[1.75] text-zinc-600 first:mt-0 md:text-[17px]">
+    <p className="mt-4 text-[16px] leading-[1.75] text-muted-foreground first:mt-0 md:text-[17px]">
       {children}
     </p>
   );
 }
 
 export function GuideStrong({ children }: { children: React.ReactNode }) {
-  return <strong className="font-semibold text-zinc-900">{children}</strong>;
+  return <strong className="font-medium text-foreground">{children}</strong>;
 }
 
 export function GuideCode({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded-md border border-zinc-900/[0.08] bg-zinc-900/[0.04] px-1.5 py-0.5 font-mono text-[0.85em] text-zinc-800">
+    <code className="rounded-md border border-border bg-muted px-1.5 py-0.5 font-mono text-[0.85em] text-foreground">
       {children}
     </code>
   );
@@ -42,12 +42,12 @@ export function GuideList({ items }: { items: React.ReactNode[] }) {
     <ul className="mt-4 space-y-2.5">
       {items.map((item, i) => (
         <li
-          className="flex gap-3 text-[16px] leading-[1.7] text-zinc-600 md:text-[17px]"
+          className="flex gap-3 text-[16px] leading-[1.7] text-muted-foreground md:text-[17px]"
           key={i}
         >
           <span
             aria-hidden
-            className="mt-[0.65em] size-1.5 shrink-0 rounded-full bg-zinc-900/30"
+            className="mt-[0.65em] size-1.5 shrink-0 rounded-full bg-foreground/30"
           />
           <span>{item}</span>
         </li>
@@ -58,7 +58,7 @@ export function GuideList({ items }: { items: React.ReactNode[] }) {
 
 export function GuideQuote({ children }: { children: React.ReactNode }) {
   return (
-    <blockquote className="mt-6 border-l-2 border-zinc-900/20 pl-5 font-display text-xl font-medium leading-snug tracking-tight text-zinc-800 md:text-2xl">
+    <blockquote className="mt-6 border-l-2 border-border pl-5 font-display text-xl font-medium leading-snug tracking-tight text-foreground md:text-2xl">
       {children}
     </blockquote>
   );
@@ -72,9 +72,9 @@ export function GuideCallout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mt-6 rounded-2xl border border-zinc-900/[0.06] bg-[radial-gradient(110%_110%_at_50%_-10%,#f0f4ff_0%,#fafafa_70%)] p-5">
-      <p className="text-sm font-semibold text-zinc-900">{title}</p>
-      <div className="mt-1.5 text-[15px] leading-relaxed text-zinc-600">
+    <div className="mt-6 rounded-2xl border border-border bg-[radial-gradient(110%_110%_at_50%_-10%,#f0f4ff_0%,#fafafa_70%)] p-5">
+      <p className="text-sm font-medium text-foreground">{title}</p>
+      <div className="mt-1.5 text-[15px] leading-relaxed text-muted-foreground">
         {children}
       </div>
     </div>
@@ -132,27 +132,27 @@ export function GuideLayout({
 
   return (
     <article className="px-4 pt-24 md:px-6 md:pt-28">
-      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border bg-background shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
         <div className="mx-auto max-w-5xl px-6 py-16 md:py-24">
           {/* Header */}
           <header className="max-w-2xl">
             <Reveal>
               <div className="flex flex-wrap items-center gap-3">
                 <Kicker>{kicker}</Kicker>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-zinc-900/10 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-500">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
                   {readingTime}
                 </span>
-                <span className="text-[11px] font-medium text-zinc-400">
+                <span className="text-[11px] font-medium text-muted-foreground">
                   Updated {updated}
                 </span>
               </div>
               <TextReveal
                 as="h1"
-                className="mt-5 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+                className="mt-5 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
               >
                 {title}
               </TextReveal>
-              <p className="mt-5 text-[17px] leading-relaxed text-zinc-600">
+              <p className="mt-5 text-[17px] leading-relaxed text-muted-foreground">
                 {lede}
               </p>
             </Reveal>
@@ -165,18 +165,18 @@ export function GuideLayout({
               className="hidden lg:block"
             >
               <div className="sticky top-28">
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
+                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                   On this page
                 </p>
-                <ul className="mt-4 space-y-1 border-l border-zinc-900/[0.08]">
+                <ul className="mt-4 space-y-1 border-l border-border">
                   {sections.map((s) => (
                     <li key={s.id}>
                       <a
                         className={cn(
                           "-ml-px block border-l py-1 pl-4 text-[13px] leading-snug transition-colors",
                           active === s.id
-                            ? "border-zinc-900 font-medium text-zinc-900"
-                            : "border-transparent text-zinc-500 hover:text-zinc-900",
+                            ? "border-foreground font-medium text-foreground"
+                            : "border-transparent text-muted-foreground hover:text-foreground",
                         )}
                         href={`#${s.id}`}
                       >
@@ -186,7 +186,7 @@ export function GuideLayout({
                   ))}
                 </ul>
                 <Link
-                  className="mt-8 inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 transition-colors hover:text-zinc-900"
+                  className="mt-8 inline-flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
                   href="/resources"
                 >
                   <svg
@@ -215,7 +215,7 @@ export function GuideLayout({
                     className="scroll-mt-28 pt-10 first:pt-0"
                     id={s.id}
                   >
-                    <h2 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 md:text-[1.75rem]">
+                    <h2 className="font-display text-2xl font-medium tracking-tight text-foreground md:text-[1.75rem]">
                       {s.heading}
                     </h2>
                     <div className="mt-4">{s.body}</div>

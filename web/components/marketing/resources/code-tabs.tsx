@@ -20,7 +20,7 @@ function S({ children }: { children: React.ReactNode }) {
 }
 function C({ children }: { children: React.ReactNode }) {
   // comments / output
-  return <span className="text-zinc-500">{children}</span>;
+  return <span className="text-muted-foreground">{children}</span>;
 }
 function F({ children }: { children: React.ReactNode }) {
   // flags / properties
@@ -28,7 +28,7 @@ function F({ children }: { children: React.ReactNode }) {
 }
 function P({ children }: { children: React.ReactNode }) {
   // prompt / punctuation dimmed
-  return <span className="text-zinc-600">{children}</span>;
+  return <span className="text-muted-foreground">{children}</span>;
 }
 
 function CodeBlock({
@@ -39,14 +39,14 @@ function CodeBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-950 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-foreground shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
       <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-4 py-3">
         <span className="size-2.5 rounded-full bg-white/10" />
         <span className="size-2.5 rounded-full bg-white/10" />
         <span className="size-2.5 rounded-full bg-white/10" />
-        <span className="ml-2 font-mono text-[11px] text-zinc-500">{title}</span>
+        <span className="ml-2 font-mono text-[11px] text-muted-foreground">{title}</span>
       </div>
-      <pre className="overflow-x-auto px-5 py-4 font-mono text-[13px] leading-relaxed text-zinc-300">
+      <pre className="overflow-x-auto px-5 py-4 font-mono text-[13px] leading-relaxed text-muted-foreground">
         <code>{children}</code>
       </pre>
     </div>
@@ -223,10 +223,10 @@ export function CodeTabs() {
             aria-controls={`surface-panel-${s.id}`}
             aria-selected={i === active}
             className={cn(
-              "min-h-11 rounded-full border px-5 text-sm font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900",
+              "min-h-11 rounded-full border px-5 text-sm font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
               i === active
-                ? "border-zinc-900 bg-zinc-900 text-white shadow-[0_2px_12px_rgba(15,23,42,0.25)]"
-                : "border-zinc-900/10 bg-white text-zinc-600 hover:border-zinc-900/25 hover:text-zinc-900",
+                ? "border-foreground bg-foreground text-white shadow-[0_2px_12px_rgba(15,23,42,0.25)]"
+                : "border-border bg-background text-muted-foreground hover:border-border hover:text-foreground",
             )}
             id={`surface-tab-${s.id}`}
             key={s.id}
@@ -257,11 +257,11 @@ export function CodeTabs() {
             key={surface.id}
             transition={{ duration: 0.35, ease: EASE }}
           >
-            <p className="max-w-2xl text-[15px] leading-relaxed text-zinc-600">
+            <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
               {surface.blurb}
             </p>
             <div className="mt-5">{surface.code}</div>
-            <p className="mt-4 flex max-w-2xl items-start gap-2.5 text-sm leading-relaxed text-zinc-500">
+            <p className="mt-4 flex max-w-2xl items-start gap-2.5 text-sm leading-relaxed text-muted-foreground">
               <span
                 aria-hidden
                 className="mt-[7px] size-1.5 shrink-0 rounded-full bg-amber-500"

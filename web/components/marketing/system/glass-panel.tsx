@@ -3,8 +3,8 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Frosted glass card: backdrop blur, hairline border, soft floating shadow.
- * The building block for product-UI mockups and overlay cards.
+ * Quiet bordered panel. Light tone sits on the Cortex canvas; dark tone
+ * uses the inverted --surface token so it matches homepage final-cta.
  */
 export function GlassPanel({
   children,
@@ -18,12 +18,19 @@ export function GlassPanel({
   return (
     <div
       className={cn(
-        "rounded-3xl border backdrop-blur-xl",
-        tone === "light"
-          ? "border-white/50 bg-white/70 shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
-          : "border-white/10 bg-zinc-900/70 shadow-[0_8px_40px_rgba(0,0,0,0.35)]",
+        "rounded-3xl border",
+        tone === "light" && "border-border bg-background",
         className,
       )}
+      style={
+        tone === "dark"
+          ? {
+              backgroundColor: "var(--surface)",
+              color: "var(--surface-foreground)",
+              borderColor: "transparent",
+            }
+          : undefined
+      }
     >
       {children}
     </div>

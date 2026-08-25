@@ -48,17 +48,17 @@ export function Roi() {
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <TextReveal className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
+            <TextReveal className="font-display text-4xl font-medium tracking-tight text-foreground md:text-5xl">
               It&apos;s like adding a full content team.
             </TextReveal>
-            <p className="mt-5 text-lg leading-relaxed text-zinc-600">
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               Writers, editors, a media buyer, and an analyst, running as one
               pipeline you steer with briefs and caps.
             </p>
           </div>
           <Magnetic className="shrink-0">
             <Link
-              className="inline-flex min-h-12 items-center rounded-xl bg-zinc-900 px-7 text-[15px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+              className="inline-flex min-h-12 items-center rounded-xl bg-foreground px-7 text-[15px] font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               href="/sign-up"
             >
               Get started
@@ -68,23 +68,23 @@ export function Roi() {
 
         <Stagger className="mt-16 grid gap-x-8 gap-y-12 sm:grid-cols-2 lg:grid-cols-4">
           {STATS.map((s) => (
-            <div className="border-t-2 border-zinc-900 pt-6" key={s.title}>
-              <p className="font-display text-5xl font-semibold tracking-tight text-zinc-950">
+            <div className="border-t-2 border-foreground pt-6" key={s.title}>
+              <p className="font-display text-5xl font-medium tracking-tight text-foreground">
                 {s.prefix ?? ""}
                 <CountUp duration={1.4} separator="," to={s.value} />
                 {s.suffix ?? ""}
               </p>
-              <p className="mt-2 text-[15px] font-semibold text-zinc-900">
+              <p className="mt-2 text-[15px] font-medium text-foreground">
                 {s.title}
               </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-zinc-500">
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
                 {s.desc}
               </p>
             </div>
           ))}
         </Stagger>
 
-        <p className="mt-10 text-xs text-zinc-400">
+        <p className="mt-10 text-xs text-muted-foreground">
           Figures describe how the platform is built and priced, not audited
           customer results. Your output depends on your briefs and caps.
         </p>

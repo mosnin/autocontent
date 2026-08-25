@@ -18,7 +18,7 @@ import { VignetteStage } from "./vignette-stage";
 
 /** Matches DisplayHeading's default (level 2, size lg) styling. */
 const H2_CLASS =
-  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-4xl leading-[1.05] md:text-5xl";
+  "font-display font-medium tracking-tight text-balance text-foreground text-4xl leading-[1.05] md:text-5xl";
 
 /* ------------------------------------------------------------------ */
 /* Surface cards: API / SDK / CLI / MCP                                */
@@ -121,7 +121,7 @@ export function WindowsBand() {
   return (
     <section aria-label="Scheduled windows" className="px-4 pt-6 md:px-6">
       <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         variant="pearl"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
@@ -138,7 +138,7 @@ export function WindowsBand() {
             <div className="mt-7 flex flex-wrap gap-2">
               {["Mon-Fri 9:00", "Daily 12:30", "Weekends 18:00"].map((w) => (
                 <span
-                  className="rounded-full border border-zinc-900/10 bg-white/80 px-3.5 py-1.5 font-mono text-xs font-medium text-zinc-600"
+                  className="rounded-full border border-border bg-background/80 px-3.5 py-1.5 font-mono text-xs font-medium text-muted-foreground"
                   key={w}
                 >
                   {w}
@@ -180,7 +180,7 @@ export function WindowsBand() {
 export function ReliabilityBand() {
   return (
     <section aria-label="Reliability" className="px-4 pt-6 md:px-6">
-      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border bg-background shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal className="flex justify-center lg:order-1">
             <div className="aspect-[4/3] w-full max-w-sm overflow-hidden rounded-2xl">

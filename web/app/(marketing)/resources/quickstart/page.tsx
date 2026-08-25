@@ -29,7 +29,7 @@ export default function QuickstartPage() {
       />
 
       <section aria-label="Quickstart preview" className="mx-auto max-w-4xl px-6 pt-16 md:pt-20">
-        <div className="aspect-video overflow-hidden rounded-[2rem] border border-zinc-900/[0.06] shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+        <div className="aspect-video overflow-hidden rounded-[2rem] border border-border shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
           <TaggedPlaceholder
             className="h-full w-full"
             kind="video"

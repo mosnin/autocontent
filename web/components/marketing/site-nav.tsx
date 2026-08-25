@@ -36,7 +36,7 @@ export function SiteNav() {
             <path d="M21 12a9 9 0 1 1-2.64-6.36" />
             <path d="M21 3v6h-6" />
           </svg>
-          <span className="text-sm font-semibold tracking-tight">
+          <span className="text-sm font-medium tracking-tight">
             marketer.sh
           </span>
         </Link>

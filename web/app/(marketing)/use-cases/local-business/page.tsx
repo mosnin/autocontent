@@ -80,7 +80,7 @@ export default function LocalBusinessPage() {
         lede="Harbor Coffee's week: two shorts, one article for people searching nearby, all approved in a single Sunday review."
         scene="daylight"
       >
-        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-zinc-900/[0.06] shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-border shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
           <TaggedPlaceholder
             kind="image"
             label="Local business workflow — screenshot"

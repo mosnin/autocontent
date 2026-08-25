@@ -35,13 +35,13 @@ export function Loved() {
     <section aria-label="Testimonials" className="bg-[#f5f6f8] py-24 md:py-32">
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <TextReveal className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
+          <TextReveal className="font-display text-4xl font-medium tracking-tight text-foreground md:text-5xl">
             Loved by teams that ship daily.
           </TextReveal>
           <div className="mt-6 flex items-center gap-2">
             {[1, 2, 3].map((n) => (
               <span
-                className="flex h-10 w-20 items-center justify-center rounded-lg border border-dashed border-zinc-900/10 bg-white font-mono text-[10px] text-zinc-300"
+                className="flex h-10 w-20 items-center justify-center rounded-lg border border-dashed border-border bg-white font-mono text-[10px] text-muted-foreground"
                 key={n}
               >
                 award-{n}
@@ -62,7 +62,7 @@ export function Loved() {
           <Marquee ariaLabel="Customer testimonials" pauseOnHover seconds={40}>
             {CARDS.map((c) => (
               <figure
-                className="mx-2.5 flex w-72 shrink-0 flex-col overflow-hidden rounded-3xl border border-zinc-900/[0.06] bg-white shadow-[0_8px_32px_rgba(15,23,42,0.06)]"
+                className="mx-2.5 flex w-72 shrink-0 flex-col overflow-hidden rounded-3xl border border-border bg-white shadow-[0_8px_32px_rgba(15,23,42,0.06)]"
                 key={c.slotId}
               >
                 <div className="group aspect-[4/5]">
@@ -73,10 +73,10 @@ export function Loved() {
                   />
                 </div>
                 <div className="flex flex-1 flex-col p-5">
-                  <blockquote className="text-[14.5px] leading-relaxed text-zinc-800">
+                  <blockquote className="text-[14.5px] leading-relaxed text-foreground">
                     &ldquo;{c.quote}&rdquo;
                   </blockquote>
-                  <figcaption className="mt-3 text-[12.5px] font-medium text-zinc-500">
+                  <figcaption className="mt-3 text-[12.5px] font-medium text-muted-foreground">
                     {c.who}
                   </figcaption>
                 </div>

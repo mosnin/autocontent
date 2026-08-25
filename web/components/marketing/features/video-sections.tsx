@@ -24,7 +24,7 @@ export function QueueMoment() {
   return (
     <section aria-label="The publish queue" className="px-4 pt-6 md:px-6">
       <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         variant="pearl"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
@@ -32,7 +32,7 @@ export function QueueMoment() {
             <Kicker>The queue</Kicker>
             <TextReveal
               as="h2"
-              className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+              className="mt-4 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
             >
               Renders, schedules, publishes. On its own.
             </TextReveal>
@@ -74,7 +74,7 @@ export function QueueMoment() {
 export function CharacterBand() {
   return (
     <section aria-label="Character consistency" className="px-4 pt-6 md:px-6">
-      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border bg-background shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal className="flex justify-center lg:order-1">
             <div className="aspect-[4/3] w-full max-w-sm overflow-hidden rounded-2xl">
@@ -89,7 +89,7 @@ export function CharacterBand() {
             <Kicker>On-model, every frame</Kicker>
             <TextReveal
               as="h2"
-              className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+              className="mt-4 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
             >
               The same face in video one and video forty.
             </TextReveal>
@@ -117,7 +117,7 @@ export function ApprovalGateBand() {
   return (
     <section aria-label="Approval gate" className="px-4 pt-6 md:px-6">
       <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         variant="sky"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
@@ -125,7 +125,7 @@ export function ApprovalGateBand() {
             <Kicker>The approval gate</Kicker>
             <TextReveal
               as="h2"
-              className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+              className="mt-4 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
             >
               Nothing posts without your rules.
             </TextReveal>
@@ -204,7 +204,7 @@ export function PlatformRow() {
         <Kicker>Distribution</Kicker>
         <TextReveal
           as="h2"
-          className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+          className="mt-4 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
         >
           Posted where short-form lives.
         </TextReveal>

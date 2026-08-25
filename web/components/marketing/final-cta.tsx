@@ -20,7 +20,7 @@ export function FinalCta() {
       />
       <div className="mx-auto flex w-full max-w-4xl flex-col items-center px-6 text-center">
         <TextBurnNeon
-          className="text-5xl font-semibold tracking-tight sm:text-7xl"
+          className="text-5xl font-medium tracking-tight sm:text-7xl"
           repeat={false}
         >
           Ship tonight.

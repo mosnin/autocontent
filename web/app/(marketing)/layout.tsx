@@ -1,17 +1,17 @@
 import * as React from "react";
 
-import { MarketingFooter, MarketingNav } from "@/components/marketing/system";
+import { Footer } from "@/components/marketing/site-footer";
+import { Nav } from "@/components/marketing/nav/nav";
+import { MarketingProviders } from "@/components/marketing/providers";
+import { SkipToContent } from "@/components/marketing/skip-to-content";
+import { ThemeSwitch } from "@/components/marketing/theme-switch";
 
-// The root layout wraps everything in <ClerkProvider>, which can't be
-// statically prerendered without a real Clerk key — opt the whole marketing
-// group out so CI builds ship with a placeholder key (same reason the old
-// app/page.tsx was force-dynamic).
 export const dynamic = "force-dynamic";
 
 /**
- * Shell for every logged-out marketing page: announcement banner + sticky
- * mega-menu nav on top, sitemap footer below, white canvas behind
- * everything (spec: web/marketing/DESIGN_SPEC.md).
+ * Shell for every logged-out marketing page. Cortex template: expanding
+ * pill nav, inverted-surface theme switch, Lenis smooth scroll, and the
+ * oversized wordmark footer.
  */
 export default function MarketingLayout({
   children,
@@ -19,10 +19,16 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-white text-zinc-900">
-      <MarketingNav />
-      {children}
-      <MarketingFooter />
+    <div className="marketing-site flex min-h-screen flex-col">
+      <MarketingProviders>
+        <SkipToContent />
+        <Nav />
+        <div className="flex-1" id="main-content">
+          {children}
+        </div>
+        <Footer />
+        <ThemeSwitch />
+      </MarketingProviders>
     </div>
   );
 }

@@ -22,10 +22,10 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
         return (
           <div
             className={cn(
-              "overflow-hidden rounded-2xl border bg-white transition-colors duration-300",
+              "overflow-hidden rounded-2xl border bg-background transition-colors duration-300",
               isOpen
-                ? "border-zinc-900/15 shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
-                : "border-zinc-900/[0.06] shadow-[0_2px_16px_rgba(15,23,42,0.04)]",
+                ? "border-border shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
+                : "border-border shadow-[0_2px_16px_rgba(15,23,42,0.04)]",
             )}
             key={item.q}
           >
@@ -33,18 +33,18 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
               <button
                 aria-controls={`faq-panel-${i}`}
                 aria-expanded={isOpen}
-                className="flex min-h-11 w-full items-center justify-between gap-6 px-6 py-5 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-zinc-900"
+                className="flex min-h-11 w-full items-center justify-between gap-6 px-6 py-5 text-left focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                 id={`faq-button-${i}`}
                 onClick={() => setOpen(isOpen ? null : i)}
                 type="button"
               >
-                <span className="font-display text-[17px] font-semibold tracking-tight text-zinc-900">
+                <span className="font-display text-[17px] font-medium tracking-tight text-foreground">
                   {item.q}
                 </span>
                 <span
                   aria-hidden
                   className={cn(
-                    "flex size-7 shrink-0 items-center justify-center rounded-full border border-zinc-900/10 text-zinc-500 transition-transform duration-300",
+                    "flex size-7 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-transform duration-300",
                     isOpen && "rotate-45",
                   )}
                 >
@@ -76,7 +76,7 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
                       : { duration: 0.4, ease: EASE }
                   }
                 >
-                  <p className="px-6 pb-6 text-[15px] leading-relaxed text-zinc-600">
+                  <p className="px-6 pb-6 text-[15px] leading-relaxed text-muted-foreground">
                     {item.a}
                   </p>
                 </motion.div>

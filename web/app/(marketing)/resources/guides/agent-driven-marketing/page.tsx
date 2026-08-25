@@ -63,7 +63,7 @@ function SampleConversation() {
   ];
   return (
     <GlassPanel className="mt-6 p-5 md:p-6">
-      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
+      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         A morning, transcribed
       </p>
       <div className="mt-4 space-y-3">
@@ -71,8 +71,8 @@ function SampleConversation() {
           <div
             className={
               turn.from === "you"
-                ? "ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-zinc-900 px-4 py-2.5 text-[13px] leading-relaxed text-white"
-                : "max-w-[85%] rounded-2xl rounded-bl-md border border-zinc-900/[0.06] bg-white px-4 py-2.5 text-[13px] leading-relaxed text-zinc-700"
+                ? "ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-foreground px-4 py-2.5 text-[13px] leading-relaxed text-background"
+                : "max-w-[85%] rounded-2xl rounded-bl-md border border-border bg-background px-4 py-2.5 text-[13px] leading-relaxed text-foreground"
             }
             key={i}
           >

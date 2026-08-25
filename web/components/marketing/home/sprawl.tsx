@@ -29,12 +29,12 @@ export function Sprawl() {
         <div className="mx-auto max-w-3xl text-center">
           <TextReveal
             as="h2"
-            className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl"
+            className="font-display text-4xl font-medium tracking-tight text-foreground md:text-5xl"
           >
             You write the brief. It runs the campaign.
           </TextReveal>
           <Reveal>
-            <p className="mt-5 text-lg leading-relaxed text-zinc-600">
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               One pipeline carries a brief from idea to published campaign.
               No handoffs, no export-and-reupload, no invoice surprises.
             </p>
@@ -54,8 +54,8 @@ export function Sprawl() {
         <Stagger className="mx-auto mt-16 grid max-w-5xl gap-10 md:grid-cols-3">
           {STEPS.map((p) => (
             <div className="text-center md:text-left" key={p.title}>
-              <h3 className="text-lg font-semibold text-zinc-900">{p.title}</h3>
-              <p className="mt-2.5 text-[15px] leading-relaxed text-zinc-600">
+              <h3 className="text-lg font-medium text-foreground">{p.title}</h3>
+              <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">
                 {p.desc}
               </p>
             </div>

@@ -139,7 +139,7 @@ function BandPanel({ band }: { band: Band }) {
         <Kicker>{band.kicker}</Kicker>
         <TextReveal
           as="h2"
-          className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+          className="mt-4 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
         >
           {band.title}
         </TextReveal>
@@ -157,7 +157,7 @@ function BandPanel({ band }: { band: Band }) {
 
   if (band.scene === "white") {
     return (
-      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border bg-background shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
         {inner}
       </div>
     );
@@ -165,7 +165,7 @@ function BandPanel({ band }: { band: Band }) {
 
   return (
     <GradientScene
-      className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+      className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
       variant={band.scene}
     >
       {inner}

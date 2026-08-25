@@ -34,7 +34,7 @@ export function FeatureCard({
       className={className}
       description={description}
       footer={
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-900">
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
           {linkLabel}
           <svg
             aria-hidden

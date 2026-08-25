@@ -26,13 +26,13 @@ export function LogoRow({
 }) {
   return (
     <div className={cn("space-y-3", className)}>
-      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
+      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </p>
       <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
         {names.map((name) => (
           <li
-            className="whitespace-nowrap font-display text-sm font-semibold tracking-tight text-zinc-400/90"
+            className="whitespace-nowrap font-display text-sm font-medium tracking-tight text-muted-foreground/90"
             key={name}
           >
             {name}

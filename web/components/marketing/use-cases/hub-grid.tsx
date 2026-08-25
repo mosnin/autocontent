@@ -30,7 +30,7 @@ function CardPlaceholder({
 /** Quiet "See how" arrow row pinned to the card bottom. */
 function SeeHow() {
   return (
-    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-900">
+    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
       See how
       <svg
         aria-hidden

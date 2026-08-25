@@ -66,7 +66,7 @@ export function AutopilotPanel() {
         lengthVh={140}
       >
         <motion.div
-          className="mx-auto max-w-[88rem] overflow-hidden rounded-[2.5rem] bg-zinc-950 px-6 py-20 md:px-14 md:py-28"
+          className="mx-auto max-w-[88rem] overflow-hidden rounded-[2.5rem] bg-foreground px-6 py-20 md:px-14 md:py-28"
           initial={reduced ? { opacity: 1 } : { opacity: 0, y: 32 }}
           transition={{ duration: 0.8, ease: EASE }}
           viewport={VIEWPORT}
@@ -74,19 +74,19 @@ export function AutopilotPanel() {
         >
           <div className="mx-auto max-w-6xl">
             <div className="mx-auto max-w-3xl text-center">
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 marketer.sh autopilot
               </p>
               <TextReveal
                 as="h2"
-                className="mt-5 font-display text-4xl font-semibold tracking-tight text-white md:text-5xl"
+                className="mt-5 font-display text-4xl font-medium tracking-tight text-white md:text-5xl"
               >
                 The only marketing that works while you sleep.
               </TextReveal>
               <div className="mt-8">
                 <Magnetic>
                   <Link
-                    className="inline-flex min-h-12 items-center rounded-xl bg-white px-7 text-[15px] font-semibold text-zinc-950 transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                    className="inline-flex min-h-12 items-center rounded-xl bg-white px-7 text-[15px] font-medium text-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                     href="/sign-up"
                   >
                     Start tonight&apos;s shift
@@ -102,13 +102,13 @@ export function AutopilotPanel() {
                   data-autopilot-card
                   key={card.title}
                 >
-                  <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-zinc-500">
+                  <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                     {card.kicker}
                   </p>
-                  <h3 className="mt-2.5 text-lg font-semibold text-white">
+                  <h3 className="mt-2.5 text-lg font-medium text-white">
                     {card.title}
                   </h3>
-                  <p className="mt-2 text-[14px] leading-relaxed text-zinc-400">
+                  <p className="mt-2 text-[14px] leading-relaxed text-muted-foreground">
                     {card.desc}
                   </p>
                   <div className="mt-5 aspect-[16/11] overflow-hidden rounded-xl border border-white/10">
@@ -129,12 +129,12 @@ export function AutopilotPanel() {
             >
               {STATS.map((s) => (
                 <div className="text-center" key={s.label}>
-                  <p className="font-display text-4xl font-semibold tracking-tight text-white">
+                  <p className="font-display text-4xl font-medium tracking-tight text-white">
                     {s.prefix ?? ""}
                     <CountUp duration={1.4} to={s.value} />
                     {s.suffix ?? ""}
                   </p>
-                  <p className="mt-1.5 text-sm text-zinc-500">{s.label}</p>
+                  <p className="mt-1.5 text-sm text-muted-foreground">{s.label}</p>
                 </div>
               ))}
             </div>

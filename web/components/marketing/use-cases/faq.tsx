@@ -28,15 +28,15 @@ export function FaqBand({ items }: { items: FaqItem[] }) {
         </DisplayHeading>
       </Reveal>
       <Stagger
-        className="mt-10 divide-y divide-zinc-900/[0.06] rounded-[2rem] border border-zinc-900/[0.06] bg-white px-8 shadow-[0_8px_40px_rgba(15,23,42,0.06)]"
+        className="mt-10 divide-y divide-border rounded-[2rem] border border-border bg-background px-8 shadow-[0_8px_40px_rgba(15,23,42,0.06)]"
         gap={0.08}
       >
         {items.map((item) => (
           <div className="py-7" key={item.q}>
-            <h3 className="font-display text-lg font-semibold tracking-tight text-zinc-900">
+            <h3 className="font-display text-lg font-medium tracking-tight text-foreground">
               {item.q}
             </h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
               {item.a}
             </p>
           </div>

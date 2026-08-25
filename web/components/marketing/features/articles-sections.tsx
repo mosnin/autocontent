@@ -19,7 +19,7 @@ import { VignetteStage } from "./vignette-stage";
 
 /** Matches DisplayHeading's default (level 2, size lg) styling. */
 const H2_CLASS =
-  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-4xl leading-[1.05] md:text-5xl";
+  "font-display font-medium tracking-tight text-balance text-foreground text-4xl leading-[1.05] md:text-5xl";
 
 /* ------------------------------------------------------------------ */
 /* SERP research                                                       */
@@ -28,7 +28,7 @@ const H2_CLASS =
 export function SerpBand() {
   return (
     <section aria-label="SERP research" className="px-4 pt-6 md:px-6">
-      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border bg-background shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>Research first</Kicker>
@@ -74,7 +74,7 @@ export function OutlineBand() {
   return (
     <section aria-label="Outline and writing" className="px-4 pt-6 md:px-6">
       <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         variant="pearl"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
@@ -124,7 +124,7 @@ export function MetadataBand() {
   return (
     <section aria-label="SEO metadata" className="px-4 pt-6 md:px-6">
       <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         variant="sky"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
@@ -218,26 +218,26 @@ export function QaBand() {
         {QA_SCORES.map((q) => (
           <GlassPanel className="p-6" key={q.label}>
             <div className="flex items-baseline justify-between">
-              <p className="text-sm font-medium text-zinc-600">{q.label}</p>
-              <p className="font-display text-3xl font-semibold tabular-nums tracking-tight text-zinc-900">
+              <p className="text-sm font-medium text-muted-foreground">{q.label}</p>
+              <p className="font-display text-3xl font-medium tabular-nums tracking-tight text-foreground">
                 {q.score}
-                <span className="text-base font-medium text-zinc-400">
+                <span className="text-base font-medium text-muted-foreground">
                   /100
                 </span>
               </p>
             </div>
-            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-zinc-900/[0.06]">
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]">
               <div
                 className={cn("h-full rounded-full", warmBg)}
                 style={{ width: `${q.score}%` }}
               />
             </div>
-            <p className="mt-3 text-[13px] text-zinc-500">{q.note}</p>
+            <p className="mt-3 text-[13px] text-muted-foreground">{q.note}</p>
           </GlassPanel>
         ))}
       </Stagger>
       <Reveal delay={0.15}>
-        <p className="mt-8 text-sm text-zinc-500">
+        <p className="mt-8 text-sm text-muted-foreground">
           One corrective rewrite, maximum. If a piece can&apos;t clear the bar
           in two passes, it doesn&apos;t go out under your name.
         </p>

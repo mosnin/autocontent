@@ -70,7 +70,7 @@ export default function ApiPage() {
           <CodeTabs />
         </Reveal>
         <Reveal className="mt-10" delay={0.15}>
-          <div className="aspect-[21/9] overflow-hidden rounded-[2rem] border border-zinc-900/[0.06]">
+          <div className="aspect-[21/9] overflow-hidden rounded-[2rem] border border-border">
             <TaggedPlaceholder
               className="h-full w-full"
               kind="illustration"
@@ -84,7 +84,7 @@ export default function ApiPage() {
       {/* PAT auth */}
       <section aria-label="Authentication" className="px-4 py-6 md:px-6">
         <GradientScene
-          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
           variant="pearl"
         >
           <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
@@ -106,21 +106,21 @@ export default function ApiPage() {
             >
               {PAT_POINTS.map((point) => (
                 <div
-                  className="h-full rounded-[1.5rem] border border-white/60 bg-white/70 p-7 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+                  className="h-full rounded-[1.5rem] border border-border bg-background p-7 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
                   key={point.title}
                 >
-                  <h3 className="font-display text-lg font-semibold tracking-tight text-zinc-900">
+                  <h3 className="font-display text-lg font-medium tracking-tight text-foreground">
                     {point.title}
                   </h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
+                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
                     {point.copy}
                   </p>
                 </div>
               ))}
             </Stagger>
             <Reveal className="mt-8" delay={0.15}>
-              <p className="flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-                <code className="rounded-md border border-zinc-900/[0.08] bg-white px-2 py-1 font-mono text-[12px] text-zinc-700">
+              <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <code className="rounded-md border border-border bg-background px-2 py-1 font-mono text-[12px] text-foreground">
                   Authorization: Bearer mkt_…
                 </code>
                 works identically on the API, SDK, CLI, and MCP server.

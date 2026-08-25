@@ -1,96 +1,105 @@
-"use client";
-
 import Link from "next/link";
+import type { ReactNode } from "react";
 
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Logo } from "@/components/marketing/nav/logo";
 
-const COLUMNS: { heading: string; links: { label: string; href: string; external?: boolean }[] }[] = [
+type FooterLink = {
+  label: string;
+  href: string;
+};
+
+const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
-    heading: "Product",
+    title: "Product",
     links: [
-      { label: "Pricing", href: "/#pricing" },
-      { label: "Dashboard", href: "/dashboard" },
-      { label: "Queue", href: "/queue" },
-      { label: "Connect socials", href: "/connect" },
-      { label: "Settings", href: "/settings" },
+      { label: "Overview", href: "/#overview" },
+      { label: "How it works", href: "/#how-it-works" },
+      { label: "Features", href: "/features" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "FAQ", href: "/resources/faq" },
     ],
   },
   {
-    heading: "Builders",
+    title: "Company",
     links: [
-      { label: "Source", href: "https://github.com/mosnin/autocontent", external: true },
-      { label: "API tokens", href: "/settings/tokens" },
-      { label: "MCP server", href: "https://github.com/mosnin/autocontent#mcp", external: true },
+      { label: "About", href: "/company" },
+      { label: "Use cases", href: "/use-cases" },
+      { label: "Resources", href: "/resources" },
     ],
   },
   {
-    heading: "Legal",
+    title: "Legal",
     links: [
-      { label: "Terms", href: "/legal/terms" },
-      { label: "Privacy", href: "/legal/privacy" },
-      { label: "Acceptable use", href: "/legal/acceptable-use" },
-      { label: "Cookies", href: "/legal/cookies" },
+      { label: "Privacy Policy", href: "/legal/privacy" },
+      { label: "Terms of Service", href: "/legal/terms" },
+      { label: "Cookie Policy", href: "/legal/cookies" },
+    ],
+  },
+  {
+    title: "Social",
+    links: [
+      { label: "X", href: "https://x.com" },
+      { label: "LinkedIn", href: "https://www.linkedin.com" },
     ],
   },
 ];
 
-/**
- * Scroll-reveal footer: the page content rides above it (z-10, shadowed),
- * while the footer sits sticky at the bottom and is uncovered as you reach
- * the end — the pixel-perfect footer-reveal pattern, themed for us.
- */
-export function SiteFooter() {
+export function Footer(): ReactNode {
   return (
-    <footer className="sticky bottom-0 z-0 border-t border-border/60 bg-card/30">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-12 px-6 pb-8 pt-14">
-        <div className="flex flex-col justify-between gap-10 sm:flex-row">
+    <footer className="border-border border-t">
+      <div className="mx-auto max-w-[1440px] px-5 pt-16 sm:px-8 sm:pt-20 lg:px-10">
+        <div className="flex flex-col gap-14 lg:flex-row lg:justify-between">
           <div className="max-w-xs">
-            <p className="text-sm font-semibold">marketer.sh</p>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Autonomous short-form video pipelines with a spend cap and a
-              feedback loop.
+            <Logo />
+            <p className="text-muted-foreground mt-6 text-sm leading-relaxed">
+              Autonomous marketing for video, articles, and ads. One brief in,
+              every format out, every dollar capped.
             </p>
-            <div className="mt-6">
-              <ThemeSwitcher />
-            </div>
+            <Link
+              href="/sign-up"
+              className="focus-ring bg-foreground text-background mt-8 inline-flex h-11 items-center rounded-full px-6 text-sm font-medium transition-opacity hover:opacity-85"
+            >
+              Start creating
+            </Link>
           </div>
-          <nav className="flex gap-16">
-            {COLUMNS.map((col) => (
-              <div key={col.heading}>
-                <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                  {col.heading}
-                </p>
-                <ul className="mt-4 space-y-2.5">
-                  {col.links.map((l) => (
-                    <li key={l.label}>
-                      {l.external ? (
-                        <a
-                          className="text-sm text-foreground/80 transition-colors hover:text-foreground"
-                          href={l.href}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          {l.label}
-                        </a>
-                      ) : (
-                        <Link
-                          className="text-sm text-foreground/80 transition-colors hover:text-foreground"
-                          href={l.href}
-                        >
-                          {l.label}
-                        </Link>
-                      )}
+
+          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4 lg:gap-x-16">
+            {COLUMNS.map((column) => (
+              <div key={column.title}>
+                <h3 className="text-foreground text-sm font-medium tracking-tight">
+                  {column.title}
+                </h3>
+                <ul className="mt-4 flex flex-col gap-3">
+                  {column.links.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        className="focus-ring text-muted-foreground hover:text-foreground text-sm transition-colors"
+                      >
+                        {link.label}
+                      </Link>
                     </li>
                   ))}
                 </ul>
               </div>
             ))}
-          </nav>
+          </div>
         </div>
 
-        {/* Oversized wordmark, clipped at the baseline — the reveal payoff. */}
-        <div aria-hidden className="select-none overflow-hidden">
-          <p className="translate-y-[0.28em] bg-gradient-to-b from-foreground/15 to-transparent bg-clip-text text-center text-[18vw] font-bold leading-none tracking-tighter text-transparent sm:text-[13rem]">
+        <div className="mt-16 flex flex-col-reverse items-start justify-between gap-4 pt-6 sm:flex-row sm:items-center">
+          <p className="text-muted-foreground text-xs">
+            © {new Date().getFullYear()} marketer.sh. All rights reserved.
+          </p>
+          <p className="text-muted-foreground text-xs">
+            Prepaid credits. No subscription.
+          </p>
+        </div>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none overflow-hidden select-none"
+        >
+          <p className="text-muted translate-y-[22%] text-center text-[clamp(72px,18vw,260px)] leading-[0.85] font-medium tracking-tighter">
             marketer.sh
           </p>
         </div>

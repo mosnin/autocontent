@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 
-import { AutopilotPanel } from "@/components/marketing/home/autopilot-panel";
-import { ClosingCta } from "@/components/marketing/home/closing-cta";
-import { Converged } from "@/components/marketing/home/converged";
-import { Enterprise } from "@/components/marketing/home/enterprise";
+import { AppShowcase } from "@/components/marketing/home/app-showcase";
+import { Faq } from "@/components/marketing/home/faq";
+import { Features } from "@/components/marketing/home/features";
+import { FinalCta } from "@/components/marketing/home/final-cta";
+import { Gallery } from "@/components/marketing/home/gallery";
 import { Hero } from "@/components/marketing/home/hero";
-import { LogoBand } from "@/components/marketing/home/logo-band";
-import { Loved } from "@/components/marketing/home/loved";
-import { Roi } from "@/components/marketing/home/roi";
-import { Sprawl } from "@/components/marketing/home/sprawl";
-import { SuperAgents } from "@/components/marketing/home/super-agents";
-import { Teams } from "@/components/marketing/home/teams";
+import { Integrations } from "@/components/marketing/home/integrations";
+import { Manifesto } from "@/components/marketing/home/manifesto";
+import { Pricing } from "@/components/marketing/home/pricing";
+import { Testimonials } from "@/components/marketing/home/testimonials";
+import { VideoShowcase } from "@/components/marketing/home/video-showcase";
 
 const DESCRIPTION =
   "The autonomous marketing platform. One brief in, video and SEO articles ideated, produced, published, and improved, with hard caps on every dollar spent.";
@@ -44,22 +44,25 @@ const JSON_LD = {
 
 export default function HomePage() {
   return (
-    <main>
+    <>
+      <span id="top" className="sr-only" />
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         type="application/ld+json"
       />
-      <Hero />
-      <LogoBand />
-      <Sprawl />
-      <Converged />
-      <SuperAgents />
-      <AutopilotPanel />
-      <Teams />
-      <Roi />
-      <Loved />
-      <Enterprise />
-      <ClosingCta />
-    </main>
+      <main className="flex-1 overflow-x-clip">
+        <Hero />
+        <VideoShowcase />
+        <Manifesto />
+        <Features />
+        <AppShowcase />
+        <Gallery />
+        <Integrations />
+        <Testimonials />
+        <Pricing />
+        <Faq />
+        <FinalCta />
+      </main>
+    </>
   );
 }

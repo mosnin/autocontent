@@ -85,7 +85,7 @@ function Header() {
       <Kicker>The production line</Kicker>
       <TextReveal
         as="h2"
-        className="mt-4 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-balance text-zinc-900 md:text-5xl"
+        className="mt-4 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
       >
         Ten stages. Zero hand-offs.
       </TextReveal>
@@ -102,7 +102,7 @@ function StageNumber({ index, on }: { index: number; on?: boolean }) {
     <span
       className={cn(
         "font-mono text-xs tabular-nums transition-colors duration-500",
-        on === undefined ? "text-zinc-400" : on ? "text-zinc-900" : "text-zinc-300",
+        on === undefined ? "text-muted-foreground" : on ? "text-foreground" : "text-muted-foreground",
       )}
     >
       {String(index + 1).padStart(2, "0")}
@@ -112,7 +112,7 @@ function StageNumber({ index, on }: { index: number; on?: boolean }) {
 
 function StageTag({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded-full bg-zinc-900/[0.05] px-2 py-0.5 font-mono text-[10px] text-zinc-500">
+    <span className="rounded-full bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">
       {children}
     </span>
   );
@@ -128,7 +128,7 @@ function Rail({ active }: { active: number }) {
             className={cn(
               "rounded-xl border px-4 py-2 transition-all duration-500",
               on
-                ? "border-zinc-900/[0.08] bg-white shadow-[0_8px_30px_rgba(15,23,42,0.07)]"
+                ? "border-border bg-background shadow-[0_8px_30px_rgba(15,23,42,0.07)]"
                 : "border-transparent",
             )}
             key={s.label}
@@ -138,8 +138,8 @@ function Rail({ active }: { active: number }) {
               <div className="min-w-0">
                 <p
                   className={cn(
-                    "font-display text-[15px] font-semibold tracking-tight transition-colors duration-500",
-                    on ? "text-zinc-900" : "text-zinc-400",
+                    "font-display text-[15px] font-medium tracking-tight transition-colors duration-500",
+                    on ? "text-foreground" : "text-muted-foreground",
                   )}
                 >
                   {s.label}
@@ -148,7 +148,7 @@ function Rail({ active }: { active: number }) {
                   className={cn(
                     "text-[13px] leading-snug transition-all duration-500",
                     on
-                      ? "mt-0.5 max-h-12 text-zinc-500 opacity-100"
+                      ? "mt-0.5 max-h-12 text-muted-foreground opacity-100"
                       : "max-h-0 overflow-hidden opacity-0",
                   )}
                 >
@@ -169,7 +169,7 @@ function Scene({ stage }: { stage: number }) {
       <Header />
       <div className="mt-8 grid items-center gap-10 lg:grid-cols-[minmax(0,22rem)_1fr]">
         <Rail active={stage} />
-        <div className="aspect-[4/3] overflow-hidden rounded-[2rem] border border-zinc-900/[0.05] shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+        <div className="aspect-[4/3] overflow-hidden rounded-[2rem] border border-border shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
           <TaggedPlaceholder
             kind="illustration"
             label="Scene-by-scene pipeline"
@@ -194,12 +194,12 @@ function StaticWalkthrough() {
             <StageNumber index={i} />
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <p className="font-display text-lg font-semibold tracking-tight text-zinc-900">
+                <p className="font-display text-lg font-medium tracking-tight text-foreground">
                   {s.label}
                 </p>
                 {s.tag ? <StageTag>{s.tag}</StageTag> : null}
               </div>
-              <p className="mt-1 text-sm leading-snug text-zinc-500">{s.copy}</p>
+              <p className="mt-1 text-sm leading-snug text-muted-foreground">{s.copy}</p>
             </div>
           </div>
         ))}

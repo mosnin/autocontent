@@ -6,17 +6,9 @@ import { motion, useReducedMotion } from "motion/react";
 import {
   CtaPill,
   DisplayHeading,
-  EASE,
-  GradientScene,
-  Kicker,
   Lede,
-  Magnetic,
-  TextReveal,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
-
-const H1_CLASS =
-  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-5xl leading-[1.02] md:text-6xl lg:text-7xl";
 
 function Rise({
   children,
@@ -28,15 +20,12 @@ function Rise({
   className?: string;
 }) {
   const reduced = useReducedMotion();
-  // Always mount the motion element: the plain-div branch leaves motion's
-  // SSR'd opacity:0 inline style on the hydrated DOM (React skips the stale
-  // attribute), blanking content for prefers-reduced-motion users.
   return (
     <motion.div
       animate={{ opacity: 1, y: 0 }}
       className={className}
       initial={reduced ? false : { opacity: 0, y: 20 }}
-      transition={reduced ? { duration: 0 } : { duration: 0.7, ease: EASE, delay }}
+      transition={reduced ? { duration: 0 } : { duration: 0.7, delay }}
     >
       {children}
     </motion.div>
@@ -44,104 +33,82 @@ function Rise({
 }
 
 /**
- * Shared hero for the features pages: staged kicker → h1 → lede → CTAs on a
- * soft gradient panel. With `illustration` it splits into a two-column
- * scene; without it the copy sits centered. Owns the page's single h1.
+ * Shared hero for features pages. Cortex canvas: no kicker, no gradient
+ * panel, large medium-weight type and two pill CTAs.
  */
 export function FeatureHero({
-  kicker,
+  kicker: _kicker,
   title,
   titleText,
   lede,
-  variant = "sky",
+  variant: _variant = "sky",
   illustration,
   primary = { label: "Start creating", href: "/sign-up" },
   secondary = { label: "See pricing", href: "/pricing" },
-  magneticPrimary = false,
+  magneticPrimary: _magneticPrimary = false,
 }: {
   kicker: string;
   title?: React.ReactNode;
-  /**
-   * Plain-string title, rendered through TextReveal's word-by-word mask
-   * instead of the static DisplayHeading. Opt-in and takes precedence over
-   * `title` when provided — existing callers are unaffected.
-   */
   titleText?: string;
   lede: React.ReactNode;
   variant?: "sky" | "pearl" | "mist";
   illustration?: React.ReactNode;
   primary?: { label: string; href: string };
   secondary?: { label: string; href: string };
-  /** Wrap the primary CTA in the Magnetic hover effect. Opt-in. */
   magneticPrimary?: boolean;
 }) {
   const split = Boolean(illustration);
+  const heading = titleText ?? title;
 
   return (
-    <section aria-label="Introduction" className="px-4 pt-24 md:px-6 md:pt-28">
-      <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
-        variant={variant}
+    <section
+      aria-label="Introduction"
+      className="mx-auto max-w-[1440px] px-5 pt-28 sm:px-8 sm:pt-32 lg:px-10"
+    >
+      <div
+        className={cn(
+          "py-16 md:py-24",
+          split
+            ? "grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]"
+            : "mx-auto max-w-3xl text-center",
+        )}
       >
-        <div
-          className={cn(
-            "mx-auto max-w-6xl px-6 py-20 md:py-28",
-            split
-              ? "grid items-center gap-14 lg:grid-cols-[1.05fr_1fr]"
-              : "text-center",
-          )}
-        >
-          <div className={cn(!split && "mx-auto max-w-3xl")}>
-            <Rise delay={0.1}>
-              <Kicker>{kicker}</Kicker>
-            </Rise>
-            <Rise delay={0.22}>
-              {titleText ? (
-                <TextReveal
-                  as="h1"
-                  className={cn(H1_CLASS, "mt-5", !split && "mx-auto")}
-                >
-                  {titleText}
-                </TextReveal>
-              ) : (
-                <DisplayHeading
-                  className={cn("mt-5", !split && "mx-auto")}
-                  level={1}
-                  size="xl"
-                >
-                  {title}
-                </DisplayHeading>
-              )}
-            </Rise>
-            <Rise delay={0.4}>
-              <Lede className={cn("mt-6", !split && "mx-auto")}>{lede}</Lede>
-            </Rise>
-            <Rise
-              className={cn(
-                "mt-9 flex flex-wrap items-center gap-3",
-                !split && "justify-center",
-              )}
-              delay={0.55}
+        <div>
+          <Rise delay={0.12}>
+            <DisplayHeading
+              className={cn(!split && "mx-auto")}
+              level={1}
+              size="xl"
             >
-              {magneticPrimary ? (
-                <Magnetic>
-                  <CtaPill href={primary.href} size="lg">
-                    {primary.label}
-                  </CtaPill>
-                </Magnetic>
-              ) : (
-                <CtaPill href={primary.href} size="lg">
-                  {primary.label}
-                </CtaPill>
-              )}
-              <CtaPill href={secondary.href} size="lg" variant="secondary">
-                {secondary.label}
-              </CtaPill>
-            </Rise>
-          </div>
-          {split ? <Rise delay={0.45}>{illustration}</Rise> : null}
+              {heading}
+            </DisplayHeading>
+          </Rise>
+          <Rise delay={0.28}>
+            <Lede className={cn("mt-6", !split && "mx-auto")}>{lede}</Lede>
+          </Rise>
+          <Rise
+            className={cn(
+              "mt-9 flex flex-wrap items-center gap-3",
+              !split && "justify-center",
+            )}
+            delay={0.42}
+          >
+            <CtaPill href={primary.href} size="lg">
+              {primary.label}
+            </CtaPill>
+            <CtaPill href={secondary.href} size="lg" variant="secondary">
+              {secondary.label}
+            </CtaPill>
+          </Rise>
         </div>
-      </GradientScene>
+        {split ? (
+          <Rise delay={0.36}>
+            <div className="overflow-hidden rounded-3xl border border-border">
+              {illustration}
+            </div>
+          </Rise>
+        ) : null}
+      </div>
     </section>
   );
 }

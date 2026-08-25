@@ -14,7 +14,6 @@ import {
   Stagger,
   StatStrip,
   TaggedPlaceholder,
-  TextReveal,
   type Stat,
 } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
@@ -57,10 +56,10 @@ function FadeUp({
  * CTAs on the page's own gradient scene. Exactly one per page (the h1).
  */
 export function UseCaseHero({
-  kicker,
+  kicker: _kicker,
   headline,
   lede,
-  scene,
+  scene: _scene,
   primaryLabel = "Start creating",
   primaryHref = "/sign-up",
   secondaryLabel = "See pricing",
@@ -82,61 +81,45 @@ export function UseCaseHero({
   placeholderTone?: PlaceholderTone;
 }) {
   return (
-    <section aria-label="Introduction" className="px-4 pt-24 md:px-6 md:pt-28">
-      <UseCaseScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
-        name={scene}
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white/40 to-transparent"
-        />
-        <div className="relative mx-auto max-w-3xl px-6 py-20 text-center md:py-28">
-          <FadeUp delay={0.1}>
-            <Kicker>{kicker}</Kicker>
-          </FadeUp>
-          <h1 className="mt-5 font-display text-5xl font-semibold leading-[1.02] tracking-tight text-balance text-zinc-900 md:text-6xl lg:text-7xl">
-            {headline.map((line, i) => (
-              <TextReveal
-                as="span"
-                className="block"
-                delay={0.05 + i * 0.12}
-                key={line}
-              >
-                {line}
-              </TextReveal>
-            ))}
-          </h1>
-          <FadeUp delay={0.55}>
-            <Lede className="mx-auto mt-6">{lede}</Lede>
-          </FadeUp>
-          <FadeUp
-            className="mt-9 flex flex-wrap items-center justify-center gap-3"
-            delay={0.7}
-          >
-            <Magnetic>
-              <CtaPill href={primaryHref} size="lg">
-                {primaryLabel}
-              </CtaPill>
-            </Magnetic>
-            <CtaPill href={secondaryHref} size="lg" variant="secondary">
-              {secondaryLabel}
+    <section
+      aria-label="Introduction"
+      className="mx-auto max-w-[1440px] px-5 pt-28 sm:px-8 sm:pt-32 lg:px-10"
+    >
+      <div className="mx-auto max-w-3xl py-16 text-center md:py-24">
+        <FadeUp delay={0.1}>
+          <DisplayHeading className="mx-auto" level={1} size="xl">
+            {headline.join(" ")}
+          </DisplayHeading>
+        </FadeUp>
+        <FadeUp delay={0.28}>
+          <Lede className="mx-auto mt-6">{lede}</Lede>
+        </FadeUp>
+        <FadeUp
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          delay={0.42}
+        >
+          <Magnetic>
+            <CtaPill href={primaryHref} size="lg">
+              {primaryLabel}
             </CtaPill>
+          </Magnetic>
+          <CtaPill href={secondaryHref} size="lg" variant="secondary">
+            {secondaryLabel}
+          </CtaPill>
+        </FadeUp>
+        {placeholderLabel ? (
+          <FadeUp className="mt-14" delay={0.55}>
+            <div className="mx-auto aspect-[16/8] w-full overflow-hidden rounded-3xl border border-border">
+              <TaggedPlaceholder
+                className="h-full w-full"
+                kind="image"
+                label={placeholderLabel}
+                tone={placeholderTone}
+              />
+            </div>
           </FadeUp>
-          {placeholderLabel ? (
-            <FadeUp className="mt-14" delay={0.85}>
-              <div className="mx-auto aspect-[16/8] w-full overflow-hidden rounded-[2rem] border border-zinc-900/[0.06] shadow-[0_16px_60px_rgba(15,23,42,0.08)]">
-                <TaggedPlaceholder
-                  className="h-full w-full"
-                  kind="image"
-                  label={placeholderLabel}
-                  tone={placeholderTone}
-                />
-              </div>
-            </FadeUp>
-          ) : null}
-        </div>
-      </UseCaseScene>
+        ) : null}
+      </div>
     </section>
   );
 }
@@ -171,14 +154,14 @@ export function PainBand({
       >
         {pains.map((p) => (
           <div
-            className="h-full rounded-2xl border border-zinc-900/[0.06] bg-white p-6 shadow-[0_4px_24px_rgba(15,23,42,0.04)]"
+            className="border-border bg-background h-full rounded-2xl border p-6"
             key={p.title}
           >
-            <span aria-hidden className="block size-2 rounded-full bg-zinc-300" />
-            <h3 className="mt-4 font-display text-lg font-semibold tracking-tight text-zinc-900">
+            <span aria-hidden className="block size-2 rounded-full bg-muted-foreground/40" />
+            <h3 className="mt-4 font-display text-lg font-medium tracking-tight text-foreground">
               {p.title}
             </h3>
-            <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
               {p.copy}
             </p>
           </div>
@@ -203,7 +186,7 @@ export function StepsBand({
 }) {
   return (
     <section aria-label="With marketer.sh" className="px-4 py-6 md:px-6">
-      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+      <div className="border-border bg-muted mx-auto max-w-[88rem] rounded-[2.5rem] border">
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
           <Reveal className="max-w-2xl">
             <Kicker>With marketer.sh</Kicker>
@@ -213,17 +196,17 @@ export function StepsBand({
           <Stagger className="mt-14 grid gap-10 md:grid-cols-3" gap={0.1}>
             {steps.map((s, i) => (
               <div key={s.title}>
-                <p className="font-mono text-xs font-medium tabular-nums text-zinc-400">
+                <p className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
                   0{i + 1}
                 </p>
                 <div
                   aria-hidden
-                  className="mt-3 h-px w-10 bg-zinc-900/10"
+                  className="mt-3 h-px w-10 bg-muted"
                 />
-                <h3 className="mt-4 font-display text-xl font-semibold tracking-tight text-zinc-900">
+                <h3 className="mt-4 font-display text-xl font-medium tracking-tight text-foreground">
                   {s.title}
                 </h3>
-                <p className="mt-2 text-[15px] leading-relaxed text-zinc-600">
+                <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
                   {s.copy}
                 </p>
               </div>
@@ -262,7 +245,7 @@ export function MockBand({
   return (
     <section aria-label="Product moment" className="px-4 py-6 md:px-6">
       <UseCaseScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         name={scene}
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
@@ -274,12 +257,12 @@ export function MockBand({
               <ul className="mt-8 space-y-3">
                 {bullets.map((b) => (
                   <li
-                    className="flex items-start gap-3 text-[15px] leading-relaxed text-zinc-600"
+                    className="flex items-start gap-3 text-[15px] leading-relaxed text-muted-foreground"
                     key={b}
                   >
                     <span
                       aria-hidden
-                      className="mt-2.5 block size-1.5 shrink-0 rounded-full bg-zinc-300"
+                      className="bg-foreground mt-2.5 block size-1.5 shrink-0 rounded-full"
                     />
                     {b}
                   </li>

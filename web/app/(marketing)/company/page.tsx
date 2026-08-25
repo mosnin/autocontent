@@ -77,11 +77,11 @@ export default function CompanyPage() {
           <Kicker>The problem</Kicker>
           <TextReveal
             as="h2"
-            className="mt-4 font-display text-2xl font-semibold tracking-tight text-balance text-zinc-900 leading-tight md:text-3xl"
+            className="mt-4 font-display text-2xl font-medium tracking-tight text-balance text-foreground leading-tight md:text-3xl"
           >
             The treadmill taxes the wrong people.
           </TextReveal>
-          <p className="mt-5 text-[17px] leading-[1.75] text-zinc-600">
+          <p className="mt-5 text-[17px] leading-[1.75] text-muted-foreground">
             Distribution now demands a daily video, a steady article cadence,
             and a feel for three different feeds. The people best positioned
             to make something worth distributing, builders, founders, makers,
@@ -93,8 +93,8 @@ export default function CompanyPage() {
 
         <Reveal delay={0.05}>
           <div className="py-14 md:py-16">
-            <blockquote className="border-l-2 border-brand/60 pl-6 md:pl-8">
-              <p className="font-display text-2xl font-semibold leading-snug tracking-tight text-zinc-900 md:text-3xl">
+            <blockquote className="border-l-2 border-foreground pl-6 md:pl-8">
+              <p className="font-display text-2xl font-medium leading-snug tracking-tight text-foreground md:text-3xl">
                 The best marketing team is a system that shows up every day
                 and tells you exactly what it spent.
               </p>
@@ -106,11 +106,11 @@ export default function CompanyPage() {
           <Kicker>The bet</Kicker>
           <TextReveal
             as="h2"
-            className="mt-4 font-display text-2xl font-semibold tracking-tight text-balance text-zinc-900 leading-tight md:text-3xl"
+            className="mt-4 font-display text-2xl font-medium tracking-tight text-balance text-foreground leading-tight md:text-3xl"
           >
             Pipelines, not heroics.
           </TextReveal>
-          <p className="mt-5 text-[17px] leading-[1.75] text-zinc-600">
+          <p className="mt-5 text-[17px] leading-[1.75] text-muted-foreground">
             Frontier models made each step of marketing automatable: the
             script, the frames, the voice, the article, the metadata. What was
             missing was the system around the steps, the thing that ideates
@@ -125,11 +125,11 @@ export default function CompanyPage() {
             <Kicker>The line we hold</Kicker>
             <TextReveal
               as="h2"
-              className="mt-4 font-display text-2xl font-semibold tracking-tight text-balance text-zinc-900 leading-tight md:text-3xl"
+              className="mt-4 font-display text-2xl font-medium tracking-tight text-balance text-foreground leading-tight md:text-3xl"
             >
               Autonomous, never unaccountable.
             </TextReveal>
-            <p className="mt-5 text-[17px] leading-[1.75] text-zinc-600">
+            <p className="mt-5 text-[17px] leading-[1.75] text-muted-foreground">
               An autonomous system spending your money and speaking in your
               name has to be governable, or it is a liability with a nice
               demo. That is why caps fail closed, why approval gates exist,
@@ -161,7 +161,7 @@ export default function CompanyPage() {
       {/* Principles */}
       <section aria-label="Principles" className="px-4 py-6 md:px-6">
         <GradientScene
-          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
           variant="pearl"
         >
           <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
@@ -169,7 +169,7 @@ export default function CompanyPage() {
               <Kicker>Principles</Kicker>
               <TextReveal
                 as="h2"
-                className="mt-4 font-display text-4xl font-semibold tracking-tight text-balance text-zinc-900 leading-[1.05] md:text-5xl"
+                className="mt-4 font-display text-4xl font-medium tracking-tight text-balance text-foreground leading-[1.05] md:text-5xl"
               >
                 Four rules we build by.
               </TextReveal>
@@ -181,16 +181,16 @@ export default function CompanyPage() {
             >
               {PRINCIPLES.map((principle, i) => (
                 <div
-                  className="h-full rounded-[1.5rem] border border-white/60 bg-white/70 p-8 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+                  className="h-full rounded-[1.5rem] border border-border bg-background p-8 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
                   key={principle.title}
                 >
-                  <span className="font-mono text-xs tabular-nums text-zinc-400">
+                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
                     0{i + 1}
                   </span>
-                  <h3 className="mt-3 font-display text-xl font-semibold tracking-tight text-zinc-900 md:text-2xl">
+                  <h3 className="mt-3 font-display text-xl font-medium tracking-tight text-foreground md:text-2xl">
                     {principle.title}
                   </h3>
-                  <p className="mt-2.5 text-[15px] leading-relaxed text-zinc-600">
+                  <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">
                     {principle.copy}
                   </p>
                 </div>

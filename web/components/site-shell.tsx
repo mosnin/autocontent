@@ -1,26 +1,51 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 
+import { IntroDone } from "@/components/marketing/intro-done";
+import { Logo } from "@/components/marketing/nav/logo";
+import { SkipToContent } from "@/components/marketing/skip-to-content";
+import { ThemeSwitch } from "@/components/marketing/theme-switch";
 import { SidebarProvider } from "@/components/square/ui/sidebar";
 import { SquareSidebar } from "@/components/square/sidebar";
 import { SquareHeader } from "@/components/square/header";
 
+function OnboardingShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="marketing-site flex min-h-svh flex-col">
+      <IntroDone />
+      <SkipToContent />
+      <header className="flex h-20 items-center px-5 sm:px-8">
+        <Logo />
+      </header>
+      <main
+        id="main-content"
+        className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 pb-20 sm:px-8"
+      >
+        {children}
+      </main>
+      <ThemeSwitch />
+    </div>
+  );
+}
+
 /**
- * Logged-in shell — the Square UI "marketing-dashboard" template's page
- * composition (app/page.tsx), ported faithfully: SidebarProvider on the
- * sidebar surface, the sidebar itself, and a rounded inset panel holding
- * the sticky header plus a scrollable main region. Page content keeps a
- * centered max-width gutter so every existing (app) page renders as-is.
+ * Logged-in shell. Onboarding uses the Cortex marketing canvas (no
+ * dashboard chrome). Everything else uses the Square dashboard template.
  */
 export function SiteShell({
   children,
   account,
 }: {
   children: React.ReactNode;
-  /** Account slot — defaults to Clerk's UserButton; previews pass a stub. */
   account?: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  if (pathname.startsWith("/onboarding")) {
+    return <OnboardingShell>{children}</OnboardingShell>;
+  }
+
   return (
     <SidebarProvider className="bg-sidebar">
       <SquareSidebar account={account} />

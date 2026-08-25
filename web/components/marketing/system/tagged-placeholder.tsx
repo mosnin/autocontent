@@ -30,13 +30,13 @@ export function TaggedPlaceholder({
     <div
       aria-label={`Placeholder ${kind}: ${label}`}
       className={cn(
-        "relative flex h-full w-full items-center justify-center overflow-hidden bg-zinc-100",
+        "relative flex h-full w-full items-center justify-center overflow-hidden bg-muted",
         className,
       )}
       data-placeholder={kind}
       role="img"
     >
-      <span className="max-w-[90%] truncate rounded border border-zinc-200 bg-white px-2 py-1 font-mono text-[10px] text-zinc-400">
+      <span className="max-w-[90%] truncate rounded border border-border bg-background px-2 py-1 font-mono text-[10px] text-muted-foreground">
         {kind}: {label}
       </span>
     </div>

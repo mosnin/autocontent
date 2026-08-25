@@ -19,7 +19,7 @@ import { VignetteStage } from "./vignette-stage";
 
 /** Matches DisplayHeading's default (level 2, size lg) styling. */
 const H2_CLASS =
-  "font-display font-semibold tracking-tight text-balance text-zinc-900 text-4xl leading-[1.05] md:text-5xl";
+  "font-display font-medium tracking-tight text-balance text-foreground text-4xl leading-[1.05] md:text-5xl";
 
 /* ------------------------------------------------------------------ */
 /* Learning loop                                                       */
@@ -28,7 +28,7 @@ const H2_CLASS =
 export function LoopBand() {
   return (
     <section aria-label="The learning loop" className="px-4 pt-6 md:px-6">
-      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.06] bg-white shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border bg-background shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
           <Reveal>
             <Kicker>The learning loop</Kicker>
@@ -76,7 +76,7 @@ export function SpendBand() {
   return (
     <section aria-label="Spend controls" className="px-4 pt-6 md:px-6">
       <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         variant="sky"
       >
         <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
@@ -126,7 +126,7 @@ export function MetricsMoment() {
   return (
     <section aria-label="Metrics and ledger" className="px-4 pt-6 md:px-6">
       <GradientScene
-        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-zinc-900/[0.05]"
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
         variant="pearl"
       >
         <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">

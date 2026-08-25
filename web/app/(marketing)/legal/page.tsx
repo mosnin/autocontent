@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function LegalIndexPage() {
   return (
     <div className="max-w-2xl">
-      <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Legal</h1>
+      <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">Legal</h1>
       <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
         The agreements and policies that govern marketer.sh. Everything here was
         last revised {LEGAL_EFFECTIVE}.

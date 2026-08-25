@@ -10,20 +10,15 @@ import { Kicker } from "./typography";
  * `dawn` / `warm` are the warm-family washes (Amendment 2 — no green,
  * no mint).
  */
+const MUTED = "bg-muted";
+
 export const VIGNETTE_SCENES = {
-  /** Soft daylight blue. */
-  sky: "bg-[radial-gradient(120%_130%_at_80%_-15%,#dbeafe_0%,#eff6ff_55%,#f8fafc_100%)]",
-  /** Barely-there indigo pearl, the quiet default. */
-  pearl:
-    "bg-[radial-gradient(115%_125%_at_50%_-12%,#e8edfb_0%,#f7f8fc_58%,#f5f6f8_100%)]",
-  /** Low-saturation lavender into blush. */
-  mist: "bg-[radial-gradient(120%_135%_at_18%_-12%,#e0e7ff_0%,#eef2ff_45%,#fdf2f8_100%)]",
-  /** First-light amber into rose, very low saturation. */
-  dawn: "bg-[radial-gradient(120%_135%_at_18%_-12%,#fef3c7_0%,#fde8ea_52%,#fdf7f2_100%)]",
-  /** Deeper periwinkle into violet, for evening-story cards. */
-  dusk: "bg-[radial-gradient(120%_135%_at_82%_-15%,#c7d2fe_0%,#e0e7ff_48%,#f2f0fb_100%)]",
-  /** The warm wash (replaces any mint/green scene): peach into blush. */
-  warm: "bg-[radial-gradient(120%_125%_at_50%_-15%,#ffedd5_0%,#fdeeee_55%,#fdfaf7_100%)]",
+  sky: MUTED,
+  pearl: MUTED,
+  mist: MUTED,
+  dawn: MUTED,
+  dusk: MUTED,
+  warm: MUTED,
 } as const;
 
 export type VignetteScene = keyof typeof VIGNETTE_SCENES;
@@ -45,7 +40,7 @@ export function VignetteCard({
   href,
   footer,
   kicker,
-  scene = "pearl",
+  scene: _scene = "pearl",
   className,
 }: {
   title: string;
@@ -61,9 +56,9 @@ export function VignetteCard({
   className?: string;
 }) {
   const cardClassName = cn(
-    "group flex h-full flex-col rounded-[1.5rem] border border-zinc-900/[0.06] bg-white p-2 shadow-[0_2px_16px_rgba(15,23,42,0.04)]",
+    "group border-border bg-background flex h-full flex-col rounded-3xl border p-2",
     href &&
-      "transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_44px_rgba(15,23,42,0.10)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900",
+      "focus-ring transition-opacity hover:opacity-90",
     className,
   );
 
@@ -72,8 +67,7 @@ export function VignetteCard({
       {vignette != null && (
         <div
           className={cn(
-            "relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-xl p-5 ring-1 ring-inset ring-zinc-900/[0.05] sm:p-6",
-            VIGNETTE_SCENES[scene],
+            "relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-2xl bg-muted p-5 sm:p-6",
           )}
         >
           <div
@@ -89,10 +83,10 @@ export function VignetteCard({
       )}
       <div className="flex flex-1 flex-col px-3 pb-4 pt-4 sm:px-4 sm:pb-5">
         {kicker ? <Kicker className="mb-2.5">{kicker}</Kicker> : null}
-        <h3 className="font-display text-lg font-semibold tracking-tight text-zinc-900">
+        <h3 className="text-foreground text-lg font-medium tracking-tight">
           {title}
         </h3>
-        <p className="mt-1.5 text-sm leading-relaxed text-zinc-600">
+        <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
           {description}
         </p>
         {footer ? (

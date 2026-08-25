@@ -57,7 +57,7 @@ export function ClosingCta() {
           aria-hidden
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_60%_at_50%_0%,rgba(255,255,255,0.25),transparent_70%)]"
         />
-        <TextReveal className="relative font-display text-4xl font-semibold tracking-tight text-white md:text-6xl">
+        <TextReveal className="relative font-display text-4xl font-medium tracking-tight text-white md:text-6xl">
           Time is priceless. Your marketing runs itself.
         </TextReveal>
         <p className="relative mx-auto mt-5 max-w-xl text-lg leading-relaxed text-white/85">
@@ -67,7 +67,7 @@ export function ClosingCta() {
         <div className="relative mt-9">
           <Magnetic strength={10}>
             <Link
-              className="inline-flex min-h-12 items-center rounded-xl bg-white px-8 text-[15px] font-semibold text-zinc-950 shadow-[0_8px_32px_rgba(0,0,0,0.18)] transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="inline-flex min-h-12 items-center rounded-xl bg-white px-8 text-[15px] font-medium text-foreground shadow-[0_8px_32px_rgba(0,0,0,0.18)] transition-all duration-200 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               href="/sign-up"
             >
               Get started. It&apos;s $5.
