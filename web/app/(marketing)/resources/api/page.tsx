@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 
 import { CodeTabs } from "@/components/marketing/resources/code-tabs";
 import { PageHero } from "@/components/marketing/resources/page-hero";
-import { SectionCta } from "@/components/marketing/system";
 import {
-  Body,
-  Card,
-  CardGrid,
-  MediaCard,
-  Section,
-  SectionHead,
-  Title,
-} from "@/components/site/sections";
+  DisplayHeading,
+  GradientScene,
+  Kicker,
+  Lede,
+  Reveal,
+  SectionCta,
+  Stagger,
+  TaggedPlaceholder,
+} from "@/components/marketing/system";
 
 const DESCRIPTION =
   "One platform, four surfaces: the marketer.sh REST API, Python SDK, CLI, and MCP server. Authenticate with personal access tokens and let agents enqueue real work.";
@@ -47,52 +47,88 @@ export default function ApiPage() {
     <main>
       <PageHero
         headline="One platform. Four surfaces."
-        highlight="Four surfaces."
         kicker="Developers"
         sub="Everything the dashboard does is callable: REST for anything, a Python SDK for scripts, a CLI for the terminal, and an MCP server for agents."
       />
 
       {/* Surfaces */}
-      <Section label="Developer surfaces">
-        <SectionHead
-          eyebrow="Pick a surface"
-          heading="The same platform, however you call it."
-          highlight="however you call it."
-          lede="All four surfaces share one API, one token format, and one set of spend rules. Start where you are comfortable and switch anytime."
-        />
-        <div className="os-mt-48">
+      <section
+        aria-label="Developer surfaces"
+        className="mx-auto max-w-6xl px-6 py-24 md:py-32"
+      >
+        <Reveal className="max-w-2xl">
+          <Kicker>Pick a surface</Kicker>
+          <DisplayHeading className="mt-4">
+            The same platform, however you call it.
+          </DisplayHeading>
+          <Lede className="mt-5">
+            All four surfaces share one API, one token format, and one set of
+            spend rules. Start where you are comfortable and switch anytime.
+          </Lede>
+        </Reveal>
+        <Reveal className="mt-12" delay={0.1}>
           <CodeTabs />
-        </div>
-        <div className="os-mt-24">
-          <MediaCard
-            kind="illustration"
-            label="Agent surfaces — API, SDK, CLI, MCP map"
-            ratio="16/8"
-          />
-        </div>
-      </Section>
+        </Reveal>
+        <Reveal className="mt-10" delay={0.15}>
+          <div className="aspect-[21/9] overflow-hidden rounded-[2rem] border border-border">
+            <TaggedPlaceholder
+              className="h-full w-full"
+              kind="illustration"
+              label="Agent surfaces — API, SDK, CLI, MCP map"
+              tone="slate"
+            />
+          </div>
+        </Reveal>
+      </section>
 
       {/* PAT auth */}
-      <Section label="Authentication">
-        <SectionHead
-          eyebrow="Authentication"
-          heading="Tokens you can hand to an agent."
-          highlight="hand to an agent."
-          lede="Personal access tokens authenticate every surface. They are designed to be given away, to a script, a CI job, or an autonomous agent, without giving away your account."
-        />
-        <CardGrid className="os-mt-48">
-          {PAT_POINTS.map((point) => (
-            <Card key={point.title}>
-              <Title size="sm">{point.title}</Title>
-              <Body className="os-mt-8">{point.copy}</Body>
-            </Card>
-          ))}
-        </CardGrid>
-        <p className="os-body os-mt-32">
-          <code className="os-code">Authorization: Bearer mkt_…</code> works
-          identically on the API, SDK, CLI, and MCP server.
-        </p>
-      </Section>
+      <section aria-label="Authentication" className="px-4 py-6 md:px-6">
+        <GradientScene
+          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
+          variant="pearl"
+        >
+          <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+            <Reveal className="max-w-2xl">
+              <Kicker>Authentication</Kicker>
+              <DisplayHeading className="mt-4">
+                Tokens you can hand to an agent.
+              </DisplayHeading>
+              <Lede className="mt-5">
+                Personal access tokens authenticate every surface. They are
+                designed to be given away, to a script, a CI job, or an
+                autonomous agent, without giving away your account.
+              </Lede>
+            </Reveal>
+            <Stagger
+              className="mt-14 grid gap-4 md:grid-cols-3"
+              gap={0.08}
+              itemClassName="h-full"
+            >
+              {PAT_POINTS.map((point) => (
+                <div
+                  className="h-full rounded-[1.5rem] border border-border bg-background p-7 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+                  key={point.title}
+                >
+                  <h3 className="font-display text-lg font-medium tracking-tight text-foreground">
+                    {point.title}
+                  </h3>
+                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+                    {point.copy}
+                  </p>
+                </div>
+              ))}
+            </Stagger>
+            <Reveal className="mt-8" delay={0.15}>
+              <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <code className="rounded-md border border-border bg-background px-2 py-1 font-mono text-[12px] text-foreground">
+                  Authorization: Bearer mkt_…
+                </code>
+                works identically on the API, SDK, CLI, and MCP server.
+              </p>
+            </Reveal>
+          </div>
+        </GradientScene>
+      </section>
 
       <SectionCta
         headline="Point an agent at it today."

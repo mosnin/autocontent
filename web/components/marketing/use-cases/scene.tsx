@@ -1,28 +1,21 @@
-import * as React from "react";
-
 import { cn } from "@/lib/utils";
 
 /**
- * Per-use-case band surfaces. The transcribed export has one ground and one
- * accent, so the six audience "rooms" are no longer six pastel washes —
- * each name only decides where the accent enters the surface from. The
- * names are unchanged so the six pages keep their call sites.
+ * Per-use-case section frames. Cortex is a flat canvas — scenes no longer
+ * carry a colored wash; `name` is kept so existing pages type-check.
  */
-const SCENES = {
-  pearl: "os-scene os-scene--pearl",
-  dusk: "os-scene os-scene--mist",
-  mint: "os-scene os-scene--sky",
-  tide: "os-scene os-scene--sky",
-  steel: "os-scene os-scene--pearl",
-  daylight: "os-scene os-scene--mist",
-  aurora: "os-scene os-scene--sky",
-} as const;
+export type SceneName =
+  | "pearl"
+  | "dusk"
+  | "mint"
+  | "tide"
+  | "steel"
+  | "daylight"
+  | "aurora";
 
-export type SceneName = keyof typeof SCENES;
-
-/** Decorative band surface; content is layered on top by the caller. */
+/** Flat muted panel; content is layered on top by the caller. */
 export function UseCaseScene({
-  name,
+  name: _name,
   className,
   children,
 }: {
@@ -31,7 +24,7 @@ export function UseCaseScene({
   children?: React.ReactNode;
 }) {
   return (
-    <div className={cn("relative overflow-hidden", SCENES[name], className)}>
+    <div className={cn("relative overflow-hidden bg-muted", className)}>
       {children}
     </div>
   );

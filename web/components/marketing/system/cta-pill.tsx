@@ -1,12 +1,10 @@
 import * as React from "react";
+import Link from "next/link";
 
-import { Btn } from "@/components/site/sections";
+import { cn } from "@/lib/utils";
 
 /**
- * The site's call-to-action button. The transcribed export's CTAs are square
- * mono-uppercase blocks, not pills — the nav's "START FREE" is the reference
- * — so this now renders `<Btn>` from the section primitives. The prop shape
- * is unchanged so every existing call site keeps working.
+ * Cortex-style pill CTA: inverted fill for primary, hairline for secondary.
  */
 export function CtaPill({
   href,
@@ -14,16 +12,29 @@ export function CtaPill({
   variant = "primary",
   className,
   size = "md",
+  style,
 }: {
   href: string;
   children: React.ReactNode;
   variant?: "primary" | "secondary";
   className?: string;
   size?: "md" | "lg";
+  style?: React.CSSProperties;
 }) {
   return (
-    <Btn className={className} href={href} size={size} variant={variant}>
+    <Link
+      className={cn(
+        "focus-ring inline-flex items-center justify-center rounded-full text-sm font-medium transition-opacity",
+        size === "lg" ? "h-13 px-8" : "h-11 px-6",
+        variant === "primary"
+          ? "bg-foreground text-background hover:opacity-85"
+          : "border-border text-foreground hover:bg-muted border",
+        className,
+      )}
+      href={href}
+      style={style}
+    >
       {children}
-    </Btn>
+    </Link>
   );
 }

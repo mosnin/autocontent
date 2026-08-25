@@ -4,36 +4,31 @@ import * as React from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { EASE } from "@/components/marketing/system";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /* Syntax-tinted spans (hand-built, no highlighter dependency)         */
 /* ------------------------------------------------------------------ */
 
-/*
- * Syntax tints. The palette has one hue, so code is differentiated by
- * luminance rather than by inventing four colours the site never uses:
- * keywords take the accent, strings the brightest ink, everything else
- * steps down the grey ramp.
- */
 function K({ children }: { children: React.ReactNode }) {
   // keywords / commands
-  return <span className="os-tok-key">{children}</span>;
+  return <span className="text-sky-300">{children}</span>;
 }
 function S({ children }: { children: React.ReactNode }) {
-  // strings
-  return <span className="os-tok-str">{children}</span>;
+  // strings — warm amber tint (Amendment 2; never green)
+  return <span className="text-amber-300">{children}</span>;
 }
 function C({ children }: { children: React.ReactNode }) {
   // comments / output
-  return <span className="os-tok-com">{children}</span>;
+  return <span className="text-muted-foreground">{children}</span>;
 }
 function F({ children }: { children: React.ReactNode }) {
   // flags / properties
-  return <span className="os-tok-flag">{children}</span>;
+  return <span className="text-violet-300">{children}</span>;
 }
 function P({ children }: { children: React.ReactNode }) {
   // prompt / punctuation dimmed
-  return <span className="os-tok-dim">{children}</span>;
+  return <span className="text-muted-foreground">{children}</span>;
 }
 
 function CodeBlock({
@@ -44,14 +39,14 @@ function CodeBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div className="os-codeblock">
-      <div className="os-codeblock__bar">
-        <span aria-hidden className="os-codeblock__dot" />
-        <span aria-hidden className="os-codeblock__dot" />
-        <span aria-hidden className="os-codeblock__dot" />
-        <span className="os-codeblock__title">{title}</span>
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-foreground shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+      <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-4 py-3">
+        <span className="size-2.5 rounded-full bg-white/10" />
+        <span className="size-2.5 rounded-full bg-white/10" />
+        <span className="size-2.5 rounded-full bg-white/10" />
+        <span className="ml-2 font-mono text-[11px] text-muted-foreground">{title}</span>
       </div>
-      <pre className="os-pre">
+      <pre className="overflow-x-auto px-5 py-4 font-mono text-[13px] leading-relaxed text-muted-foreground">
         <code>{children}</code>
       </pre>
     </div>
@@ -219,7 +214,7 @@ export function CodeTabs() {
     <div>
       <div
         aria-label="Developer surfaces"
-        className="os-tabs"
+        className="flex flex-wrap gap-2"
         onKeyDown={onKeyDown}
         role="tablist"
       >
@@ -227,7 +222,12 @@ export function CodeTabs() {
           <button
             aria-controls={`surface-panel-${s.id}`}
             aria-selected={i === active}
-            className="os-tab"
+            className={cn(
+              "min-h-11 rounded-full border px-5 text-sm font-medium transition-all duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              i === active
+                ? "border-foreground bg-foreground text-white shadow-[0_2px_12px_rgba(15,23,42,0.25)]"
+                : "border-border bg-background text-muted-foreground hover:border-border hover:text-foreground",
+            )}
             id={`surface-tab-${s.id}`}
             key={s.id}
             onClick={() => setActive(i)}
@@ -245,7 +245,7 @@ export function CodeTabs() {
 
       <div
         aria-labelledby={`surface-tab-${surface.id}`}
-        className="os-mt-24"
+        className="mt-6"
         id={`surface-panel-${surface.id}`}
         role="tabpanel"
       >
@@ -257,11 +257,17 @@ export function CodeTabs() {
             key={surface.id}
             transition={{ duration: 0.35, ease: EASE }}
           >
-            <p className="os-body os-body--bright os-measure">{surface.blurb}</p>
-            <div className="os-mt-20">{surface.code}</div>
-            <ul className="os-bullets os-mt-16 os-measure">
-              <li>{surface.note}</li>
-            </ul>
+            <p className="max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
+              {surface.blurb}
+            </p>
+            <div className="mt-5">{surface.code}</div>
+            <p className="mt-4 flex max-w-2xl items-start gap-2.5 text-sm leading-relaxed text-muted-foreground">
+              <span
+                aria-hidden
+                className="mt-[7px] size-1.5 shrink-0 rounded-full bg-amber-500"
+              />
+              {surface.note}
+            </p>
           </motion.div>
         </AnimatePresence>
       </div>

@@ -1,39 +1,62 @@
+"use client";
+
 import * as React from "react";
+import { motion, useReducedMotion } from "motion/react";
 
 import {
-  Actions,
-  Btn,
-  Card,
-  CardGrid,
-  MediaSlot,
-  Section,
-  SectionHead,
-  Stage,
-  Stats,
-  Title,
-  Body,
-} from "@/components/site/sections";
-import { type Stat } from "@/components/marketing/system";
+  CtaPill,
+  DisplayHeading,
+  EASE,
+  Kicker,
+  Lede,
+  Magnetic,
+  Reveal,
+  Stagger,
+  StatStrip,
+  TaggedPlaceholder,
+  type Stat,
+} from "@/components/marketing/system";
+import { cn } from "@/lib/utils";
+import { UseCaseScene, type SceneName } from "./scene";
 
-import { type SceneName } from "./scene";
+/** Placeholder tones the tagged-placeholder kit supports. */
+type PlaceholderTone = "warm" | "sky" | "violet" | "slate" | "rose";
 
 /* ------------------------------------------------------------------ */
 /* Hero                                                                */
 /* ------------------------------------------------------------------ */
 
-/** The last two words of a line — what the accent lands on by default. */
-function lastWords(line: string, count = 2) {
-  const words = line.split(" ");
-  return words.slice(Math.max(0, words.length - count)).join(" ");
+function FadeUp({
+  children,
+  delay,
+  className,
+}: {
+  children: React.ReactNode;
+  delay: number;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  // Always mount the motion element: the plain-div branch leaves motion's
+  // SSR'd opacity:0 inline style on the hydrated DOM (React skips the stale
+  // attribute), blanking content for prefers-reduced-motion users.
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      className={className}
+      initial={reduced ? false : { opacity: 0, y: 16 }}
+      transition={reduced ? { duration: 0 } : { duration: 0.7, ease: EASE, delay }}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 /**
- * Use-case page hero: centred eyebrow → headline → lede → CTAs inside the
- * ruled section container, with an optional staged still underneath.
- * Exactly one per page (it owns the h1).
+ * Use-case page hero: centered kicker → staged headline → lede → pill
+ * CTAs on the page's own gradient scene. Exactly one per page (the h1).
  */
 export function UseCaseHero({
-  kicker,
+  kicker: _kicker,
   headline,
   lede,
   scene: _scene,
@@ -42,11 +65,10 @@ export function UseCaseHero({
   secondaryLabel = "See pricing",
   secondaryHref = "/pricing",
   placeholderLabel,
-  placeholderTone: _placeholderTone = "slate",
-  highlight,
+  placeholderTone = "slate",
 }: {
   kicker: string;
-  /** Headline lines; joined into the single display heading. */
+  /** Headline lines; each renders as its own TextReveal span. */
   headline: string[];
   lede: string;
   scene: SceneName;
@@ -54,42 +76,51 @@ export function UseCaseHero({
   primaryHref?: string;
   secondaryLabel?: string;
   secondaryHref?: string;
-  /** When set, renders a tagged image placeholder under the hero copy. */
+  /** When set, renders a tagged image placeholder near the top of the hero. */
   placeholderLabel?: string;
-  placeholderTone?: "warm" | "sky" | "violet" | "slate" | "rose";
-  /** Phrase of the headline to paint in the accent. */
-  highlight?: string;
+  placeholderTone?: PlaceholderTone;
 }) {
   return (
-    <Section label="Introduction" size="top">
-      <SectionHead
-        align="center"
-        eyebrow={kicker}
-        heading={headline.join(" ")}
-        highlight={highlight ?? lastWords(headline[headline.length - 1] ?? "")}
-        lede={lede}
-        level={1}
-        size="xl"
-      >
-        <Actions align="center" className="os-mt-16">
-          <Btn href={primaryHref} size="lg">
-            {primaryLabel}
-          </Btn>
-          <Btn href={secondaryHref} size="lg" variant="secondary">
+    <section
+      aria-label="Introduction"
+      className="mx-auto max-w-[1440px] px-5 pt-28 sm:px-8 sm:pt-32 lg:px-10"
+    >
+      <div className="mx-auto max-w-3xl py-16 text-center md:py-24">
+        <FadeUp delay={0.1}>
+          <DisplayHeading className="mx-auto" level={1} size="xl">
+            {headline.join(" ")}
+          </DisplayHeading>
+        </FadeUp>
+        <FadeUp delay={0.28}>
+          <Lede className="mx-auto mt-6">{lede}</Lede>
+        </FadeUp>
+        <FadeUp
+          className="mt-9 flex flex-wrap items-center justify-center gap-3"
+          delay={0.42}
+        >
+          <Magnetic>
+            <CtaPill href={primaryHref} size="lg">
+              {primaryLabel}
+            </CtaPill>
+          </Magnetic>
+          <CtaPill href={secondaryHref} size="lg" variant="secondary">
             {secondaryLabel}
-          </Btn>
-        </Actions>
-      </SectionHead>
-      {placeholderLabel ? (
-        <Stage className="os-mt-64">
-          <MediaSlot
-            className="os-aspect-168"
-            kind="image"
-            label={placeholderLabel}
-          />
-        </Stage>
-      ) : null}
-    </Section>
+          </CtaPill>
+        </FadeUp>
+        {placeholderLabel ? (
+          <FadeUp className="mt-14" delay={0.55}>
+            <div className="mx-auto aspect-[16/8] w-full overflow-hidden rounded-3xl border border-border">
+              <TaggedPlaceholder
+                className="h-full w-full"
+                kind="image"
+                label={placeholderLabel}
+                tone={placeholderTone}
+              />
+            </div>
+          </FadeUp>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -107,20 +138,36 @@ export function PainBand({
   pains: Array<{ title: string; copy: string }>;
 }) {
   return (
-    <Section label="The grind today">
-      <SectionHead eyebrow="The grind today" heading={heading} lede={lede} />
-      <CardGrid className="os-mt-48">
+    <section
+      aria-label="The grind today"
+      className="mx-auto max-w-6xl px-6 py-24 md:py-32"
+    >
+      <Reveal className="max-w-2xl">
+        <Kicker>The grind today</Kicker>
+        <DisplayHeading className="mt-4">{heading}</DisplayHeading>
+        {lede ? <Lede className="mt-5">{lede}</Lede> : null}
+      </Reveal>
+      <Stagger
+        className="mt-12 grid gap-4 md:grid-cols-3"
+        gap={0.06}
+        itemClassName="h-full"
+      >
         {pains.map((p) => (
-          <Card key={p.title}>
-            <span aria-hidden className="os-dot" />
-            <Title className="os-mt-20" size="sm">
+          <div
+            className="border-border bg-background h-full rounded-2xl border p-6"
+            key={p.title}
+          >
+            <span aria-hidden className="block size-2 rounded-full bg-muted-foreground/40" />
+            <h3 className="mt-4 font-display text-lg font-medium tracking-tight text-foreground">
               {p.title}
-            </Title>
-            <Body className="os-mt-8">{p.copy}</Body>
-          </Card>
+            </h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+              {p.copy}
+            </p>
+          </div>
         ))}
-      </CardGrid>
-    </Section>
+      </Stagger>
+    </section>
   );
 }
 
@@ -138,25 +185,41 @@ export function StepsBand({
   steps: Array<{ title: string; copy: string }>;
 }) {
   return (
-    <Section label="With marketer.sh">
-      <SectionHead eyebrow="With marketer.sh" heading={heading} lede={lede} />
-      <CardGrid className="os-mt-48">
-        {steps.map((s, i) => (
-          <Card key={s.title}>
-            <span className="os-step__n">{String(i + 1).padStart(2, "0")}</span>
-            <Title className="os-mt-20" size="sm">
-              {s.title}
-            </Title>
-            <Body className="os-mt-8">{s.copy}</Body>
-          </Card>
-        ))}
-      </CardGrid>
-    </Section>
+    <section aria-label="With marketer.sh" className="px-4 py-6 md:px-6">
+      <div className="border-border bg-muted mx-auto max-w-[88rem] rounded-[2.5rem] border">
+        <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+          <Reveal className="max-w-2xl">
+            <Kicker>With marketer.sh</Kicker>
+            <DisplayHeading className="mt-4">{heading}</DisplayHeading>
+            {lede ? <Lede className="mt-5">{lede}</Lede> : null}
+          </Reveal>
+          <Stagger className="mt-14 grid gap-10 md:grid-cols-3" gap={0.1}>
+            {steps.map((s, i) => (
+              <div key={s.title}>
+                <p className="font-mono text-xs font-medium tabular-nums text-muted-foreground">
+                  0{i + 1}
+                </p>
+                <div
+                  aria-hidden
+                  className="mt-3 h-px w-10 bg-muted"
+                />
+                <h3 className="mt-4 font-display text-xl font-medium tracking-tight text-foreground">
+                  {s.title}
+                </h3>
+                <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+                  {s.copy}
+                </p>
+              </div>
+            ))}
+          </Stagger>
+        </div>
+      </div>
+    </section>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Product-moment band — copy beside a staged mock                     */
+/* Product-moment band — copy beside a floating glass mock             */
 /* ------------------------------------------------------------------ */
 
 export function MockBand({
@@ -164,50 +227,68 @@ export function MockBand({
   heading,
   lede,
   bullets,
-  scene: _scene,
+  scene,
   children,
   flip = false,
-  highlight,
 }: {
   kicker: string;
   heading: string;
   lede: string;
   bullets?: string[];
   scene: SceneName;
-  /** The staged product-moment mock. */
+  /** The hand-built glass product-moment mock. */
   children: React.ReactNode;
   /** Put the mock on the left on desktop. */
   flip?: boolean;
-  highlight?: string;
 }) {
+  const reduced = useReducedMotion();
   return (
-    <Section label="Product moment">
-      <div className="os-split">
-        <div className={flip ? "os-order-2" : undefined}>
-          <SectionHead
-            eyebrow={kicker}
-            heading={heading}
-            highlight={highlight}
-            lede={lede}
-          />
-          {bullets && bullets.length > 0 ? (
-            <ul className="os-bullets os-mt-32">
-              {bullets.map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </ul>
-          ) : null}
+    <section aria-label="Product moment" className="px-4 py-6 md:px-6">
+      <UseCaseScene
+        className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
+        name={scene}
+      >
+        <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
+          <Reveal className={cn(flip && "lg:order-2")}>
+            <Kicker>{kicker}</Kicker>
+            <DisplayHeading className="mt-4">{heading}</DisplayHeading>
+            <Lede className="mt-5">{lede}</Lede>
+            {bullets && bullets.length > 0 ? (
+              <ul className="mt-8 space-y-3">
+                {bullets.map((b) => (
+                  <li
+                    className="flex items-start gap-3 text-[15px] leading-relaxed text-muted-foreground"
+                    key={b}
+                  >
+                    <span
+                      aria-hidden
+                      className="bg-foreground mt-2.5 block size-1.5 shrink-0 rounded-full"
+                    />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </Reveal>
+          <Reveal
+            className={cn("flex justify-center", flip && "lg:order-1")}
+            delay={0.1}
+          >
+            <motion.div
+              animate={reduced ? undefined : { y: [0, -8, 0] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
+            >
+              {children}
+            </motion.div>
+          </Reveal>
         </div>
-        <div className={flip ? "os-order-1" : undefined}>
-          <Stage>{children}</Stage>
-        </div>
-      </div>
-    </Section>
+      </UseCaseScene>
+    </section>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Outcomes                                                            */
+/* Outcomes — StatStrip with a quiet intro                             */
 /* ------------------------------------------------------------------ */
 
 export function OutcomesBand({
@@ -218,20 +299,17 @@ export function OutcomesBand({
   stats: Stat[];
 }) {
   return (
-    <Section label="Outcomes" size="tight">
-      <SectionHead
-        align="center"
-        eyebrow="Outcomes"
-        heading={heading}
-        size="md"
-      />
-      <Stats
-        className="os-mt-48"
-        items={stats.map((s) => ({
-          value: `${s.prefix ?? ""}${s.value.toFixed(s.decimals ?? 0)}${s.suffix ?? ""}`,
-          label: s.label,
-        }))}
-      />
-    </Section>
+    <section
+      aria-label="Outcomes"
+      className="mx-auto max-w-6xl px-6 py-24 md:py-28"
+    >
+      <Reveal className="mx-auto max-w-2xl text-center">
+        <Kicker>Outcomes</Kicker>
+        <DisplayHeading className="mt-4" size="md">
+          {heading}
+        </DisplayHeading>
+      </Reveal>
+      <StatStrip className="mt-12" stats={stats} />
+    </section>
   );
 }

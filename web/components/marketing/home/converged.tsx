@@ -76,7 +76,7 @@ const GROUPS: CapGroup[] = [
 function CapChip({ cap }: { cap: Cap }) {
   return (
     <Link
-      className="rounded-full border border-zinc-900/10 bg-white px-4 py-2 text-[13px] font-medium text-zinc-700 transition-colors hover:border-zinc-900/30 hover:text-zinc-950"
+      className="rounded-full border border-border bg-white px-4 py-2 text-[13px] font-medium text-foreground transition-colors hover:border-foreground/25 hover:text-foreground"
       data-cap-tile
       href={cap.href}
     >
@@ -116,13 +116,13 @@ function CapGrid() {
   );
 
   return (
-    <div className="divide-y divide-zinc-900/[0.06]" ref={gridRef}>
+    <div className="divide-y divide-border" ref={gridRef}>
       {GROUPS.map((group) => (
         <div
           className="py-6 first:pt-0 last:pb-0 md:flex md:items-start md:gap-8 md:py-7"
           key={group.kicker}
         >
-          <p className="shrink-0 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400 md:w-28 md:pt-2.5">
+          <p className="shrink-0 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground md:w-28 md:pt-2.5">
             {group.kicker}
           </p>
           <div className="mt-3 flex flex-wrap gap-2 md:mt-0">
@@ -190,9 +190,9 @@ function Floater({ f }: { f: (typeof FLOATERS)[number] }) {
         viewport={VIEWPORT}
         whileInView={{ opacity: 1, y: 0 }}
       >
-        <div className="overflow-hidden rounded-2xl border border-zinc-900/[0.08] bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
-          <div className="flex items-center border-b border-zinc-900/[0.06] px-3 py-2">
-            <span className="text-[11px] font-medium text-zinc-500">
+        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_20px_60px_rgba(15,23,42,0.16)]">
+          <div className="flex items-center border-b border-border px-3 py-2">
+            <span className="text-[11px] font-medium text-muted-foreground">
               {f.name}
             </span>
           </div>
@@ -217,12 +217,12 @@ export function Converged() {
         <div className="mx-auto max-w-3xl text-center">
           <TextReveal
             as="h2"
-            className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl"
+            className="font-display text-4xl font-medium tracking-tight text-foreground md:text-5xl"
           >
             Everything you need in one converged marketing platform.
           </TextReveal>
           <Reveal>
-            <p className="mt-5 text-lg leading-relaxed text-zinc-600">
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               Ideation to publish to learning, every step lives in the same
               system and shares the same budget.
             </p>
@@ -231,7 +231,7 @@ export function Converged() {
 
         <Reveal className="relative mt-16" delay={0.1}>
           {/* Dim the grid edges so the floating cards pop, like the reference. */}
-          <div className="rounded-[2rem] border border-zinc-900/[0.05] bg-white/60 p-6 md:p-10">
+          <div className="rounded-[2rem] border border-border bg-white/60 p-6 md:p-10">
             <CapGrid />
           </div>
           {FLOATERS.map((f) => (

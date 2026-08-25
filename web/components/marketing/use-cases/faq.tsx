@@ -1,37 +1,47 @@
+"use client";
+
 import * as React from "react";
 
 import {
-  Body,
-  Card,
-  Section,
-  SectionHead,
-  Title,
-} from "@/components/site/sections";
+  DisplayHeading,
+  Kicker,
+  Reveal,
+  Stagger,
+} from "@/components/marketing/system";
 
 export type FaqItem = { q: string; a: string };
 
 /**
- * Small FAQ band (used on /use-cases/ai-agents only). The page that renders
- * it also embeds the matching FAQPage JSON-LD.
+ * Small FAQ band (used on /use-cases/ai-agents only). The page that
+ * renders it also embeds the matching FAQPage JSON-LD.
  */
 export function FaqBand({ items }: { items: FaqItem[] }) {
   return (
-    <Section label="Frequently asked questions">
-      <SectionHead
-        align="center"
-        eyebrow="Questions"
-        heading="Agents, answered."
-        highlight="answered."
-        size="md"
-      />
-      <div className="os-bordered os-divide-y os-mt-48">
+    <section
+      aria-label="Frequently asked questions"
+      className="mx-auto max-w-3xl px-6 py-24 md:py-28"
+    >
+      <Reveal className="text-center">
+        <Kicker>Questions</Kicker>
+        <DisplayHeading className="mt-4" size="md">
+          Agents, answered.
+        </DisplayHeading>
+      </Reveal>
+      <Stagger
+        className="mt-10 divide-y divide-border rounded-[2rem] border border-border bg-background px-8 shadow-[0_8px_40px_rgba(15,23,42,0.06)]"
+        gap={0.08}
+      >
         {items.map((item) => (
-          <div className="os-qa" key={item.q}>
-            <Title size="sm">{item.q}</Title>
-            <Body className="os-mt-8">{item.a}</Body>
+          <div className="py-7" key={item.q}>
+            <h3 className="font-display text-lg font-medium tracking-tight text-foreground">
+              {item.q}
+            </h3>
+            <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
+              {item.a}
+            </p>
           </div>
         ))}
-      </div>
-    </Section>
+      </Stagger>
+    </section>
   );
 }

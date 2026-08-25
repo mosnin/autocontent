@@ -1,30 +1,37 @@
 import * as React from "react";
 import Link from "next/link";
 
-import { Eyebrow, Title } from "@/components/site/sections";
 import { cn } from "@/lib/utils";
+import { Kicker } from "./typography";
 
 /**
- * Scene names are kept so the six audience pages keep their call sites, but
- * on the transcribed ground there is one surface, not six pastel washes.
- * Each name now selects where the accent bleeds into the vignette frame, so
- * the cards still differ by a degree without leaving the palette.
+ * The six vignette scene washes: soft, light-mode gradient backdrops the
+ * product miniature is staged on. Cool scenes mirror `GradientScene`;
+ * `dawn` / `warm` are the warm-family washes (Amendment 2 — no green,
+ * no mint).
  */
+const MUTED = "bg-muted";
+
 export const VIGNETTE_SCENES = {
-  sky: "os-vignette--sky",
-  pearl: "os-vignette--pearl",
-  mist: "os-vignette--mist",
-  dawn: "os-vignette--dawn",
-  dusk: "os-vignette--dusk",
-  warm: "os-vignette--warm",
+  sky: MUTED,
+  pearl: MUTED,
+  mist: MUTED,
+  dawn: MUTED,
+  dusk: MUTED,
+  warm: MUTED,
 } as const;
 
 export type VignetteScene = keyof typeof VIGNETTE_SCENES;
 
 /**
- * The card: a product miniature staged in a hairline frame, then title and
- * one-line description below. Never an icon. With `href` the whole card is a
- * link and lifts on hover.
+ * The card (Amendment 2): a real product-UI miniature staged on a soft
+ * gradient wash, plain title + short description below. Never an icon.
+ *
+ * Anatomy: hairline white card → inset vignette frame (fixed 16/10,
+ * scene wash, inner hairline, overflow hidden) → text block. With `href`
+ * the whole card is a link: it lifts on hover and the vignette scales a
+ * touch. No self-animation beyond hover — pages wrap cards in
+ * `<Reveal>`/`<Stagger>`.
  */
 export function VignetteCard({
   title,
@@ -33,12 +40,12 @@ export function VignetteCard({
   href,
   footer,
   kicker,
-  scene = "pearl",
+  scene: _scene = "pearl",
   className,
 }: {
   title: string;
   description: string;
-  /** A miniature (or media slot) staged in the vignette frame. */
+  /** A miniature from `components/marketing/vignettes` (or any staged JSX). */
   vignette: React.ReactNode;
   href?: string;
   /** Optional quiet row pinned to the card bottom (link label, meta). */
@@ -48,20 +55,43 @@ export function VignetteCard({
   scene?: VignetteScene;
   className?: string;
 }) {
-  const cardClassName = cn("os-card", "os-vcard", className);
+  const cardClassName = cn(
+    "group border-border bg-background flex h-full flex-col rounded-3xl border p-2",
+    href &&
+      "focus-ring transition-opacity hover:opacity-90",
+    className,
+  );
 
   const body = (
     <>
       {vignette != null && (
-        <div className={cn("os-vignette", VIGNETTE_SCENES[scene])}>
-          <div className="os-vignette__inner">{vignette}</div>
+        <div
+          className={cn(
+            "relative flex aspect-[16/10] items-center justify-center overflow-hidden rounded-2xl bg-muted p-5 sm:p-6",
+          )}
+        >
+          <div
+            className={cn(
+              "w-full max-w-[400px]",
+              href &&
+                "transition-transform duration-500 ease-out group-hover:scale-[1.02]",
+            )}
+          >
+            {vignette}
+          </div>
         </div>
       )}
-      <div className="os-vcard__body">
-        {kicker ? <Eyebrow className="os-vcard__kicker">{kicker}</Eyebrow> : null}
-        <Title size="sm">{title}</Title>
-        <p className="os-body os-mt-8">{description}</p>
-        {footer ?? null}
+      <div className="flex flex-1 flex-col px-3 pb-4 pt-4 sm:px-4 sm:pb-5">
+        {kicker ? <Kicker className="mb-2.5">{kicker}</Kicker> : null}
+        <h3 className="text-foreground text-lg font-medium tracking-tight">
+          {title}
+        </h3>
+        <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+          {description}
+        </p>
+        {footer ? (
+          <div className="mt-auto flex items-center gap-2 pt-4">{footer}</div>
+        ) : null}
       </div>
     </>
   );

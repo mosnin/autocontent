@@ -30,16 +30,16 @@ export function Enterprise() {
       <div className="mx-auto max-w-7xl px-6">
         <Reveal className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <TextReveal className="font-display text-4xl font-semibold tracking-tight text-zinc-950 md:text-5xl">
+            <TextReveal className="font-display text-4xl font-medium tracking-tight text-foreground md:text-5xl">
               Enterprise-grade everything.
             </TextReveal>
-            <p className="mt-5 text-lg leading-relaxed text-zinc-600">
+            <p className="mt-5 text-lg leading-relaxed text-muted-foreground">
               Autonomy only works with control. Every automated action runs
               inside guardrails you set.
             </p>
           </div>
           <Link
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-900 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground hover:underline"
             href="/features/analytics"
           >
             See the controls
@@ -61,13 +61,13 @@ export function Enterprise() {
         <Stagger className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {PILLARS.map((p) => (
             <div
-              className="rounded-3xl border border-zinc-900/[0.06] bg-[#fafbfc] p-6"
+              className="rounded-3xl border border-border bg-[#fafbfc] p-6"
               key={p.title}
             >
-              <h3 className="text-[15px] font-semibold text-zinc-900">
+              <h3 className="text-[15px] font-medium text-foreground">
                 {p.title}
               </h3>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-600">
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {p.desc}
               </p>
             </div>
@@ -75,13 +75,13 @@ export function Enterprise() {
         </Stagger>
 
         {/* Compliance badge slots — real marks land when certifications do. */}
-        <div className="mt-12 flex flex-wrap items-center gap-3 border-t border-zinc-900/[0.06] pt-8">
-          <p className="mr-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
+        <div className="mt-12 flex flex-wrap items-center gap-3 border-t border-border pt-8">
+          <p className="mr-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
             Compliance
           </p>
           {["soc2.svg", "gdpr.svg", "ccpa.svg"].map((f) => (
             <span
-              className="flex h-10 w-24 items-center justify-center rounded-lg border border-dashed border-zinc-900/10 bg-zinc-50 font-mono text-[10px] text-zinc-300"
+              className="flex h-10 w-24 items-center justify-center rounded-lg border border-dashed border-border bg-muted font-mono text-[10px] text-muted-foreground"
               key={f}
             >
               {f}

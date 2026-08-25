@@ -1,16 +1,15 @@
 import type { Metadata } from "next";
 
 import { PageHero } from "@/components/marketing/resources/page-hero";
-import { SectionCta } from "@/components/marketing/system";
 import {
-  Card,
-  CardGrid,
-  MediaSlot,
-  Section,
-  SectionHead,
-  Stage,
-  Title,
-} from "@/components/site/sections";
+  GradientScene,
+  Kicker,
+  Reveal,
+  SectionCta,
+  Stagger,
+  TaggedPlaceholder,
+  TextReveal,
+} from "@/components/marketing/system";
 
 const DESCRIPTION =
   "Why marketer.sh exists: marketing should compound while you build. We make autonomous pipelines that ship daily, spend honestly, and always leave the veto with you.";
@@ -63,7 +62,6 @@ export default function CompanyPage() {
       />
       <PageHero
         headline="Marketing should compound, not consume you."
-        highlight="not consume you."
         kicker="Company"
         size="xl"
         sub="We build the marketing department that runs itself, so the people with something worth selling can go back to making it."
@@ -71,95 +69,136 @@ export default function CompanyPage() {
       />
 
       {/* The why */}
-      <Section label="Why marketer.sh exists">
-        <div className="os-essay">
-          <SectionHead
-            eyebrow="The problem"
-            heading="The treadmill taxes the wrong people."
-            highlight="the wrong people."
-            size="md"
-          />
-          <p className="os-guide__p os-mt-20">
+      <section
+        aria-label="Why marketer.sh exists"
+        className="mx-auto max-w-3xl px-6 py-24 md:py-32"
+      >
+        <Reveal>
+          <Kicker>The problem</Kicker>
+          <TextReveal
+            as="h2"
+            className="mt-4 font-display text-2xl font-medium tracking-tight text-balance text-foreground leading-tight md:text-3xl"
+          >
+            The treadmill taxes the wrong people.
+          </TextReveal>
+          <p className="mt-5 text-[17px] leading-[1.75] text-muted-foreground">
             Distribution now demands a daily video, a steady article cadence,
-            and a feel for three different feeds. The people best positioned to
-            make something worth distributing, builders, founders, makers, are
-            exactly the people who can least afford to spend four hours a day
-            feeding the machine. So most don&apos;t. The work stays good and
-            unknown.
+            and a feel for three different feeds. The people best positioned
+            to make something worth distributing, builders, founders, makers,
+            are exactly the people who can least afford to spend four hours a
+            day feeding the machine. So most don&apos;t. The work stays good
+            and unknown.
           </p>
+        </Reveal>
 
-          <blockquote className="os-quote os-mt-48">
-            The best marketing team is a system that shows up every day and
-            tells you exactly what it spent.
-          </blockquote>
+        <Reveal delay={0.05}>
+          <div className="py-14 md:py-16">
+            <blockquote className="border-l-2 border-foreground pl-6 md:pl-8">
+              <p className="font-display text-2xl font-medium leading-snug tracking-tight text-foreground md:text-3xl">
+                The best marketing team is a system that shows up every day
+                and tells you exactly what it spent.
+              </p>
+            </blockquote>
+          </div>
+        </Reveal>
 
-          <div className="os-mt-64">
-            <SectionHead
-              eyebrow="The bet"
-              heading="Pipelines, not heroics."
-              highlight="not heroics."
-              size="md"
-            />
-            <p className="os-guide__p os-mt-20">
-              Frontier models made each step of marketing automatable: the
-              script, the frames, the voice, the article, the metadata. What was
-              missing was the system around the steps, the thing that ideates
-              from performance, renders on schedule, publishes into posting
-              windows, and learns from what happened. That system is what we
-              build. One brief in, every format out, better every week.
+        <Reveal>
+          <Kicker>The bet</Kicker>
+          <TextReveal
+            as="h2"
+            className="mt-4 font-display text-2xl font-medium tracking-tight text-balance text-foreground leading-tight md:text-3xl"
+          >
+            Pipelines, not heroics.
+          </TextReveal>
+          <p className="mt-5 text-[17px] leading-[1.75] text-muted-foreground">
+            Frontier models made each step of marketing automatable: the
+            script, the frames, the voice, the article, the metadata. What was
+            missing was the system around the steps, the thing that ideates
+            from performance, renders on schedule, publishes into posting
+            windows, and learns from what happened. That system is what we
+            build. One brief in, every format out, better every week.
+          </p>
+        </Reveal>
+
+        <Reveal>
+          <div className="mt-14 md:mt-16">
+            <Kicker>The line we hold</Kicker>
+            <TextReveal
+              as="h2"
+              className="mt-4 font-display text-2xl font-medium tracking-tight text-balance text-foreground leading-tight md:text-3xl"
+            >
+              Autonomous, never unaccountable.
+            </TextReveal>
+            <p className="mt-5 text-[17px] leading-[1.75] text-muted-foreground">
+              An autonomous system spending your money and speaking in your
+              name has to be governable, or it is a liability with a nice
+              demo. That is why caps fail closed, why approval gates exist,
+              why every action lands in an audit log, and why the kill switch
+              is one click. We would rather lose a benchmark than your trust.
             </p>
           </div>
-
-          <div className="os-mt-64">
-            <SectionHead
-              eyebrow="The line we hold"
-              heading="Autonomous, never unaccountable."
-              highlight="never unaccountable."
-              size="md"
-            />
-            <p className="os-guide__p os-mt-20">
-              An autonomous system spending your money and speaking in your name
-              has to be governable, or it is a liability with a nice demo. That
-              is why caps fail closed, why approval gates exist, why every
-              action lands in an audit log, and why the kill switch is one
-              click. We would rather lose a benchmark than your trust.
-            </p>
-          </div>
-        </div>
-      </Section>
+        </Reveal>
+      </section>
 
       {/* Team */}
-      <Section label="The team" size="tight">
-        <CardGrid>
-          {["Team photo", "Team photo", "Team photo"].map((label, i) => (
-            <Stage key={i}>
-              <MediaSlot className="os-aspect-45" kind="image" label={label} />
-            </Stage>
-          ))}
-        </CardGrid>
-      </Section>
+      <section
+        aria-label="The team"
+        className="mx-auto max-w-5xl px-6 pb-24 md:pb-32"
+      >
+        <Stagger className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-5" gap={0.08}>
+          <div className="aspect-[4/5] overflow-hidden rounded-2xl">
+            <TaggedPlaceholder kind="image" label="Team photo" tone="warm" />
+          </div>
+          <div className="aspect-[4/5] overflow-hidden rounded-2xl">
+            <TaggedPlaceholder kind="image" label="Team photo" tone="sky" />
+          </div>
+          <div className="col-span-2 aspect-[4/5] overflow-hidden rounded-2xl sm:col-span-1">
+            <TaggedPlaceholder kind="image" label="Team photo" tone="violet" />
+          </div>
+        </Stagger>
+      </section>
 
       {/* Principles */}
-      <Section label="Principles">
-        <SectionHead
-          eyebrow="Principles"
-          heading="Four rules we build by."
-          highlight="Four rules"
-        />
-        <CardGrid className="os-mt-48" cols={2}>
-          {PRINCIPLES.map((principle, i) => (
-            <Card key={principle.title} padding="lg">
-              <span className="os-num">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <Title className="os-mt-12" level={3}>
-                {principle.title}
-              </Title>
-              <p className="os-body os-mt-12">{principle.copy}</p>
-            </Card>
-          ))}
-        </CardGrid>
-      </Section>
+      <section aria-label="Principles" className="px-4 py-6 md:px-6">
+        <GradientScene
+          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
+          variant="pearl"
+        >
+          <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+            <Reveal className="max-w-2xl">
+              <Kicker>Principles</Kicker>
+              <TextReveal
+                as="h2"
+                className="mt-4 font-display text-4xl font-medium tracking-tight text-balance text-foreground leading-[1.05] md:text-5xl"
+              >
+                Four rules we build by.
+              </TextReveal>
+            </Reveal>
+            <Stagger
+              className="mt-14 grid gap-4 sm:grid-cols-2"
+              gap={0.08}
+              itemClassName="h-full"
+            >
+              {PRINCIPLES.map((principle, i) => (
+                <div
+                  className="h-full rounded-[1.5rem] border border-border bg-background p-8 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+                  key={principle.title}
+                >
+                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                    0{i + 1}
+                  </span>
+                  <h3 className="mt-3 font-display text-xl font-medium tracking-tight text-foreground md:text-2xl">
+                    {principle.title}
+                  </h3>
+                  <p className="mt-2.5 text-[15px] leading-relaxed text-muted-foreground">
+                    {principle.copy}
+                  </p>
+                </div>
+              ))}
+            </Stagger>
+          </div>
+        </GradientScene>
+      </section>
 
       <SectionCta
         headline="Build with us."
