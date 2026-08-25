@@ -4,6 +4,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 import { CountUp } from "./count-up";
+import { Stagger } from "./reveal";
 
 export type Stat = {
   value: number;
@@ -14,8 +15,8 @@ export type Stat = {
 };
 
 /**
- * Band of counted-up stats in one hairline container, divided by the same
- * rgb(42,60,58) rules the rest of the site uses. Keep `stats` to three.
+ * Horizontal band of counted-up stats with hairline dividers.
+ * Max 3 CountUps per page (spec), so keep `stats` to three.
  */
 export function StatStrip({
   stats,
@@ -25,10 +26,16 @@ export function StatStrip({
   className?: string;
 }) {
   return (
-    <div className={cn("os-stats", className)}>
+    <Stagger
+      className={cn(
+        "grid grid-cols-1 divide-y divide-border sm:grid-cols-3 sm:divide-x sm:divide-y-0",
+        className,
+      )}
+      gap={0.08}
+    >
       {stats.map((s) => (
-        <div className="os-stat" key={s.label}>
-          <p className="os-stat__value">
+        <div className="px-8 py-8 text-center sm:py-4" key={s.label}>
+          <p className="font-display text-4xl font-medium tabular-nums tracking-tight text-foreground md:text-5xl">
             <CountUp
               decimals={s.decimals ?? 0}
               prefix={s.prefix}
@@ -36,9 +43,9 @@ export function StatStrip({
               value={s.value}
             />
           </p>
-          <p className="os-stat__label">{s.label}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{s.label}</p>
         </div>
       ))}
-    </div>
+    </Stagger>
   );
 }

@@ -49,8 +49,8 @@ export function TokensClient({ tokens }: Props) {
   >(createTokenAction, EMPTY_STATE);
   const [open, setOpen] = React.useState(false);
 
-  // The plaintext token lives only in the action state — never in the
-  // URL — and is rendered once here after a successful create.
+  // The plaintext token lives only in the action state - never in the
+  // URL - and is rendered once here after a successful create.
   const freshToken = createState.ok ? (createState.token ?? null) : null;
 
   React.useEffect(() => {
@@ -71,7 +71,7 @@ export function TokensClient({ tokens }: Props) {
       {freshToken && (
         <Card className="border-success/40 bg-success/5">
           <CardContent className="space-y-3 pt-6">
-            <div className="text-sm font-medium">New token — shown once</div>
+            <div className="text-sm font-medium">New token - shown once</div>
             <div className="flex items-center gap-2 rounded-md border bg-background p-2">
               <code className="flex-1 overflow-x-auto font-mono text-xs">
                 {freshToken}
@@ -89,7 +89,7 @@ export function TokensClient({ tokens }: Props) {
               <code className="rounded bg-muted px-1">
                 MARKETER_API_TOKEN
               </code>{" "}
-              now — we don&apos;t store the plaintext and can&apos;t recover it.
+              now - we don&apos;t store the plaintext and can&apos;t recover it.
             </p>
           </CardContent>
         </Card>
@@ -217,7 +217,7 @@ function TokenRow({ token }: { token: PersonalAccessToken }) {
         {new Date(token.created_at).toLocaleString()}
       </TableCell>
       <TableCell className="py-3 text-muted-foreground">
-        {token.expires_at ? new Date(token.expires_at).toLocaleString() : "—"}
+        {token.expires_at ? new Date(token.expires_at).toLocaleString() : "-"}
       </TableCell>
       <TableCell className="py-3 text-muted-foreground">
         {token.last_used_at

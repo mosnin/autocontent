@@ -20,7 +20,7 @@ function maskKey(key: string): string {
 
 export default async function ConnectPage() {
   // Best-effort: a backend 5xx must not throw the whole route to the error
-  // boundary — render an in-page fallback instead.
+  // boundary - render an in-page fallback instead.
   let status: AyrshareConnectStatus | null = null;
   try {
     status = await api<AyrshareConnectStatus>(
@@ -31,7 +31,7 @@ export default async function ConnectPage() {
   }
 
   // What the backend actually knows is whether a posting profile
-  // (profile_key) exists — NOT which individual socials are linked. That
+  // (profile_key) exists - NOT which individual socials are linked. That
   // lives in Ayrshare's hosted chooser. So we speak in terms of "profile
   // created", never per-platform "ready".
   const publishingConfigured = status?.configured ?? false;
@@ -117,7 +117,7 @@ export default async function ConnectPage() {
             </div>
             <p className="text-center text-xs text-muted-foreground">
               {profileCreated
-                ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare — open the chooser above to add or revoke a platform."
+                ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare - open the chooser above to add or revoke a platform."
                 : "Create a posting profile above, then link each platform in Ayrshare's chooser."}
             </p>
           </div>

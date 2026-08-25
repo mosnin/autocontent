@@ -1,7 +1,7 @@
-// Cosmic Orb — the agent mark.
+// Cosmic Orb - the agent mark.
 //
 // A WebGL sphere: starfield, nebula bands, aurora, pulsar, meteors, and a
-// chromatic lens. This is the product's AI agent identity — wherever an
+// chromatic lens. This is the product's AI agent identity - wherever an
 // agent is thinking, acting, or waiting to be given a face, this is what
 // represents it.
 //
@@ -13,7 +13,7 @@
 //      frame instead of a rAF loop. Without this it is an accessibility
 //      failure on every page it appears on.
 //   2. A live-context budget. Browsers cap simultaneous WebGL contexts
-//      (commonly ~16) and silently kill the OLDEST when you exceed it —
+//      (commonly ~16) and silently kill the OLDEST when you exceed it -
 //      so a list of twenty agent rows would blank out the orbs at the top
 //      of the page with no error. Past the budget, later orbs render a
 //      CSS gradient standin instead.

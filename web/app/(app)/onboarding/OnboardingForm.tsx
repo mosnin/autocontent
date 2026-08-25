@@ -21,8 +21,8 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 // The voice-preview control is a tightly-embedded form-step control that
-// relies on the app Button's `size="icon-md"` — a size square/ui's Button
-// doesn't expose — so it stays on the app primitive (not a drop-in swap).
+// relies on the app Button's `size="icon-md"` - a size square/ui's Button
+// doesn't expose - so it stays on the app primitive (not a drop-in swap).
 import { Button as FormButton } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -73,20 +73,20 @@ const STYLE_EXAMPLES = [
 // Sub-label above a grouped cluster of controls.
 function StepKicker({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+    <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
       {children}
     </p>
   );
 }
 
-// Selectable tile — used for segmented radios and platform checkboxes.
+// Selectable tile - used for segmented radios and platform checkboxes.
 // Monochrome at rest, brand ring + tint when chosen. `as` lets a label
 // wrap native radio/checkbox controls without extra markup.
 const tileBase =
-  "flex cursor-pointer select-none items-center justify-center gap-2 rounded-md border px-3 py-2.5 text-sm font-medium transition-colors focus-within:ring-[3px] focus-within:ring-ring/32";
-const tileOn = "border-brand/50 bg-brand/10 text-foreground";
+  "flex cursor-pointer select-none items-center justify-center gap-2 rounded-full border px-3 py-2.5 text-sm font-medium transition-colors focus-within:ring-[3px] focus-within:ring-ring/32";
+const tileOn = "border-foreground bg-foreground text-background";
 const tileOff =
-  "border-input text-muted-foreground hover:border-brand/30 hover:bg-brand/5 hover:text-foreground";
+  "border-border text-muted-foreground hover:border-foreground/30 hover:bg-muted hover:text-foreground";
 
 const PLATFORM_LABEL: Record<(typeof PLATFORMS)[number], string> = {
   tiktok: "TikTok",
@@ -243,7 +243,7 @@ export function OnboardingForm({
     if (values.approve_before_post) fd.set("approve_before_post", "on");
 
     const res = await createNicheAction({ ok: false }, fd);
-    // createNicheAction redirects on success — we only reach here on
+    // createNicheAction redirects on success - we only reach here on
     // failure (when ok=false with an error message).
     setSubmitting(false);
     if (res.ok) {
@@ -260,7 +260,7 @@ export function OnboardingForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-6"
       >
-        <Card>
+        <Card className="rounded-3xl border-border bg-background shadow-none">
           <CardHeader className="space-y-4">
             <CardTitle className="sr-only">Step {step} of 3</CardTitle>
             {/* Segmented stepper: done segments are solid brand, the
@@ -289,9 +289,9 @@ export function OnboardingForm({
                     <span
                       className={
                         state === "done"
-                          ? "h-1 rounded-full bg-brand transition-colors"
+                          ? "h-1 rounded-full bg-foreground transition-colors"
                           : state === "current"
-                            ? "h-1 animate-pulse rounded-full bg-brand/70"
+                            ? "h-1 animate-pulse rounded-full bg-foreground/70"
                             : "h-1 rounded-full bg-muted"
                       }
                     />
@@ -320,17 +320,18 @@ export function OnboardingForm({
           <Button
             type="button"
             variant="ghost"
+            className="rounded-full"
             onClick={onBack}
             disabled={step === 1}
           >
             Back
           </Button>
           {step < 3 ? (
-            <Button type="button" onClick={onNext}>
+            <Button className="rounded-full px-6" type="button" onClick={onNext}>
               Next
             </Button>
           ) : (
-            <Button type="submit" disabled={submitting}>
+            <Button className="rounded-full px-6" type="submit" disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
               Create niche
             </Button>
@@ -354,7 +355,7 @@ function StepIdentity() {
               <Input placeholder="Claymation econ teacher" {...field} />
             </FormControl>
             <FormDescription>
-              Short, human name for this niche — shown across your dashboard.
+              Short, human name for this niche - shown across your dashboard.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -391,7 +392,7 @@ function StepIdentity() {
               />
             </FormControl>
             <FormDescription>
-              Who each video should speak to — tone follows the audience.
+              Who each video should speak to - tone follows the audience.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -563,7 +564,7 @@ function StepCreative() {
                 <VoicePreviewButton voice={field.value} />
               </div>
               <FormDescription>
-                Hit play — never pick a voice blind.
+                Hit play - never pick a voice blind.
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -829,10 +830,10 @@ function StepSchedule() {
           <FormItem>
             <label
               className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-md border p-4 transition-colors",
+                "flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-colors",
                 field.value
-                  ? "border-brand/50 bg-brand/5"
-                  : "border-input hover:border-brand/30",
+                  ? "border-foreground bg-muted"
+                  : "border-input hover:border-foreground/30",
               )}
             >
               <Checkbox

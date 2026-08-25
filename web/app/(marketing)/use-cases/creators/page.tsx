@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
-import { SectionCta } from "@/components/marketing/system";
-import { MediaSlot } from "@/components/site/sections";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 import {
   MockBand,
   OutcomesBand,
@@ -14,10 +13,10 @@ const DESCRIPTION =
   "Turn one brief into daily TikToks, Reels, and Shorts. A character sheet keeps your face and world consistent, and an approval gate reviews every post.";
 
 export const metadata: Metadata = {
-  title: "Creators — marketer.sh",
+  title: "Creators · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Creators — marketer.sh",
+    title: "Creators · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -31,7 +30,7 @@ export default function CreatorsPage() {
         headline={["Post daily.", "Edit never."]}
         kicker="For creators and faceless channels"
         lede="One brief becomes tonight's shorts: scripted, voiced, animated, captioned, and scheduled. Your character stays consistent. Nothing posts until you say so."
-        placeholderLabel="Creators in the product — hero still"
+        placeholderLabel="Creators in the product - hero still"
         placeholderTone="warm"
         scene="dusk"
       />
@@ -81,11 +80,13 @@ export default function CreatorsPage() {
         lede="This is the queue for a faceless channel. Two posts approved, one waiting on you, all scheduled for the evening window."
         scene="dusk"
       >
-        <MediaSlot
-          className="os-aspect-43"
-          kind="image"
-          label="Creators workflow — screenshot"
-        />
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-border shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+          <TaggedPlaceholder
+            kind="image"
+            label="Creators workflow - screenshot"
+            tone="warm"
+          />
+        </div>
       </MockBand>
       <OutcomesBand
         heading="The cadence, without the grind."

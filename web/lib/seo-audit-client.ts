@@ -1,6 +1,6 @@
 // Client-safe typed client for the AI SEO auditor (/api/v1/seo-audits).
 //
-// Reads use SWR keys that are plain backend paths — `clientFetch` prefixes
+// Reads use SWR keys that are plain backend paths - `clientFetch` prefixes
 // /api/proxy for us. Mutations go through the same /api/proxy/... handler so
 // the Clerk JWT is attached server-side (we cannot call `auth()` in the
 // browser). NOTHING here may import server-only modules.
@@ -72,7 +72,7 @@ export interface AuditStats {
   json_ld_blocks: number;
 }
 
-/** How the two Context.dev scrapes went — so a low score can be read as
+/** How the two Context.dev scrapes went - so a low score can be read as
  *  "the page is weak" rather than "the scrape came back empty". */
 export interface AuditDiagnostics {
   /** "ready" | "empty" | "failed" */
@@ -123,7 +123,7 @@ export const AUDIT_STATUS_LABELS: Record<AuditStatus, string> = {
   na: "Didn't apply",
 };
 
-/** Theme-token classes per status. `na` is deliberately neutral/muted — it
+/** Theme-token classes per status. `na` is deliberately neutral/muted - it
  *  must never read in the same register as `fail`. */
 export const AUDIT_STATUS_CLASSES: Record<AuditStatus, string> = {
   pass: "border-success/25 bg-success/10 text-success",
@@ -185,12 +185,12 @@ async function proxyMutate<T>(
 }
 
 /**
- * Run an audit. SYNCHRONOUS on the backend — two page scrapes plus scoring,
+ * Run an audit. SYNCHRONOUS on the backend - two page scrapes plus scoring,
  * routinely ~30s. There is no job row to poll, so the caller must keep a
  * pending UI up for the whole round trip rather than expecting a job id.
  *
  * A 409 means the deployment has the auditor switched off or Context.dev
- * unconfigured — a deployment state, not a user error. Callers should render a
+ * unconfigured - a deployment state, not a user error. Callers should render a
  * calm "not configured" panel for it (see `isNotConfigured`).
  */
 export function runSeoAudit(url: string, refresh = false): Promise<StoredAudit> {
@@ -206,7 +206,7 @@ export function isNotConfigured(e: unknown): boolean {
   return e instanceof ApiError && e.status === 409;
 }
 
-/** The vendor was reachable but unavailable (502) — retrying may work. */
+/** The vendor was reachable but unavailable (502) - retrying may work. */
 export function isVendorOutage(e: unknown): boolean {
   return e instanceof ApiError && e.status === 502;
 }
@@ -220,7 +220,7 @@ export function auditErrorMessage(e: unknown): string {
       const parsed = JSON.parse(body) as { detail?: unknown };
       if (typeof parsed.detail === "string") return parsed.detail;
     } catch {
-      /* not JSON — fall through to the raw text */
+      /* not JSON - fall through to the raw text */
     }
     return body || `Request failed (${e.status})`;
   }

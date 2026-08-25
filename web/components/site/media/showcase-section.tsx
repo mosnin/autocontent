@@ -3,7 +3,7 @@
  *
  * Built entirely from the shared section primitives, so it reads as another
  * band of the same page rather than a bolted-on gallery. What it shows comes
- * from `HOMEPAGE_SHOWCASE` in the registry — a landscape video ad, a row of
+ * from `HOMEPAGE_SHOWCASE` in the registry - a landscape video ad, a row of
  * static ad creative, then a scrollable rail of the vertical formats.
  *
  * Server component.
@@ -28,7 +28,7 @@ export function HomeShowcase() {
         eyebrow="Made on marketer.sh"
         heading="Ads, clips and micro-dramas the platform made itself."
         highlight="the platform made itself"
-        lede="Every frame below is pipeline output — briefed, generated, cut and captioned by the agents, then shipped to the channels that pay for themselves."
+        lede="Every frame below is pipeline output - briefed, generated, cut and captioned by the agents, then shipped to the channels that pay for themselves."
       />
 
       <div className="os-mt-48">

@@ -1,26 +1,37 @@
 import * as React from "react";
 
-import { Band, MediaCard } from "@/components/site/sections";
+import {
+  CtaPill,
+  GradientScene,
+  Kicker,
+  Lede,
+  Reveal,
+  TaggedPlaceholder,
+  TextReveal,
+} from "@/components/marketing/system";
+import { cn } from "@/lib/utils";
 
-type BandSpec = {
+import { ProofList } from "./proof-list";
+import { VignetteStage } from "./vignette-stage";
+
+type Band = {
   id: string;
   kicker: string;
   title: string;
-  highlight: string;
   lede: string;
   bullets: [string, string, string];
   href: string;
   linkLabel: string;
-  media: { kind: "image" | "illustration" | "video"; label: string };
+  illustration: React.ReactNode;
+  scene: "white" | "pearl" | "sky";
   flip?: boolean;
 };
 
-const BANDS: BandSpec[] = [
+const BANDS: Band[] = [
   {
     id: "video",
     kicker: "Short-form video",
     title: "A finished short from a single brief.",
-    highlight: "single brief",
     lede: "Ideation, a scene-by-scene script, keyframes, animation, voice, music, edit, captions, QA, publish. Ten stages, no hand-offs, no timeline to babysit.",
     bullets: [
       "Keyframes stay on-model. Every frame is generated against a per-niche character sheet.",
@@ -29,16 +40,23 @@ const BANDS: BandSpec[] = [
     ],
     href: "/features/video",
     linkLabel: "Explore video",
-    media: {
-      kind: "image",
-      label: "Publish queue — render, schedule, publish status",
-    },
+    illustration: (
+      <VignetteStage scene="sky">
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Publish queue - render, schedule, publish status"
+            tone="sky"
+          />
+        </div>
+      </VignetteStage>
+    ),
+    scene: "white",
   },
   {
     id: "articles",
     kicker: "Articles & SEO",
     title: "Articles built to rank, not to fill a blog.",
-    highlight: "to rank",
     lede: "Every article starts with live Exa research of what already ranks. Then a structured outline, sections written in parallel, and a QA score before anything ships.",
     bullets: [
       "Topics are deduped against your recent posts. It never writes the same article twice.",
@@ -47,17 +65,24 @@ const BANDS: BandSpec[] = [
     ],
     href: "/features/articles",
     linkLabel: "Explore articles",
-    media: {
-      kind: "image",
-      label: "Article SEO card — metadata and schema",
-    },
+    illustration: (
+      <VignetteStage scene="pearl">
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Article SEO card - metadata and schema"
+            tone="warm"
+          />
+        </div>
+      </VignetteStage>
+    ),
+    scene: "pearl",
     flip: true,
   },
   {
     id: "automation",
     kicker: "Automation & agents",
     title: "Your agents run the whole thing.",
-    highlight: "Your agents",
     lede: "REST API, a typed Python SDK, the marketer CLI, and an MCP server with cost-aware tool descriptions. Everything a person can do, an agent can do.",
     bullets: [
       "Agents create niches, enqueue videos, generate articles, and check spend.",
@@ -66,16 +91,23 @@ const BANDS: BandSpec[] = [
     ],
     href: "/features/automation",
     linkLabel: "Explore automation",
-    media: {
-      kind: "image",
-      label: "Agent chat — MCP tool call to shipped video",
-    },
+    illustration: (
+      <VignetteStage scene="mist">
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Agent chat - MCP tool call to shipped video"
+            tone="slate"
+          />
+        </div>
+      </VignetteStage>
+    ),
+    scene: "white",
   },
   {
     id: "analytics",
     kicker: "Analytics & spend",
     title: "It learns what works. It never overspends.",
-    highlight: "never overspends",
     lede: "Views, watch time, and completion flow back into the next ideation round. And every model call is metered against caps that fail closed, not open.",
     bullets: [
       "Top and bottom performers are attributed, so winning angles repeat and losers retire.",
@@ -84,37 +116,78 @@ const BANDS: BandSpec[] = [
     ],
     href: "/features/analytics",
     linkLabel: "Explore analytics",
-    media: {
-      kind: "image",
-      label: "Analytics dashboard — performance metrics and spend cap gauge",
-    },
+    illustration: (
+      <VignetteStage scene="sky">
+        <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            kind="image"
+            label="Analytics dashboard - performance metrics and spend cap gauge"
+            tone="rose"
+          />
+        </div>
+      </VignetteStage>
+    ),
+    scene: "sky",
     flip: true,
   },
 ];
 
+function BandPanel({ band }: { band: Band }) {
+  const inner = (
+    <div className="mx-auto grid max-w-6xl items-center gap-14 px-6 py-24 md:py-32 lg:grid-cols-2">
+      <Reveal className={cn(band.flip && "lg:order-2")}>
+        <Kicker>{band.kicker}</Kicker>
+        <TextReveal
+          as="h2"
+          className="mt-4 font-display text-4xl font-medium leading-[1.05] tracking-tight text-balance text-foreground md:text-5xl"
+        >
+          {band.title}
+        </TextReveal>
+        <Lede className="mt-5">{band.lede}</Lede>
+        <ProofList className="mt-8" items={band.bullets} />
+        <CtaPill className="mt-9" href={band.href} variant="secondary">
+          {band.linkLabel}
+        </CtaPill>
+      </Reveal>
+      <Reveal className={cn(band.flip && "lg:order-1")} delay={0.08}>
+        {band.illustration}
+      </Reveal>
+    </div>
+  );
+
+  if (band.scene === "white") {
+    return (
+      <div className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border bg-background shadow-[0_8px_40px_rgba(15,23,42,0.06)]">
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <GradientScene
+      className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
+      variant={band.scene}
+    >
+      {inner}
+    </GradientScene>
+  );
+}
+
 /**
- * The four alternating feature bands on the /features hub: video, articles,
- * automation, analytics. Each links to its subpage.
+ * The four large alternating feature bands on the /features hub: video,
+ * articles, automation, analytics. Each links to its subpage.
  */
 export function HubBands() {
   return (
     <>
       {BANDS.map((band) => (
-        <Band
-          bullets={band.bullets}
-          cta={{ label: band.linkLabel, href: band.href }}
-          eyebrow={band.kicker}
-          flip={band.flip}
-          heading={band.title}
-          highlight={band.highlight}
-          id={band.id}
+        <section
+          aria-label={band.kicker}
+          className="px-4 pt-6 md:px-6"
           key={band.id}
-          label={band.kicker}
-          lede={band.lede}
-          media={
-            <MediaCard kind={band.media.kind} label={band.media.label} />
-          }
-        />
+        >
+          <BandPanel band={band} />
+        </section>
       ))}
     </>
   );

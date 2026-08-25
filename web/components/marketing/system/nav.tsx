@@ -239,15 +239,15 @@ function Wordmark({ className }: { className?: string }) {
   return (
     <Link
       className={cn(
-        "flex items-center gap-2 rounded-full py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900",
+        "flex items-center gap-2 rounded-full py-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
         className,
       )}
       href="/"
     >
-      {/* Mark: a closed loop — literally the product. */}
+      {/* Mark: a closed loop - literally the product. */}
       <svg
         aria-hidden
-        className="size-5 text-zinc-900"
+        className="size-5 text-foreground"
         fill="none"
         stroke="currentColor"
         strokeLinecap="round"
@@ -257,7 +257,7 @@ function Wordmark({ className }: { className?: string }) {
         <path d="M21 12a9 9 0 1 1-2.64-6.36" />
         <path d="M21 3v6h-6" />
       </svg>
-      <span className="font-display text-[17px] font-semibold tracking-tight text-zinc-900">
+      <span className="font-display text-[17px] font-medium tracking-tight text-foreground">
         marketer.sh
       </span>
     </Link>
@@ -269,7 +269,7 @@ function Caret({ open }: { open?: boolean }) {
     <svg
       aria-hidden
       className={cn(
-        "size-3.5 text-zinc-400 transition-transform duration-200",
+        "size-3.5 text-muted-foreground transition-transform duration-200",
         open && "rotate-180",
       )}
       fill="none"
@@ -299,17 +299,17 @@ const BANNER_SEGMENTS = [
 function AnnouncementBanner() {
   return (
     <Link
-      aria-label="Announcement: Meet the marketer.sh suite — see what shipped"
-      className="block bg-zinc-950 text-[13px] text-zinc-300 transition-colors hover:text-white"
+      aria-label="Announcement: Meet the marketer.sh suite - see what shipped"
+      className="block bg-foreground text-[13px] text-muted-foreground transition-colors hover:text-white"
       href="/resources/changelog"
     >
       <Marquee ariaLabel={undefined} className="min-h-10 items-center" seconds={36}>
         {BANNER_SEGMENTS.map((seg, i) => (
           <span className="flex items-center" key={i}>
-            <span className={cn("whitespace-nowrap px-5", i === 0 && "font-semibold text-white")}>
+            <span className={cn("whitespace-nowrap px-5", i === 0 && "font-medium text-white")}>
               {seg}
             </span>
-            <span aria-hidden className="text-zinc-500">
+            <span aria-hidden className="text-muted-foreground">
               ·
             </span>
           </span>
@@ -335,7 +335,7 @@ function MegaPanel({
     <div className="mx-auto grid max-w-6xl grid-cols-[1.2fr_1.2fr_0.8fr] gap-10 px-8 py-9">
       {columns.map((col) => (
         <div key={col.heading}>
-          <p className="pb-4 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
+          <p className="pb-4 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
             {col.heading}
           </p>
           <ul className={cn(col.plain ? "space-y-3.5" : "space-y-1.5")}>
@@ -343,7 +343,7 @@ function MegaPanel({
               col.plain ? (
                 <li key={item.href}>
                   <Link
-                    className="text-[15px] font-medium text-zinc-700 transition-colors hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+                    className="text-[15px] font-medium text-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     href={item.href}
                     onClick={onNavigate}
                   >
@@ -353,16 +353,16 @@ function MegaPanel({
               ) : (
                 <li key={item.href}>
                   <Link
-                    className="group -mx-2.5 flex items-center gap-3.5 rounded-2xl p-2.5 transition-colors hover:bg-zinc-900/[0.04] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                    className="group -mx-2.5 flex items-center gap-3.5 rounded-2xl p-2.5 transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                     href={item.href}
                     onClick={onNavigate}
                   >
                     <span className="min-w-0">
-                      <span className="block text-[15px] font-medium text-zinc-900">
+                      <span className="block text-[15px] font-medium text-foreground">
                         {item.title}
                       </span>
                       {item.desc ? (
-                        <span className="mt-0.5 block text-[13px] leading-snug text-zinc-500">
+                        <span className="mt-0.5 block text-[13px] leading-snug text-muted-foreground">
                           {item.desc}
                         </span>
                       ) : null}
@@ -410,11 +410,11 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
       role="dialog"
       transition={{ duration: reduced ? 0.15 : 0.25, ease: "easeOut" }}
     >
-      <div className="flex items-center justify-between border-b border-zinc-900/[0.06] px-5 py-3">
+      <div className="flex items-center justify-between border-b border-border px-5 py-3">
         <Wordmark />
         <button
           aria-label="Close menu"
-          className="flex size-11 items-center justify-center rounded-full border border-zinc-900/10 text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+          className="flex size-11 items-center justify-center rounded-full border border-border text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           onClick={onClose}
           ref={closeRef}
           type="button"
@@ -434,14 +434,14 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
       </div>
 
       <nav aria-label="Mobile" className="flex-1 overflow-y-auto px-5 py-4">
-        <ul className="divide-y divide-zinc-900/[0.06]">
+        <ul className="divide-y divide-border">
           {MENUS.map((m) => {
             const isOpen = expanded === m.key;
             return (
               <li key={m.key}>
                 <button
                   aria-expanded={isOpen}
-                  className="flex w-full items-center justify-between py-4 text-left text-[17px] font-semibold text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                  className="flex w-full items-center justify-between py-4 text-left text-[17px] font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                   onClick={() => setExpanded(isOpen ? null : m.key)}
                   type="button"
                 >
@@ -470,11 +470,11 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
                               onClick={onClose}
                             >
                               <span className="min-w-0">
-                                <span className="block text-[15px] font-medium text-zinc-800">
+                                <span className="block text-[15px] font-medium text-foreground">
                                   {item.title}
                                 </span>
                                 {item.desc ? (
-                                  <span className="mt-0.5 block text-[12.5px] leading-snug text-zinc-500">
+                                  <span className="mt-0.5 block text-[12.5px] leading-snug text-muted-foreground">
                                     {item.desc}
                                   </span>
                                 ) : null}
@@ -492,7 +492,7 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
           {PLAIN_LINKS.map((l) => (
             <li key={l.href}>
               <Link
-                className="block py-4 text-[17px] font-semibold text-zinc-900"
+                className="block py-4 text-[17px] font-medium text-foreground"
                 href={l.href}
                 onClick={onClose}
               >
@@ -503,16 +503,16 @@ function MobileOverlay({ onClose }: { onClose: () => void }) {
         </ul>
       </nav>
 
-      <div className="grid grid-cols-2 gap-3 border-t border-zinc-900/[0.06] px-5 py-4">
+      <div className="grid grid-cols-2 gap-3 border-t border-border px-5 py-4">
         <Link
-          className="flex min-h-11 items-center justify-center rounded-lg bg-zinc-100 text-sm font-semibold text-zinc-900"
+          className="flex min-h-11 items-center justify-center rounded-lg bg-muted text-sm font-medium text-foreground"
           href="/sign-in"
           onClick={onClose}
         >
           Login
         </Link>
         <Link
-          className="flex min-h-11 items-center justify-center rounded-lg bg-zinc-900 text-sm font-semibold text-white"
+          className="flex min-h-11 items-center justify-center rounded-lg bg-foreground text-sm font-medium text-white"
           href="/sign-up"
           onClick={onClose}
         >
@@ -569,7 +569,7 @@ export function MarketingNav() {
       <AnnouncementBanner />
       <header className="sticky top-0 z-50">
         <div
-          className="relative border-b border-zinc-900/[0.06] bg-white/90 backdrop-blur-xl"
+          className="relative border-b border-border bg-white/90 backdrop-blur-xl"
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           onMouseLeave={close}
@@ -589,11 +589,11 @@ export function MarketingNav() {
                   aria-expanded={open === m.key}
                   aria-haspopup="true"
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-900/[0.05] hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900",
-                    open === m.key && "bg-zinc-900/[0.05] text-zinc-950",
+                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
+                    open === m.key && "bg-muted text-foreground",
                     // The flagship chip, like the reference's highlighted AI item.
                     m.chip &&
-                      "border border-zinc-900/10 bg-zinc-50 pl-2.5 hover:bg-zinc-100",
+                      "border border-border bg-muted pl-2.5 hover:bg-muted",
                   )}
                   key={m.key}
                   onClick={() => setOpen(open === m.key ? null : m.key)}
@@ -610,7 +610,7 @@ export function MarketingNav() {
               ))}
               {PLAIN_LINKS.map((l) => (
                 <Link
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-900/[0.05] hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                   href={l.href}
                   key={l.href}
                   onFocus={close}
@@ -626,19 +626,19 @@ export function MarketingNav() {
             {/* Desktop auth */}
             <div className="hidden items-center gap-2.5 lg:flex">
               <Link
-                className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:text-zinc-950 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                 href="/company"
               >
                 Contact sales
               </Link>
               <Link
-                className="rounded-lg bg-zinc-100 px-4 py-2 text-sm font-semibold text-zinc-900 transition-colors hover:bg-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-zinc-900"
+                className="rounded-lg bg-muted px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring"
                 href="/sign-in"
               >
                 Login
               </Link>
               <Link
-                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+                className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 href="/sign-up"
               >
                 Sign up
@@ -649,7 +649,7 @@ export function MarketingNav() {
             <button
               aria-expanded={mobileOpen}
               aria-label="Open menu"
-              className="flex size-11 items-center justify-center rounded-lg text-zinc-900 lg:hidden"
+              className="flex size-11 items-center justify-center rounded-lg text-foreground lg:hidden"
               onClick={() => setMobileOpen(true)}
               type="button"
             >
@@ -672,7 +672,7 @@ export function MarketingNav() {
             {open && (
               <motion.div
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute inset-x-0 top-full hidden border-b border-zinc-900/[0.08] bg-white shadow-[0_32px_64px_rgba(15,23,42,0.10)] lg:block"
+                className="absolute inset-x-0 top-full hidden border-b border-border bg-white shadow-[0_32px_64px_rgba(15,23,42,0.10)] lg:block"
                 exit={{ opacity: 0, y: -8 }}
                 id={`nav-panel-${open}`}
                 initial={

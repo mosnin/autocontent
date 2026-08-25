@@ -19,7 +19,7 @@ const DESCRIPTION =
 const URL = "https://marketer.sh/resources/guides/seo-articles";
 
 export const metadata: Metadata = {
-  title: `${TITLE} — marketer.sh`,
+  title: `${TITLE} · marketer.sh`,
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION, type: "article" },
   alternates: { canonical: URL },
@@ -80,7 +80,7 @@ const SECTIONS: GuideSection[] = [
           ]}
         />
         <div className="os-mt-24">
-          <MediaCard kind="illustration" label="Guide diagram — article pipeline" ratio="16/9" />
+          <MediaCard kind="illustration" label="Guide diagram - article pipeline" ratio="16/9" />
         </div>
       </>
     ),

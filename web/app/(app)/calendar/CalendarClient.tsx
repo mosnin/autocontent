@@ -1,7 +1,7 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table, ported to the
-// calendar agenda — same TanStack table anatomy (toolbar with search +
+// calendar agenda - same TanStack table anatomy (toolbar with search +
 // filter dropdown, sortable headers, row-selection checkbox column,
 // template badge palette, full pagination footer) as
 // components/square/campaigns-table.tsx. Adaptations are real-data
@@ -9,12 +9,12 @@
 //   - mock `campaigns` become the polled `items` (real CalendarItem[]);
 //     columns map to real fields: date/time (item.at), niche (resolved
 //     via the server-fetched niche id -> title map, mirroring
-//     queue/QueueClient.tsx — real title or "—" if unknown), platform
-//     (existing platform logos kept, "—" for kinds with no platform),
+//     queue/QueueClient.tsx - real title or "-" if unknown), platform
+//     (existing platform logos kept, "-" for kinds with no platform),
 //     type (video/article/ad), status (mapped onto the template's badge
 //     tones across all three kinds' real status enums).
 //   - the template's status "Filter" dropdown becomes the real look-ahead
-//     range picker (7/30/90 days) — same range state, same SWR key/fetch,
+//     range picker (7/30/90 days) - same range state, same SWR key/fetch,
 //     same fallbackData/keepPreviousData behavior as before.
 //   - the template's zustand store becomes local state (same technique as
 //     campaigns-table.tsx / QueueClient.tsx).
@@ -22,7 +22,7 @@
 //     (/queue/[id], /articles/[id], /ads/campaigns/[id]).
 //   - template columns with no real counterpart (avatar image, budget,
 //     ends, objective, New-campaign action) are dropped rather than
-//     faked — the calendar has no creation entry point of its own.
+//     faked - the calendar has no creation entry point of its own.
 
 import * as React from "react";
 import Link from "next/link";
@@ -169,7 +169,7 @@ function StatusBadge({ item }: { item: CalendarItem }) {
     else if (s === "failed") tone = "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900";
     else if (ARTICLE_IN_PROGRESS.has(s)) tone = "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 dark:border-blue-900";
   } else {
-    // ad: raw backend status string, no enum on the client — bucket by
+    // ad: raw backend status string, no enum on the client - bucket by
     // keyword the same way the other kinds bucket their real enums.
     const s = item.status.toLowerCase();
     if (s.includes("fail")) tone = "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900";
@@ -309,7 +309,7 @@ export function CalendarClient({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground truncate max-w-[200px] inline-block align-middle">
-            {nicheTitles[row.original.niche_id] ?? "—"}
+            {nicheTitles[row.original.niche_id] ?? "-"}
           </span>
         ),
       },
@@ -321,7 +321,7 @@ export function CalendarClient({
         ),
         cell: ({ row }) => {
           const platform = row.original.platform;
-          if (!platform) return <span className="text-sm text-muted-foreground">—</span>;
+          if (!platform) return <span className="text-sm text-muted-foreground">-</span>;
           return (
             <span className="flex items-center gap-1.5 text-sm">
               <PlatformIcon platform={platform} />
@@ -392,7 +392,7 @@ export function CalendarClient({
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused - {error.message ?? "fetch failed"}
         </p>
       )}
 

@@ -140,7 +140,7 @@ export function MediaClient() {
 
       <p className="text-xs text-muted-foreground">
         Images are stored on the web server&apos;s disk. On ephemeral hosting
-        they survive until the instance recycles — re-upload or move storage
+        they survive until the instance recycles - re-upload or move storage
         to a bucket before relying on them in production.
       </p>
     </div>

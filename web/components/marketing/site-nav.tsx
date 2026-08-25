@@ -23,7 +23,7 @@ export function SiteNav() {
     <header className="sticky top-0 z-50 border-b border-border/40 bg-background/70 backdrop-blur-md">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between px-6">
         <Link className="flex items-center gap-2.5" href="/">
-          {/* Mark: a closed loop — literally the product. */}
+          {/* Mark: a closed loop - literally the product. */}
           <svg
             aria-hidden
             className="size-5 text-brand"
@@ -36,7 +36,7 @@ export function SiteNav() {
             <path d="M21 12a9 9 0 1 1-2.64-6.36" />
             <path d="M21 3v6h-6" />
           </svg>
-          <span className="text-sm font-semibold tracking-tight">
+          <span className="text-sm font-medium tracking-tight">
             marketer.sh
           </span>
         </Link>

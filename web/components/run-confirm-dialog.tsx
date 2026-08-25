@@ -68,7 +68,7 @@ export function RunConfirmProvider({ children }: { children: React.ReactNode }) 
   );
 }
 
-// Verbatim recording indicator — a brand dot with a slow ping halo.
+// Verbatim recording indicator - a brand dot with a slow ping halo.
 function RecordingDot() {
   return (
     <span aria-hidden className="relative flex size-2">

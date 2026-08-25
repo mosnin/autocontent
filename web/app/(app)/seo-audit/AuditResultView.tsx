@@ -8,7 +8,7 @@
 // rule did not apply to this page, so it was removed from its category's
 // denominator entirely. It is rendered muted, labelled "Didn't apply", shows
 // no points (its max_score is 0 by construction), and is grouped after the
-// scored rules — never in the destructive register.
+// scored rules - never in the destructive register.
 
 import * as React from "react";
 import {
@@ -62,7 +62,7 @@ async function copyText(text: string, what: string) {
     await navigator.clipboard.writeText(text);
     toast.success(`${what} copied`);
   } catch {
-    toast.error("Your browser blocked the clipboard — select and copy manually.");
+    toast.error("Your browser blocked the clipboard - select and copy manually.");
   }
 }
 
@@ -105,7 +105,7 @@ function RuleRow({ item }: { item: AuditItem }) {
         {item.evidence ? (
           <p className="text-xs text-muted-foreground">{item.evidence}</p>
         ) : null}
-        {/* An N/A rule has no recommendation worth acting on — showing one
+        {/* An N/A rule has no recommendation worth acting on - showing one
             would re-import it as work. */}
         {!isNa && item.status !== "pass" && item.recommendation ? (
           <p className="text-xs text-foreground/80">
@@ -166,7 +166,7 @@ function CategoryCard({ category }: { category: AuditCategory }) {
             <span className="inline-flex items-center gap-1">
               <CircleSlash className="size-3" aria-hidden />
               {category.na_excluded} rule{category.na_excluded === 1 ? "" : "s"} didn&apos;t
-              apply — excluded from this category&apos;s total
+              apply - excluded from this category&apos;s total
             </span>
           ) : null}
           <span className="ml-auto underline-offset-2 hover:underline">
@@ -205,7 +205,7 @@ function ScrapeNotice({ audit }: { audit: StoredAudit["audit"] }) {
               : ""}
             .{" "}
             {degraded
-              ? "A partial fetch depresses structure and schema rules — a low score here may say more about the fetch than the page."
+              ? "A partial fetch depresses structure and schema rules - a low score here may say more about the fetch than the page."
               : null}
           </p>
         </div>
@@ -225,7 +225,7 @@ export function AuditResultView({ stored }: { stored: StoredAudit }) {
   return (
     <div className="space-y-6">
       {/* The verdict. The score is the headline, so it is set at display
-          scale in mono — and the four status counts sit beside it as peers
+          scale in mono - and the four status counts sit beside it as peers
           rather than as a footnote, because "didn't apply" is a distinct
           outcome from "failed" and the scoring model depends on the reader
           understanding that. */}
@@ -386,7 +386,7 @@ export function AuditResultView({ stored }: { stored: StoredAudit }) {
       </Section>
 
       {/* What the rules actually saw. These are the inputs behind every
-          verdict above, so they belong on the page — an audit you cannot
+          verdict above, so they belong on the page - an audit you cannot
           check is just an opinion with a number on it. */}
       <Section label="What we parsed">
         <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 lg:grid-cols-7">

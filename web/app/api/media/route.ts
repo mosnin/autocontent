@@ -8,7 +8,7 @@ import { requireAdmin } from "@/lib/require-admin";
 // Runtime store for admin-uploaded media. Files live on the web server's
 // disk (data/media under the app root) so uploads work anywhere `next
 // start` runs on a node host; on ephemeral/serverless hosts uploads last
-// until the instance recycles — the admin UI says so.
+// until the instance recycles - the admin UI says so.
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

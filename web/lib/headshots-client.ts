@@ -1,7 +1,7 @@
 // Client-safe typed client for the Headshot Studio API (/api/v1/headshots).
 // SWR keys are plain backend paths (clientFetch prefixes /api/proxy);
 // mutations POST/DELETE through the proxy so the Clerk JWT is attached
-// server-side — including the multipart source upload, which the proxy
+// server-side - including the multipart source upload, which the proxy
 // forwards as a raw binary body. Image URLs are already proxy-prefixed
 // because an <img src> can't carry a bearer token. No server-only imports.
 
@@ -12,7 +12,7 @@ const HS = "/api/v1/headshots";
 // ------------------------------------------------------------------- types
 
 /** One catalog style. The four prompt axes are exposed separately, plus
- *  `prompt_preview` — the exact language the model will be told. */
+ *  `prompt_preview` - the exact language the model will be told. */
 export interface HeadshotStyle {
   key: string;
   label: string;
@@ -69,7 +69,7 @@ export interface HeadshotSource {
 
 // Mirrors the server-side validation in marketer.headshots.pipeline, so the
 // picker can reject the obvious cases before spending an upload round-trip.
-// The server is still the authority — its rejections are surfaced verbatim.
+// The server is still the authority - its rejections are surfaced verbatim.
 export const ALLOWED_SOURCE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 export const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
 export const MAX_SOURCE_IMAGES = 6;
@@ -138,7 +138,7 @@ export function readableError(err: unknown, fallback: string): string {
     const parsed = JSON.parse(body) as { detail?: unknown };
     if (typeof parsed.detail === "string" && parsed.detail.trim()) return parsed.detail;
   } catch {
-    // Not JSON — fall through and show the raw text.
+    // Not JSON - fall through and show the raw text.
   }
   return body;
 }
@@ -166,7 +166,7 @@ async function proxy<T>(
 }
 
 /** Upload one reference photo. Sent as multipart/form-data with the field
- *  name `file` — the content-type header is deliberately NOT set so the
+ *  name `file` - the content-type header is deliberately NOT set so the
  *  browser can add the multipart boundary. */
 export async function uploadHeadshotSource(file: File): Promise<HeadshotSource> {
   const form = new FormData();

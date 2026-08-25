@@ -10,7 +10,7 @@ export default async function Queue() {
     api<Job[]>("/api/v1/jobs?limit=100"),
     api<Niche[]>("/api/v1/niches"),
   ]);
-  // Real niche_id -> title lookup for the queue table's "Niche" column —
+  // Real niche_id -> title lookup for the queue table's "Niche" column -
   // jobs only carry niche_id, so we resolve titles once server-side
   // instead of fetching per-row or fabricating labels.
   const nicheTitles = Object.fromEntries(niches.map((n) => [n.id, n.title]));

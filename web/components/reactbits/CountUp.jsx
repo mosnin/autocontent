@@ -1,6 +1,6 @@
 'use client';
 
-// CountUp from React Bits (reactbits.dev, MIT) — JavaScript variant, vendored
+// CountUp from React Bits (reactbits.dev, MIT) - JavaScript variant, vendored
 // as provided. Dependencies: motion.
 
 import { useInView, useMotionValue, useSpring } from 'motion/react';

@@ -25,11 +25,18 @@ export function LogoRow({
   names?: string[];
 }) {
   return (
-    <div className={cn("os-stack os-gap-16", className)}>
-      <p className="os-label">{label}</p>
-      <ul className="os-logos">
+    <div className={cn("space-y-3", className)}>
+      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+      </p>
+      <ul className="flex flex-wrap items-center gap-x-6 gap-y-2">
         {names.map((name) => (
-          <li key={name}>{name}</li>
+          <li
+            className="whitespace-nowrap font-display text-sm font-medium tracking-tight text-muted-foreground/90"
+            key={name}
+          >
+            {name}
+          </li>
         ))}
       </ul>
     </div>

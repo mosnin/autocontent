@@ -1,10 +1,10 @@
 // Client-safe typed client for the scheduled-posts calendar
 // (/api/v1/scheduled-posts).
 //
-// Reads use SWR keys that are plain backend paths — `clientFetch` prefixes
+// Reads use SWR keys that are plain backend paths - `clientFetch` prefixes
 // /api/proxy for us. Mutations go through the same /api/proxy/... handler so
 // the Clerk JWT is attached server-side. NOTHING here may import server-only
-// modules — this file runs in the browser.
+// modules - this file runs in the browser.
 //
 // Shapes mirror `src/marketer/scheduling/schemas.py` field for field.
 
@@ -55,7 +55,7 @@ export type PostStatus =
   | "partial"
   | "failed";
 
-/** Per-platform delivery state — one post can partially succeed. */
+/** Per-platform delivery state - one post can partially succeed. */
 export type VariantStatus = "pending" | "dispatching" | "posted" | "failed";
 
 export const MAX_CONTENT_CHARS = 5_000;
@@ -85,7 +85,7 @@ export function canPublishNow(post: ScheduledPost): boolean {
 
 /**
  * One platform's copy of one scheduled post, with its OWN delivery status.
- * `content`/`media_urls` are null when the platform inherits the parent —
+ * `content`/`media_urls` are null when the platform inherits the parent -
  * distinct from `""`, which means "this platform posts empty copy".
  */
 export interface PlatformVariant {
@@ -163,7 +163,7 @@ export interface RecurringSlot extends RecurringSlotCreate {
 }
 
 /** The CSV import report. Note the backend returns **200 even when every row
- *  failed** — this report IS the response, not an error envelope. Import is
+ *  failed** - this report IS the response, not an error envelope. Import is
  *  all-or-nothing: `created > 0` and a non-empty `errors` list only coexist
  *  when the datastore faulted mid-file. */
 export interface ImportReport {
@@ -260,7 +260,7 @@ export function deleteRecurringSlot(id: string): Promise<void> {
 }
 
 /**
- * Upload a CSV. Resolves with the per-row report on 200 — including the
+ * Upload a CSV. Resolves with the per-row report on 200 - including the
  * all-failed case, which is NOT an exception. Only a malformed upload
  * (400) or a transport failure rejects.
  *
@@ -301,7 +301,7 @@ export function scheduledErrorMessage(e: unknown): string {
         if (first?.msg) return first.msg;
       }
     } catch {
-      /* not JSON — fall through */
+      /* not JSON - fall through */
     }
     return body || `Request failed (${e.status})`;
   }
@@ -313,7 +313,7 @@ export function isConflict(e: unknown): boolean {
   return e instanceof ApiError && e.status === 409;
 }
 
-// --- Timezone helpers (no date library — Intl only) --------------------
+// --- Timezone helpers (no date library - Intl only) --------------------
 
 /** The browser's IANA zone, or UTC when it cannot be resolved. */
 export function browserTimezone(): string {
@@ -396,7 +396,7 @@ function zoneOffsetMs(date: Date, tz: string): number {
  *
  * Two passes: the first guess uses the offset at the wrong instant, the
  * second corrects it. That converges everywhere except inside a DST spring
- * gap, where the result lands on the hour the zone actually has — which is
+ * gap, where the result lands on the hour the zone actually has - which is
  * the same thing every date library does.
  */
 export function wallClockToUtcIso(wall: string, tz: string): string {

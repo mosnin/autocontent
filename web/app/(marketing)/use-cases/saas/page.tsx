@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
-import { SectionCta } from "@/components/marketing/system";
-import { MediaSlot } from "@/components/site/sections";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 import {
   MockBand,
   OutcomesBand,
@@ -14,10 +13,10 @@ const DESCRIPTION =
   "A content engine for growth teams: educational shorts up the funnel, comparison articles with FAQ JSON-LD at the bottom, and metrics that feed ideation.";
 
 export const metadata: Metadata = {
-  title: "SaaS — marketer.sh",
+  title: "SaaS · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "SaaS — marketer.sh",
+    title: "SaaS · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -31,7 +30,7 @@ export default function SaasPage() {
         headline={["The content engine", "you never staffed."]}
         kicker="For SaaS growth teams"
         lede="Educational shorts at the top of the funnel, comparison articles at the bottom, and every post's metrics feeding the next round. No new headcount."
-        placeholderLabel="SaaS teams in the product — hero still"
+        placeholderLabel="SaaS teams in the product - hero still"
         placeholderTone="sky"
         scene="tide"
       />
@@ -81,11 +80,13 @@ export default function SaasPage() {
         lede="A published short's numbers, and the two ideas it just earned: a sibling short and a bottom-funnel comparison article."
         scene="tide"
       >
-        <MediaSlot
-          className="os-aspect-43"
-          kind="image"
-          label="SaaS workflow — screenshot"
-        />
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-border shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+          <TaggedPlaceholder
+            kind="image"
+            label="SaaS workflow - screenshot"
+            tone="sky"
+          />
+        </div>
       </MockBand>
       <OutcomesBand
         heading="A funnel that feeds itself."

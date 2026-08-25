@@ -4,7 +4,7 @@ import { Body, Chip, Title } from "@/components/site/sections";
 import { cn } from "@/lib/utils";
 
 export interface RailStep {
-  /** The stage's own name — ideally the literal status the product uses. */
+  /** The stage's own name - ideally the literal status the product uses. */
   label: string;
   copy: string;
   /** Mono chip naming the artifact or guarantee the stage produces. */

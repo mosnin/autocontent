@@ -1,6 +1,6 @@
 'use client';
 
-// RotatingText from React Bits (reactbits.dev, MIT) — JavaScript + CSS variant,
+// RotatingText from React Bits (reactbits.dev, MIT) - JavaScript + CSS variant,
 // vendored as provided. Dependencies: motion.
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';

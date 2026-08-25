@@ -96,7 +96,7 @@ export function AuditClient({
   );
 
   // Reload from scratch whenever the applied filters change (but not on the
-  // initial mount — the server already provided that page).
+  // initial mount - the server already provided that page).
   React.useEffect(() => {
     if (!mounted.current) {
       mounted.current = true;
@@ -215,7 +215,7 @@ export function AuditClient({
         <div className="flex justify-center">
           {done ? (
             <p className="text-xs text-muted-foreground">
-              End of log — {entries.length} entr
+              End of log - {entries.length} entr
               {entries.length === 1 ? "y" : "ies"} shown.
             </p>
           ) : (
@@ -293,7 +293,7 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
           {entry.target_id ? ` · ${entry.target_id}` : ""}
         </TableCell>
         <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">
-          {entry.ip ?? "—"}
+          {entry.ip ?? "-"}
         </TableCell>
         <TableCell
           className="tabular-nums text-muted-foreground"

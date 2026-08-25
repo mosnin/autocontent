@@ -2,7 +2,7 @@
 
 // One Ad Run: the Brief the plan was built from, then the gallery.
 //
-// The Brief is shown because it is the auditable part — the brand facts,
+// The Brief is shown because it is the auditable part - the brand facts,
 // palette, and mood the copy and artwork were derived from. If an ad looks
 // wrong, this is where you find out why before re-running anything.
 

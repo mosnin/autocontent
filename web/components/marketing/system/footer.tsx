@@ -93,14 +93,14 @@ const SOCIALS: Array<{ label: string; href: string; path: React.ReactNode }> = [
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-zinc-900/[0.06] bg-white">
+    <footer className="border-t border-border bg-white">
       <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
         <div className="grid gap-12 md:grid-cols-[1.3fr_repeat(5,1fr)] md:gap-8">
           <div>
             <Link className="flex items-center gap-2" href="/">
               <svg
                 aria-hidden
-                className="size-[18px] text-zinc-900"
+                className="size-[18px] text-foreground"
                 fill="none"
                 stroke="currentColor"
                 strokeLinecap="round"
@@ -110,11 +110,11 @@ export function MarketingFooter() {
                 <path d="M21 12a9 9 0 1 1-2.64-6.36" />
                 <path d="M21 3v6h-6" />
               </svg>
-              <span className="font-display text-[15px] font-semibold tracking-tight text-zinc-900">
+              <span className="font-display text-[15px] font-medium tracking-tight text-foreground">
                 marketer.sh
               </span>
             </Link>
-            <p className="mt-4 max-w-[26ch] text-sm leading-relaxed text-zinc-500">
+            <p className="mt-4 max-w-[26ch] text-sm leading-relaxed text-muted-foreground">
               The autonomous marketing platform. One brief in, video and
               articles out, every dollar under a cap.
             </p>
@@ -122,7 +122,7 @@ export function MarketingFooter() {
               {SOCIALS.map((s) => (
                 <a
                   aria-label={s.label}
-                  className="flex size-9 items-center justify-center rounded-full border border-zinc-900/10 text-zinc-500 transition-colors hover:border-zinc-900/25 hover:text-zinc-900"
+                  className="flex size-9 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-border hover:text-foreground"
                   href={s.href}
                   key={s.label}
                   rel="noreferrer"
@@ -142,14 +142,14 @@ export function MarketingFooter() {
 
           {COLUMNS.map((col) => (
             <nav aria-label={col.heading} key={col.heading}>
-              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-zinc-400">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 {col.heading}
               </p>
               <ul className="mt-4 space-y-2.5">
                 {col.links.map((l) => (
                   <li key={`${l.href}-${l.label}`}>
                     <Link
-                      className="text-sm text-zinc-600 transition-colors hover:text-zinc-900"
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                       href={l.href}
                     >
                       {l.label}
@@ -161,7 +161,7 @@ export function MarketingFooter() {
           ))}
         </div>
 
-        <div className="mt-14 flex flex-col gap-4 border-t border-zinc-900/[0.06] pt-6 text-xs text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-14 flex flex-col gap-4 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} marketer.sh. All rights reserved.</p>
           <p className="flex items-center gap-1.5">
             Built for humans and their agents.

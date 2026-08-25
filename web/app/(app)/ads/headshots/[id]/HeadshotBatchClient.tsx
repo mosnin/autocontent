@@ -195,7 +195,7 @@ export function HeadshotBatchClient({
         </div>
         {canRetryBatch(batch) ? (
           <p className="text-xs text-muted-foreground">
-            Retry re-renders only the variants with nothing to show — the
+            Retry re-renders only the variants with nothing to show - the
             portraits above are never bought twice.
           </p>
         ) : null}

@@ -4,7 +4,7 @@ import { animate, inView } from "motion";
 import type { AnimationOptions, DOMKeyframesDefinition } from "motion";
 
 /**
- * Scroll reveals — a transcription of the Framer appear effects the stripped
+ * Scroll reveals - a transcription of the Framer appear effects the stripped
  * runtime used to run.
  *
  * The values below are not tuned by eye. They are lifted from the site's own
@@ -22,17 +22,17 @@ import type { AnimationOptions, DOMKeyframesDefinition } from "motion";
  * curve a `bounce: 0` duration spring produces.
  *
  * Three distinct configs exist on this page:
- *   A  spring, bounce 0, duration 1s, delay 200ms  — 10 nodes (headings, hero)
- *   B  spring, bounce 0, duration 1s, delay 300ms  —  9 nodes (the body/media
+ *   A  spring, bounce 0, duration 1s, delay 200ms  - 10 nodes (headings, hero)
+ *   B  spring, bounce 0, duration 1s, delay 300ms  -  9 nodes (the body/media
  *      block that follows each heading, hence the 100ms offset)
  *   C  tween, 700ms, cubic-bezier(.21,.99,.33,1.04), delay 200ms, threshold .5
- *      — 1 node (the tall "Line" column in Features)
+ *      - 1 node (the tall "Line" column in Features)
  *
  * Trigger: Framer's own predicate is
  *   height === 0 ? isIntersecting
  *                : isIntersecting &&
  *                  intersectionRect.height / min(rect.height, innerHeight) >= threshold
- * observed with `threshold: [0, .01, … .99]` and no root margin — reproduced
+ * observed with `threshold: [0, .01, … .99]` and no root margin - reproduced
  * verbatim in `observeAppear` below. With threshold 0 that means "the moment
  * one pixel crosses the viewport edge"; `animateOnce` means it never reverses.
  *
@@ -59,7 +59,7 @@ const SPRING_DELAY_200: AnimationOptions = {
   delay: 0.2,
 };
 
-/** B: 9 nodes — the same spring, offset 100ms behind its heading. */
+/** B: 9 nodes - the same spring, offset 100ms behind its heading. */
 const SPRING_DELAY_300: AnimationOptions = {
   type: "spring",
   bounce: 0,
@@ -92,7 +92,7 @@ type AppearConfig = { transition: AnimationOptions; threshold: number };
  * Framer's class hashes are stable per element, and page-full.tsx reproduces
  * them, so they are the join key between the bundle's config and the DOM.
  * Classes listed twice in the markup (responsive ssr-variants) are covered by
- * `querySelectorAll` — the hidden variants never intersect, so they never play.
+ * `querySelectorAll` - the hidden variants never intersect, so they never play.
  */
 const APPEAR_BY_CLASS: Record<string, AppearConfig> = {
   // Hero
@@ -257,7 +257,7 @@ export function initReveal(root: HTMLElement): (() => void) | void {
     running.push(controls);
   };
 
-  // 1. Box reveals — one observer, Framer's own visibility predicate.
+  // 1. Box reveals - one observer, Framer's own visibility predicate.
   if (pendingNodes.length > 0) {
     const configs = new WeakMap<Element, AppearConfig>();
     const observer = new IntersectionObserver(
@@ -281,7 +281,7 @@ export function initReveal(root: HTMLElement): (() => void) | void {
     }
   }
 
-  // 2. Split text — per-line stagger, triggered at 50% of the block.
+  // 2. Split text - per-line stagger, triggered at 50% of the block.
   for (const [container, tokens] of pendingTexts) {
     // Framer guards its own effect with `hasAnimatedOnce`, so scrolling the
     // headline out and back never replays it. `inView` fires on every entry,

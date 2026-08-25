@@ -1,8 +1,53 @@
 import * as React from "react";
 
-import { VignetteCard, type VignetteScene } from "@/components/marketing/system";
-import { CardGrid, CardLink, Section } from "@/components/site/sections";
-import { StageMedia } from "@/components/marketing/features/stage-media";
+import {
+  Stagger,
+  TaggedPlaceholder,
+  VignetteCard,
+  type VignetteScene,
+} from "@/components/marketing/system";
+
+/**
+ * Fills the VignetteCard's padded vignette frame edge to edge: the frame
+ * (in `system/vignette-card.tsx`) sets aspect + rounding + overflow-hidden
+ * and is `relative`, so an absolutely positioned child that cancels the
+ * frame's own padding covers it exactly.
+ */
+function CardPlaceholder({
+  label,
+  tone,
+}: {
+  label: string;
+  tone: "warm" | "sky" | "violet" | "slate" | "rose";
+}) {
+  return (
+    <div className="absolute -inset-5 sm:-inset-6">
+      <TaggedPlaceholder kind="image" label={label} tone={tone} />
+    </div>
+  );
+}
+
+/** Quiet "See how" arrow row pinned to the card bottom. */
+function SeeHow() {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+      See how
+      <svg
+        aria-hidden
+        className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+      >
+        <path d="M5 12h14" />
+        <path d="m13 6 6 6-6 6" />
+      </svg>
+    </span>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* The six cards                                                       */
@@ -21,7 +66,7 @@ const CASES: Array<{
     promise: "Daily shorts without the editing days.",
     scene: "dusk",
     vignette: (
-      <StageMedia kind="image" label="Creators workflow — screenshot" />
+      <CardPlaceholder label="Creators workflow - screenshot" tone="warm" />
     ),
   },
   {
@@ -30,7 +75,7 @@ const CASES: Array<{
     promise: "Every product line becomes a content engine.",
     scene: "warm",
     vignette: (
-      <StageMedia kind="image" label="Ecommerce workflow — screenshot" />
+      <CardPlaceholder label="Ecommerce workflow - screenshot" tone="rose" />
     ),
   },
   {
@@ -38,7 +83,7 @@ const CASES: Array<{
     title: "SaaS",
     promise: "Shorts that teach, articles that convert.",
     scene: "sky",
-    vignette: <StageMedia kind="image" label="SaaS workflow — screenshot" />,
+    vignette: <CardPlaceholder label="SaaS workflow - screenshot" tone="sky" />,
   },
   {
     href: "/use-cases/agencies",
@@ -46,7 +91,7 @@ const CASES: Array<{
     promise: "Every client on its own budget and gate.",
     scene: "pearl",
     vignette: (
-      <StageMedia kind="image" label="Agencies workflow — screenshot" />
+      <CardPlaceholder label="Agencies workflow - screenshot" tone="violet" />
     ),
   },
   {
@@ -55,7 +100,10 @@ const CASES: Array<{
     promise: "Show up every week without a marketing hire.",
     scene: "dawn",
     vignette: (
-      <StageMedia kind="image" label="Local business workflow — screenshot" />
+      <CardPlaceholder
+        label="Local business workflow - screenshot"
+        tone="slate"
+      />
     ),
   },
   {
@@ -64,7 +112,7 @@ const CASES: Array<{
     promise: "Your agents are the marketing team.",
     scene: "mist",
     vignette: (
-      <StageMedia kind="image" label="AI agents workflow — screenshot" />
+      <CardPlaceholder label="AI agents workflow - screenshot" tone="warm" />
     ),
   },
 ];
@@ -72,16 +120,23 @@ const CASES: Array<{
 /**
  * The hub's six cards, one per audience: a product vignette staged on
  * that audience's scene wash, the audience name, and its one-line
- * promise (Amendment 2 card language — no decorative icons).
+ * promise (Amendment 2 card language - no decorative icons).
  */
 export function HubGrid() {
   return (
-    <Section label="Use cases">
-      <CardGrid>
+    <section
+      aria-label="Use cases"
+      className="mx-auto max-w-6xl px-6 py-16 md:py-24"
+    >
+      <Stagger
+        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+        gap={0.06}
+        itemClassName="h-full"
+      >
         {CASES.map((c) => (
           <VignetteCard
             description={c.promise}
-            footer={<CardLink>See how</CardLink>}
+            footer={<SeeHow />}
             href={c.href}
             key={c.href}
             scene={c.scene}
@@ -89,7 +144,7 @@ export function HubGrid() {
             vignette={c.vignette}
           />
         ))}
-      </CardGrid>
-    </Section>
+      </Stagger>
+    </section>
   );
 }

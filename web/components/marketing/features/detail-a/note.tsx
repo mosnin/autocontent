@@ -4,7 +4,7 @@ import { Body, Title } from "@/components/site/sections";
 import { cn } from "@/lib/utils";
 
 /**
- * The accent-ruled aside (`os-callout`) used to state a limit out loud —
+ * The accent-ruled aside (`os-callout`) used to state a limit out loud -
  * what a pipeline refuses to do, or what it will never charge for. The
  * marketing pages lean on it instead of inventing a "warning" colour.
  */

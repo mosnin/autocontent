@@ -2,7 +2,7 @@
 // (/api/v1/ad-creatives). SWR keys are plain backend paths (clientFetch
 // prefixes /api/proxy); mutations POST through the proxy so the Clerk JWT is
 // attached server-side. Image URLs are already proxy-prefixed because an
-// <img src> can't carry a bearer token. No server-only imports — this runs in
+// <img src> can't carry a bearer token. No server-only imports - this runs in
 // the browser.
 
 import { clientFetch } from "@/lib/client-fetcher";
@@ -11,7 +11,7 @@ const ADC = "/api/v1/ad-creatives";
 
 // ------------------------------------------------------------------- types
 
-/** One extracted brand color. `hex` is display-only — it never reaches a
+/** One extracted brand color. `hex` is display-only - it never reaches a
  *  prompt (the backend sends plain-English phrases as color_a/color_b). */
 export interface AdBrandColor {
   hex: string;

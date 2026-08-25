@@ -2,7 +2,7 @@
 "use client";
 
 /**
- * Orb glow — Figma "Mask group" (2282:6149) + "Rectangle 1430107388".
+ * Orb glow - Figma "Mask group" (2282:6149) + "Rectangle 1430107388".
  *
  * Everything is inline SVG, sized relative to the sphere it sits behind, so the
  * glow scales with the sphere instead of a fixed export box. Figma clipped the
@@ -83,7 +83,7 @@ export const MaskGroup = ({ size, className = "" }: MaskGroupProps) => {
         </defs>
       </svg>
 
-      {/* Halo — two blurred ellipses, the second plus-lighter */}
+      {/* Halo - two blurred ellipses, the second plus-lighter */}
       <svg
         className="absolute"
         style={{

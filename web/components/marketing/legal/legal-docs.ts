@@ -1,4 +1,4 @@
-// One source of truth for the legal document set — consumed by the legal
+// One source of truth for the legal document set - consumed by the legal
 // sidebar nav, the footer, and the sitemap. Text-first; no icons anywhere in
 // the legal surface.
 
@@ -47,5 +47,5 @@ export const LEGAL_DOCS: LegalDoc[] = [
   },
 ];
 
-/** Last substantive revision — one date across the set keeps them coherent. */
+/** Last substantive revision - one date across the set keeps them coherent. */
 export const LEGAL_EFFECTIVE = "July 15, 2026";

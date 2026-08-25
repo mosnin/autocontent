@@ -1,24 +1,8 @@
 import * as React from "react";
 
-import {
-  Body,
-  Eyebrow,
-  Heading,
-  Lede as SiteLede,
-} from "@/components/site/sections";
 import { cn } from "@/lib/utils";
 
-/**
- * The page typography, expressed in the transcribed site's language.
- *
- * These three names are what every marketing page imports, so rather than
- * changing forty call sites they now delegate to the section primitives in
- * `components/site/sections`: the mono uppercase eyebrow chip, the heavy
- * display heading, and the Inter Display standfirst. Colour and face live in
- * `sections.css` — nothing here paints.
- */
-
-/** Uppercase mono eyebrow above a heading. */
+/** Tiny uppercase label used in menus and legal nav - never a colored kicker. */
 export function Kicker({
   children,
   className,
@@ -26,36 +10,48 @@ export function Kicker({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <Eyebrow className={className}>{children}</Eyebrow>;
+  return (
+    <p
+      className={cn(
+        "text-muted-foreground text-[11px] font-medium tracking-wider uppercase",
+        className,
+      )}
+    >
+      {children}
+    </p>
+  );
 }
 
 /**
- * Display heading in the site's display face. `level` controls the tag
- * (exactly one h1 per page); `size` the scale. `highlight` accents one
- * phrase in teal, the way each homepage section does.
+ * Display heading matching the Cortex section title: medium weight,
+ * tight tracking, clamp scale.
  */
 export function DisplayHeading({
   children,
   className,
   level = 2,
   size = "lg",
-  highlight,
 }: {
   children: React.ReactNode;
   className?: string;
   level?: 1 | 2 | 3;
   size?: "xl" | "lg" | "md";
-  highlight?: string;
 }) {
+  const Tag = (`h${level}`) as "h1" | "h2" | "h3";
   return (
-    <Heading
-      className={className}
-      highlight={highlight}
-      level={level}
-      size={size}
+    <Tag
+      className={cn(
+        "text-foreground font-medium tracking-tight text-balance",
+        size === "xl" &&
+          "text-[clamp(44px,7.5vw,84px)] leading-[1.02]",
+        size === "lg" &&
+          "text-[clamp(30px,4.5vw,52px)] leading-[1.05]",
+        size === "md" && "text-2xl leading-tight md:text-3xl",
+        className,
+      )}
     >
       {children}
-    </Heading>
+    </Tag>
   );
 }
 
@@ -67,16 +63,14 @@ export function Lede({
   children: React.ReactNode;
   className?: string;
 }) {
-  return <SiteLede className={className}>{children}</SiteLede>;
-}
-
-/** Small supporting copy — captions, notes, card bodies. */
-export function Note({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return <Body className={cn(className)}>{children}</Body>;
+  return (
+    <p
+      className={cn(
+        "text-muted-foreground max-w-xl text-base leading-relaxed",
+        className,
+      )}
+    >
+      {children}
+    </p>
+  );
 }

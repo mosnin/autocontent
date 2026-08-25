@@ -3,7 +3,7 @@
 // Media library: every produced asset in one place.
 //
 // - "Final videos": published-grade renders (pipeline finals + remixes).
-// - "Clips": individual scene clips — multi-select any set of them and
+// - "Clips": individual scene clips - multi-select any set of them and
 //   create a *remix* (a new video concatenated server-side).
 // - "Remixes": composition status list; done ones play inline.
 //
@@ -15,7 +15,7 @@
 // the template's table anatomy (components/square/ui/table) for the
 // Remixes list, which is tabular (title, clips, created, status,
 // preview). Tabs has no square/ui counterpart, so it stays the existing
-// app primitive (@/components/ui/tabs) — same precedent as the niches
+// app primitive (@/components/ui/tabs) - same precedent as the niches
 // port. The asset grid keeps its real video/image previews exactly as
 // wired today; no logic changes anywhere in this file.
 
@@ -55,7 +55,7 @@ function mediaUrl(assetId: string): string {
 }
 
 /** Ops strip for the carousel/still pipeline: live status per post plus
- *  the two operator verbs — approve (awaiting_approval) and retry
+ *  the two operator verbs - approve (awaiting_approval) and retry
  *  (failed). Terminal successes disappear into the asset grid below. */
 function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string }) {
   const { data: posts, mutate } = useSWR<ImagePost[]>(
@@ -219,7 +219,7 @@ export function LibraryClient({
         title,
         audio_mode: "keep",
       });
-      toast.success("Remix queued — rendering now");
+      toast.success("Remix queued - rendering now");
       setSelected([]);
       setTitle("");
       await mutateCompositions();
@@ -233,7 +233,7 @@ export function LibraryClient({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <DashHeading as="h1" sub="Every video and clip you've produced — play, sort, remix.">
+        <DashHeading as="h1" sub="Every video and clip you've produced - play, sort, remix.">
           Library
         </DashHeading>
         <Select value={nicheFilter} onValueChange={setNicheFilter}>
@@ -263,7 +263,7 @@ export function LibraryClient({
           <AssetGrid
             assets={finals ?? []}
             nicheTitle={nicheTitle}
-            empty="No final videos yet — run a job from the queue and it lands here."
+            empty="No final videos yet - run a job from the queue and it lands here."
           />
         </TabsContent>
 
@@ -303,19 +303,19 @@ export function LibraryClient({
             selectable
             selected={selected}
             onToggle={toggle}
-            empty="No clips yet — every rendered scene is saved here automatically."
+            empty="No clips yet - every rendered scene is saved here automatically."
           />
         </TabsContent>
         <TabsContent value="images" className="space-y-4 pt-4">
           {/* Images are stills (keyframes, carousel slides, remix outputs).
               They are not video clips, so the clip-remix affordance does not
-              apply here — the compositions endpoint only accepts clip/final
+              apply here - the compositions endpoint only accepts clip/final
               assets and would 422 an image selection. Plain gallery. */}
           <ImagePostsPanel nicheTitle={nicheTitle} />
           <AssetGrid
             assets={images ?? []}
             nicheTitle={nicheTitle}
-            empty="No images yet — carousel slides and image remixes land here."
+            empty="No images yet - carousel slides and image remixes land here."
           />
         </TabsContent>
 
@@ -404,13 +404,13 @@ function AssetGrid({
 
 // Composition status is tabular (title, clips, created, status, preview),
 // so it adopts the template's table anatomy (components/square/ui/table)
-// rather than the stacked Card list. No sort/search/pagination toolbar —
+// rather than the stacked Card list. No sort/search/pagination toolbar -
 // this is a small status list, not the primary campaigns-table clone.
 function CompositionList({ compositions }: { compositions: Composition[] }) {
   if (compositions.length === 0) {
     return (
       <p className="py-10 text-center text-sm text-muted-foreground">
-        No remixes yet — select clips in the Clips tab to create one.
+        No remixes yet - select clips in the Clips tab to create one.
       </p>
     );
   }
@@ -456,7 +456,7 @@ function CompositionList({ compositions }: { compositions: Composition[] }) {
                     className="aspect-[9/16] w-16 rounded bg-black object-contain"
                   />
                 ) : (
-                  <span className="text-sm text-muted-foreground">—</span>
+                  <span className="text-sm text-muted-foreground">-</span>
                 )}
               </TableCell>
             </TableRow>

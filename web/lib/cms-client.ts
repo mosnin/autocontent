@@ -1,9 +1,9 @@
 // Client-safe typed client for the article CMS (/api/v1/cms).
 //
-// Reads use SWR keys that are plain backend paths — `clientFetch` prefixes
+// Reads use SWR keys that are plain backend paths - `clientFetch` prefixes
 // /api/proxy for us. Mutations go through the same /api/proxy/... handler so
 // the Clerk JWT is attached server-side. NOTHING here may import server-only
-// modules — this file runs in the browser.
+// modules - this file runs in the browser.
 //
 // Shapes mirror `src/marketer/cms/schemas.py` field for field; the guard
 // codes mirror `src/marketer/cms/publish.py`.
@@ -12,7 +12,7 @@
 // `GET /api/v1/articles/{id}` returns the *pipeline* model, which drops
 // publication_state/published_at/scheduled_at. The only reads that expose
 // publication state are `by-slug` (published rows only) and the responses of
-// the mutations below — so the UI treats every mutation response as the
+// the mutations below - so the UI treats every mutation response as the
 // authoritative publication state and probes by-slug for the initial one.
 
 import { ApiError, clientFetch } from "@/lib/client-fetcher";
@@ -51,7 +51,7 @@ export interface CmsArticle {
   updated_at: string | null;
 }
 
-/** PATCH body — every field optional, an omitted field is untouched. */
+/** PATCH body - every field optional, an omitted field is untouched. */
 export interface ArticleEdit {
   title?: string;
   slug?: string;
@@ -142,7 +142,7 @@ export function publishBlocker(a: CmsArticle): string | null {
   if (!(a.article_markdown ?? "").trim()) return "This article has no content yet.";
   if (!(a.title ?? "").trim()) return "This article has no title yet.";
   if (a.status !== "done")
-    return `Generation is '${a.status}', not 'done' — publishing mid-run ships content that is still being rewritten.`;
+    return `Generation is '${a.status}', not 'done' - publishing mid-run ships content that is still being rewritten.`;
   if (!(a.slug ?? "").trim() && !(a.title ?? "").trim())
     return "There is no usable slug or title for a URL.";
   return null;
@@ -197,7 +197,7 @@ export function editArticle(id: string, edit: ArticleEdit): Promise<EditResult> 
   return proxyMutate<EditResult>(`${CMS}/articles/${encodeURIComponent(id)}`, "PATCH", edit);
 }
 
-/** Restore a revision's content AS A NEW revision — history is never
+/** Restore a revision's content AS A NEW revision - history is never
  *  rewound or deleted. */
 export function restoreRevision(id: string, revisionId: string): Promise<EditResult> {
   return proxyMutate<EditResult>(
@@ -207,7 +207,7 @@ export function restoreRevision(id: string, revisionId: string): Promise<EditRes
 }
 
 /** `scheduled_at: null` publishes immediately; a future instant schedules.
- *  Idempotent — a re-publish returns the article with its original
+ *  Idempotent - a re-publish returns the article with its original
  *  published_at rather than re-stamping it. */
 export function publishArticle(
   id: string,
@@ -303,7 +303,7 @@ export function cmsError(e: unknown): CmsError {
         return { status: e.status, code: null, message: first?.msg ?? body };
       }
     } catch {
-      /* not JSON — fall through */
+      /* not JSON - fall through */
     }
     return { status: e.status, code: null, message: body || `Request failed (${e.status})` };
   }

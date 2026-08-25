@@ -14,11 +14,11 @@ npm run dev
 
 ## Pages
 
-- `/` — landing.
-- `/onboarding` — niche setup wizard (TODO).
-- `/dashboard` — niches list + today's spend + next posting slot (TODO).
-- `/queue` — jobs grouped by status (TODO).
+- `/` - landing.
+- `/onboarding` - niche setup wizard (TODO).
+- `/dashboard` - niches list + today's spend + next posting slot (TODO).
+- `/queue` - jobs grouped by status (TODO).
 
 ## API client
 
-`lib/api.ts` — server-side `fetch` wrapper that attaches the Clerk JWT.
+`lib/api.ts` - server-side `fetch` wrapper that attaches the Clerk JWT.

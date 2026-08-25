@@ -206,7 +206,7 @@ export function DramasClient({
                   value={script}
                 />
                 <p className="text-[11px] text-muted-foreground">
-                  A supplied script skips the screenwriter stage entirely — and
+                  A supplied script skips the screenwriter stage entirely - and
                   never pays for it.
                 </p>
               </div>
@@ -229,7 +229,7 @@ export function DramasClient({
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground">
-                Required — the niche supplies the spend cap that gates the run.
+                Required - the niche supplies the spend cap that gates the run.
               </p>
             </div>
 

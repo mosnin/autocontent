@@ -6,7 +6,7 @@
 // source of truth for which aspect ratios, durations, resolutions and content
 // modes a model accepts, and `src/marketer/ugc/catalog.validate_params` 400s
 // anything else before a cent is spent. So every control here is rendered
-// from the selected model's declared capability — a duration renders as a
+// from the selected model's declared capability - a duration renders as a
 // slider or a fixed option set depending on `duration.kind`, and resolution /
 // mode disappear entirely for models that have no such knob (passing one is a
 // hard error, not a dropped field). Switching models re-clamps the current
@@ -159,7 +159,7 @@ function NotConfigured({ reason }: { reason: string | null }) {
             "The render provider isn't reachable from this deployment right now."}
         </p>
         <p className="max-w-md text-xs text-muted-foreground">
-          Nothing is broken and nothing was lost — the studio needs{" "}
+          Nothing is broken and nothing was lost - the studio needs{" "}
           <code className="rounded bg-muted px-1 py-0.5 font-mono">
             MARKETER_UGC_ENABLED
           </code>{" "}
@@ -196,7 +196,7 @@ export function UgcClient({
   );
 
   // Poll only while something is still in flight. `pollMs` is a stable number
-  // so SWR's interval effect re-runs exactly when the answer flips — it goes
+  // so SWR's interval effect re-runs exactly when the answer flips - it goes
   // to 0 (off) once every render is terminal, and back on when a new one is
   // queued. A permanent poll on a finished page is pure waste.
   const [pollMs, setPollMs] = React.useState(() =>
@@ -250,14 +250,14 @@ export function UgcClient({
     if (model && clamped.resolution !== params.resolution) {
       notes.push(
         clamped.resolution
-          ? `resolution ${params.resolution || "—"} → ${clamped.resolution}`
+          ? `resolution ${params.resolution || "-"} → ${clamped.resolution}`
           : `resolution dropped (${next.name} has no resolution control)`,
       );
     }
     if (model && clamped.mode !== params.mode) {
       notes.push(
         clamped.mode
-          ? `mode ${params.mode || "—"} → ${clamped.mode}`
+          ? `mode ${params.mode || "-"} → ${clamped.mode}`
           : `content mode dropped (${next.name} has none)`,
       );
     }
@@ -462,7 +462,7 @@ export function UgcClient({
                     />
                   ) : (
                     <p className="text-[11px] text-muted-foreground">
-                      {model.name} has no resolution parameter — its output size is
+                      {model.name} has no resolution parameter - its output size is
                       fixed by the endpoint.
                     </p>
                   )}
@@ -501,13 +501,13 @@ export function UgcClient({
                     Reference an attached image inline as{" "}
                     <code className="rounded bg-muted px-1 font-mono">@image1</code>,{" "}
                     <code className="rounded bg-muted px-1 font-mono">@image2</code>…
-                    — 1-based, in upload order. Tap a chip below to insert one.
+                    - 1-based, in upload order. Tap a chip below to insert one.
                   </p>
                   {dangling.length > 0 && (
                     <p className="text-[11px] text-destructive">
                       {dangling.map((n) => `@image${n}`).join(", ")}{" "}
                       {dangling.length === 1 ? "points" : "point"} at an image you
-                      haven&apos;t attached — the render would be missing it.
+                      haven&apos;t attached - the render would be missing it.
                     </p>
                   )}
                 </Control>
@@ -565,7 +565,7 @@ export function UgcClient({
                   </div>
                 </Control>
 
-                <Control label="Niche" hint="optional — sets the spend cap">
+                <Control label="Niche" hint="optional - sets the spend cap">
                   <Select onValueChange={setNicheId} value={nicheId}>
                     <SelectTrigger className="w-full">
                       <SelectValue />

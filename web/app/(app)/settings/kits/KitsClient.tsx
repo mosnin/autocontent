@@ -39,21 +39,21 @@ const KIND_META: Record<KitKind, { title: string; blurb: string; placeholder: st
   design: {
     title: "Design kits",
     blurb:
-      "Your direction system for video — shot grammar, transitions, framing habits, signature touches. Injected into the scriptwriter and visual director on every render.",
+      "Your direction system for video - shot grammar, transitions, framing habits, signature touches. Injected into the scriptwriter and visual director on every render.",
     placeholder:
       "Open on the subject in motion, never a static establishing shot.\nCut on action. One signature slow push-in per video.\nAlways end scenes before the narration finishes the sentence.",
   },
   writing: {
     title: "Writing kits",
     blurb:
-      "Your voice on the page — sentence rhythm, vocabulary, structures, banned cliches. Injected into the article pipeline's writers and QA.",
+      "Your voice on the page - sentence rhythm, vocabulary, structures, banned cliches. Injected into the article pipeline's writers and QA.",
     placeholder:
       "Short declarative sentences. One-sentence paragraphs for emphasis.\nConcrete nouns over abstractions. Never use 'delve', 'unlock', 'landscape'.",
   },
   ad: {
     title: "Ad kits",
     blurb:
-      "Your scaling strategy — the metrics and rules the ads optimizer honors when PROPOSING changes. The fail-closed spend guard and approval gate still rule every execution.",
+      "Your scaling strategy - the metrics and rules the ads optimizer honors when PROPOSING changes. The fail-closed spend guard and approval gate still rule every execution.",
     placeholder:
       "Scale winners aggressively while ROAS holds above target.\nNever scale a campaign twice in 48h. Kill creatives below 1% CTR after 5k impressions.",
   },
@@ -80,7 +80,7 @@ export function KitsClient({ initial }: { initial: Kit[] }) {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Kits</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Reusable skills that ride along with the agents — your operating
+          Reusable skills that ride along with the agents - your operating
           system on top of the pipeline.
         </p>
       </div>
@@ -109,7 +109,7 @@ export function KitsClient({ initial }: { initial: Kit[] }) {
 }
 
 // Square UI "marketing-dashboard" template table anatomy, applied to each
-// kind's kit list — same Table/TableRow/TableCell chrome as the
+// kind's kit list - same Table/TableRow/TableCell chrome as the
 // tokens/webhooks lists, no toolbar (each list is already scoped to one
 // kind by the surrounding Tab). Full content/rules preview moves into a
 // hover tooltip on the name cell (same Tooltip used for the articles list
@@ -204,13 +204,13 @@ function KitRow({ kit, onChanged }: { kit: Kit; onChanged: () => void }) {
         </Tooltip>
       </TableCell>
       <TableCell className="py-3 max-w-[320px] truncate text-sm text-muted-foreground">
-        {kit.description || "—"}
+        {kit.description || "-"}
       </TableCell>
       <TableCell className="py-3">
         {kit.is_default ? (
           <Badge variant="secondary">default</Badge>
         ) : (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">-</span>
         )}
       </TableCell>
       <TableCell className="py-3 whitespace-nowrap text-right">
@@ -317,7 +317,7 @@ function KitEditor({ kind, onSaved }: { kind: KitKind; onSaved: () => void }) {
         {kind === "ad" && (
           <div className="space-y-1.5">
             <Label htmlFor="kit-rules-ad">
-              Rules (JSON — target_roas, scale_up_pct, scale_down_pct, max_daily_budget_usd)
+              Rules (JSON - target_roas, scale_up_pct, scale_down_pct, max_daily_budget_usd)
             </Label>
             <Textarea
               id="kit-rules-ad"

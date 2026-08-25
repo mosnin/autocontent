@@ -1,11 +1,11 @@
-# Showcase media — how to put real output on the site
+# Showcase media - how to put real output on the site
 
 This folder holds the **real assets generated on marketer.sh** that the
 homepage showcases: ad creative, video ads, UGC clips, micro-drama episodes
 and motion graphics.
 
 Until a file lands here, each slot renders a deliberate on-brand
-**placeholder** that prints exactly what belongs in it — the format, the pixel
+**placeholder** that prints exactly what belongs in it - the format, the pixel
 size and the path below. Nothing looks broken while the folder is empty, and
 nothing on the page moves when you fill it: every slot reserves its aspect
 ratio up front.
@@ -15,7 +15,7 @@ that it is receipts, not stock footage.
 
 ---
 
-## Adding a file — the whole procedure
+## Adding a file - the whole procedure
 
 **1. Drop the file in the right folder.** The placeholder on the page prints
 the exact path it wants, e.g. `public/showcase/ads/ad-feed-a.jpg`.
@@ -32,7 +32,7 @@ change its `src` from `null` to the public URL:
 }
 ```
 
-For a **video slot**, set the poster too — it is the first thing painted, and
+For a **video slot**, set the poster too - it is the first thing painted, and
 it is the *only* thing shown to visitors browsing with reduced motion turned
 on, so a video without one shows a black box to those people:
 
@@ -67,7 +67,7 @@ served straight from this folder, so `public/showcase/ads/x.jpg` is
 | `showcase/motion/`     | `motion`  | Motion graphics / kinetic type   | `.mp4` + `.jpg`   |
 
 The suggested filename is the slot's `id` (e.g. slot `ad-feed-b` →
-`ads/ad-feed-b.jpg`). Any filename works as long as the config points at it —
+`ads/ad-feed-b.jpg`). Any filename works as long as the config points at it -
 matching the id just keeps things findable.
 
 ---
@@ -85,7 +85,7 @@ matching the id just keeps things findable.
 | `drama-episode-hook`  | drama  | 9:16   | `drama/drama-episode-hook.mp4` + `drama/drama-episode-hook.jpg`      |
 | `motion-kinetic-type` | motion | 9:16   | `motion/motion-kinetic-type.mp4` + `motion/motion-kinetic-type.jpg`  |
 
-The registry is the source of truth — add, remove or re-order slots there.
+The registry is the source of truth - add, remove or re-order slots there.
 
 ---
 
@@ -108,19 +108,19 @@ quality; prefer it when your export supports it. Optimised images are served
 through Next's image pipeline, which resizes and re-encodes automatically, so
 you do not need to hand-make multiple sizes.
 
-- Target: **under 400 KB** per still. Anything over ~1 MB is a raw export —
+- Target: **under 400 KB** per still. Anything over ~1 MB is a raw export -
   re-encode it.
 - Do not upload PNG screenshots of photography; PNG is for flat UI only.
 
 **Video.** `.mp4`, **H.264 (High profile) + AAC**, `yuv420p`, and the
 `faststart` flag so it begins playing before it finishes downloading. Clips
-play **muted and looping**, so audio is optional — but keep the track if it
+play **muted and looping**, so audio is optional - but keep the track if it
 exists, since visitors can unmute nothing today and the file may get reused.
 
 - Target: **under 3 MB**, ideally under 2 MB. Keep clips to **6–12 seconds**;
   this is a showcase, not a player.
 - 1080p is plenty. 4K on a card that renders 300 px wide is wasted bandwidth.
-- Burn captions into the frame for UGC and drama clips — they autoplay muted.
+- Burn captions into the frame for UGC and drama clips - they autoplay muted.
 
 A dependable encode:
 
@@ -144,7 +144,7 @@ ffmpeg -i public/showcase/ugc/ugc-testimonial.mp4 \
 
 Why it matters: the poster is what paints first, what stands in if autoplay is
 refused (data saver, low power mode), and what a visitor with
-`prefers-reduced-motion: reduce` sees instead of a moving picture — the
+`prefers-reduced-motion: reduce` sees instead of a moving picture - the
 showcase never autoplays for them.
 
 ---

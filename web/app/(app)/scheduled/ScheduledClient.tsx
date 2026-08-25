@@ -5,7 +5,7 @@
 // The thing this surface has to get right is that ONE POST IS N DELIVERIES.
 // Each platform variant carries its own status, provider post id and error,
 // which is why `partial` exists as a parent status at all. So every post
-// renders its variants individually — a green parent badge must never hide a
+// renders its variants individually - a green parent badge must never hide a
 // failed Instagram row.
 //
 // Polling: only while something is genuinely in flight (`dispatching`).
@@ -196,14 +196,14 @@ function PostCard({
     try {
       await publishNow(post.id);
       // 202: the claim already happened synchronously, so the row is
-      // `dispatching` right now — reflect that immediately and let the poll
+      // `dispatching` right now - reflect that immediately and let the poll
       // carry it to its terminal state.
       onChanged({ ...post, status: "dispatching" });
       toast.success("Publishing now");
     } catch (err) {
       toast.error(
         isConflict(err)
-          ? `${scheduledErrorMessage(err)} — it may already be on its way.`
+          ? `${scheduledErrorMessage(err)} - it may already be on its way.`
           : scheduledErrorMessage(err),
       );
     } finally {
@@ -263,7 +263,7 @@ function PostCard({
             <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
             This post went live on {posted} platform{posted === 1 ? "" : "s"} and
             failed on {failed}. Editing and re-arming only retries the platforms
-            that failed — the ones that posted are never sent twice.
+            that failed - the ones that posted are never sent twice.
           </p>
         ) : null}
 
@@ -277,7 +277,7 @@ function PostCard({
           <p className="whitespace-pre-wrap text-sm">{post.content}</p>
         ) : (
           <p className="text-sm italic text-muted-foreground">
-            No default copy — each platform posts its own.
+            No default copy - each platform posts its own.
           </p>
         )}
 
@@ -346,7 +346,7 @@ function PostCard({
         ) : (
           <p className="text-xs text-muted-foreground">
             {post.status === "dispatching"
-              ? "Publishing right now — it may already be mid-flight to a real account, so it cannot be edited."
+              ? "Publishing right now - it may already be mid-flight to a real account, so it cannot be edited."
               : "Already published. The copy that went out is kept as the record of it."}
           </p>
         )}
@@ -441,7 +441,7 @@ export function ScheduledClient({
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">Scheduled posts</h1>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Hand-authored posts with per-platform copy. One post fans out to every
-          platform you pick, and each delivery succeeds or fails on its own — so
+          platform you pick, and each delivery succeeds or fails on its own - so
           a failure on one never re-posts the others.
         </p>
       </div>

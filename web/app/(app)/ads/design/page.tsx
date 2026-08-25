@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function DesignAgentPage() {
   // A design project is niche-scoped (spend rides on the niche), so the
   // composer needs the niche list. Either read may legitimately fail on an
-  // unconfigured deployment — fall back to empty and let the client render
+  // unconfigured deployment - fall back to empty and let the client render
   // its calm empty state.
   const [projects, niches] = await Promise.all([
     api<DesignProject[]>("/api/v1/design/projects?limit=50").catch(

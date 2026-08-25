@@ -1,7 +1,7 @@
 "use client";
 
 // Single-page settings form for the workspace Brand Kit. Fields are controlled
-// (there is no server action — the write is a client PUT through the proxy, like
+// (there is no server action - the write is a client PUT through the proxy, like
 // the webhooks surface), and the current kit is kept fresh via SWR with the
 // server-rendered kit as fallbackData. Every field is explicitly labelled and
 // associated with its control.
@@ -33,7 +33,7 @@ import {
   type BrandKit,
 } from "@/lib/brand-kit-client";
 
-// Swatch fallback shown when no colour has been chosen yet — native color
+// Swatch fallback shown when no colour has been chosen yet - native color
 // inputs can't be empty, so we render a neutral grey while color_hex stays "".
 const UNSET_SWATCH = "#3f3f46";
 

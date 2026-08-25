@@ -149,7 +149,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
         <Stat label="Spend" value={formatUsd(totals.spend)} />
         <Stat
           label="ROAS"
-          value={roas === null ? "—" : `${roas.toFixed(2)}×`}
+          value={roas === null ? "-" : `${roas.toFixed(2)}×`}
         />
         <Stat label="Clicks" value={totals.clicks.toLocaleString()} />
         <Stat label="Impressions" value={totals.impressions.toLocaleString()} />

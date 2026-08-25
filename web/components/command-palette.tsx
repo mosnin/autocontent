@@ -25,7 +25,7 @@ const KICKER =
 
 const OPEN_EVENT = "marketer:open-command-palette";
 
-/** Programmatic open — the shell's search pill / button calls this. */
+/** Programmatic open - the shell's search pill / button calls this. */
 export function openCommandPalette() {
   window.dispatchEvent(new CustomEvent(OPEN_EVENT));
 }

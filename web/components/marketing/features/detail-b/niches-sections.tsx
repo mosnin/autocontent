@@ -34,7 +34,7 @@ export function NicheAnatomy() {
       media={
         <MediaCard
           kind="image"
-          label="Niche editor — identity, creative, and schedule"
+          label="Niche editor - identity, creative, and schedule"
         />
       }
     >
@@ -62,7 +62,7 @@ const DNA = [
   {
     kicker: "Narrative",
     title: "How it talks",
-    copy: "Language, pacing, point of view, and your call-to-action policy — including 'never'. Plus a hard list of topics to avoid.",
+    copy: "Language, pacing, point of view, and your call-to-action policy - including 'never'. Plus a hard list of topics to avoid.",
   },
   {
     kicker: "Visual",
@@ -88,7 +88,7 @@ export function CreativeDna() {
         />
         <MediaCard
           kind="image"
-          label="Creative DNA panel — hooks, narrative, visual, audio"
+          label="Creative DNA panel - hooks, narrative, visual, audio"
         />
       </div>
       <CardGrid className="os-mt-48" cols={2}>
@@ -165,7 +165,7 @@ export function CapsBand() {
       bullets={[
         "A daily cap per niche, from $0.50 up. One channel can't eat the whole budget.",
         "A global daily cap across every niche, checked the same way.",
-        "Prepaid credit is the final gate. No balance, no call — and no invoice to argue with.",
+        "Prepaid credit is the final gate. No balance, no call - and no invoice to argue with.",
       ]}
       eyebrow="Spend caps"
       extraCopy="It fails closed. A job that trips a cap stops mid-pipeline rather than finishing on money you didn't agree to spend."
@@ -177,7 +177,7 @@ export function CapsBand() {
       media={
         <MediaCard
           kind="image"
-          label="Niche spend — today against the daily cap"
+          label="Niche spend - today against the daily cap"
         />
       }
     />
@@ -200,7 +200,7 @@ export function NicheScreen() {
       <div className="os-mt-48">
         <MediaCard
           kind="image"
-          label="Niche detail — spend, character sheet, recent runs"
+          label="Niche detail - spend, character sheet, recent runs"
           ratio="16/8"
         />
       </div>

@@ -1,7 +1,7 @@
 // Client-safe typed client for the Ads API (/api/v1/ads). SWR keys are plain
 // backend paths (clientFetch prefixes /api/proxy); mutations POST/PATCH/DELETE
 // through the proxy so the Clerk JWT is attached server-side. No server-only
-// imports — this runs in the browser.
+// imports - this runs in the browser.
 
 import { clientFetch } from "@/lib/client-fetcher";
 

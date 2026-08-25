@@ -1,51 +1,65 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 
+import { IntroDone } from "@/components/marketing/intro-done";
+import { Logo } from "@/components/marketing/nav/logo";
+import { SkipToContent } from "@/components/marketing/skip-to-content";
+import { ThemeSwitch } from "@/components/marketing/theme-switch";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { SquareSidebar } from "@/components/square/sidebar";
 import { SquareHeader } from "@/components/square/header";
 
+function OnboardingShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="marketing-site flex min-h-svh flex-col">
+      <IntroDone />
+      <SkipToContent />
+      <header className="flex h-20 items-center px-5 sm:px-8">
+        <Logo href="/home" />
+      </header>
+      <main
+        id="main-content"
+        className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-5 pb-20 sm:px-8"
+      >
+        {children}
+      </main>
+      <ThemeSwitch />
+    </div>
+  );
+}
+
 /**
- * Logged-in shell.
- *
- * Structurally this is still the sidebar + inset-panel composition the app
- * was built on, but the content gutter is editorial rather than the
- * template's fixed 1440px column:
- *
- *   - The measure is wider (1600px) and the horizontal padding is larger,
- *     because `Gallery` sizes itself by the artifact. A fixed narrow column
- *     forced media into thumbnails, which is precisely the inversion the
- *     editorial system undoes.
- *   - Vertical rhythm is owned by the page's own `Section`s (each carries
- *     its own bottom margin), so the shell contributes top padding only and
- *     never fights them.
- *
- * Long-form surfaces clamp themselves with `max-w-(--measure)`; the shell
- * deliberately does not impose a reading width on everything, because a
- * gallery and an article want different ones.
+ * Logged-in shell. Onboarding keeps the marketing canvas. The rest of the
+ * app uses the same Cortex tokens and chrome as the logged-out site:
+ * flat white/black canvas, hairline rules, no floating warm panel.
  */
 export function SiteShell({
   children,
   account,
 }: {
   children: React.ReactNode;
-  /** Account slot — defaults to Clerk's UserButton; previews pass a stub. */
   account?: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  if (pathname.startsWith("/onboarding")) {
+    return <OnboardingShell>{children}</OnboardingShell>;
+  }
+
   return (
-    <SidebarProvider className="bg-sidebar">
-      <SquareSidebar account={account} />
-      <div className="h-svh overflow-hidden lg:p-2 w-full">
-        <div className="lg:border lg:rounded-md overflow-hidden flex flex-col h-full w-full bg-background">
+    <div className="marketing-site h-svh overflow-hidden">
+      <SidebarProvider className="h-svh bg-background">
+        <SquareSidebar account={account} />
+        <div className="flex h-svh min-w-0 flex-1 flex-col bg-background">
           <SquareHeader />
-          <main className="w-full flex-1 overflow-auto">
-            <div className="mx-auto w-full max-w-[1600px] px-5 pb-16 pt-10 md:px-10">
+          <main className="min-h-0 w-full flex-1 overflow-auto" id="main-content">
+            <div className="mx-auto w-full max-w-[1440px] px-5 pb-16 pt-8 sm:px-8 lg:px-10">
               {children}
             </div>
           </main>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   );
 }

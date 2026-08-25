@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 // --------------------------------------------------------------------------
 // Types mirror the backend response models exactly (marketer.repos.metrics /
 // marketer.services.metrics). Kept local to this file rather than added to
-// lib/admin-types.ts — this panel owns its own contract.
+// lib/admin-types.ts - this panel owns its own contract.
 // --------------------------------------------------------------------------
 
 export interface ProviderSpend {
@@ -100,7 +100,7 @@ const POLL_MS = 30_000;
 
 function usd(raw: string): string {
   const n = Number.parseFloat(raw);
-  if (!Number.isFinite(n)) return "$—";
+  if (!Number.isFinite(n)) return "$-";
   return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 }
 
@@ -109,7 +109,7 @@ function pct(rate: number): string {
 }
 
 function ageLabel(seconds: number | null): string {
-  if (seconds == null) return "—";
+  if (seconds == null) return "-";
   const min = Math.round(seconds / 60);
   if (min < 60) return `${min}m`;
   const hr = Math.round(min / 60);
@@ -189,7 +189,7 @@ export function OpsClient({
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             {error
-              ? `Ops metrics unavailable — ${error.message ?? "fetch failed"}`
+              ? `Ops metrics unavailable - ${error.message ?? "fetch failed"}`
               : "Loading ops metrics…"}
           </CardContent>
         </Card>
@@ -354,7 +354,7 @@ export function OpsClient({
           {!snap.db_ok && (
             <Card className="border-destructive/40 bg-destructive/5">
               <CardContent className="py-4 text-sm text-destructive-foreground">
-                Database did not respond to the ops probe — the numbers above may be stale.
+                Database did not respond to the ops probe - the numbers above may be stale.
               </CardContent>
             </Card>
           )}

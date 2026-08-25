@@ -14,20 +14,20 @@ export function SuperAgents() {
         <Reveal className="mx-auto max-w-3xl text-center">
           <TextReveal
             as="h2"
-            className="font-display text-5xl font-semibold leading-[1.05] tracking-tight text-zinc-950 md:text-6xl"
+            className="font-display text-5xl font-medium leading-[1.05] tracking-tight text-foreground md:text-6xl"
           >
             Your agents can run all of it.
           </TextReveal>
           <Reveal delay={0.05}>
-            <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-zinc-600">
+            <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">
               REST API, Python SDK, CLI, and an MCP server expose the same
-              pipeline a human runs by hand — briefs in, campaigns out.
+              pipeline a human runs by hand - briefs in, campaigns out.
             </p>
           </Reveal>
           <div className="mt-8">
             <Magnetic>
               <Link
-                className="inline-flex min-h-12 items-center rounded-xl bg-zinc-900 px-7 text-[15px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900"
+                className="inline-flex min-h-12 items-center rounded-xl bg-foreground px-7 text-[15px] font-medium text-white transition-all duration-200 hover:-translate-y-0.5 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 href="/features/automation"
               >
                 Put an agent to work

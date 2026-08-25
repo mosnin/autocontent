@@ -831,3 +831,154 @@
     content: "";
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Logged-out marketing / auth / onboarding — exact Cortex hex tokens */
+/* from ai-app/app/globals.css. Scoped so the dashboard HSL theme     */
+/* stays untouched.                                                   */
+/* ------------------------------------------------------------------ */
+
+html:has(.marketing-site) {
+  color-scheme: light;
+  background-color: #ffffff;
+}
+
+html.dark:has(.marketing-site) {
+  color-scheme: dark;
+  background-color: #0a0a0a;
+}
+
+html:has(.marketing-site) body {
+  background-color: #ffffff;
+  color: #0a0a0a;
+}
+
+html.dark:has(.marketing-site) body {
+  background-color: #0a0a0a;
+  color: #fafafa;
+}
+
+.marketing-site {
+  /* Raw tokens stay HSL so leftover `hsl(var(--token))` rules stay valid.
+     Tailwind utilities read --color-*, which are the exact template hex. */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.92%;
+  --muted: 0 0% 96.08%;
+  --muted-foreground: 0 0% 45.1%;
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 216 100% 50%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 3.92%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 3.92%;
+  --primary: 0 0% 3.92%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 96.08%;
+  --secondary-foreground: 0 0% 3.92%;
+  --accent: 0 0% 96.08%;
+  --accent-foreground: 0 0% 3.92%;
+  --surface: #0a0a0a;
+  --surface-foreground: #ffffff;
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #737373;
+  --color-border: #e5e5e5;
+  --color-ring: #0066ff;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0a0a0a;
+  --color-primary: #0a0a0a;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #0a0a0a;
+  --color-accent: #f5f5f5;
+  --color-accent-foreground: #0a0a0a;
+  --color-input: #e5e5e5;
+  --color-brand: #0a0a0a;
+  --color-brand-foreground: #ffffff;
+  --color-page: #ffffff;
+  --color-sidebar: #ffffff;
+  --color-sidebar-foreground: #0a0a0a;
+  --font-sans: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-display: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  background-color: #ffffff;
+  color: #0a0a0a;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.dark .marketing-site {
+  --background: 0 0% 3.92%;
+  --foreground: 0 0% 98.04%;
+  --muted: 0 0% 9.02%;
+  --muted-foreground: 0 0% 63.92%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+  --ring: 217 91% 60%;
+  --card: 0 0% 3.92%;
+  --card-foreground: 0 0% 98.04%;
+  --popover: 0 0% 3.92%;
+  --popover-foreground: 0 0% 98.04%;
+  --primary: 0 0% 98.04%;
+  --primary-foreground: 0 0% 3.92%;
+  --secondary: 0 0% 9.02%;
+  --secondary-foreground: 0 0% 98.04%;
+  --accent: 0 0% 9.02%;
+  --accent-foreground: 0 0% 98.04%;
+  --surface: #333333;
+  --surface-foreground: #fafafa;
+  --color-background: #0a0a0a;
+  --color-foreground: #fafafa;
+  --color-muted: #171717;
+  --color-muted-foreground: #a3a3a3;
+  --color-border: #262626;
+  --color-ring: #3b82f6;
+  --color-card: #0a0a0a;
+  --color-card-foreground: #fafafa;
+  --color-popover: #0a0a0a;
+  --color-popover-foreground: #fafafa;
+  --color-primary: #fafafa;
+  --color-primary-foreground: #0a0a0a;
+  --color-secondary: #171717;
+  --color-secondary-foreground: #fafafa;
+  --color-accent: #171717;
+  --color-accent-foreground: #fafafa;
+  --color-input: #262626;
+  --color-brand: #fafafa;
+  --color-brand-foreground: #0a0a0a;
+  --color-page: #0a0a0a;
+  --color-sidebar: #0a0a0a;
+  --color-sidebar-foreground: #fafafa;
+  background-color: #0a0a0a;
+  color: #fafafa;
+}
+
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: 1rem;
+  z-index: 9999;
+  padding: 0.75rem 1rem;
+  background: var(--color-background);
+  border: 2px solid var(--color-ring);
+  border-radius: 0.375rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-foreground);
+}
+
+.skip-to-content:focus {
+  left: 1rem;
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-ring);
+  outline-offset: 2px;
+}

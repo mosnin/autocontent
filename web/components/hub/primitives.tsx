@@ -12,11 +12,11 @@ export const HUB_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
  * reference-style hub language in light mode). Every product dashboard
  * composes these so the whole app breathes at one rhythm:
  *
- * - `<Rise>` — entrance: fade + 20px rise, optional delay for stagger.
- * - `<HubSection>` — section wrapper with a sparkle heading and staggered
+ * - `<Rise>` - entrance: fade + 20px rise, optional delay for stagger.
+ * - `<HubSection>` - section wrapper with a sparkle heading and staggered
  *   children entrances.
- * - `<HubPanel>` — the rounded-3xl light card chrome (non-link).
- * - `hubCardClass` — same chrome as a className, for Link/Card call sites.
+ * - `<HubPanel>` - the rounded-3xl light card chrome (non-link).
+ * - `hubCardClass` - same chrome as a className, for Link/Card call sites.
  *
  * All primitives honor prefers-reduced-motion (opacity-only, no lift).
  */
@@ -56,7 +56,7 @@ export function HubHeading({
   return (
     <Tag
       className={cn(
-        "flex items-center gap-2 font-semibold tracking-tight",
+        "flex items-center gap-2 font-medium tracking-tight",
         Tag === "h1" ? "text-2xl md:text-[1.7rem]" : "text-xl",
         className,
       )}
@@ -106,7 +106,7 @@ export function HubSection({
 
 /** The hub card chrome as a class, for Links, Cards, and panels. */
 export const hubCardClass =
-  "rounded-3xl border border-border/70 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.03),0_10px_32px_-20px_rgb(0_0_0/0.18)]";
+  "rounded-3xl border border-border bg-background";
 
 /** Interactive variant: hover deepens the shadow (pair with HoverLift). */
 export const hubCardHoverClass =
@@ -154,7 +154,7 @@ export function VignetteFrame({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border border-border/60 bg-[linear-gradient(135deg,#fafafa,#f2f4f8)] p-4",
+        "relative overflow-hidden rounded-2xl border border-border bg-muted p-4",
         className,
       )}
     >

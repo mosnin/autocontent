@@ -16,17 +16,17 @@ const DESCRIPTION =
   "Write the script, attach the product shots it references, pick a model, and get a vertical spokesperson ad. Every control comes from the model's own capability list, and the price is shown before the render runs.";
 
 export const metadata: Metadata = {
-  title: "UGC studio — marketer.sh",
+  title: "UGC studio · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "UGC studio — marketer.sh",
+    title: "UGC studio · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
   alternates: { canonical: "https://marketer.sh/features/ugc" },
 };
 
-/** Straight from the studio's model catalog — capabilities as declared. */
+/** Straight from the studio's model catalog - capabilities as declared. */
 const MODELS = [
   {
     name: "Grok Video",
@@ -41,7 +41,7 @@ const MODELS = [
   {
     name: "Happy Horse 1",
     chips: ["3–15s", "no res knob"],
-    copy: "Fast, lifelike animation — the cheap option for batch iteration. Its output size is fixed by the endpoint.",
+    copy: "Fast, lifelike animation - the cheap option for batch iteration. Its output size is fixed by the endpoint.",
   },
   {
     name: "Seedance 2",
@@ -78,7 +78,7 @@ export default function UgcFeaturePage() {
         illustration={
           <MediaCard
             kind="video"
-            label="UGC studio — script and product shots to spokesperson ad"
+            label="UGC studio - script and product shots to spokesperson ad"
             ratio="16/9"
           />
         }
@@ -89,7 +89,7 @@ export default function UgcFeaturePage() {
         variant="mist"
       />
 
-      {/* 1 — capability-driven composer */}
+      {/* 1 - capability-driven composer */}
       <Band
         bullets={[
           "Durations render as a slider or a fixed set, depending on what the model actually accepts.",
@@ -105,12 +105,12 @@ export default function UgcFeaturePage() {
         media={
           <MediaCard
             kind="image"
-            label="Composer — model capabilities as controls"
+            label="Composer - model capabilities as controls"
           />
         }
       />
 
-      {/* 2 — model catalog */}
+      {/* 2 - model catalog */}
       <Section label="The model catalog">
         <SectionHead
           eyebrow="The catalog"
@@ -126,11 +126,11 @@ export default function UgcFeaturePage() {
         </Note>
       </Section>
 
-      {/* 3 — reference images */}
+      {/* 3 - reference images */}
       <Band
         bullets={[
           "Attach up to seven reference images; a route that takes exactly one keyframe accepts exactly one.",
-          "Point at them inline as @image1, @image2 — one-based, in upload order.",
+          "Point at them inline as @image1, @image2 - one-based, in upload order.",
           "A token that points at an image you haven't attached is caught in the composer, not in the render.",
         ]}
         eyebrow="Reference images"
@@ -138,7 +138,7 @@ export default function UgcFeaturePage() {
         heading="Say @image1 and mean it."
         highlight="@image1"
         label="Reference images"
-        lede="Attaching any image switches the render to image-to-video. With none attached it is text-to-video and the script is mandatory — which is exactly the rule the server enforces too."
+        lede="Attaching any image switches the render to image-to-video. With none attached it is text-to-video and the script is mandatory - which is exactly the rule the server enforces too."
         media={
           <MediaCard
             kind="image"
@@ -147,10 +147,10 @@ export default function UgcFeaturePage() {
         }
       />
 
-      {/* 4 — money */}
+      {/* 4 - money */}
       <Band
         bullets={[
-          "The estimate is the model's per-second rate times the duration you chose — shown before you submit.",
+          "The estimate is the model's per-second rate times the duration you chose - shown before you submit.",
           "Checked against the niche's daily cap, your global daily cap, and your prepaid credit.",
           "The ledger is written after the provider accepts the job, so a render you never got is a render you never bought.",
         ]}
@@ -167,18 +167,18 @@ export default function UgcFeaturePage() {
         }
       />
 
-      {/* 5 — the shelf */}
+      {/* 5 - the shelf */}
       <Section label="The render shelf">
         <SectionHead
           eyebrow="The render shelf"
-          heading="Queued, rendering, done — and nothing polling a finished page."
+          heading="Queued, rendering, done - and nothing polling a finished page."
           highlight="nothing polling"
           lede="Finished renders play inline at their own aspect, with the model, the parameters and the exact cost on the card. The shelf refreshes only while something is actually in flight; a failed render can be retried, and anything can be deleted."
         />
         <div className="os-mt-48">
           <MediaCard
             kind="image"
-            label="Render shelf — statuses, parameters, and cost per render"
+            label="Render shelf - statuses, parameters, and cost per render"
             ratio="16/8"
           />
         </div>

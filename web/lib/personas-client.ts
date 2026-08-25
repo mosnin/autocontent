@@ -1,9 +1,9 @@
 // Client-safe typed client for brand personas (/api/v1/personas).
 //
-// Reads use SWR keys that are plain backend paths — `clientFetch` prefixes
+// Reads use SWR keys that are plain backend paths - `clientFetch` prefixes
 // /api/proxy for us. Mutations go through the same /api/proxy/... handler so
 // the Clerk JWT is attached server-side. NOTHING here may import server-only
-// modules — this file runs in the browser.
+// modules - this file runs in the browser.
 //
 // Shapes mirror `src/marketer/personas/schemas.py` field for field.
 //
@@ -99,7 +99,7 @@ export const personaMessagesFetcher = clientFetch<PersonaMessage[]>;
 
 /**
  * Browser URL for the locked reference image (image/png through the proxy).
- * Only valid once `visual_locked_at` is set — otherwise the backend 404s.
+ * Only valid once `visual_locked_at` is set - otherwise the backend 404s.
  * The `v` cache-buster carries the lock timestamp so the <img> refreshes the
  * moment a lock lands.
  */
@@ -153,7 +153,7 @@ export function lockPersonaVisual(id: string): Promise<Persona> {
 }
 
 /**
- * One metered chat turn. Never call this on the user's behalf — no auto-send,
+ * One metered chat turn. Never call this on the user's behalf - no auto-send,
  * no automatic retry. 402 means a spend cap refused the turn (the thread is
  * left exactly as it was); 429 is the per-IP rate limit.
  */
@@ -182,7 +182,7 @@ export function isRateLimited(e: unknown): boolean {
 
 export function personaErrorMessage(e: unknown): string {
   if (e instanceof ApiError) {
-    if (e.status === 429) return "Too many messages in a minute — wait and try again.";
+    if (e.status === 429) return "Too many messages in a minute - wait and try again.";
     const body = e.message.replace(/^\d+\s*/, "");
     try {
       const parsed = JSON.parse(body) as { detail?: unknown };
@@ -192,7 +192,7 @@ export function personaErrorMessage(e: unknown): string {
         if (first?.msg) return first.msg;
       }
     } catch {
-      /* not JSON — fall through */
+      /* not JSON - fall through */
     }
     return body || `Request failed (${e.status})`;
   }
@@ -200,7 +200,7 @@ export function personaErrorMessage(e: unknown): string {
   return "Something went wrong";
 }
 
-/** Trim, drop blanks, bound length + count, de-dupe case-insensitively —
+/** Trim, drop blanks, bound length + count, de-dupe case-insensitively -
  *  the same normalisation `clean_banned_topics` applies server-side, so the
  *  field shows the user what will actually be stored. */
 export function cleanBannedTopics(topics: string[]): string[] {

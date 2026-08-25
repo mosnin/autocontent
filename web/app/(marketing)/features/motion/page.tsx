@@ -17,10 +17,10 @@ const DESCRIPTION =
   "Narration becomes timed beats; every beat gets its own b-roll and its own line of kinetic type, composited into one video. The plan is kept, so you can see what supplied each beat.";
 
 export const metadata: Metadata = {
-  title: "Motion graphics — marketer.sh",
+  title: "Motion graphics · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Motion graphics — marketer.sh",
+    title: "Motion graphics · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 const STAGES = [
   {
     label: "Voicing",
-    copy: "The narration is synthesized — or borrowed from an existing job, which pays for no TTS at all.",
+    copy: "The narration is synthesized - or borrowed from an existing job, which pays for no TTS at all.",
   },
   {
     label: "Transcribing",
@@ -100,7 +100,7 @@ export default function MotionFeaturePage() {
         illustration={
           <MediaCard
             kind="video"
-            label="Motion project — narration to composited kinetic type"
+            label="Motion project - narration to composited kinetic type"
             ratio="16/9"
           />
         }
@@ -111,7 +111,7 @@ export default function MotionFeaturePage() {
         variant="mist"
       />
 
-      {/* 1 — pipeline */}
+      {/* 1 - pipeline */}
       <StageGrid
         eyebrow="The pipeline"
         heading="Six stages, and the plan survives all of them."
@@ -120,12 +120,12 @@ export default function MotionFeaturePage() {
         lede="Narration goes in at the top and an mp4 comes out at the bottom, but the interesting part is the middle: a plan you can read afterwards, beat by beat."
         media={{
           kind: "illustration",
-          label: "Motion pipeline — narration, beats, picture, composite",
+          label: "Motion pipeline - narration, beats, picture, composite",
         }}
         stages={STAGES}
       />
 
-      {/* 2 — sourcing */}
+      {/* 2 - sourcing */}
       <Band
         bullets={[
           "Generated: every beat gets an art-directed keyframe in the chosen style.",
@@ -133,18 +133,18 @@ export default function MotionFeaturePage() {
           "Mixed: concrete beats use stock, abstract beats are generated.",
         ]}
         eyebrow="B-roll"
-        extraCopy="Keywords for the stock beats are decided in one batched call, not one call per beat — a sixteen-beat project is a single request, which is a cost decision rather than a style preference."
+        extraCopy="Keywords for the stock beats are decided in one batched call, not one call per beat - a sixteen-beat project is a single request, which is a cost decision rather than a style preference."
         flip
         heading="Three ways to fill the picture track."
         highlight="the picture track."
         label="B-roll sourcing"
-        lede="You choose how the visuals are sourced, and the finished plan records which strategy actually supplied each beat — including the beats that fell back."
+        lede="You choose how the visuals are sourced, and the finished plan records which strategy actually supplied each beat - including the beats that fell back."
         media={
-          <MediaCard kind="image" label="B-roll sourcing — generated, stock, mixed" />
+          <MediaCard kind="image" label="B-roll sourcing - generated, stock, mixed" />
         }
       />
 
-      {/* 3 — audio invariant */}
+      {/* 3 - audio invariant */}
       <Band
         bullets={[
           "Every per-beat clip is rendered with no audio stream at all.",
@@ -164,13 +164,13 @@ export default function MotionFeaturePage() {
         }
       />
 
-      {/* 4 — styles */}
+      {/* 4 - styles */}
       <Section label="The style catalog">
         <SectionHead
           eyebrow="Style"
           heading="Eight art directions, each one a whole look."
           highlight="a whole look."
-          lede="A style is two coordinated halves: the typography — font, casing, colour, position and the animation the words use — and the art direction that goes into every generated keyframe. The picker draws each one in its own treatment, so you can judge a look before paying for a render."
+          lede="A style is two coordinated halves: the typography - font, casing, colour, position and the animation the words use - and the art direction that goes into every generated keyframe. The picker draws each one in its own treatment, so you can judge a look before paying for a render."
         />
         <SpecCards className="os-mt-48" cols={4} items={STYLES} />
         <Note title="Type that lands where it can be read.">
@@ -182,12 +182,12 @@ export default function MotionFeaturePage() {
         </Note>
       </Section>
 
-      {/* 5 — reuse */}
+      {/* 5 - reuse */}
       <Band
         bullets={[
           "Reuse a voiceover from an existing job and pay for no TTS on this project.",
           "Up to six thousand characters of narration per project.",
-          "Render at 9:16, 16:9, or 1:1 — every beat is composited to the canvas you pick.",
+          "Render at 9:16, 16:9, or 1:1 - every beat is composited to the canvas you pick.",
         ]}
         eyebrow="Reuse"
         flip
@@ -196,7 +196,7 @@ export default function MotionFeaturePage() {
         label="Reusing a voiceover"
         lede="A motion project can borrow the voiceover and transcript from a job you have already rendered, which skips synthesis and its spend entirely. Everything metered here runs through the same caps and the same prepaid balance as the rest of the product."
         media={
-          <MediaCard kind="image" label="Composer — narration, style, source, aspect" />
+          <MediaCard kind="image" label="Composer - narration, style, source, aspect" />
         }
       />
 

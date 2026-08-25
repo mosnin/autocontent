@@ -1,6 +1,6 @@
 // Server-only admin fetchers (RSC initial data). Imports the `api` helper
 // which pulls in @clerk/nextjs/server, so this module must NEVER be
-// imported from a "use client" component — keep it out of the client
+// imported from a "use client" component - keep it out of the client
 // bundle. Client code uses admin-api.ts (proxy-based) instead.
 import "server-only";
 

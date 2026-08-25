@@ -15,7 +15,7 @@ export default async function PrivacyPage() {
     const user = await api<User>("/api/v1/users/me");
     email = user.email;
   } catch {
-    // ignore — client handles the null case
+    // ignore - client handles the null case
   }
 
   return (

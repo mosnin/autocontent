@@ -1,5 +1,5 @@
 /**
- * Showcase media — drop-in slots for real platform output.
+ * Showcase media - drop-in slots for real platform output.
  *
  * Public surface:
  *   - `HomeShowcase`   the homepage band, driven by `HOMEPAGE_SHOWCASE`
@@ -8,7 +8,7 @@
  *   - `ShowcaseImage` / `ShowcaseVideo` the primitives, if you need them raw
  *   - `SHOWCASE_SLOTS` and friends      the registry itself
  *
- * To put real media on the site you only ever edit `showcase.config.ts` —
+ * To put real media on the site you only ever edit `showcase.config.ts` -
  * see the instructions at the top of that file and `public/showcase/README.md`.
  */
 export { HomeShowcase } from "./showcase-section";

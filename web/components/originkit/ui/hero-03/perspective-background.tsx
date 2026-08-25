@@ -7,7 +7,7 @@ import { useReducedMotion } from "motion/react";
 import GalleryTunnel from "@/components/originkit/ui/hero-03/gallery-tunnel";
 import { useTunnelConfig } from "@/components/originkit/ui/hero-03/use-tunnel-size";
 
-/** Public asset URLs — use a function so preview rewriters stay stable. */
+/** Public asset URLs - use a function so preview rewriters stay stable. */
 function asset(file: string) {
   return `/originkit/hero-03/${file}`;
 }
@@ -48,7 +48,7 @@ export const PerspectiveBackground = () => {
         style={{ width: "100%", height: "100%" }}
       />
 
-      {/* Soft center veil — stronger on desktop to match design wash */}
+      {/* Soft center veil - stronger on desktop to match design wash */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,251,225,0.55)_0%,rgba(255,251,225,0.22)_40%,transparent_64%)] ipad:bg-[radial-gradient(ellipse_at_center,rgba(255,251,225,0.62)_0%,rgba(255,251,225,0.3)_38%,transparent_62%)] desktop-sm:bg-[radial-gradient(ellipse_at_center,rgba(255,251,225,0.72)_0%,rgba(255,251,225,0.38)_36%,transparent_60%)]" />
     </div>
   );

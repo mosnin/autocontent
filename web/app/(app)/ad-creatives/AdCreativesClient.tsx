@@ -7,7 +7,7 @@
 // model) rather than with a table of ids. Past runs stay tabular underneath,
 // following the ApprovalsClient / campaigns-table anatomy.
 //
-// Polling only runs while something is actually in flight — a finished run is
+// Polling only runs while something is actually in flight - a finished run is
 // a static page and a permanent 20s poll on it is pure waste.
 
 import * as React from "react";
@@ -293,7 +293,7 @@ export function AdCreativesClient({
     setBusy(true);
     try {
       await createAdRun({ domain: value, niche_id: nicheId || null });
-      toast.success("Run queued — researching the brand");
+      toast.success("Run queued - researching the brand");
       setDomain("");
       await mutate();
     } catch (err) {
@@ -446,7 +446,7 @@ export function AdCreativesClient({
                           href={`/ad-creatives/${r.id}`}
                           className="underline-offset-4 hover:underline"
                         >
-                          {r.brand_name || "—"}
+                          {r.brand_name || "-"}
                         </Link>
                       </TableCell>
                       <TableCell className="py-3 font-mono text-xs text-muted-foreground">

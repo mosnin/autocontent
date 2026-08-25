@@ -384,9 +384,13 @@ async def test_schedule_image_post_failure_marks_failed(monkeypatch):
         state["failed"] = error
         return {"status": "failed", "error": error}
 
+    async def fake_save_payload(p, *, user_id, payload):
+        return None
+
     monkeypatch.setattr(repo, "get", fake_get)
     monkeypatch.setattr(repo, "set_status", fake_set_status)
     monkeypatch.setattr(repo, "fail", fake_fail)
+    monkeypatch.setattr(repo, "save_payload", fake_save_payload)
     monkeypatch.setattr(niches_repo, "get", fake_niche)
 
     async def exploding_poster(**kwargs):

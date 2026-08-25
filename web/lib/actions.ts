@@ -354,7 +354,7 @@ export async function createArticleAction(
 ): Promise<ActionState & { article?: Article }> {
   const niche_id = String(formData.get("niche_id") || "").trim();
   if (!niche_id) return { ok: false, error: "niche_id required" };
-  // Topic is optional — the pipeline picks one from the niche when omitted.
+  // Topic is optional - the pipeline picks one from the niche when omitted.
   const topic = String(formData.get("topic") || "").trim();
   let article: Article;
   try {
@@ -428,7 +428,7 @@ export async function createTokenAction(
   }
   revalidatePath("/settings/tokens");
   // The plaintext is returned in the action state and rendered
-  // client-side exactly once — it must never enter the URL, logs, or
+  // client-side exactly once - it must never enter the URL, logs, or
   // browser history.
   return { ok: true, token: plaintext };
 }

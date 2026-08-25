@@ -3,7 +3,7 @@
 // Reads go through SWR using BRAND_KIT_KEY + `clientFetch` (see
 // lib/client-fetcher.ts). The write goes through the same /api/proxy/... handler
 // so the Clerk JWT is attached server-side. NOTHING here may import server-only
-// modules — this file runs in the browser.
+// modules - this file runs in the browser.
 
 import { ApiError, clientFetch } from "@/lib/client-fetcher";
 
@@ -39,7 +39,7 @@ export interface BrandKitInput {
   color_hex: string;
 }
 
-/** A blank kit — used as a client-side fallback if the initial fetch fails. */
+/** A blank kit - used as a client-side fallback if the initial fetch fails. */
 export const EMPTY_BRAND_KIT: BrandKit = {
   brand_name: "",
   tagline: "",

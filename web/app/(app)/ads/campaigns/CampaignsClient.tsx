@@ -1,7 +1,7 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table, ported to the
-// ads campaigns list — same TanStack table anatomy (toolbar with search +
+// ads campaigns list - same TanStack table anatomy (toolbar with search +
 // filter dropdown + primary action, sortable headers, row-selection
 // checkbox column, template badge palette, full pagination footer) as
 // components/square/campaigns-table.tsx / the queue's QueueClient.
@@ -9,12 +9,12 @@
 //   - the `campaigns` prop is the real AdCampaign type (SWR-polled, same as
 //     before); columns map to real fields: name, status, objective, daily
 //     budget, and the ad account it runs on (resolved from the accounts
-//     list the page already fetches — real label or "—", never invented);
+//     list the page already fetches - real label or "-", never invented);
 //   - statuses are ours (draft/pending/active/paused/ended/failed) on the
 //     template's badge palette, extended with two extra tones (blue,
 ///    rose) the same way QueueClient did for its own extra states;
 //   - the template's zustand store becomes local state (same behavior);
-//   - the template's mock avatar + "Sort" platform dropdown are dropped —
+//   - the template's mock avatar + "Sort" platform dropdown are dropped -
 //     no image asset or platform field exists on a campaign;
 //   - campaign names link to the real campaign detail page and the
 //     New-campaign button links to the existing /ads/campaigns/new route;
@@ -160,7 +160,7 @@ export function CampaignsClient({
   hasAccounts,
 }: {
   initial: AdCampaign[];
-  /** Real accounts list — used only to resolve a real account label per row. */
+  /** Real accounts list - used only to resolve a real account label per row. */
   accounts: AdAccount[];
   hasAccounts: boolean;
 }) {
@@ -250,7 +250,7 @@ export function CampaignsClient({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground capitalize truncate max-w-[180px] inline-block align-middle">
-            {accountLabel[row.original.ad_account_id] ?? "—"}
+            {accountLabel[row.original.ad_account_id] ?? "-"}
           </span>
         ),
       },
@@ -266,7 +266,7 @@ export function CampaignsClient({
           <span className="text-sm text-muted-foreground font-mono tabular-nums">
             {row.original.daily_budget_usd
               ? formatUsd(row.original.daily_budget_usd)
-              : "—"}
+              : "-"}
           </span>
         ),
       },
@@ -280,7 +280,7 @@ export function CampaignsClient({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground capitalize max-w-[200px] truncate inline-block align-middle">
-            {row.original.objective || "—"}
+            {row.original.objective || "-"}
           </span>
         ),
       },

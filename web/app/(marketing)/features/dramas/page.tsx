@@ -16,10 +16,10 @@ const DESCRIPTION =
   "One premise becomes a screenplay, a locked cast, a shot list, and a stitched vertical short. Each character's portrait is generated once and reused in every shot they appear in.";
 
 export const metadata: Metadata = {
-  title: "Micro-dramas — marketer.sh",
+  title: "Micro-dramas · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Micro-dramas — marketer.sh",
+    title: "Micro-dramas · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -56,7 +56,7 @@ const STAGES = [
   },
   {
     label: "Done",
-    copy: "One vertical short, plus the plan that produced it — screenplay, cast, and every shot.",
+    copy: "One vertical short, plus the plan that produced it - screenplay, cast, and every shot.",
   },
 ];
 
@@ -68,18 +68,18 @@ export default function DramasFeaturePage() {
         illustration={
           <MediaCard
             kind="video"
-            label="Micro-drama — premise to stitched vertical short"
+            label="Micro-drama - premise to stitched vertical short"
             ratio="16/9"
           />
         }
         kicker="Micro-dramas"
-        lede="Give the screenwriter one sentence of premise. It comes back with a cast you can look in the eye — and the same faces are still there in the last shot."
+        lede="Give the screenwriter one sentence of premise. It comes back with a cast you can look in the eye - and the same faces are still there in the last shot."
         magneticPrimary
         titleText="One premise in. A cast that doesn't change."
         variant="sky"
       />
 
-      {/* 1 — the pipeline */}
+      {/* 1 - the pipeline */}
       <StageGrid
         eyebrow="The pipeline"
         heading="Seven stages, and you can watch which one it's in."
@@ -88,12 +88,12 @@ export default function DramasFeaturePage() {
         lede="A drama is an idea driven through screenplay, cast, shot list, per-shot clips, and one stitched short. Each stage checkpoints its work to the run before the next one starts."
         media={{
           kind: "illustration",
-          label: "Drama pipeline — seven stages from premise to short",
+          label: "Drama pipeline - seven stages from premise to short",
         }}
         stages={STAGES}
       />
 
-      {/* 2 — character consistency */}
+      {/* 2 - character consistency */}
       <Band
         bullets={[
           "A character's reference portrait is generated exactly once and never regenerated for the life of the drama.",
@@ -106,7 +106,7 @@ export default function DramasFeaturePage() {
         heading="The face is locked before the first shot is bought."
         highlight="locked"
         label="Character consistency"
-        lede="Up to five recurring characters are extracted from the screenplay, and each gets one portrait. That portrait becomes the image reference for every shot they are in — which is the whole reason the actor doesn't change mid-film."
+        lede="Up to five recurring characters are extracted from the screenplay, and each gets one portrait. That portrait becomes the image reference for every shot they are in - which is the whole reason the actor doesn't change mid-film."
         media={
           <MediaCard
             kind="image"
@@ -115,11 +115,11 @@ export default function DramasFeaturePage() {
         }
       />
 
-      {/* 3 — idea or script */}
+      {/* 3 - idea or script */}
       <Band
         bullets={[
           "From an idea: one or two sentences of premise is enough to start.",
-          "From a script: paste a finished screenplay and the writer stage is skipped — and never paid for.",
+          "From a script: paste a finished screenplay and the writer stage is skipped - and never paid for.",
           "Two to twelve shots per drama, six by default, in 9:16, 16:9, or 1:1.",
         ]}
         eyebrow="Two ways in"
@@ -130,12 +130,12 @@ export default function DramasFeaturePage() {
         media={
           <MediaCard
             kind="image"
-            label="Composer — idea or finished script, shots, aspect"
+            label="Composer - idea or finished script, shots, aspect"
           />
         }
       />
 
-      {/* 4 — spend */}
+      {/* 4 - spend */}
       <Band
         bullets={[
           "Every call is gated by the niche's daily cap, your global daily cap, and your prepaid credit.",
@@ -162,7 +162,7 @@ export default function DramasFeaturePage() {
           expensive artifact is addressed by a fixed path, so a resumed drama
           adopts the screenplay, the portraits, the keyframes and the finished
           shots it already has. A drama that fails on the last shot has already
-          spent real money on the others — losing that would be the expensive
+          spent real money on the others - losing that would be the expensive
           kind of retry.
         </Note>
       </Section>

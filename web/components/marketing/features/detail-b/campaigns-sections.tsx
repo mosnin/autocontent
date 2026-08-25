@@ -34,7 +34,7 @@ export function CampaignAnatomy() {
       media={
         <MediaCard
           kind="image"
-          label="Campaign detail — budget progress and lane list"
+          label="Campaign detail - budget progress and lane list"
         />
       }
     />
@@ -59,7 +59,7 @@ const LANES = [
   {
     kicker: "Linked ad campaign",
     title: "Reporting, not control",
-    copy: "Paste an ad campaign id and it joins the view, so one screen shows the whole push. Its lifecycle stays in the governed ads layer — nothing in a campaign can move ad money.",
+    copy: "Paste an ad campaign id and it joins the view, so one screen shows the whole push. Its lifecycle stays in the governed ads layer - nothing in a campaign can move ad money.",
   },
 ];
 
@@ -75,7 +75,7 @@ export function LaneCards() {
         />
         <MediaCard
           kind="illustration"
-          label="Lane diagram — video, article, and linked ad lanes"
+          label="Lane diagram - video, article, and linked ad lanes"
         />
       </div>
       <CardGrid className="os-mt-48">
@@ -113,7 +113,7 @@ const TICK = [
   },
   {
     title: "Pace each lane",
-    copy: "A lane targets so many pieces per week, and the work is spread across the week rather than front-loaded — a gap of 168 hours divided by the cadence between spawns. The weekly count is a hard stop.",
+    copy: "A lane targets so many pieces per week, and the work is spread across the week rather than front-loaded - a gap of 168 hours divided by the cadence between spawns. The weekly count is a hard stop.",
   },
   {
     title: "Attribute everything",
@@ -160,7 +160,7 @@ export function BudgetBand() {
   return (
     <Band
       bullets={[
-        "The budget covers generation credits — the videos and articles this campaign makes.",
+        "The budget covers generation credits - the videos and articles this campaign makes.",
         "Ad platform spend is governed separately, by the ads layer's own fail-closed guard.",
         "Completion is automatic: the budget or the end date, whichever lands first.",
       ]}
@@ -174,7 +174,7 @@ export function BudgetBand() {
       media={
         <MediaCard
           kind="image"
-          label="Budget progress — spent against campaign budget"
+          label="Budget progress - spent against campaign budget"
         />
       }
     />
@@ -193,7 +193,7 @@ export function CampaignContext() {
           eyebrow="On top of everything else"
           heading="A campaign doesn't replace your caps. It sits inside them."
           highlight="inside them."
-          lede="Every piece a campaign spawns is an ordinary pipeline run: the niche's daily cap applies, your global daily cap applies, your prepaid balance applies, and an approval gate — if that niche has one — still holds the post."
+          lede="Every piece a campaign spawns is an ordinary pipeline run: the niche's daily cap applies, your global daily cap applies, your prepaid balance applies, and an approval gate - if that niche has one - still holds the post."
           size="md"
         />
         <Body className="os-mt-24 os-measure">

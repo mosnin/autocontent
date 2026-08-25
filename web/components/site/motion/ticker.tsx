@@ -23,7 +23,7 @@
  *   Hover (real pointer):  aj6bzg −20.19 → −20.00 (hoverModifier 100 ⇒ ×1.00)
  *                          h6y6rj +63.99 → +40.95 (hoverModifier  64 ⇒ ×0.64)
  *   Loop seam: h6y6rj wraps −9.85 → −970.22, i.e. period 972 =
- *   totalItemLength 922 + gap 50. No easing — perfectly linear.
+ *   totalItemLength 922 + gap 50. No easing - perfectly linear.
  *
  *   The export ships these `<ul>`s with `opacity: 0` (the runtime raised it
  *   after its first measure pass), so they are currently invisible, not merely
@@ -35,7 +35,7 @@
  *   loopRepeatType "loop", loopPauseOffscreen true.
  *   ease [0,0,1,1] is linear ⇒ 12.000 deg/s. Measured 11.99–12.02 deg/s.
  *
- * ── 3. Comparison slideshows (`.framer-slideshow-axis-x`) — NOT ours ──
+ * ── 3. Comparison slideshows (`.framer-slideshow-axis-x`) - NOT ours ──
  *   `controls.tsx` already drives `section.framer-slideshow`. Measurements
  *   taken here in case they are useful there: page module says autoPlayControl
  *   true, direction "left", intervalControl 3, gap 11, itemAmount 1,
@@ -51,11 +51,11 @@
  *   linearly, over 5.0s, then the next; measured step 4.98s, then a ~1.05s
  *   all-empty gap before the cycle restarts.
  *
- * ── 5. Rive containers ("1.riv", "2N.riv") — NOT reproduced ──
+ * ── 5. Rive containers ("1.riv", "2N.riv") - NOT reproduced ──
  *   Both live in the Challenges section's "Rive Container" and are the same
  *   graphic at two aspect ratios (1.riv desktop+tablet, 2N.riv mobile).
  *   Downloading the assets (framerusercontent.com/assets/
- *   OH4E1Fo3AN0nu4qzLBLchL9GjL0.riv, 1FmJ16uJgj0nCPROxVjG5rISU0.riv — 2.3KB
+ *   OH4E1Fo3AN0nu4qzLBLchL9GjL0.riv, 1FmJ16uJgj0nCPROxVjG5rISU0.riv - 2.3KB
  *   and 828B, artboard "Artboard", "State Machine 1") and playing them through
  *   @rive-app/canvas shows a circuit trace in #354B48: a full-width horizontal
  *   rule with short upward stubs at both ends and a stem dropping from the
@@ -77,7 +77,7 @@ const IN_VIEW_MARGIN = "100px";
 interface TickerConfig {
   /** Wrapper class emitted by Framer for this Ticker instance. */
   selector: string;
-  /** `tickerEffectVelocity` — px/s. */
+  /** `tickerEffectVelocity` - px/s. */
   velocity: number;
   /** `tickerEffectDirectionModifier`: "default" → 1, "reverse" → -1. */
   direction: 1 | -1;
@@ -111,7 +111,7 @@ const BAR_TAIL_MS = 1050;
 
 const registry = new WeakMap<HTMLElement, Cleanup>();
 
-/** Wrap `v` into the half-open range [min, max) — Framer's ticker clamp. */
+/** Wrap `v` into the half-open range [min, max) - Framer's ticker clamp. */
 function wrap(v: number, min: number, max: number): number {
   const span = max - min;
   if (!(span > 0)) return min;

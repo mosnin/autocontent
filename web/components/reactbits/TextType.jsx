@@ -1,6 +1,6 @@
 'use client';
 
-// TextType from React Bits (reactbits.dev, MIT) — JavaScript + CSS variant,
+// TextType from React Bits (reactbits.dev, MIT) - JavaScript + CSS variant,
 // vendored as provided. Dependencies: gsap.
 
 import { useEffect, useRef, useState, createElement, useMemo, useCallback } from 'react';

@@ -10,8 +10,11 @@ import {
   GuideStrong,
   type GuideSection,
 } from "@/components/marketing/resources/guide-layout";
-import { SectionCta } from "@/components/marketing/system";
-import { MediaCard } from "@/components/site/sections";
+import {
+  GlassPanel,
+  SectionCta,
+  TaggedPlaceholder,
+} from "@/components/marketing/system";
 
 const TITLE = "Hand your marketing to an agent, safely";
 const DESCRIPTION =
@@ -19,7 +22,7 @@ const DESCRIPTION =
 const URL = "https://marketer.sh/resources/guides/agent-driven-marketing";
 
 export const metadata: Metadata = {
-  title: `${TITLE} — marketer.sh`,
+  title: `${TITLE} · marketer.sh`,
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION, type: "article" },
   alternates: { canonical: URL },
@@ -59,13 +62,17 @@ function SampleConversation() {
     },
   ];
   return (
-    <div className="os-card os-mt-24">
-      <p className="os-label">A morning, transcribed</p>
-      <div className="os-transcript os-mt-20">
+    <GlassPanel className="mt-6 p-5 md:p-6">
+      <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+        A morning, transcribed
+      </p>
+      <div className="mt-4 space-y-3">
         {turns.map((turn, i) => (
           <div
             className={
-              turn.from === "you" ? "os-turn os-turn--you" : "os-turn os-turn--agent"
+              turn.from === "you"
+                ? "ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-foreground px-4 py-2.5 text-[13px] leading-relaxed text-background"
+                : "max-w-[85%] rounded-2xl rounded-bl-md border border-border bg-background px-4 py-2.5 text-[13px] leading-relaxed text-foreground"
             }
             key={i}
           >
@@ -73,7 +80,7 @@ function SampleConversation() {
           </div>
         ))}
       </div>
-    </div>
+    </GlassPanel>
   );
 }
 
@@ -124,8 +131,13 @@ const SECTIONS: GuideSection[] = [
           it spends. You will see this in transcripts: agents narrate the
           budget without being asked, because the tools taught them to.
         </GuideP>
-        <div className="os-mt-24">
-          <MediaCard kind="illustration" label="Guide diagram — MCP setup" ratio="16/9" />
+        <div className="mt-6 aspect-[16/10] overflow-hidden rounded-2xl">
+          <TaggedPlaceholder
+            className="h-full w-full"
+            kind="illustration"
+            label="Guide diagram - MCP setup"
+            tone="sky"
+          />
         </div>
       </>
     ),
@@ -142,21 +154,21 @@ const SECTIONS: GuideSection[] = [
         </GuideP>
         <GuideList
           items={[
-            <React.Fragment key={1}>
+            <>
               <GuideStrong>One token per agent.</GuideStrong> When a token
               leaks or an experiment goes sideways, you revoke one agent, not
               your whole automation setup.
-            </React.Fragment>,
-            <React.Fragment key={2}>
+            </>,
+            <>
               <GuideStrong>Name tokens for their job.</GuideStrong>{" "}
               &ldquo;claude-articles-prod&rdquo; tells future-you what breaks
               when it is revoked.
-            </React.Fragment>,
-            <React.Fragment key={3}>
+            </>,
+            <>
               <GuideStrong>Keep tokens out of prompts and repos.</GuideStrong>{" "}
               Pass them through the MCP config&apos;s environment, a secret
               manager, or CI secrets, never inline.
-            </React.Fragment>,
+            </>,
           ]}
         />
       </>

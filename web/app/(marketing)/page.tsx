@@ -1,17 +1,24 @@
 import type { Metadata } from "next";
 
-import { HomeBody } from "@/components/site";
-import { HomeShowcase } from "@/components/site/media";
-
+import { AppShowcase } from "@/components/marketing/home/app-showcase";
+import { Faq } from "@/components/marketing/home/faq";
+import { Features } from "@/components/marketing/home/features";
+import { FinalCta } from "@/components/marketing/home/final-cta";
+import { Gallery } from "@/components/marketing/home/gallery";
+import { Hero } from "@/components/marketing/home/hero";
+import { Integrations } from "@/components/marketing/home/integrations";
+import { Manifesto } from "@/components/marketing/home/manifesto";
+import { Pricing } from "@/components/marketing/home/pricing";
+import { VideoShowcase } from "@/components/marketing/home/video-showcase";
 
 const DESCRIPTION =
-  "Prepaid credits, a niche, and a daily cap. marketer.sh generates short-form video and SEO articles, parks them for approval, then schedules to the socials you connected."
+  "Prepaid credits, a niche, and a daily cap. marketer.sh generates short-form video and SEO articles, parks them for approval, then schedules to the socials you connected.";
 
 export const metadata: Metadata = {
-  title: "marketer.sh — Marketing that runs itself",
+  title: "marketer.sh · Marketing that just gets made",
   description: DESCRIPTION,
   openGraph: {
-    title: "marketer.sh — Marketing that runs itself",
+    title: "marketer.sh · Marketing that just gets made",
     description: DESCRIPTION,
     type: "website",
   },
@@ -37,16 +44,23 @@ const JSON_LD = {
 export default function HomePage() {
   return (
     <>
+      <span id="top" className="sr-only" />
       <script
         dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
         type="application/ld+json"
       />
-      <HomeBody />
-      {/* The generated body can't be hand-edited, so the showcase band is
-          appended here. It is built from the shared section primitives and
-          reads as another band of the same page. Its contents come from
-          `components/site/media/showcase.config.ts`. */}
-      <HomeShowcase />
+      <main className="flex-1 overflow-x-clip">
+        <Hero />
+        <VideoShowcase />
+        <Manifesto />
+        <Features />
+        <AppShowcase />
+        <Gallery />
+        <Integrations />
+        <Pricing />
+        <Faq />
+        <FinalCta />
+      </main>
     </>
   );
 }

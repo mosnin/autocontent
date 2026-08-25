@@ -6,7 +6,7 @@
 import { Button } from "@/components/originkit/ui/hero-03/button";
 import type { KeyboardEvent } from "react";
 
-/** Public asset URLs — use a function so preview rewriters stay stable. */
+/** Public asset URLs - use a function so preview rewriters stay stable. */
 function asset(file: string) {
   return `/originkit/hero-03/${file}`;
 }

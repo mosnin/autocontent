@@ -88,7 +88,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     sampled_videos: number;
   }>("/api/v1/metrics/summary", clientFetch, { refreshInterval: 60000 });
 
-  // Finished jobs — same endpoint/pattern as latest-videos.tsx; feeds the
+  // Finished jobs - same endpoint/pattern as latest-videos.tsx; feeds the
   // template's chart + recent-uploads tiles with real data.
   const { data: doneJobs } = useSWR<Job[]>(
     "/api/v1/jobs?status_filter=done&limit=250",
@@ -162,7 +162,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
   return (
     <div className="space-y-10">
-      <DashHeading as="h1" sub="Every niche is a self-driving pipeline — queue a short, cap the spend, ship to every feed.">
+      <DashHeading as="h1" sub="Every niche is a self-driving pipeline - queue a short, cap the spend, ship to every feed.">
         Bring any idea to the feed
       </DashHeading>
 
@@ -177,7 +177,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
         // Delta slots carry real derivable values only: spend as % of the
         // daily cap, remaining cap %, and views per video. Stats with no
-        // real delta render "—" inside the component.
+        // real delta render "-" inside the component.
         const viewsPerVideo =
           metricsSummary && metricsSummary.sampled_videos > 0
             ? metricsSummary.total_views / metricsSummary.sampled_videos
@@ -200,7 +200,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
                 key: "remaining",
                 label: "Cap remaining",
                 icon: Coins,
-                value: remaining !== null ? formatUsd(remaining) : "—",
+                value: remaining !== null ? formatUsd(remaining) : "-",
                 delta:
                   cap !== null && cap > 0
                     ? {
@@ -222,7 +222,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
                 icon: Eye,
                 value: metricsSummary
                   ? fmtCompact(metricsSummary.total_views)
-                  : "—",
+                  : "-",
                 delta:
                   viewsPerVideo !== null
                     ? { text: `${fmtCompact(Math.round(viewsPerVideo))}/video` }
@@ -257,7 +257,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
       {hasError && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused —{" "}
+          Live updates paused -{" "}
           {(nichesError ?? spendError)?.message ?? "fetch failed"}
         </p>
       )}

@@ -1,5 +1,5 @@
 /**
- * A still generated on the platform — an ad creative, a key frame, a render.
+ * A still generated on the platform - an ad creative, a key frame, a render.
  *
  * Server component. The box reserves its aspect ratio before the image
  * loads, so nothing on the page moves when it arrives, and `alt` is a

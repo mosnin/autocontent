@@ -37,7 +37,7 @@ function videoSrc(jobId: string): string {
 }
 
 /**
- * "Latest videos" — the machine's actual output, front and center on the
+ * "Latest videos" - the machine's actual output, front and center on the
  * dashboard. Also owns the first-video moment: the first time a done job
  * ever appears for this browser, we stop everything and play it.
  */
@@ -66,7 +66,7 @@ export function LatestVideos() {
       localStorage.setItem(FIRST_VIDEO_KEY, new Date().toISOString());
       setRevealJob(done[0]);
     } catch {
-      // Storage unavailable (private mode) — skip the moment, never break.
+      // Storage unavailable (private mode) - skip the moment, never break.
     }
   }, [done]);
 
@@ -92,7 +92,7 @@ export function LatestVideos() {
                 <span className="font-mono tabular-nums">
                   {summary.sampled_videos}
                 </span>{" "}
-                {summary.sampled_videos === 1 ? "video" : "videos"} — last{" "}
+                {summary.sampled_videos === 1 ? "video" : "videos"} - last{" "}
                 {summary.days} days.
               </p>
               {summary.best_views !== null && summary.best_job_id && (
@@ -166,7 +166,7 @@ export function LatestVideos() {
               Your first video is scheduled
             </DialogTitle>
             <DialogDescription>
-              Ideated, written, animated, voiced, and mixed — start to finish,
+              Ideated, written, animated, voiced, and mixed - start to finish,
               no hands on the wheel.
             </DialogDescription>
           </DialogHeader>

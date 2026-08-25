@@ -121,7 +121,7 @@ export default async function NichePage({
 
   // Avg cost / video = 30-day spend ÷ jobs completed in that same 30-day
   // window. The numerator is a true 30-day figure, so the denominator must
-  // be too — count only done jobs created within the window (not "the last
+  // be too - count only done jobs created within the window (not "the last
   // 20 done jobs ever", which over/under-counts and skews the average).
   const windowCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const doneJobs = recentJobs.filter((j) => j.status === "done");
@@ -129,7 +129,7 @@ export default async function NichePage({
     (j) => new Date(j.created_at).getTime() >= windowCutoff,
   );
   // If we fetched the maximum page, older in-window jobs may exist that we
-  // didn't see — the denominator is then a lower bound, so the average is an
+  // didn't see - the denominator is then a lower bound, so the average is an
   // upper bound. Flag it approximate rather than presenting a precise-looking
   // but inflated number.
   const jobsTruncated = recentJobs.length >= RECENT_JOBS_LIMIT;
@@ -140,7 +140,7 @@ export default async function NichePage({
   const capPct = cap > 0 ? todayUsd / cap : 0;
   const hot = capPct >= 0.8;
 
-  // Any in-flight pipeline stage renders as the "outline" variant — use it
+  // Any in-flight pipeline stage renders as the "outline" variant - use it
   // as a proxy for a live run so the header can wear the recording dot.
   const live = recentJobs.some((j) => statusVariant(j.status) === "outline");
   const hasJobs = recentJobs.length > 0;
@@ -225,7 +225,7 @@ export default async function NichePage({
             value={
               windowDoneJobs.length > 0
                 ? `${jobsTruncated ? "~" : ""}${formatUsd(avgCostUsd)}`
-                : "—"
+                : "-"
             }
             sub={
               windowDoneJobs.length > 0

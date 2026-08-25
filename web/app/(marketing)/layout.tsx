@@ -1,24 +1,17 @@
 import * as React from "react";
 
-import { SiteShell } from "@/components/site";
-import { SiteMotion } from "@/components/site/motion";
-import "@/components/site/site.css";
-import "@/components/site/bridge.css";
+import { Footer } from "@/components/marketing/site-footer";
+import { Nav } from "@/components/marketing/nav/nav";
+import { MarketingProviders } from "@/components/marketing/providers";
+import { SkipToContent } from "@/components/marketing/skip-to-content";
+import { ThemeSwitch } from "@/components/marketing/theme-switch";
 
-// The root layout wraps everything in <ClerkProvider>, which can't be
-// statically prerendered without a real Clerk key — opt the whole marketing
-// group out so CI builds ship with a placeholder key.
 export const dynamic = "force-dynamic";
 
 /**
- * Shell for every logged-out marketing page.
- *
- * `SiteShell` carries the transcribed nav, footer and the
- * `#main > .framer-pnUdQ` wrapper chain that site.css scopes all of its
- * layout rules under, so each page inherits the design rather than
- * re-implementing it. `SiteMotion` restores the animation the Framer runtime
- * used to drive: the export's CSS has zero @keyframes, so stripping the
- * runtime removed every animation on the site except the 50 :hover rules.
+ * Shell for every logged-out marketing page. Cortex template: expanding
+ * pill nav, inverted-surface theme switch, Lenis smooth scroll, and the
+ * oversized wordmark footer.
  */
 export default function MarketingLayout({
   children,
@@ -26,9 +19,16 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <SiteShell>
-      {children}
-      <SiteMotion />
-    </SiteShell>
+    <div className="marketing-site flex min-h-screen flex-col">
+      <MarketingProviders>
+        <SkipToContent />
+        <Nav />
+        <div className="flex-1" id="main-content">
+          {children}
+        </div>
+        <Footer />
+        <ThemeSwitch />
+      </MarketingProviders>
+    </div>
   );
 }

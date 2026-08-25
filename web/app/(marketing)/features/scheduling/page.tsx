@@ -16,10 +16,10 @@ const DESCRIPTION =
   "Per-niche posting windows, one calendar across video, articles, and ads, a composer for eleven platforms, recurring weekly slots, and a dispatcher that cannot post twice.";
 
 export const metadata: Metadata = {
-  title: "Scheduling & publishing — marketer.sh",
+  title: "Scheduling & publishing · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Scheduling & publishing — marketer.sh",
+    title: "Scheduling & publishing · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -33,12 +33,12 @@ export default function SchedulingFeaturePage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Calendar agenda — the next thirty days"
+            label="Calendar agenda - the next thirty days"
             ratio="16/9"
           />
         }
         kicker="Scheduling & publishing"
-        lede="Set the windows once. The pipeline produces to meet them, the calendar shows what is coming, and the dispatcher puts each post out exactly once — in the timezone you meant."
+        lede="Set the windows once. The pipeline produces to meet them, the calendar shows what is coming, and the dispatcher puts each post out exactly once - in the timezone you meant."
         magneticPrimary
         titleText="It knows what ships, and when."
         variant="sky"

@@ -2,7 +2,7 @@
 
 // Live job detail. Polls via SWR while the pipeline is still working so an
 // in-progress "Rendering" skeleton flips to the finished video (or a failure)
-// on its own — no manual reload. Mirrors ArticleDetailClient's polling model.
+// on its own - no manual reload. Mirrors ArticleDetailClient's polling model.
 
 import * as React from "react";
 import Link from "next/link";
@@ -33,7 +33,7 @@ import { RetryButton } from "./RetryButton";
 const POLL_MS = 5000;
 
 // Statuses where the pipeline has stopped and nothing more will change on
-// its own — polling can halt. Everything else is treated as "still working".
+// its own - polling can halt. Everything else is treated as "still working".
 const TERMINAL: ReadonlySet<JobStatus> = new Set<JobStatus>([
   "done",
   "failed",
@@ -41,7 +41,7 @@ const TERMINAL: ReadonlySet<JobStatus> = new Set<JobStatus>([
   "awaiting_approval",
 ]);
 
-// Mirror of the in-flight set in `@/lib/status-badge` — used to light up the
+// Mirror of the in-flight set in `@/lib/status-badge` - used to light up the
 // header + video card while the pipeline is actively producing the video.
 const IN_PROGRESS: ReadonlySet<JobStatus> = new Set<JobStatus>([
   "ideating",
@@ -55,7 +55,7 @@ const IN_PROGRESS: ReadonlySet<JobStatus> = new Set<JobStatus>([
   "scheduling",
 ]);
 
-// Recording-light pulse — reused verbatim from the design system for anything
+// Recording-light pulse - reused verbatim from the design system for anything
 // "live" / in-progress.
 function RecordingDot() {
   return (
@@ -65,7 +65,7 @@ function RecordingDot() {
   );
 }
 
-// `Script` is intentionally typed loosely — the manual mirror in
+// `Script` is intentionally typed loosely - the manual mirror in
 // `web/lib/types.ts` only declares a tiny subset; the rest is shaped
 // like the Pydantic model and we trust the API.
 type Script = NonNullable<Job["script"]> & {
@@ -105,7 +105,7 @@ export function JobDetailClient({
 
   const job = data ?? initial;
 
-  // The TS type for Job.script intentionally only declares `idea` —
+  // The TS type for Job.script intentionally only declares `idea` -
   // the full Pydantic model carries more. Re-cast through `Script` for
   // the panels that need scenes/cta.
   const fullScript = job.script as Script | null | undefined;
@@ -152,7 +152,7 @@ export function JobDetailClient({
               {inProgress && (
                 <span className="inline-flex items-center gap-1.5 font-medium text-brand">
                   <RecordingDot />
-                  In progress — updates every {POLL_MS / 1000}s
+                  In progress - updates every {POLL_MS / 1000}s
                 </span>
               )}
               <span className="tabular-nums">
@@ -384,7 +384,7 @@ function CostsPanel({
         </TableBody>
       </Table>
       <p className="text-xs text-muted-foreground">
-        Estimated from the niche&apos;s current config — the actual run is
+        Estimated from the niche&apos;s current config - the actual run is
         billed from real provider invoices.
       </p>
     </div>

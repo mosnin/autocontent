@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
-import { SectionCta } from "@/components/marketing/system";
-import { MediaSlot } from "@/components/site/sections";
+import { SectionCta, TaggedPlaceholder } from "@/components/marketing/system";
 import {
   MockBand,
   OutcomesBand,
@@ -14,10 +13,10 @@ const DESCRIPTION =
   "Run every client as its own niche, with per-niche daily caps, approval gates per client, and a spend ledger that turns month-end billing into an export.";
 
 export const metadata: Metadata = {
-  title: "Agencies — marketer.sh",
+  title: "Agencies · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Agencies — marketer.sh",
+    title: "Agencies · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -31,7 +30,7 @@ export default function AgenciesPage() {
         headline={["Every client, run like", "your only client."]}
         kicker="For agencies"
         lede="One niche per client. Its own brief, its own daily cap, its own approval gate, its own line in the ledger. Ten accounts feel like one."
-        placeholderLabel="Agencies in the product — hero still"
+        placeholderLabel="Agencies in the product - hero still"
         placeholderTone="violet"
         scene="steel"
       />
@@ -82,11 +81,13 @@ export default function AgenciesPage() {
         lede="Three clients, three caps, three gates. The dental account runs strict, the yoga studio earned autopilot, and nothing can pass its cap."
         scene="steel"
       >
-        <MediaSlot
-          className="os-aspect-43"
-          kind="image"
-          label="Agencies workflow — screenshot"
-        />
+        <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-border shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
+          <TaggedPlaceholder
+            kind="image"
+            label="Agencies workflow - screenshot"
+            tone="violet"
+          />
+        </div>
       </MockBand>
       <OutcomesBand
         heading="Margin that survives client ten."

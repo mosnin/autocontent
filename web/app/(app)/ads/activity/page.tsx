@@ -3,7 +3,7 @@
 // campaigns-table.tsx / QueueClient, template badge tone technique
 // (Badge variant="outline" + a tonal class per action kind, since square
 // Badge has no destructive/warning/success variants to reuse). No
-// toolbar — this table never had search/filter and stays read-only.
+// toolbar - this table never had search/filter and stays read-only.
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,7 +56,7 @@ export default async function AdsActivityPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Activity</h1>
         <p className="text-sm text-muted-foreground">
-          Append-only log of every ads action — by agents and by you. This is
+          Append-only log of every ads action - by agents and by you. This is
           the audit trail for spend.
         </p>
       </div>
@@ -117,7 +117,7 @@ export default async function AdsActivityPage() {
                     <TableCell className="py-3 text-right font-mono text-sm tabular-nums whitespace-nowrap">
                       {Number(a.dollar_delta_usd) !== 0
                         ? formatUsd(a.dollar_delta_usd)
-                        : "—"}
+                        : "-"}
                     </TableCell>
                     <TableCell className="py-3 tabular-nums text-sm text-muted-foreground whitespace-nowrap">
                       {new Date(a.created_at).toLocaleDateString(undefined, {
