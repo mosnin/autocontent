@@ -1,16 +1,14 @@
 import type { MetadataRoute } from "next";
 
+import { SERVICES } from "@/lib/marketing/services";
+
 const BASE = process.env.NEXT_PUBLIC_SITE_URL || "https://marketer.sh";
 
-const ROUTES = [
+const STATIC_ROUTES = [
   "",
   "/pricing",
   "/company",
   "/features",
-  "/features/video",
-  "/features/articles",
-  "/features/automation",
-  "/features/analytics",
   "/use-cases",
   "/use-cases/creators",
   "/use-cases/ecommerce",
@@ -34,6 +32,11 @@ const ROUTES = [
   "/legal/subprocessors",
   "/legal/dpa",
   "/legal/refund",
+];
+
+const ROUTES = [
+  ...STATIC_ROUTES,
+  ...SERVICES.map((service) => `/features/${service.slug}`),
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -1,10 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-export function Logo(): ReactNode {
+export function Logo({ href = "/" }: { href?: string }): ReactNode {
   return (
     <Link
-      href="/"
+      href={href}
       aria-label="marketer.sh home"
       className="focus-ring group inline-flex"
     >

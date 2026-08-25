@@ -1,29 +1,24 @@
+import type { ReactNode } from "react";
+
 import { LegalNav } from "@/components/marketing/legal/LegalNav";
 
 export const dynamic = "force-dynamic";
 
-// Two-column legal shell: a quiet sticky nav on the left, the document on
-// the right, inside the same ruled section container the rest of the site
-// uses. The nav + footer come from the parent marketing layout.
 export default function LegalLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <main className="os-section os-section--top">
-      <div className="os-section__inner">
-        <div className="os-inset">
-          <div className="os-legal-shell">
-            <aside className="os-legal-shell__aside">
-              <p className="os-label">Legal</p>
-              <div className="os-mt-16">
-                <LegalNav />
-              </div>
-            </aside>
-            <div>{children}</div>
-          </div>
-        </div>
+    <main className="mx-auto w-full max-w-[1440px] px-5 pb-24 pt-28 sm:px-8 sm:pt-32 lg:px-10">
+      <div className="grid gap-12 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-20">
+        <aside className="lg:sticky lg:top-28 lg:self-start">
+          <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
+            Legal
+          </p>
+          <LegalNav />
+        </aside>
+        <div>{children}</div>
       </div>
     </main>
   );

@@ -6,13 +6,11 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LEGAL_DOCS } from "./legal-docs";
 
-// Text-only legal navigation. The accent hairline marks the active
-// document; no icons, no boxes — just type and space.
 export function LegalNav() {
   const pathname = usePathname();
   return (
-    <nav aria-label="Legal documents">
-      <ul className="os-toc">
+    <nav aria-label="Legal documents" className="mt-4">
+      <ul className="flex flex-col gap-1 border-l border-border">
         {LEGAL_DOCS.map((doc) => {
           const href = `/legal/${doc.slug}`;
           const active = pathname === href;
@@ -20,7 +18,12 @@ export function LegalNav() {
             <li key={doc.slug}>
               <Link
                 aria-current={active ? "page" : undefined}
-                className={cn("os-toc__link", active && "os-toc__link--on")}
+                className={cn(
+                  "focus-ring -ml-px block border-l border-transparent py-1.5 pl-4 text-sm transition-colors",
+                  active
+                    ? "border-foreground text-foreground font-medium"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
                 href={href}
               >
                 {doc.title}

@@ -17,7 +17,7 @@ function OnboardingShell({ children }: { children: React.ReactNode }) {
       <IntroDone />
       <SkipToContent />
       <header className="flex h-20 items-center px-5 sm:px-8">
-        <Logo />
+        <Logo href="/home" />
       </header>
       <main
         id="main-content"
@@ -31,8 +31,9 @@ function OnboardingShell({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Logged-in shell. Onboarding uses the Cortex marketing canvas (no
- * dashboard chrome). Everything else uses the Square dashboard template.
+ * Logged-in shell. Onboarding keeps the marketing canvas. The rest of the
+ * app uses the same Cortex tokens and chrome as the logged-out site:
+ * flat white/black canvas, hairline rules, no floating warm panel.
  */
 export function SiteShell({
   children,
@@ -47,18 +48,18 @@ export function SiteShell({
   }
 
   return (
-    <SidebarProvider className="bg-sidebar">
-      <SquareSidebar account={account} />
-      <div className="h-svh overflow-hidden lg:p-2 w-full">
-        <div className="lg:border lg:rounded-md overflow-hidden flex flex-col h-full w-full bg-background">
+    <div className="marketing-site h-svh overflow-hidden">
+      <SidebarProvider className="h-svh bg-background">
+        <SquareSidebar account={account} />
+        <div className="flex h-svh min-w-0 flex-1 flex-col bg-background">
           <SquareHeader />
-          <main className="w-full flex-1 overflow-auto">
-            <div className="mx-auto w-full max-w-[1600px] px-5 pb-16 pt-10 md:px-10">
+          <main className="min-h-0 w-full flex-1 overflow-auto" id="main-content">
+            <div className="mx-auto w-full max-w-[1440px] px-5 pb-16 pt-8 sm:px-8 lg:px-10">
               {children}
             </div>
           </main>
         </div>
-      </div>
-    </SidebarProvider>
+      </SidebarProvider>
+    </div>
   );
 }

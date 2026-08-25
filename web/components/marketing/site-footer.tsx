@@ -13,10 +13,12 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     title: "Product",
     links: [
       { label: "Overview", href: "/#overview" },
-      { label: "How it works", href: "/#how-it-works" },
       { label: "Features", href: "/features" },
+      { label: "Video", href: "/features/video" },
+      { label: "Articles", href: "/features/articles" },
+      { label: "Ads", href: "/features/ads" },
+      { label: "Campaigns", href: "/features/campaigns" },
       { label: "Pricing", href: "/pricing" },
-      { label: "FAQ", href: "/resources/faq" },
     ],
   },
   {
@@ -30,9 +32,12 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Legal",
     links: [
+      { label: "Legal", href: "/legal" },
       { label: "Privacy Policy", href: "/legal/privacy" },
       { label: "Terms of Service", href: "/legal/terms" },
       { label: "Cookie Policy", href: "/legal/cookies" },
+      { label: "Acceptable Use", href: "/legal/acceptable-use" },
+      { label: "Refunds", href: "/legal/refund" },
     ],
   },
   {

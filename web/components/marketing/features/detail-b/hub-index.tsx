@@ -78,6 +78,12 @@ const GROUPS: FeatureGroup[] = [
         meta: "Looks",
         copy: "Curated aesthetics with the exact prompt attached. Add your product photo and get the same look with your product in it.",
       },
+      {
+        title: "Headshots",
+        href: "/features/headshots",
+        meta: "Stills",
+        copy: "On-model stills the rest of the suite locks to — UGC, dramas, and ads keep the same face.",
+      },
     ],
   },
   {
@@ -104,6 +110,24 @@ const GROUPS: FeatureGroup[] = [
         href: "/features/ads",
         meta: "Paid",
         copy: "Paid campaigns across Google and Meta, driven by agents and governed by hard budget guardrails of their own.",
+      },
+      {
+        title: "Ad studio",
+        href: "/features/ad-studio",
+        meta: "Creatives",
+        copy: "Stills and motion built as campaign units, with variants the runner can spend against.",
+      },
+      {
+        title: "Design agent",
+        href: "/features/design",
+        meta: "Iterate",
+        copy: "Revise crop, type, and layout in place. Every change is logged and waits for approval when it should.",
+      },
+      {
+        title: "Production queue",
+        href: "/features/queue",
+        meta: "Jobs",
+        copy: "Every render and article in one list — status, cost, and retry without leaving the ledger.",
       },
     ],
   },
@@ -143,6 +167,18 @@ const GROUPS: FeatureGroup[] = [
         href: "/features/seo-audit",
         meta: "Diagnostic",
         copy: "Point it at a URL and get a score across weighted categories, with the evidence and a recommendation behind every rule.",
+      },
+      {
+        title: "Brand kit",
+        href: "/features/brand",
+        meta: "Identity",
+        copy: "Colors, type, voice, and references the rest of the suite reads before it renders.",
+      },
+      {
+        title: "Personas",
+        href: "/features/personas",
+        meta: "Cast",
+        copy: "Named characters with locked references so UGC, dramas, and ads keep the same face.",
       },
     ],
   },
@@ -212,7 +248,7 @@ export function SharedSpine() {
           eyebrow="One system"
           heading="Fourteen surfaces. One spine."
           highlight="One spine."
-          lede="These aren't fourteen products stitched together. They share a ledger, a set of caps, an approval gate, and a queue — so turning on another one doesn't mean another bill to watch."
+          lede="These aren't twenty products stitched together. They share a ledger, a set of caps, an approval gate, and a queue — so turning on another one doesn't mean another bill to watch."
         />
         <MediaCard
           kind="illustration"
@@ -246,7 +282,7 @@ export function HubStats() {
     <Section label="The platform by the numbers" size="tight">
       <Stats
         items={[
-          { value: "14", label: "features, one login" },
+          { value: "20", label: "features, one login" },
           { value: "$5", label: "smallest prepaid pack, no subscription" },
           { value: "$0", label: "allowed past a tripped cap" },
         ]}
