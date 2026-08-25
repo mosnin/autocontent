@@ -313,6 +313,43 @@ def test_remix_rejects_video_templates_and_oversized_bodies(monkeypatch):
     assert r.status_code == 413
 
 
+def test_remix_rejects_non_image_product_upload(monkeypatch, tmp_path: Path):
+    """Product shots go through the same magic-byte gate as admin references —
+    a script/zip must not land on the volume or spawn a remix worker."""
+    import base64
+
+    import marketer.repos.templates as templates_repo
+    from marketer.config import settings as cfg
+
+    monkeypatch.setattr(cfg, "artifacts_dir", str(tmp_path))
+    template = _fake_template(kind="image")
+
+    async def fake_get(tid):
+        return template
+
+    monkeypatch.setattr(templates_repo, "get", fake_get)
+
+    spawned = []
+
+    class _FakeFn:
+        def spawn(self, *args):
+            spawned.append(args)
+
+    import modal
+    monkeypatch.setattr(modal.Function, "from_name",
+                        staticmethod(lambda app, name: _FakeFn()))
+
+    client = _make_authed_client(monkeypatch)
+    not_an_image = base64.b64encode(b"#!/bin/sh\nrm -rf /\n").decode()
+    r = client.post(
+        f"/api/v1/templates/{template.id}/remix",
+        json={"product_image_b64": not_an_image, "count": 1},
+    )
+    assert r.status_code == 422
+    assert "image" in r.json()["detail"].lower()
+    assert spawned == []
+
+
 # --------------------------------------------------------------------------- image post routes
 
 

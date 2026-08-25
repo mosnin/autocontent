@@ -187,6 +187,75 @@ def test_create_composition_rejects_non_video_assets(monkeypatch):
     assert r.status_code == 422
 
 
+def test_create_composition_spawn_failure_marks_failed(monkeypatch):
+    """Modal spawn errors must not leave a composition stuck in 'queued'."""
+    import marketer.repos.media as media_repo
+
+    clips = [_asset(), _asset()]
+    comp_id = uuid4()
+    status_calls = []
+
+    async def fake_bulk(ids, *, user_id):
+        return clips
+
+    async def fake_create(**kwargs):
+        return Composition(
+            id=comp_id, user_id=_USER_ID,
+            clip_asset_ids=kwargs["clip_asset_ids"],
+            audio_mode=kwargs["audio_mode"], title=kwargs["title"],
+        )
+
+    async def fake_set_status(cid, *, user_id, status, error=None):
+        status_calls.append({"id": cid, "user_id": user_id, "status": status, "error": error})
+
+    monkeypatch.setattr(media_repo, "get_assets_bulk", fake_bulk)
+    monkeypatch.setattr(media_repo, "create_composition", fake_create)
+    monkeypatch.setattr(media_repo, "set_composition_status", fake_set_status)
+
+    import modal
+
+    def _boom(app, name):
+        raise RuntimeError("modal unavailable")
+
+    monkeypatch.setattr(modal.Function, "from_name", staticmethod(_boom))
+
+    client = _make_authed_client(monkeypatch)
+    r = client.post("/api/v1/library/compositions", json={
+        "clip_asset_ids": [str(c.id) for c in clips],
+        "title": "stuck?",
+    })
+    assert r.status_code == 502
+    assert status_calls == [{
+        "id": comp_id,
+        "user_id": _USER_ID,
+        "status": "failed",
+        "error": "spawn failed: modal unavailable",
+    }]
+
+
+def test_media_wasabi_disabled_returns_409(monkeypatch):
+    """Wasabi-stored assets must fail closed when object storage is off —
+    a 500/empty stream would look like the file vanished."""
+    import marketer.repos.media as media_repo
+    from marketer.services import object_storage
+
+    asset = _asset(storage="wasabi", key="users/u/j/clips/scene_0.mp4")
+
+    async def fake_get(asset_id, *, user_id):
+        return asset
+
+    async def fake_presign(key, *, expires_sec=None):
+        raise object_storage.ObjectStorageDisabled("wasabi off")
+
+    monkeypatch.setattr(media_repo, "get_asset", fake_get)
+    monkeypatch.setattr(object_storage, "presigned_get_url", fake_presign)
+    client = _make_authed_client(monkeypatch)
+
+    r = client.get(f"/api/v1/library/{asset.id}/media", follow_redirects=False)
+    assert r.status_code == 409
+    assert "wasabi" in r.json()["detail"].lower()
+
+
 def test_style_presets_listed(monkeypatch):
     client = _make_authed_client(monkeypatch)
     r = client.get("/api/v1/style-presets")

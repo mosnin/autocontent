@@ -11,7 +11,7 @@ from uuid import UUID
 
 from fastapi.testclient import TestClient
 
-from marketer.models import Niche, PostingWindow
+from marketer.models import Kit, Niche, PostingWindow
 
 # ---------------------------------------------------------------------------
 # Constants / helpers shared across tests
@@ -356,3 +356,157 @@ def test_delete_niche_without_auth_returns_401(monkeypatch):
     client = TestClient(create_app(), raise_server_exceptions=False)
     resp = client.delete(f"/api/v1/niches/{_NICHE_ID}")
     assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Kit reference validation — tenant + kind must match or resolve() silently
+# substitutes the default kit at pipeline time (wrong brand on paid runs).
+# ---------------------------------------------------------------------------
+
+_DESIGN_KIT_ID = UUID("22222222-2222-2222-2222-222222222222")
+_WRITING_KIT_ID = UUID("33333333-3333-3333-3333-333333333333")
+
+
+def _make_kit(*, kit_id: UUID, kind: str, user_id: str = _USER_ID) -> Kit:
+    return Kit(id=kit_id, user_id=user_id, kind=kind, name=f"{kind} kit")
+
+
+def test_create_niche_rejects_foreign_design_kit(monkeypatch):
+    """Another tenant's kit id must 422 — never persist a silent steal."""
+    _reset_limiter()
+    import marketer.repos.kits as kits_repo
+    import marketer.repos.niches as niches_repo
+
+    async def _get_kit(kit_id: UUID, *, user_id: str):
+        return None  # scoped lookup: foreign / missing looks the same
+
+    async def _create(user_id: str, **kwargs):
+        raise AssertionError("niches_repo.create must not run for a foreign kit")
+
+    monkeypatch.setattr(kits_repo, "get", _get_kit)
+    monkeypatch.setattr(niches_repo, "create", _create)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/niches",
+        json={**_VALID_PAYLOAD, "design_kit_id": str(_DESIGN_KIT_ID)},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+    assert "design_kit_id" in resp.json()["detail"]
+
+
+def test_create_niche_rejects_wrong_kind_kit(monkeypatch):
+    """A writing kit passed as design_kit_id is a loud 422, not a default swap."""
+    _reset_limiter()
+    import marketer.repos.kits as kits_repo
+    import marketer.repos.niches as niches_repo
+
+    writing = _make_kit(kit_id=_DESIGN_KIT_ID, kind="writing")
+
+    async def _get_kit(kit_id: UUID, *, user_id: str):
+        assert user_id == _USER_ID
+        return writing
+
+    async def _create(user_id: str, **kwargs):
+        raise AssertionError("niches_repo.create must not run for a wrong-kind kit")
+
+    monkeypatch.setattr(kits_repo, "get", _get_kit)
+    monkeypatch.setattr(niches_repo, "create", _create)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/niches",
+        json={**_VALID_PAYLOAD, "design_kit_id": str(_DESIGN_KIT_ID)},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+    assert "design_kit_id" in resp.json()["detail"]
+
+
+def test_create_niche_accepts_matching_kit_refs(monkeypatch):
+    """Owned kits of the right kind reach create() unchanged."""
+    _reset_limiter()
+    import marketer.repos.kits as kits_repo
+    import marketer.repos.niches as niches_repo
+
+    design = _make_kit(kit_id=_DESIGN_KIT_ID, kind="design")
+    writing = _make_kit(kit_id=_WRITING_KIT_ID, kind="writing")
+
+    async def _get_kit(kit_id: UUID, *, user_id: str):
+        assert user_id == _USER_ID
+        return {design.id: design, writing.id: writing}.get(kit_id)
+
+    created: dict = {}
+
+    async def _create(user_id: str, **kwargs) -> Niche:
+        created.update(kwargs)
+        return _make_niche()
+
+    monkeypatch.setattr(kits_repo, "get", _get_kit)
+    monkeypatch.setattr(niches_repo, "create", _create)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/niches",
+        json={
+            **_VALID_PAYLOAD,
+            "design_kit_id": str(_DESIGN_KIT_ID),
+            "writing_kit_id": str(_WRITING_KIT_ID),
+        },
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 201
+    assert created["design_kit_id"] == _DESIGN_KIT_ID
+    assert created["writing_kit_id"] == _WRITING_KIT_ID
+
+
+def test_update_niche_rejects_foreign_writing_kit(monkeypatch):
+    """Partial update must apply the same kit-ref gate."""
+    _reset_limiter()
+    import marketer.repos.kits as kits_repo
+    import marketer.repos.niches as niches_repo
+
+    async def _get_kit(kit_id: UUID, *, user_id: str):
+        return None
+
+    async def _update(niche_id: UUID, *, user_id: str, **fields):
+        raise AssertionError("niches_repo.update must not run for a foreign kit")
+
+    monkeypatch.setattr(kits_repo, "get", _get_kit)
+    monkeypatch.setattr(niches_repo, "update", _update)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.put(
+        f"/api/v1/niches/{_NICHE_ID}",
+        json={"writing_kit_id": str(_WRITING_KIT_ID)},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+    assert "writing_kit_id" in resp.json()["detail"]
+
+
+def test_update_niche_omitting_kit_refs_skips_lookup(monkeypatch):
+    """Leave-alone semantics: omitting kit ids must not query kits or 422."""
+    _reset_limiter()
+    import marketer.repos.kits as kits_repo
+    import marketer.repos.niches as niches_repo
+
+    async def _get_kit(kit_id: UUID, *, user_id: str):
+        raise AssertionError("kits_repo.get must not run when kit ids are omitted")
+
+    async def _update(niche_id: UUID, *, user_id: str, **fields) -> Niche:
+        assert "design_kit_id" not in fields
+        assert "writing_kit_id" not in fields
+        return _make_niche()
+
+    monkeypatch.setattr(kits_repo, "get", _get_kit)
+    monkeypatch.setattr(niches_repo, "update", _update)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.put(
+        f"/api/v1/niches/{_NICHE_ID}",
+        json={"title": "Just a title"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200

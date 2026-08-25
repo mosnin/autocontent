@@ -252,3 +252,64 @@ async def test_remix_refuses_unpublished_template(monkeypatch):
         user_id=USER, template_id=uuid4(), count=1,
     )
     assert result["status"] == "failed"
+
+
+async def test_remix_fails_closed_when_uploaded_product_missing(tmp_path, monkeypatch):
+    """A product path the worker cannot see must not silently remix template-only."""
+    from marketer.repos import templates as templates_repo
+    from marketer.services import openai_images, template_remix
+
+    ref = tmp_path / "templates" / "ref.png"
+    ref.parent.mkdir(parents=True)
+    ref.write_bytes(b"REF")
+
+    template = Template(
+        id=uuid4(), kind="image", name="UGC desk shot",
+        prompt="cozy desk", reference_key=str(ref),
+        is_published=True, created_by="admin",
+    )
+
+    async def fake_get(tid):
+        return template
+
+    monkeypatch.setattr(templates_repo, "get", fake_get)
+
+    async def boom(*a, **k):
+        raise AssertionError("generate_remix must not run without the product")
+
+    monkeypatch.setattr(openai_images, "generate_remix", boom)
+
+    result = await template_remix.run_remix(
+        user_id=USER, template_id=template.id,
+        product_path="/nonexistent/product.png", count=1,
+    )
+    assert result["status"] == "failed"
+    assert result["error"] == "uploaded product image not found"
+
+
+async def test_remix_fails_closed_when_no_references(tmp_path, monkeypatch):
+    """No product and a missing template reference → fail before spend."""
+    from marketer.repos import templates as templates_repo
+    from marketer.services import openai_images, template_remix
+
+    template = Template(
+        id=uuid4(), kind="image", name="empty",
+        prompt="p", reference_key=str(tmp_path / "missing-ref.png"),
+        is_published=True, created_by="admin",
+    )
+
+    async def fake_get(tid):
+        return template
+
+    monkeypatch.setattr(templates_repo, "get", fake_get)
+
+    async def boom(*a, **k):
+        raise AssertionError("generate_remix must not run with no references")
+
+    monkeypatch.setattr(openai_images, "generate_remix", boom)
+
+    result = await template_remix.run_remix(
+        user_id=USER, template_id=template.id, count=1,
+    )
+    assert result["status"] == "failed"
+    assert result["error"] == "no reference images available"

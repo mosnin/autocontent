@@ -220,6 +220,86 @@ def test_route_credits_on_valid_payment(monkeypatch):
     assert credited["ref"] == "x402:0xtxhash"
 
 
+def test_route_already_credited_on_idempotent_retry(monkeypatch):
+    """A second settle of the same settlement_id must 200, not mint again."""
+    from backend.rate_limit import limiter
+    limiter._storage.reset()
+    _enable(monkeypatch)
+
+    import backend.routes.x402 as route
+    import marketer.repos.billing as billing
+    import marketer.repos.x402 as x402_repo
+
+    async def fake_settle(*, payment_payload, requirements):
+        return SettleResult(True, "0xtxhash", "0xpayer", Decimal("10.00"))
+
+    async def fake_credit(*, user_id, amount_usd, checkout_session_id, description):
+        return None  # already applied for this settlement id
+
+    async def fake_balance(user_id):
+        return Decimal("10.00")
+
+    recorded = []
+
+    async def fake_record(**kw):
+        recorded.append(kw)
+        return True
+
+    monkeypatch.setattr(route.x402, "verify_and_settle", fake_settle)
+    monkeypatch.setattr(billing, "credit_purchase", fake_credit)
+    monkeypatch.setattr(billing, "balance", fake_balance)
+    monkeypatch.setattr(x402_repo, "record", fake_record)
+
+    client = _client(monkeypatch)
+    payment = base64.b64encode(json.dumps({"scheme": "exact"}).encode()).decode()
+    resp = client.post(
+        "/api/v1/x402/credits?amount_usd=10",
+        headers={"Authorization": "Bearer mkt_x", "X-PAYMENT": payment},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["already_credited"] is True
+    assert body["balance_usd"] == "10.00"
+    assert body["settlement_id"] == "0xtxhash"
+    assert recorded and recorded[0]["settlement_id"] == "0xtxhash"
+
+
+def test_route_still_200_when_audit_record_fails(monkeypatch):
+    """Audit write is best-effort: credit already happened, never 500 the agent."""
+    from backend.rate_limit import limiter
+    limiter._storage.reset()
+    _enable(monkeypatch)
+
+    import backend.routes.x402 as route
+    import marketer.repos.billing as billing
+    import marketer.repos.x402 as x402_repo
+
+    async def fake_settle(*, payment_payload, requirements):
+        return SettleResult(True, "0xtxhash", "0xpayer", Decimal("10.00"))
+
+    async def fake_credit(*, user_id, amount_usd, checkout_session_id, description):
+        return Decimal("10.00")
+
+    async def fake_record(**kw):
+        raise RuntimeError("audit table down")
+
+    monkeypatch.setattr(route.x402, "verify_and_settle", fake_settle)
+    monkeypatch.setattr(billing, "credit_purchase", fake_credit)
+    monkeypatch.setattr(x402_repo, "record", fake_record)
+
+    client = _client(monkeypatch)
+    payment = base64.b64encode(json.dumps({"scheme": "exact"}).encode()).decode()
+    resp = client.post(
+        "/api/v1/x402/credits?amount_usd=10",
+        headers={"Authorization": "Bearer mkt_x", "X-PAYMENT": payment},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["already_credited"] is False
+    assert body["credited_usd"] == "10.00"
+    assert body["balance_usd"] == "10.00"
+
+
 def test_route_402_when_payment_fails_settlement(monkeypatch):
     from backend.rate_limit import limiter
     limiter._storage.reset()
