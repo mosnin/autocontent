@@ -3,7 +3,7 @@
 // The written-content pipeline emits plain CommonMark-ish markdown
 // (headings, paragraphs, lists, links, emphasis, code). Rather than pull
 // in a full renderer we hand-roll the subset we need and emit React
-// elements directly — no dangerouslySetInnerHTML, so the article body
+// elements directly - no dangerouslySetInnerHTML, so the article body
 // can never inject markup.
 
 import * as React from "react";
@@ -95,7 +95,7 @@ export function ArticleMarkdown({ markdown }: { markdown: string }) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // Blank line — block separator.
+    // Blank line - block separator.
     if (line.trim() === "") {
       i++;
       continue;
@@ -124,8 +124,8 @@ export function ArticleMarkdown({ markdown }: { markdown: string }) {
     // Heading.
     const heading = /^(#{1,6})\s+(.*)$/.exec(line);
     if (heading) {
-      const level = heading[1].length;
-      const Tag = `h${level}` as keyof React.JSX.IntrinsicElements;
+      const level = heading[1].length as 1 | 2 | 3 | 4 | 5 | 6;
+      const Tag = `h${level}` as "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
       blocks.push(
         <Tag key={key++} className={HEADING_CLASSES[level]}>
           {renderInline(heading[2], `h${key}`)}
@@ -194,7 +194,7 @@ export function ArticleMarkdown({ markdown }: { markdown: string }) {
       continue;
     }
 
-    // Paragraph — greedily consume until the next blank line or block start.
+    // Paragraph - greedily consume until the next blank line or block start.
     const buf: string[] = [line];
     i++;
     while (

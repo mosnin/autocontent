@@ -4,7 +4,7 @@
  *
  * It is deliberately *designed*, not a broken-image state: the export's own
  * unfilled-media treatment (surface, faint accent dot-matrix, corner wash)
- * with the three facts you need in order to fill it — what kind of asset
+ * with the three facts you need in order to fill it - what kind of asset
  * belongs here, at what size and format, and the exact path to drop the file
  * at. Every value comes from the `--os-*` tokens, so it reads as part of the
  * page rather than as scaffolding.
@@ -148,7 +148,7 @@ export function SlotPlaceholder({
   formats: string;
   /** Public URL the real file is expected at, e.g. `/showcase/ads/x.jpg`. */
   path: string;
-  /** What the finished asset will show — the accessible label. */
+  /** What the finished asset will show - the accessible label. */
   alt: string;
   /** Video only: where the poster frame goes. */
   posterPath?: string;

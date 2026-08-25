@@ -6,7 +6,7 @@ import { motion, useScroll, useTransform, type Variants } from "motion/react";
 import Image from "next/image";
 import { useRef, type ReactNode } from "react";
 
-const HEADLINE = "Your next campaign is a sentence away";
+const HEADLINE = "Tell it what you sell. It makes the rest.";
 const WORDS = HEADLINE.split(" ");
 
 const PRINTS = [
@@ -150,8 +150,8 @@ export function FinalCta(): ReactNode {
           )}
         </h2>
         <p className="mt-6 max-w-md text-base leading-relaxed opacity-65">
-          Prepaid from five dollars. Describe the channel, review what ships,
-          keep every dollar under a cap you set.
+          Start at five dollars. Describe what you sell, look at the drafts,
+          and keep a daily budget so it cannot overspend.
         </p>
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
           <MagneticLink

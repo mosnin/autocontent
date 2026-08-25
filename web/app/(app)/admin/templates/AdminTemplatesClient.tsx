@@ -206,7 +206,7 @@ export function AdminTemplatesClient() {
         <CardHeader>
           <CardTitle>All templates</CardTitle>
           <CardDescription>
-            Drafts are only visible here — publish to put them in front of
+            Drafts are only visible here - publish to put them in front of
             users.
           </CardDescription>
         </CardHeader>

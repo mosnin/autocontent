@@ -98,6 +98,7 @@ export interface SpendHistory {
 
 export interface AyrshareConnectStatus {
   connected: boolean;
+  configured: boolean;
   profile_key: string | null;
 }
 
@@ -112,6 +113,7 @@ export interface User {
   ayrshare_profile_key: string | null;
   global_daily_cap_usd: string | null;
   email_notifications: boolean;
+  email_configured?: boolean;
   created_at: string;
 }
 
@@ -257,6 +259,20 @@ export interface BillingBalance {
   transactions: CreditTransaction[];
 }
 
+export interface BillingPack {
+  key: string;
+  amount_cents: number;
+  credit_usd: string;
+  label: string;
+  blurb: string;
+  featured: boolean;
+}
+
+export interface BillingPacks {
+  billing_enabled: boolean;
+  packs: BillingPack[];
+}
+
 export interface TokenCreateResponse {
   token: string;
   info: PersonalAccessToken;
@@ -389,7 +405,7 @@ export interface ImagePost {
   // queued | planning | generating | awaiting_approval | scheduling | done | failed
   status: string;
   // Plan/slide-path/caption snapshot. slide_count lives here (set at
-  // creation time), not as a top-level column — see
+  // creation time), not as a top-level column - see
   // marketer.repos.image_posts.create.
   payload: { slide_count?: number; [key: string]: unknown };
   provider_post_id: string | null;

@@ -12,38 +12,37 @@ import {
   useVelocity,
 } from "motion/react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRef, useState, type MouseEvent, type ReactNode } from "react";
 
 type Feature = {
   title: string;
+  href: string;
   body: string;
   image: string;
 };
 
 const FEATURES: Feature[] = [
   {
-    title: "Short-form video",
-    body: "Hook, script, keyframes, animation, voice, music, captions, QA, publish. Ten stages, no timeline to babysit, on TikTok, Reels, and Shorts.",
+    title: "Content",
+    href: "/features/content",
+    body: "Short videos for TikTok, Reels, and Shorts. Your agent writes them, makes them, and can post them.",
     image:
       "https://images.unsplash.com/photo-1779881718722-5e7fa09fad7f?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
-    title: "SEO articles",
-    body: "Live research of what already ranks, a structured outline, sections written in parallel, then metadata, JSON-LD, and an editorial hero.",
+    title: "SEO",
+    href: "/features/seo",
+    body: "Blog posts from what people already search, plus a check-up for pages you already have live.",
     image:
       "https://images.unsplash.com/photo-1778051131564-192e359b601d?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
   {
-    title: "Agents as teammates",
-    body: "REST, Python SDK, CLI, and MCP — everything a person can do, an agent can do, behind the same caps and approval gates.",
+    title: "Ads",
+    href: "/features/ads",
+    body: "Paid ads on Google and Meta. The agent drafts them. Your budget is the limit.",
     image:
       "https://images.unsplash.com/photo-1779630541798-1f3d987aa440?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  },
-  {
-    title: "Spend that fails closed",
-    body: "Every render is metered. Per-niche daily caps plus a global cap. Work that would cross a limit is refused, not billed.",
-    image:
-      "https://images.unsplash.com/photo-1773698719619-51e67f93a39f?q=80&w=818&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
 ];
 
@@ -73,8 +72,8 @@ export function Features(): ReactNode {
     <section id="overview" className="scroll-mt-24 pb-24 sm:pb-32">
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <SectionHeading
-          title="Everything the campaign needs"
-          description="Two production pipelines, an agent surface, and a ledger that watches every dollar. Nothing to stitch together, nothing to babysit."
+          title="Three things it can make for you."
+          description="Content, SEO, and ads. Same login. Same prepaid credits. Same daily budget."
         />
       </div>
 
@@ -90,7 +89,10 @@ export function Features(): ReactNode {
               onMouseEnter={() => setActive(i)}
               className="group border-border border-b"
             >
-              <div className="mx-auto flex max-w-[1440px] items-center gap-5 px-5 py-8 sm:gap-8 sm:px-8 sm:py-12 lg:px-10">
+              <Link
+                href={feature.href}
+                className="mx-auto flex max-w-[1440px] items-center gap-5 px-5 py-8 sm:gap-8 sm:px-8 sm:py-12 lg:px-10"
+              >
                 <span className="text-muted-foreground w-8 shrink-0 font-mono text-xs">
                   0{i + 1}
                 </span>
@@ -115,7 +117,7 @@ export function Features(): ReactNode {
                   strokeWidth={1.5}
                   aria-hidden="true"
                 />
-              </div>
+              </Link>
             </div>
           </InView>
         ))}

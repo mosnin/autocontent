@@ -158,7 +158,50 @@ def test_healthz_deep_db_failure(monkeypatch):
     data = resp.json()
     assert data["ok"] is False
     assert data["checks"]["db"]["ok"] is False
-    assert "error" in data["checks"]["db"]
+    assert data["checks"]["db"]["error"] == "ConnectionRefusedError"
+    assert "postgres is down" not in resp.text
+
+
+def test_healthz_deep_does_not_echo_dsn_password(monkeypatch):
+    """A driver error that includes the DSN must not leak the password."""
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+
+    async def _failing_get_pool():
+        raise ConnectionRefusedError(
+            "could not connect to postgres://marketer:hunter2@db.internal/marketer"
+        )
+
+    import backend.routes.healthz as healthz_mod
+    monkeypatch.setattr(healthz_mod, "get_pool", _failing_get_pool)
+
+    class _FakeResponse:
+        status_code = 200
+
+        def raise_for_status(self):
+            pass
+
+    class _FakeHTTPClient:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            pass
+
+        async def head(self, url: str):
+            return _FakeResponse()
+
+    monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FakeHTTPClient())
+    _stub_migrations_ok(monkeypatch)
+
+    from backend.main import create_app
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    resp = client.get("/healthz/deep")
+    assert resp.status_code == 503
+    assert resp.json()["checks"]["db"]["error"] == "ConnectionRefusedError"
+    assert "hunter2" not in resp.text
+    assert "postgres://" not in resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -208,7 +251,8 @@ def test_healthz_deep_jwks_failure(monkeypatch):
     data = resp.json()
     assert data["ok"] is False
     assert data["checks"]["clerk_jwks"]["ok"] is False
-    assert "error" in data["checks"]["clerk_jwks"]
+    assert data["checks"]["clerk_jwks"]["error"] == "ConnectError"
+    assert "connection refused" not in resp.text.lower()
 
 
 # ---------------------------------------------------------------------------

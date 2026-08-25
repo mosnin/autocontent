@@ -1,13 +1,13 @@
-# marketer.sh — Marketing Site Design Spec (binding)
+# marketer.sh - Marketing Site Design Spec (binding)
 
 Every logged-out page follows this spec exactly. Deviations read as
-"vibecoded" — don't.
+"vibecoded" - don't.
 
 ## Brand voice
 
 marketer.sh is the autonomous marketing platform for AI agents: it
-ideates, produces, publishes, and learns — short-form video AND
-SEO-articles — from one system with real spend controls. Copy is calm,
+ideates, produces, publishes, and learns - short-form video AND
+SEO-articles - from one system with real spend controls. Copy is calm,
 confident, concrete. Short declarative sentences. Numbers over
 adjectives. Never "revolutionize", "unleash", "supercharge", "10x".
 Headlines are benefit-first, Apple-cadence: "Marketing that runs
@@ -38,13 +38,13 @@ No em-dashes in display copy (period or comma instead).
 - **Ink**: headings `text-zinc-900` (#18181b-ish), never pure black.
 - **Accent**: the existing brand orange is used ONLY as the
   "recording light" micro-accent (dots, live indicators, small
-  highlights) — the marketing surface itself stays cool/neutral.
+  highlights) - the marketing surface itself stays cool/neutral.
   Primary CTA buttons: ink-dark pill (`bg-zinc-900 text-white`,
   hover lifts), secondary: white pill with hairline border.
 - **Buttons**: pills (`rounded-full`), 44px min height, arrow-circle
   glyph on primary CTAs like the reference ("Try live demo ⊙").
 
-## Motion (motion/react — already installed; import from "motion/react")
+## Motion (motion/react - already installed; import from "motion/react")
 
 - Every section content reveals on scroll: `whileInView` fade + 24px
   rise, `viewport={{ once: true, margin: "-80px" }}`, ease
@@ -55,7 +55,7 @@ No em-dashes in display copy (period or comma instead).
   `useTransform`.
 - Apple-style pinned scenes where specified: sticky container
   (`h-[300vh]` wrapper, `sticky top-0 h-screen` scene) with
-  scroll-linked `useTransform` (scale/opacity/x) — max ONE per page.
+  scroll-linked `useTransform` (scale/opacity/x) - max ONE per page.
 - ALWAYS respect `useReducedMotion()`: reduced = opacity-only, no
   pinned scenes (render stacked static sections).
 - Numbers count up on reveal (shared `<CountUp>`), max 3 per page.
@@ -64,7 +64,7 @@ No em-dashes in display copy (period or comma instead).
 ## Illustrations
 
 Custom animated SVG components (shared library in
-web/components/marketing/illustrations/) — line-art + soft gradient
+web/components/marketing/illustrations/) - line-art + soft gradient
 fills, animated with motion/react (path draw via pathLength, gentle
 float loops, staggered node pulses). Never emoji, never stock, never
 lorem-ipsum-style screenshots. Product UI mockups are hand-built JSX
@@ -81,14 +81,14 @@ images.
 ## SEO (every page)
 
 - `export const metadata: Metadata` with unique `title`
-  (`"<Page> — marketer.sh"`), 150-160 char `description`, `openGraph`
+  (`"<Page> · marketer.sh"`), 150-160 char `description`, `openGraph`
   {title, description, type}, and `alternates.canonical`.
 - Exactly one `<h1>` per page. Semantic sections with `aria-label`.
 - Key pages embed JSON-LD via `<script type="application/ld+json">`
   (Organization on /company, SoftwareApplication on /, FAQPage on
   /resources/faq).
 
-## Sitemap (canonical URLs — nav and pages must agree)
+## Sitemap (canonical URLs - nav and pages must agree)
 
 /                       home
 /pricing
@@ -113,7 +113,7 @@ images.
 /resources/guides/agent-driven-marketing
 /resources/changelog
 /resources/faq
-/sign-in, /sign-up      (existing Clerk routes — link, don't rebuild)
+/sign-in, /sign-up      (existing Clerk routes - link, don't rebuild)
 
 ## Shared components (web/components/marketing/system/)
 
@@ -128,19 +128,19 @@ Illustrations: `<VideoPipelineIllustration>`, `<ArticleFlowIllustration>`,
 `<AutomationOrbitIllustration>`, `<AnalyticsLoopIllustration>`,
 `<SpendGuardIllustration>`, `<AgentGridIllustration>`.
 
-## Amendment 2 — Card language + warm accent (binding, supersedes conflicts)
+## Amendment 2 - Card language + warm accent (binding, supersedes conflicts)
 
 ### The vignette card (every card on every page)
 Cards never carry decorative icons. A card is: (top) a **product
-vignette** — a real-looking miniature of the product UI (queue rows,
+vignette** - a real-looking miniature of the product UI (queue rows,
 article SEO panel, agent chat, cap gauge, schedule strip, SERP scan,
 terminal, metrics) staged inside a soft gradient vignette frame
-(rounded-2xl inner panel, subtle inner hairline, light mode ALWAYS) —
+(rounded-2xl inner panel, subtle inner hairline, light mode ALWAYS) -
 then (bottom) a plain text block: title (text-lg/xl, ink) + 1-2 line
 zinc-600 description. Reference: Expo's use-case grid and feature
 cards, rendered in light mode. Use the shared `<VignetteCard>` +
 vignette library; never a lucide icon as card decoration. (Functional
-glyphs in real UI vignettes — play, check, arrows inside the mock UI —
+glyphs in real UI vignettes - play, check, arrows inside the mock UI -
 are fine; that's product, not decoration.)
 
 ### Warm accent gradient (replaces ALL green on marketing surfaces)
@@ -151,7 +151,7 @@ moments use the warm gradient accent: `linear-gradient(135deg, #f59e0b,
 "pass/ok" dots use solid amber-500; the brand recording-light orange
 remains the live-pulse accent (they are family). Never green.
 
-## Amendment 3 — Reference redesign (binding, supersedes conflicts)
+## Amendment 3 - Reference redesign (binding, supersedes conflicts)
 
 The logged-out surface now follows the converged-platform reference:
 
@@ -172,9 +172,9 @@ The logged-out surface now follows the converged-platform reference:
   `<ImagePlaceholder label file>` frame until assets are uploaded; swap
   by replacing the element with `<Image>`.
 
-## Amendment 4 — Logged-in hub language (binding for (app) surfaces)
+## Amendment 4 - Logged-in hub language (binding for (app) surfaces)
 
-Product dashboards (Campaigns, Content, SEO, Ads, Suite — that order)
+Product dashboards (Campaigns, Content, SEO, Ads, Suite - that order)
 share the hub language in `web/components/hub/primitives.tsx`: sparkle
 `HubHeading`, cascading `HubSection` rise-ins, `hubCardClass` rounded-3xl
 light cards, `HoverLift` spring hovers, `VignetteFrame` mini previews.

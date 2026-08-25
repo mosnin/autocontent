@@ -1,8 +1,8 @@
 "use client";
 
 // Bulk CSV import. The endpoint answers 200 with `{created, errors[]}` even
-// when every row failed — the per-row report IS the contract, not an error
-// envelope — so this component renders the report as a first-class result and
+// when every row failed - the per-row report IS the contract, not an error
+// envelope - so this component renders the report as a first-class result and
 // only treats a transport/format failure (400) as an error.
 //
 // Import is all-or-nothing server-side: one bad row creates nothing. That is
@@ -56,7 +56,7 @@ export function CsvImport({ onImported }: { onImported: () => void }) {
         if (inputRef.current) inputRef.current.value = "";
       } else {
         // Not a toast.error: the file was read fine, the rows just need work.
-        toast.message("Nothing imported — see the row report below");
+        toast.message("Nothing imported - see the row report below");
       }
     } catch (err) {
       toast.error(scheduledErrorMessage(err));
@@ -70,7 +70,7 @@ export function CsvImport({ onImported }: { onImported: () => void }) {
       <CardHeader>
         <CardTitle className="text-base font-semibold">Import from CSV</CardTitle>
         <CardDescription>
-          One row per post. Every row is validated before any row is written — if
+          One row per post. Every row is validated before any row is written - if
           one row is wrong, nothing is created, so you can fix the file and
           re-upload without duplicating anything.
         </CardDescription>
@@ -143,7 +143,7 @@ export function CsvImport({ onImported }: { onImported: () => void }) {
             ) : null}
             {report.created === 0 && report.errors.length > 0 ? (
               <p className="text-xs text-muted-foreground">
-                Row numbers match your spreadsheet — row 1 is the header. Nothing
+                Row numbers match your spreadsheet - row 1 is the header. Nothing
                 was written, so fix these lines and upload the same file again.
               </p>
             ) : null}

@@ -174,7 +174,7 @@ TEXT: dict[str, str] = {
     "Can we use Opsra with our existing tools?":
         f"Can {BRAND} publish to the channels we already use?",
     "How quickly can teams get started using Opsra?":
-        f"How quickly can we get the first video out?",
+        "How quickly can we get the first video out?",
     "What makes Opsra different from other solutions?":
         f"What makes {BRAND} different from other AI tools?",
 

@@ -10,7 +10,7 @@ import {
 
 /**
  * A corner-ticked panel used to state one limit plainly, on its own, at
- * the end of a run of bands — the shape `detail-b/campaigns-sections`
+ * the end of a run of bands - the shape `detail-b/campaigns-sections`
  * introduced for "a campaign doesn't replace your caps", generalised so
  * the other pipeline pages can make the same kind of statement without
  * copying the markup.

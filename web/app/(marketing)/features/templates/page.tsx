@@ -15,10 +15,10 @@ const DESCRIPTION =
   "Curated looks with their exact prompt attached. Remix one with a photo of your product and get the same aesthetic, your subject, straight into your library.";
 
 export const metadata: Metadata = {
-  title: "Templates & remix — marketer.sh",
+  title: "Templates & remix · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Templates & remix — marketer.sh",
+    title: "Templates & remix · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -32,7 +32,7 @@ export default function TemplatesFeaturePage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Template shelf — curated looks with prompts"
+            label="Template shelf - curated looks with prompts"
             ratio="16/9"
           />
         }

@@ -1,7 +1,15 @@
 "use client";
 
 import { Logo } from "@/components/marketing/nav/logo";
+import { MegaMenu } from "@/components/marketing/nav/mega-menu";
 import { MenuIcon } from "@/components/marketing/nav/menu-icon";
+import {
+  COMPANY_LINKS,
+  LEGAL_LINKS,
+  PRODUCT_LINKS,
+  RESOURCE_LINKS,
+  SOCIAL_LINKS,
+} from "@/components/marketing/nav/menu-data";
 import { MorphLabel } from "@/components/marketing/nav/morph-label";
 import { ScrollProgress } from "@/components/marketing/nav/scroll-progress";
 import { useIntroDone } from "@/lib/marketing/intro";
@@ -10,36 +18,15 @@ import { AnimatePresence, motion, type Variants } from "motion/react";
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-const PILL_LINKS = [
-  { label: "Product", href: "/features" },
-  { label: "Pricing", href: "/pricing" },
-];
-
-const PRIMARY_LINKS = [
-  { label: "Overview", href: "/#overview" },
-  { label: "How it works", href: "/#how-it-works" },
-  { label: "Use cases", href: "/use-cases" },
-  { label: "Resources", href: "/resources" },
-];
-
-const LEGAL_LINKS = [
-  { label: "Privacy Policy", href: "/legal/privacy" },
-  { label: "Terms of Service", href: "/legal/terms" },
-  { label: "Cookie Policy", href: "/legal/cookies" },
-];
-
-const SOCIAL_LINKS = [
-  { label: "X", href: "https://x.com" },
-  { label: "LinkedIn", href: "https://www.linkedin.com" },
-];
+const DIRECT_LINKS = [{ label: "Pricing", href: "/pricing" }];
 
 const CLOSED_WIDTH_DESKTOP = 200;
 const CLOSED_WIDTH_MOBILE = 128;
-const OPEN_WIDTH = 296;
+const OPEN_WIDTH = 320;
 const CONTENT_WIDTH = OPEN_WIDTH - 16;
 
 const ITEM_DELAY = 0.14;
-const ITEM_STAGGER = 0.045;
+const ITEM_STAGGER = 0.04;
 
 const ITEM_VARIANTS: Variants = {
   hidden: { opacity: 0, y: 18 },
@@ -85,6 +72,12 @@ export function Nav(): ReactNode {
 
   const closeMenu = (): void => setMenuOpen(false);
 
+  let itemIndex = 0;
+  const nextIndex = (): number => {
+    itemIndex += 1;
+    return itemIndex;
+  };
+
   return (
     <motion.header
       initial={false}
@@ -106,12 +99,25 @@ export function Nav(): ReactNode {
       <div className="relative flex h-20 items-center justify-between px-5 sm:px-8 lg:px-10">
         <div className="flex items-center gap-3">
           <Logo />
-          <nav className="bg-background border-border hidden h-13 items-center gap-1 rounded-full border p-1.5 md:flex">
-            {PILL_LINKS.map((link) => (
+          <nav className="bg-background border-border hidden h-13 items-center rounded-full border p-1.5 lg:flex">
+            <MegaMenu label="Product" items={PRODUCT_LINKS} variant="product" />
+            <MegaMenu label="Resources" items={RESOURCE_LINKS} variant="list" />
+            <MegaMenu
+              label="Company"
+              variant="groups"
+              groups={[
+                {
+                  title: "Company",
+                  items: COMPANY_LINKS.filter((link) => link.href !== "/legal"),
+                },
+                { title: "Legal", items: LEGAL_LINKS },
+              ]}
+            />
+            {DIRECT_LINKS.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="focus-ring text-muted-foreground hover:text-foreground flex h-10 items-center rounded-full px-5 text-sm font-medium transition-colors"
+                className="focus-ring text-muted-foreground hover:text-foreground flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors"
               >
                 {link.label}
               </Link>
@@ -119,7 +125,7 @@ export function Nav(): ReactNode {
           </nav>
         </div>
 
-        <div className="absolute top-1.5 right-5 z-50 md:right-auto md:left-1/2 md:-translate-x-1/2">
+        <div className="absolute top-1.5 right-5 z-50 lg:right-auto lg:left-1/2 lg:-translate-x-1/2">
           <motion.div
             initial={false}
             animate={{
@@ -147,7 +153,7 @@ export function Nav(): ReactNode {
                   backgroundColor: "var(--surface)",
                   color: "var(--surface-foreground)",
                 }}
-                className="flex h-13 w-full items-center justify-end gap-2 rounded-full pr-1.5 pl-1.5 md:justify-between md:pr-2"
+                className="flex h-13 w-full items-center justify-end gap-2 rounded-full pr-1.5 pl-1.5 lg:justify-between lg:pr-2"
               >
                 <button
                   ref={toggleRef}
@@ -184,48 +190,72 @@ export function Nav(): ReactNode {
                         style={{ width: CONTENT_WIDTH }}
                         className="shrink-0 px-4 pt-7 pb-3"
                       >
-                        <div className="flex flex-col gap-2">
-                          <motion.span
-                            custom={0}
-                            variants={ITEM_VARIANTS}
-                            className="text-muted-foreground mb-1 text-[11px] font-medium tracking-wider uppercase"
-                          >
-                            Menu
-                          </motion.span>
-                          {PRIMARY_LINKS.map((link, i) => (
-                            <motion.a
+                        <MobileGroup title="Product" index={nextIndex()}>
+                          {PRODUCT_LINKS.map((link) => (
+                            <MobileLink
                               key={link.href}
                               href={link.href}
                               onClick={closeMenu}
-                              custom={1 + i}
-                              variants={ITEM_VARIANTS}
-                              className="focus-ring text-foreground hover:text-foreground/55 w-fit text-[26px] leading-tight font-medium tracking-tight transition-colors"
+                              index={nextIndex()}
                             >
                               {link.label}
-                            </motion.a>
+                            </MobileLink>
                           ))}
-                        </div>
+                        </MobileGroup>
+
+                        <MobileGroup title="Resources" index={nextIndex()}>
+                          {RESOURCE_LINKS.map((link) => (
+                            <MobileLink
+                              key={link.href}
+                              href={link.href}
+                              onClick={closeMenu}
+                              index={nextIndex()}
+                            >
+                              {link.label}
+                            </MobileLink>
+                          ))}
+                        </MobileGroup>
+
+                        <MobileGroup title="Company" index={nextIndex()}>
+                          {COMPANY_LINKS.map((link) => (
+                            <MobileLink
+                              key={link.href}
+                              href={link.href}
+                              onClick={closeMenu}
+                              index={nextIndex()}
+                            >
+                              {link.label}
+                            </MobileLink>
+                          ))}
+                          <MobileLink
+                            href="/pricing"
+                            onClick={closeMenu}
+                            index={nextIndex()}
+                          >
+                            Pricing
+                          </MobileLink>
+                        </MobileGroup>
 
                         <motion.div
-                          custom={5}
+                          custom={nextIndex()}
                           variants={ITEM_VARIANTS}
                           className="bg-border my-6 h-px w-full"
                         />
 
                         <div className="flex flex-col gap-3">
                           <motion.span
-                            custom={6}
+                            custom={nextIndex()}
                             variants={ITEM_VARIANTS}
                             className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase"
                           >
-                            Other
+                            Legal
                           </motion.span>
-                          {LEGAL_LINKS.map((link, i) => (
+                          {LEGAL_LINKS.slice(0, 4).map((link) => (
                             <motion.a
                               key={link.href}
                               href={link.href}
                               onClick={closeMenu}
-                              custom={7 + i}
+                              custom={nextIndex()}
                               variants={ITEM_VARIANTS}
                               className="focus-ring text-foreground/80 hover:text-foreground w-fit text-sm font-medium transition-colors"
                             >
@@ -236,19 +266,19 @@ export function Nav(): ReactNode {
 
                         <div className="mt-7 flex flex-col gap-3">
                           <motion.span
-                            custom={10}
+                            custom={nextIndex()}
                             variants={ITEM_VARIANTS}
                             className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase"
                           >
                             Social media
                           </motion.span>
                           <div className="flex flex-wrap gap-x-5 gap-y-2">
-                            {SOCIAL_LINKS.map((link, i) => (
+                            {SOCIAL_LINKS.map((link) => (
                               <motion.a
                                 key={link.href}
                                 href={link.href}
                                 onClick={closeMenu}
-                                custom={11 + i}
+                                custom={nextIndex()}
                                 variants={ITEM_VARIANTS}
                                 className="focus-ring text-foreground/80 hover:text-foreground text-sm font-medium transition-colors"
                               >
@@ -297,5 +327,52 @@ export function Nav(): ReactNode {
         )}
       </AnimatePresence>
     </motion.header>
+  );
+}
+
+function MobileGroup({
+  title,
+  index,
+  children,
+}: {
+  title: string;
+  index: number;
+  children: ReactNode;
+}): ReactNode {
+  return (
+    <div className="mb-6 flex flex-col gap-2">
+      <motion.span
+        custom={index}
+        variants={ITEM_VARIANTS}
+        className="text-muted-foreground mb-1 text-[11px] font-medium tracking-wider uppercase"
+      >
+        {title}
+      </motion.span>
+      {children}
+    </div>
+  );
+}
+
+function MobileLink({
+  href,
+  onClick,
+  index,
+  children,
+}: {
+  href: string;
+  onClick: () => void;
+  index: number;
+  children: ReactNode;
+}): ReactNode {
+  return (
+    <motion.a
+      href={href}
+      onClick={onClick}
+      custom={index}
+      variants={ITEM_VARIANTS}
+      className="focus-ring text-foreground hover:text-foreground/55 w-fit text-[24px] leading-tight font-medium tracking-tight transition-colors"
+    >
+      {children}
+    </motion.a>
   );
 }

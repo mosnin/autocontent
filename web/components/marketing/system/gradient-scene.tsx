@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Quiet panel behind marketing sections. The Cortex template is a flat
- * white/black canvas — no colored gradient washes.
+ * white/black canvas - no colored gradient washes.
  */
 export function GradientScene({
   variant: _variant = "sky",

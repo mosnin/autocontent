@@ -10,7 +10,7 @@ import {
 import { useRef, type ReactNode } from "react";
 
 const STATEMENT =
-  "Almost shipping is not shipping. marketer.sh was built for the last mile — the daily post, the ranked article, the spend that never overruns. It produces thousands of takes and reviews every one. You only ever see the keepers.";
+  "Most tools still leave the work to you. marketer.sh is an agentic marketing platform: your AI agent creates the videos, articles, and ads. You pick a budget, look at the drafts, and let it keep going.";
 
 const WORDS = STATEMENT.split(" ");
 

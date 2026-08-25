@@ -13,7 +13,7 @@ export default async function BrandKitPage() {
   try {
     kit = await api<BrandKit>("/api/v1/brand-kit");
   } catch {
-    // ignore — the client seeds from the empty fallback and revalidates.
+    // ignore - the client seeds from the empty fallback and revalidates.
   }
 
   return (

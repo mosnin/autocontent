@@ -3,7 +3,7 @@
 // Square UI "marketing-dashboard" template table anatomy, applied to the
 // approvals queue: real fields (action, summary, requested by, $/day
 // delta) are tabular, so this follows the table precedent (queue's
-// QueueClient / campaigns-table.tsx) rather than freeform cards — same
+// QueueClient / campaigns-table.tsx) rather than freeform cards - same
 // Table/TableRow/TableCell chrome, template badge tone for the action
 // chip, and an actions column with the real Approve/Reject buttons (same
 // pattern as QueueClient's per-row actions). No toolbar: this list is
@@ -41,7 +41,11 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
     setBusy(id);
     try {
       await decideApproval(id, decision);
-      toast.success(decision === "approved" ? "Approved" : "Rejected");
+      toast.success(
+        decision === "approved"
+          ? "Approved — spend guard is applying it"
+          : "Rejected",
+      );
       void mutate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed");
@@ -55,8 +59,9 @@ export function ApprovalsClient({ initial }: { initial: AdApproval[] }) {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Approvals</h1>
         <p className="text-sm text-muted-foreground">
-          Spend-affecting changes proposed by agents wait here. Nothing is
-          applied to a platform until you approve it.
+          Spend-affecting changes proposed by agents wait here. Approval runs
+          them through the spend guard; a platform may still be local-only
+          until an external campaign id exists.
         </p>
       </div>
 

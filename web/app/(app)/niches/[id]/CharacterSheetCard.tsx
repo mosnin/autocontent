@@ -6,13 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * The face of the channel — the generated character sheet every scene is
+ * The face of the channel - the generated character sheet every scene is
  * conditioned on. 404s until the first pipeline run creates it, in which
  * case the whole card stays unmounted (no empty frame, no placeholder).
  *
  * While the image streams in we reserve its space with a 9:16 aspect box
  * (the sheet is always composed as a 9:16 image) so the card doesn't jump
- * once the bytes arrive — no cumulative layout shift.
+ * once the bytes arrive - no cumulative layout shift.
  */
 export function CharacterSheetCard({ nicheId }: { nicheId: string }) {
   const [loaded, setLoaded] = React.useState(false);

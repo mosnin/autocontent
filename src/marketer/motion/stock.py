@@ -399,6 +399,9 @@ async def search(
     project pulled which vendor) and so an unexpected vendor bill would
     show up in the same place as every other one.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     key = api_key()
     if not key:
         raise PexelsError(0, "pexels_api_key is not configured")
@@ -483,6 +486,10 @@ async def download(clip: StockClip, dest: Path) -> Path | None:
     """
     if dest.exists() and dest.stat().st_size > 0:
         return dest
+
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     ok, reason = await asyncio.to_thread(check_public_url, clip.url)
     if not ok:
         log.warning("motion.stock.url_rejected", extra={"url": clip.url, "reason": reason})

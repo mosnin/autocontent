@@ -7,7 +7,7 @@ function asset(file: string) {
 }
 
 /**
- * Trusted-by logo strip — Figma "Frame 2147239649" (2280:5672 / 2280:5924).
+ * Trusted-by logo strip - Figma "Frame 2147239649" (2280:5672 / 2280:5924).
  *
  * The strip scrolls continuously: the track holds two copies of the artwork and
  * translates by exactly -50%, so the second copy lands where the first started

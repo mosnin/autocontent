@@ -260,6 +260,9 @@ async def submit_render(
     spend: SpendContext | None = None,
 ) -> dict:
     """Validate, meter, submit. Returns the persisted render row."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     model = require_model(model_id)
     require_provider_enabled(model)
 
@@ -335,6 +338,9 @@ async def retry_render(
     The claim is the atomic failed -> queued transition in the repo, so a
     double-clicked retry submits (and pays for) exactly one new job.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     muapi.require_enabled()
 
     row = await renders_repo.claim_for_retry(render_id, user_id=user_id)

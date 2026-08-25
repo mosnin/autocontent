@@ -3,7 +3,7 @@
 // Reads go through SWR using WEBHOOKS_KEY + `clientFetch` (see
 // lib/client-fetcher.ts). Writes go through the same /api/proxy/... handler
 // so the Clerk JWT is attached server-side. NOTHING here may import server-only
-// modules — this file runs in the browser.
+// modules - this file runs in the browser.
 
 import { ApiError, clientFetch } from "@/lib/client-fetcher";
 
@@ -41,7 +41,7 @@ export interface WebhookEndpoint {
   last_status: number | null;
   last_delivery_at: string | null;
   created_at: string;
-  /** Signing secret — populated ONLY in the create response, shown once. */
+  /** Signing secret - populated ONLY in the create response, shown once. */
   secret: string | null;
 }
 

@@ -39,7 +39,7 @@ modal token set --token-id <id> --token-secret <secret>
 
 ---
 
-## Step 3 — create the five Modal secrets
+## Step 3 — create the seven Modal secrets
 
 ```bash
 modal secret create marketer-database \
@@ -58,6 +58,37 @@ modal secret create marketer-ayrshare \
 modal secret create marketer-clerk \
   MARKETER_CLERK_JWKS_URL='https://<app>.clerk.accounts.dev/.well-known/jwks.json' \
   MARKETER_CLERK_ISSUER='https://<app>.clerk.accounts.dev'
+
+# These two MUST exist even when every value is empty. modal_app.py mounts
+# them; a missing name fails deploy. Empty values keep features fail-closed
+# until you fill them in — they will then reach production without another
+# code change.
+modal secret create marketer-extra \
+  MARKETER_WEB_ORIGIN='' \
+  MARKETER_APP_URL='' \
+  MARKETER_BILLING_ENABLED='false' \
+  MARKETER_STRIPE_SECRET_KEY='' \
+  MARKETER_STRIPE_WEBHOOK_SECRET='' \
+  MARKETER_CLERK_AUDIENCE='' \
+  MARKETER_ALLOW_UNBILLED_USAGE='true' \
+  MARKETER_BOOTSTRAP_ADMIN_EMAIL='' \
+  MARKETER_RESEND_API_KEY='' \
+  MARKETER_SENTRY_DSN=''
+
+modal secret create marketer-providers \
+  MARKETER_FAL_API_KEY='' \
+  MARKETER_ELEVENLABS_API_KEY='' \
+  MARKETER_OPENROUTER_API_KEY='' \
+  MARKETER_EXA_API_KEY='' \
+  MARKETER_WASABI_ENABLED='false' \
+  MARKETER_COMPOSIO_API_KEY='' \
+  MARKETER_INNGEST_SIGNING_KEY='' \
+  MARKETER_INNGEST_EVENT_KEY='' \
+  MARKETER_CONTEXT_DEV_API_KEY='' \
+  MARKETER_MUAPI_API_KEY='' \
+  MARKETER_PEXELS_API_KEY='' \
+  MARKETER_PIXABAY_API_KEY='' \
+  MARKETER_RESEND_API_KEY=''
 ```
 
 Quote every value — connection strings and keys contain characters the
@@ -75,8 +106,9 @@ Neon dashboard's connection widget by toggling "Connection pooling".
 
 Keep `?sslmode=require`; Neon refuses plaintext connections.
 
-`marketer-ayrshare` can be empty for now, but the secret must **exist**:
-`modal_app.py` names all five, and a missing one fails the deploy.
+`marketer-ayrshare`, `marketer-extra`, and `marketer-providers` can be
+empty for now, but each secret must **exist**: `modal_app.py` names all
+seven, and a missing one fails the deploy.
 
 ---
 
@@ -109,6 +141,8 @@ Environment variables (Production and Preview both):
 ```
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = pk_...
 CLERK_SECRET_KEY                  = sk_...
+NEXT_PUBLIC_CLERK_SIGN_IN_URL     = /sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL     = /sign-up
 NEXT_PUBLIC_API_BASE_URL          = https://<workspace>--marketer-sh-api.modal.run
 NEXT_PUBLIC_SITE_URL              = https://<your-domain>
 ```
@@ -120,7 +154,9 @@ No `MARKETER_*` variable belongs here. Deploy, then copy the domain.
 ## Step 6 — give the backend the web domain, redeploy
 
 CORS rejects the web app until `MARKETER_WEB_ORIGIN` matches its origin
-exactly (scheme, host, no trailing slash).
+exactly (scheme, host, no trailing slash). If `WEB_ORIGIN` is empty the
+API now falls back to `MARKETER_APP_URL`. `marketer-extra` is already
+mounted — update the secret, then redeploy:
 
 ```bash
 modal secret create marketer-extra \
@@ -128,11 +164,8 @@ modal secret create marketer-extra \
   MARKETER_APP_URL='https://<your-domain>'
 ```
 
-Add it to the secrets list in `modal_app.py`:
-
-```python
-modal.Secret.from_name("marketer-extra"),
-```
+If the secret already exists, edit it in the Modal dashboard (or
+recreate it) rather than adding a second `from_name` line.
 
 ```bash
 modal deploy modal_app.py
@@ -153,6 +186,36 @@ Then in a browser: sign up, land on the dashboard, create a niche.
 
 ---
 
+## Launch rehearsal (required before public traffic)
+
+Do **not** set `MARKETER_BILLING_ENABLED=true` or `MARKETER_ADS_ENABLED=true`
+until this rehearsal is green on the production deploy. Extra suite flags
+(`MARKETER_UGC_ENABLED`, `MARKETER_AD_CREATIVE_ENABLED`, …) stay false.
+
+1. One operator Clerk account.
+2. Onboarding: create a niche → `/onboarding/next` → add a $5 pack →
+   connect TikTok or Reels via Ayrshare.
+3. Generate one video. It must park at `awaiting_approval`.
+4. Approve. Ayrshare must show a **scheduled** post in the niche window
+   (not an immediate publish). A timeout retry must not double-post.
+5. Stripe Dashboard: refund the $5 session. Credit balance must return
+   to ~$0 (`kind=refund` on the same `cs_…` reference).
+6. Confirm the nightly/campaign runner does **not** enqueue another video
+   while that job is still `awaiting_approval`.
+
+If any step fails, you are not launching.
+
+Recommended production extras (still fail-closed if empty):
+
+- `MARKETER_WASABI_ENABLED=true` plus bucket keys so renders survive
+  container recycle.
+- `MARKETER_RATE_LIMIT_REDIS_URL` so slowapi is not per-container memory.
+- `MARKETER_PREFLIGHT_STRICT=true` so a missing spend secret fails deploy.
+- `MARKETER_SENTRY_DSN` and `MARKETER_RESEND_API_KEY` for 5xx + job email.
+- `MARKETER_ALLOW_UNBILLED_USAGE=false` on the public deploy.
+
+---
+
 ## Step 8 — enable optional features
 
 Each is off by default and fails closed. For every one: add the keys to a
@@ -163,7 +226,7 @@ Modal secret, make sure that secret is in `modal_app.py`, and redeploy.
 | Voiceover / music | — | `MARKETER_ELEVENLABS_API_KEY` |
 | Alt video provider | — | `MARKETER_FAL_API_KEY` |
 | Social publishing | — | `MARKETER_AYRSHARE_API_KEY`, `MARKETER_AYRSHARE_WEBHOOK_SECRET` |
-| Billing | `MARKETER_BILLING_ENABLED=true` | `MARKETER_STRIPE_SECRET_KEY`, `MARKETER_STRIPE_WEBHOOK_SECRET` |
+| Billing | `MARKETER_BILLING_ENABLED=true` only after the launch rehearsal | `MARKETER_STRIPE_SECRET_KEY`, `MARKETER_STRIPE_WEBHOOK_SECRET` |
 | Ad creative studio | `MARKETER_AD_CREATIVE_ENABLED=true` | `MARKETER_CONTEXT_DEV_API_KEY` |
 | SEO auditor | `MARKETER_SEO_AUDIT_ENABLED=true` | `MARKETER_CONTEXT_DEV_API_KEY` |
 | UGC studio | `MARKETER_UGC_ENABLED=true` | `MARKETER_MUAPI_API_KEY`, `MARKETER_MUAPI_WEBHOOK_URL`, `MARKETER_MUAPI_WEBHOOK_SECRET` |
@@ -202,9 +265,9 @@ separate copies of the same values.
 
 1. **`OPENAI_API_KEY` is never read.** `config.py` sets
    `env_prefix="MARKETER_"`. It must be `MARKETER_OPENAI_API_KEY`.
-2. **Only five secrets are mounted.** Every other provider key needs its
-   own secret *and* a line in `modal_app.py`, or it works locally and is
-   silently absent in production.
+2. **Seven secrets must exist.** `marketer-extra` and `marketer-providers`
+   are mounted alongside the original five. A missing name fails deploy;
+   empty values keep the feature fail-closed until you fill them in.
 3. **`NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` is read at build time.** Changing
    it requires a redeploy, not just a restart.
 4. **Migrations before deploy.** Code expecting a column that does not

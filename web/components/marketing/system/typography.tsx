@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-/** Tiny uppercase label used in menus and legal nav — never a colored kicker. */
+/** Tiny uppercase label used in menus and legal nav - never a colored kicker. */
 export function Kicker({
   children,
   className,

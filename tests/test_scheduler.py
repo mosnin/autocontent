@@ -172,6 +172,43 @@ def test_iso_utc_handles_naive_and_aware():
     ) == "2026-05-17T09:00:00Z"
 
 
+async def test_schedule_post_sends_idempotency_key(
+    tmp_path: Path, patch_async_client, stub_user_lookup
+):
+    video = tmp_path / "final.mp4"
+    video.write_bytes(b"\x00" * 64)
+    captured: dict = {}
+    patch_async_client(_make_transport(captured=captured))
+    await scheduler.schedule_post(
+        video_path=video, caption="x", hashtags=[], platform="tiktok",
+        scheduled_for=datetime(2026, 5, 17, 16, 0, tzinfo=timezone.utc),
+        user_id="user_abc", idempotency_key="video:abc",
+    )
+    assert captured["post_body"]["idempotencyKey"] == "video:abc"
+
+
+async def test_submit_post_duplicate_is_safe(patch_async_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            409,
+            json={"status": "error", "message": "duplicate idempotency key", "id": "orig-1"},
+        )
+
+    patch_async_client(httpx.MockTransport(handler))
+    with pytest.raises(scheduler.AyrshareDuplicate) as e:
+        await scheduler._submit_post({"post": "x"}, profile_key="pk")
+    assert e.value.post_id == "orig-1"
+
+
+async def test_submit_post_4xx_is_rejected(patch_async_client):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json={"status": "error", "message": "bad caption"})
+
+    patch_async_client(httpx.MockTransport(handler))
+    with pytest.raises(scheduler.AyrshareRejected):
+        await scheduler._submit_post({"post": "x"}, profile_key="pk")
+
+
 def test_format_caption_appends_hashtags():
     out = scheduler._format_caption("hello", ["econ", "#fed"])
     assert "hello" in out

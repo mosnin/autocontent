@@ -373,6 +373,9 @@ def _is_retryable(exc: BaseException) -> bool:
     retry=retry_if_exception(_is_retryable),
 )
 async def _submit(client: httpx.AsyncClient, model_id: str, body: dict) -> dict:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     # NOTE on double-submit risk: _submit enqueues a *paid* render. A
     # retry here only ever fires for transport errors (timeout/connection
     # drop) or 429/5xx — never for a request fal actually rejected — but
@@ -446,6 +449,9 @@ async def animate(
     spend: SpendContext | None = None,
 ) -> Path:
     """Render one scene clip through a Fal image-to-video model."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not enabled():
         raise FalVideoError(
             "fal video provider selected but MARKETER_FAL_API_KEY is not set"
@@ -524,6 +530,9 @@ async def animate_avatar(
     there is no duration knob — the pre-flight estimate and the billed
     units both come from the audio (or the provider-reported render
     duration when present)."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not enabled():
         raise FalVideoError(
             "fal video provider selected but MARKETER_FAL_API_KEY is not set"

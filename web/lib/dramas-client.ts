@@ -1,6 +1,6 @@
 // Client-safe typed client for the Micro-Drama API (/api/v1/dramas). SWR keys
 // are plain backend paths (clientFetch prefixes /api/proxy); mutations POST
-// through the proxy so the Clerk JWT is attached server-side — `auth()` can't
+// through the proxy so the Clerk JWT is attached server-side - `auth()` can't
 // run in the browser. No server-only imports.
 //
 // Types mirror backend/routes/dramas.py (DramaDetail / CharacterView /
@@ -10,7 +10,7 @@ import { clientFetch } from "@/lib/client-fetcher";
 
 const DRAMAS = "/api/v1/dramas";
 
-// Bounds come from drama/schemas.py — the API enforces them, so the form
+// Bounds come from drama/schemas.py - the API enforces them, so the form
 // must not offer anything outside them.
 export const MIN_SHOTS = 2;
 export const MAX_SHOTS = 12;
@@ -120,7 +120,7 @@ export interface Drama {
   updated_at: string | null;
 }
 
-/** CharacterView — the portrait is availability, not just intent: the route
+/** CharacterView - the portrait is availability, not just intent: the route
  *  stats the file so a swept artifact never renders a broken <img>. */
 export interface CastMember {
   id: string;
@@ -171,7 +171,7 @@ export const dramaKeys = {
   detail: (id: string) => `${DRAMAS}/${id}`,
 };
 
-/** Browser-facing media URLs — both stream through the JWT-attaching proxy. */
+/** Browser-facing media URLs - both stream through the JWT-attaching proxy. */
 export function dramaVideoSrc(id: string): string {
   return `/api/proxy${DRAMAS}/${id}/video`;
 }
@@ -201,7 +201,7 @@ export function createDrama(body: DramaCreate): Promise<Drama> {
   return proxy("POST", DRAMAS, body);
 }
 
-/** 202. Resumes a failed run — the plan (screenplay, locked portraits,
+/** 202. Resumes a failed run - the plan (screenplay, locked portraits,
  *  already-rendered shots) is inherited rather than re-bought. */
 export function retryDrama(id: string): Promise<Drama> {
   return proxy("POST", `${DRAMAS}/${id}/retry`);

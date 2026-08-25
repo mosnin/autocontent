@@ -7,16 +7,15 @@ import {
 } from "@/components/marketing/features/detail-b/hub-index";
 import { FeatureHero } from "@/components/marketing/features/feature-hero";
 import { SectionCta } from "@/components/marketing/system";
-import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
-  "Fourteen surfaces on one platform: six ways to make the work, three to get it out, and five that keep it measured, automated, and inside the caps you set.";
+  "Video, articles, scheduling, and campaigns on one ledger, under one set of caps. Extra studios stay off until you turn them on.";
 
 export const metadata: Metadata = {
-  title: "Features — marketer.sh",
+  title: "Product · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Features — marketer.sh",
+    title: "Product · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -27,27 +26,16 @@ export default function FeaturesPage() {
   return (
     <main>
       <FeatureHero
-        illustration={
-          <MediaCard
-            kind="image"
-            label="Platform overview — the fourteen surfaces"
-            ratio="4/3"
-          />
-        }
-        kicker="Features"
-        lede="Video, articles, UGC, dramas, motion, templates. Scheduling, campaigns, ads. Niches, analytics, agents, library, audits. All of it on one ledger, under one set of caps."
-        magneticPrimary
-        titleText="Everything the campaign needs. One system."
-        variant="sky"
+        kicker="Product"
+        lede="Video and articles ship today. Scheduling and campaigns share the same ledger. Paid ads stay off until they are actually live."
+        titleText="Content and SEO, under one cap."
       />
       <FeatureIndex />
       <SharedSpine />
       <HubStats />
       <SectionCta
-        headline="Turn on the parts you need."
-        highlight="the parts you need."
-        kicker="Get started"
-        sub="Every feature works on every credit pack. Start at five dollars and add surfaces as you go."
+        headline="Start with the line you need."
+        sub="Every service runs on the same credit pack. Start at five dollars."
       />
     </main>
   );

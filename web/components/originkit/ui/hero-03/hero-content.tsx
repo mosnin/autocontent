@@ -53,7 +53,7 @@ export const HeroContent = ({ onExplore, onBook }: HeroContentProps) => {
             className="w-full max-w-[338px] text-center font-tight text-[14px] leading-normal tracking-[-0.28px] text-[#1d1d1d]/65 text-pretty ipad:max-w-[438px] ipad:text-[18px] ipad:tracking-[-0.36px] desktop-sm:max-w-[321px] desktop-sm:text-[17px] desktop-sm:leading-[25.5px] desktop-sm:tracking-[-0.34px]"
           >
             One brief in. Video, ads, and SEO articles ideated, produced,
-            published, and improved — with a hard cap on every dollar.
+            published, and improved - with a hard cap on every dollar.
           </motion.p>
         </div>
 

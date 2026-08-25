@@ -8,10 +8,10 @@ import { formatDateTime, relativeTime } from "@/components/admin/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-// Dialogs (and everything inside them) stay on the app's own primitives —
+// Dialogs (and everything inside them) stay on the app's own primitives -
 // dialog/label/textarea/switch have no square/ui counterpart the template
 // prescribes for this context (established precedent, see
-// articles/ArticlesClient.tsx's NewArticleDialog) — including the app
+// articles/ArticlesClient.tsx's NewArticleDialog) - including the app
 // Button (its `isLoading` prop is used on the dialog's submit button).
 import {
   Dialog,
@@ -43,7 +43,7 @@ import type { FeatureFlag } from "@/lib/admin-types";
 const POLL_MS = 30_000;
 
 const AUDIT_NOTE =
-  "Every flag change is written to the append-only audit log with your identity.";
+  "Every flag change is written to the append-only audit log with your identity. Keys generate, publish, and billing are kill switches (missing row = allowed). Ads, x402, and suite studios still read MARKETER_* env flags.";
 
 export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
   const key = adminKeys.flags();
@@ -109,7 +109,7 @@ export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
           },
         );
         toast.success(
-          `“${flag.key}” ${nextEnabled ? "enabled" : "disabled"} — change audited`,
+          `“${flag.key}” ${nextEnabled ? "enabled" : "disabled"} - change audited`,
         );
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Update failed");
@@ -138,7 +138,7 @@ export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused - {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -299,7 +299,7 @@ function AddFlagDialog({
         enabled,
         description: description.trim(),
       });
-      toast.success(`Flag “${created.key}” created — change audited`);
+      toast.success(`Flag “${created.key}” created - change audited`);
       onCreated(created);
       onOpenChange(false);
     } catch (err) {

@@ -384,6 +384,9 @@ async def run_headshot_batch(*, user_id: str, batch_id: UUID) -> dict:
     Safe to spawn twice: the queued -> running claim is atomic, so the
     loser returns without spending.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     batch = await repo.get_batch(batch_id, user_id=user_id)
     if batch is None:
         raise RuntimeError(f"headshot batch {batch_id} not found for {user_id}")

@@ -602,14 +602,14 @@ export function Hero(): ReactNode {
             {...fadeUp(0.2)}
             className="text-foreground mt-5 text-[clamp(44px,7.5vw,84px)] leading-[1.02] font-medium tracking-tight text-balance"
           >
-            Marketing that runs itself
+            Your AI agent makes the marketing
           </motion.h1>
           <motion.p
             {...fadeUp(0.32)}
             className="text-muted-foreground mt-6 max-w-md text-base leading-relaxed"
           >
-            One brief in. Video and articles ideated, produced, published, and
-            improved — with hard caps on every dollar.
+            Videos, SEO articles, and ads. You tell it what you sell. It
+            creates the work. You set a budget so it cannot overspend.
           </motion.p>
           <motion.div
             {...fadeUp(0.44)}

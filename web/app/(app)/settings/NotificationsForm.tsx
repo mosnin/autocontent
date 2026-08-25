@@ -9,11 +9,24 @@ import { updateEmailNotificationsAction } from "@/lib/actions";
 
 interface Props {
   initialEnabled: boolean;
+  emailConfigured: boolean;
 }
 
-export function NotificationsForm({ initialEnabled }: Props) {
+export function NotificationsForm({
+  initialEnabled,
+  emailConfigured,
+}: Props) {
   const [enabled, setEnabled] = React.useState(initialEnabled);
   const [pending, startTransition] = React.useTransition();
+
+  if (!emailConfigured) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        No mail provider key is set. Toggling this will not send mail,
+        and nothing is delivered at the end of a run.
+      </p>
+    );
+  }
 
   function onToggle(next: boolean) {
     // Optimistic: flip immediately, revert if the server rejects.

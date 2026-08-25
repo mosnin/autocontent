@@ -207,3 +207,8 @@ body:has(#main) {
   [data-framer-background-image-wrapper="true"] img {
   filter: hue-rotate(-72deg) saturate(0.42) brightness(1.04);
 }
+
+/* Placeholder logo cloud is not customer proof. */
+#trusted-by {
+  display: none !important;
+}

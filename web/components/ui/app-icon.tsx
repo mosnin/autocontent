@@ -11,7 +11,7 @@ const TINT: Record<Category, string> = {
   blue: "bg-cat-blue",
   purple: "bg-cat-purple",
   navy: "bg-cat-navy",
-  // Reserved for genuinely critical states (e.g. a dependency down) — reuses
+  // Reserved for genuinely critical states (e.g. a dependency down) - reuses
   // the destructive token so red carries a single, consistent meaning.
   red: "bg-destructive",
 };

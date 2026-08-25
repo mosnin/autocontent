@@ -2,7 +2,7 @@
 
 // Performance card for the niche detail page.
 // Shows summary stat tiles, a scatter plot of cost vs views, and a
-// mini-table of job-level performance — all derived from the
+// mini-table of job-level performance - all derived from the
 // GET /api/v1/niches/{id}/performance response.
 
 import * as React from "react";
@@ -59,7 +59,7 @@ const scatterConfig: ChartConfig = {
 };
 
 function formatViews(n: number | null): string {
-  if (n === null) return "—";
+  if (n === null) return "-";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
@@ -68,7 +68,7 @@ function formatViews(n: number | null): string {
 function costPer1k(totalSpend: string, totalViews: number): string {
   const v = totalViews;
   const s = Number(totalSpend);
-  if (v === 0 || isNaN(s)) return "—";
+  if (v === 0 || isNaN(s)) return "-";
   return `$${((s / v) * 1000).toFixed(2)}`;
 }
 
@@ -132,7 +132,7 @@ export function PerformanceCard({ performance }: Props) {
 
   const { summary, jobs } = performance;
 
-  // Empty window — no jobs ran
+  // Empty window - no jobs ran
   if (summary.total_videos === 0) {
     return (
       <Card>
@@ -157,7 +157,7 @@ export function PerformanceCard({ performance }: Props) {
     </p>
   ) : null;
 
-  // Scatter data — only include jobs with both cost and views
+  // Scatter data - only include jobs with both cost and views
   const scatterData: ScatterPayload[] = jobs
     .filter((j) => j.views !== null)
     .map((j) => ({
@@ -248,19 +248,19 @@ export function PerformanceCard({ performance }: Props) {
           <div className="rounded-lg border p-3">
             <div className="text-xs text-muted-foreground">Total views</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
-              {anyMetrics ? formatViews(summary.total_views) : "—"}
+              {anyMetrics ? formatViews(summary.total_views) : "-"}
             </div>
           </div>
           <div className="rounded-lg border p-3">
             <div className="text-xs text-muted-foreground">Avg views / video</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
-              {anyMetrics ? formatViews(Math.round(summary.avg_views_per_video)) : "—"}
+              {anyMetrics ? formatViews(Math.round(summary.avg_views_per_video)) : "-"}
             </div>
           </div>
           <div className="rounded-lg border p-3">
             <div className="text-xs text-muted-foreground">Cost / 1k views</div>
             <div className="mt-1 text-xl font-semibold tabular-nums">
-              {anyMetrics ? costPer1k(summary.total_spend_usd, summary.total_views) : "—"}
+              {anyMetrics ? costPer1k(summary.total_spend_usd, summary.total_views) : "-"}
             </div>
           </div>
         </div>
@@ -375,7 +375,7 @@ export function PerformanceCard({ performance }: Props) {
                         ${Number(job.cost_usd).toFixed(4)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {cpp !== null ? `$${cpp.toFixed(2)}` : "—"}
+                        {cpp !== null ? `$${cpp.toFixed(2)}` : "-"}
                       </TableCell>
                     </TableRow>
                   );

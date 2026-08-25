@@ -102,6 +102,28 @@ def test_media_wasabi_redirects_presigned(monkeypatch):
     assert r.headers["location"].startswith("https://signed.example/")
 
 
+def test_media_wasabi_unconfigured_is_409(monkeypatch):
+    """Wasabi-stored assets must not invent a playback URL when storage is dark."""
+    import marketer.repos.media as media_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "wasabi_enabled", False)
+    monkeypatch.setattr(settings, "wasabi_bucket", "")
+    monkeypatch.setattr(settings, "wasabi_access_key_id", "")
+    monkeypatch.setattr(settings, "wasabi_secret_access_key", "")
+
+    asset = _asset(storage="wasabi", key="users/u/j/clips/scene_0.mp4")
+
+    async def fake_get(asset_id, *, user_id):
+        return asset
+
+    monkeypatch.setattr(media_repo, "get_asset", fake_get)
+    client = _make_authed_client(monkeypatch)
+    r = client.get(f"/api/v1/library/{asset.id}/media", follow_redirects=False)
+    assert r.status_code == 409
+    assert "wasabi is not configured" in r.json()["detail"]
+
+
 def test_media_missing_asset_404(monkeypatch):
     import marketer.repos.media as media_repo
 

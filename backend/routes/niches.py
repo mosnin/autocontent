@@ -14,6 +14,7 @@ from marketer.repos import niches as niches_repo
 from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -51,7 +52,9 @@ async def draft_niche_spec(
     user launches instead of filling a 16-field form."""
     from marketer.agents.niche_draft import draft_niche
     from marketer.repos import brand_kit as brand_kit_repo
+    from marketer.repos.spend import SpendCapExceeded
 
+    refuse_unbilled_generate()
     text = body.description.strip()
     if len(text) < 8:
         raise HTTPException(
@@ -63,6 +66,10 @@ async def draft_niche_spec(
     brand_context = brand_kit_repo.as_prompt_context(kit)
     try:
         draft = await draft_niche(text, brand_context=brand_context)
+    except SpendCapExceeded as e:
+        raise HTTPException(
+            status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
+        ) from e
     except Exception as e:  # noqa: BLE001 — surface as a clean 502
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,

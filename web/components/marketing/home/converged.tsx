@@ -25,7 +25,7 @@ type Cap = { label: string; href: string };
 type CapGroup = { kicker: string; items: Cap[] };
 
 /** Every capability the platform covers, grouped by the product that owns
- *  it. Text-only chips — no icon standing in for the words. */
+ *  it. Text-only chips - no icon standing in for the words. */
 const GROUPS: CapGroup[] = [
   {
     kicker: "Studio",
@@ -85,7 +85,7 @@ function CapChip({ cap }: { cap: Cap }) {
   );
 }
 
-/** Scroll-triggered cascade for the capability chips — they rise into place
+/** Scroll-triggered cascade for the capability chips - they rise into place
  *  once as the grid enters view. Reduced motion renders them settled. */
 function CapGrid() {
   const gridRef = React.useRef<HTMLDivElement>(null);

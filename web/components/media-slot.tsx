@@ -26,7 +26,7 @@ export function useMediaManifest() {
 }
 
 /**
- * Empty-slot rendering: a plain flat surface with a small text tag —
+ * Empty-slot rendering: a plain flat surface with a small text tag -
  * no gradients, no shapes, no fake art. It should read as "media goes
  * here", nothing more.
  */
@@ -45,7 +45,7 @@ function PlaceholderScene({
     >
       {showChip ? (
         <span className="max-w-[85%] truncate rounded border border-zinc-200 bg-white px-2 py-1 font-mono text-[10px] text-zinc-400">
-          {label} — Admin › Media
+          {label} - Admin › Media
         </span>
       ) : (
         <span className="font-mono text-[10px] uppercase tracking-wide text-zinc-300">

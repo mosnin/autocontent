@@ -56,7 +56,7 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
         <h1 className="text-2xl font-semibold tracking-tight">New campaign</h1>
         <p className="text-sm text-muted-foreground">
           This creates a <strong>draft</strong>. Nothing spends until you set a
-          budget and activate it — both pass the spend guard.
+          budget and activate it - both pass the spend guard.
         </p>
       </div>
 
@@ -71,10 +71,10 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
                 onChange={(e) => setAccountId(e.target.value)}
                 className="h-9 w-full rounded-lg border border-input bg-transparent px-3 text-sm focus-visible:border-primary focus-visible:outline-none"
               >
-                {active.length === 0 && <option value="">No active accounts</option>}
+                {active.length === 0 && <option value="">No connected accounts</option>}
                 {active.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.platform.replace("_", " ")} —{" "}
+                    {a.platform.replace("_", " ")} -{" "}
                     {a.name || a.external_account_id || a.id.slice(0, 8)}
                   </option>
                 ))}
@@ -87,7 +87,7 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Spring launch — prospecting"
+                placeholder="Spring launch - prospecting"
                 required
               />
             </div>
@@ -127,8 +127,8 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Stored on the draft. It only takes effect — and only within your
-                account caps — when you activate.
+                Stored on the draft. It only takes effect - and only within your
+                account caps - when you activate.
               </p>
             </div>
 

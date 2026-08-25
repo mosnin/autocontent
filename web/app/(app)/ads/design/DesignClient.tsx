@@ -125,7 +125,7 @@ export function DesignClient({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!nicheId) {
-      toast.error("Pick a niche — the project's spend is attributed to it.");
+      toast.error("Pick a niche - the project's spend is attributed to it.");
       return;
     }
     if (!brief.trim()) {
@@ -156,8 +156,8 @@ export function DesignClient({
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Design agent</h1>
         <p className="text-sm text-muted-foreground">
-          Describe the deliverable. The agent writes an explicit plan — a graph
-          of generate / edit / compose / upscale / overlay steps — validates it,
+          Describe the deliverable. The agent writes an explicit plan - a graph
+          of generate / edit / compose / upscale / overlay steps - validates it,
           then executes it onto a canvas one layer at a time.
         </p>
       </div>
@@ -281,7 +281,7 @@ export function DesignClient({
             <h3 className="text-lg font-semibold">No projects yet</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               The first thing you&apos;ll see after submitting a brief is the
-              plan — before a single image is bought.
+              plan - before a single image is bought.
             </p>
           </CardContent>
         </Card>

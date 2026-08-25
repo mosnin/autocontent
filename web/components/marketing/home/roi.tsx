@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Magnetic, Reveal, Stagger, TextReveal } from "@/components/marketing/system";
 import CountUp from "@/components/reactbits/CountUp";
 
-/** Product economics band — the reference's ROI columns, with numbers
+/** Product economics band - the reference's ROI columns, with numbers
  *  from how the pipeline actually prices, not invented customer studies. */
 const STATS: Array<{
   value: number;

@@ -32,7 +32,7 @@ const SLIDESHOW_SPRING = {
 /** Slideshow arrow `whileTap` transition: `{duration:.15}` */
 const ARROW_TAP_SECONDS = 0.15;
 
-/** Slideshow `intervalControl` — measured 3017ms between autoplay steps. */
+/** Slideshow `intervalControl` - measured 3017ms between autoplay steps. */
 const SLIDESHOW_INTERVAL_MS = 3000;
 
 /**
@@ -50,7 +50,7 @@ const COUNTER_IN_VIEW_AMOUNT = 0.5;
 /**
  * Stat counter targets.
  *
- * The digits are NOT in the export's DOM — the Framer code component receives
+ * The digits are NOT in the export's DOM - the Framer code component receives
  * `targetNumber` as a prop, so the transcription only kept the rendered "0"s.
  * These are the values the original animates to, matched by card label
  * position (the port's labels are a 1:1 rewrite of the original's).
@@ -91,7 +91,7 @@ const FAQ_FALLBACK_ANSWERS: Record<string, string> = {
   "How quickly can we get the first video out?":
     "Most teams are running in minutes. Write one brief, approve the plan, and the agents handle ideation, production, and QA while you review, so the first cut lands far sooner than a manual production cycle.",
   "What makes marketer.sh different from other AI tools?":
-    "Most tools stop at generation. marketer.sh runs the whole pipeline — ideation, production, QA, scheduling, and publishing — with human approval gates before anything publishes or spends, and a hard cap on every dollar.",
+    "Most tools stop at generation. marketer.sh runs the whole pipeline - ideation, production, QA, scheduling, and publishing - with human approval gates before anything publishes or spends, and a hard cap on every dollar.",
 };
 
 /* ------------------------------------------------------------------ *
@@ -142,7 +142,7 @@ const FOCUSABLE_SELECTOR =
  * ------------------------------------------------------------------ */
 
 /**
- * The real collapsed state in the original is NOT `display:none` — the Framer
+ * The real collapsed state in the original is NOT `display:none` - the Framer
  * variant simply does not render the Paragraph node at all, and the item's
  * own `height:min-content` shrinks from 195px (open) to 88px (closed). The
  * open/closed variant classes also change padding (30px -> 24px 30px).
@@ -159,7 +159,7 @@ function initAccordions(root: HTMLElement, signal: AbortSignal): Disposer {
   const disposers: Disposer[] = [];
 
   // An FAQ item is exactly "the element whose DIRECT child is a Faq Content
-  // header row" — no hashed class names, no ancestor false positives.
+  // header row" - no hashed class names, no ancestor false positives.
   const allItems = Array.from(
     root.querySelectorAll<HTMLElement>(
       '[data-framer-name] > [data-framer-name="Faq Content"]',
@@ -455,14 +455,14 @@ function initAccordions(root: HTMLElement, signal: AbortSignal): Disposer {
 
 /**
  * `section.framer-slideshow` is Framer's Slideshow code component. It sits in
- * the Comparison section (two instances) — the brief called it the social
+ * the Comparison section (two instances) - the brief called it the social
  * proof carousel, but the social proof block has no slideshow.
  *
  * The arrows ship `disabled`, `pointer-events:none` and `opacity:0` because
  * that is the component's PRE-MEASUREMENT state
  * (`disabled: !(isCanvas || isInitialized)`); the live runtime flips all of it
  * on as soon as it has measured the items. It also clones the six slots to
- * four copies (`nt = et * 4`) so the loop never runs dry — the static export
+ * four copies (`nt = et * 4`) so the loop never runs dry - the static export
  * only kept one copy, so we rebuild the other three.
  *
  * Position is composed from two independent offsets so this module can run
@@ -476,7 +476,7 @@ function initAccordions(root: HTMLElement, signal: AbortSignal): Disposer {
  *
  * Two deliberate deviations from the original, both flagged in the report:
  *   - this instance sets `showMouseControls:false`, so the original leaves the
- *     arrows at `display:none` — invisible AND unreachable. We lay them out at
+ *     arrows at `display:none` - invisible AND unreachable. We lay them out at
  *     `opacity:0` and fade them in on hover/focus, so the at-rest pixels are
  *     unchanged while the control is genuinely operable and focusable.
  *   - the original never disables the arrows at the ends, because the track is
@@ -939,9 +939,9 @@ function initCounters(root: HTMLElement): Disposer {
  * the original opens a 220x360 dropdown pinned under the hamburger, with no
  * enter or exit animation at all (Framer's variant root is `initial:false`).
  * This module replaces that presentation with a full-screen menu that wipes
- * open and wipes closed. Everything else the original did — variant/icon swap,
+ * open and wipes closed. Everything else the original did - variant/icon swap,
  * link labels + hrefs and the CTA cloned live out of the Desktop nav, close on
- * link tap — is preserved, and nothing about the nav bar itself changes.
+ * link tap - is preserved, and nothing about the nav bar itself changes.
  *
  * Motion, all of it borrowed from values already extracted elsewhere in this
  * folder rather than invented here (see MENU_SPRING_IN / _OUT below):
@@ -973,9 +973,9 @@ const HAMBURGER_OPEN_ICON =
  * Nothing here is a new curve. The site knows exactly two bounce-0 spring
  * speeds and one stagger, all extracted from the original:
  *
- *   0.6s  the split-text reveal (`reveal.tsx` TEXT_TRANSITION) — "content
+ *   0.6s  the split-text reveal (`reveal.tsx` TEXT_TRANSITION) - "content
  *         arriving", used here for the ground wipe and the link entrance
- *   0.4s  the Faq Item variant transition (FAQ_SPRING, above) — the site's
+ *   0.4s  the Faq Item variant transition (FAQ_SPRING, above) - the site's
  *         speed for a UI control changing state, used here for the exit
  *   75ms  the split-text per-line stagger (`reveal.tsx` TEXT_LINE_STAGGER)
  *   100ms the offset between a heading's reveal and the block under it
@@ -1126,7 +1126,7 @@ type MenuOverlay = {
 
 /**
  * Labels, hrefs and the CTA are cloned out of the live Desktop nav on every
- * open, so whatever the routes are at that moment is what the menu links to —
+ * open, so whatever the routes are at that moment is what the menu links to -
  * nothing about the destinations is hard-coded here.
  */
 function buildMenuOverlay(root: HTMLElement, panelId: string): MenuOverlay | null {
@@ -1564,7 +1564,7 @@ function initNavMenus(root: HTMLElement, signal: AbortSignal): Disposer {
     );
 
     disposers.push(() => {
-      // Teardown is immediate — an unmounting tree must not be left waiting on
+      // Teardown is immediate - an unmounting tree must not be left waiting on
       // an exit animation. `generation` invalidates any tween still in flight.
       generation += 1;
       open = false;

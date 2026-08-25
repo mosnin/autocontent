@@ -157,7 +157,7 @@ def stub_env(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
     async def fake_scriptwriter(idea, *, scene_count, target_duration_sec,
-                                audience_context="", brief=None, script_model="", spend=None):
+                                audience_context="", brief=None, script_model="", format_key="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
@@ -290,7 +290,7 @@ def stub_env(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pipeline.video_qa, "check_render", fake_check_render)
 
     async def fake_schedule_post(*, video_path, caption, hashtags, platform,
-                                 scheduled_for, profile_key, user_id):
+                                 scheduled_for, profile_key, user_id, idempotency_key=None):
         return "post-id-resume-hardening"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
 

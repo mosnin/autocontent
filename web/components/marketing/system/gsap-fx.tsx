@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * CTAs. Every effect collapses to static/opacity-only under
  * prefers-reduced-motion via gsap.matchMedia.
  *
- * Pair with the existing motion/react primitives (<Reveal>/<Stagger>) —
+ * Pair with the existing motion/react primitives (<Reveal>/<Stagger>) -
  * GSAP owns text choreography and scroll-linked effects; motion keeps
  * owning simple in-view fades and springs.
  */
@@ -31,7 +31,7 @@ const FULL = "(prefers-reduced-motion: no-preference)";
 /**
  * Splits its string children into words, masks each, and rises them in
  * word-by-word when the element scrolls into view. Use on display
- * headlines only (h1/h2) — body copy keeps plain reveals.
+ * headlines only (h1/h2) - body copy keeps plain reveals.
  */
 export function TextReveal({
   children,
@@ -40,7 +40,7 @@ export function TextReveal({
   stagger = 0.045,
   delay = 0,
 }: {
-  /** Plain string only — the splitter owns the markup inside. */
+  /** Plain string only - the splitter owns the markup inside. */
   children: string;
   as?: "h1" | "h2" | "h3" | "p" | "span";
   className?: string;
@@ -211,7 +211,7 @@ export function Marquee({
   ariaLabel,
 }: {
   children: React.ReactNode;
-  /** Seconds per full loop — bigger is calmer. */
+  /** Seconds per full loop - bigger is calmer. */
   seconds?: number;
   reverse?: boolean;
   pauseOnHover?: boolean;
@@ -252,7 +252,7 @@ export function Marquee({
 /* ------------------------------------------------------------------ */
 
 /**
- * Magnetic pull toward the pointer for primary CTAs. Subtle by design —
+ * Magnetic pull toward the pointer for primary CTAs. Subtle by design -
  * strength is the max pixel offset. No-op under reduced motion and on
  * touch devices.
  */

@@ -7,13 +7,13 @@ import { SectionCta } from "@/components/marketing/system";
 import { CardGrid, Section } from "@/components/site/sections";
 
 const DESCRIPTION =
-  "Docs, guides, and references for marketer.sh: the quickstart, the API, SDK, CLI and MCP surfaces, launch guides, the changelog, and answers to common questions.";
+  "Guides, docs, the API, and answers for marketer.sh. Start with the quickstart, then pick the job you want.";
 
 export const metadata: Metadata = {
-  title: "Resources — marketer.sh",
+  title: "Resources · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Resources — marketer.sh",
+    title: "Resources · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },

@@ -90,6 +90,28 @@ def test_me_returns_200_with_user_id(monkeypatch):
     assert data["email"] == "t@t.com"
 
 
+def test_me_reports_email_unconfigured_when_resend_key_missing(monkeypatch):
+    from marketer.config import settings
+
+    _reset_limiter()
+    monkeypatch.setattr(settings, "resend_api_key", "")
+    client = _make_authed_client(monkeypatch)
+    resp = client.get("/api/v1/users/me", headers={"Authorization": "Bearer mkt_testtoken"})
+    assert resp.status_code == 200
+    assert resp.json()["email_configured"] is False
+
+
+def test_me_reports_email_configured_when_resend_key_set(monkeypatch):
+    from marketer.config import settings
+
+    _reset_limiter()
+    monkeypatch.setattr(settings, "resend_api_key", "re_test")
+    client = _make_authed_client(monkeypatch)
+    resp = client.get("/api/v1/users/me", headers={"Authorization": "Bearer mkt_testtoken"})
+    assert resp.status_code == 200
+    assert resp.json()["email_configured"] is True
+
+
 def test_me_without_auth_returns_401(monkeypatch):
     """No auth header → 401."""
     _reset_limiter()

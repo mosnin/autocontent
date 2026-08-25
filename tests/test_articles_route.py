@@ -155,6 +155,34 @@ def test_enqueue_article_202_and_spawns_with_article_id(monkeypatch):
     assert spawned == [(_USER_ID, str(_NICHE_ID), str(_ARTICLE_ID), "test topic")]
 
 
+def test_enqueue_article_refuses_when_unbilled_usage_disabled(monkeypatch):
+    """billing off + ALLOW_UNBILLED_USAGE=false must 402 before a row exists."""
+    _reset_limiter()
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    import marketer.repos.articles as articles_repo
+
+    created: list[dict] = []
+
+    async def _create(*, user_id, niche_id, topic=""):
+        created.append({"user_id": user_id, "niche_id": niche_id, "topic": topic})
+        return _make_article()
+
+    monkeypatch.setattr(articles_repo, "create", _create)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/articles",
+        json={"niche_id": str(_NICHE_ID), "topic": "should not run"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402
+    assert "unbilled" in resp.json()["detail"]
+    assert created == []
+
+
 def test_enqueue_article_404_on_foreign_niche(monkeypatch):
     _reset_limiter()
     import marketer.repos.niches as niches_repo

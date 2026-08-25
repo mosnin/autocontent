@@ -2,7 +2,7 @@
 // keys are plain backend paths (clientFetch prefixes /api/proxy); mutations
 // POST through the proxy so the Clerk JWT is attached server-side. Step image
 // URLs are already proxy-prefixed because an <img src> can't carry a bearer
-// token. No server-only imports — this runs in the browser.
+// token. No server-only imports - this runs in the browser.
 
 import { clientFetch } from "@/lib/client-fetcher";
 
@@ -127,7 +127,7 @@ export function planSteps(project: DesignProject): DesignStep[] {
   return project.plan?.steps ?? [];
 }
 
-/** Completed steps over total — the plan's own progress, not the row's. */
+/** Completed steps over total - the plan's own progress, not the row's. */
 export function planProgress(project: DesignProject): { done: number; total: number } {
   const steps = planSteps(project);
   return { done: steps.filter((s) => s.status === "done").length, total: steps.length };
@@ -140,7 +140,7 @@ export function hasStepOutput(step: DesignStep): boolean {
 /** Group steps into dependency layers, mirroring the executor's own Kahn
  *  pass: layer 0 depends on nothing, every step in layer N depends only on
  *  earlier layers. The executor runs a layer concurrently, so this is the
- *  shape the plan actually executes in — worth drawing rather than a flat
+ *  shape the plan actually executes in - worth drawing rather than a flat
  *  list. A malformed graph (the backend rejects cycles before any spend)
  *  degrades to trailing leftovers instead of looping. */
 export function planLayers(steps: DesignStep[]): DesignStep[][] {
@@ -217,7 +217,7 @@ export function createDesignProject(body: {
   });
 }
 
-/** Resume a failed project — completed steps keep their outputs. */
+/** Resume a failed project - completed steps keep their outputs. */
 export function retryDesignProject(id: string): Promise<{ status: string }> {
   return proxy("POST", `${DESIGN}/projects/${id}/retry`);
 }

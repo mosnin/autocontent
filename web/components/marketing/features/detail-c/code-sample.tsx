@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
  * `sections.css` already ships `os-codeblock`, `os-codeblock__bar`,
  * `os-codeblock__dot`, `os-pre` and the `os-tok-*` colour tokens, but
  * nothing rendered them. The automation page is the surface that needs
- * them — an API, an SDK, a CLI and an MCP server are best shown by
- * showing the call — so the markup lives here rather than being inlined
+ * them - an API, an SDK, a CLI and an MCP server are best shown by
+ * showing the call - so the markup lives here rather than being inlined
  * into a page.
  *
  * Colouring is intentionally shallow: comment lines, shell prompts and

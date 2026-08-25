@@ -25,10 +25,10 @@ export default async function AdminOverviewPage() {
   const failRate =
     o.jobs_24h > 0 ? Math.round((o.failed_jobs_24h / o.jobs_24h) * 100) : 0;
 
-  // AdminKpiCard rows ported onto the template's SquareStatsCards — real
+  // AdminKpiCard rows ported onto the template's SquareStatsCards - real
   // values in, no invented percentages. Jobs/24h and Suspended carry a
   // real derivable delta (failure rate, admin share); everything else
-  // has no natural "trend" so it renders "—".
+  // has no natural "trend" so it renders "-".
   const stats: SquareStat[] = [
     {
       key: "users",
@@ -152,8 +152,8 @@ export default async function AdminOverviewPage() {
           <div>
             <div className="text-sm font-medium">Audit trail</div>
             <p className="text-sm text-muted-foreground">
-              Every privileged action — suspensions, role changes, credit
-              grants — is written to an append-only log for SOC 2 evidence.
+              Every privileged action - suspensions, role changes, credit
+              grants - is written to an append-only log for SOC 2 evidence.
             </p>
           </div>
           <Link

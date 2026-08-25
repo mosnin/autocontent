@@ -1,13 +1,13 @@
 "use client";
 
 // Compose or edit one scheduled post. The same form serves both because the
-// PATCH body is a strict subset of the POST body — a separate edit form would
+// PATCH body is a strict subset of the POST body - a separate edit form would
 // be two places to keep the variant rules correct.
 //
 // Time handling: `scheduled_at` is UTC on the wire, but a human authors "09:00
 // on the 9th" in a named zone. The <input type="datetime-local"> is therefore
 // read as wall-clock time *in the selected IANA zone* and converted with
-// Intl (see lib/scheduled-client.ts) — never with the browser's own offset,
+// Intl (see lib/scheduled-client.ts) - never with the browser's own offset,
 // which would silently shift a post authored for another region.
 
 import * as React from "react";
@@ -63,7 +63,7 @@ export function PostComposer({
   const [when, setWhen] = React.useState(() =>
     post
       ? utcIsoToWallClock(post.scheduled_at, post.timezone)
-      : // No post in this branch, so there is no stored zone to prefer —
+      : // No post in this branch, so there is no stored zone to prefer -
         // a new post is always composed in the composer's own timezone.
         defaultWhen(browserTimezone()),
   );
@@ -116,7 +116,7 @@ export function PostComposer({
     if (content.trim() || mediaUrls.length > 0) return null;
     for (const p of platforms) {
       if (!(overrides[p] ?? "").trim())
-        return `Add copy or media — ${platformLabel(p)} has nothing to post.`;
+        return `Add copy or media - ${platformLabel(p)} has nothing to post.`;
     }
     return null;
   }
@@ -199,7 +199,7 @@ export function PostComposer({
         />
         <p className="text-xs text-muted-foreground">
           {mediaUrls.length}/{MAX_MEDIA_PER_POST} media attached. Must be public
-          http(s) URLs — the platforms fetch them at publish time.
+          http(s) URLs - the platforms fetch them at publish time.
         </p>
       </div>
 
@@ -233,7 +233,7 @@ export function PostComposer({
           <p className="text-sm font-medium">Per-platform copy</p>
           <p className="text-xs text-muted-foreground">
             Leave a platform alone and it posts the default copy above. Override it
-            and only that platform changes — each one is dispatched separately, so
+            and only that platform changes - each one is dispatched separately, so
             they succeed and fail independently.
           </p>
           <div className="space-y-3">

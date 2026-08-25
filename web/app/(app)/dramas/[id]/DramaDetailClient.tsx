@@ -4,8 +4,8 @@
 // produces: the screenplay, the LOCKED CAST, and the shot list.
 //
 // The cast is deliberately first-class. A drama's continuity anchor is a
-// per-drama cast — each character's reference portrait is generated once and
-// then reused as the image reference for every shot they appear in — so the
+// per-drama cast - each character's reference portrait is generated once and
+// then reused as the image reference for every shot they appear in - so the
 // page shows the portrait large in the cast strip AND repeats it as a small
 // chip on every shot that character appears in. That repetition is the
 // feature made visible: the same face, shot after shot.
@@ -76,7 +76,7 @@ function Portrait({
           box,
           "flex shrink-0 items-center justify-center rounded-full border border-dashed border-border bg-muted text-[10px] font-medium text-muted-foreground",
         )}
-        title={`${member.name} — portrait not locked yet`}
+        title={`${member.name} - portrait not locked yet`}
       >
         {member.name.slice(0, 2).toUpperCase()}
       </span>
@@ -124,7 +124,7 @@ export function DramaDetailClient({
     setBusy(true);
     try {
       await retryDrama(id);
-      toast.success("Resuming — the screenplay and locked portraits are kept");
+      toast.success("Resuming - the screenplay and locked portraits are kept");
       void mutate();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Retry failed");
@@ -166,7 +166,7 @@ export function DramaDetailClient({
         </div>
       </div>
 
-      {/* Pipeline rail — where the run is, and what it has already paid for. */}
+      {/* Pipeline rail - where the run is, and what it has already paid for. */}
       <Card>
         <CardContent className="py-4">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
@@ -211,7 +211,7 @@ export function DramaDetailClient({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* ------------------------------------------------- the film */}
         <div className="space-y-6 lg:col-span-2">
-          {/* Cast — the consistency anchor, first-class. */}
+          {/* Cast - the consistency anchor, first-class. */}
           <section className="space-y-3">
             <div className="flex items-baseline justify-between gap-3">
               <h2 className="text-sm font-medium">
@@ -404,7 +404,7 @@ function ShotCard({
             {String(shot.index + 1).padStart(2, "0")}
           </span>
           <span className="min-w-0 flex-1 truncate font-mono text-xs font-medium uppercase">
-            {shot.slugline || "—"}
+            {shot.slugline || "-"}
           </span>
           <span className="font-mono text-[11px] text-muted-foreground">
             {shot.duration_sec.toFixed(1)}s
@@ -455,13 +455,13 @@ function ShotCard({
             className="font-mono text-[10px]"
             variant={shot.has_keyframe ? "secondary" : "outline"}
           >
-            keyframe {shot.has_keyframe ? "✓" : "—"}
+            keyframe {shot.has_keyframe ? "✓" : "-"}
           </Badge>
           <Badge
             className="font-mono text-[10px]"
             variant={shot.has_clip ? "secondary" : "outline"}
           >
-            clip {shot.has_clip ? "✓" : "—"}
+            clip {shot.has_clip ? "✓" : "-"}
           </Badge>
         </div>
       </CardContent>

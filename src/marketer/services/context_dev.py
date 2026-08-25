@@ -59,6 +59,9 @@ def _require_key() -> str:
 
 async def _post(path: str, payload: dict[str, Any], *, timeout: float | None = None) -> dict:
     """POST one Context.dev operation and return its decoded JSON body."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     key = _require_key()
     url = f"{settings.context_dev_base_url.rstrip('/')}/{path.lstrip('/')}"
     try:

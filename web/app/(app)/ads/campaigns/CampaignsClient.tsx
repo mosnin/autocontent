@@ -1,7 +1,7 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table, ported to the
-// ads campaigns list — same TanStack table anatomy (toolbar with search +
+// ads campaigns list - same TanStack table anatomy (toolbar with search +
 // filter dropdown + primary action, sortable headers, row-selection
 // checkbox column, template badge palette, full pagination footer) as
 // components/square/campaigns-table.tsx / the queue's QueueClient.
@@ -9,12 +9,12 @@
 //   - the `campaigns` prop is the real AdCampaign type (SWR-polled, same as
 //     before); columns map to real fields: name, status, objective, daily
 //     budget, and the ad account it runs on (resolved from the accounts
-//     list the page already fetches — real label or "—", never invented);
+//     list the page already fetches - real label or "-", never invented);
 //   - statuses are ours (draft/pending/active/paused/ended/failed) on the
 //     template's badge palette, extended with two extra tones (blue,
 ///    rose) the same way QueueClient did for its own extra states;
 //   - the template's zustand store becomes local state (same behavior);
-//   - the template's mock avatar + "Sort" platform dropdown are dropped —
+//   - the template's mock avatar + "Sort" platform dropdown are dropped -
 //     no image asset or platform field exists on a campaign;
 //   - campaign names link to the real campaign detail page and the
 //     New-campaign button links to the existing /ads/campaigns/new route;
@@ -91,11 +91,13 @@ const STATUSES: Status[] = [
 const STATUS_LABEL: Record<Status, string> = {
   draft: "Draft",
   pending: "Pending",
-  active: "Active",
+  active: "Marked active",
   paused: "Paused",
   ended: "Ended",
   failed: "Failed",
 };
+
+const PLATFORM_LIVE_LABEL = "Live on platform";
 
 // Template palette (border-neutral / emerald / amber / pink), extended with
 // blue + rose the same way QueueClient extended it for job states.
@@ -113,8 +115,20 @@ const STATUS_TONE: Record<Status, string> = {
     "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400 border-rose-200 dark:border-rose-900",
 };
 
-export function AdStatusBadge({ status }: { status: string }) {
+export function AdStatusBadge({
+  status,
+  externalCampaignId,
+}: {
+  status: string;
+  externalCampaignId?: string;
+}) {
   const s = (STATUSES as string[]).includes(status) ? (status as Status) : null;
+  const label =
+    s === "active" && (externalCampaignId || "").trim()
+      ? PLATFORM_LIVE_LABEL
+      : s
+        ? STATUS_LABEL[s]
+        : status;
   return (
     <Badge
       variant="outline"
@@ -123,7 +137,7 @@ export function AdStatusBadge({ status }: { status: string }) {
         s ? STATUS_TONE[s] : "border text-muted-foreground bg-transparent",
       )}
     >
-      {s ? STATUS_LABEL[s] : status}
+      {label}
     </Badge>
   );
 }
@@ -146,7 +160,7 @@ export function CampaignsClient({
   hasAccounts,
 }: {
   initial: AdCampaign[];
-  /** Real accounts list — used only to resolve a real account label per row. */
+  /** Real accounts list - used only to resolve a real account label per row. */
   accounts: AdAccount[];
   hasAccounts: boolean;
 }) {
@@ -218,7 +232,12 @@ export function CampaignsClient({
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />
         ),
-        cell: ({ row }) => <AdStatusBadge status={row.original.status} />,
+        cell: ({ row }) => (
+          <AdStatusBadge
+            status={row.original.status}
+            externalCampaignId={row.original.external_campaign_id}
+          />
+        ),
       },
       {
         id: "account",
@@ -231,7 +250,7 @@ export function CampaignsClient({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground capitalize truncate max-w-[180px] inline-block align-middle">
-            {accountLabel[row.original.ad_account_id] ?? "—"}
+            {accountLabel[row.original.ad_account_id] ?? "-"}
           </span>
         ),
       },
@@ -247,7 +266,7 @@ export function CampaignsClient({
           <span className="text-sm text-muted-foreground font-mono tabular-nums">
             {row.original.daily_budget_usd
               ? formatUsd(row.original.daily_budget_usd)
-              : "—"}
+              : "-"}
           </span>
         ),
       },
@@ -261,7 +280,7 @@ export function CampaignsClient({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground capitalize max-w-[200px] truncate inline-block align-middle">
-            {row.original.objective || "—"}
+            {row.original.objective || "-"}
           </span>
         ),
       },
@@ -306,8 +325,8 @@ export function CampaignsClient({
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Campaigns</h1>
         <p className="text-sm text-muted-foreground">
-          Draft, launch, and scale campaigns. Budgets and activation pass the
-          spend guard before anything goes live.
+          Draft and mark campaigns active. Budgets and Mark active pass
+          the spend guard; live-on-platform requires an external campaign id.
         </p>
       </div>
 

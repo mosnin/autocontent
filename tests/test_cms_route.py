@@ -672,3 +672,27 @@ def test_bulk_topics_rejects_an_empty_list(client):
         headers=_AUTH,
     )
     assert resp.status_code == 422
+
+
+def test_bulk_topics_refuses_when_unbilled_usage_disabled(client, monkeypatch):
+    """Bulk generate must not spawn when billing is off and unbilled is refused."""
+    from marketer.config import settings
+    from marketer.repos import articles as articles_repo
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    created: list[str] = []
+
+    async def _create(*, user_id, niche_id, topic=""):
+        created.append(topic)
+        return types.SimpleNamespace(id=uuid4(), topic=topic)
+
+    monkeypatch.setattr(articles_repo, "create", _create)
+    resp = client.post(
+        "/api/v1/cms/bulk-topics",
+        json={"niche_id": str(_NICHE_ID), "topics": ["should not run"]},
+        headers=_AUTH,
+    )
+    assert resp.status_code == 402
+    assert created == []

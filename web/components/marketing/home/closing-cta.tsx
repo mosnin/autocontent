@@ -12,7 +12,7 @@ import { EASE, VIEWPORT } from "@/components/marketing/system/motion";
 const REDUCED = "(prefers-reduced-motion: reduce)";
 const FULL = "(prefers-reduced-motion: no-preference)";
 
-/** The gradient send-off panel — reference's full-bleed closer, in the
+/** The gradient send-off panel - reference's full-bleed closer, in the
  *  brand's warm amber→rose instead of purple. */
 export function ClosingCta() {
   const reduced = useReducedMotion();

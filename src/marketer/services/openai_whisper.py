@@ -49,6 +49,9 @@ def _audio_duration_seconds(path: Path) -> float:
     retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_api(audio_path: Path):
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     client = _get_client()
     with audio_path.open("rb") as fp:
         return await client.audio.transcriptions.create(
@@ -65,6 +68,9 @@ async def transcribe_word_level(
     spend: SpendContext | None = None,
 ) -> list[dict]:
     """Returns a list of {"word", "start", "end"} dicts."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(whisper_cost(_audio_duration_seconds(audio_path)))
     result = await _call_api(audio_path)

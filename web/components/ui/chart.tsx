@@ -1,6 +1,6 @@
 "use client";
 
-// shadcn chart wrapper — canonical implementation from
+// shadcn chart wrapper - canonical implementation from
 // https://ui.shadcn.com/docs/components/chart
 // Provides <ChartContainer>, <ChartTooltip>, <ChartTooltipContent>,
 // <ChartLegend>, <ChartLegendContent>.

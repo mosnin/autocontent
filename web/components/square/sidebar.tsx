@@ -1,10 +1,6 @@
 "use client";
 
-// Square UI "marketing-dashboard" template sidebar, ported faithfully.
-// Swaps per the port contract: mock nav -> real products/pages from
-// lib/products, workspace dropdown -> marketer.sh wordmark, promo card ->
-// Clerk account + credits, template mock-data imports removed.
-
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
@@ -31,9 +27,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/marketing/nav/logo";
 import { openCommandPalette } from "@/components/command-palette";
-import { PRODUCTS, productForPath, type ProductId } from "@/lib/products";
+import { visibleProducts, productForPath, type ProductId } from "@/lib/products";
+import { useAdsEnabled } from "@/lib/use-ads-enabled";
+import { cn } from "@/lib/utils";
 
 export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
   campaigns: Megaphone,
@@ -52,67 +50,57 @@ export function SquareSidebar({
   account,
   ...props
 }: React.ComponentProps<typeof Sidebar> & {
-  /** Account slot — defaults to Clerk's UserButton; previews pass a stub. */
   account?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const adsEnabled = useAdsEnabled();
+  const products = visibleProducts(adsEnabled);
   const active = productForPath(pathname);
   const activePages = active.groups
     .flatMap((g) => g.items)
     .filter((i) => !i.soon);
 
   return (
-    <Sidebar collapsible="offcanvas" className="!border-r-0" {...props}>
+    <Sidebar
+      className="border-border !border-r bg-background"
+      collapsible="offcanvas"
+      {...props}
+    >
       <SidebarHeader className="px-3 py-3">
-        <div className="flex items-center justify-between w-full">
-          <Link
-            href="/home"
-            className="flex items-center gap-2 outline-none w-full justify-start"
-          >
-            <svg
-              aria-hidden
-              className="size-5 shrink-0 text-foreground"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth="2.25"
-              viewBox="0 0 24 24"
-            >
-              <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-              <path d="M21 3v6h-6" />
-            </svg>
-            <span className="text-sm font-semibold tracking-tight">
-              marketer.sh
-            </span>
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="size-7 shrink-0"
+        <div className="flex w-full items-center justify-between">
+          <Logo href="/home" />
+          <button
             aria-label="Search"
+            className="border-border text-muted-foreground hover:bg-muted hover:text-foreground focus-ring inline-flex size-10 items-center justify-center rounded-full border transition-colors"
             onClick={openCommandPalette}
+            type="button"
           >
             <Search className="size-3.5" />
-          </Button>
+          </button>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-3">
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
-            <SidebarMenu>
-              {PRODUCTS.map((product) => {
+            <SidebarMenu className="gap-1">
+              {products.map((product) => {
                 const Icon = PRODUCT_ICONS[product.id];
+                const isActive = product.id === active.id;
                 return (
                   <SidebarMenuItem key={product.id}>
                     <SidebarMenuButton
                       asChild
-                      isActive={product.id === active.id}
-                      className="h-9"
+                      className={cn(
+                        "h-10 rounded-full px-3",
+                        isActive &&
+                          "bg-foreground text-background hover:bg-foreground hover:text-background",
+                      )}
+                      isActive={isActive}
                     >
                       <Link href={product.home}>
                         <Icon className="size-4 shrink-0" />
-                        <span className="text-sm">{product.label}</span>
+                        <span className="text-sm font-medium">{product.label}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -122,14 +110,12 @@ export function SquareSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="p-0 mt-2">
-          <div className="flex items-center justify-between px-2 py-1">
-            <SidebarGroupLabel className="px-0 text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              {active.label}
-            </SidebarGroupLabel>
-          </div>
+        <SidebarGroup className="mt-4 p-0">
+          <SidebarGroupLabel className="text-muted-foreground px-3 text-[11px] font-medium tracking-wider uppercase">
+            {active.label}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="gap-0.5">
               {activePages.map((item) => {
                 const current =
                   pathname === item.href ||
@@ -138,8 +124,11 @@ export function SquareSidebar({
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       asChild
+                      className={cn(
+                        "h-9 rounded-full px-3",
+                        current && "bg-muted text-foreground",
+                      )}
                       isActive={current}
-                      className="h-8"
                     >
                       <Link href={item.href}>
                         <span className="text-sm">{item.label}</span>
@@ -153,13 +142,13 @@ export function SquareSidebar({
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="px-2 pb-3">
+      <SidebarFooter className="px-3 pb-4">
         <SidebarMenu>
           {bottomNavItems.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild className="h-9">
+              <SidebarMenuButton asChild className="h-9 rounded-full px-3">
                 <Link href={item.href}>
-                  <item.icon className="size-4 shrink-0 text-muted-foreground" />
+                  <item.icon className="text-muted-foreground size-4 shrink-0" />
                   <span className="text-sm">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
@@ -167,11 +156,11 @@ export function SquareSidebar({
           ))}
         </SidebarMenu>
 
-        <div className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm w-full bg-background group-data-[collapsible=icon]:hidden">
+        <div className="border-border mt-2 flex w-full items-center justify-between gap-2 rounded-3xl border p-3 text-sm group-data-[collapsible=icon]:hidden">
           {account ?? <UserButton afterSignOutUrl="/" />}
           <Link
+            className="text-sm font-medium underline-offset-4 hover:underline"
             href="/settings/billing"
-            className="text-sm font-medium hover:underline"
           >
             Get more credits
           </Link>

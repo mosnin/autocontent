@@ -1,7 +1,7 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table, ported
-// verbatim — TanStack table wiring, sortable headers, row selection,
+// verbatim - TanStack table wiring, sortable headers, row selection,
 // toolbar (search + filter), and the full pagination footer. Adaptations
 // are real-data mapping only:
 //   - mock `campaigns` become the `campaigns` prop (our real Campaign
@@ -197,7 +197,7 @@ export function CampaignsTable({
           <span className="text-sm text-muted-foreground">
             {row.original.ends_at
               ? new Date(row.original.ends_at).toLocaleDateString()
-              : "—"}
+              : "-"}
           </span>
         ),
       },
@@ -210,7 +210,7 @@ export function CampaignsTable({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground max-w-[280px] truncate inline-block align-middle">
-            {row.original.objective || "—"}
+            {row.original.objective || "-"}
           </span>
         ),
       },

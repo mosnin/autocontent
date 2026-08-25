@@ -1,13 +1,13 @@
 "use client";
 
 // Square UI "marketing-dashboard" template monthly-views-chart, ported
-// verbatim — same recharts AreaChart config, gradient fill, tooltip, axis
+// verbatim - same recharts AreaChart config, gradient fill, tooltip, axis
 // treatment, card chrome, and the Time Period / Show Grid / Smooth Curve
 // dropdown. Changes are parameterization only:
 //   - the template's mock datasets (lastMonthData etc.) become the
 //     `periodData` prop so the page supplies real series;
 //   - title / series label / tooltip unit are props because our jobs carry
-//     no per-view metric — the page feeds videos-published counts and
+//     no per-view metric - the page feeds videos-published counts and
 //     titles the chart accordingly;
 //   - the y-axis rounding step scales with the data's magnitude (the
 //     template hardcodes 50 000 steps, which collapses for small real

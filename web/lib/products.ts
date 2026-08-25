@@ -1,10 +1,10 @@
 // The marketer.sh "suite" model: several distinct products (like the apps in
 // a Google Workspace) that share one shell but each own a focused dashboard
-// and sidebar. The sidebar renders ONLY the active product's nav — products
+// and sidebar. The sidebar renders ONLY the active product's nav - products
 // are never mashed together into one long list.
 //
 // Pure + client-safe: no server-only imports, no React hooks. Plain data
-// only — the switcher, product tabs, and /home hub all consume this one
+// only - the switcher, product tabs, and /home hub all consume this one
 // registry.
 
 export type ProductId = "studio" | "press" | "ads" | "campaigns" | "suite";
@@ -12,7 +12,7 @@ export type ProductId = "studio" | "press" | "ads" | "campaigns" | "suite";
 export interface NavItem {
   href: string;
   label: string;
-  /** Not yet built — rendered disabled with a "Soon" hint. */
+  /** Not yet built - rendered disabled with a "Soon" hint. */
   soon?: boolean;
 }
 
@@ -38,7 +38,7 @@ export interface Product {
 const STUDIO: Product = {
   id: "studio",
   label: "Content",
-  tagline: "Short-form video content — TikTok, Reels, Shorts",
+  tagline: "Short-form video content - TikTok, Reels, Shorts",
   home: "/dashboard",
   match: [
     "/dashboard", "/niches", "/queue", "/calendar", "/library", "/templates",
@@ -58,7 +58,7 @@ const STUDIO: Product = {
     },
     {
       // Format-first creation surfaces (each is one backend feature; a
-      // `soon` item has a live API but no page yet — flip it on when the
+      // `soon` item has a live API but no page yet - flip it on when the
       // page ships, never before).
       label: "Create",
       items: [
@@ -130,7 +130,7 @@ const ADS: Product = {
 const CAMPAIGNS: Product = {
   id: "campaigns",
   label: "Campaigns",
-  tagline: "Run content, SEO, and ads together on a budget",
+  tagline: "Run video, articles, and image posts on a budget",
   home: "/campaigns",
   match: ["/campaigns"],
   groups: [
@@ -175,6 +175,14 @@ const SUITE: Product = {
 /** Ordered for the launcher + switcher: Campaigns, Content, SEO, Ads,
  *  then Suite intentionally last. */
 export const PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS, SUITE];
+
+/** Paid Ads stay out of the switcher until the backend flag is on.
+ *  The governance UI still exists at /ads; we just do not sell it as a
+ *  live product while apply_fn is a no-op. */
+export function visibleProducts(adsEnabled: boolean): Product[] {
+  if (adsEnabled) return PRODUCTS;
+  return PRODUCTS.filter((p) => p.id !== "ads");
+}
 
 
 export function productById(id: ProductId): Product {

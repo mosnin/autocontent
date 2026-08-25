@@ -11,7 +11,7 @@ import { initTicker } from "./ticker";
  * Restores the motion the Framer runtime used to drive.
  *
  * The export's 306KB stylesheet contains ZERO @keyframes and ZERO
- * `animation:` declarations — every animation on that site was JavaScript.
+ * `animation:` declarations - every animation on that site was JavaScript.
  * Stripping the runtime therefore removed all of it, leaving only the 50
  * CSS `:hover` rules.
  *

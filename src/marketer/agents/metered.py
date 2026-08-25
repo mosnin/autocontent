@@ -36,6 +36,11 @@ async def run_metered(
     OpenRouter scriptwriter): cost_fn(input_tokens, output_tokens) prices
     the call with that provider's real rates instead of the OpenAI table.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    # spend=None is the leftover unmetered path. Still refuse on a hosted
+    # deploy that has already 402'd generate — do not burn operator keys.
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
 

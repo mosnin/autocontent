@@ -196,7 +196,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
             total_duration_sec=5,
         )
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", format_key="", spend=None):
         return _script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
@@ -262,7 +262,7 @@ async def test_lock_acquired_job_proceeds(stub_db, monkeypatch, tmp_path, passin
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)
 
     async def fake_schedule(*, video_path, caption, hashtags, platform,
-                            scheduled_for, profile_key, user_id):
+                            scheduled_for, profile_key, user_id, idempotency_key=None):
         return "post-skip-test"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule)
 

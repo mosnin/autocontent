@@ -7,12 +7,12 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 // The editorial triad, each face doing one job:
-//   Instrument Serif — the APP's display face (`font-editorial`). The
+//   Instrument Serif - the APP's display face (`font-editorial`). The
 //     identity carrier: a high-contrast serif against a grotesk UI is what
 //     separates this from the Geist-everywhere default every AI-built
 //     dashboard ships with. The marketing site keeps Geist for display.
-//   Geist            — UI text. Neutral on purpose; it should recede.
-//   Geist Mono       — data. Costs, durations, scores, model ids. Anything
+//   Geist            - UI text. Neutral on purpose; it should recede.
+//   Geist Mono       - data. Costs, durations, scores, model ids. Anything
 //     that must align in a column or be read as a quantity.
 // Display presence comes from the face plus scale, never from a gradient.
 const geistSans = Geist({

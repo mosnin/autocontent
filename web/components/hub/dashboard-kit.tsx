@@ -13,11 +13,11 @@ import { cn } from "@/lib/utils";
  * built from these pieces so the five dashboards read as one family.
  *
  * Page anatomy (top to bottom), mirroring the reference:
- *   <DashHeading>  — big sparkle greeting ("Bring any idea to life ✦")
- *   <BannerCard>×2 — huge feature banners: bold title + inline tagline +
+ *   <DashHeading>  - big sparkle greeting ("Bring any idea to life ✦")
+ *   <BannerCard>×2 - huge feature banners: bold title + inline tagline +
  *                    ↗ circle, media vignette filling the card body
- *   <DashHeading>  — second heading
- *   <MediaCard>×4  — tool cards: title + ↗, vignette media area
+ *   <DashHeading>  - second heading
+ *   <MediaCard>×4  - tool cards: title + ↗, vignette media area
  *   …then the product's functional content in <DashPanel> sections.
  */
 
@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 
 export type DashTone = "warm" | "sky" | "violet" | "slate" | "rose";
 
-/** Duotone gradients for the card media wells — saturated pastel. */
+/** Duotone gradients for the card media wells - saturated pastel. */
 const MEDIA_TONES: Record<DashTone, string> = {
   warm: "linear-gradient(135deg,#fff3e4,#ffe1d6 50%,#ffd9e4)",
   sky: "linear-gradient(135deg,#e3edfe,#dbe4fd 50%,#e6ddfc)",
@@ -101,7 +101,7 @@ function ArrowCircle({ size = "md" }: { size?: "md" | "lg" }) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Large feature banner — the reference's hero cards ("AI Toolkit",
+ * Large feature banner - the reference's hero cards ("AI Toolkit",
  * "Artlist Studio"): a huge bold title with the tagline beside it, an ↗
  * circle far right, and a tall media vignette filling the body.
  */
@@ -164,7 +164,7 @@ export function BannerCard({
 }
 
 /**
- * Tool/media card — the reference's second row ("AI Image", "AI Video"…):
+ * Tool/media card - the reference's second row ("AI Image", "AI Video"…):
  * title + ↗, then a media vignette.
  */
 export function MediaCard({

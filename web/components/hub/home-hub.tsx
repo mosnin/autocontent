@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 /**
  * The suite home: a working brief composer (creates a real campaign and
  * jumps into it), the live video library, and direct links into every
- * surface. Everything here is functional — navigation lives in the shell
+ * surface. Everything here is functional - navigation lives in the shell
  * sidebar and switcher.
  */
 export function HomeHub() {
@@ -46,7 +46,7 @@ export function HomeHub() {
       });
       if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
       const campaign = await res.json();
-      toast.success("Campaign created — add lanes and press start");
+      toast.success("Campaign created - add lanes and press start");
       router.push(`/campaigns/${campaign.id}`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -57,7 +57,7 @@ export function HomeHub() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-10">
-      {/* Brief composer — the "chat" surface of the suite. */}
+      {/* Brief composer - the "chat" surface of the suite. */}
       <section aria-label="New brief" className="space-y-4">
         <Rise>
           <HubHeading as="h1" className="text-2xl">
@@ -70,7 +70,7 @@ export function HomeHub() {
             pauseDuration={2200}
             text={[
               "Describe the push. It becomes a campaign.",
-              "Content, SEO, and ads, under one cap.",
+              "Content and SEO, under one cap.",
               "Your agents are on the clock.",
             ]}
             typingSpeed={40}
@@ -87,7 +87,7 @@ export function HomeHub() {
                   void createCampaign();
                 }
               }}
-              placeholder="Describe the campaign — audience, goal, angle. Example: Drive signups for the spring launch with daily shorts and two buying guides."
+              placeholder="Describe the campaign - audience, goal, angle. Example: Drive signups for the spring launch with daily shorts and two buying guides."
               value={brief}
             />
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-border/60 pt-3">
@@ -118,7 +118,6 @@ export function HomeHub() {
           {[
             { label: "Queue a short", href: "/queue" },
             { label: "Draft an article", href: "/articles?new=1" },
-            { label: "Review ad approvals", href: "/ads/approvals" },
             { label: "Connect socials", href: "/connect" },
             { label: "Top up credits", href: "/settings/billing" },
           ].map((a) => (
@@ -133,7 +132,7 @@ export function HomeHub() {
         </Rise>
       </section>
 
-      {/* Library — real rendered videos, straight from the API. The
+      {/* Library - real rendered videos, straight from the API. The
           component owns its own heading and links. */}
       <Rise delay={0.1}>
         <LatestVideos />

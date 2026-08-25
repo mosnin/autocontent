@@ -21,8 +21,8 @@ import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 // The voice-preview control is a tightly-embedded form-step control that
-// relies on the app Button's `size="icon-md"` — a size square/ui's Button
-// doesn't expose — so it stays on the app primitive (not a drop-in swap).
+// relies on the app Button's `size="icon-md"` - a size square/ui's Button
+// doesn't expose - so it stays on the app primitive (not a drop-in swap).
 import { Button as FormButton } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -79,7 +79,7 @@ function StepKicker({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Selectable tile — used for segmented radios and platform checkboxes.
+// Selectable tile - used for segmented radios and platform checkboxes.
 // Monochrome at rest, brand ring + tint when chosen. `as` lets a label
 // wrap native radio/checkbox controls without extra markup.
 const tileBase =
@@ -243,12 +243,12 @@ export function OnboardingForm({
     if (values.approve_before_post) fd.set("approve_before_post", "on");
 
     const res = await createNicheAction({ ok: false }, fd);
-    // createNicheAction redirects on success — we only reach here on
+    // createNicheAction redirects on success - we only reach here on
     // failure (when ok=false with an error message).
     setSubmitting(false);
     if (res.ok) {
       toast.success("Niche created");
-      router.push("/dashboard");
+      router.push("/onboarding/next");
     } else if (res.error) {
       toast.error(res.error);
     }
@@ -355,7 +355,7 @@ function StepIdentity() {
               <Input placeholder="Claymation econ teacher" {...field} />
             </FormControl>
             <FormDescription>
-              Short, human name for this niche — shown across your dashboard.
+              Short, human name for this niche - shown across your dashboard.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -392,7 +392,7 @@ function StepIdentity() {
               />
             </FormControl>
             <FormDescription>
-              Who each video should speak to — tone follows the audience.
+              Who each video should speak to - tone follows the audience.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -564,7 +564,7 @@ function StepCreative() {
                 <VoicePreviewButton voice={field.value} />
               </div>
               <FormDescription>
-                Hit play — never pick a voice blind.
+                Hit play - never pick a voice blind.
               </FormDescription>
               <FormMessage />
             </FormItem>

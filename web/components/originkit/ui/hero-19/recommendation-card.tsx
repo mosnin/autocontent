@@ -7,7 +7,7 @@ function asset(file: string) {
 }
 
 /**
- * Recommendation card — Figma "Feature" (2280:6094). Desktop only; the mobile
+ * Recommendation card - Figma "Feature" (2280:6094). Desktop only; the mobile
  * and iPad frames have no equivalent.
  *
  * Frame places it at (1109, 532) at 238 x 219.

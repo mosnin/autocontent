@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function BillingPage() {
   // Best-effort: a backend 5xx must not throw the whole route to the error
-  // boundary — render an in-page fallback instead.
+  // boundary - render an in-page fallback instead.
   let balance: BillingBalance | null = null;
   try {
     balance = await api<BillingBalance>("/api/v1/billing/balance");
@@ -28,7 +28,7 @@ export default async function BillingPage() {
           <p className="mt-1.5 text-sm text-muted-foreground">
             Videos draw down prepaid credit at provider cost plus a{" "}
             {Math.round((balance.margin - 1) * 100)}% infrastructure margin.
-            The spend guard refuses any call your balance can&apos;t cover —
+            The spend guard refuses any call your balance can&apos;t cover -
             you can never owe us money.
           </p>
         ) : (
@@ -49,7 +49,7 @@ export default async function BillingPage() {
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               We hit a problem reaching the billing service. Your credit is
-              safe — refresh in a moment to try again.
+              safe - refresh in a moment to try again.
             </p>
           </CardContent>
         </Card>

@@ -6,9 +6,28 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+
+function isSafeProxyPath(path: string[]): boolean {
+  if (path.length === 0) return false;
+  return path.every((seg) => {
+    if (!seg || seg === "." || seg === "..") return false;
+    if (seg.includes("://") || seg.includes("\\") || seg.includes("/")) return false;
+    return true;
+  });
+}
 
 async function forward(req: NextRequest, path: string[]): Promise<NextResponse> {
+  if (!BASE) {
+    return NextResponse.json(
+      { detail: "API base URL is not configured" },
+      { status: 503 },
+    );
+  }
+  if (!isSafeProxyPath(path)) {
+    return NextResponse.json({ detail: "invalid proxy path" }, { status: 400 });
+  }
+
   const { getToken } = await auth();
   const token = await getToken();
   const search = req.nextUrl.search;
@@ -17,7 +36,7 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
   const headers: Record<string, string> = {};
   const ct = req.headers.get("content-type");
   if (ct) headers["content-type"] = ct;
-  // Forward Range so FastAPI FileResponse can serve 206 partial content —
+  // Forward Range so FastAPI FileResponse can serve 206 partial content -
   // Safari refuses to play <video> sources that ignore Range.
   const range = req.headers.get("range");
   if (range) headers["range"] = range;
@@ -40,7 +59,7 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
 
   const upstream = await fetch(url, init);
 
-  // Stream the upstream body straight through — never `.text()` because
+  // Stream the upstream body straight through - never `.text()` because
   // it would corrupt binary responses (mp4, png, etc).
   const respHeaders = new Headers();
   for (const [k, v] of upstream.headers.entries()) {

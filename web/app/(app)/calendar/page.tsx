@@ -14,7 +14,7 @@ export default async function Calendar() {
     api<CalendarItem[]>(calendarKey(DEFAULT_CALENDAR_RANGE)),
     api<Niche[]>("/api/v1/niches"),
   ]);
-  // Real niche_id -> title lookup for the table's "Niche" column —
+  // Real niche_id -> title lookup for the table's "Niche" column -
   // calendar items only carry niche_id, so we resolve titles once
   // server-side (same technique as queue/page.tsx).
   const nicheTitles = Object.fromEntries(niches.map((n) => [n.id, n.title]));

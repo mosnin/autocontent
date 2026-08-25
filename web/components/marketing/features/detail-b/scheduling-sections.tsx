@@ -25,7 +25,7 @@ export function WindowsBand() {
   return (
     <Band
       bullets={[
-        "A window is an hour, a minute, and a named timezone — not an offset.",
+        "A window is an hour, a minute, and a named timezone - not an offset.",
         "The scheduler polls every 30 minutes and spawns the runs whose window is about to open.",
         "A niche that already has a live run is skipped, so a delayed tick can't double-enqueue it.",
       ]}
@@ -33,11 +33,11 @@ export function WindowsBand() {
       heading="Say when. It produces to meet the slot."
       highlight="to meet the slot."
       label="Posting windows"
-      lede="Each niche carries its own posting window and its own platforms. When the slot is close, the pipeline starts a run for it — nobody has to be at the keyboard, and nothing sits waiting on a person."
+      lede="Each niche carries its own posting window and its own platforms. When the slot is close, the pipeline starts a run for it - nobody has to be at the keyboard, and nothing sits waiting on a person."
       media={
         <MediaCard
           kind="illustration"
-          label="Posting windows — per-niche slots across a week"
+          label="Posting windows - per-niche slots across a week"
         />
       }
     >
@@ -58,7 +58,7 @@ export function CalendarBand() {
   return (
     <Band
       bullets={[
-        "Videos, articles, and ads in one list — the three things that actually go out.",
+        "Videos, articles, and ads in one list - the three things that actually go out.",
         "Look ahead 7, 30, or 90 days. Search, sort, and filter the agenda.",
         "Every row links to the thing itself: the job, the article, the ad campaign.",
       ]}
@@ -71,7 +71,7 @@ export function CalendarBand() {
       media={
         <MediaCard
           kind="image"
-          label="Calendar agenda — upcoming videos, articles, and ads"
+          label="Calendar agenda - upcoming videos, articles, and ads"
         />
       }
     />
@@ -86,23 +86,23 @@ const COMPOSER = [
   {
     title: "Eleven destinations",
     description:
-      "Bluesky, Facebook, Instagram, LinkedIn, Pinterest, Reddit, Telegram, Threads, TikTok, X, and YouTube — pick any set for one post.",
+      "Bluesky, Facebook, Instagram, LinkedIn, Pinterest, Reddit, Telegram, Threads, TikTok, X, and YouTube - pick any set for one post.",
     scene: "sky" as const,
-    label: "Post composer — platform picker",
+    label: "Post composer - platform picker",
   },
   {
     title: "Per-platform copy",
     description:
       "One post, one schedule, and an optional override of the text for any platform that needs its own voice. Up to 5,000 characters and 10 media URLs.",
     scene: "pearl" as const,
-    label: "Post composer — per-platform variant override",
+    label: "Post composer - per-platform variant override",
   },
   {
     title: "Weekly slots",
     description:
       "Recurring templates like Monday 09:00 in a named zone. Stored as local wall-clock time, so 09:00 stays 09:00 through a daylight-saving change.",
     scene: "mist" as const,
-    label: "Recurring slots — weekly posting templates",
+    label: "Recurring slots - weekly posting templates",
   },
 ];
 
@@ -128,7 +128,7 @@ export function ComposerSection() {
       </CardGrid>
       <div className="os-callout">
         <Body bright>
-          Have a backlog? Bulk import from CSV. The import is all or nothing —
+          Have a backlog? Bulk import from CSV. The import is all or nothing -
           one bad row creates nothing, and the response names the row and the
           reason, so you fix line 7 and upload again instead of hunting for
           duplicates.
@@ -169,7 +169,7 @@ export function ExactlyOnceSection() {
         />
         <MediaCard
           kind="illustration"
-          label="Dispatch guards — claim, claim, key"
+          label="Dispatch guards - claim, claim, key"
         />
       </div>
       <ol className="os-steps os-mt-48">

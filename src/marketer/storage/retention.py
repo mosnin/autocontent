@@ -61,3 +61,41 @@ def gc_artifacts(*, max_age_days: int = 30, root: Path | None = None) -> GCResul
                 bytes_freed += size
 
     return GCResult(scanned=scanned, removed=removed, bytes_freed=bytes_freed)
+
+
+async def gc_media_library(*, max_age_days: int = 30) -> GCResult:
+    """Delete aged media_assets rows and their Wasabi objects.
+
+    Volume-only rows are left to ``gc_artifacts`` (directory mtime).
+    Missing Wasabi objects still drop the index row so the library does
+    not keep ghosts.
+    """
+    from ..db import get_pool
+    from ..services import object_storage
+
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """
+        select id, storage, object_key, size_bytes
+          from media_assets
+         where created_at < now() - make_interval(days => $1)
+        """,
+        max_age_days,
+    )
+    scanned = removed = bytes_freed = 0
+    for row in rows:
+        scanned += 1
+        if row["storage"] == "wasabi" and object_storage.enabled():
+            try:
+                await object_storage.delete_object(row["object_key"])
+            except Exception as exc:  # noqa: BLE001 — still drop the index row
+                from ..logging import get_logger
+
+                get_logger(__name__).warning(
+                    "wasabi delete failed during media GC",
+                    extra={"key": row["object_key"], "error": str(exc)},
+                )
+        await pool.execute("delete from media_assets where id = $1", row["id"])
+        removed += 1
+        bytes_freed += int(row["size_bytes"] or 0)
+    return GCResult(scanned=scanned, removed=removed, bytes_freed=bytes_freed)

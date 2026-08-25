@@ -45,7 +45,7 @@ const BANDS: Band[] = [
         <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
           <TaggedPlaceholder
             kind="image"
-            label="Publish queue — render, schedule, publish status"
+            label="Publish queue - render, schedule, publish status"
             tone="sky"
           />
         </div>
@@ -70,7 +70,7 @@ const BANDS: Band[] = [
         <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
           <TaggedPlaceholder
             kind="image"
-            label="Article SEO card — metadata and schema"
+            label="Article SEO card - metadata and schema"
             tone="warm"
           />
         </div>
@@ -96,7 +96,7 @@ const BANDS: Band[] = [
         <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
           <TaggedPlaceholder
             kind="image"
-            label="Agent chat — MCP tool call to shipped video"
+            label="Agent chat - MCP tool call to shipped video"
             tone="slate"
           />
         </div>
@@ -121,7 +121,7 @@ const BANDS: Band[] = [
         <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
           <TaggedPlaceholder
             kind="image"
-            label="Analytics dashboard — performance metrics and spend cap gauge"
+            label="Analytics dashboard - performance metrics and spend cap gauge"
             tone="rose"
           />
         </div>

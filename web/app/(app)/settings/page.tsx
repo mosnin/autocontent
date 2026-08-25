@@ -12,13 +12,18 @@ export default async function SettingsPage() {
   try {
     user = await api<User>("/api/v1/users/me");
   } catch {
-    // ignore — form renders with empty default
+    // ignore - form renders with empty default
   }
 
   return (
     <SettingsShell
       initialCap={user?.global_daily_cap_usd ?? null}
-      initialNotifications={user?.email_notifications ?? true}
+      initialNotifications={
+        user?.email_configured === true
+          ? (user?.email_notifications ?? true)
+          : false
+      }
+      emailConfigured={user?.email_configured === true}
     />
   );
 }

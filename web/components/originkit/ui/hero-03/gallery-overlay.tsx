@@ -8,7 +8,7 @@ import { motion, useReducedMotion } from "motion/react";
 import GalleryTunnel from "@/components/originkit/ui/hero-03/gallery-tunnel";
 import { useTunnelConfig } from "@/components/originkit/ui/hero-03/use-tunnel-size";
 
-/** Public asset URLs — use a function so preview rewriters stay stable. */
+/** Public asset URLs - use a function so preview rewriters stay stable. */
 function asset(file: string) {
   return `/originkit/hero-03/${file}`;
 }

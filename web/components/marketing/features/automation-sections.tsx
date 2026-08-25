@@ -45,7 +45,7 @@ export function SurfaceCards() {
           <div className="aspect-[4/3] overflow-hidden rounded-[1.75rem]">
             <TaggedPlaceholder
               kind="illustration"
-              label="Surface map — API, SDK, CLI, MCP"
+              label="Surface map - API, SDK, CLI, MCP"
               tone="warm"
             />
           </div>
@@ -61,7 +61,7 @@ export function SurfaceCards() {
           vignette={
             <TaggedPlaceholder
               kind="image"
-              label="REST call — enqueue endpoint request and response"
+              label="REST call - enqueue endpoint request and response"
               tone="sky"
             />
           }
@@ -75,7 +75,7 @@ export function SurfaceCards() {
           vignette={
             <TaggedPlaceholder
               kind="image"
-              label="Python SDK snippet — enqueue a video"
+              label="Python SDK snippet - enqueue a video"
               tone="slate"
             />
           }
@@ -89,7 +89,7 @@ export function SurfaceCards() {
           vignette={
             <TaggedPlaceholder
               kind="image"
-              label="CLI session — marketer command output"
+              label="CLI session - marketer command output"
               tone="violet"
             />
           }
@@ -103,7 +103,7 @@ export function SurfaceCards() {
           vignette={
             <TaggedPlaceholder
               kind="image"
-              label="MCP tool call — cost-aware tool description"
+              label="MCP tool call - cost-aware tool description"
               tone="rose"
             />
           }
@@ -160,7 +160,7 @@ export function WindowsBand() {
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                   <TaggedPlaceholder
                     kind="illustration"
-                    label="Posting schedule — per-niche windows"
+                    label="Posting schedule - per-niche windows"
                     tone="violet"
                   />
                 </div>
@@ -186,7 +186,7 @@ export function ReliabilityBand() {
             <div className="aspect-[4/3] w-full max-w-sm overflow-hidden rounded-2xl">
               <TaggedPlaceholder
                 kind="image"
-                label="Queue health panel — retries and reaping status"
+                label="Queue health panel - retries and reaping status"
                 tone="slate"
               />
             </div>

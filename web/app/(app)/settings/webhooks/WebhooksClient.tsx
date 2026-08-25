@@ -7,7 +7,7 @@ import { Trash2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-// `isLoading` (the inline spinner) is an app-Button-only feature — Spinner
+// `isLoading` (the inline spinner) is an app-Button-only feature - Spinner
 // has no square/ui counterpart (established precedent: dialog/label/
 // textarea/select-in-forms/tabs/spinner/switch stay on app primitives).
 // Call sites that rely on isLoading keep the app Button under this alias;
@@ -113,7 +113,7 @@ function SigningHelp() {
             X-Marketer-Signature
           </code>{" "}
           header. Recompute the HMAC over the raw request body and compare in
-          constant time — reject if it doesn&apos;t match or the timestamp is
+          constant time - reject if it doesn&apos;t match or the timestamp is
           stale.
         </p>
         <pre className="overflow-x-auto rounded-md border bg-background p-3 text-xs leading-relaxed">
@@ -142,7 +142,7 @@ function SecretReveal({
   return (
     <Card className="border-success/40 bg-success/5">
       <CardContent className="space-y-3 pt-6">
-        <div className="text-sm font-medium">Signing secret — shown once</div>
+        <div className="text-sm font-medium">Signing secret - shown once</div>
         <p className="text-xs text-muted-foreground">
           Endpoint{" "}
           <code className="rounded bg-muted px-1 py-0.5">{endpoint.url}</code>{" "}
@@ -420,7 +420,7 @@ function DeleteDialog({
             <code className="break-all rounded bg-muted px-1 py-0.5 text-xs">
               {target?.url}
             </code>
-            . This can&apos;t be undone — you&apos;ll need to re-add it (with a
+            . This can&apos;t be undone - you&apos;ll need to re-add it (with a
             new secret) to resume delivery.
           </DialogDescription>
         </DialogHeader>
@@ -469,11 +469,11 @@ function EndpointCard({
     try {
       const res = await testWebhook(endpoint.id);
       if (res.delivered && res.status_code != null) {
-        toast.success(`Test delivered — HTTP ${res.status_code}`);
+        toast.success(`Test delivered - HTTP ${res.status_code}`);
       } else if (res.status_code != null) {
-        toast.error(`Test failed — HTTP ${res.status_code}`);
+        toast.error(`Test failed - HTTP ${res.status_code}`);
       } else {
-        toast.error("Test failed — no response");
+        toast.error("Test failed - no response");
       }
       onTested();
     } catch (err) {
@@ -670,7 +670,7 @@ export function WebhooksClient({ initial }: { initial: WebhookEndpoint[] }) {
             <h3 className="text-lg font-semibold">No webhooks yet</h3>
             <p className="max-w-sm text-sm text-muted-foreground">
               Register an HTTPS endpoint to get signed, real-time events when
-              jobs and articles finish, fail, or need approval — so agents and
+              jobs and articles finish, fail, or need approval - so agents and
               automation can react without polling.
             </p>
             <Button onClick={() => setAddOpen(true)}>

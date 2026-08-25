@@ -11,13 +11,13 @@ import { SectionCta } from "@/components/marketing/system";
 import { MediaCard } from "@/components/site/sections";
 
 const DESCRIPTION =
-  "Final videos, every scene clip, every still, and every recut on four shelves you can filter by niche — plus a server-side stitch that turns old clips into new videos.";
+  "Final videos, every scene clip, every still, and every recut on four shelves you can filter by niche - plus a server-side stitch that turns old clips into new videos.";
 
 export const metadata: Metadata = {
-  title: "Media library — marketer.sh",
+  title: "Media library · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Media library — marketer.sh",
+    title: "Media library · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -31,12 +31,12 @@ export default function LibraryFeaturePage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Library grid — finals, clips, images, recuts"
+            label="Library grid - finals, clips, images, recuts"
             ratio="16/9"
           />
         }
         kicker="Media library"
-        lede="Every finished video, every scene it was cut from, every still, and every recut — in one grid, filtered by niche, playable without downloading anything."
+        lede="Every finished video, every scene it was cut from, every still, and every recut - in one grid, filtered by niche, playable without downloading anything."
         magneticPrimary
         titleText="Everything it made, still yours."
         variant="sky"

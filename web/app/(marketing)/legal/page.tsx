@@ -5,33 +5,49 @@ import { LEGAL_DOCS, LEGAL_EFFECTIVE } from "@/components/marketing/legal/legal-
 
 export const metadata: Metadata = {
   title: "Legal · marketer.sh",
-  description: "Terms, privacy, and the policies that govern marketer.sh.",
+  description: "Terms, privacy, cookies, refunds, and the other marketer.sh policies.",
 };
 
 export default function LegalIndexPage() {
   return (
     <div className="max-w-2xl">
-      <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">Legal</h1>
-      <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-        The agreements and policies that govern marketer.sh. Everything here was
-        last revised {LEGAL_EFFECTIVE}.
+      <h2 className="text-3xl font-medium tracking-tight sm:text-4xl">
+        All legal pages
+      </h2>
+      <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
+        Last updated {LEGAL_EFFECTIVE}. Each document is its own page. If you
+        need something signed, write{" "}
+        <a
+          href="mailto:legal@marketer.sh"
+          className="text-foreground underline underline-offset-4"
+        >
+          legal@marketer.sh
+        </a>
+        .
       </p>
 
-      <ul className="mt-12 divide-y divide-border/60 border-t border-border/60">
-        {LEGAL_DOCS.map((doc) => (
-          <li key={doc.slug}>
+      <ol className="mt-12">
+        {LEGAL_DOCS.map((doc, index) => (
+          <li key={doc.slug} className="border-border border-t last:border-b">
             <Link
               href={`/legal/${doc.slug}`}
-              className="group flex flex-col gap-1 py-5 transition-colors"
+              className="group flex items-baseline gap-6 py-6"
             >
-              <span className="font-medium underline-offset-4 group-hover:underline">
-                {doc.title}
+              <span className="text-muted-foreground w-8 shrink-0 font-mono text-xs">
+                {String(index + 1).padStart(2, "0")}
               </span>
-              <span className="text-sm text-muted-foreground">{doc.blurb}</span>
+              <span>
+                <span className="text-foreground block text-xl font-medium tracking-tight underline-offset-4 group-hover:underline">
+                  {doc.title}
+                </span>
+                <span className="text-muted-foreground mt-2 block text-sm leading-relaxed">
+                  {doc.blurb}
+                </span>
+              </span>
             </Link>
           </li>
         ))}
-      </ul>
+      </ol>
     </div>
   );
 }

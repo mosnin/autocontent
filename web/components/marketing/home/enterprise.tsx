@@ -74,7 +74,7 @@ export function Enterprise() {
           ))}
         </Stagger>
 
-        {/* Compliance badge slots — real marks land when certifications do. */}
+        {/* Compliance badge slots - real marks land when certifications do. */}
         <div className="mt-12 flex flex-wrap items-center gap-3 border-t border-border pt-8">
           <p className="mr-2 font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
             Compliance

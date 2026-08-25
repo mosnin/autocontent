@@ -5,7 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, useReducedMotion } from "motion/react";
 
-import { PRODUCTS, productForPath } from "@/lib/products";
+import { visibleProducts, productForPath } from "@/lib/products";
+import { useAdsEnabled } from "@/lib/use-ads-enabled";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,6 +18,8 @@ import { cn } from "@/lib/utils";
 export function DashboardSwitcher({ className }: { className?: string }) {
   const pathname = usePathname();
   const reduced = useReducedMotion();
+  const adsEnabled = useAdsEnabled();
+  const products = visibleProducts(adsEnabled);
   const active = pathname === "/home" ? null : productForPath(pathname);
 
   return (
@@ -27,7 +30,7 @@ export function DashboardSwitcher({ className }: { className?: string }) {
         className,
       )}
     >
-      {PRODUCTS.map((p) => {
+      {products.map((p) => {
         const isActive = active?.id === p.id;
         return (
           <Link

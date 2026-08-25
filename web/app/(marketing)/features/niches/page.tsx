@@ -16,10 +16,10 @@ const DESCRIPTION =
   "A niche is the brief the pipeline keeps: audience, look, voice, models, posting windows, and its own daily spend cap that fails closed before it fails you.";
 
 export const metadata: Metadata = {
-  title: "Niches & spend caps — marketer.sh",
+  title: "Niches & spend caps · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Niches & spend caps — marketer.sh",
+    title: "Niches & spend caps · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -33,7 +33,7 @@ export default function NichesFeaturePage() {
         illustration={
           <MediaCard
             kind="image"
-            label="Niche detail — spend today against the daily cap"
+            label="Niche detail - spend today against the daily cap"
             ratio="16/9"
           />
         }

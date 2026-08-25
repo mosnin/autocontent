@@ -119,7 +119,7 @@ export function ElasticSlider({
   /** Ring only for Tab focus or keyboard value nudges, not pointer press/drag. */
   const [keyboardFocusRing, setKeyboardFocusRing] = useState(false)
 
-  // Pointer session state — mutable, does not trigger re-renders.
+  // Pointer session state - mutable, does not trigger re-renders.
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const pendingPointerFocusRef = useRef(false)
   const isClickRef = useRef(true)
@@ -176,7 +176,7 @@ export function ElasticSlider({
   )
 
   // Animate fill to a target percent, or jump instantly when the user prefers
-  // reduced motion. Position still updates — only the spring is skipped.
+  // reduced motion. Position still updates - only the spring is skipped.
   const animateFillTo = useCallback(
     (targetPercent: number) => {
       animRef.current?.stop()

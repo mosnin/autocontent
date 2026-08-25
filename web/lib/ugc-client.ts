@@ -1,6 +1,6 @@
 // Client-safe typed client for the UGC studio API (/api/v1/ugc). SWR keys are
 // plain backend paths (clientFetch prefixes /api/proxy); mutations
-// POST/DELETE through the proxy so the Clerk JWT is attached server-side —
+// POST/DELETE through the proxy so the Clerk JWT is attached server-side -
 // `auth()` can't run in the browser. No server-only imports.
 //
 // Types mirror backend/routes/ugc.py + src/marketer/ugc/catalog.py field for
@@ -15,12 +15,12 @@ const UGC = "/api/v1/ugc";
 
 // ---------------------------------------------------------------- catalog
 
-/** `UgcModel.duration_spec()` — a closed option set OR an inclusive range. */
+/** `UgcModel.duration_spec()` - a closed option set OR an inclusive range. */
 export type UgcDurationSpec =
   | { kind: "options"; options: number[]; default: number }
   | { kind: "range"; min: number; max: number; default: number };
 
-/** `pricing.cost_basis()` — USD per rendered second, keyed by resolution
+/** `pricing.cost_basis()` - USD per rendered second, keyed by resolution
  *  when the model has a resolution knob, flat when it doesn't. */
 export interface UgcCostBasis {
   unit: string;
@@ -151,7 +151,7 @@ export function fetchModels(): Promise<UgcModelCatalog> {
 // ------------------------------------------------- capability resolution
 
 /** The four adaptive knobs, resolved against one model. `resolution` and
- *  `mode` are "" for models with no such parameter — the POST sends null
+ *  `mode` are "" for models with no such parameter - the POST sends null
  *  in that case, because a non-empty value is a hard 400. */
 export interface UgcParams {
   aspect_ratio: string;
@@ -197,11 +197,11 @@ function nearest(values: number[], target: number): number {
  * where the new model supports it, and silently corrected where it does
  * not, so the form can never hold a combination the backend rejects.
  *
- *   aspect ratio — kept when supported, else the model's default.
- *   duration     — nearest allowed option, or clamped into the range.
- *   resolution   — kept when supported, else default; forced to "" when the
+ *   aspect ratio - kept when supported, else the model's default.
+ *   duration     - nearest allowed option, or clamped into the range.
+ *   resolution   - kept when supported, else default; forced to "" when the
  *                  model has no resolution parameter.
- *   mode         — same rule as resolution.
+ *   mode         - same rule as resolution.
  */
 export function clampParams(model: UgcModel, current: Partial<UgcParams>): UgcParams {
   const fallback = defaultParams(model);
@@ -267,7 +267,7 @@ export function estimateCostUsd(model: UgcModel, params: UgcParams): number | nu
 const IMAGE_REF = /@image(\d+)/g;
 
 /** Every `@imageN` index in a script, in order of appearance (1-based, in
- *  upload order) — mirrors ugc/prompts.parse_image_refs. */
+ *  upload order) - mirrors ugc/prompts.parse_image_refs. */
 export function parseImageRefs(prompt: string): number[] {
   return [...(prompt ?? "").matchAll(IMAGE_REF)].map((m) => Number(m[1]));
 }

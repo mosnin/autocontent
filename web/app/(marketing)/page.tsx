@@ -9,17 +9,16 @@ import { Hero } from "@/components/marketing/home/hero";
 import { Integrations } from "@/components/marketing/home/integrations";
 import { Manifesto } from "@/components/marketing/home/manifesto";
 import { Pricing } from "@/components/marketing/home/pricing";
-import { Testimonials } from "@/components/marketing/home/testimonials";
 import { VideoShowcase } from "@/components/marketing/home/video-showcase";
 
 const DESCRIPTION =
-  "The autonomous marketing platform. One brief in, video and SEO articles ideated, produced, published, and improved, with hard caps on every dollar spent.";
+  "Prepaid credits, a niche, and a daily cap. marketer.sh generates short-form video and SEO articles, parks them for approval, then schedules to the socials you connected.";
 
 export const metadata: Metadata = {
-  title: "marketer.sh — Marketing that runs itself",
+  title: "marketer.sh · Marketing that just gets made",
   description: DESCRIPTION,
   openGraph: {
-    title: "marketer.sh — Marketing that runs itself",
+    title: "marketer.sh · Marketing that just gets made",
     description: DESCRIPTION,
     type: "website",
   },
@@ -58,7 +57,6 @@ export default function HomePage() {
         <AppShowcase />
         <Gallery />
         <Integrations />
-        <Testimonials />
         <Pricing />
         <Faq />
         <FinalCta />

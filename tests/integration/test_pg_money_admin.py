@@ -79,6 +79,32 @@ async def test_credit_purchase_is_idempotent_on_session(pool):
     assert await billing.balance(uid) == Decimal("20.0000")
 
 
+async def test_credit_purchase_unknown_user_does_not_insert(pool):
+    from marketer.repos import billing
+
+    with pytest.raises(Exception):
+        await billing.credit_purchase(
+            user_id="user_does_not_exist",
+            amount_usd=Decimal("5"),
+            checkout_session_id=f"cs_{uuid4().hex}",
+        )
+    row = await pool.fetchval("select count(*) from credit_transactions")
+    assert row == 0
+
+
+async def test_bootstrap_admin_promotes_first_matching_email_only(pool, monkeypatch):
+    from marketer.config import settings
+    from marketer.repos import users
+
+    monkeypatch.setattr(settings, "bootstrap_admin_email", "owner@example.com")
+    first = await users.upsert("user_owner", "owner@example.com")
+    assert first.role == "admin"
+    other = await users.upsert("user_other", "other@example.com")
+    assert other.role == "user"
+    twin = await users.upsert("user_twin", "owner@example.com")
+    assert twin.role == "user"
+
+
 async def test_debit_mirrors_ledger_atomically(pool):
     from marketer.repos import billing
 

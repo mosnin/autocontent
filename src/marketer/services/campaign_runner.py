@@ -28,6 +28,7 @@ from uuid import UUID
 
 from decimal import Decimal
 
+from ..billing.gates import unbilled_generate_blocked
 from ..config import settings
 from ..logging import get_logger
 from ..models import Campaign
@@ -41,6 +42,8 @@ HOURS_PER_WEEK = 168.0
 
 async def _default_spawn_video(user_id: str, niche_id: UUID, platform: str,
                                campaign_id: UUID) -> None:
+    if unbilled_generate_blocked():
+        return
     import modal
 
     from ..repos import jobs as jobs_repo
@@ -55,6 +58,8 @@ async def _default_spawn_video(user_id: str, niche_id: UUID, platform: str,
 
 async def _default_spawn_image_post(user_id: str, niche_id: UUID,
                                     campaign_id: UUID) -> None:
+    if unbilled_generate_blocked():
+        return
     import modal
 
     from ..repos import image_posts as image_posts_repo
@@ -68,6 +73,8 @@ async def _default_spawn_image_post(user_id: str, niche_id: UUID,
 
 async def _default_spawn_article(user_id: str, niche_id: UUID,
                                  campaign_id: UUID) -> None:
+    if unbilled_generate_blocked():
+        return
     import modal
 
     from ..repos import articles as articles_repo
@@ -102,6 +109,22 @@ async def run_campaign_tick(
     now: datetime | None = None,
 ) -> dict:
     """Advance one campaign by one tick. Returns a summary dict."""
+    if unbilled_generate_blocked():
+        return {
+            "campaign_id": str(campaign.id),
+            "action": "skipped",
+            "reason": "unbilled usage disabled",
+            "spawned": [],
+        }
+    from ..repos import feature_flags as flags_repo
+
+    if not await flags_repo.allowed("generate"):
+        return {
+            "campaign_id": str(campaign.id),
+            "action": "skipped",
+            "reason": "generate flag disabled",
+            "spawned": [],
+        }
     now = now or datetime.now(timezone.utc)
     uid = campaign.user_id
 
@@ -142,6 +165,10 @@ async def run_campaign_tick(
                 continue
             niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None or not niche.platforms:
+                continue
+            from ..repos import jobs as jobs_repo
+
+            if await jobs_repo.has_active_for_niche(niche.id):
                 continue
             # Rotate platforms across spawns so all socials get coverage.
             total = (counts["video"].get(item.ref_id) or {"total": 0})["total"]
@@ -187,6 +214,8 @@ async def tick_all(
 ) -> dict:
     """One cron pass over every running campaign. Per-campaign failures
     are contained — one broken campaign can't stall the fleet."""
+    if unbilled_generate_blocked():
+        return {"campaigns": 0, "errors": 0, "results": [], "skipped_unbilled": True}
     results = []
     errors = 0
     for campaign in await campaigns_repo.list_running():

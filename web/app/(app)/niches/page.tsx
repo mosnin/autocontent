@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 // Standalone Niches collection page. Rebuilt on the Square UI
 // marketing-dashboard template's campaigns-table anatomy (search +
-// filter toolbar, sortable columns, pagination footer) — see
+// filter toolbar, sortable columns, pagination footer) - see
 // ./NichesTable. Each row links to the niche detail (`/niches/[id]`);
 // the toolbar's primary action routes to /onboarding, our real
 // niche-creation flow.

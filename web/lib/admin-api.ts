@@ -2,11 +2,11 @@
 // admin-gated and audited server-side; non-admins get HTTP 403.
 //
 // Two layers live here:
-//   • Server fetchers (fetchAdmin*) — call the backend directly through
+//   • Server fetchers (fetchAdmin*) - call the backend directly through
 //     the `api` helper (attaches the Clerk JWT server-side). Used by RSC
 //     pages/layout for initial data. `api` throws `Error("<status> …")`,
 //     so callers detect 403 with isForbidden(err).
-//   • Client helpers (adminGet / admin* mutations) — run in the browser
+//   • Client helpers (adminGet / admin* mutations) - run in the browser
 //     and route through the Next proxy (/api/proxy/…) which attaches the
 //     JWT. SWR keys are the plain "/api/v1/admin/…" paths; clientFetch
 //     prefixes /api/proxy automatically.
@@ -118,7 +118,7 @@ export function adminGrantCredits(
 
 /**
  * Upsert a feature flag through the proxy. Creating a new key and toggling
- * an existing one are the same PUT — the backend upserts by key and audits
+ * an existing one are the same PUT - the backend upserts by key and audits
  * the change.
  */
 export function adminUpsertFlag(

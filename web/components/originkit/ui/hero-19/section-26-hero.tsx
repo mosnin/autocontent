@@ -13,7 +13,7 @@ function asset(file: string) {
   return `/originkit/hero-19/${file}`;
 }
 
-/** Desktop pill nav — Figma 2280:5904. */
+/** Desktop pill nav - Figma 2280:5904. */
 const NAV_LINKS = ["Home", "Service", "Proudct", "About Us"];
 
 /** Feathers the hand's top and base into the backdrop. */
@@ -29,7 +29,7 @@ export const Section26Hero = () => (
     {/* Background runs edge to edge; only the composition below is capped */}
     <Backdrop />
 
-    {/* Overlay wash across the bottom — full-bleed like the backdrop, so its
+    {/* Overlay wash across the bottom - full-bleed like the backdrop, so its
         edges never draw a box inside the capped stage. Evens out where the
         backdrop layers meet so their seams stop reading as a band. */}
     <div
@@ -37,7 +37,7 @@ export const Section26Hero = () => (
       className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[38%] bg-linear-to-b from-transparent via-black/25 to-black/60 mix-blend-overlay"
     />
 
-    {/* 402x874 stage — every layer is positioned against these coordinates */}
+    {/* 402x874 stage - every layer is positioned against these coordinates */}
     <div className="relative h-[874px] overflow-hidden ipad:h-[1133px] desktop-sm:h-dvh desktop-sm:min-h-[840px] ultrawide:mx-auto ultrawide:h-[1080px] ultrawide:max-w-[1920px]">
       {/* Nav */}
       <nav className="absolute top-0 left-0 z-20 flex w-full items-center justify-between p-4 ipad:px-12 ipad:py-8 desktop-sm:px-25 desktop-sm:py-[52px]">
@@ -134,12 +134,12 @@ export const Section26Hero = () => (
           </p>
         </div>
 
-        {/* Trusted logos — continuous marquee, faded at both edges */}
+        {/* Trusted logos - continuous marquee, faded at both edges */}
         <LogoMarquee />
       </div>
 
       {/* Arcs + film grain. The export is flattened against black, so it is
-          screen-blended — black drops out and only the light survives. */}
+          screen-blended - black drops out and only the light survives. */}
       <img
         aria-hidden
         src={asset("arcs-texture.png")}
@@ -167,7 +167,7 @@ export const Section26Hero = () => (
 
       <RecommendationCard />
 
-      {/* Bottom light bloom — Figma "Layer blur": mobile 2280:5629, desktop
+      {/* Bottom light bloom - Figma "Layer blur": mobile 2280:5629, desktop
           2280:5881 at (307, 770) 663 x 99. Sits under the hand, as in the frame. */}
       <div
         aria-hidden
@@ -176,7 +176,7 @@ export const Section26Hero = () => (
         <div className="absolute inset-0 bg-[rgba(180,52,26,0.1)] backdrop-blur-[25.833px] desktop-sm:backdrop-blur-[50px]" />
       </div>
 
-      {/* Warm haze over the wrist — Figma "Rectangle 1430106869" (2280:5895),
+      {/* Warm haze over the wrist - Figma "Rectangle 1430106869" (2280:5895),
           the twin of the bloom that Figma paints *after* the hand. */}
       <div
         aria-hidden

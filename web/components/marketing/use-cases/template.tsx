@@ -125,7 +125,7 @@ export function UseCaseHero({
 }
 
 /* ------------------------------------------------------------------ */
-/* "The grind today" — short pain framing                              */
+/* "The grind today" - short pain framing                              */
 /* ------------------------------------------------------------------ */
 
 export function PainBand({
@@ -172,7 +172,7 @@ export function PainBand({
 }
 
 /* ------------------------------------------------------------------ */
-/* "With marketer.sh" — the 3-step band                                */
+/* "With marketer.sh" - the 3-step band                                */
 /* ------------------------------------------------------------------ */
 
 export function StepsBand({
@@ -219,7 +219,7 @@ export function StepsBand({
 }
 
 /* ------------------------------------------------------------------ */
-/* Product-moment band — copy beside a floating glass mock             */
+/* Product-moment band - copy beside a floating glass mock             */
 /* ------------------------------------------------------------------ */
 
 export function MockBand({
@@ -288,7 +288,7 @@ export function MockBand({
 }
 
 /* ------------------------------------------------------------------ */
-/* Outcomes — StatStrip with a quiet intro                             */
+/* Outcomes - StatStrip with a quiet intro                             */
 /* ------------------------------------------------------------------ */
 
 export function OutcomesBand({

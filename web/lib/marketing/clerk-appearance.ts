@@ -3,13 +3,13 @@ import type { Appearance } from "@clerk/types";
 /** Clerk chrome that matches the Cortex marketing canvas. */
 export const clerkAppearance: Appearance = {
   variables: {
-    colorPrimary: "var(--color-foreground)",
-    colorBackground: "var(--color-background)",
-    colorText: "var(--color-foreground)",
-    colorTextSecondary: "var(--color-muted-foreground)",
-    colorInputBackground: "var(--color-background)",
-    colorInputText: "var(--color-foreground)",
-    colorNeutral: "var(--color-foreground)",
+    colorPrimary: "#0a0a0a",
+    colorBackground: "#ffffff",
+    colorText: "#0a0a0a",
+    colorTextSecondary: "#737373",
+    colorInputBackground: "#ffffff",
+    colorInputText: "#0a0a0a",
+    colorNeutral: "#0a0a0a",
     borderRadius: "0.9rem",
     fontFamily: "var(--font-geist-sans), system-ui, sans-serif",
   },

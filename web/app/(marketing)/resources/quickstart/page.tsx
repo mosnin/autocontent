@@ -8,10 +8,10 @@ const DESCRIPTION =
   "Get from sign-up to a running channel in six steps: describe your channel in one sentence, review voice and caps, approve your first video, and turn on autopilot.";
 
 export const metadata: Metadata = {
-  title: "Quickstart — marketer.sh",
+  title: "Quickstart · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Quickstart — marketer.sh",
+    title: "Quickstart · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -33,7 +33,7 @@ export default function QuickstartPage() {
           <TaggedPlaceholder
             className="h-full w-full"
             kind="video"
-            label="Quickstart — first short in 10 minutes"
+            label="Quickstart - first short in 10 minutes"
             tone="sky"
           />
         </div>

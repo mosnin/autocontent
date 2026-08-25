@@ -609,6 +609,9 @@ def _is_retryable(exc: BaseException) -> bool:
     retry=retry_if_exception(_is_retryable),
 )
 async def _post(client: httpx.AsyncClient, endpoint: str, body: dict[str, Any]) -> dict:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     # NOTE: this enqueues a *paid* render. Retries only fire for transport
     # faults and 429/5xx — never for a request the gateway actually
     # rejected — but a lost response on a request that did land would
@@ -635,6 +638,9 @@ async def _get(client: httpx.AsyncClient, path: str) -> dict:
 
 async def submit(req: SeedanceRequest) -> str:
     """Enqueue a validated render; return the gateway's request id."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     require_enabled()
     async with _client() as client:
         data = await _post(client, req.endpoint, req.body())
@@ -736,6 +742,9 @@ async def render(
     With `wait=False` the call returns as soon as the job is accepted and
     metered — for the async/webhook style the UGC studio uses.
     """
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     require_enabled()
     req = build_request(
         model_id,

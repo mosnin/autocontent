@@ -17,7 +17,7 @@ import { createCheckoutAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { BillingBalance } from "@/lib/types";
+import type { BillingBalance, BillingPacks } from "@/lib/types";
 
 interface Pack {
   key: string;
@@ -38,7 +38,21 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
     refreshInterval: 15000,
     fallbackData: initial,
   });
+  const { data: packPayload } = useSWR<BillingPacks>(
+    "/api/v1/billing/packs",
+    clientFetch,
+  );
   const billing = data ?? initial;
+  const packs: Pack[] =
+    packPayload?.packs?.length
+      ? packPayload.packs.map((p) => ({
+          key: p.key,
+          label: p.label,
+          amount: p.amount_cents / 100,
+          blurb: p.blurb,
+          featured: p.featured,
+        }))
+      : PACKS;
   const [buying, setBuying] = React.useState<string | null>(null);
 
   // Surface the checkout redirect result once.
@@ -46,7 +60,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
     const params = new URLSearchParams(window.location.search);
     const outcome = params.get("purchase");
     if (outcome === "success") {
-      toast.success("Payment received — credit lands as soon as Stripe confirms");
+      toast.success("Payment received - credit lands as soon as Stripe confirms");
       window.history.replaceState({}, "", "/settings/billing");
     } else if (outcome === "cancelled") {
       toast("Checkout cancelled");
@@ -71,7 +85,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
-          Billing is not enabled on this deployment — you&apos;re running on
+          Billing is not enabled on this deployment - you&apos;re running on
           your own API keys, and the only limits are the spend caps you set.
         </CardContent>
       </Card>
@@ -97,7 +111,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
           </p>
           {low && (
             <p className="text-xs text-brand">
-              Running low — the pipeline pauses at zero.
+              Running low - the pipeline pauses at zero.
             </p>
           )}
         </CardContent>
@@ -106,7 +120,7 @@ export function BillingClient({ initial }: { initial: BillingBalance }) {
       <div>
         <h2 className="text-lg font-semibold tracking-tight">Add credit</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          {PACKS.map((p) => (
+          {packs.map((p) => (
             <Card
               aria-disabled={buying !== null}
               className={cn(

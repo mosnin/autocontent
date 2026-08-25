@@ -20,7 +20,7 @@ function maskKey(key: string): string {
 
 export default async function ConnectPage() {
   // Best-effort: a backend 5xx must not throw the whole route to the error
-  // boundary — render an in-page fallback instead.
+  // boundary - render an in-page fallback instead.
   let status: AyrshareConnectStatus | null = null;
   try {
     status = await api<AyrshareConnectStatus>(
@@ -31,10 +31,11 @@ export default async function ConnectPage() {
   }
 
   // What the backend actually knows is whether a posting profile
-  // (profile_key) exists — NOT which individual socials are linked. That
+  // (profile_key) exists - NOT which individual socials are linked. That
   // lives in Ayrshare's hosted chooser. So we speak in terms of "profile
   // created", never per-platform "ready".
-  const profileCreated = status?.connected ?? false;
+  const publishingConfigured = status?.configured ?? false;
+  const profileCreated = publishingConfigured && (status?.connected ?? false);
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
@@ -52,7 +53,18 @@ export default async function ConnectPage() {
         </p>
       </div>
 
-      {status === null ? (
+      {status !== null && !publishingConfigured ? (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="font-medium">Publishing is not configured</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This deployment has no Ayrshare key. Socials are not online,
+              and creating a posting profile will stay dark until the
+              operator adds one.
+            </p>
+          </CardContent>
+        </Card>
+      ) : status === null ? (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="pt-6">
             <div className="font-medium">
@@ -105,7 +117,7 @@ export default async function ConnectPage() {
             </div>
             <p className="text-center text-xs text-muted-foreground">
               {profileCreated
-                ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare — open the chooser above to add or revoke a platform."
+                ? "Your posting profile is ready. Which of these are actually linked is managed in Ayrshare - open the chooser above to add or revoke a platform."
                 : "Create a posting profile above, then link each platform in Ayrshare's chooser."}
             </p>
           </div>

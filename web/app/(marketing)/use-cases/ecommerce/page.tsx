@@ -13,10 +13,10 @@ const DESCRIPTION =
   "Give every product line its own channel: hook-driven demo shorts plus SEO buying guides that rank, produced from one brief under hard daily spend caps.";
 
 export const metadata: Metadata = {
-  title: "Ecommerce — marketer.sh",
+  title: "Ecommerce · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Ecommerce — marketer.sh",
+    title: "Ecommerce · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -30,7 +30,7 @@ export default function EcommercePage() {
         headline={["Every product,", "its own channel."]}
         kicker="For ecommerce"
         lede="One niche per product line. Hook-driven demo shorts for the feed, buying guides that rank for the search, both from the brief you already wrote for the listing."
-        placeholderLabel="Ecommerce teams in the product — hero still"
+        placeholderLabel="Ecommerce teams in the product - hero still"
         placeholderTone="rose"
         scene="mint"
       />
@@ -84,7 +84,7 @@ export default function EcommercePage() {
         <div className="aspect-[4/3] w-full max-w-md overflow-hidden rounded-[1.75rem] border border-border shadow-[0_16px_50px_rgba(15,23,42,0.10)]">
           <TaggedPlaceholder
             kind="image"
-            label="Ecommerce workflow — screenshot"
+            label="Ecommerce workflow - screenshot"
             tone="rose"
           />
         </div>

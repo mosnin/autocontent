@@ -24,10 +24,10 @@ const DESCRIPTION =
   "Live SERP research, structured outlines, sections written in parallel under E-E-A-T rules, QA scoring, full SEO metadata, JSON-LD, and internal links.";
 
 export const metadata: Metadata = {
-  title: "Articles & SEO — marketer.sh",
+  title: "Articles & SEO · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "Articles & SEO — marketer.sh",
+    title: "Articles & SEO · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -37,12 +37,12 @@ export const metadata: Metadata = {
 /**
  * The pipeline's own statuses, in the order the article row moves through
  * them. Every one of these is a value the API reports and the list screen
- * filters on — not a marketing abstraction of the process.
+ * filters on - not a marketing abstraction of the process.
  */
 const STAGES = [
   {
     label: "Queued",
-    copy: "The run is accepted and the row exists. If you didn't name a topic, one is picked here — checked against the titles this niche already published so the same piece never ships twice.",
+    copy: "The run is accepted and the row exists. If you didn't name a topic, one is picked here - checked against the titles this niche already published so the same piece never ships twice.",
   },
   {
     label: "Researching",
@@ -69,7 +69,7 @@ const STAGES = [
   },
   {
     label: "Imaging",
-    copy: "An editorial hero image is generated to match the piece. Optional by design — an article is fully publishable without one.",
+    copy: "An editorial hero image is generated to match the piece. Optional by design - an article is fully publishable without one.",
   },
   {
     label: "Done",
@@ -129,7 +129,7 @@ const GUARDS = [
   {
     name: "Publishing twice is not an event",
     chips: ["idempotent"],
-    copy: "A repeated publish returns the article unchanged and does not re-stamp the date — a moving publish date reads as churn to crawlers and re-fires feed readers.",
+    copy: "A repeated publish returns the article unchanged and does not re-stamp the date - a moving publish date reads as churn to crawlers and re-fires feed readers.",
   },
   {
     name: "Unpublishing is said out loud",
@@ -146,7 +146,7 @@ export default function ArticlesFeaturePage() {
         illustration={
           <MediaCard
             kind="video"
-            label="Press demo — SERP research to published article"
+            label="Press demo - SERP research to published article"
             ratio="16/9"
           />
         }
@@ -157,7 +157,7 @@ export default function ArticlesFeaturePage() {
         variant="pearl"
       />
 
-      {/* 1 — the stages */}
+      {/* 1 - the stages */}
       <Section label="The article pipeline">
         <div className="os-split">
           <SectionHead
@@ -168,7 +168,7 @@ export default function ArticlesFeaturePage() {
           />
           <MediaCard
             kind="image"
-            label="Article detail — stage status and progress"
+            label="Article detail - stage status and progress"
           />
         </div>
         <StageRail className="os-mt-48" steps={STAGES} />
@@ -183,7 +183,7 @@ export default function ArticlesFeaturePage() {
         bullets={[
           "The niche's tone leads, because it is the most specific thing you have said about this vertical.",
           "The account brand voice refines it, so long-form reads like the shorts and the ads read.",
-          "A writing kit — your reusable voice and style system — can be pinned per niche or left as the account default.",
+          "A writing kit - your reusable voice and style system - can be pinned per niche or left as the account default.",
         ]}
         eyebrow="Voice"
         extraCopy="Banned words are not a filter applied afterwards. They are a hard constraint written into the outline prompt, the section prompts and the scoring prompt, so the piece is never drafted with them in the first place."
@@ -195,7 +195,7 @@ export default function ArticlesFeaturePage() {
         media={
           <MediaCard
             kind="image"
-            label="Brand kit — tone of voice and banned words"
+            label="Brand kit - tone of voice and banned words"
           />
         }
       />
@@ -228,11 +228,11 @@ export default function ArticlesFeaturePage() {
             eyebrow="Going live"
             heading="A finished article and a public URL are two different decisions."
             highlight="two different decisions."
-            lede="Publishing is the one action with consequences outside the database — it mints a URL that crawlers index and people link to. So each of these refusals exists because of a specific way that goes wrong, and each returns a stable code rather than a generic error."
+            lede="Publishing is the one action with consequences outside the database - it mints a URL that crawlers index and people link to. So each of these refusals exists because of a specific way that goes wrong, and each returns a stable code rather than a generic error."
           />
           <MediaCard
             kind="image"
-            label="Publication state — draft, scheduled, published"
+            label="Publication state - draft, scheduled, published"
           />
         </div>
         <SpecCards className="os-mt-48" items={GUARDS} />
@@ -250,11 +250,11 @@ export default function ArticlesFeaturePage() {
         heading="Editing is allowed. Losing the previous version isn't."
         highlight="Losing the previous version isn't."
         label="Revision history"
-        lede="Articles are editable — the pipeline writes a draft, you make it yours. History is append-only underneath that, which is what makes an edit safe to make in the first place."
+        lede="Articles are editable - the pipeline writes a draft, you make it yours. History is append-only underneath that, which is what makes an edit safe to make in the first place."
         media={
           <MediaCard
             kind="image"
-            label="Revision list — edits with before-state snapshots"
+            label="Revision list - edits with before-state snapshots"
           />
         }
       />

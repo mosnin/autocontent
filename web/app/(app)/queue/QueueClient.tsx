@@ -1,19 +1,19 @@
 "use client";
 
 // Square UI "marketing-dashboard" template campaigns-table, ported to the
-// queue job list — same TanStack table anatomy (toolbar with search +
+// queue job list - same TanStack table anatomy (toolbar with search +
 // filter dropdown + primary action, sortable headers, row-selection
 // checkbox column, template badge palette, full pagination footer) as
 // components/square/campaigns-table.tsx. Adaptations are real-data
 // mapping + our routes only:
 //   - mock `campaigns` become the `initial`/polled `jobs` prop (real Job
 //     type); columns map to real fields: hook/topic, niche (resolved via
-//     the server-fetched niche id -> title map — real title or "—" if
+//     the server-fetched niche id -> title map - real title or "-" if
 //     unknown), platform (existing platform logos kept), status
 //     (mapped onto the template's badge tones), created (relative time,
 //     same helper QueueClient always used).
 //   - the template's single "status" filter dropdown replaces the old
-//     Tabs — same Filter type and `matches()` logic, just new chrome,
+//     Tabs - same Filter type and `matches()` logic, just new chrome,
 //     so the awaiting/in-progress/done/failed semantics are unchanged.
 //   - the template's zustand store becomes local state (same behavior
 //     as campaigns-table.tsx).
@@ -21,7 +21,7 @@
 ///    update + server actions), rendered in an actions column since the
 //     template has no equivalent (campaigns has no per-row actions).
 //   - the template's "New campaign" button becomes "New job", which
-//     opens the existing command palette (⌘K) — the only real job
+//     opens the existing command palette (⌘K) - the only real job
 //     creation entry point already wired into the app.
 //   - template columns with no real counterpart for jobs (avatar image,
 //     budget, ends, objective) are dropped rather than faked.
@@ -307,7 +307,7 @@ export function QueueClient({
     fd.set("job_id", job.id);
     const res = await approveJobAction({ ok: false }, fd);
     if (res.ok) {
-      toast.success("Approved — scheduling the post now");
+      toast.success("Approved - scheduling the post now");
       void mutate();
     } else {
       toast.error(res.error ?? "Approve failed");
@@ -320,7 +320,7 @@ export function QueueClient({
     fd.set("job_id", job.id);
     const res = await rejectJobAction({ ok: false }, fd);
     if (res.ok) {
-      toast.success("Rejected — it will not post");
+      toast.success("Rejected - it will not post");
       void mutate();
     } else {
       toast.error(res.error ?? "Reject failed");
@@ -390,7 +390,7 @@ export function QueueClient({
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground truncate max-w-[200px] inline-block align-middle">
-            {nicheTitles[row.original.niche_id] ?? "—"}
+            {nicheTitles[row.original.niche_id] ?? "-"}
           </span>
         ),
       },
@@ -498,7 +498,7 @@ export function QueueClient({
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused - {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -722,5 +722,5 @@ function RowActions({
     );
   }
 
-  return <span className="text-xs text-muted-foreground">—</span>;
+  return <span className="text-xs text-muted-foreground">-</span>;
 }

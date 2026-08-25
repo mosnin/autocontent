@@ -180,7 +180,7 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_perf_ctx)
 
-    async def fake_script(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
+    async def fake_script(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", format_key="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_script)
 
@@ -239,7 +239,7 @@ def stub_pipeline(monkeypatch, tmp_path: Path, passing_render_qa):
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)
 
     async def fake_schedule(*, video_path, caption, hashtags, platform,
-                            scheduled_for, profile_key, user_id):
+                            scheduled_for, profile_key, user_id, idempotency_key=None):
         return "post-xyz"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule)
 

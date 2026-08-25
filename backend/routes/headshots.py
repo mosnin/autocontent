@@ -45,6 +45,7 @@ from marketer.headshots.styles import UnknownStyleError, get_style
 from marketer.repos import headshots as repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -167,6 +168,7 @@ async def create_batch(body: HeadshotBatchCreate, ctx: AuthCtx = CurrentUser) ->
     Everything the user could have got wrong is answered here, before a
     row exists and before any spend.
     """
+    refuse_unbilled_generate()
     _require_configured()
     try:
         get_style(body.style_key)
@@ -248,6 +250,7 @@ async def retry_batch(batch_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     retry spawns exactly one run and already-delivered portraits are never
     billed twice.
     """
+    refuse_unbilled_generate()
     _require_configured()
     claimed = await repo.claim_for_retry(batch_id, user_id=ctx.user_id)
     if claimed is None:

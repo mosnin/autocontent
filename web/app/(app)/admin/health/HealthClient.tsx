@@ -83,7 +83,7 @@ export function HealthClient({ initial }: { initial: SystemHealth }) {
 
       {error && (
         <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
+          Live updates paused - {error.message ?? "fetch failed"}
         </p>
       )}
 
@@ -187,7 +187,7 @@ function StatusBanner({
             <p className="text-xs text-muted-foreground">
               {attention
                 ? critical
-                  ? "A core dependency is down — investigate immediately."
+                  ? "A core dependency is down - investigate immediately."
                   : "One or more metrics are outside their healthy range."
                 : "Database is reachable and no jobs are stuck or failing."}
             </p>
@@ -220,7 +220,7 @@ function HealthCard({
   );
 }
 
-/** Numeric health stat, KPI-styled. Renders "—" when the metric is null. */
+/** Numeric health stat, KPI-styled. Renders "-" when the metric is null. */
 function StatCard({
   color: _color,
   title,
@@ -250,7 +250,7 @@ function StatCard({
                 : "text-foreground",
           )}
         >
-          {value == null ? "—" : value}
+          {value == null ? "-" : value}
         </p>
         <div className="border-t border-border/60 pt-3 text-xs">
           <span

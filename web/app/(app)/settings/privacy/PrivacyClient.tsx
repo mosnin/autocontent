@@ -28,7 +28,7 @@ import { DangerZone } from "@/components/settings/danger-zone";
 
 interface Props {
   /** The signed-in user's email, fetched server-side. `null` if the
-   *  lookup failed — the delete confirmation then falls back to DELETE. */
+   *  lookup failed - the delete confirmation then falls back to DELETE. */
   email: string | null;
 }
 
@@ -53,7 +53,7 @@ export function PrivacyClient({ email }: Props) {
   const [deleting, setDeleting] = React.useState(false);
 
   // Enable the destructive confirm only once the user has typed their
-  // exact email (case-insensitive — emails are) or the word DELETE.
+  // exact email (case-insensitive - emails are) or the word DELETE.
   const typed = confirmText.trim();
   const matchesEmail =
     !!email && typed.toLowerCase() === email.toLowerCase();
@@ -108,7 +108,7 @@ export function PrivacyClient({ email }: Props) {
       });
       if (res.status !== 204 && !res.ok) throw new Error(`${res.status}`);
 
-      // Point of no return — tear down the session and land on home.
+      // Point of no return - tear down the session and land on home.
       toast.success("Your account has been deleted");
       try {
         await signOut({ redirectUrl: "/" });
@@ -175,7 +175,7 @@ export function PrivacyClient({ email }: Props) {
       {/* Delete ------------------------------------------------------ */}
       <DangerZone
         title="Delete account"
-        description="Permanently erase your account and everything tied to it. This is your GDPR right to erasure — and it can't be undone."
+        description="Permanently erase your account and everything tied to it. This is your GDPR right to erasure - and it can't be undone."
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="max-w-md text-sm text-muted-foreground">

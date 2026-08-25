@@ -45,7 +45,7 @@ export function estimateVideoCostUsd(input: EstimateInput): CostBreakdown {
   const whisper = (targetDur / 60) * WHISPER_PER_MIN;
   // Character sheet is a single image at the selected quality. We
   // include it in every per-run estimate because the user thinks in
-  // "what does it cost to produce one video?" — the backend amortizes
+  // "what does it cost to produce one video?" - the backend amortizes
   // it across the lifetime of the niche.
   const character_sheet = IMAGE_RATE[input.image_quality];
 

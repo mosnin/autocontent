@@ -17,24 +17,24 @@ interface Props {
 }
 
 function fmtNum(n: number | null): string {
-  if (n === null) return "—";
+  if (n === null) return "-";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);
 }
 
 function fmtWatchTime(s: string | null): string {
-  if (!s) return "—";
+  if (!s) return "-";
   const sec = Number(s);
-  if (isNaN(sec)) return "—";
+  if (isNaN(sec)) return "-";
   if (sec >= 60) return `${(sec / 60).toFixed(1)}m`;
   return `${sec.toFixed(0)}s`;
 }
 
 function fmtCompletion(r: string | null): string {
-  if (!r) return "—";
+  if (!r) return "-";
   const n = Number(r);
-  if (isNaN(n)) return "—";
+  if (isNaN(n)) return "-";
   return `${(n * 100).toFixed(1)}%`;
 }
 
@@ -119,7 +119,7 @@ export function MetricsTab({ metrics, providerPostId }: Props) {
         <StatTile label="Likes" value={fmtNum(latest.likes)} />
       </div>
 
-      {/* Secondary engagement — comments, shares, saves, reach, etc. */}
+      {/* Secondary engagement - comments, shares, saves, reach, etc. */}
       {extraTiles.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {extraTiles.map((tile) => (
@@ -128,7 +128,7 @@ export function MetricsTab({ metrics, providerPostId }: Props) {
         </div>
       )}
 
-      {/* Views over time — animated line-chart engine, brand-lit line. */}
+      {/* Views over time - animated line-chart engine, brand-lit line. */}
       {chartData.length > 1 && (
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">

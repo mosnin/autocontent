@@ -20,7 +20,7 @@ export function OnboardingExperience({
             Design your first channel
           </h1>
           <p className="text-muted-foreground mx-auto mt-4 max-w-md text-base leading-relaxed">
-            A sentence is enough — the machine drafts the rest. You review, set
+            A sentence is enough - the machine drafts the rest. You review, set
             a budget, and launch.
           </p>
         </div>
@@ -36,7 +36,7 @@ export function OnboardingExperience({
       </h1>
       <p className="text-muted-foreground mx-auto mt-6 max-w-md text-base leading-relaxed">
         Describe a channel in a sentence. We&apos;ll produce the video, write
-        the articles, and — when you&apos;re ready — run the ads. Every dollar
+        the articles, and - when you&apos;re ready - run the ads. Every dollar
         stays under a cap you set.
       </p>
       <div className="mt-10 flex flex-col items-center gap-4">

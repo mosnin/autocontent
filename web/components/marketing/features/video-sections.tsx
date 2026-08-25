@@ -55,7 +55,7 @@ export function QueueMoment() {
               <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                 <TaggedPlaceholder
                   kind="image"
-                  label="Publish queue — render, schedule, publish status"
+                  label="Publish queue - render, schedule, publish status"
                   tone="sky"
                 />
               </div>
@@ -80,7 +80,7 @@ export function CharacterBand() {
             <div className="aspect-[4/3] w-full max-w-sm overflow-hidden rounded-2xl">
               <TaggedPlaceholder
                 kind="image"
-                label="Character sheet — on-model keyframes across scenes"
+                label="Character sheet - on-model keyframes across scenes"
                 tone="warm"
               />
             </div>
@@ -148,7 +148,7 @@ export function ApprovalGateBand() {
               <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                 <TaggedPlaceholder
                   kind="image"
-                  label="Approval gate — hold or auto-publish toggle"
+                  label="Approval gate - hold or auto-publish toggle"
                   tone="rose"
                 />
               </div>
@@ -176,21 +176,21 @@ const PLATFORMS: Array<{
     note: "Native 9:16 export, karaoke captions burned in for sound-off scrolls.",
     scene: "mist",
     tone: "violet",
-    label: "TikTok short — 9:16 export with karaoke captions",
+    label: "TikTok short - 9:16 export with karaoke captions",
   },
   {
     name: "Instagram Reels",
     note: "Same cut, Reels-ready. Scheduled into the windows your niche sets.",
     scene: "dawn",
     tone: "rose",
-    label: "Reels short — same cut, Reels-ready export",
+    label: "Reels short - same cut, Reels-ready export",
   },
   {
     name: "YouTube Shorts",
     note: "Published alongside the rest, with per-post metrics flowing back.",
     scene: "sky",
     tone: "sky",
-    label: "Shorts short — published with metrics flowing back",
+    label: "Shorts short - published with metrics flowing back",
   },
 ];
 

@@ -1,7 +1,7 @@
 // Client-safe typed client for the Ads API (/api/v1/ads). SWR keys are plain
 // backend paths (clientFetch prefixes /api/proxy); mutations POST/PATCH/DELETE
 // through the proxy so the Clerk JWT is attached server-side. No server-only
-// imports — this runs in the browser.
+// imports - this runs in the browser.
 
 import { clientFetch } from "@/lib/client-fetcher";
 
@@ -26,10 +26,14 @@ export interface AdAccount {
 }
 
 export interface AdsOverview {
+  enabled?: boolean;
   accounts: number;
   active_accounts: number;
   campaigns: number;
+  /** Campaigns live on a connected ad platform (external id present). */
   active_campaigns: number;
+  /** DB status=active only — may not be platform-live yet. */
+  marked_active_campaigns?: number;
   spend_today_usd: string;
   spend_30d_usd: string;
   pending_approvals: number;
@@ -161,6 +165,6 @@ export function changeBudget(
 export function changeCampaignStatus(
   id: string,
   status: "active" | "paused" | "ended",
-): Promise<AdCampaign> {
+): Promise<AdCampaign | { status: string; approval_id?: string }> {
   return proxy("POST", `${ADS}/campaigns/${id}/status`, { status });
 }

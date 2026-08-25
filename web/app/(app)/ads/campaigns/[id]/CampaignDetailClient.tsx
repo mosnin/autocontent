@@ -56,7 +56,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     try {
       const res = await changeBudget(id, budget || "0");
       if (res.status === "pending_approval") {
-        toast.message("Budget change needs approval — sent to your inbox.");
+        toast.message("Budget change needs approval. Review it under Ads → Approvals.");
       } else {
         toast.success("Budget updated");
       }
@@ -72,8 +72,12 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
   async function onStatus(status: "active" | "paused" | "ended") {
     setBusy(status);
     try {
-      await changeCampaignStatus(id, status);
-      toast.success(`Campaign ${status}`);
+      const res = await changeCampaignStatus(id, status);
+      if (res.status === "pending_approval") {
+        toast.message("Mark active needs approval. Review it under Ads → Approvals.");
+      } else {
+        toast.success(`Campaign marked ${status} in Autocontent`);
+      }
       void mutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";
@@ -98,7 +102,10 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
             <h1 className="text-2xl font-semibold tracking-tight">
               {campaign.name}
             </h1>
-            <AdStatusBadge status={campaign.status} />
+            <AdStatusBadge
+              status={campaign.status}
+              externalCampaignId={campaign.external_campaign_id}
+            />
           </div>
           <p className="text-sm capitalize text-muted-foreground">
             {campaign.objective || "no objective"}
@@ -111,7 +118,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               onClick={() => onStatus("active")}
               disabled={busy !== null}
             >
-              {busy === "active" ? "…" : "Activate"}
+              {busy === "active" ? "…" : "Mark active"}
             </Button>
           )}
           {campaign.status === "active" && (
@@ -142,7 +149,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
         <Stat label="Spend" value={formatUsd(totals.spend)} />
         <Stat
           label="ROAS"
-          value={roas === null ? "—" : `${roas.toFixed(2)}×`}
+          value={roas === null ? "-" : `${roas.toFixed(2)}×`}
         />
         <Stat label="Clicks" value={totals.clicks.toLocaleString()} />
         <Stat label="Impressions" value={totals.impressions.toLocaleString()} />

@@ -90,7 +90,7 @@ function relative(iso: string): string {
 }
 
 /** One catalog entry, drawn in its own type treatment. The colors are style
- *  DATA (ffmpeg drawtext hex), not app chrome, so they're inline on purpose —
+ *  DATA (ffmpeg drawtext hex), not app chrome, so they're inline on purpose -
  *  the card frame around them still uses theme tokens. */
 function StyleCard({
   style,
@@ -230,7 +230,7 @@ export function MotionClient({
               />
               <p className="text-[11px] text-muted-foreground">
                 {reusingJob
-                  ? "Disabled — this project is reusing an existing job's voiceover."
+                  ? "Disabled - this project is reusing an existing job's voiceover."
                   : "Sentence boundaries become beats, and beats decide both the cuts and the type."}
               </p>
             </div>

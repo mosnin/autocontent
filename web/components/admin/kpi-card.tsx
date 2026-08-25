@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  * The dashboard's KPI tile, reused verbatim on the admin surface: a
  * big mono value and a bordered foot line for context or a trailing figure.
  * A "warn" tone paints the value and trail with the semantic warning token
- * (amber) — reserved for out-of-range metrics like failures or suspensions,
+ * (amber) - reserved for out-of-range metrics like failures or suspensions,
  * kept distinct from the brand accent.
  */
 export function AdminKpiCard({

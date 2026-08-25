@@ -16,7 +16,7 @@ const VIDEO_SRC =
 const VIDEO_POSTER =
   "https://images.pexels.com/videos/3015510/free-video-3015510.jpg?auto=compress&cs=tinysrgb&w=1600";
 const MAX_WIDTH = 1440;
-const CAPTION = "Watch the pipeline — produced with marketer.sh";
+const CAPTION = "Watch the work get made, produced with marketer.sh";
 
 const PEEK_VISIBLE = 50;
 const PEEK_WIDTH = 400;

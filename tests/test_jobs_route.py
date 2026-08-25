@@ -219,6 +219,77 @@ def test_enqueue_job_returns_202(monkeypatch):
     assert resp.json()["status"] == "queued"
 
 
+def test_enqueue_job_refuses_when_unbilled_usage_disabled(monkeypatch):
+    """billing off + ALLOW_UNBILLED_USAGE=false must 402 before a row exists."""
+    _reset_limiter()
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    import marketer.repos.jobs as jobs_repo
+
+    created: list[dict] = []
+
+    async def _create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
+        created.append({"user_id": user_id, "niche_id": niche_id, "platform": platform})
+        return _make_job()
+
+    monkeypatch.setattr(jobs_repo, "create", _create)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 402
+    assert "unbilled" in resp.json()["detail"]
+    assert created == []
+
+
+def test_enqueue_job_rate_limited_after_twenty(monkeypatch):
+    """21st generate in a minute is 429 — the public-abuse guard."""
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from types import SimpleNamespace
+
+    async def _create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
+        return _make_job()
+
+    async def _niche_get(niche_id, *, user_id):
+        return SimpleNamespace(id=niche_id, platforms=["tiktok", "reels", "shorts"])
+
+    monkeypatch.setattr(jobs_repo, "create", _create)
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+
+    class _FakeFunction:
+        @staticmethod
+        def from_name(app: str, func: str):
+            return _FakeFunction()
+
+        def spawn(self, *args, **kwargs):
+            pass
+
+    import sys
+    import types
+
+    fake_modal = types.ModuleType("modal")
+    fake_modal.Function = _FakeFunction  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+
+    client = _make_authed_client(monkeypatch)
+    headers = {"Authorization": "Bearer mkt_tok"}
+    body = {"niche_id": str(_NICHE_ID), "platform": "tiktok"}
+    statuses = [
+        client.post("/api/v1/jobs", json=body, headers=headers).status_code
+        for _ in range(21)
+    ]
+    assert statuses[:20] == [202] * 20
+    assert statuses[20] == 429
+
+
 def test_enqueue_job_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()

@@ -94,9 +94,11 @@ async def test_large_change_parks_for_approval_and_does_not_apply(pool):
 
 
 async def test_approval_needed_emails_the_user(pool, monkeypatch):
+    from marketer.config import settings
     from marketer.services import email as email_svc
     from marketer.services import ad_actions_exec as ex
 
+    monkeypatch.setattr(settings, "resend_api_key", "re_test")
     sent: list[str] = []
 
     async def fake_send(*, to, subject, html):

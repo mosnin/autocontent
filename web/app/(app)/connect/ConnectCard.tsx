@@ -24,7 +24,7 @@ export function ConnectCard({
 }) {
   return (
     <Card className="relative isolate overflow-hidden">
-      {/* Cursor-reactive dot field behind the card — the surface feels wired
+      {/* Cursor-reactive dot field behind the card - the surface feels wired
           in, matching the marketing hero's grammar. */}
       <DotGridSpotlight
         activeDotColor="hsl(var(--brand) / 0.5)"

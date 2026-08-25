@@ -1,7 +1,7 @@
 "use client";
 
-// AI SEO audit. The POST is synchronous and routinely takes ~30s — there is
-// no job row to poll — so the whole pending experience lives here: the button
+// AI SEO audit. The POST is synchronous and routinely takes ~30s - there is
+// no job row to poll - so the whole pending experience lives here: the button
 // disables with a spinner, an honest elapsed counter runs, and the form says
 // up front how long it takes. Nothing polls in the background because nothing
 // is in flight in the background.
@@ -55,7 +55,7 @@ function ElapsedNote() {
   }, []);
   return (
     <p className="text-sm text-muted-foreground" aria-live="polite">
-      Fetching and scoring the page — this takes about {EXPECTED_SECONDS} seconds.{" "}
+      Fetching and scoring the page - this takes about {EXPECTED_SECONDS} seconds.{" "}
       <span className="font-mono tabular-nums">{seconds}s</span> elapsed. Keep this
       tab open.
     </p>
@@ -72,7 +72,7 @@ function NotConfiguredCard({ message }: { message: string }) {
           <p className="text-sm text-muted-foreground">
             {message} Auditing needs the page-fetch vendor configured on this
             deployment. Nothing is wrong with your account, and no audit was
-            charged — this surface will start working as soon as it is enabled.
+            charged - this surface will start working as soon as it is enabled.
           </p>
         </div>
       </CardContent>
@@ -112,7 +112,7 @@ export function SeoAuditClient({ initial }: { initial: SeoAuditSummary[] }) {
       toast.success(
         stored.cached
           ? "Served from your recent audit of this URL"
-          : `Scored ${stored.score.toFixed(1)} — ${stored.band}`,
+          : `Scored ${stored.score.toFixed(1)} - ${stored.band}`,
       );
     } catch (err) {
       const message = auditErrorMessage(err);
@@ -156,7 +156,7 @@ export function SeoAuditClient({ initial }: { initial: SeoAuditSummary[] }) {
         <CardHeader>
           <CardTitle className="text-base font-semibold">Audit a page</CardTitle>
           <CardDescription>
-            One page at a time — enter the exact URL you want scored, not just the
+            One page at a time - enter the exact URL you want scored, not just the
             domain.
           </CardDescription>
         </CardHeader>
@@ -207,7 +207,7 @@ export function SeoAuditClient({ initial }: { initial: SeoAuditSummary[] }) {
               <ElapsedNote />
             ) : (
               <p className="text-sm text-muted-foreground">
-                Runs in the foreground and takes about {EXPECTED_SECONDS} seconds —
+                Runs in the foreground and takes about {EXPECTED_SECONDS} seconds -
                 the page is fetched twice (rendered HTML and markdown) and every
                 rule is scored before you get a result.
               </p>
@@ -241,7 +241,7 @@ export function SeoAuditClient({ initial }: { initial: SeoAuditSummary[] }) {
             <CardContent className="flex flex-col items-center justify-center gap-2 py-12 text-center">
               <h3 className="text-base font-semibold">No audits yet</h3>
               <p className="max-w-sm text-sm text-muted-foreground">
-                Score your highest-intent page first — pricing, a product page, or
+                Score your highest-intent page first - pricing, a product page, or
                 the post you most want cited.
               </p>
             </CardContent>

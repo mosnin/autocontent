@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * A clip generated on the platform — a video ad, a UGC piece, a micro-drama
+ * A clip generated on the platform - a video ad, a UGC piece, a micro-drama
  * episode, a motion-graphics render.
  *
  * The only client component in the showcase, because the behaviour has to
@@ -10,7 +10,7 @@
  *   - it plays muted, looping, inline, and only while it is on screen, so a
  *     page of clips never decodes eight videos at once;
  *   - `prefers-reduced-motion: reduce` switches autoplay off entirely and
- *     leaves the poster frame up — the media query is watched live, so
+ *     leaves the poster frame up - the media query is watched live, so
  *     changing the OS setting takes effect without a reload;
  *   - there is a real, keyboard-reachable Pause/Play button with a text
  *     label, not a hover-only affordance. A viewer who pauses stays paused,
@@ -47,7 +47,7 @@ export function ShowcaseVideo({
   src?: string | null;
   /** Public URL of the poster frame. Always ship one alongside `src`. */
   poster?: string | null;
-  /** Required. What the clip shows — the player's accessible name. */
+  /** Required. What the clip shows - the player's accessible name. */
   alt: string;
   aspect: ShowcaseAspect;
   kind?: ShowcaseKind;

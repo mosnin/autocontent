@@ -9,7 +9,12 @@ export const dynamic = "force-dynamic";
 // skip the banner entirely (return null).
 async function fetchAyrshareConnected(): Promise<boolean | null> {
   try {
-    const res = await api<{ connected: boolean }>("/api/v1/connect/ayrshare/status");
+    const res = await api<{ connected: boolean; configured?: boolean }>(
+      "/api/v1/connect/ayrshare/status",
+    );
+    // No API key → publishing is dark. Don't show a "connect" banner
+    // that implies the operator can turn socials on from the app.
+    if (res?.configured === false) return null;
     return Boolean(res?.connected);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

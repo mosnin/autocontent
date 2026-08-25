@@ -4,7 +4,7 @@ import { Body, Card, CardGrid, Chip, Title } from "@/components/site/sections";
 
 export interface Spec {
   name: string;
-  /** Mono chips naming the declared capability — durations, ratios, tiers. */
+  /** Mono chips naming the declared capability - durations, ratios, tiers. */
   chips?: string[];
   copy: string;
 }

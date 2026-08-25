@@ -17,10 +17,10 @@ const DESCRIPTION =
   "One platform, four surfaces: the marketer.sh REST API, Python SDK, CLI, and MCP server. Authenticate with personal access tokens and let agents enqueue real work.";
 
 export const metadata: Metadata = {
-  title: "API, SDK, CLI & MCP — marketer.sh",
+  title: "API, SDK, CLI & MCP · marketer.sh",
   description: DESCRIPTION,
   openGraph: {
-    title: "API, SDK, CLI & MCP — marketer.sh",
+    title: "API, SDK, CLI & MCP · marketer.sh",
     description: DESCRIPTION,
     type: "website",
   },
@@ -74,7 +74,7 @@ export default function ApiPage() {
             <TaggedPlaceholder
               className="h-full w-full"
               kind="illustration"
-              label="Agent surfaces — API, SDK, CLI, MCP map"
+              label="Agent surfaces - API, SDK, CLI, MCP map"
               tone="slate"
             />
           </div>

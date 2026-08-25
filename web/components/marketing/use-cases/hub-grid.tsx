@@ -66,7 +66,7 @@ const CASES: Array<{
     promise: "Daily shorts without the editing days.",
     scene: "dusk",
     vignette: (
-      <CardPlaceholder label="Creators workflow — screenshot" tone="warm" />
+      <CardPlaceholder label="Creators workflow - screenshot" tone="warm" />
     ),
   },
   {
@@ -75,7 +75,7 @@ const CASES: Array<{
     promise: "Every product line becomes a content engine.",
     scene: "warm",
     vignette: (
-      <CardPlaceholder label="Ecommerce workflow — screenshot" tone="rose" />
+      <CardPlaceholder label="Ecommerce workflow - screenshot" tone="rose" />
     ),
   },
   {
@@ -83,7 +83,7 @@ const CASES: Array<{
     title: "SaaS",
     promise: "Shorts that teach, articles that convert.",
     scene: "sky",
-    vignette: <CardPlaceholder label="SaaS workflow — screenshot" tone="sky" />,
+    vignette: <CardPlaceholder label="SaaS workflow - screenshot" tone="sky" />,
   },
   {
     href: "/use-cases/agencies",
@@ -91,7 +91,7 @@ const CASES: Array<{
     promise: "Every client on its own budget and gate.",
     scene: "pearl",
     vignette: (
-      <CardPlaceholder label="Agencies workflow — screenshot" tone="violet" />
+      <CardPlaceholder label="Agencies workflow - screenshot" tone="violet" />
     ),
   },
   {
@@ -101,7 +101,7 @@ const CASES: Array<{
     scene: "dawn",
     vignette: (
       <CardPlaceholder
-        label="Local business workflow — screenshot"
+        label="Local business workflow - screenshot"
         tone="slate"
       />
     ),
@@ -112,7 +112,7 @@ const CASES: Array<{
     promise: "Your agents are the marketing team.",
     scene: "mist",
     vignette: (
-      <CardPlaceholder label="AI agents workflow — screenshot" tone="warm" />
+      <CardPlaceholder label="AI agents workflow - screenshot" tone="warm" />
     ),
   },
 ];
@@ -120,7 +120,7 @@ const CASES: Array<{
 /**
  * The hub's six cards, one per audience: a product vignette staged on
  * that audience's scene wash, the audience name, and its one-line
- * promise (Amendment 2 card language — no decorative icons).
+ * promise (Amendment 2 card language - no decorative icons).
  */
 export function HubGrid() {
   return (

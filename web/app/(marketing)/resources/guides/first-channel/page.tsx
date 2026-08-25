@@ -19,7 +19,7 @@ const DESCRIPTION =
 const URL = "https://marketer.sh/resources/guides/first-channel";
 
 export const metadata: Metadata = {
-  title: `${TITLE} — marketer.sh`,
+  title: `${TITLE} · marketer.sh`,
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION, type: "article" },
   alternates: { canonical: URL },
@@ -64,7 +64,7 @@ const SECTIONS: GuideSection[] = [
           hundred, and rank them by what actually performed.
         </GuideP>
         <div className="os-mt-24">
-          <MediaCard kind="illustration" label="Guide diagram — niche framing" ratio="16/9" />
+          <MediaCard kind="illustration" label="Guide diagram - niche framing" ratio="16/9" />
         </div>
       </>
     ),

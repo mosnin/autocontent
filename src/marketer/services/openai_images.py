@@ -71,6 +71,9 @@ async def _call_api(
     size: str,
     reference_image_path: Path | None,
 ):
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     client = _get_client()
     if reference_image_path is not None:
         with reference_image_path.open("rb") as fp:
@@ -102,6 +105,9 @@ async def generate_keyframe(
 ) -> Path:
     """Generate one keyframe; if `reference_image_path` is provided, pass
     it as an input so the model preserves the established look."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(image_cost(quality, size=size))
     try:
@@ -153,6 +159,9 @@ async def generate_remix(
     """Template remix: regenerate the template's aesthetic around the
     user's product. All references (template look + product shot) go to
     gpt-image-1 edit together; the prompt is the template's own."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(image_cost(quality, size=size))
 
@@ -182,6 +191,9 @@ async def generate_remix(
     retry=retry_if_exception(is_transient_openai_error),
 )
 async def _call_remix_api(prompt: str, *, files: list, quality: str, size: str):
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     client = _get_client()
     return await client.images.edit(
         model=SKU,

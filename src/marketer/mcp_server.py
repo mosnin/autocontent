@@ -118,6 +118,62 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
         async with _client() as c:
             return _dump(await c.retry_job(job_id))
 
+    @mcp.tool(description=(
+        "Approve an awaiting_approval job so it schedules to socials. "
+        "Does not re-render. Confirm with the user before posting."
+    ))
+    async def approve_job(job_id: str) -> str:
+        async with _client() as c:
+            return _dump(await c.approve_job(job_id))
+
+    @mcp.tool(description=(
+        "Reject an awaiting_approval job. The video stays in the library "
+        "but never posts. Confirm with the user."
+    ))
+    async def reject_job(job_id: str) -> str:
+        async with _client() as c:
+            return _dump(await c.reject_job(job_id))
+
+    @mcp.tool(description=(
+        "Read prepaid credit balance, whether billing is enabled, and recent "
+        "credit transactions. Cheap, read-only."
+    ))
+    async def billing_balance() -> str:
+        async with _client() as c:
+            return json.dumps(await c.billing_balance(), indent=2, default=str)
+
+    @mcp.tool(description=(
+        "Start Stripe Checkout for a credit pack (starter=$5, creator=$20, "
+        "studio=$50). Returns a URL the user must open. Confirm the pack first."
+    ))
+    async def billing_checkout(pack: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.billing_checkout(pack), indent=2)
+
+    @mcp.tool(description=(
+        "List content campaigns (video/article/image lanes on a budget). "
+        "Cheap, read-only."
+    ))
+    async def list_campaigns() -> str:
+        async with _client() as c:
+            return json.dumps(await c.list_campaigns(), indent=2, default=str)
+
+    @mcp.tool(description=(
+        "List media-library assets (finals, clips, keyframes). Cheap, read-only."
+    ))
+    async def list_library(kind: str | None = None, limit: int = 50) -> str:
+        async with _client() as c:
+            return json.dumps(
+                await c.list_library(kind=kind, limit=limit), indent=2, default=str
+            )
+
+    @mcp.tool(description=(
+        "Failures inbox across jobs, articles, and image posts. Cheap, read-only."
+    ))
+    async def list_failures() -> str:
+        async with _client() as c:
+            return json.dumps(await c.list_failures(), indent=2, default=str)
+
     # ------------------------------------------------------------- articles
 
     @mcp.tool(description=(
@@ -361,6 +417,68 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
     async def today_spend() -> str:
         async with _client() as c:
             return _dump(await c.today_spend())
+
+    @mcp.tool(description=(
+        "Per-day spend history for the last N days (1-90). Cheap, read-only. "
+        "Optional niche_id narrows the ledger."
+    ))
+    async def spend_history(days: int = 30, niche_id: str | None = None) -> str:
+        async with _client() as c:
+            return _dump(await c.spend_history(days=days, niche_id=niche_id))
+
+    @mcp.tool(description=(
+        "Fetch one content campaign by UUID. Cheap, read-only."
+    ))
+    async def get_campaign(campaign_id: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.get_campaign(campaign_id), indent=2, default=str)
+
+    @mcp.tool(description=(
+        "Create a content campaign (video/article/image lanes). Cheap until "
+        "start_campaign is called. Confirm the budget with the user first."
+    ))
+    async def create_campaign(name: str, budget_usd: str, objective: str = "") -> str:
+        async with _client() as c:
+            return json.dumps(
+                await c.create_campaign(
+                    name=name, budget_usd=budget_usd, objective=objective
+                ),
+                indent=2,
+                default=str,
+            )
+
+    @mcp.tool(description=(
+        "Start a content campaign so the hourly runner can spawn work. "
+        "Confirm with the user — this will spend prepaid credit."
+    ))
+    async def start_campaign(campaign_id: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.start_campaign(campaign_id), indent=2, default=str)
+
+    @mcp.tool(description=(
+        "Pause a running content campaign. In-flight jobs finish; no new "
+        "spawns until start_campaign."
+    ))
+    async def pause_campaign(campaign_id: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.pause_campaign(campaign_id), indent=2, default=str)
+
+    @mcp.tool(description=(
+        "Replay a failed job, article, or image-post from the inbox. "
+        "Same cost as the original generate — confirm with the user."
+    ))
+    async def replay_failure(kind: str, item_id: str) -> str:
+        async with _client() as c:
+            return json.dumps(
+                await c.replay_failure(kind, item_id), indent=2, default=str
+            )
+
+    @mcp.tool(description=(
+        "Post metrics (views/likes) for a published job. Cheap, read-only."
+    ))
+    async def job_metrics(job_id: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.job_metrics(job_id), indent=2, default=str)
 
     # ------------------------------------------------------------- connect
 

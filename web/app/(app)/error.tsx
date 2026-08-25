@@ -18,7 +18,7 @@ export default function AppError({ error, reset }: ErrorProps) {
           <CardTitle>Something went wrong</CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          {/* Never render error.message here — it can leak internals. */}
+          {/* Never render error.message here - it can leak internals. */}
           <p className="text-sm text-muted-foreground">
             An unexpected error occurred. Please try again.
           </p>
