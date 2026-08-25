@@ -42,6 +42,7 @@ export function FeatureHero({
   titleText,
   lede,
   variant: _variant = "sky",
+  highlight: _highlight,
   illustration,
   primary = { label: "Start creating", href: "/sign-up" },
   secondary = { label: "See pricing", href: "/pricing" },
@@ -52,6 +53,8 @@ export function FeatureHero({
   titleText?: string;
   lede: React.ReactNode;
   variant?: "sky" | "pearl" | "mist";
+  /** Inner-page kit compatibility; unused on the Cortex canvas. */
+  highlight?: string;
   illustration?: React.ReactNode;
   primary?: { label: string; href: string };
   secondary?: { label: string; href: string };

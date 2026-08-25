@@ -7,7 +7,7 @@ import { IntroDone } from "@/components/marketing/intro-done";
 import { Logo } from "@/components/marketing/nav/logo";
 import { SkipToContent } from "@/components/marketing/skip-to-content";
 import { ThemeSwitch } from "@/components/marketing/theme-switch";
-import { SidebarProvider } from "@/components/square/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { SquareSidebar } from "@/components/square/sidebar";
 import { SquareHeader } from "@/components/square/header";
 
@@ -53,7 +53,7 @@ export function SiteShell({
         <div className="lg:border lg:rounded-md overflow-hidden flex flex-col h-full w-full bg-background">
           <SquareHeader />
           <main className="w-full flex-1 overflow-auto">
-            <div className="mx-auto w-full max-w-[1440px] px-4 py-8 md:px-6">
+            <div className="mx-auto w-full max-w-[1600px] px-5 pb-16 pt-10 md:px-10">
               {children}
             </div>
           </main>

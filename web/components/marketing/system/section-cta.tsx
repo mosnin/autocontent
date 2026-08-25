@@ -16,6 +16,7 @@ import { CtaPill } from "./cta-pill";
 export function SectionCta({
   kicker: _kicker = "Get started",
   headline = "Put your marketing on autopilot.",
+  highlight: _highlight,
   sub = "Describe your brand once. Review what ships. Keep every dollar under a cap you set.",
   primaryLabel = "Start creating",
   primaryHref = "/sign-up",
@@ -25,6 +26,8 @@ export function SectionCta({
 }: {
   kicker?: string;
   headline?: string;
+  /** Kept for call sites from the inner-page kit; unused visually. */
+  highlight?: string;
   sub?: string;
   primaryLabel?: string;
   primaryHref?: string;

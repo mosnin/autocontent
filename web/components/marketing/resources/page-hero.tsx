@@ -37,6 +37,7 @@ export function PageHero({
   headline,
   sub,
   variant: _variant = "sky",
+  highlight: _highlight,
   size = "lg",
   children,
   className,
@@ -45,6 +46,8 @@ export function PageHero({
   headline: string;
   sub?: string;
   variant?: "sky" | "pearl" | "mist";
+  /** Inner-page kit compatibility; unused on the Cortex canvas. */
+  highlight?: string;
   size?: "xl" | "lg";
   children?: React.ReactNode;
   className?: string;
