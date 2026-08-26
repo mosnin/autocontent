@@ -186,6 +186,38 @@ async def test_log_trips_abort_when_credit_crosses_zero(monkeypatch):
     assert e2.value.scope == "credits"
 
 
+def test_checkout_403_when_billing_flag_off(client, monkeypatch):
+    """Env billing can be on while the admin kill-switch still blocks Stripe."""
+    import stripe as stripe_mod
+
+    from marketer.config import settings
+    from marketer.repos import feature_flags as flags_repo
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+    monkeypatch.setattr(settings, "stripe_secret_key", "sk_test_x")
+
+    async def _denied(key):
+        assert key == "billing"
+        return False
+
+    created: list[dict] = []
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(
+        stripe_mod.checkout.Session,
+        "create",
+        staticmethod(lambda **kw: created.append(kw)),
+    )
+    resp = client.post(
+        "/api/v1/billing/checkout",
+        json={"pack": "starter"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 403
+    assert "billing" in resp.json()["detail"]
+    assert created == []
+
+
 def test_checkout_503_when_disabled(client, monkeypatch):
     from marketer.config import settings
 

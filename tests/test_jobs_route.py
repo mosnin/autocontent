@@ -219,6 +219,52 @@ def test_enqueue_job_returns_202(monkeypatch):
     assert resp.json()["status"] == "queued"
 
 
+def test_enqueue_job_403_when_generate_flag_off(monkeypatch):
+    """Admin generate kill-switch must 403 before a job row or Modal spawn."""
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.jobs as jobs_repo
+
+    created: list[dict] = []
+    spawned: list[tuple] = []
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    async def _create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
+        created.append({"user_id": user_id, "niche_id": niche_id, "platform": platform})
+        return _make_job()
+
+    class _FakeFunction:
+        @staticmethod
+        def from_name(app: str, func: str):
+            return _FakeFunction()
+
+        def spawn(self, *args, **kwargs):
+            spawned.append(args)
+
+    import sys
+    import types
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(jobs_repo, "create", _create)
+    fake_modal = types.ModuleType("modal")
+    fake_modal.Function = _FakeFunction  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 403
+    assert "generate" in resp.json()["detail"]
+    assert created == []
+    assert spawned == []
+
+
 def test_enqueue_job_refuses_when_unbilled_usage_disabled(monkeypatch):
     """billing off + ALLOW_UNBILLED_USAGE=false must 402 before a row exists."""
     _reset_limiter()
@@ -309,6 +355,75 @@ def test_enqueue_job_without_auth_returns_401(monkeypatch):
 # ---------------------------------------------------------------------------
 # POST /{id}/retry — retry a failed job
 # ---------------------------------------------------------------------------
+
+def test_retry_job_403_when_generate_flag_off(monkeypatch):
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.jobs as jobs_repo
+
+    resets: list[UUID] = []
+
+    async def _denied(key):
+        return key != "generate"
+
+    async def _reset(job_id: UUID, *, user_id: str) -> Job | None:
+        resets.append(job_id)
+        return _make_job()
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(jobs_repo, "reset_for_retry", _reset)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/retry",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 403
+    assert resets == []
+
+
+def test_approve_job_403_when_publish_flag_off(monkeypatch):
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.jobs as jobs_repo
+
+    claims: list[UUID] = []
+    spawned: list[tuple] = []
+
+    async def _denied(key):
+        assert key == "publish"
+        return False
+
+    async def _claim(job_id: UUID, *, user_id: str) -> Job | None:
+        claims.append(job_id)
+        return _make_job(status=JobStatus.awaiting_approval)
+
+    class _FakeFunction:
+        @staticmethod
+        def from_name(app: str, func: str):
+            return _FakeFunction()
+
+        def spawn(self, *args, **kwargs):
+            spawned.append(args)
+
+    import sys
+    import types
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(jobs_repo, "claim_for_scheduling", _claim)
+    fake_modal = types.ModuleType("modal")
+    fake_modal.Function = _FakeFunction  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/approve",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 403
+    assert "publish" in resp.json()["detail"]
+    assert claims == []
+    assert spawned == []
+
 
 def test_retry_failed_job_returns_202(monkeypatch):
     """Retry a failed job → 202 with queued status."""

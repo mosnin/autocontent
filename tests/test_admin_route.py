@@ -145,6 +145,64 @@ def test_cannot_suspend_self(monkeypatch):
     assert resp.status_code == 400
 
 
+def test_non_admin_cannot_set_feature_flags(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch, role="user")
+    resp = client.put(
+        "/api/v1/admin/flags/generate",
+        json={"enabled": False, "description": "halt spend"},
+        headers=_H,
+    )
+    assert resp.status_code == 403
+
+
+def test_upsert_flag_audits_and_returns_row(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    from marketer.repos import feature_flags as flags_repo
+    from marketer.repos.feature_flags import FeatureFlag
+
+    now = datetime.now(timezone.utc)
+    upserts: list[dict] = []
+
+    async def _upsert(key, *, enabled, description, updated_by):
+        upserts.append({
+            "key": key, "enabled": enabled,
+            "description": description, "updated_by": updated_by,
+        })
+        return FeatureFlag(
+            key=key, enabled=enabled, description=description,
+            updated_by=updated_by, updated_at=now, created_at=now,
+        )
+
+    monkeypatch.setattr(flags_repo, "upsert", _upsert)
+    resp = client.put(
+        "/api/v1/admin/flags/publish",
+        json={"enabled": False, "description": "halt posting"},
+        headers=_H,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["key"] == "publish"
+    assert resp.json()["enabled"] is False
+    assert upserts == [{
+        "key": "publish", "enabled": False,
+        "description": "halt posting", "updated_by": _ADMIN_ID,
+    }]
+    entry = next(r for r in client._recorded if r["action"] == "flag.set")
+    assert entry["target_id"] == "publish"
+    assert entry["metadata"]["enabled"] is False
+
+
+def test_upsert_flag_rejects_oversized_key(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    resp = client.put(
+        f"/api/v1/admin/flags/{'x' * 101}",
+        json={"enabled": True}, headers=_H,
+    )
+    assert resp.status_code == 422
+
+
 def test_grant_credits_rejects_nonpositive(monkeypatch):
     _reset_limiter()
     client = _make_client(monkeypatch)

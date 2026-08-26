@@ -43,3 +43,37 @@ async def test_refuse_if_flag_off_403(monkeypatch):
         assert exc.status_code == 403
     else:
         raise AssertionError("expected 403")
+
+
+async def test_allowed_true_when_explicitly_enabled(monkeypatch):
+    class _Pool:
+        async def fetchval(self, sql, *args):
+            return True
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(flags_repo, "get_pool", _pool)
+    assert await flags_repo.allowed("generate") is True
+
+
+async def test_allowed_fail_open_when_pool_raises(monkeypatch):
+    """A missing table / unreachable DB must not freeze generate or publish."""
+
+    async def _pool():
+        raise RuntimeError("no pool")
+
+    monkeypatch.setattr(flags_repo, "get_pool", _pool)
+    assert await flags_repo.allowed("publish") is True
+
+
+async def test_allowed_fail_open_when_fetch_raises(monkeypatch):
+    class _Pool:
+        async def fetchval(self, sql, *args):
+            raise RuntimeError("relation feature_flags does not exist")
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(flags_repo, "get_pool", _pool)
+    assert await flags_repo.allowed("generate") is True
