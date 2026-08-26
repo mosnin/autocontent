@@ -182,6 +182,13 @@ async def run_campaign_tick(
             niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
                 continue
+            from ..repos import image_posts as image_posts_repo
+
+            # Same contract as video: parked (awaiting_approval) and
+            # in-flight posts block the next cadence tick so we do not
+            # re-spend while the previous carousel is still live.
+            if await image_posts_repo.has_active_for_niche(niche.id):
+                continue
             await spawn_image(uid, niche.id, campaign.id)
             projected += est
             spawned.append(f"image:{niche.id}")
@@ -190,6 +197,10 @@ async def run_campaign_tick(
                 continue
             niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
+                continue
+            from ..repos import articles as articles_repo
+
+            if await articles_repo.has_active_for_niche(niche.id):
                 continue
             await spawn_article(uid, niche.id, campaign.id)
             projected += est
