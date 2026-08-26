@@ -425,6 +425,60 @@ def test_retry_image_post_is_scoped_to_caller(monkeypatch):
     assert calls == [_USER_ID]
 
 
+def test_enqueue_image_post_403_when_generate_flag_off(monkeypatch):
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.image_posts as image_posts_repo
+
+    created: list[dict] = []
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    async def _create(**kwargs):
+        created.append(kwargs)
+        return {"id": str(uuid4()), "status": "queued"}
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(image_posts_repo, "create", _create)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/image-posts",
+        json={"niche_id": str(uuid4()), "kind": "carousel", "topic": "x"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 403
+    assert created == []
+
+
+def test_approve_image_post_403_when_publish_flag_off(monkeypatch):
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.image_posts as image_posts_repo
+
+    claims: list = []
+
+    async def _denied(key):
+        assert key == "publish"
+        return False
+
+    async def _claim(image_post_id, *, user_id):
+        claims.append((image_post_id, user_id))
+        return True
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(image_posts_repo, "claim_for_scheduling", _claim)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/image-posts/{uuid4()}/approve",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 403
+    assert "publish" in resp.json()["detail"]
+    assert claims == []
+
+
 def test_approve_image_post_is_scoped_to_caller(monkeypatch):
     _reset_limiter()
     import marketer.repos.image_posts as image_posts_repo

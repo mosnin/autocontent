@@ -172,6 +172,53 @@ def test_iso_utc_handles_naive_and_aware():
     ) == "2026-05-17T09:00:00Z"
 
 
+async def test_schedule_post_refuses_when_publish_flag_off(
+    tmp_path: Path, patch_async_client, stub_user_lookup, monkeypatch
+):
+    """Kill-switch must not create an Ayrshare post after the media upload."""
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        assert key == "publish"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    video = tmp_path / "final.mp4"
+    video.write_bytes(b"\x00" * 64)
+    captured: dict = {}
+    patch_async_client(_make_transport(captured=captured))
+    with pytest.raises(scheduler.AyrshareRejected, match="publish"):
+        await scheduler.schedule_post(
+            video_path=video, caption="x", hashtags=[], platform="tiktok",
+            scheduled_for=datetime(2026, 5, 17, 16, 0, tzinfo=timezone.utc),
+            user_id="user_abc",
+        )
+    assert "post_body" not in captured
+    assert "upload_request" in captured
+
+
+async def test_schedule_image_post_refuses_when_publish_flag_off(
+    tmp_path: Path, patch_async_client, stub_user_lookup, monkeypatch
+):
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        return key != "publish"
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    image = tmp_path / "slide.png"
+    image.write_bytes(b"\x89PNG" + b"\x00" * 32)
+    captured: dict = {}
+    patch_async_client(_make_transport(captured=captured))
+    with pytest.raises(scheduler.AyrshareRejected, match="publish"):
+        await scheduler.schedule_image_post(
+            image_paths=[image], caption="x", hashtags=[], platform="reels",
+            scheduled_for=datetime(2026, 5, 17, 16, 0, tzinfo=timezone.utc),
+            user_id="user_abc",
+        )
+    assert "post_body" not in captured
+
+
 async def test_schedule_post_sends_idempotency_key(
     tmp_path: Path, patch_async_client, stub_user_lookup
 ):

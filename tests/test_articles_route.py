@@ -155,6 +155,38 @@ def test_enqueue_article_202_and_spawns_with_article_id(monkeypatch):
     assert spawned == [(_USER_ID, str(_NICHE_ID), str(_ARTICLE_ID), "test topic")]
 
 
+def test_enqueue_article_403_when_generate_flag_off(monkeypatch):
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.articles as articles_repo
+
+    created: list[dict] = []
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    async def _create(*, user_id, niche_id, topic=""):
+        created.append({"user_id": user_id, "niche_id": niche_id, "topic": topic})
+        return _make_article()
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(articles_repo, "create", _create)
+    spawned: list[tuple] = []
+    _stub_modal(monkeypatch, spawned)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/articles",
+        json={"niche_id": str(_NICHE_ID), "topic": "should not run"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 403
+    assert "generate" in resp.json()["detail"]
+    assert created == []
+    assert spawned == []
+
+
 def test_enqueue_article_refuses_when_unbilled_usage_disabled(monkeypatch):
     """billing off + ALLOW_UNBILLED_USAGE=false must 402 before a row exists."""
     _reset_limiter()

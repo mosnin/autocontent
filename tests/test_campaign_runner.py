@@ -206,6 +206,30 @@ async def test_disabled_lane_skipped(env):
     assert env["videos"] == []
 
 
+async def test_tick_skips_when_generate_flag_disabled(monkeypatch, env):
+    """Admin kill-switch must stop campaign cron before any paid spawn."""
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    vid_niche = uuid4()
+    env["niches"][vid_niche] = _niche(vid_niche)
+    env["items"] = [
+        CampaignItem(
+            id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+            kind="video", ref_id=vid_niche, cadence_per_week=7,
+        ),
+    ]
+    result = await _tick(env)
+    assert result["action"] == "skipped"
+    assert "generate" in result["reason"]
+    assert env["videos"] == [] and env["articles"] == []
+    assert env["status_calls"] == []
+
+
 async def test_tick_skips_when_unbilled_usage_disabled(monkeypatch, env):
     """Cron must not spawn paid work when billing is off and unbilled is refused."""
     from marketer.config import settings
