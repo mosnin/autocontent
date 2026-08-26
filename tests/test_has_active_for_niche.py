@@ -38,6 +38,49 @@ async def test_has_active_sql_blocks_awaiting_approval_without_age_window(monkey
     assert captured["args"][2] == 45
 
 
+async def test_image_has_active_sql_blocks_non_terminal(monkeypatch):
+    from marketer.repos import image_posts as image_posts_repo
+
+    captured: dict = {}
+
+    class _Pool:
+        async def fetchrow(self, sql, *args):
+            captured["sql"] = sql
+            captured["args"] = args
+            return {"exists": 1}
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(image_posts_repo, "get_pool", _pool)
+    niche_id = uuid4()
+    assert await image_posts_repo.has_active_for_niche(niche_id) is True
+    sql = " ".join(captured["sql"].split())
+    assert "status not in ('done', 'failed')" in sql
+    assert captured["args"][0] == niche_id
+    assert "awaiting_approval" not in image_posts_repo._REAPABLE_STATUSES
+
+
+async def test_article_has_active_sql_blocks_non_terminal(monkeypatch):
+    from marketer.repos import articles as articles_repo
+
+    captured: dict = {}
+
+    class _Pool:
+        async def fetchrow(self, sql, *args):
+            captured["sql"] = sql
+            captured["args"] = args
+            return None
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(articles_repo, "get_pool", _pool)
+    assert await articles_repo.has_active_for_niche(uuid4()) is False
+    sql = " ".join(captured["sql"].split())
+    assert "status not in ('done', 'failed')" in sql
+
+
 async def test_has_active_false_when_no_row(monkeypatch):
     class _Pool:
         async def fetchrow(self, sql, *args):
