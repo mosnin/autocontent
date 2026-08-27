@@ -106,6 +106,7 @@ async def repurpose_to_social(
     metered LLM call (charged to the article's niche daily cap). The article
     must be done and have content."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     from marketer.articles import llm
     from marketer.articles.models import ArticleStatus
     from marketer.repos import niches as niches_repo
