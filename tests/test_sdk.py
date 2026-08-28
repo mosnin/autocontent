@@ -169,6 +169,38 @@ async def test_enqueue_job_posts_body():
     assert captured["body"] == {"niche_id": str(nid), "platform": "reels"}
 
 
+async def test_enqueue_job_surfaces_generate_403():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["method"] = req.method
+        return httpx.Response(403, json={"detail": "generate is disabled"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.enqueue_job(niche_id=uuid4(), platform="tiktok")
+    assert ei.value.status_code == 403
+    assert "generate" in ei.value.message
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/api/v1/jobs")
+
+
+async def test_enqueue_job_surfaces_unbilled_402():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        return httpx.Response(402, json={"detail": "unbilled usage is disabled"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.enqueue_job(niche_id=uuid4(), platform="tiktok")
+    assert ei.value.status_code == 402
+    assert "unbilled" in ei.value.message
+    assert captured["url"].endswith("/api/v1/jobs")
+
+
 async def test_approve_job_posts_to_approve_path():
     captured: dict = {}
 
@@ -376,6 +408,23 @@ async def test_change_ad_budget_pending_approval_passthrough():
     async with _client(handler) as c:
         out = await c.change_ad_budget("c1", "100")
     assert out["status"] == "pending_approval"
+
+
+async def test_change_ad_status_activate_surfaces_402_killswitch():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["body"] = json.loads(req.content)
+        return httpx.Response(402, json={"detail": "account kill-switch is engaged"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.change_ad_status("c1", "active")
+    assert ei.value.status_code == 402
+    assert "kill-switch" in ei.value.message
+    assert captured["url"].endswith("/api/v1/ads/campaigns/c1/status")
+    assert captured["body"] == {"status": "active"}
 
 
 async def test_connect_ad_account_returns_redirect():
