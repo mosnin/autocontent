@@ -7,7 +7,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { AccountAvatar } from "@/components/user-avatar";
 import {
   Clapperboard,
   HelpCircle,
@@ -202,7 +202,7 @@ export function SquareSidebar({
         </SidebarMenu>
 
         <div className="flex items-center justify-between gap-2 rounded-lg border p-3 text-sm w-full bg-background group-data-[collapsible=icon]:hidden">
-          {account ?? <UserButton afterSignOutUrl="/" />}
+          {account ?? <AccountAvatar />}
           <CreditFooterLink />
         </div>
       </SidebarFooter>

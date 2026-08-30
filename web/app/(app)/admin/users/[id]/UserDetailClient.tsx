@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+
+import { UserAvatar } from "@/components/user-avatar";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
@@ -89,19 +91,22 @@ export function UserDetailClient({
 
       {/* header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-            User
-          </p>
-          <h1 className="mt-1 break-all text-2xl font-semibold tracking-tight">
-            {user.email}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <RoleBadge role={user.role} />
-            <AccountStatusBadge user={user} />
-            <span className="font-mono text-xs text-muted-foreground">
-              {user.id}
-            </span>
+        <div className="flex min-w-0 items-start gap-3">
+          <UserAvatar className="mt-1" seed={user.id} size={40} />
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
+              User
+            </p>
+            <h1 className="mt-1 break-all text-2xl font-semibold tracking-tight">
+              {user.email}
+            </h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <RoleBadge role={user.role} />
+              <AccountStatusBadge user={user} />
+              <span className="font-mono text-xs text-muted-foreground">
+                {user.id}
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -151,7 +156,11 @@ export function UserDetailClient({
         <StatCard label="Channels" value={String(data.niche_count)} />
         <StatCard label="Jobs" value={String(data.job_count)} />
         <StatCard label="Articles" value={String(data.article_count)} />
-        <StatCard label="Total spend" value={formatUsd(data.spend_total_usd)} mono />
+        <StatCard
+          label="Total spend"
+          value={formatUsd(data.spend_total_usd)}
+          mono
+        />
         <StatCard
           label="Credit balance"
           value={formatUsd(user.credit_balance_usd)}
@@ -193,7 +202,10 @@ export function UserDetailClient({
                   key={e.id}
                   className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3"
                 >
-                  <Badge variant="outline" className={actionToneClass(e.action)}>
+                  <Badge
+                    variant="outline"
+                    className={actionToneClass(e.action)}
+                  >
                     {humanizeAction(e.action)}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
@@ -329,8 +341,8 @@ function SuspendDialog({
             </p>
             <DialogTitle>Suspend {email}?</DialogTitle>
             <DialogDescription>
-              The user immediately loses access and no new runs will
-              start. You can reinstate them at any time. {AUDIT_NOTE}
+              The user immediately loses access and no new runs will start. You
+              can reinstate them at any time. {AUDIT_NOTE}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -413,7 +425,11 @@ function UnsuspendDialog({
           <DialogButton variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </DialogButton>
-          <DialogButton onClick={onConfirm} disabled={submitting} isLoading={submitting}>
+          <DialogButton
+            onClick={onConfirm}
+            disabled={submitting}
+            isLoading={submitting}
+          >
             Reinstate
           </DialogButton>
         </DialogFooter>
@@ -465,7 +481,8 @@ function RoleDialog({
             Change role
           </p>
           <DialogTitle>
-            {promoting ? "Make" : "Demote"} {email} {promoting ? "an admin" : "to user"}?
+            {promoting ? "Make" : "Demote"} {email}{" "}
+            {promoting ? "an admin" : "to user"}?
           </DialogTitle>
           <DialogDescription>
             {promoting
@@ -482,9 +499,8 @@ function RoleDialog({
               : "border-border bg-muted/40 text-muted-foreground",
           )}
         >
-          Role will change from{" "}
-          <span className="font-mono">{currentRole}</span> to{" "}
-          <span className="font-mono">{nextRole}</span>.
+          Role will change from <span className="font-mono">{currentRole}</span>{" "}
+          to <span className="font-mono">{nextRole}</span>.
         </div>
         <DialogFooter>
           <DialogButton variant="ghost" onClick={() => onOpenChange(false)}>
@@ -531,7 +547,8 @@ function CreditsDialog({
   }, [open]);
 
   const parsed = Number(amount);
-  const validAmount = amount.trim() !== "" && Number.isFinite(parsed) && parsed !== 0;
+  const validAmount =
+    amount.trim() !== "" && Number.isFinite(parsed) && parsed !== 0;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
