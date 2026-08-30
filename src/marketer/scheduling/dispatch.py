@@ -82,6 +82,10 @@ async def publish_variant(
     would put the same post in two queues (theirs and ours) with no way to
     cancel ours without orphaning theirs.
     """
+    from ..repos import feature_flags as flags_repo
+
+    if not await flags_repo.allowed("publish"):
+        raise AyrshareError("feature 'publish' is disabled")
     body: dict = {"post": content, "platforms": [platform]}
     if media_urls:
         body["mediaUrls"] = media_urls
@@ -184,7 +188,16 @@ async def run_due_dispatch(*, now: datetime | None = None, limit: int = DEFAULT_
 
     Safe to run concurrently with itself — that is the whole point of the
     claim in `claim_due`. A pass that claims nothing returns zeros.
+
+    The admin ``publish`` kill-switch is checked *before* claiming so due
+    rows stay ``scheduled`` and go out once the flag is re-enabled.
+    Pipeline approve / ``scheduler.schedule_post`` already honor this flag;
+    this cron is the same outbound door and must too.
     """
+    from ..repos import feature_flags as flags_repo
+
+    if not await flags_repo.allowed("publish"):
+        return {"claimed": 0, "results": [], "reason": "feature 'publish' is disabled"}
     now = now or datetime.now(timezone.utc)
     claimed = await repo.claim_due(now=now, limit=limit)
     results = []
