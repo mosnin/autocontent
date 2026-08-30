@@ -459,6 +459,8 @@ def test_enqueue_image_post_402_when_unbilled_usage_disabled(monkeypatch):
 
 def test_enqueue_image_post_404_on_foreign_niche(monkeypatch):
     _reset_limiter()
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", True)
     import marketer.repos.image_posts as image_posts_repo
     import marketer.repos.niches as niches_repo
 

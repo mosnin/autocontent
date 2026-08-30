@@ -108,15 +108,18 @@ async def test_retry_job_surfaces_generate_kill_switch(monkeypatch, server):
 
 
 async def test_retry_job_surfaces_unbilled_402(monkeypatch, server):
+    job_id = uuid4()
+
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(
             402, json={"detail": "unbilled usage is disabled on this deployment"}
         )
 
-    _install_transport(monkeypatch, handler)
+    requests = _install_transport(monkeypatch, handler)
     with pytest.raises(ToolError, match="402") as ei:
-        await server.call_tool("retry_job", {"job_id": str(uuid4())})
+        await server.call_tool("retry_job", {"job_id": str(job_id)})
     assert "unbilled" in str(ei.value)
+    assert requests[0].url.path == f"/api/v1/jobs/{job_id}/retry"
 
 
 async def test_generate_article_posts_body(monkeypatch, server):
@@ -160,12 +163,13 @@ async def test_generate_article_surfaces_unbilled_402(monkeypatch, server):
             402, json={"detail": "unbilled usage is disabled on this deployment"}
         )
 
-    _install_transport(monkeypatch, handler)
+    requests = _install_transport(monkeypatch, handler)
     with pytest.raises(ToolError, match="402") as ei:
         await server.call_tool(
             "generate_article", {"niche_id": str(uuid4()), "topic": "x"}
         )
     assert "unbilled" in str(ei.value)
+    assert requests[0].url.path == "/api/v1/articles"
 
 
 async def test_retry_article_posts_to_retry_path(monkeypatch, server):
@@ -181,13 +185,29 @@ async def test_retry_article_posts_to_retry_path(monkeypatch, server):
     assert requests[0].url.path == f"/api/v1/articles/{article_id}/retry"
 
 
+async def test_retry_article_surfaces_generate_kill_switch(monkeypatch, server):
+    article_id = uuid4()
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"detail": "feature 'generate' is disabled"})
+
+    requests = _install_transport(monkeypatch, handler)
+    with pytest.raises(ToolError, match="403") as ei:
+        await server.call_tool("retry_article", {"article_id": str(article_id)})
+    assert "generate" in str(ei.value)
+    assert requests[0].url.path == f"/api/v1/articles/{article_id}/retry"
+
+
 async def test_retry_article_surfaces_unbilled_402(monkeypatch, server):
+    article_id = uuid4()
+
     def handler(_: httpx.Request) -> httpx.Response:
         return httpx.Response(
             402, json={"detail": "unbilled usage is disabled on this deployment"}
         )
 
-    _install_transport(monkeypatch, handler)
+    requests = _install_transport(monkeypatch, handler)
     with pytest.raises(ToolError, match="402") as ei:
-        await server.call_tool("retry_article", {"article_id": str(uuid4())})
+        await server.call_tool("retry_article", {"article_id": str(article_id)})
     assert "unbilled" in str(ei.value)
+    assert requests[0].url.path == f"/api/v1/articles/{article_id}/retry"

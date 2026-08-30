@@ -11,6 +11,7 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.routes.gatekeeper import MAX_BULK
 from marketer.config import settings
 from marketer.repos import gatekeeper as repo
 
@@ -118,8 +119,10 @@ def test_decide_foreign_or_missing_is_404(client, monkeypatch):
 
 def test_decide_already_decided_is_409(client, monkeypatch):
     intent_id = uuid4()
+    claims: list[tuple] = []
 
     async def _decide(intent_id_, *, user_id, approved, decided_by):
+        claims.append((intent_id_, user_id, approved, decided_by))
         return None
 
     async def _get(intent_id_, *, user_id):
@@ -135,6 +138,7 @@ def test_decide_already_decided_is_409(client, monkeypatch):
     )
     assert resp.status_code == 409
     assert "already approved" in resp.json()["detail"]
+    assert claims == [(intent_id, USER, False, USER)]
 
 
 def test_decide_pending_returns_row(client, monkeypatch):
@@ -211,7 +215,10 @@ def test_bulk_decide_rejects_more_than_max(client, monkeypatch):
     monkeypatch.setattr(repo, "decide_many", _decide_many)
     resp = client.post(
         "/api/v1/gatekeeper/intents/decide",
-        json={"intent_ids": [str(uuid4()) for _ in range(201)], "approved": True},
+        json={
+            "intent_ids": [str(uuid4()) for _ in range(MAX_BULK + 1)],
+            "approved": True,
+        },
         headers=AUTH,
     )
     assert resp.status_code == 422

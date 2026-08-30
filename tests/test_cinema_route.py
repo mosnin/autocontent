@@ -68,6 +68,7 @@ def test_cinema_routes_require_auth(monkeypatch):
     unauth = TestClient(create_app(), raise_server_exceptions=False)
     saved_id = uuid4()
     assert unauth.get("/api/v1/cinema/presets").status_code == 401
+    assert unauth.get("/api/v1/cinema/saved").status_code == 401
     assert unauth.post("/api/v1/cinema/compose", json={"subject": "x"}).status_code == 401
     assert unauth.post("/api/v1/cinema/saved", json={"name": "x"}).status_code == 401
     assert unauth.delete(f"/api/v1/cinema/saved/{saved_id}").status_code == 401
