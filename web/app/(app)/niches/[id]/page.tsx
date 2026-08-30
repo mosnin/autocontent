@@ -160,7 +160,7 @@ export default async function NichePage({
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
               <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-                Niche
+                Channel
               </p>
               {live && (
                 <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-brand">
@@ -262,9 +262,9 @@ export default async function NichePage({
       <Reveal delay={0.1}>
         <Card>
           <CardHeader>
-            <CardTitle>Recent jobs</CardTitle>
+            <CardTitle>Recent videos</CardTitle>
             <CardDescription>
-              Last 20 pipeline runs for this niche
+              The last 20 runs for this channel
             </CardDescription>
           </CardHeader>
           <CardContent className={hasJobs ? "p-0" : undefined}>

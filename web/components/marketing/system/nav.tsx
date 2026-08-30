@@ -178,7 +178,7 @@ const PANELS: Record<MenuKey, PanelColumn[]> = {
         {
           title: "Quickstart",
           href: "/resources/quickstart",
-          desc: "First video out the door in ten minutes",
+          desc: "First video out the door in your first session",
         },
         {
           title: "API & MCP",
@@ -293,7 +293,7 @@ const BANNER_SEGMENTS = [
   "One brief, every format",
   "Hard caps on every dollar",
   "Your agents ship the campaign",
-  "See what shipped this week",
+  "See what's new",
 ];
 
 function AnnouncementBanner() {

@@ -130,8 +130,8 @@ def test_reject_marks_failed_without_posting(client, monkeypatch):
     async def fake_claim(job_id, *, user_id):
         claimed.append((job_id, user_id))
         j = job.model_copy(deep=True)
-        j.status = JobStatus.failed
-        j.error = "rejected by operator before posting"
+        j.status = JobStatus.rejected
+        j.error = None
         return j
 
     from marketer.repos import jobs as jobs_repo
@@ -142,8 +142,9 @@ def test_reject_marks_failed_without_posting(client, monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 200
-    assert claimed and resp.json()["status"] == JobStatus.failed.value
-    assert "rejected" in (resp.json().get("error") or "")
+    assert claimed and resp.json()["status"] == JobStatus.rejected.value
+    # A rejection is a decision, not an error — the error field stays empty.
+    assert resp.json().get("error") is None
 
 
 async def test_schedule_approved_job_rejects_wrong_status(monkeypatch):

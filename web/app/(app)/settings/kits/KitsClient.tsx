@@ -46,7 +46,7 @@ const KIND_META: Record<KitKind, { title: string; blurb: string; placeholder: st
   writing: {
     title: "Writing kits",
     blurb:
-      "Your voice on the page - sentence rhythm, vocabulary, structures, banned cliches. Injected into the article pipeline's writers and QA.",
+      "Your voice on the page - sentence rhythm, vocabulary, structures, banned cliches. Injected into the article writers and QA.",
     placeholder:
       "Short declarative sentences. One-sentence paragraphs for emphasis.\nConcrete nouns over abstractions. Never use 'delve', 'unlock', 'landscape'.",
   },
@@ -81,7 +81,7 @@ export function KitsClient({ initial }: { initial: Kit[] }) {
         <h1 className="text-2xl font-semibold tracking-tight">Kits</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Reusable skills that ride along with the agents - your operating
-          system on top of the pipeline.
+          system on top of the machine.
         </p>
       </div>
 

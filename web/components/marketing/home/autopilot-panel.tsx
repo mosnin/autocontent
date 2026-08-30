@@ -17,7 +17,7 @@ const CARDS = [
   {
     kicker: "Always on",
     title: "Autopilot runs the channel 24/7",
-    desc: "Give it a niche and a daily cap. It plans, produces, and publishes on schedule, and never spends past the cap.",
+    desc: "Give it a channel and a daily cap. It plans, produces, and publishes on schedule, and never spends past the cap.",
     placeholder: { label: "Autopilot queue - screenshot", tone: "warm" as const },
   },
   {
@@ -41,7 +41,7 @@ const STATS: Array<{
   decimals?: number;
   label: string;
 }> = [
-  { value: 10, suffix: " min", label: "brief to first published short" },
+  { value: 10, label: "pipeline stages from brief to published short" },
   { value: 0, prefix: "$", decimals: 2, label: "ever spent past your cap" },
   { value: 24, suffix: "/7", label: "the pipeline keeps shipping" },
 ];

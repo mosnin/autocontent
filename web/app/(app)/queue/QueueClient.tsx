@@ -81,14 +81,11 @@ import {
 } from "@/components/ui/table";
 import { DashHeading } from "@/components/hub/dashboard-kit";
 import { openCommandPalette } from "@/components/command-palette";
-import {
-  approveJobAction,
-  rejectJobAction,
-  retryJobAction,
-} from "@/lib/actions";
+import { retryJobAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { jobStatusLabel } from "@/lib/status-badge";
 import type { Job, JobStatus } from "@/lib/types";
+import { toastActionError } from "@/lib/errors";
 
 const POLL_MS = 5000;
 
@@ -104,9 +101,9 @@ const IN_PROGRESS = new Set<JobStatus>([
   "scheduling",
 ]);
 
-type Filter = "all" | "awaiting" | "in_progress" | "done" | "failed";
+type Filter = "all" | "awaiting" | "in_progress" | "done" | "failed" | "rejected";
 
-const FILTERS: Filter[] = ["all", "awaiting", "in_progress", "done", "failed"];
+const FILTERS: Filter[] = ["all", "awaiting", "in_progress", "done", "failed", "rejected"];
 
 const FILTER_LABEL: Record<Filter, string> = {
   all: "All statuses",
@@ -114,6 +111,7 @@ const FILTER_LABEL: Record<Filter, string> = {
   in_progress: "In progress",
   done: "Done",
   failed: "Failed",
+  rejected: "Rejected",
 };
 
 function matches(job: Job, filter: Filter): boolean {
@@ -121,6 +119,7 @@ function matches(job: Job, filter: Filter): boolean {
   if (filter === "awaiting") return job.status === "awaiting_approval";
   if (filter === "done") return job.status === "done";
   if (filter === "failed") return job.status === "failed";
+  if (filter === "rejected") return job.status === "rejected";
   if (filter === "in_progress")
     return job.status === "queued" || IN_PROGRESS.has(job.status);
   return true;
@@ -158,7 +157,7 @@ function PlatformIcon({ platform }: { platform: string }) {
 // Campaign does. Same technique as campaigns-table.tsx: Badge
 // variant="outline" plus a tonal bg/text/border class per status.
 function StatusBadge({ status }: { status: JobStatus }) {
-  if (status === "queued" || status === "skipped") {
+  if (status === "queued" || status === "skipped" || status === "rejected") {
     return (
       <Badge variant="outline" className="text-xs font-medium px-2 py-0.5 border text-muted-foreground bg-transparent">
         {jobStatusLabel(status)}
@@ -274,6 +273,7 @@ export function QueueClient({
       in_progress: jobs.filter((j) => matches(j, "in_progress")).length,
       done: jobs.filter((j) => matches(j, "done")).length,
       failed: jobs.filter((j) => matches(j, "failed")).length,
+      rejected: jobs.filter((j) => matches(j, "rejected")).length,
     }),
     [jobs],
   );
@@ -292,38 +292,13 @@ export function QueueClient({
     const res = await retryJobAction({ ok: false }, fd);
 
     if (res.ok) {
-      toast.success("Retry enqueued");
+      toast.success("Retry started");
       // Revalidate to get the real server state.
       void mutate();
     } else {
       // Revert optimistic update.
       void mutate(prevJobs, false);
-      toast.error(res.error ?? "Retry failed");
-    }
-  }
-
-  async function handleApprove(job: Job) {
-    const fd = new FormData();
-    fd.set("job_id", job.id);
-    const res = await approveJobAction({ ok: false }, fd);
-    if (res.ok) {
-      toast.success("Approved - scheduling the post now");
-      void mutate();
-    } else {
-      toast.error(res.error ?? "Approve failed");
-    }
-  }
-
-  async function handleReject(job: Job) {
-    if (!confirm("Reject this video? It will never post.")) return;
-    const fd = new FormData();
-    fd.set("job_id", job.id);
-    const res = await rejectJobAction({ ok: false }, fd);
-    if (res.ok) {
-      toast.success("Rejected - it will not post");
-      void mutate();
-    } else {
-      toast.error(res.error ?? "Reject failed");
+      toastActionError(res.error, "Retry failed");
     }
   }
 
@@ -357,7 +332,7 @@ export function QueueClient({
         accessorFn: (job) => job.script?.idea?.hook ?? job.script?.idea?.topic ?? "",
         header: ({ column }) => (
           <SortableHeader
-            label="Job"
+            label="Video"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />
         ),
@@ -370,11 +345,9 @@ export function QueueClient({
                 href={`/queue/${job.id}`}
                 className="text-sm font-medium truncate hover:underline"
               >
-                {hook ? `"${hook}"` : `Job ${job.id.slice(0, 8)}`}
+                {hook ? `"${hook}"` : "Untitled video"}
               </Link>
-              <code className="font-mono text-xs text-muted-foreground">
-                {job.id.slice(0, 8)}
-              </code>
+
             </div>
           );
         },
@@ -384,7 +357,7 @@ export function QueueClient({
         accessorFn: (job) => nicheTitles[job.niche_id] ?? "",
         header: ({ column }) => (
           <SortableHeader
-            label="Niche"
+            label="Channel"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />
         ),
@@ -441,8 +414,6 @@ export function QueueClient({
           <RowActions
             job={row.original}
             onRetry={handleRetry}
-            onApprove={handleApprove}
-            onReject={handleReject}
           />
         ),
       },
@@ -492,7 +463,7 @@ export function QueueClient({
 
   return (
     <div className="space-y-6">
-      <DashHeading as="h1" sub={`All pipeline runs. Updates every ${POLL_MS / 1000}s.`}>
+      <DashHeading as="h1" sub={`Every video run. Updates every ${POLL_MS / 1000}s.`}>
         Queue
       </DashHeading>
 
@@ -549,7 +520,7 @@ export function QueueClient({
             className="h-8 gap-1.5 ml-auto"
             onClick={() => openCommandPalette()}
           >
-            <span className="hidden sm:inline">New job</span>
+            <span className="hidden sm:inline">New video</span>
             <span className="sm:hidden">New</span>
           </Button>
         </div>
@@ -591,9 +562,20 @@ export function QueueClient({
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                    {filter === "all" && !searchQuery
-                      ? "No jobs yet. Trigger one from the dashboard or via the command palette (⌘K)."
-                      : "No jobs match this filter."}
+                    {filter === "all" && !searchQuery ? (
+                      <>
+                        No videos yet.{" "}
+                        <Link
+                          className="font-medium text-brand underline-offset-2 hover:underline"
+                          href="/dashboard"
+                        >
+                          Run one from the dashboard
+                        </Link>
+                        , or press ⌘K.
+                      </>
+                    ) : (
+                      "No videos match this filter."
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -649,30 +631,11 @@ export function QueueClient({
 function RowActions({
   job,
   onRetry,
-  onApprove,
-  onReject,
 }: {
   job: Job;
   onRetry: (job: Job) => Promise<void>;
-  onApprove: (job: Job) => Promise<void>;
-  onReject: (job: Job) => Promise<void>;
 }) {
   const [retrying, setRetrying] = React.useState(false);
-  const [acting, setActing] = React.useState(false);
-
-  async function handleApproveClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    setActing(true);
-    await onApprove(job);
-    setActing(false);
-  }
-
-  async function handleRejectClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    setActing(true);
-    await onReject(job);
-    setActing(false);
-  }
 
   async function handleRetryClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -689,7 +652,7 @@ function RowActions({
         className="h-7 text-xs"
         onClick={handleRetryClick}
         disabled={retrying}
-        aria-label={`Retry job ${job.id.slice(0, 8)}`}
+        aria-label="Retry video"
       >
         {retrying ? "…" : "Retry"}
       </Button>
@@ -697,28 +660,14 @@ function RowActions({
   }
 
   if (job.status === "awaiting_approval") {
+    // The decision is made where the video plays — the Review Room — never
+    // blind from a table row.
     return (
-      <span className="flex items-center justify-end gap-1.5">
-        <Button
-          aria-label={`Reject job ${job.id.slice(0, 8)}`}
-          disabled={acting}
-          onClick={handleRejectClick}
-          size="sm"
-          variant="ghost"
-          className="h-7 text-xs"
-        >
-          Reject
-        </Button>
-        <Button
-          aria-label={`Approve and post job ${job.id.slice(0, 8)}`}
-          disabled={acting}
-          onClick={handleApproveClick}
-          size="sm"
-          className="h-7 text-xs"
-        >
-          {acting ? "…" : "Approve"}
-        </Button>
-      </span>
+      <Button asChild size="sm" className="h-7 text-xs">
+        <Link href={`/queue/${job.id}`} onClick={(e) => e.stopPropagation()}>
+          Review
+        </Link>
+      </Button>
     );
   }
 

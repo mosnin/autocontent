@@ -31,7 +31,7 @@ export function SpendHistoryChart({ data, days }: Props) {
   if (data.length === 0) {
     return (
       <div className="flex h-48 items-center justify-center text-center text-sm text-muted-foreground">
-        No spend yet in the last {days} days. Run a job to populate this chart.
+        No spend yet in the last {days} days. Run a video to populate this chart.
       </div>
     );
   }

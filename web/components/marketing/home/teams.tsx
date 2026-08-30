@@ -72,7 +72,7 @@ const TEAMS: Team[] = [
     label: "Agencies",
     href: "/use-cases/agencies",
     headline: "Many brands. One pipeline. Per-client caps.",
-    desc: "Every client is a niche with its own brand kit, budget, and approval gate. Your team reviews, the system produces.",
+    desc: "Every client is a channel with its own brand kit, budget, and approval gate. Your team reviews, the system produces.",
     checks: [
       "Isolated brand kits per client",
       "Client-level spend caps and reports",

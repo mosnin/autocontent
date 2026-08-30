@@ -94,6 +94,7 @@ import {
 } from "@/components/calendar/types";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { ArticleStatus, JobStatus } from "@/lib/types";
+import { humanizeStatus } from "@/lib/labels";
 
 // Posting windows move slowly; a 60s refresh keeps the agenda fresh
 // without the aggressive polling the live pipeline views use.
@@ -145,7 +146,7 @@ function itemHref(item: CalendarItem): string {
 
 function statusText(item: CalendarItem): string {
   if (item.kind === "video") return jobStatusLabel(item.status as JobStatus);
-  if (item.kind === "ad") return item.status;
+  if (item.kind === "ad") return humanizeStatus(item.status);
   return articleStatusLabel(item.status as ArticleStatus);
 }
 
@@ -305,7 +306,7 @@ export function CalendarClient({
         id: "niche",
         accessorFn: (item) => nicheTitles[item.niche_id] ?? "",
         header: ({ column }) => (
-          <SortableHeader label="Niche" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} />
+          <SortableHeader label="Channel" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")} />
         ),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground truncate max-w-[200px] inline-block align-middle">
@@ -480,9 +481,19 @@ export function CalendarClient({
               ) : (
                 <TableRow>
                   <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                    {searchQuery
-                      ? "No scheduled posts match this search."
-                      : `Nothing scheduled in the next ${range} days.`}
+                    {searchQuery ? (
+                      "No scheduled posts match this search."
+                    ) : (
+                      <>
+                        Nothing scheduled in the next {range} days.{" "}
+                        <Link
+                          className="font-medium text-brand underline-offset-2 hover:underline"
+                          href="/dashboard"
+                        >
+                          Run a video
+                        </Link>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               )}

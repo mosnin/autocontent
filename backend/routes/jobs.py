@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
@@ -62,12 +63,20 @@ async def enqueue_job(
     # and only fails later, inside the Modal container.
     niche = await niches_repo.get(body.niche_id, user_id=ctx.user_id)
     if niche is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="channel not found")
     if body.platform not in niche.platforms:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"platform {body.platform} not enabled for this niche",
+            detail=f"{body.platform} isn't enabled for this channel",
         )
+
+    # Prepaid-credit gate, up front. Without this a $0-balance user gets a
+    # "queued" job that dies deep in the pipeline on SpendCapExceeded — the
+    # audit's "first five minutes" failure. Refuse at the button instead,
+    # with a message a human can act on (the client offers "Add credit").
+    from marketer.services.run_estimate import refuse_if_credit_short
+
+    await refuse_if_credit_short(ctx.user_id, niche)
 
     job = await jobs_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, platform=body.platform
@@ -175,6 +184,24 @@ async def retry_job(
     await refuse_if_flag_off("generate")
     import modal
 
+    from marketer.config import settings as marketer_settings
+
+    # Credit-gate BEFORE the atomic reset so a refused retry leaves the job
+    # untouched in `failed` (resetting first would strand it in `queued`).
+    # Only fetched when billing is on — self-hosted deploys skip the reads.
+    if marketer_settings.billing_enabled:
+        from marketer.repos import niches as niches_repo
+        from marketer.services.run_estimate import refuse_if_credit_short
+
+        existing = await jobs_repo.get(job_id, user_id=ctx.user_id)
+        # Gate only jobs that are actually retryable — a retry of a
+        # done/queued job must keep returning 409 (below), not 402, or the
+        # client would offer "Add credit" for a job no balance can retry.
+        if existing is not None and existing.status == JobStatus.failed:
+            niche = await niches_repo.get(existing.niche_id, user_id=ctx.user_id)
+            if niche is not None:
+                await refuse_if_credit_short(ctx.user_id, niche)
+
     job = await jobs_repo.reset_for_retry(job_id, user_id=ctx.user_id)
     if job is None:
         raise HTTPException(
@@ -185,3 +212,39 @@ async def retry_job(
     # Reuse the job's own row: the retried id is the id that progresses.
     fn.spawn(ctx.user_id, str(job.niche_id), job.platform, str(job.id))
     return job
+
+
+class JobReceipt(BaseModel):
+    """What one video actually cost: the metered provider spend and the
+    amount charged to the prepaid balance (margin included)."""
+
+    metered_usd: str
+    charged_usd: str | None  # None when billing is disabled (self-hosted)
+    billing_enabled: bool
+
+
+@router.get("/{job_id}/receipt", response_model=JobReceipt)
+async def get_job_receipt(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobReceipt:
+    """The per-video receipt: estimate lives on the client; this is what
+    the run actually consumed once real calls were metered."""
+    from marketer.config import settings as marketer_settings
+    from marketer.repos import spend as spend_repo
+
+    job = await jobs_repo.get(job_id, user_id=ctx.user_id)
+    if job is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    costs = await spend_repo.cost_by_job([job_id], user_id=ctx.user_id)
+    metered = costs.get(job_id) or Decimal("0")
+
+    charged: Decimal | None = None
+    if marketer_settings.billing_enabled:
+        from marketer.repos import billing as billing_repo
+
+        charged = await billing_repo.charged_for_job(ctx.user_id, job_id)
+
+    return JobReceipt(
+        metered_usd=str(metered.quantize(Decimal("0.0001"))),
+        charged_usd=str(charged.quantize(Decimal("0.0001"))) if charged is not None else None,
+        billing_enabled=marketer_settings.billing_enabled,
+    )

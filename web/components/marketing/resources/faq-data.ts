@@ -7,15 +7,15 @@ export type FaqItem = { q: string; a: string };
 export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "How do spend caps work?",
-    a: "You set a daily budget for each channel, and a max for the whole account. Before any job starts, we check the price. If it fits, it runs and the cost comes out of your prepaid credits.",
+    a: "Every channel has a daily budget you set, and your account has a global daily cap on top. Before any render starts, the system estimates its cost and checks both caps. If the estimate fits, the job runs and the actual metered cost is drawn from your prepaid balance.",
   },
   {
     q: "What happens when a cap is hit?",
-    a: "The job stops before any money moves. Nothing is billed. The screen shows which budget stopped it. Work starts again the next day, or when you raise the cap.",
+    a: "The system fails closed. A job that would push a channel past its daily cap, or your account past the global cap, is refused before any money moves. Nothing is billed, nothing renders, and the job shows exactly which cap stopped it. Work resumes when the cap resets or you raise it.",
   },
   {
     q: "Do I have to approve every post?",
-    a: "Only if you want to. New channels start in review mode: drafts wait until you say yes. When you like the work, you can let that channel post on its own. You can switch back to review any time.",
+    a: "Only if you want to. Each channel starts in review-before-post mode: drafts wait in a queue until you approve them. Once you trust the output, you can widen autonomy per channel and let approved formats publish on schedule. You can tighten back to full review at any time.",
   },
   {
     q: "Which platforms can it publish to?",
@@ -35,22 +35,22 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "How do credits and refunds work?",
-    a: "You buy credits through Stripe and they go down as work runs. Credits do not expire. If you have unused credit and want out, write support and we refund what is left from your last purchase.",
+    a: "Credit is prepaid through Stripe and drawn down as work renders, at provider cost plus a flat margin. Credits don't expire. If you have unused balance and want out, contact support within 30 days of purchase and we refund the remainder of your last purchase.",
   },
   {
     q: "How is my data handled?",
-    a: "Your briefs and files stay yours. We do not use them to train models. Every job and every dollar spent is written to a log you can read.",
+    a: "Your briefs, channels, and generated assets stay yours and are not used to train models. Access tokens are hashed at rest and shown only once at creation. Every render, publish, and dollar spent is written to an audit log you can read.",
   },
   {
     q: "Can I bring my own topics?",
-    a: "Yes. The agent can suggest topics, and you can add your own any time. Your topics go through the same checks and budget as the suggested ones.",
+    a: "Yes. Ideation proposes topics from your channel and past performance, but you can add your own at any time, from the dashboard, the API, the CLI, or an agent. Your topics run through the same production, quality checks, and caps as generated ones.",
   },
   {
     q: "How many videos does a pack make?",
-    a: "The $5 pack makes about 8 to 12 videos, the $20 pack about 35 to 50, and the $50 pack about 90 to 125. Length and voice change the count. Articles cost less than videos.",
+    a: "A default-settings short costs about $3 all-in (metered provider cost plus our flat margin - a touch more with generated music on), so the $5 Starter pack renders 1–2 videos, the $20 Creator pack roughly 5–8, and the $50 Scale pack roughly 12–20. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
   },
   {
     q: "Can I run several channels at once?",
-    a: "Yes. Each channel can have its own voice, style, posting times, and daily budget. The account cap covers all of them together.",
+    a: "Yes. Each channel gets its own voice, style, posting windows, and daily cap, and the global cap bounds the total across all of them. The Scale pack is sized for people running several channels in parallel.",
   },
 ];

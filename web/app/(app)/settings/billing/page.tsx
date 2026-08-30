@@ -22,14 +22,14 @@ export default async function BillingPage() {
           Billing
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">
-          Pipeline credits
+          Credits
         </h1>
         {balance ? (
           <p className="mt-1.5 text-sm text-muted-foreground">
             Videos draw down prepaid credit at provider cost plus a{" "}
             {Math.round((balance.margin - 1) * 100)}% infrastructure margin.
             The spend guard refuses any call your balance can&apos;t cover -
-            you can never owe us money.
+            an in-flight call can nudge the balance a few cents below zero, and that's where it stops - there is no invoice, ever.
           </p>
         ) : (
           <p className="mt-1.5 text-sm text-muted-foreground">

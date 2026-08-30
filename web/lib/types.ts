@@ -61,7 +61,8 @@ export type JobStatus =
   | "awaiting_approval"
   | "done"
   | "failed"
-  | "skipped";
+  | "skipped"
+  | "rejected";
 
 export interface Job {
   id: string;
@@ -175,7 +176,6 @@ export const PLATFORMS: Platform[] = ["tiktok", "reels", "shorts"];
 export const QUALITIES: ImageQuality[] = ["low", "medium", "high"];
 export const RESOLUTIONS: VideoResolution[] = ["480p", "720p"];
 
-export const TERMINAL_STATUSES: JobStatus[] = ["done", "failed"];
 
 export function isFailed(j: Job): boolean {
   return j.status === "failed";

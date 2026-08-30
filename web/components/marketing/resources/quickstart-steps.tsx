@@ -9,13 +9,13 @@ const STEPS: Array<{
 }> = [
   {
     title: "Sign up",
-    copy: "Create an account with your email. There is nothing to install and no card required, your workspace is live in under a minute.",
+    copy: "Create an account with your email. There is nothing to install — your workspace is live in under a minute, and you load a $5 credit pack when you're ready to render.",
     shot: "Sign-up screen",
   },
   {
     title: "Describe your channel in one sentence",
-    copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full niche from it: audience, tone, topic pillars, and a starting posting plan.",
-    shot: "Niche brief form",
+    copy: "Write one honest sentence about who you talk to and what you make. The AI drafts the full channel from it: audience, tone, topic pillars, and a starting posting plan.",
+    shot: "Channel brief form",
   },
   {
     title: "Review voice, style, and caps",
@@ -24,12 +24,12 @@ const STEPS: Array<{
   },
   {
     title: "Your first video renders. Approve it",
-    copy: "The pipeline runs end to end: script, on-model keyframes, animation, voiceover, captions, QA. You watch the result and approve or reject with one click.",
+    copy: "The pipeline runs end to end: script, on-model keyframes, animation, voiceover, captions, quality checks. You watch the result and approve or reject with one click.",
     shot: "First-video approval",
   },
   {
     title: "Add articles",
-    copy: "Turn on the SEO pipeline for the same niche. It researches the SERP, outlines, writes sections in parallel, then ships metadata, JSON-LD, and a hero image with every draft.",
+    copy: "Turn on SEO articles for the same channel. It researches the SERP, outlines, writes sections in parallel, then ships metadata, JSON-LD, and a hero image with every draft.",
     shot: "Article pipeline toggle",
   },
   {

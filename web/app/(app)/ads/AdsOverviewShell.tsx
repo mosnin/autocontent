@@ -16,6 +16,13 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
 
   return (
     <div className="space-y-10">
+      {ov && ov.ads_enabled === false && (
+        <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          Ads isn&apos;t enabled on this workspace yet — you can look around,
+          but connecting an ad account is off until an administrator turns it
+          on.
+        </div>
+      )}
       <DashHeading
         as="h1"
         sub="Create and mark campaigns active across Google and Meta - driven by agents, governed by hard budget guardrails. Live on platform requires an external campaign id."

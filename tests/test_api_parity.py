@@ -166,9 +166,9 @@ def test_snapshot_counts_match_current_reality(real_report: cov.CoverageReport):
     """Pins today's numbers so an accidental route/SDK/MCP change is
     visible in a diff, not just a passing/failing test. Update these
     numbers deliberately whenever coverage genuinely changes."""
-    assert real_report.total_routes == 204
+    assert real_report.total_routes == 206
     assert len(real_report.covered) == 45
-    assert len(real_report.known_gaps) == 159
+    assert len(real_report.known_gaps) == 161
 
 
 # --------------------------------------------------------------------------- #

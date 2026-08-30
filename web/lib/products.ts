@@ -37,7 +37,7 @@ export interface Product {
 
 const STUDIO: Product = {
   id: "studio",
-  label: "Content",
+  label: "Studio",
   tagline: "Short-form video content - TikTok, Reels, Shorts",
   home: "/dashboard",
   match: [
@@ -49,7 +49,7 @@ const STUDIO: Product = {
       label: "Operate",
       items: [
         { href: "/dashboard", label: "Dashboard" },
-        { href: "/niches", label: "Niches" },
+        { href: "/niches", label: "Channels" },
         { href: "/queue", label: "Queue" },
         { href: "/calendar", label: "Calendar" },
         { href: "/library", label: "Library" },
@@ -73,7 +73,7 @@ const STUDIO: Product = {
 
 const PRESS: Product = {
   id: "press",
-  label: "SEO",
+  label: "Press",
   tagline: "Long-form articles, SEO, and search performance",
   home: "/articles",
   match: ["/articles", "/seo-audit"],
@@ -159,7 +159,9 @@ const SUITE: Product = {
         { href: "/settings/kits", label: "Kits" },
         { href: "/connect", label: "Connect socials" },
         { href: "/settings/tokens", label: "Tokens" },
+        { href: "/settings/webhooks", label: "Webhooks" },
         { href: "/settings/billing", label: "Billing" },
+        { href: "/settings/privacy", label: "Privacy" },
       ],
     },
     {
@@ -172,7 +174,7 @@ const SUITE: Product = {
   ],
 };
 
-/** Ordered for the launcher + switcher: Campaigns, Content, SEO, Ads,
+/** Ordered for the launcher + switcher: Campaigns, Studio, Press, Ads,
  *  then Suite intentionally last. */
 export const PRODUCTS: Product[] = [CAMPAIGNS, STUDIO, PRESS, ADS, SUITE];
 

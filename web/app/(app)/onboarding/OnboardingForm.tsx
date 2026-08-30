@@ -9,6 +9,8 @@
 // the entire payload before the server round trip.
 
 import * as React from "react";
+import useSWR from "swr";
+import { clientFetch } from "@/lib/client-fetcher";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useFormContext } from "react-hook-form";
@@ -50,6 +52,8 @@ import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatUsd } from "@/lib/format";
 import { PLATFORMS, QUALITIES, RESOLUTIONS } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { titleWord } from "@/lib/labels";
+import { useVideoEstimate } from "@/hooks/use-video-estimate";
 
 const VOICE_OPTIONS = [
   "alloy",
@@ -119,6 +123,7 @@ const schema = z.object({
   platforms: z.array(z.enum(["tiktok", "reels", "shorts"])).min(1, "Pick one"),
   daily_spend_cap_usd: z.coerce.number().min(0.5),
   approve_before_post: z.boolean(),
+  render_first: z.boolean(),
 });
 
 type Values = z.infer<typeof schema>;
@@ -142,6 +147,7 @@ const STEP_FIELDS: Record<StepKey, (keyof Values)[]> = {
     "platforms",
     "daily_spend_cap_usd",
     "approve_before_post",
+    "render_first",
   ],
 };
 
@@ -206,6 +212,7 @@ export function OnboardingForm({
       platforms: [],
       daily_spend_cap_usd: 5,
       approve_before_post: true,
+      render_first: true,
     },
   });
 
@@ -241,14 +248,15 @@ export function OnboardingForm({
     for (const p of values.platforms) fd.append("platforms", p);
     fd.set("daily_spend_cap_usd", String(values.daily_spend_cap_usd));
     if (values.approve_before_post) fd.set("approve_before_post", "on");
+    if (values.render_first) fd.set("render_first", "on");
 
     const res = await createNicheAction({ ok: false }, fd);
     // createNicheAction redirects on success - we only reach here on
     // failure (when ok=false with an error message).
     setSubmitting(false);
     if (res.ok) {
-      toast.success("Niche created");
-      router.push("/onboarding/next");
+      toast.success("Channel created");
+      router.push("/dashboard");
     } else if (res.error) {
       toast.error(res.error);
     }
@@ -333,7 +341,9 @@ export function OnboardingForm({
           ) : (
             <Button className="rounded-full px-6" type="submit" disabled={submitting}>
               {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-              Create niche
+              {form.watch("render_first")
+                ? "Create channel & render my first video"
+                : "Create channel"}
             </Button>
           )}
         </div>
@@ -355,7 +365,7 @@ function StepIdentity() {
               <Input placeholder="Claymation econ teacher" {...field} />
             </FormControl>
             <FormDescription>
-              Short, human name for this niche - shown across your dashboard.
+              Short, human name for this channel - shown across your dashboard.
             </FormDescription>
             <FormMessage />
           </FormItem>
@@ -498,6 +508,17 @@ function StepCreative() {
     scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
     target_duration_sec: Number(watch.target_duration_sec) || 1,
   });
+  // The server's authoritative figure (gate + ledger arithmetic); the
+  // client breakdown above is only instant feedback while it loads.
+  const serverEst = useVideoEstimate({
+    scene_count: Number(watch.scene_count) || 1,
+    image_quality: watch.image_quality,
+    scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
+    target_duration_sec: Number(watch.target_duration_sec) || 1,
+  });
+  const shown = serverEst
+    ? Number(serverEst.billing_enabled ? serverEst.charge_usd : serverEst.estimated_usd)
+    : breakdown.total;
 
   return (
     <>
@@ -556,7 +577,7 @@ function StepCreative() {
                   <SelectContent>
                     {VOICE_OPTIONS.map((v) => (
                       <SelectItem key={v} value={v}>
-                        {v}
+                        {titleWord(v)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -706,10 +727,10 @@ function StepCreative() {
       <Card className="bg-muted/30">
         <CardContent className="flex items-baseline justify-between pt-6">
           <span className="text-sm text-muted-foreground">
-            Estimated cost per video
+            Estimated cost per video{serverEst?.billing_enabled ? ", all-in" : ""}
           </span>
           <span className="font-mono text-lg font-semibold">
-            {formatUsd(breakdown.total)}
+            {formatUsd(shown)}
           </span>
         </CardContent>
       </Card>
@@ -720,14 +741,36 @@ function StepCreative() {
 function StepSchedule() {
   const watch = useFormWatch();
   const cap = Number(watch.daily_spend_cap_usd) || 0;
-  const perVideo = estimateVideoCostUsd({
+  const clientPerVideo = estimateVideoCostUsd({
     scene_count: Number(watch.scene_count) || 1,
     image_quality: watch.image_quality,
     video_resolution: watch.video_resolution,
     scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
     target_duration_sec: Number(watch.target_duration_sec) || 1,
   }).total;
+  const serverEst = useVideoEstimate({
+    scene_count: Number(watch.scene_count) || 1,
+    image_quality: watch.image_quality,
+    scene_max_duration_sec: Number(watch.scene_max_duration_sec) || 1,
+    target_duration_sec: Number(watch.target_duration_sec) || 1,
+  });
+  // Caps are checked against the pre-margin figure — divide with that one.
+  const perVideo = serverEst ? Number(serverEst.estimated_usd) : clientPerVideo;
   const perDay = perVideo > 0 ? Math.floor(cap / perVideo) : 0;
+
+  // The money moment: on hosted deploys, say what the first render will
+  // charge and whether the balance covers it — BEFORE the button, not as
+  // a 402 after it.
+  const { data: billing } = useSWR<{ balance_usd: string; billing_enabled: boolean }>(
+    "/api/v1/billing/balance?limit=1",
+    clientFetch,
+    { revalidateOnFocus: false },
+  );
+  const firstRunCharge =
+    serverEst && serverEst.billing_enabled ? Number(serverEst.charge_usd) : null;
+  const balance = billing?.billing_enabled ? Number(billing.balance_usd) : null;
+  const creditShort =
+    balance !== null && firstRunCharge !== null && balance < firstRunCharge;
 
   return (
     <>
@@ -856,6 +899,65 @@ function StepSchedule() {
           </FormItem>
         )}
       />
+
+      <FormField
+        name="render_first"
+        render={({ field }) => (
+          <FormItem>
+            <label
+              className="flex cursor-pointer items-start gap-3 rounded-lg border p-4"
+              htmlFor={undefined}
+            >
+              <Checkbox
+                checked={field.value}
+                className="mt-0.5"
+                onCheckedChange={field.onChange}
+              />
+              <span>
+                <span className="block text-sm font-medium">
+                  Render my first video now
+                </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Start producing the moment the channel exists and watch it
+                  come together live. Otherwise the first video waits for the
+                  posting window.
+                </span>
+              </span>
+            </label>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {balance !== null && firstRunCharge !== null && (
+        <div
+          className={
+            creditShort
+              ? "rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm"
+              : "rounded-lg border p-3 text-sm text-muted-foreground"
+          }
+        >
+          <span className="tabular-nums">
+            Your balance is {formatUsd(balance)}; the first render will charge
+            about {formatUsd(firstRunCharge)}.
+          </span>{" "}
+          {creditShort ? (
+            <>
+              <a
+                className="font-medium text-brand underline-offset-2 hover:underline"
+                href="/settings/billing"
+                rel="noreferrer"
+                target="_blank"
+              >
+                Add credit
+              </a>{" "}
+              first (opens in a new tab) — your channel setup stays right here.
+            </>
+          ) : (
+            "You're covered."
+          )}
+        </div>
+      )}
     </>
   );
 }

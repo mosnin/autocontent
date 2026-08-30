@@ -47,6 +47,7 @@ import { DashHeading } from "@/components/hub/dashboard-kit";
 import { cn } from "@/lib/utils";
 import { clientFetch } from "@/lib/client-fetcher";
 import type { Composition, ImagePost, MediaAsset, Niche } from "@/lib/types";
+import { humanizeStatus } from "@/lib/labels";
 
 const POLL_MS = 5000;
 
@@ -99,7 +100,7 @@ function ImagePostsPanel({ nicheTitle }: { nicheTitle: (id: string) => string })
                   : "border text-muted-foreground bg-transparent",
               )}
             >
-              {p.status.replaceAll("_", " ")}
+              {humanizeStatus(p.status)}
             </Badge>
             <span className="font-medium">
               {p.kind === "carousel"
@@ -219,7 +220,7 @@ export function LibraryClient({
         title,
         audio_mode: "keep",
       });
-      toast.success("Remix queued - rendering now");
+      toast.success("Remix started - rendering now");
       setSelected([]);
       setTitle("");
       await mutateCompositions();
@@ -237,11 +238,11 @@ export function LibraryClient({
           Library
         </DashHeading>
         <Select value={nicheFilter} onValueChange={setNicheFilter}>
-          <SelectTrigger className="w-48" aria-label="Filter by niche">
+          <SelectTrigger className="w-48" aria-label="Filter by channel">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All niches</SelectItem>
+            <SelectItem value="all">All channels</SelectItem>
             {niches.map((n) => (
               <SelectItem key={n.id} value={n.id}>
                 {n.title}
@@ -263,7 +264,7 @@ export function LibraryClient({
           <AssetGrid
             assets={finals ?? []}
             nicheTitle={nicheTitle}
-            empty="No final videos yet - run a job from the queue and it lands here."
+            empty="No final videos yet - run a video from the dashboard and it lands here."
           />
         </TabsContent>
 
@@ -478,7 +479,7 @@ function StatusBadge({ status }: { status: Composition["status"] }) {
         : "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400 border-blue-200 dark:border-blue-900";
   return (
     <Badge variant="outline" className={cn("text-xs font-medium px-2 py-0.5", tone)}>
-      {status}
+      {humanizeStatus(status)}
     </Badge>
   );
 }

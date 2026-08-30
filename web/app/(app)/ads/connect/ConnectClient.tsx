@@ -10,14 +10,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { clientFetch } from "@/lib/client-fetcher";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   adsKeys,
   connectAccount,
   disconnectAccount,
   refreshAccount,
+  setGovernance,
   type AdAccount,
   type AdPlatform,
 } from "@/lib/ads-client";
+import { formatUsd } from "@/lib/format";
+import { toastActionError } from "@/lib/errors";
 
 const PLATFORMS: { id: AdPlatform; label: string; blurb: string }[] = [
   {
@@ -63,7 +68,13 @@ function statusTone(status: string): { label: string; className: string } {
   }
 }
 
-export function ConnectClient({ initial }: { initial: AdAccount[] }) {
+export function ConnectClient({
+  initial,
+  adsEnabled = null,
+}: {
+  initial: AdAccount[];
+  adsEnabled?: boolean | null;
+}) {
   const { data, mutate } = useSWR<AdAccount[]>(adsKeys.accounts(), clientFetch, {
     fallbackData: initial,
   });
@@ -132,6 +143,13 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
         </p>
       </div>
 
+      {adsEnabled === false && (
+        <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          Ads isn&apos;t enabled on this workspace yet — connecting is off
+          until an administrator turns it on.
+        </div>
+      )}
+
       <div className="grid gap-4 sm:grid-cols-2">
         {PLATFORMS.map((p) => {
           const conns = byPlatform(p.id);
@@ -146,7 +164,7 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
                 {conns.length === 0 ? (
                   <Button
                     onClick={() => onConnect(p.id)}
-                    disabled={busy === p.id}
+                    disabled={busy === p.id || adsEnabled === false}
                     className="w-full"
                   >
                     {busy === p.id ? "…" : `Connect ${p.label}`}
@@ -191,12 +209,19 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
                         </li>
                       );
                     })}
+                    {conns.map((a) => {
+                      return (
+                        <li key={`${a.id}-governance`}>
+                          <GuardrailsEditor key={`${a.id}-${a.updated_at}`} account={a} onSaved={() => void mutate()} />
+                        </li>
+                      );
+                    })}
                     <li>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => onConnect(p.id)}
-                        disabled={busy === p.id}
+                        disabled={busy === p.id || adsEnabled === false}
                       >
                         {busy === p.id ? "…" : "Connect another"}
                       </Button>
@@ -207,6 +232,104 @@ export function ConnectClient({ initial }: { initial: AdAccount[] }) {
             </Card>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The guardrails, finally visible where the account lives: daily/monthly
+ * caps and the kill-switch — the controls the fail-closed guard enforces.
+ * Every denial the guard issues cites numbers the user can now see and set.
+ */
+function GuardrailsEditor({
+  account,
+  onSaved,
+}: {
+  account: AdAccount;
+  onSaved: () => void;
+}) {
+  const [daily, setDaily] = React.useState(account.daily_cap_usd ?? "");
+  const [monthly, setMonthly] = React.useState(account.monthly_cap_usd ?? "");
+  const [kill, setKill] = React.useState(account.killswitch);
+  const [saving, setSaving] = React.useState(false);
+
+  async function save() {
+    setSaving(true);
+    try {
+      await setGovernance(account.id, {
+        daily_cap_usd: daily.trim() === "" ? null : daily.trim(),
+        monthly_cap_usd: monthly.trim() === "" ? null : monthly.trim(),
+        killswitch: kill,
+      });
+      toast.success("Guardrails updated");
+      onSaved();
+    } catch (e) {
+      toastActionError(e instanceof Error ? e.message : undefined, "Couldn't save guardrails");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-dashed bg-card/50 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs font-medium uppercase tracking-[0.15em] text-muted-foreground">
+          Spending guardrails
+          {(account.name || account.external_account_id) && (
+            <span className="ml-1 normal-case tracking-normal">
+              · {account.name || account.external_account_id}
+            </span>
+          )}
+        </p>
+        <label className="flex items-center gap-2 text-xs font-medium">
+          Kill-switch
+          <Switch checked={kill} onCheckedChange={setKill} aria-label="Kill-switch" />
+        </label>
+      </div>
+      {kill && (
+        <p className="mt-1 text-xs text-destructive">
+          Kill-switch on — every spend-affecting change on this account is
+          refused until you turn it off.
+        </p>
+      )}
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <label className="text-xs text-muted-foreground">
+          Daily cap (USD)
+          <Input
+            className="mt-1"
+            inputMode="decimal"
+            placeholder="No cap"
+            value={daily}
+            onChange={(e) => setDaily(e.target.value)}
+          />
+        </label>
+        <label className="text-xs text-muted-foreground">
+          Monthly cap (USD)
+          <Input
+            className="mt-1"
+            inputMode="decimal"
+            placeholder="No cap"
+            value={monthly}
+            onChange={(e) => setMonthly(e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-xs text-muted-foreground">
+          {account.daily_cap_usd || account.monthly_cap_usd
+            ? [
+                account.daily_cap_usd && `${formatUsd(account.daily_cap_usd)}/day`,
+                account.monthly_cap_usd && `${formatUsd(account.monthly_cap_usd)}/month`,
+              ]
+                .filter(Boolean)
+                .join(" · ")
+                .replace(/^/, "Enforced: ")
+            : "No caps set — only the kill-switch protects this account."}
+        </p>
+        <Button size="sm" onClick={save} disabled={saving}>
+          {saving ? "Saving…" : "Save guardrails"}
+        </Button>
       </div>
     </div>
   );

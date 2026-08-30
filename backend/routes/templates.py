@@ -196,8 +196,21 @@ async def remix_template(
     if template.kind == "video":
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="video templates apply as a niche style, not an image remix",
+            detail="video templates apply as a channel style, not an image remix",
         )
+
+    # Up-front credit gate — before the upload is decoded/stored, so a
+    # refused remix leaves nothing behind.
+    from marketer.services.run_estimate import (
+        TEMPLATE_REMIX_ESTIMATE_USD,
+        refuse_if_credit_below,
+    )
+
+    await refuse_if_credit_below(
+        ctx.user_id,
+        TEMPLATE_REMIX_ESTIMATE_USD * max(1, body.count),
+        what="This remix",
+    )
 
     product_path = ""
     if body.product_image_b64:

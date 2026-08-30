@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { api } from "@/lib/api";
-import type { AdCampaign, AdMetricsDaily } from "@/lib/ads-client";
+import type { AdAccount, AdCampaign, AdMetricsDaily } from "@/lib/ads-client";
 import { CampaignDetailClient } from "./CampaignDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -25,5 +25,14 @@ export default async function CampaignDetailPage({
     if (msg.startsWith("404")) notFound();
     throw e;
   }
-  return <CampaignDetailClient initial={detail} />;
+  // The account whose guardrails govern this campaign — shown next to the
+  // budget form so "over your account caps" cites numbers you can see.
+  let account: AdAccount | null = null;
+  try {
+    const accounts = await api<AdAccount[]>("/api/v1/ads/accounts");
+    account = accounts.find((a) => a.id === detail.campaign.ad_account_id) ?? null;
+  } catch {
+    account = null;
+  }
+  return <CampaignDetailClient account={account} initial={detail} />;
 }

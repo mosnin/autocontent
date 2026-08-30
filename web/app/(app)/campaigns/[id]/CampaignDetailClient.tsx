@@ -4,6 +4,8 @@
 // orchestrates (video content, SEO articles, linked ad campaigns).
 
 import * as React from "react";
+import Link from "next/link";
+import type { AdCampaign } from "@/lib/ads-client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -27,9 +29,11 @@ const KIND_LABEL = { video: "Video content", article: "SEO articles", ad: "Ad ca
 export function CampaignDetailClient({
   initial,
   niches,
+  adCampaigns = [],
 }: {
   initial: CampaignOverview;
   niches: Niche[];
+  adCampaigns?: AdCampaign[];
 }) {
   const router = useRouter();
   const [ov, setOv] = React.useState(initial);
@@ -66,7 +70,7 @@ export function CampaignDetailClient({
 
   const addLane = () =>
     act(async () => {
-      if (!refId) throw new Error(kind === "ad" ? "Paste an ad campaign id" : "Pick a niche");
+      if (!refId) throw new Error(kind === "ad" ? "Paste an ad campaign id" : "Pick a channel");
       await campaignMutate(`/api/v1/campaigns/${c.id}/items`, "POST", {
         kind, ref_id: refId, cadence_per_week: cadence,
       });
@@ -74,6 +78,8 @@ export function CampaignDetailClient({
 
   const nicheName = (id: string) =>
     niches.find((n) => n.id === id)?.title ?? id.slice(0, 8);
+  const adName = (id: string) =>
+    adCampaigns.find((c) => c.id === id)?.name ?? "Ad campaign";
 
   return (
     <div className="space-y-6">
@@ -130,7 +136,7 @@ export function CampaignDetailClient({
           <CardTitle className="text-base">Lanes</CardTitle>
           <CardDescription>
             What this campaign runs. Video lanes generate and post to the
-            niche&apos;s socials; article lanes publish SEO content; ad lanes
+            channel&apos;s socials; article lanes produce SEO content; ad lanes
             link a governed ad campaign for one view of the push.
           </CardDescription>
         </CardHeader>
@@ -146,7 +152,7 @@ export function CampaignDetailClient({
               <div className="text-sm">
                 <span className="font-medium">{KIND_LABEL[item.kind]}</span>{" "}
                 <span className="text-muted-foreground">
-                  {item.kind === "ad" ? item.ref_id.slice(0, 8) : nicheName(item.ref_id)}
+                  {item.kind === "ad" ? adName(item.ref_id) : nicheName(item.ref_id)}
                   {item.kind !== "ad" && ` · ${item.cadence_per_week}/week`}
                 </span>
                 {!item.enabled && <Badge variant="outline" className="ml-2">off</Badge>}
@@ -182,21 +188,48 @@ export function CampaignDetailClient({
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="lane-ref">
-                {kind === "ad" ? "Ad campaign id" : "Niche"}
+                {kind === "ad" ? "Ad campaign" : "Channel"}
               </Label>
               {kind === "ad" ? (
-                <Input id="lane-ref" value={refId}
+                <select id="lane-ref" value={refId}
                   onChange={(e) => setRefId(e.target.value)}
-                  placeholder="uuid from Ads → Campaigns" />
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="">
+                    {adCampaigns.length === 0
+                      ? "No ad campaigns yet"
+                      : "Pick an ad campaign…"}
+                  </option>
+                  {adCampaigns.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
               ) : (
                 <select id="lane-ref" value={refId}
                   onChange={(e) => setRefId(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                  <option value="">Pick a niche…</option>
+                  <option value="">
+                    {niches.length === 0 ? "No channels yet" : "Pick a channel…"}
+                  </option>
                   {niches.map((n) => (
                     <option key={n.id} value={n.id}>{n.title}</option>
                   ))}
                 </select>
+              )}
+              {kind === "ad" && adCampaigns.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <Link className="font-medium text-brand underline-offset-2 hover:underline" href="/ads/campaigns">
+                    Create an ad campaign
+                  </Link>{" "}
+                  to link it here.
+                </p>
+              )}
+              {kind !== "ad" && niches.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <Link className="font-medium text-brand underline-offset-2 hover:underline" href="/onboarding">
+                    Create a channel
+                  </Link>{" "}
+                  to add this lane.
+                </p>
               )}
             </div>
             <div className="space-y-1.5">

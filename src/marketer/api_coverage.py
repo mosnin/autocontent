@@ -359,10 +359,12 @@ KNOWN_GAPS: dict[RouteKey, str] = {
     ("POST", "/api/v1/niches/draft"): "no SDK/MCP coverage yet",
     ("PUT", "/api/v1/niches/{niche_id}"): "no SDK/MCP coverage yet (update_niche)",
     ("GET", "/api/v1/niches/{niche_id}/character-sheet"): "no SDK/MCP coverage yet",
+    ("POST", "/api/v1/niches/estimate"): "no SDK/MCP coverage yet (per-video cost estimate)",
     # ---- performance ----------------------------------------------------------
     ("GET", "/api/v1/niches/{niche_id}/performance"): "no SDK/MCP coverage yet",
     # ---- jobs: partial (list/get/enqueue/retry covered) ------------------------
     ("GET", "/api/v1/jobs/{job_id}/video"): "no SDK/MCP coverage yet",
+    ("GET", "/api/v1/jobs/{job_id}/receipt"): "no SDK/MCP coverage yet (per-video receipt)",
     # ---- articles: partial (list/get/markdown/generate/retry/social covered) --
     ("GET", "/api/v1/articles/{article_id}/hero-image"): "no SDK/MCP coverage yet",
     # ---- admin: no SDK/MCP coverage at all -------------------------------------

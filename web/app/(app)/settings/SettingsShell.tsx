@@ -49,8 +49,8 @@ export function SettingsShell({
                 Spend caps
               </CardTitle>
               <CardDescription>
-                Set a global daily limit across all niches. Leave blank for no
-                global cap (each niche still has its own per-niche cap).
+                Set a global daily limit across all channels. Leave blank for no
+                global cap (each channel still has its own daily cap).
               </CardDescription>
             </CardHeader>
             <CardContent>

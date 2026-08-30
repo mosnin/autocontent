@@ -69,6 +69,7 @@ class JobStatus(str, Enum):
     done = "done"
     failed = "failed"
     skipped = "skipped"
+    rejected = "rejected"
 
 
 class User(BaseModel):

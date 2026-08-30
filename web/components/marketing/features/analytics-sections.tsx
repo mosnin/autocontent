@@ -93,7 +93,7 @@ export function SpendBand() {
             <ProofList
               className="mt-8"
               items={[
-                "Per-niche daily caps, so one channel can't eat the budget.",
+                "Per-channel daily caps, so one channel can't eat the budget.",
                 "A global cap over everything, plus prepaid credits. No surprise invoice.",
                 "When a cap trips, jobs fail closed. Spending stops, mid-pipeline if it must.",
               ]}
@@ -105,7 +105,7 @@ export function SpendBand() {
                 <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl">
                   <TaggedPlaceholder
                     kind="image"
-                    label="Spend cap gauge - per-niche and global caps"
+                    label="Spend cap gauge - per-channel and global caps"
                     tone="sky"
                   />
                 </div>

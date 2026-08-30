@@ -241,3 +241,21 @@ async def transactions(
         user_id, limit,
     )
     return [CreditTransaction(**dict(r)) for r in rows]
+
+
+async def charged_for_job(user_id: str, job_id: UUID) -> Decimal:
+    """Total credit actually debited for one job (margin included).
+
+    Sums the debit rows referencing the job — the number the user was
+    charged, as opposed to the pre-margin metered cost in spend_ledger.
+    """
+    pool = await get_pool()
+    total = await pool.fetchval(
+        """
+        select coalesce(sum(-amount_usd), 0)::numeric
+          from credit_transactions
+         where user_id = $1 and kind = 'debit' and reference = $2
+        """,
+        user_id, str(job_id),
+    )
+    return Decimal(str(total))

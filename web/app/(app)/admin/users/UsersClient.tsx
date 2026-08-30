@@ -19,6 +19,8 @@
 //     none is invented.
 
 import * as React from "react";
+
+import { UserAvatar } from "@/components/user-avatar";
 import { useRouter } from "next/navigation";
 import useSWR from "swr";
 import { toast } from "sonner";
@@ -147,9 +149,12 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
               e.stopPropagation();
               router.push(`/admin/users/${row.original.user.id}`);
             }}
-            className="block max-w-[280px] truncate text-left text-sm font-medium underline-offset-4 hover:underline"
+            className="flex max-w-[280px] items-center gap-2 text-left text-sm font-medium underline-offset-4 hover:underline"
           >
-            {row.original.user.email}
+            {/* No Clerk photo reaches the admin API, so every account wears
+                the same preset it wears in its own sidebar. */}
+            <UserAvatar animated={false} seed={row.original.user.id} size={24} />
+            <span className="truncate">{row.original.user.email}</span>
           </button>
         ),
       },
@@ -179,7 +184,7 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
         accessorKey: "niche_count",
         header: ({ column }) => (
           <SortableHeader
-            label="Niches"
+            label="Channels"
             className="ml-auto"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           />

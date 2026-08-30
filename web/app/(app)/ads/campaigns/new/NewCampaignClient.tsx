@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -18,6 +19,11 @@ const OBJECTIVES = [
   "app_installs",
   "sales",
 ];
+
+const AD_PLATFORM_LABEL: Record<string, string> = {
+  google_ads: "Google Ads",
+  meta_ads: "Meta Ads",
+};
 
 export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
   const router = useRouter();
@@ -74,11 +80,19 @@ export function NewCampaignClient({ accounts }: { accounts: AdAccount[] }) {
                 {active.length === 0 && <option value="">No connected accounts</option>}
                 {active.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.platform.replace("_", " ")} -{" "}
-                    {a.name || a.external_account_id || a.id.slice(0, 8)}
+                    {AD_PLATFORM_LABEL[a.platform] ?? a.platform} -{" "}
+                    {a.name || a.external_account_id || "Account"}
                   </option>
                 ))}
               </select>
+              {active.length === 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  <Link className="font-medium text-brand underline-offset-2 hover:underline" href="/ads/connect">
+                    Connect an ad account
+                  </Link>{" "}
+                  to create campaigns.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">

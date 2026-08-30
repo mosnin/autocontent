@@ -57,7 +57,7 @@ export default function CreatorsPage() {
         steps={[
           {
             title: "Brief your channel",
-            copy: "Niche, tone, and a character sheet: face, wardrobe, world. It locks, so video forty matches video four.",
+            copy: "Channel, tone, and a character sheet: face, wardrobe, world. It locks, so video forty matches video four.",
           },
           {
             title: "The pipeline produces",
@@ -93,10 +93,9 @@ export default function CreatorsPage() {
         stats={[
           { value: 3, label: "platforms filled from one nightly render" },
           {
-            value: 0.5,
-            decimals: 2,
+            value: 3,
             prefix: "$",
-            label: "roughly what a finished short costs",
+            label: "roughly what a default finished short costs",
           },
           {
             value: 100,
