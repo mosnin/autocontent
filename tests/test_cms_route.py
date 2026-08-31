@@ -696,3 +696,28 @@ def test_bulk_topics_refuses_when_unbilled_usage_disabled(client, monkeypatch):
     )
     assert resp.status_code == 402
     assert created == []
+
+
+def test_bulk_topics_403_when_generate_flag_off(client, monkeypatch):
+    """Bulk enqueue must honor the same generate kill-switch as POST /articles."""
+    from marketer.repos import feature_flags as flags_repo
+    from marketer.repos import articles as articles_repo
+
+    async def _denied(key):
+        return key != "generate"
+
+    created: list[str] = []
+
+    async def _create(*, user_id, niche_id, topic=""):
+        created.append(topic)
+        return types.SimpleNamespace(id=uuid4(), topic=topic)
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(articles_repo, "create", _create)
+    resp = client.post(
+        "/api/v1/cms/bulk-topics",
+        json={"niche_id": str(_NICHE_ID), "topics": ["should not run"]},
+        headers=_AUTH,
+    )
+    assert resp.status_code == 403
+    assert created == []
