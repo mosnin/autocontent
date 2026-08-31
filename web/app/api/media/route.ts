@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { promises as fs } from "fs";
 import path from "path";
 
 import { mediaSlotById } from "@/lib/media-slots";
+import { requireAdmin } from "@/lib/require-admin";
 
 // Runtime store for admin-uploaded media. Files live on the web server's
 // disk (data/media under the app root) so uploads work anywhere `next
@@ -49,20 +49,17 @@ export async function GET() {
   );
 }
 
-async function requireUser() {
-  try {
-    const { userId } = await auth();
-    return userId;
-  } catch {
-    return null;
-  }
+function deny(gate: { status: 401 | 403 }) {
+  return NextResponse.json(
+    { error: gate.status === 401 ? "unauthorized" : "forbidden" },
+    { status: gate.status },
+  );
 }
 
 /** Admin: upload/replace one slot. Body: { id, dataUrl }. */
 export async function POST(req: NextRequest) {
-  if (!(await requireUser())) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const gate = await requireAdmin();
+  if (!gate.ok) return deny(gate);
   const body = (await req.json().catch(() => null)) as
     | { id?: string; dataUrl?: string }
     | null;
@@ -99,9 +96,8 @@ export async function POST(req: NextRequest) {
 
 /** Admin: clear one slot (?id=…) back to its placeholder. */
 export async function DELETE(req: NextRequest) {
-  if (!(await requireUser())) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const gate = await requireAdmin();
+  if (!gate.ok) return deny(gate);
   const id = req.nextUrl.searchParams.get("id") ?? "";
   const slot = mediaSlotById(id);
   if (!slot) {
