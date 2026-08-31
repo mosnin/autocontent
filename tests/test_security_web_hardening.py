@@ -425,6 +425,70 @@ def test_retry_image_post_is_scoped_to_caller(monkeypatch):
     assert calls == [_USER_ID]
 
 
+def test_enqueue_image_post_402_when_unbilled_usage_disabled(monkeypatch):
+    """billing off + ALLOW_UNBILLED_USAGE=false must 402 before a row exists."""
+    _reset_limiter()
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+
+    import marketer.repos.image_posts as image_posts_repo
+    import marketer.repos.niches as niches_repo
+
+    created: list[dict] = []
+
+    async def _create(**kwargs):
+        created.append(kwargs)
+        return {"id": str(uuid4()), "status": "queued"}
+
+    async def _niche_get(niche_id, *, user_id):
+        created.append({"leaked_niche": True})
+        return None
+
+    monkeypatch.setattr(image_posts_repo, "create", _create)
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/image-posts",
+        json={"niche_id": str(uuid4()), "kind": "carousel", "topic": "x"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 402
+    assert "unbilled" in resp.json()["detail"]
+    assert created == []
+
+
+def test_enqueue_image_post_404_on_foreign_niche(monkeypatch):
+    _reset_limiter()
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", True)
+    import marketer.repos.image_posts as image_posts_repo
+    import marketer.repos.niches as niches_repo
+
+    created: list[dict] = []
+    seen: list[tuple] = []
+
+    async def _niche_get(niche_id, *, user_id):
+        seen.append((niche_id, user_id))
+        return None
+
+    async def _create(**kwargs):
+        created.append(kwargs)
+        return {"id": str(uuid4()), "status": "queued"}
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    monkeypatch.setattr(image_posts_repo, "create", _create)
+    client = _make_authed_client(monkeypatch)
+    niche_id = uuid4()
+    resp = client.post(
+        "/api/v1/image-posts",
+        json={"niche_id": str(niche_id), "kind": "single", "topic": "x"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+    assert created == []
+    assert seen == [(niche_id, _USER_ID)]
+
+
 def test_enqueue_image_post_403_when_generate_flag_off(monkeypatch):
     _reset_limiter()
     from marketer.repos import feature_flags as flags_repo
