@@ -436,6 +436,29 @@ def test_webhook_credits_on_completed_session(client, monkeypatch):
     assert credited == [("user_a", Decimal("20.00"), "cs_test_123")]
 
 
+def test_webhook_unpaid_completed_session_credits_nothing(client, monkeypatch):
+    """`checkout.session.completed` fires before delayed methods settle.
+    Crediting an unpaid session would grant balance for money that may
+    never arrive — those sessions credit on async_payment_succeeded."""
+    from marketer.repos import billing as billing_repo
+
+    event = _paid_checkout_event(session_id="cs_unpaid_bank")
+    event["data"]["object"]["payment_status"] = "unpaid"
+    _patch_webhook(monkeypatch, event)
+
+    async def explode(**kwargs):
+        raise AssertionError("must not credit a session that has not settled")
+
+    monkeypatch.setattr(billing_repo, "credit_purchase", explode)
+    resp = client.post(
+        "/api/v1/billing/webhook",
+        content=b"{}",
+        headers={"stripe-signature": "t=1,v1=ok"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+
+
 def test_webhook_replay_same_session_credits_once(client, monkeypatch):
     """Stripe retry of the same checkout.session.completed must not double-credit."""
     from marketer.repos import billing as billing_repo
