@@ -95,6 +95,15 @@ def _unbilled_skip() -> dict | None:
     return None
 
 
+async def _generate_flag_off() -> bool:
+    """Admin generate kill-switch. HTTP enqueue and campaign_tick already
+    honor this; posting-window cron and leftover niche-window invokes
+    must too, or a disabled flag still buys a full video per due slot."""
+    from marketer.repos import feature_flags as flags_repo
+
+    return not await flags_repo.allowed("generate")
+
+
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
@@ -292,6 +301,8 @@ async def run_niche_window(
 
     if unbilled_generate_blocked():
         return [{"status": "skipped_unbilled", "niche_id": niche_id}]
+    if await _generate_flag_off():
+        return [{"status": "skipped_generate_disabled", "niche_id": niche_id}]
 
     if window_bucket:
         guard_key = idempotency.niche_window_key(niche_id, window_bucket)
@@ -337,6 +348,10 @@ async def nightly_batch() -> dict:
 
     if unbilled_generate_blocked():
         return {"spawned": 0, "skipped_active": 0, "skipped_unbilled": True}
+    # Same contract as campaign_tick: skip before walking users so a
+    # disabled generate flag cannot still buy a video for every due window.
+    if await _generate_flag_off():
+        return {"spawned": 0, "skipped_active": 0, "skipped_generate_disabled": True}
 
     pool = await get_pool()
     rows = await pool.fetch("select id from users")

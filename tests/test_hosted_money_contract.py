@@ -470,6 +470,25 @@ def test_cron_generate_paths_refuse_unbilled_before_spawn():
     assert "skipped_unbilled" in tick
 
 
+def test_cron_generate_paths_honor_generate_kill_switch():
+    """Campaign cron already skips when generate is off. Posting-window
+    cron bypasses HTTP the same way — it must share the kill-switch or
+    every due niche still buys a full video after an admin disable."""
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent
+    modal = (repo / "modal_app.py").read_text()
+    runner = (repo / "src/marketer/services/campaign_runner.py").read_text()
+    assert 'allowed("generate")' in runner
+    assert "_generate_flag_off" in modal
+    nightly = modal.split("async def nightly_batch")[1].split("async def campaign_tick")[0]
+    assert "_generate_flag_off" in nightly
+    assert "skipped_generate_disabled" in nightly
+    niche = modal.split("async def run_niche_window")[1].split("async def nightly_batch")[0]
+    assert "_generate_flag_off" in niche
+    assert "skipped_generate_disabled" in niche
+
+
 _MODAL_GENERATE_WORKERS = (
     "run_pipeline",
     "run_article_pipeline",
