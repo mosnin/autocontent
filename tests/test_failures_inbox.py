@@ -9,6 +9,7 @@ like ``tests/test_jobs_route.py``.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from types import SimpleNamespace
 from uuid import UUID
 
 import pytest
@@ -391,6 +392,116 @@ def test_replay_article_delegates_to_atomic_claim(monkeypatch):
     resp = client.post(f"/api/v1/failures/replay/article/{_ARTICLE_ID}")
     assert resp.status_code == 202
     assert claims and claims[0][0] == _ARTICLE_ID
+
+
+def test_replay_job_refused_402_when_credit_short(monkeypatch):
+    """Billing on + $0 balance → 402 before reset_for_retry, job stays failed."""
+    from decimal import Decimal
+
+    from marketer.config import settings
+    from marketer.models import Job, JobStatus
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.niches as niches_repo
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _get(job_id, *, user_id):
+        return Job(
+            id=job_id,
+            user_id=user_id,
+            niche_id=_NICHE_ID,
+            platform="tiktok",
+            status=JobStatus.failed,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    async def _niche_get(niche_id, *, user_id):
+        return SimpleNamespace(
+            id=niche_id,
+            scene_count=6,
+            image_quality="medium",
+            scene_max_duration_sec=5,
+            target_duration_sec=60,
+            video_provider="grok",
+            fal_model="",
+            music_provider="library",
+        )
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    reset_called: list = []
+
+    async def _reset(job_id, *, user_id):
+        reset_called.append(job_id)
+        return None
+
+    monkeypatch.setattr(jobs_repo, "reset_for_retry", _reset)
+    client = _make_app(monkeypatch)
+    resp = client.post(f"/api/v1/failures/replay/job/{_JOB_ID}")
+    assert resp.status_code == 402
+    assert "Add credit" in resp.json()["detail"]
+    assert reset_called == []
+
+
+def test_replay_image_post_refused_402_when_credit_short(monkeypatch):
+    """Inbox retry of an image post must not claim the row when credit is short."""
+    from decimal import Decimal
+
+    from marketer.config import settings
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.image_posts as image_posts_repo
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    claims: list = []
+
+    async def _claim(image_post_id, *, user_id):
+        claims.append(image_post_id)
+        return True
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+    monkeypatch.setattr(image_posts_repo, "claim_for_retry", _claim)
+    client = _make_app(monkeypatch)
+    resp = client.post(f"/api/v1/failures/replay/image_post/{_IMAGE_POST_ID}")
+    assert resp.status_code == 402
+    assert "Add credit" in resp.json()["detail"]
+    assert claims == []
+
+
+def test_replay_article_refused_402_when_credit_short(monkeypatch):
+    """Inbox retry of an article must not claim the row when credit is short."""
+    from decimal import Decimal
+
+    from marketer.config import settings
+    import marketer.repos.articles as articles_repo
+    import marketer.repos.billing as billing_repo
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    claims: list = []
+
+    async def _claim(article_id, *, user_id):
+        claims.append(article_id)
+        return _make_article()
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+    monkeypatch.setattr(articles_repo, "claim_for_retry", _claim)
+    client = _make_app(monkeypatch)
+    resp = client.post(f"/api/v1/failures/replay/article/{_ARTICLE_ID}")
+    assert resp.status_code == 402
+    assert "Add credit" in resp.json()["detail"]
+    assert claims == []
 
 
 def test_replay_refuses_when_unbilled_usage_disabled(monkeypatch):
