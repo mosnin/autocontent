@@ -22,6 +22,7 @@ async def test_tools_registered(server):
         "today_spend", "spend_history", "get_campaign", "create_campaign",
         "start_campaign", "pause_campaign", "replay_failure", "job_metrics",
         "connect_ayrshare",
+        "change_ad_status", "change_ad_budget", "x402_buy_credits",
     }
     assert expected.issubset(names), f"missing tools: {expected - names}"
 
