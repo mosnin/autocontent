@@ -308,6 +308,30 @@ class Settings(BaseSettings):
     otel_exporter_otlp_headers: str = ""
     otel_traces_sample_rate: float = 1.0
 
+    # --- OAuth 2.1 authorization server (backend/routes/oauth.py) ------
+    # Public origin the authorization server identifies itself as. It is the
+    # `issuer` in the discovery documents and the base of every absolute URL
+    # they advertise, so it must be the origin a browser actually reaches
+    # (marketer.sh), not the Modal hostname behind it. Empty falls back to
+    # app_url, then to https://marketer.sh (see services/oauth.issuer()).
+    oauth_issuer: str = ""
+    # RFC 8707 resource indicator identifying this deployment's API. A
+    # client may send `resource=` at /oauth/authorize; when it does, the
+    # value must equal this (or one of the client's registered resources)
+    # and it is bound to the code and to the grant. Empty = "<issuer>/api".
+    oauth_resource: str = ""
+    # Access-token lifetime. Short by design: refresh rotation is the
+    # mechanism that keeps a connection alive.
+    oauth_access_token_ttl_seconds: int = 3600
+    # Refresh-token lifetime. Each rotation issues a fresh one, so this is
+    # the maximum idle time before a client must send the user back through
+    # consent.
+    oauth_refresh_token_ttl_seconds: int = 2592000  # 30 days
+    # Authorization codes and pending consent decisions both expire fast;
+    # ten minutes is the RFC 6749 ceiling and there is no reason to be
+    # looser.
+    oauth_code_ttl_seconds: int = 600
+
     # --- Boot-time config health (preflight) ---------------------------
     # When True, a startup preflight check that finds any ERROR-level
     # misconfiguration (e.g. a spend-affecting feature flag on with a

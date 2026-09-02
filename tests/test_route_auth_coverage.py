@@ -37,6 +37,32 @@ PUBLIC_ROUTES: dict[str, str] = {
     "/api/v1/billing/webhook": "authenticated by the Stripe signature header",
     "/api/v1/webhooks/ayrshare": "authenticated by HMAC-SHA256 over the raw body",
     "/api/v1/ugc/webhook": "authenticated by a shared secret, compared in constant time",
+    # OAuth 2.1 authorization server (docs/OAUTH.md). Each of these carries
+    # its own authentication, which is why none of them takes CurrentUser:
+    "/.well-known/oauth-authorization-server": (
+        "RFC 8414 discovery document; static, deployment-level metadata and no user data"
+    ),
+    "/.well-known/oauth-protected-resource": (
+        "RFC 9728 discovery document; static, deployment-level metadata and no user data"
+    ),
+    "/oauth/authorize": (
+        "gated by the visitor's own Clerk session, read from the __session cookie "
+        "(backend.auth.resolve_browser_session); a signed-out visitor is sent to "
+        "/sign-in and back, and the POST additionally requires a pending consent row "
+        "bound to that same user"
+    ),
+    "/oauth/token": (
+        "authenticated by the OAuth client: PKCE proof-of-possession of the "
+        "authorization code, plus a client secret for confidential clients"
+    ),
+    "/oauth/revoke": (
+        "authenticated by the OAuth client, and it only ever revokes a grant that "
+        "client owns; RFC 7009 requires 200 for an unknown token"
+    ),
+    "/oauth/userinfo": (
+        "authenticated by an OAuth access token, looked up by sha256 and required to "
+        "carry the openid scope"
+    ),
 }
 
 # Anything that establishes who is calling. `require_admin` is strictly

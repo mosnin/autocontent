@@ -187,6 +187,42 @@ async def require_user(request: Request) -> AuthCtx:
     return await _resolve_clerk_jwt(token, request)
 
 
+# Clerk sets the session JWT in a `__session` cookie on the application
+# origin. Browser-facing pages served by this app (the OAuth consent screen)
+# are reached by navigation, not by fetch, so there is no Authorization
+# header to read - the cookie is the session.
+SESSION_COOKIE = "__session"
+
+
+async def resolve_browser_session(request: Request) -> AuthCtx | None:
+    """The signed-in human behind a browser navigation, or None.
+
+    Tries the Authorization header first (so the same handler works for API
+    clients and tests) and falls back to Clerk's `__session` cookie. Returns
+    None instead of raising: a page whose visitor is not signed in must send
+    them to sign in and bring them back, not answer 401. A cookie that is
+    present but invalid also returns None, and burns one auth-failure token
+    so a cookie-stuffing loop is rate limited like any other bad credential.
+    """
+    header = request.headers.get("authorization", "")
+    if header.lower().startswith("bearer "):
+        token = header.split(" ", 1)[1]
+        try:
+            if token.startswith(tokens_repo.TOKEN_PREFIX):
+                return await _resolve_pat(token, request)
+            return await _resolve_clerk_jwt(token, request)
+        except HTTPException:
+            return None
+
+    cookie = request.cookies.get(SESSION_COOKIE, "")
+    if not cookie:
+        return None
+    try:
+        return await _resolve_clerk_jwt(cookie, request)
+    except HTTPException:
+        return None
+
+
 async def require_admin(request: Request) -> AdminCtx:
     """Privileged dependency: valid auth AND role == 'admin'.
 

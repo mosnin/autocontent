@@ -102,6 +102,23 @@ ALLOWLIST: dict[RouteKey, str] = {
         "inbound webhook FROM MuAPI (signature-verified server callback), "
         "not something an SDK/MCP caller ever invokes"
     ),
+    # OAuth 2.1 authorization server (docs/OAUTH.md). These are protocol
+    # endpoints whose shapes are fixed by RFC 6749/7009/8414/9728 and driven
+    # by a third-party OAuth client library, not product operations an SDK
+    # method or MCP tool would ever wrap. The SDK and the MCP server
+    # authenticate with a personal access token and never speak this
+    # protocol at all.
+    ("GET", "/.well-known/oauth-authorization-server"): (
+        "RFC 8414 discovery document for the OAuth provider"
+    ),
+    ("GET", "/.well-known/oauth-protected-resource"): (
+        "RFC 9728 discovery document for the OAuth provider"
+    ),
+    ("GET", "/oauth/authorize"): "OAuth consent screen, a browser page rather than an API call",
+    ("POST", "/oauth/authorize"): "the consent screen's own form submission",
+    ("POST", "/oauth/token"): "RFC 6749 token endpoint, called by an OAuth client",
+    ("POST", "/oauth/revoke"): "RFC 7009 revocation endpoint, called by an OAuth client",
+    ("GET", "/oauth/userinfo"): "OIDC-style claims for an OAuth access token",
 }
 
 _EXCLUDED_METHODS = {"HEAD", "OPTIONS", "TRACE"}
