@@ -98,7 +98,7 @@ export function Nav(): ReactNode {
     >
       <div className="relative flex h-20 items-center justify-between px-5 sm:px-8 lg:px-10">
         <div className="flex items-center gap-3">
-          <Logo />
+          <Logo tone="gradient" />
           <nav className="bg-background border-border hidden h-13 items-center rounded-full border p-1.5 lg:flex">
             <MegaMenu label="Product" items={PRODUCT_LINKS} variant="product" />
             <MegaMenu label="Resources" items={RESOURCE_LINKS} variant="list" />

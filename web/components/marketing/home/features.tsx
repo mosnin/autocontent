@@ -2,6 +2,7 @@
 
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { InView, useReducedMotion } from "@/lib/marketing/motion";
+import { CAMPAIGN_SRCS } from "@/lib/marketing/campaign-media";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight } from "lucide-react";
 import {
@@ -27,22 +28,19 @@ const FEATURES: Feature[] = [
     title: "Content",
     href: "/features/content",
     body: "Short videos for TikTok, Reels, and Shorts. Your agent writes them, makes them, and can post them.",
-    image:
-      "https://images.unsplash.com/photo-1779881718722-5e7fa09fad7f?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    image: CAMPAIGN_SRCS[0] ?? "",
   },
   {
     title: "SEO",
     href: "/features/seo",
     body: "Blog posts from what people already search, plus a check-up for pages you already have live.",
-    image:
-      "https://images.unsplash.com/photo-1778051131564-192e359b601d?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    image: CAMPAIGN_SRCS[5] ?? "",
   },
   {
     title: "Ads",
     href: "/features/ads",
     body: "Paid ads on Google and Meta. The agent drafts them. Your budget is the limit.",
-    image:
-      "https://images.unsplash.com/photo-1779630541798-1f3d987aa440?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    image: CAMPAIGN_SRCS[9] ?? "",
   },
 ];
 

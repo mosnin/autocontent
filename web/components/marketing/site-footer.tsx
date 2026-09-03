@@ -1,3 +1,4 @@
+import { BrandWordmark } from "@/components/brand-logo";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -50,7 +51,7 @@ export function Footer(): ReactNode {
       <div className="mx-auto max-w-[1440px] px-5 pt-16 sm:px-8 sm:pt-20 lg:px-10">
         <div className="flex flex-col gap-14 lg:flex-row lg:justify-between">
           <div className="max-w-xs">
-            <Logo />
+            <Logo tone="black" />
             <p className="text-muted-foreground mt-6 text-sm leading-relaxed">
               An AI agent that makes your marketing: videos, SEO articles, and
               ads. You set a budget. It does the work.
@@ -99,9 +100,7 @@ export function Footer(): ReactNode {
           aria-hidden="true"
           className="pointer-events-none overflow-hidden select-none"
         >
-          <p className="text-muted translate-y-[22%] text-center text-[clamp(72px,18vw,260px)] leading-[0.85] font-medium tracking-tighter">
-            marketer.sh
-          </p>
+          <BrandWordmark className="translate-y-[22%] opacity-25 dark:invert" />
         </div>
       </div>
     </footer>

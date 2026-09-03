@@ -3,14 +3,13 @@
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { useReducedMotion } from "@/lib/marketing/motion";
 import { motion, useScroll, useTransform } from "motion/react";
-import Image from "next/image";
 import { useRef, type ReactNode } from "react";
 
 type Testimonial = {
   quote: string;
   name: string;
   role: string;
-  avatar: string;
+  initials: string;
 };
 
 const TESTIMONIALS: Testimonial[] = [
@@ -19,48 +18,42 @@ const TESTIMONIALS: Testimonial[] = [
       "I stopped explaining the stack. People just ask how we ship every day, and honestly I let them wonder.",
     name: "Lena Ortiz",
     role: "Solo founder",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=160&h=160&auto=format&fit=crop&crop=faces",
+    initials: "LO",
   },
   {
     quote:
       "The approval gate is the whole product for me. I post what marketer.sh queues and it has never once embarrassed me.",
     name: "Theo Marchetti",
     role: "Creator",
-    avatar:
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=160&h=160&auto=format&fit=crop&crop=faces",
+    initials: "TM",
   },
   {
     quote:
       "Client content used to take my team a week of pulls and edits. Now I walk into the room with finished shorts.",
     name: "Amara Diallo",
     role: "Agency lead",
-    avatar:
-      "https://images.unsplash.com/photo-1589156280159-27698a70f29e?q=80&w=160&h=160&auto=format&fit=crop&crop=faces",
+    initials: "AD",
   },
   {
     quote:
       "The cap is a promise. Work that would cross it is refused, not billed. That is the entire game.",
     name: "Jonas Lindqvist",
     role: "SaaS marketer",
-    avatar:
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=160&h=160&auto=format&fit=crop&crop=faces",
+    initials: "JL",
   },
   {
     quote:
       "I briefed a niche on the train and had a ranked article draft before the meeting. They asked who wrote it.",
     name: "Priya Raman",
     role: "Brand designer",
-    avatar:
-      "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=160&h=160&auto=format&fit=crop&crop=faces",
+    initials: "PR",
   },
   {
     quote:
       "My calendar finally looks like the inside of my head. Fewer posts than other tools give you, but every one lands.",
     name: "Marcus Cole",
     role: "Ecommerce operator",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=160&h=160&auto=format&fit=crop&crop=faces",
+    initials: "MC",
   },
 ];
 
@@ -78,14 +71,12 @@ function QuoteCard({ testimonial }: { testimonial: Testimonial }): ReactNode {
         “{testimonial.quote}”
       </blockquote>
       <figcaption className="flex items-center gap-3">
-        <Image
-          src={testimonial.avatar}
-          alt={testimonial.name}
-          width={80}
-          height={80}
-          unoptimized
-          className="border-border size-10 shrink-0 rounded-full border object-cover"
-        />
+        <span
+          aria-hidden="true"
+          className="border-border bg-muted text-foreground flex size-10 shrink-0 items-center justify-center rounded-full border font-mono text-[10px] font-medium tracking-wide"
+        >
+          {testimonial.initials}
+        </span>
         <div>
           <p className="text-foreground text-sm font-medium">
             {testimonial.name}

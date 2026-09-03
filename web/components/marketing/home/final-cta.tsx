@@ -1,6 +1,7 @@
 "use client";
 
 import { MagneticLink } from "@/components/marketing/magnetic-link";
+import { CAMPAIGN_SRCS } from "@/lib/marketing/campaign-media";
 import { softEase, useReducedMotion } from "@/lib/marketing/motion";
 import { motion, useScroll, useTransform, type Variants } from "motion/react";
 import Image from "next/image";
@@ -10,11 +11,11 @@ const HEADLINE = "Tell it what you sell. It makes the rest.";
 const WORDS = HEADLINE.split(" ");
 
 const PRINTS = [
-  "https://images.unsplash.com/photo-1779881718722-5e7fa09fad7f?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  "https://images.unsplash.com/photo-1778051131564-192e359b601d?q=80&w=774&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  "https://images.unsplash.com/photo-1779465190086-021c2012bc4c?q=80&w=770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  "https://images.unsplash.com/photo-1769968065389-60c3a887d14c?q=80&w=776&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-  "https://images.unsplash.com/photo-1773698719619-51e67f93a39f?q=80&w=818&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+  CAMPAIGN_SRCS[1] ?? "",
+  CAMPAIGN_SRCS[3] ?? "",
+  CAMPAIGN_SRCS[5] ?? "",
+  CAMPAIGN_SRCS[8] ?? "",
+  CAMPAIGN_SRCS[11] ?? "",
 ];
 
 const PRINT_LAYOUT = [

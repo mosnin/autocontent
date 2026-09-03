@@ -20,6 +20,7 @@ artifacts/
 # happened to run the installer.
 !web/public/**/*.png
 !web/public/**/*.jpg
+!web/public/campaign/*.mp4
 
 # Framer static export fetched by `originkit add opsra`. 9MB of minified
 # runtime and hashed fonts — a separate deployable site, not source.

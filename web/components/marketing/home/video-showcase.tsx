@@ -11,12 +11,10 @@ import {
   type RefObject,
 } from "react";
 
-const VIDEO_SRC =
-  "https://videos.pexels.com/video-files/3015510/3015510-hd_1920_1080_24fps.mp4";
-const VIDEO_POSTER =
-  "https://images.pexels.com/videos/3015510/free-video-3015510.jpg?auto=compress&cs=tinysrgb&w=1600";
+const VIDEO_SRC = "/campaign/showcase-film.mp4";
+const VIDEO_POSTER = "/campaign/showcase-film-poster.jpg";
 const MAX_WIDTH = 1440;
-const CAPTION = "Watch the work get made, produced with marketer.sh";
+const CAPTION = "Twelve original campaign frames, produced with marketer.sh";
 
 const PEEK_VISIBLE = 50;
 const PEEK_WIDTH = 400;
