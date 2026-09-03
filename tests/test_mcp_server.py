@@ -34,6 +34,11 @@ async def test_expensive_tools_warn_in_description(server):
     assert "confirm" in enqueue_desc
     retry_desc = (tools["retry_job"].description or "").lower()
     assert "confirm" in retry_desc
+    # Publish / checkout / replay are side-effecting even when they are
+    # not a full pipeline render — the model still has to ask first.
+    for name in ("approve_job", "billing_checkout", "replay_failure", "start_campaign"):
+        desc = (tools[name].description or "").lower()
+        assert "confirm" in desc, f"{name} description must tell the model to confirm"
 
 
 async def test_resources_registered(server):
