@@ -55,6 +55,8 @@ async def _notify_approval_needed(
         from ..repos import users as users_repo
         from . import email as email_svc
 
+        if not settings.resend_api_key:
+            return
         user = await users_repo.get(user_id)
         if user is None or not user.email or not user.email_notifications:
             return
@@ -237,6 +239,41 @@ async def guard_activation(campaign: AdCampaign) -> tuple[Decimal, bool]:
     return delta, requires_approval
 
 
+async def execute_activation(
+    *,
+    user_id: str,
+    campaign_id: UUID,
+    actor: str = "user",
+    actor_email: str = "",
+    ip: str | None = None,
+    user_agent: str | None = None,
+    apply_fn: ApplyFn | None = None,
+) -> dict:
+    """Activate a campaign through the safe-execute layer. The guard must have
+    already passed (and any required approval granted) before calling."""
+    campaign = await ads_repo.get_campaign(campaign_id, user_id=user_id)
+    if campaign is None:
+        raise AdSpendDenied("campaign not found")
+
+    delta, _requires = await guard_activation(campaign)
+    budget = campaign.daily_budget_usd or Decimal("0")
+    fn = apply_fn or _noop_apply
+    result = await fn(campaign, budget)
+    updated = await ads_repo.update_campaign(
+        campaign.id, user_id=user_id, status="active"
+    )
+    await ad_actions.record(
+        user_id=user_id, actor=actor, actor_email=actor_email,
+        action="campaign.activate", platform="",
+        target_type="ad_campaign", target_id=str(campaign.id),
+        dollar_delta_usd=delta,
+        before={"status": campaign.status},
+        after={"status": "active", "result": result},
+        ip=ip, user_agent=user_agent,
+    )
+    return {"status": "executed", "campaign": (updated or campaign).model_dump(mode="json")}
+
+
 async def execute_approved_activation(
     *,
     user_id: str,
@@ -261,22 +298,15 @@ async def execute_approved_activation(
     # 'approved' so it can be retried once the blocker clears.
     delta, _requires = await guard_activation(campaign)
 
-    budget = campaign.daily_budget_usd or Decimal("0")
-    fn = apply_fn or _noop_apply
-    result = await fn(campaign, budget)
-    updated = await ads_repo.update_campaign(
-        campaign.id, user_id=user_id, status="active"
-    )
-    await ad_actions.record(
-        user_id=user_id, actor="user", actor_email=actor_email,
-        action="campaign.activate", platform="",
-        target_type="ad_campaign", target_id=str(campaign.id),
-        dollar_delta_usd=delta,
-        before={"status": campaign.status},
-        after={"status": "active", "result": result},
+    result = await execute_activation(
+        user_id=user_id,
+        campaign_id=campaign.id,
+        actor="user",
+        actor_email=actor_email,
+        apply_fn=apply_fn,
     )
     await ad_approvals.mark_executed(approval_id, user_id=user_id)
-    return {"status": "executed", "campaign": (updated or campaign).model_dump(mode="json")}
+    return result
 
 
 async def _apply_budget(

@@ -37,12 +37,12 @@ const HOW_IT_WORKS = [
     copy: "Buy a pack once through Stripe and it becomes your balance. No subscription, no seats, no renewal date. Credits don't expire.",
   },
   {
-    title: "You see the price first",
-    copy: "Each video and article takes credit from your balance. You see the estimate before a job runs, and the exact cost after.",
+    title: "Every render is metered",
+    copy: "Each video and article draws down your balance at provider cost plus a flat margin. You see the estimate before a job runs and every charge in your billing history after.",
   },
   {
-    title: "A daily budget stops overspend",
-    copy: "Set a cap for each channel and one for the whole account. If a job would go over, it stops. You are not billed extra.",
+    title: "Caps stop overruns",
+    copy: "Per-channel daily budgets plus a global cap, checked before every job. Work that would cross a cap is refused, not billed. The system fails closed.",
   },
 ];
 
@@ -53,7 +53,7 @@ const MINI_FAQ = [
   },
   {
     q: "What does one video cost?",
-    a: "It depends on length, style, and voice; the Starter pack's $5 renders roughly 8 to 12 videos. Articles cost less. Every job shows its estimate before it runs.",
+    a: "About $3 at default settings — metered provider cost plus our flat margin, with the estimate shown before every run. Shorter or leaner videos cost less, and articles cost far less.",
   },
   {
     q: "Is anything gated by pack?",
@@ -61,7 +61,7 @@ const MINI_FAQ = [
   },
   {
     q: "What if I want out?",
-    a: "Stop buying packs; there is nothing to cancel. If you have unused balance, contact support and we refund the remainder of your last purchase.",
+    a: "Stop buying packs; there is nothing to cancel. If you have unused balance, contact support within 30 days of purchase and we refund the remainder of your last purchase.",
   },
 ];
 
@@ -104,8 +104,9 @@ export default function PricingPage() {
                 A balance, a meter, and a hard limit.
               </TextReveal>
               <Lede className="mt-5">
-                The billing model is three moving parts, and all three are
-                visible on your dashboard at all times.
+                The billing model is three moving parts, all visible in your
+                workspace: the estimate before every run, your balance in
+                Billing, and the caps in Settings.
               </Lede>
             </Reveal>
             <Reveal className="mt-10 overflow-hidden rounded-[1.75rem] border border-border shadow-[0_8px_40px_rgba(15,23,42,0.06)]" delay={0.1}>
@@ -177,11 +178,11 @@ export default function PricingPage() {
                 <p className="text-[11px] font-medium tracking-wider uppercase opacity-65">
                   Agents &amp; teams
                 </p>
-                <h3 className="mt-3 text-xl font-medium tracking-tight md:text-2xl">
-                  Running many niches, or a fleet of agents?
+                <h3 className="mt-3 font-display text-xl font-semibold tracking-tight text-white md:text-2xl">
+                  Running many channels, or a fleet of agents?
                 </h3>
-                <p className="mt-2 max-w-xl text-[15px] leading-relaxed opacity-65">
-                  The Studio pack covers most of it: per-niche caps, API and
+                <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-zinc-400">
+                  The Scale pack covers most of it: per-channel caps, API and
                   MCP access, several channels in parallel. If your setup is
                   bigger or stranger than that, talk to us and we&apos;ll make
                   it work.
@@ -221,7 +222,7 @@ export default function PricingPage() {
         primaryLabel="Start creating"
         secondaryHref="/resources/faq"
         secondaryLabel="Read the FAQ"
-        sub="The Starter pack renders roughly 8 to 12 videos with every feature on. Nothing publishes until you approve it."
+        sub="Five dollars renders your first videos with every feature on. Nothing publishes until you approve it."
       />
     </main>
   );

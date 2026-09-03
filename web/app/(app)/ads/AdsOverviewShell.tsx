@@ -12,18 +12,28 @@ import type { AdsOverview } from "@/lib/ads-client";
 
 export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
   const hasAccounts = (ov?.accounts ?? 0) > 0;
+  const adsOff = ov?.enabled === false;
 
   return (
     <div className="space-y-10">
+      {ov && ov.ads_enabled === false && (
+        <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          Ads isn&apos;t enabled on this workspace yet — you can look around,
+          but connecting an ad account is off until an administrator turns it
+          on.
+        </div>
+      )}
       <DashHeading
         as="h1"
-        sub="Create, manage, and scale paid campaigns across Google and Meta - driven by agents, governed by hard budget guardrails."
+        sub="Create and mark campaigns active across Google and Meta - driven by agents, governed by hard budget guardrails. Live on platform requires an external campaign id."
       >
-        Bring any campaign to market
+        Draft and mark campaigns active
       </DashHeading>
 
       <DashPanel delay={0.12} title="Today">
-        {hasAccounts && ov ? (
+        {adsOff ? (
+          <NotConfiguredCallout />
+        ) : hasAccounts && ov ? (
           <SquareStatsCards stats={buildStats(ov)} />
         ) : (
           <ConnectCallout />
@@ -34,7 +44,7 @@ export function AdsOverviewShell({ ov }: { ov: AdsOverview | null }) {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <Feature
             title="Agent-run campaigns"
-            body="Agents draft, launch, and iterate on campaigns using your brand kit and existing content."
+            body="Agents draft and mark campaigns active using your brand kit and existing content. Live on platform requires an external campaign id."
           />
           <Feature
             title="Durable optimization"
@@ -62,6 +72,7 @@ function buildStats(ov: AdsOverview): SquareStat[] {
   const spendToday = Number(ov.spend_today_usd);
   const spend30d = Number(ov.spend_30d_usd);
   const avgDaily30d = spend30d / 30;
+  const markedActive = ov.marked_active_campaigns ?? ov.active_campaigns;
 
   let spendDelta: SquareStat["delta"] = null;
   if (Number.isFinite(avgDaily30d) && avgDaily30d > 0) {
@@ -82,7 +93,7 @@ function buildStats(ov: AdsOverview): SquareStat[] {
     },
     {
       key: "active_accounts",
-      label: "Active accounts",
+      label: "Connected accounts",
       icon: Users,
       value: String(ov.active_accounts),
       delta: { text: `${ov.accounts} total` },
@@ -102,9 +113,31 @@ function buildStats(ov: AdsOverview): SquareStat[] {
       label: "Campaigns",
       icon: Megaphone,
       value: String(ov.campaigns),
-      delta: { text: `${ov.active_campaigns} active` },
+      delta: {
+        text:
+          ov.active_campaigns > 0
+            ? `${ov.active_campaigns} live on platform`
+            : markedActive > 0
+              ? `${markedActive} marked active`
+              : "none marked active",
+      },
     },
   ];
+}
+
+function NotConfiguredCallout() {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+        <h2 className="text-lg font-semibold">Ads are not configured</h2>
+        <p className="max-w-md text-sm text-muted-foreground">
+          This deployment has no ad-platform credentials. Nothing is live,
+          and connecting an account will stay dark until the operator
+          enables ads.
+        </p>
+      </CardContent>
+    </Card>
+  );
 }
 
 function ConnectCallout() {

@@ -55,6 +55,9 @@ async def _materialize_clip(asset, workdir: Path, index: int) -> Path:
 
 
 async def render_composition(*, user_id: str, composition_id: UUID) -> Composition:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     comp = await media_repo.get_composition(composition_id, user_id=user_id)
     if comp is None:
         raise ComposeError(f"composition {composition_id} not found for {user_id}")

@@ -8,7 +8,6 @@ export { GradientScene } from "./gradient-scene";
 export { Kicker, DisplayHeading, Lede } from "./typography";
 export { CtaPill } from "./cta-pill";
 export { SectionCta } from "./section-cta";
-export { LogoRow } from "./logo-row";
 export { StatStrip, type Stat } from "./stat-strip";
 export { FeatureCard } from "./feature-card";
 export {

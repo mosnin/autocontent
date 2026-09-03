@@ -37,6 +37,7 @@ from marketer.repos import trend_reports as reports_repo
 from marketer.research.trends import TrendReport
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -135,6 +136,7 @@ async def start_trend_research(
     body: TrendRunRequest, ctx: AuthCtx = CurrentUser
 ) -> TrendReportRow:
     """Queue a research run for one niche and return the row immediately."""
+    refuse_unbilled_generate()
     # Ownership is checked before the row is created: without this a
     # caller could seed reports against another tenant's niche id, and
     # the background run would then spend against that niche's cap.

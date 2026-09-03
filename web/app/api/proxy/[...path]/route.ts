@@ -6,9 +6,28 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+const BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+
+function isSafeProxyPath(path: string[]): boolean {
+  if (path.length === 0) return false;
+  return path.every((seg) => {
+    if (!seg || seg === "." || seg === "..") return false;
+    if (seg.includes("://") || seg.includes("\\") || seg.includes("/")) return false;
+    return true;
+  });
+}
 
 async function forward(req: NextRequest, path: string[]): Promise<NextResponse> {
+  if (!BASE) {
+    return NextResponse.json(
+      { detail: "API base URL is not configured" },
+      { status: 503 },
+    );
+  }
+  if (!isSafeProxyPath(path)) {
+    return NextResponse.json({ detail: "invalid proxy path" }, { status: 400 });
+  }
+
   const { getToken } = await auth();
   const token = await getToken();
   const search = req.nextUrl.search;

@@ -56,7 +56,7 @@ export function RecentJobsTable({ jobs }: { jobs: Job[] }) {
             Status
           </TableHead>
           <TableHead className="h-9 w-[110px] text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
-            Job ID
+            Video
           </TableHead>
           <TableHead className="h-9 w-[120px] text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
             Platform
@@ -83,7 +83,7 @@ export function RecentJobsTable({ jobs }: { jobs: Job[] }) {
                   router.push(`/queue/${job.id}`);
                 }
               }}
-              aria-label={`Open job ${job.id.slice(0, 8)}`}
+              aria-label={"Open video"}
               className="group cursor-pointer transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
             >
               <TableCell className="py-2.5">

@@ -37,17 +37,29 @@ image = (
 artifacts = modal.Volume.from_name("marketer-artifacts", create_if_missing=True)
 assets = modal.Volume.from_name("marketer-assets", create_if_missing=True)
 
-secrets = [
-    # OPENAI_API_KEY; also carries the optional article-pipeline vars
-    # (MARKETER_EXA_API_KEY, MARKETER_ARTICLE_WRITER_MODEL,
-    # MARKETER_ARTICLE_HERO_IMAGE) — unset Exa degrades SERP research
-    # to model knowledge rather than failing runs.
-    modal.Secret.from_name("marketer-openai"),
-    modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
-    modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
-    modal.Secret.from_name("marketer-database"),  # MARKETER_DATABASE_URL
-    modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
-]
+# Named Modal secrets mounted into every function. A missing name fails
+# deploy (same contract as marketer-ayrshare): create the extra/providers
+# secrets even if every value is empty, so later keys actually reach
+# production instead of silently failing closed.
+#
+# marketer-extra:     WEB_ORIGIN, APP_URL, billing/Stripe, Resend, Sentry,
+#                     Clerk audience, bootstrap admin, hosted-safety flags
+# marketer-providers: fal, ElevenLabs, OpenRouter, Exa, Wasabi, Composio,
+#                     Inngest, Context.dev, MuAPI, Pexels, Pixabay
+CORE_SECRET_NAMES = (
+    "marketer-openai",
+    "marketer-xai",
+    "marketer-ayrshare",
+    "marketer-database",
+    "marketer-clerk",
+)
+EXTRA_SECRET_NAMES = (
+    "marketer-extra",
+    "marketer-providers",
+)
+SECRET_NAMES = (*CORE_SECRET_NAMES, *EXTRA_SECRET_NAMES)
+
+secrets = [modal.Secret.from_name(name) for name in SECRET_NAMES]
 
 app = modal.App(APP_NAME, image=image, secrets=secrets)
 
@@ -73,6 +85,16 @@ async def _job_attempt_at(job_id: str):
     return row["updated_at"] if row else None
 
 
+def _unbilled_skip() -> dict | None:
+    """HTTP 402 is the edge. Workers must still refuse if invoked via
+    ``modal run``, a leftover queue row, or a cron that missed the gate."""
+    from marketer.billing.gates import unbilled_generate_blocked
+
+    if unbilled_generate_blocked():
+        return {"status": "skipped_unbilled"}
+    return None
+
+
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 60,
@@ -81,6 +103,9 @@ async def _job_attempt_at(job_id: str):
 async def run_pipeline(
     user_id: str, niche_id: str, platform: str, job_id: str | None = None
 ) -> dict:
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.pipeline import run_job
     from marketer.services import idempotency
@@ -147,6 +172,9 @@ async def finish_scheduling(user_id: str, job_id: str) -> dict:
 async def render_composition(user_id: str, composition_id: str) -> dict:
     """Render a library composition (remix of existing clips) to a new
     video. Spawned by `POST /api/v1/library/compositions`."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.services.compose import render_composition as _render
 
@@ -161,6 +189,9 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
 )
 async def run_image_post(user_id: str, image_post_id: str) -> dict:
     """Drive one image post (still or carousel) to a terminal state."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.services.image_posts import run_image_post as _run
 
@@ -190,6 +221,9 @@ async def run_template_remix(
     user_id: str, template_id: str, product_path: str, count: int, note: str
 ) -> dict:
     """Generate template-aesthetic remixes with the user's product."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.services.template_remix import run_remix
 
@@ -211,6 +245,9 @@ async def prewarm_voice_previews() -> dict:
 
         modal run modal_app.py::prewarm_voice_previews
     """
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from backend.routes.voices import ALLOWED_VOICES, PREVIEW_LINE, preview_path
     from marketer.services import openai_tts
 
@@ -248,9 +285,13 @@ async def run_niche_window(
     a replacement for the advisory lock.
     """
     from uuid import UUID
+    from marketer.billing.gates import unbilled_generate_blocked
     from marketer.pipeline import run_job
     from marketer.services import idempotency
     from marketer.services.otel import force_flush
+
+    if unbilled_generate_blocked():
+        return [{"status": "skipped_unbilled", "niche_id": niche_id}]
 
     if window_bucket:
         guard_key = idempotency.niche_window_key(niche_id, window_bucket)
@@ -288,10 +329,14 @@ async def nightly_batch() -> dict:
     cron tick can't double-enqueue the same window.
     """
     from datetime import datetime, timedelta, timezone
+    from marketer.billing.gates import unbilled_generate_blocked
     from marketer.db import get_pool
     from marketer.repos import jobs as jobs_repo
     from marketer.repos import niches as niches_repo
     from marketer.services import idempotency
+
+    if unbilled_generate_blocked():
+        return {"spawned": 0, "skipped_active": 0, "skipped_unbilled": True}
 
     pool = await get_pool()
     rows = await pool.fetch("select id from users")
@@ -347,8 +392,14 @@ async def campaign_tick() -> dict:
     hourly pass over every campaign."
     """
     from datetime import datetime, timezone
+    from marketer.billing.gates import unbilled_generate_blocked
     from marketer.services import idempotency
     from marketer.services.campaign_runner import tick_all
+
+    # Skip before claiming the hour slot so an unbilled deploy does not
+    # consume the tick and block a later billed pass in the same hour.
+    if unbilled_generate_blocked():
+        return {"campaigns": 0, "errors": 0, "results": [], "skipped_unbilled": True}
 
     bucket = idempotency.floor_bucket(datetime.now(timezone.utc), minutes=60)
     guard_key = idempotency.campaign_tick_key(bucket)
@@ -422,6 +473,9 @@ async def run_article_pipeline(
     """One article, end-to-end: research → outline → write → QA →
     metadata/JSON-LD → hero image. The written-content half of the
     platform; spend is metered into the same ledger/caps as video."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.articles.pipeline import run_article
     from marketer.services.otel import force_flush
@@ -447,6 +501,9 @@ async def run_ad_creative_run(user_id: str, run_id: str) -> dict:
     """One Ad Run: brand research → planning → every slot rendered.
     Slot fan-out is bounded inside execute_run; a failed slot fails
     alone and is individually retryable."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.adcreative.renderer import execute_run
 
@@ -461,6 +518,9 @@ async def run_ad_creative_run(user_id: str, run_id: str) -> dict:
 )
 async def retry_ad_creative_slot(user_id: str, run_id: str, slot_id: str) -> dict:
     """Re-render one failed Ad Slot without re-planning the run."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.adcreative.renderer import retry_slot
 
@@ -480,6 +540,9 @@ async def run_headshot_batch(user_id: str, batch_id: str) -> dict:
     source photos, settle done/partial/failed. Variant fan-out is bounded
     inside the pipeline; a failed variant fails alone and the batch is
     retryable from the gaps."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.headshots.pipeline import run_headshot_batch as _run
 
@@ -496,6 +559,9 @@ async def run_drama_pipeline(user_id: str, drama_id: str) -> dict:
     """One micro-drama end-to-end: screenplay → locked cast → per-shot
     keyframes/clips → stitch. Resumable: a retry keeps the already-paid
     screenplay, character references, and completed shots."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.drama.pipeline import run_drama
 
@@ -512,6 +578,9 @@ async def run_motion_project(user_id: str, project_id: str) -> dict:
     """One motion project end-to-end: narration -> beats -> b-roll +
     kinetic type -> composited mp4. Resumable: keyframes already on the
     volume are reused instead of re-bought."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.motion.pipeline import run_motion_project as _run
 
@@ -559,6 +628,9 @@ async def run_trend_research(user_id: str, report_id: str) -> dict:
     """One trend-research run for a niche: up to three Exa searches plus
     one metered LLM call, stored on the report row. Degrades to model
     knowledge (grounded=false) when Exa is unconfigured."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.research.trends import run_trend_research as _run
 
@@ -608,6 +680,9 @@ async def run_design_project(
 ) -> dict:
     """Drive one design project: plan (one metered call) then execute the
     validated step graph. `from_step_id` re-runs a step + downstream."""
+    skip = _unbilled_skip()
+    if skip:
+        return skip
     from uuid import UUID
     from marketer.design.executor import run_design_project as _run
 
@@ -624,16 +699,23 @@ async def run_design_project(
     timeout=60 * 30,
 )
 def gc_artifacts() -> dict:
-    """Daily GC: delete job artifact dirs older than 30 days.
-    DB rows in `jobs` and `spend_ledger` are untouched."""
+    """Daily GC: delete job artifact dirs older than 30 days,
+    plus aged Wasabi / media_assets rows. Job/spend ledger rows stay."""
+    import asyncio
+
     from marketer.storage.retention import gc_artifacts as _gc
+    from marketer.storage.retention import gc_media_library
 
     result = _gc(max_age_days=30)
+    library = asyncio.run(gc_media_library(max_age_days=30))
     artifacts.commit()
     return {
         "scanned": result.scanned,
         "removed": result.removed,
         "bytes_freed": result.bytes_freed,
+        "library_scanned": library.scanned,
+        "library_removed": library.removed,
+        "library_bytes_freed": library.bytes_freed,
     }
 
 

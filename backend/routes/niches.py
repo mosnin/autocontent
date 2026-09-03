@@ -14,6 +14,7 @@ from marketer.repos import niches as niches_repo
 from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -51,7 +52,9 @@ async def draft_niche_spec(
     user launches instead of filling a 16-field form."""
     from marketer.agents.niche_draft import draft_niche
     from marketer.repos import brand_kit as brand_kit_repo
+    from marketer.repos.spend import SpendCapExceeded
 
+    refuse_unbilled_generate()
     text = body.description.strip()
     if len(text) < 8:
         raise HTTPException(
@@ -63,6 +66,10 @@ async def draft_niche_spec(
     brand_context = brand_kit_repo.as_prompt_context(kit)
     try:
         draft = await draft_niche(text, brand_context=brand_context)
+    except SpendCapExceeded as e:
+        raise HTTPException(
+            status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)
+        ) from e
     except Exception as e:  # noqa: BLE001 — surface as a clean 502
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
@@ -267,7 +274,7 @@ async def character_sheet_image(
     hides the card in that case."""
     niche = await niches_repo.get(niche_id, user_id=ctx.user_id)
     if niche is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="channel not found")
     path = sheet_path(niche_id)
     if not path.exists():
         raise HTTPException(
@@ -275,3 +282,47 @@ async def character_sheet_image(
             detail="character sheet not generated yet — run a video first",
         )
     return FileResponse(path, media_type="image/png")
+
+
+class VideoEstimateBody(BaseModel):
+    """Config for a one-video estimate — the same knobs the wizard shows."""
+
+    scene_count: int = Field(default=6, ge=1, le=12)
+    image_quality: Literal["low", "medium", "high"] = "medium"
+    scene_max_duration_sec: int = Field(default=5, ge=1, le=15)
+    target_duration_sec: int = Field(default=60, ge=15, le=90)
+    video_provider: Literal["grok", "fal"] = "grok"
+    fal_model: str = ""
+    music_provider: Literal["auto", "library", "generated"] = "auto"
+
+
+class VideoEstimateResponse(BaseModel):
+    estimated_usd: str      # pre-margin — what the caps are checked against
+    charge_usd: str         # margin included — what the balance is debited
+    billing_enabled: bool
+    margin: float
+
+
+@router.post("/estimate", response_model=VideoEstimateResponse)
+async def estimate_video(body: VideoEstimateBody, ctx: AuthCtx = CurrentUser) -> VideoEstimateResponse:
+    """THE number. One authoritative per-video estimate — the same arithmetic
+    the enqueue gate and the ledger use (portrait image tier, LLM allowance,
+    music when it would actually generate). Every price the UI shows must
+    come from here, never from a client-side rate card."""
+    from decimal import Decimal
+
+    from marketer.config import settings as marketer_settings
+    from marketer.services.run_estimate import estimate_run_cost_usd
+
+    est = estimate_run_cost_usd(body)
+    margin = (
+        Decimal(str(marketer_settings.billing_margin))
+        if marketer_settings.billing_enabled
+        else Decimal("1")
+    )
+    return VideoEstimateResponse(
+        estimated_usd=str(est.quantize(Decimal("0.01"))),
+        charge_usd=str((est * margin).quantize(Decimal("0.01"))),
+        billing_enabled=marketer_settings.billing_enabled,
+        margin=float(margin),
+    )

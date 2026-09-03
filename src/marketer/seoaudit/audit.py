@@ -287,6 +287,9 @@ def score_context(
 async def run_audit(normalized_url: str) -> AuditResult:
     """Scrape, parse, score. Raises `ContextDevUnavailable` if the page
     could not be fetched at all, `SeoAuditDisabled` if the feature is off."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     ensure_enabled()
     markdown, html, markdown_status, html_status = await _scrape(normalized_url)
     ctx = build_rule_context(url=normalized_url, markdown=markdown, html=html)

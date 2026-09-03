@@ -9,11 +9,10 @@ import { Hero } from "@/components/marketing/home/hero";
 import { Integrations } from "@/components/marketing/home/integrations";
 import { Manifesto } from "@/components/marketing/home/manifesto";
 import { Pricing } from "@/components/marketing/home/pricing";
-import { Testimonials } from "@/components/marketing/home/testimonials";
 import { VideoShowcase } from "@/components/marketing/home/video-showcase";
 
 const DESCRIPTION =
-  "An agentic marketing platform. Your AI agent creates videos, SEO articles, and ads for you. You set a budget and review what ships.";
+  "Prepaid credits, a niche, and a daily cap. marketer.sh generates short-form video and SEO articles, parks them for approval, then schedules to the socials you connected.";
 
 export const metadata: Metadata = {
   title: "marketer.sh · Marketing that just gets made",
@@ -58,7 +57,6 @@ export default function HomePage() {
         <AppShowcase />
         <Gallery />
         <Integrations />
-        <Testimonials />
         <Pricing />
         <Faq />
         <FinalCta />

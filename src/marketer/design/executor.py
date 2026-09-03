@@ -292,6 +292,7 @@ async def run_design_project(
     ``from_step_id`` re-runs one step and everything downstream of it,
     keeping every other completed output.
     """
+    from ..billing.gates import raise_if_unbilled
     from ..repos import design_projects as projects_repo
     from ..repos import niches as niches_repo
     from ..repos.spend import SpendCapExceeded
@@ -299,6 +300,7 @@ async def run_design_project(
     from .plan import PlanValidationError
     from .planner import plan_design
 
+    raise_if_unbilled()
     project = await projects_repo.get(project_id, user_id=user_id)
     if project is None:
         raise ValueError(f"design project {project_id} not found for {user_id}")

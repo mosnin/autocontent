@@ -69,6 +69,7 @@ class JobStatus(str, Enum):
     done = "done"
     failed = "failed"
     skipped = "skipped"
+    rejected = "rejected"
 
 
 class User(BaseModel):
@@ -84,6 +85,9 @@ class User(BaseModel):
     suspended_reason: str | None = None
     # Opt-out of terminal-state email notifications. Defaults on.
     email_notifications: bool = True
+    # Deployment capability, not a stored column. True only when Resend
+    # is configured — the settings UI must not claim mail is sent otherwise.
+    email_configured: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -185,6 +189,7 @@ class Job(BaseModel):
     rendered: RenderedVideo | None = None
     scheduled_for: datetime | None = None
     provider_post_id: str | None = None
+    publish_idempotency_key: str | None = None
     error: str | None = None
 
 

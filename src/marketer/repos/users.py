@@ -32,7 +32,43 @@ async def upsert(user_id: str, email: str) -> User:
         user_id,
         email,
     )
-    return User(**dict(row))
+    user = User(**dict(row))
+    if await _maybe_bootstrap_admin(
+        pool, user_id=user_id, email=email, current_role=user.role
+    ):
+        refreshed = await get(user_id)
+        if refreshed is not None:
+            return refreshed
+    return user
+
+
+async def _maybe_bootstrap_admin(
+    pool, *, user_id: str, email: str, current_role: str
+) -> bool:
+    """Promote the configured bootstrap email to admin if none exist yet.
+
+    Atomic: the UPDATE is gated on ``not exists (admin)``, so two first
+    logins cannot both become admin. Later matching logins are no-ops
+    once any admin exists.
+    """
+    from ..config import settings
+
+    target = (settings.bootstrap_admin_email or "").strip().lower()
+    if not target or current_role == "admin":
+        return False
+    if not email or email.strip().lower() != target:
+        return False
+    promoted = await pool.fetchrow(
+        """
+        update users
+           set role = 'admin'
+         where id = $1
+           and not exists (select 1 from users where role = 'admin')
+        returning id
+        """,
+        user_id,
+    )
+    return promoted is not None
 
 
 async def get(user_id: str) -> User | None:

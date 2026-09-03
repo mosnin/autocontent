@@ -21,10 +21,13 @@ export interface CostBreakdown {
   total: number;
 }
 
+// Portrait 1024x1536 tier — what the pipeline actually renders for 9:16.
+// (The square tier is ~1.5x cheaper; quoting it here would understate every
+// estimate the user sees.)
 const IMAGE_RATE: Record<"low" | "medium" | "high", number> = {
-  low: 0.011,
-  medium: 0.042,
-  high: 0.167,
+  low: 0.016,
+  medium: 0.063,
+  high: 0.25,
 };
 
 // Per-second rate for Grok Imagine output. Both 480p and 720p price

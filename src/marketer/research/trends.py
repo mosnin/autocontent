@@ -300,7 +300,11 @@ async def research_trends(
 ) -> TrendReport:
     """Produce one trend report for a niche (one metered LLM call)."""
     from ..agents.metered import run_metered
+    from ..billing.gates import raise_if_unbilled
 
+    # Exa is a paid research vendor. Refuse before gather_sources so an
+    # in-process leftover cannot spend after HTTP 402 even when spend=None.
+    raise_if_unbilled()
     pages, queries = await gather_sources(niche)
     grounded = bool(pages)
     if not grounded:
@@ -343,11 +347,13 @@ async def run_trend_research(*, user_id: str, report_id: UUID) -> dict:
     message: a report stuck in `researching` is invisible to the user and
     un-retryable.
     """
+    from ..billing.gates import raise_if_unbilled
     from ..repos import jobs as jobs_repo
     from ..repos import niches as niches_repo
     from ..repos import trend_reports as reports_repo
     from ..services.spend_context import default_context
 
+    raise_if_unbilled()
     row = await reports_repo.get(report_id, user_id=user_id)
     if row is None:
         raise ValueError(f"trend report {report_id} not found for {user_id}")

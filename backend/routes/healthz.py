@@ -32,6 +32,11 @@ from marketer.db import get_pool
 router = APIRouter()
 
 
+def _public_error(exc: BaseException) -> str:
+    """Exception class name only — never echo host/password-bearing str(exc)."""
+    return type(exc).__name__
+
+
 @router.get("/healthz")
 async def healthz() -> dict:
     """Cheap liveness probe — always 200."""
@@ -53,7 +58,7 @@ async def healthz_deep() -> JSONResponse:
         checks["db"] = {"ok": True, "latency_ms": latency_ms}
     except Exception as exc:  # noqa: BLE001
         latency_ms = round((time.monotonic() - t0) * 1000)
-        checks["db"] = {"ok": False, "latency_ms": latency_ms, "error": str(exc)}
+        checks["db"] = {"ok": False, "latency_ms": latency_ms, "error": _public_error(exc)}
         all_critical_ok = False
 
     # ── Clerk JWKS probe ──────────────────────────────────────────────────────
@@ -67,7 +72,11 @@ async def healthz_deep() -> JSONResponse:
             checks["clerk_jwks"] = {"ok": True, "latency_ms": latency_ms}
         except Exception as exc:  # noqa: BLE001
             latency_ms = round((time.monotonic() - t0) * 1000)
-            checks["clerk_jwks"] = {"ok": False, "latency_ms": latency_ms, "error": str(exc)}
+            checks["clerk_jwks"] = {
+                "ok": False,
+                "latency_ms": latency_ms,
+                "error": _public_error(exc),
+            }
             all_critical_ok = False
     else:
         checks["clerk_jwks"] = {"ok": False, "error": "MARKETER_CLERK_JWKS_URL not set"}
@@ -85,13 +94,34 @@ async def healthz_deep() -> JSONResponse:
         if mig["pending"] > 0:
             all_critical_ok = False
     except Exception as exc:  # noqa: BLE001
-        checks["migrations"] = {"ok": False, "error": str(exc)}
+        checks["migrations"] = {"ok": False, "error": _public_error(exc)}
         all_critical_ok = False
 
     # ── Optional API-key presence checks ─────────────────────────────────────
     checks["openai_api_key"] = {"configured": bool(settings.openai_api_key)}
     checks["xai_api_key"] = {"configured": bool(settings.xai_api_key)}
     checks["ayrshare_api_key"] = {"configured": bool(settings.ayrshare_api_key)}
+    checks["web_origin"] = {
+        "configured": bool(settings.web_origin.strip() or settings.app_url.strip())
+    }
+    checks["billing"] = {
+        "enabled": settings.billing_enabled,
+        "stripe_configured": bool(
+            settings.stripe_secret_key and settings.stripe_webhook_secret
+        ),
+    }
+    checks["wasabi"] = {
+        "enabled": settings.wasabi_enabled,
+        "configured": bool(
+            settings.wasabi_bucket
+            and settings.wasabi_access_key_id
+            and settings.wasabi_secret_access_key
+        ),
+    }
+    checks["rate_limit_redis"] = {
+        "configured": bool(settings.rate_limit_redis_url)
+    }
+    checks["ads"] = {"enabled": settings.ads_enabled}
 
     status_code = 200 if all_critical_ok else 503
     return JSONResponse(

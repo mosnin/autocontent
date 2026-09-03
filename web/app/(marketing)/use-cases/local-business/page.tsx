@@ -104,7 +104,7 @@ export default function LocalBusinessPage() {
         headline="Be findable by Friday."
         kicker="Get started"
         primaryLabel="Start creating"
-        sub="Describe your shop tonight, cap it at a couple dollars a day, and approve your first week this weekend."
+        sub="Describe your shop tonight, cap it at five dollars a day, and approve your first week this weekend."
       />
     </main>
   );

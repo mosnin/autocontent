@@ -50,6 +50,7 @@ from marketer.repos import article_revisions as revisions_repo
 from marketer.repos import collections as collections_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -344,6 +345,7 @@ async def bulk_topics(body: BulkTopics, ctx: AuthCtx = CurrentUser) -> BulkTopic
     articles queued and running rather than rolling back work the user has
     effectively already asked for — the response reports what was accepted.
     """
+    refuse_unbilled_generate()
     import modal
 
     from marketer.repos import articles as articles_repo

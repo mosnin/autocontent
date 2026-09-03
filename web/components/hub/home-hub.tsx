@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/errors";
 
 import TextType from "@/components/reactbits/TextType";
 import { HubHeading, Rise, hubCardClass } from "@/components/hub/primitives";
@@ -49,7 +50,7 @@ export function HomeHub() {
       toast.success("Campaign created - add lanes and press start");
       router.push(`/campaigns/${campaign.id}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toastActionError(e instanceof Error ? e.message : undefined, "Couldn't create the campaign");
     } finally {
       setBusy(false);
     }
@@ -70,7 +71,7 @@ export function HomeHub() {
             pauseDuration={2200}
             text={[
               "Describe the push. It becomes a campaign.",
-              "Content, SEO, and ads, under one cap.",
+              "Content and SEO, under one cap.",
               "Your agents are on the clock.",
             ]}
             typingSpeed={40}
@@ -118,7 +119,6 @@ export function HomeHub() {
           {[
             { label: "Queue a short", href: "/queue" },
             { label: "Draft an article", href: "/articles?new=1" },
-            { label: "Review ad approvals", href: "/ads/approvals" },
             { label: "Connect socials", href: "/connect" },
             { label: "Top up credits", href: "/settings/billing" },
           ].map((a) => (

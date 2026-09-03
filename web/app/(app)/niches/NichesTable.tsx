@@ -15,7 +15,7 @@
 //   - the template's status "Filter" dropdown becomes a filter over
 //     Active/Archived (the real analogous field);
 //   - niche titles link to the real niche detail page and the primary
-//     toolbar action ("Create niche") routes to /onboarding, our real
+//     toolbar action ("Create channel") routes to /onboarding, our real
 //     creation flow, instead of calling a local callback.
 
 import { useMemo, useState } from "react";
@@ -136,7 +136,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
         accessorKey: "title",
         header: ({ column }) => (
           <Button variant="ghost" className="h-auto p-0 font-medium text-xs hover:bg-transparent" onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}>
-            Niche <ChevronsUpDown className="ml-1 size-3" />
+            Channel <ChevronsUpDown className="ml-1 size-3" />
           </Button>
         ),
         cell: ({ row }) => (
@@ -267,7 +267,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
         <div className="relative flex-1 w-full sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
-            placeholder="Search niches..."
+            placeholder="Search channels..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9 h-8 text-sm"
@@ -304,7 +304,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
         <Button size="sm" className="h-8 gap-1.5 ml-auto" asChild>
           <Link href="/onboarding">
             <Plus className="size-3.5" />
-            <span className="hidden sm:inline">Create niche</span>
+            <span className="hidden sm:inline">Create channel</span>
           </Link>
         </Button>
       </div>
@@ -336,7 +336,7 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
-                  No niches found.
+                  No channels found.
                 </TableCell>
               </TableRow>
             )}
@@ -348,8 +348,8 @@ export function NichesTable({ niches }: { niches: Niche[] }) {
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span>
             {totalRows === 0
-              ? "0 niches"
-              : `Showing ${from} to ${to} of ${totalRows} niches`}
+              ? "0 channels"
+              : `Showing ${from} to ${to} of ${totalRows} channels`}
           </span>
           <div className="flex items-center gap-2">
             <span className="hidden sm:inline">Rows per page</span>

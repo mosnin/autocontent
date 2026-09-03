@@ -81,7 +81,7 @@ export function SharedSpine() {
   return (
     <section className="mx-auto max-w-[1440px] px-5 pb-24 sm:px-8 sm:pb-32 lg:px-10">
       <SectionHeading
-        description="Content, SEO, and ads share a cap, a review gate, and a prepaid balance. Turning on another line does not add a subscription."
+        description="Content and SEO share a cap, a review gate, and a prepaid balance. Turning on another line does not add a subscription."
         title="One system underneath"
       />
       <div className="mt-12 grid gap-4 sm:grid-cols-3">

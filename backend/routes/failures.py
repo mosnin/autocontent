@@ -37,6 +37,7 @@ from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import jobs as jobs_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -141,7 +142,41 @@ async def replay_failure(
     logic is introduced here — this is the existing per-surface retry,
     just reachable from the consolidated inbox.
     """
+    refuse_unbilled_generate()
     import modal
+
+    # Same up-front credit gate as the per-surface retry endpoints: the
+    # inbox's Retry button must not "Replay enqueued" a run that will die
+    # on the spend guard — especially the spend_cap rows it sits next to.
+    from marketer.config import settings as marketer_settings
+
+    if marketer_settings.billing_enabled:
+        from marketer.models import JobStatus
+        from marketer.services.run_estimate import (
+            ARTICLE_ESTIMATE_USD,
+            IMAGE_POST_ESTIMATE_USD,
+            refuse_if_credit_below,
+            refuse_if_credit_short,
+        )
+
+        if kind == "job":
+            existing_job = await jobs_repo.get(item_id, user_id=ctx.user_id)
+            if existing_job is not None and existing_job.status == JobStatus.failed:
+                from marketer.repos import niches as niches_repo
+
+                niche = await niches_repo.get(
+                    existing_job.niche_id, user_id=ctx.user_id
+                )
+                if niche is not None:
+                    await refuse_if_credit_short(ctx.user_id, niche)
+        elif kind == "image_post":
+            await refuse_if_credit_below(
+                ctx.user_id, IMAGE_POST_ESTIMATE_USD, what="This retry"
+            )
+        else:
+            await refuse_if_credit_below(
+                ctx.user_id, ARTICLE_ESTIMATE_USD, what="This retry"
+            )
 
     if kind == "job":
         job = await jobs_repo.reset_for_retry(item_id, user_id=ctx.user_id)

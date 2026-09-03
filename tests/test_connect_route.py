@@ -32,6 +32,10 @@ def _make_authed_client(monkeypatch) -> TestClient:
     from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
+    # Existing connect tests assume the deployment can talk to Ayrshare.
+    # Cycle 3: a missing key must not report connected — tests that
+    # exercise that path clear this explicitly.
+    monkeypatch.setattr(settings, "ayrshare_api_key", "ay-test")
 
     from backend.auth import AuthCtx, require_user
 
@@ -66,6 +70,7 @@ def test_status_no_profile_returns_not_connected(monkeypatch):
     assert resp.status_code == 200
     data = resp.json()
     assert data["connected"] is False
+    assert data["configured"] is True
     assert data["profile_key"] is None
 
 
@@ -87,7 +92,31 @@ def test_status_with_profile_returns_connected(monkeypatch):
     assert resp.status_code == 200
     data = resp.json()
     assert data["connected"] is True
+    assert data["configured"] is True
     assert data["profile_key"] == "pk-real-key-abc"
+
+
+def test_status_with_profile_but_no_api_key_is_not_connected(monkeypatch):
+    """A leftover profile_key must not look online when Ayrshare is dark."""
+    _reset_limiter()
+    import marketer.repos.users as users_repo
+    from marketer.config import settings
+
+    async def _get(user_id: str) -> User | None:
+        return _make_user(profile_key="pk-stale")
+
+    monkeypatch.setattr(users_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    monkeypatch.setattr(settings, "ayrshare_api_key", "")
+    resp = client.get(
+        "/api/v1/connect/ayrshare/status",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["configured"] is False
+    assert data["connected"] is False
+    assert data["profile_key"] is None
 
 
 def test_status_user_not_in_db_returns_not_connected(monkeypatch):
@@ -205,6 +234,21 @@ def test_connect_ayrshare_reuses_existing_profile(monkeypatch):
     assert len(created) == 0
 
 
+def test_connect_ayrshare_without_key_is_409(monkeypatch):
+    """POST must not 500 / invent a login URL when the master key is absent."""
+    _reset_limiter()
+    from marketer.config import settings
+
+    client = _make_authed_client(monkeypatch)
+    monkeypatch.setattr(settings, "ayrshare_api_key", "")
+    resp = client.post(
+        "/api/v1/connect/ayrshare",
+        headers={"Authorization": "Bearer mkt_uniquetok012"},
+    )
+    assert resp.status_code == 409
+    assert "not configured" in resp.json()["detail"]
+
+
 def test_connect_ayrshare_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
@@ -216,3 +260,21 @@ def test_connect_ayrshare_without_auth_returns_401(monkeypatch):
     client = TestClient(create_app(), raise_server_exceptions=False)
     resp = client.post("/api/v1/connect/ayrshare")
     assert resp.status_code == 401
+
+
+def test_connect_and_ads_ui_do_not_fake_online_when_unconfigured():
+    """Honest copy when keys are missing — no 'posted' / 'online' success."""
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parent.parent
+    connect = (repo / "web/app/(app)/connect/page.tsx").read_text()
+    ads = (repo / "web/app/(app)/ads/AdsOverviewShell.tsx").read_text()
+    dash = (repo / "web/app/(app)/dashboard/page.tsx").read_text()
+    detail = (
+        repo / "web/app/(app)/ads/campaigns/[id]/CampaignDetailClient.tsx"
+    ).read_text()
+    assert "Publishing is not configured" in connect
+    assert "Ads are not configured" in ads
+    assert "configured === false" in dash
+    assert 'enabled === false' in ads or "adsOff" in ads
+    assert "sent to your inbox" not in detail

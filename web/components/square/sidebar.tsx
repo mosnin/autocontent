@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { AccountAvatar } from "@/components/user-avatar";
 import {
   Clapperboard,
   HelpCircle,
@@ -29,8 +29,12 @@ import {
 } from "@/components/ui/sidebar";
 import { Logo } from "@/components/marketing/nav/logo";
 import { openCommandPalette } from "@/components/command-palette";
-import { PRODUCTS, productForPath, type ProductId } from "@/lib/products";
+import { visibleProducts, productForPath, type ProductId } from "@/lib/products";
+import { useAdsEnabled } from "@/lib/use-ads-enabled";
 import { cn } from "@/lib/utils";
+import useSWR from "swr";
+import { clientFetch } from "@/lib/client-fetcher";
+import { formatUsd } from "@/lib/format";
 
 export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
   campaigns: Megaphone,
@@ -41,7 +45,9 @@ export const PRODUCT_ICONS: Record<ProductId, LucideIcon> = {
 };
 
 const bottomNavItems = [
-  { title: "Help", icon: HelpCircle, href: "/resources/faq" },
+  // Opens in a new tab: the FAQ lives on the marketing site, and Help must
+  // never eject someone out of the app they were working in.
+  { title: "Help", icon: HelpCircle, href: "/resources/faq", newTab: true },
   { title: "Settings", icon: Settings, href: "/settings" },
 ];
 
@@ -52,10 +58,20 @@ export function SquareSidebar({
   account?: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const adsEnabled = useAdsEnabled();
+  const products = visibleProducts(adsEnabled);
   const active = productForPath(pathname);
+  // The hub is home to every product — highlighting one there is a lie.
+  const onHub = pathname === "/home";
+  // Admin destinations render only for admins; everyone else never sees a
+  // door that opens onto "Not authorized".
+  const { data: me } = useSWR<{ role?: string }>("/api/v1/users/me", clientFetch, {
+    revalidateOnFocus: false,
+  });
+  const isAdmin = me?.role === "admin";
   const activePages = active.groups
-    .flatMap((g) => g.items)
-    .filter((i) => !i.soon);
+    .filter((g) => g.label !== "Admin" || isAdmin)
+    .flatMap((g) => g.items);
 
   return (
     <Sidebar
@@ -81,9 +97,9 @@ export function SquareSidebar({
         <SidebarGroup className="p-0">
           <SidebarGroupContent>
             <SidebarMenu className="gap-1">
-              {PRODUCTS.map((product) => {
+              {products.map((product) => {
                 const Icon = PRODUCT_ICONS[product.id];
-                const isActive = product.id === active.id;
+                const isActive = !onHub && product.id === active.id;
                 return (
                   <SidebarMenuItem key={product.id}>
                     <SidebarMenuButton
@@ -117,6 +133,23 @@ export function SquareSidebar({
                 const current =
                   pathname === item.href ||
                   pathname.startsWith(`${item.href}/`);
+                if (item.soon) {
+                  // Coming-soon pages announce themselves instead of being
+                  // silently absent — visible, labeled, not clickable.
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <div
+                        aria-disabled
+                        className="flex h-8 items-center justify-between rounded-md px-2 text-sm text-muted-foreground/60"
+                      >
+                        {item.label}
+                        <span className="rounded-full border px-1.5 text-[10px] uppercase tracking-wide">
+                          Soon
+                        </span>
+                      </div>
+                    </SidebarMenuItem>
+                  );
+                }
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -144,7 +177,11 @@ export function SquareSidebar({
           {bottomNavItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild className="h-9 rounded-full px-3">
-                <Link href={item.href}>
+                <Link
+                  href={item.href}
+                  rel={"newTab" in item && item.newTab ? "noreferrer" : undefined}
+                  target={"newTab" in item && item.newTab ? "_blank" : undefined}
+                >
                   <item.icon className="text-muted-foreground size-4 shrink-0" />
                   <span className="text-sm">{item.title}</span>
                 </Link>
@@ -154,15 +191,40 @@ export function SquareSidebar({
         </SidebarMenu>
 
         <div className="border-border mt-2 flex w-full items-center justify-between gap-2 rounded-3xl border p-3 text-sm group-data-[collapsible=icon]:hidden">
-          {account ?? <UserButton afterSignOutUrl="/" />}
-          <Link
-            className="text-sm font-medium underline-offset-4 hover:underline"
-            href="/settings/billing"
-          >
-            Get more credits
-          </Link>
+          {account ?? <AccountAvatar />}
+          <CreditFooterLink />
         </div>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+/**
+ * The shell's ambient money affordance: the actual balance, always visible,
+ * linking to billing. Falls back to a plain "Credits" link until the number
+ * loads; renders nothing extra when billing is disabled (self-hosted).
+ */
+function CreditFooterLink() {
+  const { data } = useSWR<{ balance_usd: string; billing_enabled: boolean }>(
+    "/api/v1/billing/balance?limit=1",
+    clientFetch,
+    { refreshInterval: 60_000 },
+  );
+  if (data && !data.billing_enabled) {
+    return (
+      <Link href="/settings/billing" className="text-sm font-medium hover:underline">
+        Billing
+      </Link>
+    );
+  }
+  const balance = data ? Number(data.balance_usd) : null;
+  return (
+    <Link
+      href="/settings/billing"
+      className="text-sm font-medium tabular-nums hover:underline"
+      title="Your prepaid credit — click to top up"
+    >
+      {balance === null ? "Credits" : `${formatUsd(balance)} credit`}
+    </Link>
   );
 }

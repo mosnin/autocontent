@@ -15,6 +15,7 @@ import {
   adsKeys,
   changeBudget,
   changeCampaignStatus,
+  type AdAccount,
   type AdCampaign,
   type AdMetricsDaily,
 } from "@/lib/ads-client";
@@ -25,7 +26,13 @@ interface Detail {
   metrics: AdMetricsDaily[];
 }
 
-export function CampaignDetailClient({ initial }: { initial: Detail }) {
+export function CampaignDetailClient({
+  initial,
+  account = null,
+}: {
+  initial: Detail;
+  account?: AdAccount | null;
+}) {
   const id = initial.campaign.id;
   const { data, mutate } = useSWR<Detail>(adsKeys.campaign(id), clientFetch, {
     fallbackData: initial,
@@ -56,7 +63,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
     try {
       const res = await changeBudget(id, budget || "0");
       if (res.status === "pending_approval") {
-        toast.message("Budget change needs approval - sent to your inbox.");
+        toast.message("Budget change needs approval. Review it under Ads → Approvals.");
       } else {
         toast.success("Budget updated");
       }
@@ -72,8 +79,12 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
   async function onStatus(status: "active" | "paused" | "ended") {
     setBusy(status);
     try {
-      await changeCampaignStatus(id, status);
-      toast.success(`Campaign ${status}`);
+      const res = await changeCampaignStatus(id, status);
+      if (res.status === "pending_approval") {
+        toast.message("Mark active needs approval. Review it under Ads → Approvals.");
+      } else {
+        toast.success(`Campaign marked ${status} in Autocontent`);
+      }
       void mutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed";
@@ -98,7 +109,10 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
             <h1 className="text-2xl font-semibold tracking-tight">
               {campaign.name}
             </h1>
-            <AdStatusBadge status={campaign.status} />
+            <AdStatusBadge
+              status={campaign.status}
+              externalCampaignId={campaign.external_campaign_id}
+            />
           </div>
           <p className="text-sm capitalize text-muted-foreground">
             {campaign.objective || "no objective"}
@@ -111,7 +125,7 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
               onClick={() => onStatus("active")}
               disabled={busy !== null}
             >
-              {busy === "active" ? "…" : "Activate"}
+              {busy === "active" ? "…" : "Mark active"}
             </Button>
           )}
           {campaign.status === "active" && (
@@ -152,6 +166,32 @@ export function CampaignDetailClient({ initial }: { initial: Detail }) {
         <CardContent className="pt-6">
           <form onSubmit={onBudget} className="flex flex-wrap items-end gap-3">
             <div className="space-y-1.5">
+              {account && (
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Account:{" "}
+                  <span className="font-medium text-foreground">
+                    {account.name || account.external_account_id || "Account"}
+                  </span>
+                  {" · "}
+                  {account.daily_cap_usd
+                    ? `cap ${formatUsd(account.daily_cap_usd)}/day`
+                    : "no daily cap"}
+                  {account.monthly_cap_usd
+                    ? ` · ${formatUsd(account.monthly_cap_usd)}/month`
+                    : ""}
+                  {account.killswitch && (
+                    <span className="ml-1 font-medium text-destructive">
+                      · kill-switch ON
+                    </span>
+                  )}{" "}
+                  <Link
+                    className="text-brand underline-offset-2 hover:underline"
+                    href="/ads/connect"
+                  >
+                    Edit guardrails
+                  </Link>
+                </p>
+              )}
               <Label htmlFor="daily-budget">Daily budget</Label>
               <div className="relative w-40">
                 <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">

@@ -21,7 +21,7 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterator
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from opentelemetry import trace
 
@@ -237,10 +237,13 @@ async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
 async def _notify(job: Job, *, kind: str) -> None:
     """Email the operator at a terminal moment. Fail-open: notification
     problems never affect job state. Skips silently when the user has opted
-    out of email notifications."""
+    out of email notifications or mail is not configured."""
     try:
+        from .config import settings
         from .repos import users as users_repo
 
+        if not settings.resend_api_key:
+            return
         user = await users_repo.get(job.user_id)
         if user is None or not user.email or not user.email_notifications:
             return
@@ -337,12 +340,18 @@ async def _obtain_job(
 async def run_job(
     *, user_id: str, niche_id: UUID, platform: str, job_id: UUID | None = None
 ) -> Job:
+    from .billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     niche = await niches_repo.get(niche_id, user_id=user_id)
     if niche is None:
         raise ValueError(f"niche {niche_id} not found for user {user_id}")
     if platform not in niche.platforms:
         raise ValueError(f"platform {platform} not enabled for niche {niche_id}")
 
+    # Honor the configured niche cap: production is exclusive (1).
+    if settings.pipeline_per_niche_concurrency < 1:
+        raise ValueError("MARKETER_PIPELINE_PER_NICHE_CONCURRENCY must be >= 1")
     async with niche_lock(niche_id) as got_niche:
         if not got_niche:
             # Another container is already working this niche — mark the
@@ -855,15 +864,27 @@ async def _schedule_stage(job: Job, niche: Niche) -> Job:
         job.status = JobStatus.scheduling
         await _persist(job)
         when = _next_posting_slot(niche)
-        post_id = await scheduler.schedule_post(
-            video_path=Path(job.rendered.path),
-            caption=job.script.idea.hook,
-            hashtags=niche.hashtags,
-            platform=job.platform,
-            scheduled_for=when,
-            profile_key=None,  # resolved inside scheduler from user_id
-            user_id=job.user_id,
-        )
+        key = job.publish_idempotency_key or f"video:{job.id}"
+        if job.publish_idempotency_key != key:
+            job.publish_idempotency_key = key
+            await _persist(job)
+        try:
+            post_id = await scheduler.schedule_post(
+                video_path=Path(job.rendered.path),
+                caption=job.script.idea.hook,
+                hashtags=niche.hashtags,
+                platform=job.platform,
+                scheduled_for=when,
+                profile_key=None,  # resolved inside scheduler from user_id
+                user_id=job.user_id,
+                idempotency_key=key,
+            )
+        except scheduler.AyrshareDuplicate as dup:
+            post_id = dup.post_id or f"idempotent:{key}"
+        except scheduler.AyrshareRejected:
+            job.publish_idempotency_key = f"video:{job.id}:{uuid4().hex[:8]}"
+            await _persist(job)
+            raise
         job.scheduled_for = when
         job.provider_post_id = post_id
         job.status = JobStatus.done

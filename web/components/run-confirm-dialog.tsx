@@ -26,7 +26,10 @@ import { Separator } from "@/components/ui/separator";
 import { enqueueJobAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
+import { estimateKey, fetchVideoEstimate, type VideoEstimate } from "@/lib/estimates";
+import { extractDetail, isCreditError } from "@/lib/errors";
 import { formatUsd } from "@/lib/format";
+import { platformLabel } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 import type { Niche, Platform, TodaySpend } from "@/lib/types";
 
@@ -34,6 +37,7 @@ interface OpenArgs {
   nicheId: string;
   platform: Platform;
 }
+
 
 interface Ctx {
   openRunConfirm: (args: OpenArgs) => void;
@@ -97,9 +101,22 @@ function RunConfirmDialog({
     enabled ? "/api/v1/spend/today" : null,
     clientFetch,
   );
+  // Hosted deploys bill at cost × margin — the button must show the number
+  // that will actually hit the balance, not the raw provider cost.
+  const { data: billing } = useSWR<{ billing_enabled: boolean; margin: number }>(
+    enabled ? "/api/v1/billing/balance" : null,
+    clientFetch,
+  );
+  const margin = billing?.billing_enabled ? billing.margin : 1;
 
   const niche = niches?.find((n) => n.id === args?.nicheId);
   const [submitting, setSubmitting] = React.useState(false);
+  const [creditError, setCreditError] = React.useState<string | null>(null);
+
+  // A fresh open is a fresh decision — don't carry a stale refusal over.
+  React.useEffect(() => {
+    if (open) setCreditError(null);
+  }, [open, args?.nicheId, args?.platform]);
 
   const breakdown = niche
     ? estimateVideoCostUsd({
@@ -111,6 +128,37 @@ function RunConfirmDialog({
       })
     : null;
 
+  // THE number: the server's own estimate — identical arithmetic to the
+  // enqueue gate and the ledger. The client breakdown above is only the
+  // itemized preview; totals and the button always show this.
+  const { data: serverEst } = useSWR<VideoEstimate>(
+    niche
+      ? estimateKey({
+          scene_count: niche.scene_count,
+          image_quality: niche.image_quality,
+          scene_max_duration_sec: niche.scene_max_duration_sec,
+          target_duration_sec: niche.target_duration_sec,
+          video_provider: niche.video_provider,
+          fal_model: niche.fal_model,
+          music_provider: niche.music_provider,
+        })
+      : null,
+    () =>
+      fetchVideoEstimate({
+        scene_count: niche!.scene_count,
+        image_quality: niche!.image_quality,
+        scene_max_duration_sec: niche!.scene_max_duration_sec,
+        target_duration_sec: niche!.target_duration_sec,
+        video_provider: niche!.video_provider,
+        fal_model: niche!.fal_model,
+        music_provider: niche!.music_provider,
+      }),
+    { revalidateOnFocus: false },
+  );
+  const preMargin = serverEst ? Number(serverEst.estimated_usd) : breakdown?.total ?? 0;
+  const charge = serverEst ? Number(serverEst.charge_usd) : (breakdown?.total ?? 0) * margin;
+  const allowance = breakdown ? Math.max(0, preMargin - breakdown.total) : 0;
+
   const spentToday = niche && spend ? Number(spend.by_niche[niche.id] ?? "0") : 0;
   const cap = niche ? Number(niche.daily_spend_cap_usd) : 0;
   const remaining = Math.max(0, cap - spentToday);
@@ -118,9 +166,8 @@ function RunConfirmDialog({
 
   // "Tight" = this run would eat most/all of what's left of the daily cap.
   // We surface that in brand orange so the operator sees it before spending.
-  const tight =
-    !!breakdown && cap > 0 && breakdown.total > remaining - breakdown.total;
-  const overCap = !!breakdown && cap > 0 && breakdown.total > remaining;
+  const tight = !!breakdown && cap > 0 && preMargin > remaining - preMargin;
+  const overCap = !!breakdown && cap > 0 && preMargin > remaining;
 
   async function onConfirm() {
     if (!args) return;
@@ -131,8 +178,12 @@ function RunConfirmDialog({
     const res = await enqueueJobAction({ ok: false }, fd);
     setSubmitting(false);
     if (res.ok) {
-      toast.success(`Run enqueued on ${args.platform}`);
+      toast.success(`Run started — ${platformLabel(args.platform)}`);
       onOpenChange(false);
+    } else if (isCreditError(res.error)) {
+      // Out of credit: keep the dialog open and offer the fix, instead of
+      // toasting a raw status line. The server message is human-written.
+      setCreditError(extractDetail(res.error) ?? "You're out of credit for this run.");
     } else {
       toast.error(res.error ?? "Failed to enqueue");
     }
@@ -146,10 +197,10 @@ function RunConfirmDialog({
             Confirm run
           </p>
           <DialogTitle>
-            Run {niche?.title ?? "niche"} on {args?.platform ?? ""}
+            Run {niche?.title ?? "channel"} on {args ? platformLabel(args.platform) : ""}
           </DialogTitle>
           <DialogDescription>
-            We&apos;ll spawn a new pipeline run and post on the niche&apos;s next
+            We&apos;ll produce a new video and post it in this channel&apos;s next
             posting window.
           </DialogDescription>
         </DialogHeader>
@@ -163,7 +214,7 @@ function RunConfirmDialog({
                   Estimated cost
                 </span>
                 <span className="font-mono text-2xl font-semibold tabular-nums">
-                  {formatUsd(breakdown.total)}
+                  {formatUsd(charge)}
                 </span>
               </div>
 
@@ -233,12 +284,37 @@ function RunConfirmDialog({
                     {formatUsd(breakdown.character_sheet)}
                   </span>
                 </li>
+                {allowance > 0.005 && (
+                  <li className="flex justify-between">
+                    <span>agents &amp; music allowance</span>
+                    <span className="font-mono tabular-nums">
+                      {formatUsd(allowance)}
+                    </span>
+                  </li>
+                )}
+                {margin > 1 && (
+                  <li className="flex justify-between">
+                    <span>billing margin (+{Math.round((margin - 1) * 100)}%)</span>
+                    <span className="font-mono tabular-nums">
+                      {formatUsd(preMargin * (margin - 1))}
+                    </span>
+                  </li>
+                )}
               </ul>
             </div>
           </div>
         ) : (
           <div className="flex h-24 items-center justify-center text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        )}
+
+        {creditError && (
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+            <p className="text-sm">{creditError}</p>
+            <Button asChild size="sm" className="shrink-0">
+              <a href="/settings/billing">Add credit</a>
+            </Button>
           </div>
         )}
 
@@ -253,7 +329,7 @@ function RunConfirmDialog({
                 Working…
               </>
             ) : breakdown ? (
-              `Run for ${formatUsd(breakdown.total)}`
+              `Run for ${formatUsd(charge)}`
             ) : (
               "Run"
             )}

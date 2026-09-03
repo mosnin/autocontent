@@ -48,7 +48,7 @@ export function ConnectCard({
         <CardContent className="text-center">
           <div className="inline-flex items-center gap-2 rounded-md border border-border/60 bg-background/60 px-3 py-1.5 text-sm backdrop-blur">
             <CheckCircle2 className="size-4 text-success" />
-            <span className="text-muted-foreground">profile_key</span>
+            <span className="text-muted-foreground">Posting profile</span>
             <code className="font-mono text-xs">{maskedKey}</code>
           </div>
         </CardContent>

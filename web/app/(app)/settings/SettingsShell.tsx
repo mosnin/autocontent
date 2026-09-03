@@ -26,9 +26,11 @@ const SETTINGS_LINKS = [
 export function SettingsShell({
   initialCap,
   initialNotifications,
+  emailConfigured,
 }: {
   initialCap: string | null;
   initialNotifications: boolean;
+  emailConfigured: boolean;
 }) {
   return (
     <div className="space-y-10">
@@ -47,8 +49,8 @@ export function SettingsShell({
                 Spend caps
               </CardTitle>
               <CardDescription>
-                Set a global daily limit across all niches. Leave blank for no
-                global cap (each niche still has its own per-niche cap).
+                Set a global daily limit across all channels. Leave blank for no
+                global cap (each channel still has its own daily cap).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -61,11 +63,16 @@ export function SettingsShell({
                 Notifications
               </CardTitle>
               <CardDescription>
-                Control the emails marketer.sh sends you at the end of a run.
+                {emailConfigured
+                  ? "Control the emails marketer.sh sends you at the end of a run."
+                  : "Email delivery is not configured on this deployment."}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <NotificationsForm initialEnabled={initialNotifications} />
+              <NotificationsForm
+                initialEnabled={initialNotifications}
+                emailConfigured={emailConfigured}
+              />
             </CardContent>
           </Card>
         </div>

@@ -75,6 +75,9 @@ async def _parse_call(
     *, model: str, system: str, user: str, response_format, temperature: float,
     spend: SpendContext | None,
 ):
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
     resp = await _oai().beta.chat.completions.parse(
@@ -97,6 +100,9 @@ async def _json_call(
     *, model: str, system: str, user: str, temperature: float,
     spend: SpendContext | None,
 ) -> dict:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if spend is not None:
         await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
     resp = await _oai().chat.completions.create(
@@ -264,6 +270,9 @@ async def write_section(
         "em-dashes or en-dashes anywhere."
     )
     async def _call(model: str) -> str:
+        from ..billing.gates import raise_if_unbilled
+
+        raise_if_unbilled()
         if spend is not None:
             await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
         resp = await _oai().chat.completions.create(

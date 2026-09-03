@@ -433,6 +433,64 @@ def check_seo_audit() -> CheckResult:
     return _ok("seo_audit", "SEO auditor enabled with Context.dev configured.")
 
 
+def check_web_origin() -> CheckResult:
+    """Browser app cannot call the API unless CORS has an explicit origin."""
+    if settings.web_origin.strip():
+        return _ok("web_origin", "MARKETER_WEB_ORIGIN configured for CORS.")
+    if settings.app_url.strip():
+        return _warn(
+            "web_origin",
+            "MARKETER_WEB_ORIGIN is unset — CORS falls back to "
+            "MARKETER_APP_URL. Set WEB_ORIGIN explicitly in production.",
+            fallback=settings.app_url.strip().rstrip("/"),
+        )
+    return _warn(
+        "web_origin",
+        "MARKETER_WEB_ORIGIN and MARKETER_APP_URL are unset — CORS is "
+        "'*' with credentials disabled. A credentialed browser session "
+        "against the deployed API will fail.",
+    )
+
+
+def check_hosted_safety() -> CheckResult:
+    """Public Clerk signup + billing off burns the operator's provider keys."""
+    if settings.billing_enabled:
+        return _ok("hosted_safety", "Billing enabled — pipeline spend requires prepaid credit.")
+    if not settings.clerk_jwks_url:
+        return _ok(
+            "hosted_safety",
+            "No Clerk JWKS configured — public signup is not wired.",
+        )
+    if settings.allow_unbilled_usage:
+        return _warn(
+            "hosted_safety",
+            "Clerk auth is configured but billing is off and "
+            "MARKETER_ALLOW_UNBILLED_USAGE is true — any signed-up user "
+            "can spend this deployment's provider keys, limited only by "
+            "the spend caps they set. Enable billing for hosted SaaS, or "
+            "set ALLOW_UNBILLED_USAGE=false to refuse spend.",
+        )
+    return _error(
+        "hosted_safety",
+        "Clerk auth is configured, billing is off, and "
+        "MARKETER_ALLOW_UNBILLED_USAGE is false — pipeline spend is "
+        "refused. Enable MARKETER_BILLING_ENABLED or turn unbilled "
+        "usage back on for self-host.",
+    )
+
+
+def check_clerk_audience() -> CheckResult:
+    if not settings.clerk_jwks_url:
+        return _ok("clerk_audience", "Clerk unset — audience check not applicable.")
+    if settings.clerk_audience:
+        return _ok("clerk_audience", "MARKETER_CLERK_AUDIENCE set — JWT aud is verified.")
+    return _warn(
+        "clerk_audience",
+        "MARKETER_CLERK_AUDIENCE is unset — a token minted for another "
+        "frontend on the same Clerk instance will be accepted.",
+    )
+
+
 def check_ugc() -> CheckResult:
     if not settings.ugc_enabled:
         return _ok("ugc", "UGC studio disabled.")
@@ -477,6 +535,9 @@ _CHECKS = (
     check_ad_creative,
     check_seo_audit,
     check_ugc,
+    check_web_origin,
+    check_hosted_safety,
+    check_clerk_audience,
 )
 
 

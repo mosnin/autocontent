@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import useSWR from "swr";
 import { toast } from "sonner";
+import { toastActionError } from "@/lib/errors";
 import { Coins, Eye, MoreHorizontal, Users, WalletMinimal } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -71,6 +72,21 @@ const PLATFORM_LABEL: Record<Platform, string> = {
   shorts: "Shorts",
 };
 
+function FirstRenderOutcomeToast() {
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("first_render") === "failed") {
+      const reason = params.get("reason") ?? "";
+      toastActionError(
+        reason || undefined,
+        "Your channel was created, but the first render couldn't start.",
+      );
+      window.history.replaceState({}, "", "/dashboard");
+    }
+  }, []);
+  return null;
+}
+
 export function DashboardClient({ initial }: { initial: InitialData }) {
   const { data: niches, error: nichesError, mutate: mutateNiches } = useSWR<Niche[]>(
     "/api/v1/niches",
@@ -134,7 +150,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
     ayrshare !== undefined && ayrshare.connected === false;
 
   async function handleArchive(niche: Niche) {
-    if (!confirm(`Archive niche "${niche.title}"? This will stop new posts.`)) {
+    if (!confirm(`Archive channel "${niche.title}"? This will stop new posts.`)) {
       return;
     }
 
@@ -162,7 +178,8 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
   return (
     <div className="space-y-10">
-      <DashHeading as="h1" sub="Every niche is a self-driving pipeline - queue a short, cap the spend, ship to every feed.">
+      <FirstRenderOutcomeToast />
+      <DashHeading as="h1" sub="Every channel runs itself - queue a short, cap the spend, ship to every feed.">
         Bring any idea to the feed
       </DashHeading>
 
@@ -211,7 +228,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
               },
               {
                 key: "niches",
-                label: "Active niches",
+                label: "Active channels",
                 icon: Users,
                 value: String(nichesList.length),
                 delta: null,
@@ -241,7 +258,7 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
             <div>
               <div className="font-medium">Posting profile not set up</div>
               <div className="text-sm text-muted-foreground">
-                Pipeline runs will succeed, but posts won&apos;t ship until you
+                Videos will still render, but posts won&apos;t ship until you
                 create your posting profile and link socials in Ayrshare.
               </div>
             </div>
@@ -264,13 +281,13 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
 
       {/* Template two-column slot (app/page.tsx + dashboard/content.tsx):
           chart + recent uploads, fed with real jobs data. Jobs carry no
-          per-video view metric, so the chart plots videos published per
+          per-video view metric, so the chart plots videos scheduled per
           bucket and is titled accordingly. */}
       <DashRise delay={0.16}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <MonthlyViewsChart
             periodData={buildPublishedSeries(doneJobs ?? [])}
-            title="Videos published"
+            title="Videos scheduled"
             unit="videos"
           />
           <RecentUploads uploads={toRecentUploads(doneJobs ?? [])} />
@@ -281,12 +298,12 @@ export function DashboardClient({ initial }: { initial: InitialData }) {
         actions={
           <Button asChild>
             <Link href="/onboarding">
-              New niche
+              New channel
             </Link>
           </Button>
         }
         delay={0.18}
-        title="Your niches"
+        title="Your channels"
       >
         {nichesList.length === 0 ? (
           <EmptyState />
@@ -311,14 +328,14 @@ function EmptyState() {
   return (
     <Card className={cn(hubCardClass, "border-dashed")}>
       <CardContent className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-        <h3 className="text-lg font-semibold">No niches yet</h3>
+        <h3 className="text-lg font-semibold">No channels yet</h3>
         <p className="max-w-sm text-sm text-muted-foreground">
-          Create one to start the pipeline. You can have as many as you want;
+          Create one and it starts producing. You can have as many as you want;
           each runs under its own daily spend cap.
         </p>
         <Button asChild>
           <Link href="/onboarding">
-            Create your first niche
+            Create your first channel
           </Link>
         </Button>
       </CardContent>

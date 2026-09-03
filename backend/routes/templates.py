@@ -30,6 +30,7 @@ from marketer.repos import admin_audit
 from marketer.repos import templates as templates_repo
 
 from ..auth import AuthCtx, CurrentUser, require_admin
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -188,14 +189,28 @@ async def remix_template(
     template_id: UUID, body: RemixRequest, ctx: AuthCtx = CurrentUser,
     _size_ok: None = Depends(_bounded_body),
 ) -> dict:
+    refuse_unbilled_generate()
     template = await templates_repo.get(template_id)
     if template is None or not template.is_published:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     if template.kind == "video":
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="video templates apply as a niche style, not an image remix",
+            detail="video templates apply as a channel style, not an image remix",
         )
+
+    # Up-front credit gate — before the upload is decoded/stored, so a
+    # refused remix leaves nothing behind.
+    from marketer.services.run_estimate import (
+        TEMPLATE_REMIX_ESTIMATE_USD,
+        refuse_if_credit_below,
+    )
+
+    await refuse_if_credit_below(
+        ctx.user_id,
+        TEMPLATE_REMIX_ESTIMATE_USD * max(1, body.count),
+        what="This remix",
+    )
 
     product_path = ""
     if body.product_image_b64:

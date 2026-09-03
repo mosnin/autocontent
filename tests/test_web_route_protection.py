@@ -92,3 +92,45 @@ def test_matcher_and_protection_share_one_source() -> None:
         "config.matcher's app-group pattern has drifted from APP_SEGMENTS; "
         f"it must contain exactly {expected}"
     )
+
+
+def _sign_in_url_constant(source: str) -> str:
+    match = re.search(r'const SIGN_IN_URL = ("[^"]+")', source)
+    assert match, "middleware.ts must declare const SIGN_IN_URL = \"...\""
+    return match.group(1).strip('"')
+
+
+@pytest.mark.skipif(not _MIDDLEWARE.is_file(), reason="web middleware not present")
+def test_signed_out_app_routes_go_to_app_sign_in_not_portal_or_404() -> None:
+    """Logged-out /dashboard must go to the *app* /sign-in page.
+
+    Two production failures this pins:
+
+    * ``auth.protect()`` with no unauthenticatedUrl rewrites non-document
+      requests to ``/_not-found`` (``x-clerk-auth-reason: protect-rewrite``).
+    * ``signInUrl`` pointing at Clerk's Account Portal
+      (``https://accounts.…/sign-in``) instead of the in-app ``<SignIn />``.
+
+    A relative ``/sign-in`` on this origin is the only destination that
+    satisfies the cycle-3 acceptance. An absolute accounts.* URL, a
+    missing unauthenticatedUrl, or a rewrite to not-found must fail CI.
+    """
+    source = _MIDDLEWARE.read_text()
+    sign_in = _sign_in_url_constant(source)
+    assert sign_in == "/sign-in", (
+        f"SIGN_IN_URL must be the app path /sign-in, not {sign_in!r} "
+        "(Account Portal hosts are owner-configured and 404/challenge)"
+    )
+    assert sign_in.startswith("/") and "://" not in sign_in
+    assert "unauthenticatedUrl" in source
+    assert "new URL(SIGN_IN_URL, req.url)" in source, (
+        "unauthenticatedUrl must be same-origin from SIGN_IN_URL; a "
+        "hardcoded accounts.* URL regresses to the Clerk portal"
+    )
+    assert "signInUrl: SIGN_IN_URL" in source
+    assert "accounts." not in source
+    assert '"dashboard"' in source
+    # The in-app SignIn route must still exist — otherwise protect()
+    # would 307 to a path that 404s.
+    sign_in_page = _REPO / "web" / "app" / "sign-in" / "[[...sign-in]]" / "page.tsx"
+    assert sign_in_page.is_file(), "app /sign-in page is missing"

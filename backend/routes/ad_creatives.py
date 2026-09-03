@@ -29,6 +29,7 @@ from marketer.adcreative.policy import AD_RUN_LIMITS
 from marketer.repos import ad_creatives as runs_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -86,6 +87,7 @@ async def create_ad_run(body: AdRunCreate, ctx: AuthCtx = CurrentUser) -> dict:
     fix, not a run that fails minutes later — and so the stored domain is
     never a URL, an IP, or an internal hostname.
     """
+    refuse_unbilled_generate()
     _require_configured()
     domain = normalize_domain(body.domain)
     if domain is None:
@@ -141,6 +143,7 @@ async def retry_slot(run_id: UUID, slot_id: UUID, ctx: AuthCtx = CurrentUser) ->
     The failed -> queued claim is atomic, so a double-clicked retry
     spawns exactly one render.
     """
+    refuse_unbilled_generate()
     _require_configured()
     slot = await runs_repo.get_slot(slot_id, user_id=ctx.user_id)
     if slot is None or slot["run_id"] != run_id:

@@ -9,7 +9,10 @@ from uuid import uuid4
 import pytest
 
 from marketer.models import Campaign, CampaignItem, Niche, PostingWindow
+from marketer.repos import articles as articles_repo
 from marketer.repos import campaigns as campaigns_repo
+from marketer.repos import image_posts as image_posts_repo
+from marketer.repos import jobs as jobs_repo
 from marketer.repos import niches as niches_repo
 from marketer.services import campaign_runner
 
@@ -43,10 +46,11 @@ def env(monkeypatch):
         "campaign": _campaign(),
         "spent": Decimal("0"),
         "items": [],
-        "counts": {"video": {}, "article": {}},
+        "counts": {"video": {}, "article": {}, "image": {}},
         "status_calls": [],
         "videos": [],
         "articles": [],
+        "images": [],
         "niches": {},
     }
 
@@ -66,11 +70,29 @@ def env(monkeypatch):
     async def fake_niche_get(nid, *, user_id):
         return state["niches"].get(nid)
 
+    async def fake_pending(cid, *, user_id):
+        return state.get("pending", 0)
+
     monkeypatch.setattr(campaigns_repo, "spent_usd", fake_spent)
     monkeypatch.setattr(campaigns_repo, "list_items", fake_items)
     monkeypatch.setattr(campaigns_repo, "work_counts", fake_counts)
+    monkeypatch.setattr(campaigns_repo, "pending_work_count", fake_pending)
     monkeypatch.setattr(campaigns_repo, "set_status", fake_status)
     monkeypatch.setattr(niches_repo, "get", fake_niche_get)
+
+    async def fake_has_active(nid, *, within_minutes=45):
+        return False
+
+    monkeypatch.setattr(jobs_repo, "has_active_for_niche", fake_has_active)
+
+    async def fake_image_active(nid):
+        return False
+
+    async def fake_article_active(nid):
+        return False
+
+    monkeypatch.setattr(image_posts_repo, "has_active_for_niche", fake_image_active)
+    monkeypatch.setattr(articles_repo, "has_active_for_niche", fake_article_active)
 
     async def spawn_video(uid, nid, platform, cid):
         state["videos"].append((nid, platform))
@@ -78,8 +100,12 @@ def env(monkeypatch):
     async def spawn_article(uid, nid, cid):
         state["articles"].append(nid)
 
+    async def spawn_image(uid, nid, cid):
+        state["images"].append(nid)
+
     state["spawn_video"] = spawn_video
     state["spawn_article"] = spawn_article
+    state["spawn_image"] = spawn_image
     return state
 
 
@@ -88,6 +114,7 @@ async def _tick(state):
         state["campaign"],
         spawn_video=state["spawn_video"],
         spawn_article=state["spawn_article"],
+        spawn_image=state["spawn_image"],
         now=NOW,
     )
 
@@ -108,19 +135,82 @@ async def test_budget_exhaustion_completes(env):
 
 
 async def test_due_lanes_spawn_video_and_article(env):
-    vid_niche, art_niche = uuid4(), uuid4()
+    vid_niche, art_niche, img_niche = uuid4(), uuid4(), uuid4()
     env["niches"][vid_niche] = _niche(vid_niche)
     env["niches"][art_niche] = _niche(art_niche)
+    env["niches"][img_niche] = _niche(img_niche)
     env["items"] = [
         CampaignItem(id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
                      kind="video", ref_id=vid_niche, cadence_per_week=7),
         CampaignItem(id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
                      kind="article", ref_id=art_niche, cadence_per_week=3),
+        CampaignItem(id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+                     kind="image", ref_id=img_niche, cadence_per_week=7),
     ]
     result = await _tick(env)
     assert result["action"] == "ticked"
     assert env["videos"] == [(vid_niche, "tiktok")]  # first platform
     assert env["articles"] == [art_niche]
+    assert env["images"] == [img_niche]
+
+
+async def test_parked_approval_skips_video_lane(env, monkeypatch):
+    nid = uuid4()
+    env["niches"][nid] = _niche(nid)
+    env["items"] = [CampaignItem(
+        id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+        kind="video", ref_id=nid, cadence_per_week=7,
+    )]
+
+    async def busy(nid, *, within_minutes=45):
+        return True
+
+    monkeypatch.setattr(jobs_repo, "has_active_for_niche", busy)
+    result = await _tick(env)
+    assert env["videos"] == []
+    assert result["spawned"] == []
+
+
+async def test_parked_approval_skips_image_lane(env, monkeypatch):
+    """approve_before_post parks the carousel; the next cadence tick
+    must not buy another set of slides while that post is waiting."""
+    nid = uuid4()
+    env["niches"][nid] = _niche(nid)
+    env["items"] = [CampaignItem(
+        id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+        kind="image", ref_id=nid, cadence_per_week=7,
+    )]
+    env["counts"]["image"][nid] = {
+        "total": 1, "last7": 1, "last_at": NOW - timedelta(hours=25),
+    }
+
+    async def busy(nid):
+        return True
+
+    monkeypatch.setattr(image_posts_repo, "has_active_for_niche", busy)
+    result = await _tick(env)
+    assert env["images"] == []
+    assert result["spawned"] == []
+
+
+async def test_in_flight_article_skips_article_lane(env, monkeypatch):
+    nid = uuid4()
+    env["niches"][nid] = _niche(nid)
+    env["items"] = [CampaignItem(
+        id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+        kind="article", ref_id=nid, cadence_per_week=56,
+    )]
+    env["counts"]["article"][nid] = {
+        "total": 1, "last7": 1, "last_at": NOW - timedelta(hours=4),
+    }
+
+    async def busy(nid):
+        return True
+
+    monkeypatch.setattr(articles_repo, "has_active_for_niche", busy)
+    result = await _tick(env)
+    assert env["articles"] == []
+    assert result["spawned"] == []
 
 
 async def test_weekly_quota_is_a_hard_stop(env):
@@ -177,6 +267,53 @@ async def test_disabled_lane_skipped(env):
     )]
     await _tick(env)
     assert env["videos"] == []
+
+
+async def test_tick_skips_when_generate_flag_disabled(monkeypatch, env):
+    """Admin kill-switch must stop campaign cron before any paid spawn."""
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    vid_niche = uuid4()
+    env["niches"][vid_niche] = _niche(vid_niche)
+    env["items"] = [
+        CampaignItem(
+            id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+            kind="video", ref_id=vid_niche, cadence_per_week=7,
+        ),
+    ]
+    result = await _tick(env)
+    assert result["action"] == "skipped"
+    assert "generate" in result["reason"]
+    assert env["videos"] == [] and env["articles"] == []
+    assert env["status_calls"] == []
+
+
+async def test_tick_skips_when_unbilled_usage_disabled(monkeypatch, env):
+    """Cron must not spawn paid work when billing is off and unbilled is refused."""
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    vid_niche = uuid4()
+    env["niches"][vid_niche] = _niche(vid_niche)
+    env["items"] = [
+        CampaignItem(
+            id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+            kind="video", ref_id=vid_niche, cadence_per_week=7,
+        ),
+    ]
+    result = await _tick(env)
+    assert result["action"] == "skipped"
+    assert "unbilled" in result["reason"]
+    assert env["videos"] == [] and env["articles"] == []
+    fleet = await campaign_runner.tick_all()
+    assert fleet["skipped_unbilled"] is True
+    assert fleet["campaigns"] == 0
 
 
 async def test_tick_all_contains_per_campaign_failures(monkeypatch, env):

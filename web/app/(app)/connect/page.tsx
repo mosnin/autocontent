@@ -34,7 +34,8 @@ export default async function ConnectPage() {
   // (profile_key) exists - NOT which individual socials are linked. That
   // lives in Ayrshare's hosted chooser. So we speak in terms of "profile
   // created", never per-platform "ready".
-  const profileCreated = status?.connected ?? false;
+  const publishingConfigured = status?.configured ?? false;
+  const profileCreated = publishingConfigured && (status?.connected ?? false);
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
@@ -52,7 +53,18 @@ export default async function ConnectPage() {
         </p>
       </div>
 
-      {status === null ? (
+      {status !== null && !publishingConfigured ? (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="font-medium">Publishing is not configured</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              This deployment has no Ayrshare key. Socials are not online,
+              and creating a posting profile will stay dark until the
+              operator adds one.
+            </p>
+          </CardContent>
+        </Card>
+      ) : status === null ? (
         <Card className="border-destructive/40 bg-destructive/5">
           <CardContent className="pt-6">
             <div className="font-medium">

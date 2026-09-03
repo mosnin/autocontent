@@ -26,18 +26,25 @@ export interface AdAccount {
 }
 
 export interface AdsOverview {
+  enabled?: boolean;
   accounts: number;
   active_accounts: number;
   campaigns: number;
+  /** Campaigns live on a connected ad platform (external id present). */
   active_campaigns: number;
+  /** DB status=active only — may not be platform-live yet. */
+  marked_active_campaigns?: number;
   spend_today_usd: string;
   spend_30d_usd: string;
   pending_approvals: number;
   month_start: string;
+  ads_enabled: boolean;
+  approval_threshold_usd: string;
 }
 
 export interface AdApproval {
   id: string;
+  campaign_id: string | null;
   action: string;
   summary: string;
   dollar_delta_usd: string;
@@ -161,6 +168,6 @@ export function changeBudget(
 export function changeCampaignStatus(
   id: string,
   status: "active" | "paused" | "ended",
-): Promise<AdCampaign> {
+): Promise<AdCampaign | { status: string; approval_id?: string }> {
   return proxy("POST", `${ADS}/campaigns/${id}/status`, { status });
 }

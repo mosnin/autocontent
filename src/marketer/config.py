@@ -88,7 +88,10 @@ class Settings(BaseSettings):
     # Maximum number of run_pipeline jobs active at once for a single user.
     pipeline_per_user_concurrency: int = 3
     # Maximum number of run_pipeline jobs active at once for a single niche.
-    # Use 1 to serialize per-niche (avoids character-sheet write races).
+    # 1 (the production value) is an exclusive advisory lock so character-
+    # sheet writes cannot race. Values >1 are reserved; the lock stays
+    # exclusive until slotted niche locks ship — the knob is read so a
+    # mis-set value is visible in preflight rather than silently ignored.
     pipeline_per_niche_concurrency: int = 1
 
     # Sentry error reporting. Set sentry_dsn to enable; leave empty to disable.
@@ -110,6 +113,15 @@ class Settings(BaseSettings):
     # Public origin for checkout redirects + email links,
     # e.g. https://app.marketer.dev
     app_url: str = ""
+    # Self-host escape hatch. When False, pipeline spend is refused unless
+    # billing_enabled is on (prepaid credit). Default True keeps existing
+    # self-host behaviour: owner's keys, spend caps only. Public Clerk +
+    # this left True is a hosted-SaaS footgun — preflight warns.
+    allow_unbilled_usage: bool = True
+    # First-admin bootstrap. When set, the matching Clerk email is promoted
+    # to role=admin on upsert if and only if no admin exists yet. Empty =
+    # no automatic promotion (SQL / existing admin UI only).
+    bootstrap_admin_email: str = ""
 
     # --- Ads product (paid campaigns) ---------------------------------
     # Master switch. When false, the Ads product is inert: no Composio calls,
@@ -295,6 +307,30 @@ class Settings(BaseSettings):
     #   x-axiom-dataset=marketer,authorization=Bearer <token>
     otel_exporter_otlp_headers: str = ""
     otel_traces_sample_rate: float = 1.0
+
+    # --- OAuth 2.1 authorization server (backend/routes/oauth.py) ------
+    # Public origin the authorization server identifies itself as. It is the
+    # `issuer` in the discovery documents and the base of every absolute URL
+    # they advertise, so it must be the origin a browser actually reaches
+    # (marketer.sh), not the Modal hostname behind it. Empty falls back to
+    # app_url, then to https://marketer.sh (see services/oauth.issuer()).
+    oauth_issuer: str = ""
+    # RFC 8707 resource indicator identifying this deployment's API. A
+    # client may send `resource=` at /oauth/authorize; when it does, the
+    # value must equal this (or one of the client's registered resources)
+    # and it is bound to the code and to the grant. Empty = "<issuer>/api".
+    oauth_resource: str = ""
+    # Access-token lifetime. Short by design: refresh rotation is the
+    # mechanism that keeps a connection alive.
+    oauth_access_token_ttl_seconds: int = 3600
+    # Refresh-token lifetime. Each rotation issues a fresh one, so this is
+    # the maximum idle time before a client must send the user back through
+    # consent.
+    oauth_refresh_token_ttl_seconds: int = 2592000  # 30 days
+    # Authorization codes and pending consent decisions both expire fast;
+    # ten minutes is the RFC 6749 ceiling and there is no reason to be
+    # looser.
+    oauth_code_ttl_seconds: int = 600
 
     # --- Boot-time config health (preflight) ---------------------------
     # When True, a startup preflight check that finds any ERROR-level

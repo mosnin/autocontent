@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { retryArticleAction } from "@/lib/actions";
 import { clientFetch } from "@/lib/client-fetcher";
-import { ARTICLE_IN_PROGRESS, ArticleStatusBadge } from "@/lib/status-badge";
+import { ARTICLE_IN_PROGRESS, ArticleStatusBadge, articleStatusLabel } from "@/lib/status-badge";
 import { cn } from "@/lib/utils";
 import type { Article } from "@/lib/types";
 
@@ -67,7 +67,7 @@ export function ArticleDetailClient({
     const res = await retryArticleAction({ ok: false }, fd);
     setRetrying(false);
     if (res.ok) {
-      toast.success("Retry enqueued");
+      toast.success("Retry started");
       void mutate();
     } else {
       toast.error(res.error ?? "Retry failed");
@@ -104,7 +104,7 @@ export function ArticleDetailClient({
                 In progress - updates every {POLL_MS / 1000}s
               </span>
             )}
-            {nicheTitle && <span>Niche: {nicheTitle}</span>}
+            {nicheTitle && <span>Channel: {nicheTitle}</span>}
             <span className="tabular-nums">
               Created: {new Date(article.created_at).toLocaleString()}
             </span>
@@ -159,6 +159,11 @@ export function ArticleDetailClient({
             <CardTitle className="text-base">Article</CardTitle>
           </CardHeader>
           <CardContent>
+            {!article.article_markdown && article.status !== "failed" && (
+              <div className="mb-4">
+                <ArticleRail status={article.status} />
+              </div>
+            )}
             {article.article_markdown ? (
               <ArticleMarkdown markdown={article.article_markdown} />
             ) : (
@@ -166,7 +171,9 @@ export function ArticleDetailClient({
                 <div className="mb-3 flex items-center gap-2">
                   <RecordingDot />
                   <span className="text-xs font-medium uppercase tracking-[0.2em] text-brand">
-                    {article.status === "failed" ? "No draft" : "Writing"}
+                    {article.status === "failed"
+                      ? "No draft"
+                      : articleStatusLabel(article.status)}
                   </span>
                 </div>
                 <div className="space-y-2">
@@ -177,7 +184,7 @@ export function ArticleDetailClient({
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">
                   {article.status === "failed"
-                    ? "The pipeline failed before a draft was produced."
+                    ? "This run failed before a draft was produced."
                     : "The article body appears here as soon as the writing step finishes."}
                 </p>
               </div>
@@ -246,21 +253,26 @@ export function ArticleDetailClient({
                     <div className="grid grid-cols-2 gap-3">
                       <StatTile
                         label="Overall"
-                        value={fmtScore(article.quality.overall)}
+                        value={pctScore(article.quality.overall)}
                       />
                       <StatTile
-                        label="E-E-A-T"
-                        value={fmtScore(article.quality.eeatScore)}
+                        label="Expertise (E-E-A-T)"
+                        value={pctScore(article.quality.eeatScore)}
                       />
                       <StatTile
                         label="Readability"
-                        value={fmtScore(article.quality.readability)}
+                        value={pctScore(article.quality.readability)}
                       />
                       <StatTile
-                        label="Kw density"
-                        value={fmtScore(article.quality.keywordDensity)}
+                        label="Keyword density"
+                        value={densityPct(article.quality.keywordDensity)}
                       />
                     </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground">
+                      Scores are out of 100 — below 60 triggers one automatic
+                      rewrite. Keyword density is the focus keyword&apos;s share
+                      of the text (1–2% is healthy).
+                    </p>
                     {article.quality.notes.length > 0 && (
                       <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-muted-foreground">
                         {article.quality.notes.map((note, i) => (
@@ -397,6 +409,71 @@ function StatTile({ label, value }: { label: string; value: string }) {
 function fmtScore(n: number): string {
   if (!Number.isFinite(n)) return "-";
   return Number.isInteger(n) ? String(n) : n.toFixed(2);
+}
+
+/** 0–1 model score → "82 / 100". */
+function pctScore(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  return `${Math.round(n * 100)} / 100`;
+}
+
+/** Raw occurrence ratio → "1.2%". */
+function densityPct(n: number): string {
+  if (!Number.isFinite(n)) return "—";
+  return `${(n * 100).toFixed(1)}%`;
+}
+
+// The writing line, in order — the wait names its step, exactly like the
+// video page's production rail.
+const ARTICLE_STAGES: { key: string; label: string }[] = [
+  { key: "researching", label: "Researching what ranks" },
+  { key: "outlining", label: "Outlining" },
+  { key: "writing", label: "Writing sections" },
+  { key: "qa", label: "Quality check" },
+  { key: "metadata", label: "SEO metadata" },
+  { key: "imaging", label: "Hero image" },
+];
+
+function ArticleRail({ status }: { status: string }) {
+  const idx = ARTICLE_STAGES.findIndex((s) => s.key === status);
+  const isQueued = status === "queued";
+  if (idx === -1 && !isQueued) return null;
+  const current = isQueued ? 0 : idx;
+  const pct = isQueued ? 4 : ((current + 0.5) / ARTICLE_STAGES.length) * 100;
+  return (
+    <div className="rounded-lg border border-brand/20 bg-card/40 p-4">
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="text-sm font-medium">
+          {isQueued ? "Waiting for a writer…" : ARTICLE_STAGES[current].label}
+        </p>
+        <p className="text-xs tabular-nums text-muted-foreground">
+          {isQueued ? "Starting" : `Step ${current + 1} of ${ARTICLE_STAGES.length}`}
+        </p>
+      </div>
+      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-border/60">
+        <div
+          className="h-full rounded-full bg-brand transition-[width] duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <ol className="mt-3 hidden flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground sm:flex">
+        {ARTICLE_STAGES.map((s, i) => (
+          <li
+            key={s.key}
+            className={
+              i < current
+                ? "line-through opacity-60"
+                : i === current && !isQueued
+                  ? "font-medium text-brand"
+                  : undefined
+            }
+          >
+            {s.label}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 function prettyJson(raw: string): string {

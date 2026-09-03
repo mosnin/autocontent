@@ -149,7 +149,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
                     target_audience="x", why_it_works="y")
     monkeypatch.setattr(pipeline, "run_ideation", fake_ideation)
 
-    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", spend=None):
+    async def fake_scriptwriter(idea, *, scene_count, target_duration_sec, audience_context="", brief=None, script_model="", format_key="", spend=None):
         return _make_script()
     monkeypatch.setattr(pipeline, "run_scriptwriter", fake_scriptwriter)
 
@@ -243,7 +243,7 @@ def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_q
     monkeypatch.setattr(pipeline.subtitle, "words_to_ass", fake_words_to_ass)
 
     async def fake_schedule_post(*, video_path, caption, hashtags, platform,
-                                 scheduled_for, profile_key, user_id):
+                                 scheduled_for, profile_key, user_id, idempotency_key=None):
         return "post-id-xyz"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
 
@@ -403,14 +403,42 @@ async def test_approval_gate_parks_job_before_scheduling(stub_all, stage_log):
 
 # --------------------------------------------------------------------------- notifications
 
+async def test_notify_skips_when_resend_unconfigured(monkeypatch):
+    """_notify must not attempt mail when the deployment has no provider key."""
+    from uuid import uuid4
+
+    from marketer.config import settings
+    from marketer.models import Job, JobStatus
+    from marketer.pipeline import _notify
+    from marketer.services import email as email_svc
+
+    monkeypatch.setattr(settings, "resend_api_key", "")
+
+    async def explode(**kwargs):
+        raise AssertionError("send_email must not run when Resend is off")
+
+    monkeypatch.setattr(email_svc, "send_email", explode)
+
+    job = Job(
+        id=uuid4(),
+        user_id="user_a",
+        niche_id=uuid4(),
+        platform="tiktok",
+        status=JobStatus.failed,
+    )
+    await _notify(job, kind="failed")
+
+
 async def test_notify_respects_email_optout(monkeypatch):
     """_notify sends when the user is opted in, and stays silent when they've
     turned email notifications off — without ever touching job state."""
     from datetime import datetime, timezone
 
     import marketer.repos.users as _users_repo
+    from marketer.config import settings
     from marketer.services import email as email_svc
 
+    monkeypatch.setattr(settings, "resend_api_key", "re_test")
     sent: list[str] = []
 
     async def fake_send_email(*, to, subject, html):
@@ -600,7 +628,7 @@ async def test_qa_regenerate_script_retries_once_then_succeeds(monkeypatch, stub
 
     async def counting_scriptwriter(idea, *, scene_count, target_duration_sec,
                                     audience_context="", brief=None,
-                                    script_model="", spend=None):
+                                    script_model="", format_key="", spend=None):
         script_calls["n"] += 1
         return _make_script()
 

@@ -61,7 +61,8 @@ export type JobStatus =
   | "awaiting_approval"
   | "done"
   | "failed"
-  | "skipped";
+  | "skipped"
+  | "rejected";
 
 export interface Job {
   id: string;
@@ -98,6 +99,7 @@ export interface SpendHistory {
 
 export interface AyrshareConnectStatus {
   connected: boolean;
+  configured: boolean;
   profile_key: string | null;
 }
 
@@ -112,6 +114,7 @@ export interface User {
   ayrshare_profile_key: string | null;
   global_daily_cap_usd: string | null;
   email_notifications: boolean;
+  email_configured?: boolean;
   created_at: string;
 }
 
@@ -173,7 +176,6 @@ export const PLATFORMS: Platform[] = ["tiktok", "reels", "shorts"];
 export const QUALITIES: ImageQuality[] = ["low", "medium", "high"];
 export const RESOLUTIONS: VideoResolution[] = ["480p", "720p"];
 
-export const TERMINAL_STATUSES: JobStatus[] = ["done", "failed"];
 
 export function isFailed(j: Job): boolean {
   return j.status === "failed";
@@ -255,6 +257,20 @@ export interface BillingBalance {
   billing_enabled: boolean;
   margin: number;
   transactions: CreditTransaction[];
+}
+
+export interface BillingPack {
+  key: string;
+  amount_cents: number;
+  credit_usd: string;
+  label: string;
+  blurb: string;
+  featured: boolean;
+}
+
+export interface BillingPacks {
+  billing_enabled: boolean;
+  packs: BillingPack[];
 }
 
 export interface TokenCreateResponse {

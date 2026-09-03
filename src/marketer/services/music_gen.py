@@ -78,6 +78,9 @@ def _is_retryable(exc: BaseException) -> bool:
     retry=retry_if_exception(_is_retryable),
 )
 async def _call_api(prompt: str, length_ms: int) -> bytes:
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SEC) as client:
         resp = await client.post(
             f"{API_BASE}/music",
@@ -99,6 +102,9 @@ async def compose(
 ) -> Path:
     """Compose an original instrumental track. Raises MusicGenError on any
     problem — the caller falls back to the stock library chain."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     if not enabled():
         raise MusicGenError("MARKETER_ELEVENLABS_API_KEY is not set")
 

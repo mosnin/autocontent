@@ -181,7 +181,7 @@ async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
     stuck = await pool.fetchval(
         """
         select count(*) from jobs
-         where status not in ('done', 'failed', 'skipped', 'awaiting_approval')
+         where status not in ('done', 'failed', 'skipped', 'awaiting_approval', 'rejected')
            and updated_at < now() - interval '2 hours'
         """
     ) if db_ok else None

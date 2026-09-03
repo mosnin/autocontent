@@ -92,7 +92,7 @@ async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
 
 
 async def claim_for_rejection(job_id: UUID, *, user_id: str) -> Job | None:
-    """Atomically mark an `awaiting_approval` job `failed` (operator veto).
+    """Atomically mark an `awaiting_approval` job `rejected` (operator veto).
 
     Like reset_for_retry, the `and status = 'awaiting_approval'` predicate is
     re-checked under a row lock at UPDATE time. This closes a race with
@@ -111,8 +111,8 @@ async def claim_for_rejection(job_id: UUID, *, user_id: str) -> Job | None:
              where id = $1 and user_id = $2 and status = 'awaiting_approval'
         )
         update jobs j
-           set status = 'failed'::job_status,
-               error = 'rejected by operator before posting',
+           set status = 'rejected'::job_status,
+               error = null,
                updated_at = now()
           from prev
          where j.id = prev.id and j.status = 'awaiting_approval'
@@ -123,8 +123,8 @@ async def claim_for_rejection(job_id: UUID, *, user_id: str) -> Job | None:
     if row is None:
         return None
     job = Job.model_validate(json.loads(row["old_payload"]))
-    job.status = JobStatus.failed
-    job.error = "rejected by operator before posting"
+    job.status = JobStatus.rejected
+    job.error = None
     await save_snapshot(job)
     return job
 
@@ -168,16 +168,28 @@ async def reap_stale(*, older_than_minutes: int = 120) -> int:
 
 
 async def has_active_for_niche(niche_id: UUID, *, within_minutes: int = 45) -> bool:
-    """True if the niche already has a live (non-terminal) job created
-    recently — used by the batch scheduler as an idempotency guard so an
-    overlapping/delayed cron tick doesn't double-enqueue the same window."""
+    """True if the niche already has a live (non-terminal) job.
+
+    In-flight pipeline statuses only count when created recently — that
+    is the overlapping-cron guard so a delayed tick of the *same* window
+    does not double-enqueue. ``awaiting_approval`` is parking for a human
+    and must block the *next* posting window regardless of age: otherwise
+    ``approve_before_post`` niches (the onboarding default) re-render and
+    re-spend every window until an operator acts.
+
+    Do not fold ``awaiting_approval`` into ``_REAPABLE_STATUSES`` — the
+    reaper must keep treating parked jobs as healthy, not stale.
+    """
     pool = await get_pool()
     row = await pool.fetchrow(
         """
         select 1 from jobs
          where niche_id = $1
-           and status = any($2::job_status[])
-           and created_at > now() - make_interval(mins => $3)
+           and (
+                 (status = any($2::job_status[])
+                  and created_at > now() - make_interval(mins => $3))
+              or status = 'awaiting_approval'
+           )
          limit 1
         """,
         niche_id,

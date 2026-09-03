@@ -39,7 +39,7 @@ export function CharacterSheetCard({ nicheId }: { nicheId: string }) {
           {/* Proxied stream with Clerk auth; plain img keeps it simple. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            alt="Generated character sheet for this niche"
+            alt="Generated character sheet for this channel"
             width={720}
             height={1280}
             loading="lazy"

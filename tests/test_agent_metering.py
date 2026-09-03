@@ -55,6 +55,18 @@ async def test_run_metered_logs_token_cost(fake_runner, fake_spend):
     assert entry.cost_usd > 0
 
 
+async def test_run_metered_without_spend_refuses_when_unbilled(fake_runner, monkeypatch):
+    from marketer.config import settings
+    from marketer.repos.spend import SpendCapExceeded
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    agent = SimpleNamespace(model="gpt-5.4-mini")
+    with pytest.raises(SpendCapExceeded, match="ALLOW_UNBILLED"):
+        await metered.run_metered(agent, "hello", spend=None)
+    assert fake_runner == []
+
+
 async def test_run_metered_without_spend_still_runs(fake_runner):
     agent = SimpleNamespace(model="gpt-5.4-mini")
     result = await metered.run_metered(agent, "hello", spend=None)

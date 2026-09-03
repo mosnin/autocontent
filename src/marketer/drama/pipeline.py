@@ -230,6 +230,9 @@ async def _mix_dialogue_vo(
 async def run_drama(*, user_id: str, drama_id: UUID) -> Drama:
     """Run one micro-drama end to end. Idempotent-ish: safe to re-invoke on a
     failed/queued row — completed work is resumed, not re-bought."""
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     drama = await dramas_repo.get(drama_id, user_id=user_id)
     if drama is None:
         raise DramaError(f"drama {drama_id} not found for user {user_id}")

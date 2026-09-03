@@ -58,7 +58,7 @@ export default function FaqPage() {
         primaryLabel="Start creating"
         secondaryHref="/pricing"
         secondaryLabel="See pricing"
-        sub="The Starter pack answers most questions better than we can: roughly 8 to 12 videos, every feature included, nothing publishes without you."
+        sub="The Starter pack answers most questions better than we can: your first videos, every feature included, nothing publishes without you."
       />
     </main>
   );

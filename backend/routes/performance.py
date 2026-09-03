@@ -52,7 +52,7 @@ async def niche_performance(
     # 1. Ownership check + capture visual_style from niche row.
     niche = await niches_repo.get(niche_id, user_id=ctx.user_id)
     if niche is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "niche not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "channel not found")
 
     visual_style: str | None = niche.visual_style or None
 

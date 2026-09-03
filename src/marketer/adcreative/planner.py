@@ -246,6 +246,9 @@ async def plan_ad_run(
             "not-configured", "the ad creative studio is not enabled on this deployment"
         )
 
+    from ..billing.gates import raise_if_unbilled
+
+    raise_if_unbilled()
     brand_res, page_res, styleguide_res, products_res = await asyncio.gather(
         context_dev.retrieve_brand(domain),
         context_dev.scrape_markdown(homepage_url(domain)),

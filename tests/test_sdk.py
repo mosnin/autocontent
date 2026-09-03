@@ -169,6 +169,59 @@ async def test_enqueue_job_posts_body():
     assert captured["body"] == {"niche_id": str(nid), "platform": "reels"}
 
 
+async def test_approve_job_posts_to_approve_path():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["method"] = req.method
+        return httpx.Response(202, json=_job_row())
+
+    jid = uuid4()
+    async with _client(handler) as c:
+        await c.approve_job(jid)
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith(f"/api/v1/jobs/{jid}/approve")
+
+
+async def test_billing_balance_and_checkout():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured.setdefault("urls", []).append((req.method, str(req.url)))
+        if req.url.path.endswith("/balance"):
+            return httpx.Response(
+                200,
+                json={
+                    "balance_usd": "5.00",
+                    "billing_enabled": True,
+                    "margin": 1.5,
+                    "transactions": [],
+                },
+            )
+        return httpx.Response(200, json={"url": "https://checkout.stripe.com/x"})
+
+    async with _client(handler) as c:
+        bal = await c.billing_balance()
+        chk = await c.billing_checkout("starter")
+    assert bal["balance_usd"] == "5.00"
+    assert chk["url"].startswith("https://checkout.stripe.com/")
+
+
+async def test_list_campaigns_and_library_and_failures():
+    def handler(req: httpx.Request) -> httpx.Response:
+        if "/campaigns" in req.url.path:
+            return httpx.Response(200, json=[])
+        if "/library" in req.url.path:
+            return httpx.Response(200, json=[])
+        return httpx.Response(200, json={"items": [], "counts": {}})
+
+    async with _client(handler) as c:
+        assert await c.list_campaigns() == []
+        assert await c.list_library() == []
+        assert (await c.list_failures())["items"] == []
+
+
 async def test_retry_job_posts_to_retry_path():
     captured: dict = {}
 
@@ -192,6 +245,24 @@ async def test_today_spend_parses_decimals():
         out = await c.today_spend()
     assert out.total_usd == Decimal("1.50")
     assert out.by_niche["a"] == Decimal("1.50")
+
+
+async def test_spend_history_parses_rows():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert "days=7" in str(req.url)
+        return httpx.Response(
+            200,
+            json={
+                "rows": [{"day": "2026-08-01", "niche_id": None, "cost_usd": "2.50"}],
+                "days": 7,
+                "total_usd": "2.50",
+            },
+        )
+
+    async with _client(handler) as c:
+        out = await c.spend_history(days=7)
+    assert out.days == 7
+    assert out.total_usd == Decimal("2.50")
 
 
 async def test_connect_ayrshare_returns_url():

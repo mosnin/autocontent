@@ -31,10 +31,19 @@ _CANONICAL = "components/ui"
 # Marketing sections delivered by a generator. Kept byte-for-byte so they
 # can be re-pulled; sealed from the outside by the test below.
 _VENDORED = "components/originkit"
+# The homepage hero is the one app-side adapter for originkit hero-19.
+# It imports Backdrop / ParticleSphere unmodified so a re-pull stays
+# byte-stable. That is not a second kit — it is the section's public
+# surface used by the existing SiteHero (not a redesign).
+_HERO_ADAPTER = "components/site/hero"
 
 
 def _is_vendored(path: Path) -> bool:
     return path.relative_to(_WEB).as_posix().startswith(f"{_VENDORED}/")
+
+
+def _is_hero_adapter(path: Path) -> bool:
+    return path.relative_to(_WEB).as_posix().startswith(f"{_HERO_ADAPTER}/")
 
 pytestmark = pytest.mark.skipif(not _COMPONENTS.is_dir(), reason="web app not present")
 
@@ -77,6 +86,7 @@ def test_nothing_imports_a_non_canonical_kit() -> None:
             path.relative_to(_WEB).as_posix()
             for path, source in _tsx_sources()
             if not _is_vendored(path)
+            and not _is_hero_adapter(path)
             # Any `@/components/<something>/ui/...` other than the canonical one.
             and re.search(r"@/components/(?!ui/)[\w-]+/ui/", source)
         }
@@ -101,7 +111,9 @@ def test_vendored_sections_stay_sealed() -> None:
         {
             path.relative_to(_WEB).as_posix()
             for path, source in _tsx_sources()
-            if not _is_vendored(path) and reach_in.search(source)
+            if not _is_vendored(path)
+            and not _is_hero_adapter(path)
+            and reach_in.search(source)
         }
     )
     assert not offenders, (

@@ -23,6 +23,7 @@ from .models import (
     Niche,
     NicheCreatePayload,
     PersonalAccessToken,
+    SpendHistory,
     TodaySpend,
 )
 
@@ -146,6 +147,87 @@ class MarketerClient:
     async def retry_job(self, job_id: UUID | str) -> Job:
         resp = await self._request("POST", f"/api/v1/jobs/{job_id}/retry")
         return Job.model_validate(resp.json())
+
+    async def approve_job(self, job_id: UUID | str) -> Job:
+        """Operator sign-off on an awaiting_approval job. Spawns scheduling."""
+        resp = await self._request("POST", f"/api/v1/jobs/{job_id}/approve")
+        return Job.model_validate(resp.json())
+
+    async def reject_job(self, job_id: UUID | str) -> Job:
+        """Operator veto — marks the job failed so it never posts."""
+        resp = await self._request("POST", f"/api/v1/jobs/{job_id}/reject")
+        return Job.model_validate(resp.json())
+
+    async def job_metrics(self, job_id: UUID | str) -> dict:
+        resp = await self._request("GET", f"/api/v1/jobs/{job_id}/metrics")
+        return resp.json()
+
+    # --------------------------------------------------------------- billing
+
+    async def billing_balance(self) -> dict:
+        resp = await self._request("GET", "/api/v1/billing/balance")
+        return resp.json()
+
+    async def billing_packs(self) -> dict:
+        resp = await self._request("GET", "/api/v1/billing/packs")
+        return resp.json()
+
+    async def billing_checkout(self, pack: str) -> dict:
+        """Start Stripe Checkout for a pack ('starter'|'creator'|'studio')."""
+        resp = await self._request("POST", "/api/v1/billing/checkout", json={"pack": pack})
+        return resp.json()
+
+    # --------------------------------------------------------------- campaigns
+
+    async def list_campaigns(self) -> list[dict]:
+        resp = await self._request("GET", "/api/v1/campaigns")
+        return resp.json()
+
+    async def get_campaign(self, campaign_id: UUID | str) -> dict:
+        resp = await self._request("GET", f"/api/v1/campaigns/{campaign_id}")
+        return resp.json()
+
+    async def create_campaign(self, **fields: object) -> dict:
+        resp = await self._request("POST", "/api/v1/campaigns", json=fields)
+        return resp.json()
+
+    async def start_campaign(self, campaign_id: UUID | str) -> dict:
+        resp = await self._request("POST", f"/api/v1/campaigns/{campaign_id}/start")
+        return resp.json()
+
+    async def pause_campaign(self, campaign_id: UUID | str) -> dict:
+        resp = await self._request("POST", f"/api/v1/campaigns/{campaign_id}/pause")
+        return resp.json()
+
+    # --------------------------------------------------------------- library
+
+    async def list_library(
+        self,
+        *,
+        kind: str | None = None,
+        niche_id: UUID | str | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        params: dict[str, Any] = {"limit": limit}
+        if kind:
+            params["kind"] = kind
+        if niche_id is not None:
+            params["niche_id"] = str(niche_id)
+        resp = await self._request("GET", "/api/v1/library", params=params)
+        return resp.json()
+
+    # --------------------------------------------------------------- failures
+
+    async def list_failures(self) -> dict:
+        resp = await self._request("GET", "/api/v1/failures")
+        return resp.json()
+
+    async def replay_failure(self, kind: str, item_id: UUID | str) -> dict:
+        """Re-run a failed job/article/image-post from the inbox."""
+        resp = await self._request(
+            "POST", f"/api/v1/failures/replay/{kind}/{item_id}"
+        )
+        return resp.json()
 
     # --------------------------------------------------------------- articles
 
@@ -328,6 +410,18 @@ class MarketerClient:
     async def today_spend(self) -> TodaySpend:
         resp = await self._request("GET", "/api/v1/spend/today")
         return TodaySpend.model_validate(resp.json())
+
+    async def spend_history(
+        self,
+        *,
+        days: int = 30,
+        niche_id: UUID | str | None = None,
+    ) -> SpendHistory:
+        params: dict[str, Any] = {"days": days}
+        if niche_id is not None:
+            params["niche_id"] = str(niche_id)
+        resp = await self._request("GET", "/api/v1/spend/history", params=params)
+        return SpendHistory.model_validate(resp.json())
 
     # ------------------------------------------------------------------ connect
 

@@ -17,7 +17,9 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import Link from "next/link";
 import { formatUsd } from "@/lib/format";
+import { adActionLabel } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +32,15 @@ interface AdAction {
   target_type: string;
   target_id: string;
   dollar_delta_usd: string;
+  after_json: { reason?: string } | null;
   created_at: string;
 }
+
+const TARGET_LABEL: Record<string, string> = {
+  ad_campaign: "Campaign",
+  ad_account: "Account",
+  ad_approval: "Approval",
+};
 
 function toneClass(action: string): string {
   if (action.includes("denied"))
@@ -101,18 +110,34 @@ export default async function AdsActivityPage() {
                       <Badge
                         variant="outline"
                         className={cn(
-                          "font-mono text-xs font-medium px-2 py-0.5",
+                          "text-xs font-medium px-2 py-0.5",
                           toneClass(a.action),
                         )}
                       >
-                        {a.action}
+                        {adActionLabel(a.action)}
                       </Badge>
+                      {a.action.includes("denied") && a.after_json?.reason && (
+                        <p className="mt-1 max-w-[280px] whitespace-normal text-xs text-muted-foreground">
+                          {a.after_json.reason}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell className="py-3 text-sm text-muted-foreground whitespace-nowrap">
                       {a.actor_email || a.actor}
                     </TableCell>
-                    <TableCell className="py-3 font-mono text-xs text-muted-foreground whitespace-nowrap">
-                      <span className="text-foreground">{a.target_type}</span>
+                    <TableCell className="py-3 text-xs text-muted-foreground whitespace-nowrap">
+                      {a.target_type === "ad_campaign" && a.target_id ? (
+                        <Link
+                          className="text-brand underline-offset-2 hover:underline"
+                          href={`/ads/campaigns/${a.target_id}`}
+                        >
+                          Campaign
+                        </Link>
+                      ) : (
+                        <span className="text-foreground">
+                          {TARGET_LABEL[a.target_type] ?? a.target_type}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="py-3 text-right font-mono text-sm tabular-nums whitespace-nowrap">
                       {Number(a.dollar_delta_usd) !== 0

@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { clientFetch } from "@/lib/client-fetcher";
+import { toastActionError } from "@/lib/errors";
 
 const POLL_MS = 15000;
 
@@ -57,8 +58,8 @@ interface FailuresInboxResponse {
 
 const CATEGORY_LABELS: Record<FailureCategory, string> = {
   spend_cap: "Spend cap",
-  render_qa: "Render QA",
-  content_qa: "Content QA",
+  render_qa: "Render check",
+  content_qa: "Content check",
   provider_error: "Provider error",
   timeout_stuck: "Timeout / stuck",
   other: "Other",
@@ -127,10 +128,10 @@ function ReplayButton({
         const body = await res.text();
         throw new Error(`${res.status} ${body}`);
       }
-      toast.success("Replay enqueued");
+      toast.success("Retry started");
       onReplayed();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Replay failed");
+      toastActionError(e instanceof Error ? e.message : undefined, "Replay failed");
     } finally {
       setPending(false);
     }
@@ -166,10 +167,19 @@ function FailureRow({
           <span className="text-xs text-muted-foreground">{relative(item.created_at)}</span>
         </div>
         <p className="line-clamp-2 break-words text-sm text-muted-foreground">
-          {item.error ?? "(no error message recorded)"}
+          {item.category === "spend_cap"
+            ? "Stopped by a spending limit — the daily cap was reached or credit ran out before this could finish."
+            : (item.error ?? "(no error message recorded)")}
         </p>
       </div>
-      <ReplayButton item={item} onReplayed={onReplayed} />
+      <div className="flex shrink-0 items-center gap-2">
+        {item.category === "spend_cap" && (
+          <Button asChild size="sm">
+            <a href="/settings/billing">Add credit</a>
+          </Button>
+        )}
+        <ReplayButton item={item} onReplayed={onReplayed} />
+      </div>
     </div>
   );
 }
@@ -183,15 +193,10 @@ export function FailuresInbox() {
 
   const [activeCategory, setActiveCategory] = React.useState<FailureCategory | "all">("all");
 
+  // Never flash a "Failures" card while we don't yet know whether there
+  // are any — for most users, most of the time, this component is invisible.
   if (isLoading && !data) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Failures inbox</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">Loading failures…</CardContent>
-      </Card>
-    );
+    return null;
   }
 
   if (error) {
@@ -209,6 +214,12 @@ export function FailuresInbox() {
 
   const failures = data?.failures ?? [];
   const counts = data?.counts ?? {};
+
+  // Nothing failed → no card at all. A brand-new user's Queue must not
+  // open with a "Failures inbox"; the queue table is the page.
+  if (failures.length === 0) {
+    return null;
+  }
   const visible =
     activeCategory === "all"
       ? failures
@@ -246,11 +257,7 @@ export function FailuresInbox() {
         </div>
 
         {visible.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            {failures.length === 0
-              ? "No failures - everything's healthy."
-              : "No failures in this category."}
-          </p>
+          <p className="text-sm text-muted-foreground">No failures in this category.</p>
         ) : (
           <div className="space-y-2">
             {visible.map((item) => (

@@ -7,6 +7,7 @@ async function fetchAyrshareConnected(): Promise<boolean | null> {
     const s = await api<AyrshareConnectStatus>(
       "/api/v1/connect/ayrshare/status",
     );
+    if (s?.configured === false) return null;
     return Boolean(s?.connected);
   } catch {
     return null;

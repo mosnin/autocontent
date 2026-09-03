@@ -42,7 +42,7 @@ export default async function EditNichePage({
           {niche.title}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Adjust any field below and save. The pipeline picks up the new
+          Adjust any field below and save. The next run picks up the new
           settings on the next run.
         </p>
       </div>

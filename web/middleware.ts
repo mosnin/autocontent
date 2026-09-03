@@ -34,9 +34,23 @@ const APP_GROUP = `/(${APP_SEGMENTS.join("|")})(.*)`;
 
 const isProtected = createRouteMatcher([APP_GROUP]);
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtected(req)) await auth.protect();
-});
+// Must be a real app path. When signInUrl is unset, Clerk's protect()
+// rewrites the request to Next's /_not-found (x-clerk-auth-reason:
+// protect-rewrite). That is the logged-out /dashboard 404 — the route
+// exists, the session does not, and the user never reaches /sign-in.
+const SIGN_IN_URL = "/sign-in";
+const SIGN_UP_URL = "/sign-up";
+
+export default clerkMiddleware(
+  async (auth, req) => {
+    if (isProtected(req)) {
+      await auth.protect({
+        unauthenticatedUrl: new URL(SIGN_IN_URL, req.url).toString(),
+      });
+    }
+  },
+  { signInUrl: SIGN_IN_URL, signUpUrl: SIGN_UP_URL },
+);
 
 export const config = {
   // Auth middleware runs ONLY where auth exists: the app, the auth pages,

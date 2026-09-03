@@ -30,6 +30,70 @@ from pathlib import Path
 
 MIGRATIONS_DIR = Path(__file__).parent.parent / "db" / "migrations"
 
+# yoyo's MigrationStep._execute is patched once per process so comment-only
+# SQL (a trailing NOTE, an intentionally empty rollback) is not sent to
+# Postgres. `cursor.execute("-- …")` and `cursor.execute(";")` both raise
+# ProgrammingError: can't execute an empty query — that is the CI failure
+# on 0031_scheduled_posts.sql's trailing documentation comment.
+_EMPTY_SQL_PATCHED = False
+
+
+def _is_empty_sql(stmt: object | None) -> bool:
+    """True when *stmt* would make Postgres raise 'empty query'.
+
+    yoyo splits files with sqlparse and then executes every leftover
+    fragment, including a `--` comment block after the last semicolon.
+    Comments and bare semicolons are not statements.
+    """
+    if stmt is None:
+        return True
+    if not isinstance(stmt, str):
+        return False
+    text = stmt.strip()
+    if not text or text == ";":
+        return True
+    try:
+        import sqlparse  # noqa: PLC0415
+        from sqlparse import tokens as sql_tokens  # noqa: PLC0415
+    except ImportError:
+        return all(
+            not line.strip() or line.lstrip().startswith("--")
+            for line in text.splitlines()
+        )
+
+    leftover: list[str] = []
+    for parsed in sqlparse.parse(text):
+        for token in parsed.flatten():
+            if token.ttype in (
+                sql_tokens.Comment.Single,
+                sql_tokens.Comment.Multiline,
+            ):
+                continue
+            value = str(token).strip()
+            if not value or value == ";":
+                continue
+            leftover.append(value)
+    return not leftover
+
+
+def _install_empty_sql_skip() -> None:
+    """Make yoyo no-op comment-only / empty statements instead of executing them."""
+    global _EMPTY_SQL_PATCHED
+    if _EMPTY_SQL_PATCHED:
+        return
+
+    from yoyo.migrations import MigrationStep  # noqa: PLC0415
+
+    original = MigrationStep._execute
+
+    def _execute(self, cursor, stmt, out=None):  # noqa: ANN001
+        if isinstance(stmt, str) and _is_empty_sql(stmt):
+            return None
+        return original(self, cursor, stmt, out)
+
+    MigrationStep._execute = _execute  # type: ignore[method-assign]
+    _EMPTY_SQL_PATCHED = True
+
 
 def _get_database_url() -> str:
     """Return the database URL from settings or the environment.
@@ -70,6 +134,7 @@ def _get_backend_and_migrations(database_url: str):
     """Return a (backend, migrations) tuple ready for yoyo operations."""
     from yoyo import get_backend, read_migrations  # noqa: PLC0415
 
+    _install_empty_sql_skip()
     backend = get_backend(database_url)
     migrations = read_migrations(str(MIGRATIONS_DIR))
     return backend, migrations

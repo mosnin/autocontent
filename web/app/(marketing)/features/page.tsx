@@ -9,7 +9,7 @@ import { FeatureHero } from "@/components/marketing/features/feature-hero";
 import { SectionCta } from "@/components/marketing/system";
 
 const DESCRIPTION =
-  "Content, SEO, and ads on one platform. Your AI agent makes the work. You set a budget.";
+  "Video, articles, scheduling, and campaigns on one ledger, under one set of caps. Extra studios stay off until you turn them on.";
 
 export const metadata: Metadata = {
   title: "Product · marketer.sh",
@@ -27,8 +27,8 @@ export default function FeaturesPage() {
     <main>
       <FeatureHero
         kicker="Product"
-        lede="Three services: short videos, SEO articles, and paid ads. One login. Prepaid credits from five dollars."
-        titleText="Content. SEO. Ads."
+        lede="Video and articles ship today. Scheduling and campaigns share the same ledger. Paid ads stay off until they are actually live."
+        titleText="Content and SEO, under one cap."
       />
       <FeatureIndex />
       <SharedSpine />

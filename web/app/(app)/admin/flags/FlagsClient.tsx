@@ -43,7 +43,7 @@ import type { FeatureFlag } from "@/lib/admin-types";
 const POLL_MS = 30_000;
 
 const AUDIT_NOTE =
-  "Every flag change is written to the append-only audit log with your identity.";
+  "Every flag change is written to the append-only audit log with your identity. Keys generate, publish, and billing are kill switches (missing row = allowed). Ads, x402, and suite studios still read MARKETER_* env flags.";
 
 export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
   const key = adminKeys.flags();

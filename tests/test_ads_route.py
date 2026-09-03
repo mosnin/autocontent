@@ -288,3 +288,33 @@ def test_decide_approval_conflict_when_already_decided(monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 409
+
+
+def test_overview_reports_enabled_false_when_ads_off(monkeypatch):
+    """UI must not imply ads are live when the feature flag is off."""
+    _reset_limiter()
+    from marketer.config import settings
+    import marketer.repos.ad_approvals as ad_approvals
+    import marketer.repos.ads as ads_repo
+
+    monkeypatch.setattr(settings, "ads_enabled", False)
+
+    async def _empty_accounts(user_id):
+        return []
+
+    async def _empty_campaigns(user_id, limit=500):
+        return []
+
+    async def _empty_approvals(*, user_id, status=None):
+        return []
+
+    monkeypatch.setattr(ads_repo, "list_accounts", _empty_accounts)
+    monkeypatch.setattr(ads_repo, "list_campaigns", _empty_campaigns)
+    monkeypatch.setattr(ad_approvals, "list_", _empty_approvals)
+    client = _client(monkeypatch)
+    resp = client.get("/api/v1/ads/overview", headers={"Authorization": "Bearer mkt_x"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["enabled"] is False
+    assert body["accounts"] == 0
+    assert body["active_campaigns"] == 0

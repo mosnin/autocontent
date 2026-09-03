@@ -141,7 +141,7 @@ async def add_item(
     # Lane refs must belong to the caller.
     if body.kind in ("video", "article", "image"):
         if await niches_repo.get(body.ref_id, user_id=ctx.user_id) is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="channel not found")
     else:  # ad
         from marketer.repos import ads as ads_repo
 

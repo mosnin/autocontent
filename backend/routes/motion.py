@@ -27,6 +27,7 @@ from marketer.repos import motion_projects as projects_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -77,6 +78,7 @@ async def list_projects(
 @router.post("/projects", status_code=status.HTTP_202_ACCEPTED)
 async def create_project(body: MotionProjectCreate, ctx: AuthCtx = CurrentUser) -> dict:
     """Create a motion project and kick off the render in the background."""
+    refuse_unbilled_generate()
     narration = body.narration.strip()
     if not narration and body.job_id is None:
         raise HTTPException(
@@ -148,6 +150,7 @@ async def get_project_video(project_id: UUID, ctx: AuthCtx = CurrentUser) -> Fil
 @router.post("/projects/{project_id}/retry", status_code=status.HTTP_202_ACCEPTED)
 async def retry_project(project_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Resume a failed project. Keyframes already on the volume are reused."""
+    refuse_unbilled_generate()
     if not await projects_repo.claim_for_retry(project_id, user_id=ctx.user_id):
         existing = await projects_repo.get(project_id, user_id=ctx.user_id)
         if existing is None:

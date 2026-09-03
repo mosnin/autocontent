@@ -36,8 +36,8 @@ interface Props {
 // place so both cards read from the same source of truth.
 const DATA_ITEMS = [
   "Your profile and account details",
-  "Every niche and its configuration",
-  "All pipeline jobs and their spend records",
+  "Every channel and its configuration",
+  "All video runs and their spend records",
   "Generated articles and video metadata",
   "Personal access token prefixes (never the secrets)",
 ] as const;
@@ -179,7 +179,7 @@ export function PrivacyClient({ email }: Props) {
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="max-w-md text-sm text-muted-foreground">
-            All of your niches, jobs, articles, spend history, and access
+            All of your channels, videos, articles, spend history, and access
             tokens are wiped immediately. There is no recovery and no grace
             period.
           </p>

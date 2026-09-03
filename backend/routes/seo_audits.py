@@ -34,6 +34,7 @@ from marketer.seoaudit.types import AuditResult
 from marketer.services.context_dev import ContextDevUnavailable
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -118,6 +119,7 @@ async def run_seo_audit(
         if cached:
             return _to_stored(cached, cached=True)
 
+    refuse_unbilled_generate()
     try:
         result = await seo_audit.run_audit(url)
     except ContextDevUnavailable as exc:

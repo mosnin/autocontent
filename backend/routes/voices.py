@@ -16,6 +16,7 @@ from marketer.config import settings
 from marketer.services import openai_tts
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -41,6 +42,7 @@ async def voice_preview(voice: str, ctx: AuthCtx = CurrentUser) -> FileResponse:
 
     path = preview_path(voice)
     if not path.exists():
+        refuse_unbilled_generate()
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             # No SpendContext: previews are an operator cost, not niche spend.

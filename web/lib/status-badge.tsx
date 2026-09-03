@@ -37,12 +37,13 @@ const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   voicing: "Voicing",
   editing: "Editing",
   captioning: "Captioning",
-  qa: "QA",
+  qa: "Quality check",
   scheduling: "Scheduling",
   awaiting_approval: "Awaiting approval",
   done: "Done",
   failed: "Failed",
   skipped: "Skipped",
+  rejected: "Rejected",
 };
 
 export function jobStatusLabel(status: JobStatus): string {
@@ -52,7 +53,7 @@ export function jobStatusLabel(status: JobStatus): string {
 export function statusVariant(status: JobStatus): Variant {
   if (status === "done") return "success";
   if (status === "failed") return "destructive";
-  if (status === "queued" || status === "skipped") return "secondary";
+  if (status === "queued" || status === "skipped" || status === "rejected") return "secondary";
   if (status === "awaiting_approval") return "outline";
   return "outline";
 }
@@ -100,9 +101,9 @@ const ARTICLE_STATUS_LABELS: Record<ArticleStatus, string> = {
   researching: "Researching",
   outlining: "Outlining",
   writing: "Writing",
-  qa: "QA",
-  metadata: "Metadata",
-  imaging: "Imaging",
+  qa: "Quality check",
+  metadata: "SEO metadata",
+  imaging: "Hero image",
   done: "Done",
   failed: "Failed",
 };

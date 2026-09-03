@@ -140,6 +140,31 @@ async def claim_for_scheduling(image_post_id: UUID, *, user_id: str) -> bool:
     return row is not None
 
 
+async def has_active_for_niche(niche_id: UUID) -> bool:
+    """True if the niche already has an in-flight or parked image post.
+
+    ``awaiting_approval`` is parking for a human and must block the next
+    campaign cadence tick regardless of age — otherwise
+    ``approve_before_post`` niches re-generate (and re-spend) every
+    window until an operator acts. In-flight statuses also block so two
+    Modal runs cannot overlap on the same niche.
+
+    Do not fold ``awaiting_approval`` into ``_REAPABLE_STATUSES`` — the
+    reaper must keep treating parked posts as healthy, not stale.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        select 1 from image_posts
+         where niche_id = $1
+           and status not in ('done', 'failed')
+         limit 1
+        """,
+        niche_id,
+    )
+    return row is not None
+
+
 _REAPABLE_STATUSES = ("queued", "planning", "generating", "scheduling")
 _REAP_ERROR = "reaped: no progress (container died or timed out mid-run)"
 

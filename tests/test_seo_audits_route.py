@@ -190,6 +190,20 @@ def test_the_gate_runs_before_any_scraping(monkeypatch):
     assert store.find_fresh_calls == []
 
 
+def test_post_refuses_when_unbilled_usage_disabled(monkeypatch):
+    """A cache miss must not scrape Context.dev when unbilled is refused."""
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    store = FakeStore().install(monkeypatch)
+    calls = _stub_run_audit(monkeypatch)
+    client = _client(monkeypatch)
+    resp = client.post("/api/v1/seo-audits", json={"url": "acme.example"}, headers=AUTH)
+    assert resp.status_code == 402
+    assert "unbilled" in resp.json()["detail"]
+    assert calls == []
+    assert store.created == []
+
+
 # ---------------------------------------------------------------------------
 # POST: validation, scoring, persistence
 # ---------------------------------------------------------------------------

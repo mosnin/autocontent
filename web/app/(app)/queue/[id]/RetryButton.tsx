@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { retryJobAction } from "@/lib/actions";
+import { toastActionError } from "@/lib/errors";
 
 export function RetryButton({
   jobId,
@@ -25,10 +26,10 @@ export function RetryButton({
     const res = await retryJobAction({ ok: false }, fd);
     setPending(false);
     if (res.ok) {
-      toast.success("Retry enqueued");
+      toast.success("Retry started");
       onRetried?.();
     } else {
-      toast.error(res.error ?? "Retry failed");
+      toastActionError(res.error, "Retry failed");
     }
   }
 

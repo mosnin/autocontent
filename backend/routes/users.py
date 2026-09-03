@@ -6,6 +6,7 @@ from decimal import Decimal
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
+from marketer.config import settings
 from marketer.models import User, UserSettingsUpdate
 
 from ..auth import AuthCtx, CurrentUser
@@ -13,10 +14,16 @@ from ..auth import AuthCtx, CurrentUser
 router = APIRouter()
 
 
+def _with_email_capability(user: User) -> User:
+    return user.model_copy(
+        update={"email_configured": bool(settings.resend_api_key)}
+    )
+
+
 @router.get("/me", response_model=User)
 async def me(ctx: AuthCtx = CurrentUser) -> User:
     from marketer.repos import users as users_repo
-    return await users_repo.upsert(ctx.user_id, ctx.email)
+    return _with_email_capability(await users_repo.upsert(ctx.user_id, ctx.email))
 
 
 @router.get("/me/export")
@@ -85,6 +92,8 @@ async def update_me(
         current = await users_repo.get(ctx.user_id)
         if current is None:
             raise HTTPException(status_code=404, detail="user not found")
-        return current
+        return _with_email_capability(current)
 
-    return await users_repo.update_settings(ctx.user_id, **kwargs)
+    return _with_email_capability(
+        await users_repo.update_settings(ctx.user_id, **kwargs)
+    )

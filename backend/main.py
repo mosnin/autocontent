@@ -13,14 +13,12 @@ from slowapi.middleware import SlowAPIMiddleware
 from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
+from .cors import resolve_cors_origins
 from .rate_limit import limiter
-from .routes import ad_creatives, admin, ads, articles, billing, brand_kit, calendar, campaigns, cinema, cms, connect, design, dramas, failures, formats, gatekeeper, headshots, healthz, image_posts, jobs, kits, library, metrics, motion, niches, ops, performance, personas, providers, scheduled_posts, seo_audits, spend, style_presets, templates, tokens, ugc, users, voices, webhook_endpoints, webhooks, x402
+from .routes import ad_creatives, admin, ads, articles, billing, brand_kit, calendar, campaigns, cinema, cms, connect, design, dramas, failures, formats, gatekeeper, headshots, healthz, image_posts, jobs, kits, library, metrics, motion, niches, oauth, ops, performance, personas, providers, scheduled_posts, seo_audits, spend, style_presets, templates, tokens, ugc, users, voices, webhook_endpoints, webhooks, x402
+from .security_headers import SecurityHeadersMiddleware
 
 logger = logging.getLogger(__name__)
-
-
-def _parse_origins(raw: str) -> list[str]:
-    return [o.strip() for o in raw.split(",") if o.strip()]
 
 
 def _run_boot_preflight() -> None:
@@ -82,18 +80,21 @@ def create_app() -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
 
-    origins = _parse_origins(settings.web_origin)
-    if origins:
-        allow_origins = origins
-        allow_credentials = True
-    else:
+    allow_origins, allow_credentials = resolve_cors_origins(
+        settings.web_origin, settings.app_url
+    )
+    if allow_origins == ["*"]:
         logger.warning(
-            "MARKETER_WEB_ORIGIN not set; falling back to '*' with "
-            "allow_credentials=False. Configure for production."
+            "MARKETER_WEB_ORIGIN and MARKETER_APP_URL unset; falling back "
+            "to '*' with allow_credentials=False. Configure for production."
         )
-        allow_origins = ["*"]
-        allow_credentials = False
+    elif not settings.web_origin.strip() and settings.app_url.strip():
+        logger.warning(
+            "MARKETER_WEB_ORIGIN unset; using MARKETER_APP_URL for CORS: %s",
+            allow_origins[0],
+        )
 
+    app.add_middleware(SecurityHeadersMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allow_origins,
@@ -103,6 +104,11 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(healthz.router, prefix="", tags=["health"])
+    # OAuth 2.1 authorization server. Mounted at the root because its paths
+    # are fixed by spec (/oauth/*, /.well-known/*), and its errors carry the
+    # spec's JSON shape rather than FastAPI's {"detail": ...}.
+    app.add_exception_handler(oauth.OAuthProblem, oauth.oauth_problem_handler)
+    app.include_router(oauth.router, prefix="", tags=["oauth"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
     app.include_router(niches.router, prefix="/api/v1/niches", tags=["niches"])
     app.include_router(performance.router, prefix="/api/v1/niches", tags=["performance"])
@@ -170,4 +176,7 @@ def create_app() -> FastAPI:
     except ImportError:
         pass  # package not installed; tracing stays disabled
 
+    from .openapi import customize_openapi
+
+    customize_openapi(app)
     return app
