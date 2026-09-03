@@ -91,3 +91,64 @@ async def test_has_active_false_when_no_row(monkeypatch):
 
     monkeypatch.setattr(jobs_repo, "get_pool", _pool)
     assert await jobs_repo.has_active_for_niche(uuid4()) is False
+
+
+def test_rejected_is_terminal_not_active_or_reapable():
+    """Operator veto must not look like a live run. Folding `rejected`
+    into the reaper or the overlapping-cron guard would fail a decided
+    job as stale, or stall the next campaign window forever."""
+    from marketer.models import JobStatus
+
+    assert JobStatus.rejected.value == "rejected"
+    assert "rejected" not in jobs_repo._REAPABLE_STATUSES
+    assert "awaiting_approval" not in jobs_repo._REAPABLE_STATUSES
+
+
+async def test_has_active_sql_does_not_treat_rejected_as_live(monkeypatch):
+    captured: dict = {}
+
+    class _Pool:
+        async def fetchrow(self, sql, *args):
+            captured["sql"] = sql
+            captured["args"] = args
+            return None
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(jobs_repo, "get_pool", _pool)
+    assert await jobs_repo.has_active_for_niche(uuid4()) is False
+    sql = " ".join(captured["sql"].split())
+    assert "rejected" not in sql
+    assert "rejected" not in captured["args"][1]
+    assert "awaiting_approval" in sql
+
+
+async def test_campaign_counts_exclude_rejected_from_produced_and_pending(monkeypatch):
+    """A vetoed video is not produced work (would suppress cadence) and
+    not in-flight (would block the next spawn as unlanded spend)."""
+    from marketer.repos import campaigns as campaigns_repo
+
+    captured: list[str] = []
+
+    class _Pool:
+        async def fetch(self, sql, *args):
+            captured.append(sql)
+            return []
+
+        async def fetchrow(self, sql, *args):
+            captured.append(sql)
+            return {"pending": 0}
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(campaigns_repo, "get_pool", _pool)
+    campaign_id = uuid4()
+    await campaigns_repo.work_counts(campaign_id, user_id="user_test")
+    await campaigns_repo.pending_work_count(campaign_id, user_id="user_test")
+
+    video_sql = " ".join(captured[0].split())
+    pending_sql = " ".join(captured[-1].split())
+    assert "status not in ('failed', 'skipped', 'rejected')" in video_sql
+    assert "status not in ('done', 'failed', 'skipped', 'rejected')" in pending_sql

@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import UUID
 
+import pytest
 from fastapi.testclient import TestClient
 
 from marketer.models import Job, JobStatus
@@ -761,3 +762,230 @@ def test_video_estimate_matches_gate_arithmetic(monkeypatch):
     est = estimate_run_cost_usd(_full_niche_stub(None))
     assert Decimal(body["estimated_usd"]) == est.quantize(Decimal("0.01"))
     assert Decimal(body["charge_usd"]) == (est * Decimal("1.5")).quantize(Decimal("0.01"))
+
+
+def test_retry_rejected_job_is_409_not_402_when_credit_short(monkeypatch):
+    """Operator veto is terminal, not a failed run. Billing on + $0 must
+    still 409 (not offer Add credit) and must not reset the row — a later
+    retry would re-spend on a video the operator already killed."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    rejected = _make_job(status=JobStatus.rejected)
+
+    async def _get(job_id, *, user_id):
+        return rejected
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    async def _niche_get(niche_id, *, user_id):
+        return _full_niche_stub(niche_id)
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    reset_called = []
+
+    async def _reset(job_id, *, user_id):
+        reset_called.append(job_id)
+        return None
+
+    monkeypatch.setattr(jobs_repo, "reset_for_retry", _reset)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/retry",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 409
+    assert reset_called == [_JOB_ID]
+
+
+def test_retry_done_job_is_409_not_402_when_credit_short(monkeypatch):
+    """A finished job must keep returning 409 on retry even when the
+    prepaid balance is $0 — otherwise the client offers Add credit for
+    a job no balance can retry."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    done = _make_job(status=JobStatus.done)
+
+    async def _get(job_id, *, user_id):
+        return done
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    async def _niche_get(niche_id, *, user_id):
+        return _full_niche_stub(niche_id)
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    reset_called = []
+
+    async def _reset(job_id, *, user_id):
+        reset_called.append(job_id)
+        return None
+
+    monkeypatch.setattr(jobs_repo, "reset_for_retry", _reset)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/retry",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 409
+    assert "Add credit" not in resp.text
+    assert reset_called == [_JOB_ID]
+
+
+def test_job_receipt_missing_or_foreign_is_404(monkeypatch):
+    """Receipt is tenant-scoped: unknown or other-user jobs are 404, and
+    spend/ledger are not read."""
+    _reset_limiter()
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.spend as spend_repo
+
+    async def _get(job_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    spend_called = []
+
+    async def _cost_by_job(job_ids, *, user_id):
+        spend_called.append(job_ids)
+        return {}
+
+    monkeypatch.setattr(spend_repo, "cost_by_job", _cost_by_job)
+
+    charged_called = []
+
+    async def _charged(user_id, job_id):
+        charged_called.append(job_id)
+        return None
+
+    monkeypatch.setattr(billing_repo, "charged_for_job", _charged)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/jobs/{_JOB_ID}/receipt",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+    assert spend_called == []
+    assert charged_called == []
+
+
+def test_job_receipt_billing_off_omits_charged(monkeypatch):
+    """Self-hosted (billing off) receipts report metered spend only —
+    charged_usd stays null so the UI cannot invent a prepaid debit."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.spend as spend_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+
+    async def _get(job_id, *, user_id):
+        return _make_job(status=JobStatus.done)
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+
+    async def _cost_by_job(job_ids, *, user_id):
+        return {jid: Decimal("0.4000") for jid in job_ids}
+
+    monkeypatch.setattr(spend_repo, "cost_by_job", _cost_by_job)
+
+    charged_called = []
+
+    async def _charged(user_id, job_id):
+        charged_called.append(job_id)
+        return Decimal("0.6000")
+
+    monkeypatch.setattr(billing_repo, "charged_for_job", _charged)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/jobs/{_JOB_ID}/receipt",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["metered_usd"] == "0.4000"
+    assert body["charged_usd"] is None
+    assert body["billing_enabled"] is False
+    assert charged_called == []
+
+
+def test_video_estimate_billing_off_uses_margin_one(monkeypatch):
+    """Self-hosted estimate must not apply the hosted prepaid margin."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "billing_margin", 1.5)
+    monkeypatch.setattr(settings, "elevenlabs_api_key", "", raising=False)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/niches/estimate",
+        json={
+            "scene_count": 6,
+            "image_quality": "medium",
+            "scene_max_duration_sec": 5,
+            "target_duration_sec": 60,
+        },
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["billing_enabled"] is False
+    assert body["margin"] == 1.0
+    from marketer.services.run_estimate import estimate_run_cost_usd
+
+    est = estimate_run_cost_usd(_full_niche_stub(None))
+    assert Decimal(body["estimated_usd"]) == est.quantize(Decimal("0.01"))
+    assert Decimal(body["charge_usd"]) == est.quantize(Decimal("0.01"))
+
+
+@pytest.mark.parametrize("scene_count", [0, 13])
+def test_video_estimate_rejects_out_of_range_scene_count(monkeypatch, scene_count):
+    """The estimate body shares the wizard bounds — a free 422, not a
+    silently clamped (and therefore lying) price."""
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/niches/estimate",
+        json={"scene_count": scene_count},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
