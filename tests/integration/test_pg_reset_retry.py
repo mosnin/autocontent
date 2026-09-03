@@ -190,7 +190,7 @@ async def test_reject_is_atomic_vs_concurrent(pool):
     )
     winners = [r for r in results if r is not None]
     assert len(winners) == 1
-    assert winners[0].status.value == "failed"
+    assert winners[0].status.value == "rejected"
 
     # Simulate approve winning first on a fresh job: flip to scheduling, then
     # reject must find nothing to claim (can't clobber a posting job).
