@@ -281,6 +281,43 @@ def test_retry_article_respawns_same_row(monkeypatch):
     assert spawned[0][2] == str(_ARTICLE_ID)
 
 
+def test_retry_article_refused_402_when_credit_short(monkeypatch):
+    """Billing on + $0 balance → retry 402 before the atomic claim, row stays failed."""
+    _reset_limiter()
+    from decimal import Decimal
+
+    import marketer.repos.articles as articles_repo
+    import marketer.repos.billing as billing_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    claims: list = []
+
+    async def _claim(article_id, *, user_id):
+        claims.append(article_id)
+        return _make_article(status=ArticleStatus.queued)
+
+    monkeypatch.setattr(articles_repo, "claim_for_retry", _claim)
+    spawned: list[tuple] = []
+    _stub_modal(monkeypatch, spawned)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/articles/{_ARTICLE_ID}/retry",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402
+    assert "Add credit" in resp.json()["detail"]
+    assert claims == []
+    assert spawned == []
+
+
 def test_enqueue_article_refused_402_when_credit_short(monkeypatch):
     """Billing on + $0 balance → 402 with a human message, no row created."""
     _reset_limiter()
