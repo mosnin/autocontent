@@ -132,12 +132,13 @@ const CAMPAIGNS: Product = {
   label: "Campaigns",
   tagline: "Run video, articles, and image posts on a budget",
   home: "/campaigns",
-  match: ["/campaigns"],
+  match: ["/campaigns", "/production"],
   groups: [
     {
       label: "Orchestrate",
       items: [
         { href: "/campaigns", label: "Campaigns" },
+        { href: "/production", label: "Production" },
       ],
     },
   ],

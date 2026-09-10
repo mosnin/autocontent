@@ -88,6 +88,8 @@ class Route:
 # them in ``app.openapi()["paths"]`` in the first place (they describe the
 # schema, they aren't part of it).
 ALLOWLIST: dict[RouteKey, str] = {
+    ("GET", "/api/companyos/v1/library"): "Delegated OAuth content projection; native PAT/SDK callers use production_library instead",
+    ("GET", "/api/companyos/v1/preview/{kind}/{creative_id}"): "Delegated OAuth thumbnail transport; native callers use production_preview instead",
     ("GET", "/healthz"): "infra liveness probe, not a product feature",
     ("GET", "/healthz/deep"): "infra readiness probe, not a product feature",
     ("POST", "/api/v1/billing/webhook"): (
@@ -258,6 +260,10 @@ class Coverage:
 # When a later cycle adds the missing half of a KNOWN_GAPS entry, move it
 # here (and delete it from KNOWN_GAPS).
 COVERAGE_MANIFEST: dict[RouteKey, Coverage] = {
+    ("GET", "/api/v1/production"): Coverage("production_library", "production_library"),
+    ("GET", "/api/v1/production/{kind}/{creative_id}"): Coverage("get_production", "get_production"),
+    ("POST", "/api/v1/production/{kind}/{creative_id}"): Coverage("update_production", "update_production"),
+    ("GET", "/api/v1/production/{kind}/{creative_id}/preview"): Coverage("production_preview", "production_preview"),
     ("GET", "/api/v1/niches"): Coverage("list_niches", "list_niches"),
     ("GET", "/api/v1/niches/{niche_id}"): Coverage("get_niche", "get_niche"),
     ("POST", "/api/v1/niches"): Coverage("create_niche", "create_niche"),

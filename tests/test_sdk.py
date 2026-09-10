@@ -414,3 +414,23 @@ async def test_x402_buy_credits_credited_with_payment():
     assert out["status"] == "credited"
     assert out["credited_usd"] == "10.00"
     assert out["payment_response"] == "resp64"
+
+
+async def test_production_sdk_preserves_revision_guards_and_pagination():
+    creative_id = uuid4()
+    calls = []
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, json={"ok": True})
+    async with _client(handler) as client:
+        await client.production_library(cursor="page-two", kind="article", campaign_id="unassigned")
+        await client.get_production("article", creative_id)
+        await client.update_production("article", creative_id, {"action": "approve", "expected_version": 7, "source_fingerprint": "a" * 64})
+        await client.production_preview("article", creative_id, index=2)
+    assert calls[0].url.path == "/api/v1/production"
+    assert calls[0].url.params["cursor"] == "page-two"
+    assert calls[0].url.params["campaign_id"] == "unassigned"
+    assert calls[1].url.path == f"/api/v1/production/article/{creative_id}"
+    assert json.loads(calls[2].content)["expected_version"] == 7
+    assert json.loads(calls[2].content)["source_fingerprint"] == "a" * 64
+    assert calls[3].url.params["index"] == "2"

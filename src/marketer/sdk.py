@@ -454,3 +454,27 @@ class MarketerClient:
 
     async def revoke_token(self, token_id: UUID | str) -> None:
         await self._request("DELETE", f"/api/v1/tokens/{token_id}")
+
+
+    # ----------------------------------------------------------- production
+
+    async def production_library(self, *, collection: str = "creatives", limit: int = 25,
+                                 cursor: str | None = None, kind: str | None = None,
+                                 campaign_id: str | None = None, search: str = "") -> dict:
+        params = {k: v for k, v in dict(collection=collection, limit=limit, cursor=cursor,
+                  kind=kind, campaign_id=campaign_id, search=search).items() if v is not None}
+        return (await self._request("GET", "/api/v1/production", params=params)).json()
+
+    async def get_production(self, kind: str, creative_id: UUID | str) -> dict:
+        from urllib.parse import quote
+        return (await self._request("GET", f"/api/v1/production/{quote(kind, safe='')}/{UUID(str(creative_id))}")).json()
+
+    async def update_production(self, kind: str, creative_id: UUID | str, command: dict) -> dict:
+        from urllib.parse import quote
+        from .models.production import ProductionCommand
+        body = ProductionCommand.model_validate(command).model_dump(mode="json")
+        return (await self._request("POST", f"/api/v1/production/{quote(kind, safe='')}/{UUID(str(creative_id))}", json=body)).json()
+
+    async def production_preview(self, kind: str, creative_id: UUID | str, index: int = 0) -> dict:
+        from urllib.parse import quote
+        return (await self._request("GET", f"/api/v1/production/{quote(kind, safe='')}/{UUID(str(creative_id))}/preview", params={"index": index})).json()

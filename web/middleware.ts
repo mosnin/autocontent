@@ -22,6 +22,7 @@ const APP_SEGMENTS = [
   "motion",
   "niches",
   "onboarding",
+  "production",
   "queue",
   "scheduled",
   "seo-audit",
@@ -65,7 +66,7 @@ export const config = {
     // APP_GROUP". So it is duplicated here and kept honest by
     // test_web_route_protection.py, which recomputes it from APP_SEGMENTS
     // and diffs the two.
-    "/(ad-creatives|admin|ads|articles|calendar|campaigns|connect|dashboard|dramas|home|library|motion|niches|onboarding|queue|scheduled|seo-audit|settings|templates|ugc)(.*)",
+    "/(ad-creatives|admin|ads|articles|calendar|campaigns|connect|dashboard|dramas|home|library|motion|niches|onboarding|production|queue|scheduled|seo-audit|settings|templates|ugc)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
     // Media manager: GET stays public, POST/DELETE check auth() in-route -
