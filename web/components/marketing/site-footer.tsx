@@ -7,7 +7,7 @@ import {
   LEGAL_LINKS,
   PRODUCT_LINKS,
   RESOURCE_LINKS,
-  SOCIAL_LINKS,
+  SOLUTION_LINKS,
 } from "@/components/marketing/nav/menu-data";
 
 type FooterLink = {
@@ -40,8 +40,8 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
     links: LEGAL_LINKS.filter((link) => link.href !== "/legal"),
   },
   {
-    title: "Social",
-    links: SOCIAL_LINKS,
+    title: "Use cases",
+    links: SOLUTION_LINKS,
   },
 ];
 
@@ -53,14 +53,15 @@ export function Footer(): ReactNode {
           <div className="max-w-xs">
             <Logo tone="black" />
             <p className="text-muted-foreground mt-6 text-sm leading-relaxed">
-              An AI agent that makes your marketing: videos, SEO articles, and
-              ads. You set a budget. It does the work.
+              Turn your product knowledge into videos, articles, and ad drafts.
+              Review the work and choose what reaches your audience.
             </p>
             <Link
               href="/sign-up"
+            prefetch={false}
               className="focus-ring bg-foreground text-background mt-8 inline-flex h-11 items-center rounded-full px-6 text-sm font-medium transition-opacity hover:opacity-85"
             >
-              Start creating
+              Get started
             </Link>
           </div>
 
@@ -92,7 +93,7 @@ export function Footer(): ReactNode {
             © {new Date().getFullYear()} marketer.sh. All rights reserved.
           </p>
           <p className="text-muted-foreground text-xs">
-            Prepaid credits. No subscription.
+            Create. Review. Publish.
           </p>
         </div>
 

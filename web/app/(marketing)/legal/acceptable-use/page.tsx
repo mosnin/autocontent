@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalDoc } from "@/components/marketing/legal/LegalDoc";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://marketer.sh/legal/acceptable-use" },
   title: "Acceptable Use Policy · marketer.sh",
   description: "What you may and may not do with marketer.sh and its agents.",
 };

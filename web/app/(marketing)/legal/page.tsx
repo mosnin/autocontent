@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { LEGAL_DOCS, LEGAL_EFFECTIVE } from "@/components/marketing/legal/legal-docs";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://marketer.sh/legal" },
   title: "Legal · marketer.sh",
   description: "Terms, privacy, cookies, refunds, and the other marketer.sh policies.",
 };
@@ -11,9 +12,9 @@ export const metadata: Metadata = {
 export default function LegalIndexPage() {
   return (
     <div className="max-w-2xl">
-      <h2 className="text-3xl font-medium tracking-tight sm:text-4xl">
+      <h1 className="text-3xl font-medium tracking-tight sm:text-4xl">
         All legal pages
-      </h2>
+      </h1>
       <p className="text-muted-foreground mt-4 text-lg leading-relaxed">
         Last updated {LEGAL_EFFECTIVE}. Each document is its own page. If you
         need something signed, write{" "}

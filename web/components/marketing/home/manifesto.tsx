@@ -10,7 +10,7 @@ import {
 import { useRef, type ReactNode } from "react";
 
 const STATEMENT =
-  "Most tools still leave the work to you. marketer.sh is an agentic marketing platform: your AI agent creates the videos, articles, and ads. You pick a budget, look at the drafts, and let it keep going.";
+  "You know your product. Turning that knowledge into a script, a video, an article, and a week of posts takes a different kind of work. Marketer brings production and review into one place, so you can spend your attention on what is worth saying.";
 
 const WORDS = STATEMENT.split(" ");
 

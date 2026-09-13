@@ -1,0 +1,206 @@
+{
+  "content-brief": {
+    "title": "Write a brief that gives the draft direction.",
+    "description": "A practical structure for describing your product, audience, evidence, and desired response.",
+    "sections": [
+      {
+        "title": "Start with one reader and one question",
+        "body": [
+          "Name the person this content should help and the question it should answer. “Explain how our refill works to a first-time buyer” is more useful than “make a viral video.”",
+          "Choose one format and one main point. A short video cannot carry the same amount of detail as a buyer’s guide."
+        ]
+      },
+      {
+        "title": "Provide facts the draft can use",
+        "body": [
+          "List the product details that matter: what it does, what is included, where it is available, and the conditions of any offer. Include source material where possible.",
+          "Separate verified facts from ideas to explore. Do not ask a generated narrator to describe a personal experience that never happened."
+        ]
+      },
+      {
+        "title": "Describe tone and constraints",
+        "body": [
+          "Give a short description of the voice and a real example if you have one. Name the claims, imagery, or terms the content must avoid.",
+          "Provide assets you have permission to use. If product likeness matters, check the output carefully rather than assuming a generated scene will match it."
+        ]
+      },
+      {
+        "title": "Use this brief structure",
+        "body": [
+          "Audience: Who is this for? Question: What do they need to understand? Product facts: What can we substantiate? Direction: What format, tone, and visual references fit? Action: What should an interested person do next? Review: Who checks the finished work?"
+        ]
+      },
+      {
+        "title": "Evaluate the first draft",
+        "body": [
+          "Read or watch the whole piece before judging individual details. Does it answer the question, use the facts correctly, and make the next step understandable?",
+          "Fix the brief when the direction is wrong. Fix the draft when the direction is right but a detail needs work. Check the cost before generating another version."
+        ]
+      }
+    ]
+  },
+  "review-checklist": {
+    "title": "Review a draft before it represents your business.",
+    "description": "A publication checklist for generated videos, articles, and campaign creative.",
+    "sections": [
+      {
+        "title": "Check the claim against its source",
+        "body": [
+          "Read every statement about price, availability, results, performance, and comparisons. Verify it against a current source.",
+          "Remove invented reviews, customer experiences, and guarantees. A confident sentence is not evidence."
+        ]
+      },
+      {
+        "title": "Inspect the full creative",
+        "body": [
+          "For video, watch with sound and captions at phone size. Check pronunciation, continuity, product appearance, reading time, and the ending.",
+          "For an article, read the argument from beginning to end. Check citations, links, metadata, and whether the introduction promises something the article actually explains."
+        ]
+      },
+      {
+        "title": "Check the destination and commitment",
+        "body": [
+          "Confirm the account, URL, time, and version you intend to publish. Check where the call to action leads.",
+          "For a paid campaign, review the platform budget separately from generation credit. An approved creative does not automatically authorize every launch action."
+        ]
+      },
+      {
+        "title": "Confirm the result",
+        "body": [
+          "After scheduling or publishing, read the status. A submitted request can still fail because of permissions, media requirements, or a provider problem.",
+          "If a run fails, inspect completed work and charges before retrying. Keep the approved version and the actual published result distinguishable."
+        ]
+      }
+    ]
+  },
+  "first-channel": {
+    "title": "Set up your first content channel.",
+    "description": "Start with a manageable publishing routine and a brief you can improve.",
+    "sections": [
+      {
+        "title": "Choose a useful starting point",
+        "body": [
+          "Pick one audience and one recurring subject. Name the channel so you can recognize it when reviewing jobs and scheduled posts."
+        ]
+      },
+      {
+        "title": "Set direction and budget",
+        "body": [
+          "Describe the product facts, tone, and intended format. Check the settings and production estimate before adding credit or starting a job.",
+          "Set channel and account spending limits that fit your intended work. They are production controls, not promises about the number of finished pieces."
+        ]
+      },
+      {
+        "title": "Keep the first run in review",
+        "body": [
+          "Create one draft and inspect it completely. Check claims, creative quality, and the destination. Adjust the brief if the direction is wrong."
+        ]
+      },
+      {
+        "title": "Connect publication deliberately",
+        "body": [
+          "Connect the account you intend to use and confirm that the platform supports your format. Check timing and approval settings before scheduling.",
+          "Verify the published result before expanding the routine. Recurring work still needs monitoring and review."
+        ]
+      }
+    ]
+  },
+  "seo-articles": {
+    "title": "Create an article that answers a real question.",
+    "description": "Use search research as context and your own expertise as the substance.",
+    "sections": [
+      {
+        "title": "Choose the question before the keyword",
+        "body": [
+          "Start with something your audience needs to understand. Decide what a helpful answer must contain and which product facts are relevant."
+        ]
+      },
+      {
+        "title": "Review the structure",
+        "body": [
+          "Use research to inform the outline. Remove sections that repeat the same point or do not serve the reader’s question.",
+          "Add examples, sources, and limitations your team can verify. Generic text becomes useful when it contains accurate, relevant detail."
+        ]
+      },
+      {
+        "title": "Check before publishing",
+        "body": [
+          "Verify claims, citations, current prices, and comparisons. Review title, description, links, and image permissions.",
+          "Do not describe a quality score as a ranking guarantee. Search results depend on factors beyond the generated draft."
+        ]
+      },
+      {
+        "title": "Plan the next review",
+        "body": [
+          "Revisit the page when the product or evidence changes. Track the questions it answers well and the information readers still need."
+        ]
+      }
+    ]
+  },
+  "agent-driven-marketing": {
+    "title": "Connect an agent without losing the review step.",
+    "description": "Plan permissions, costs, asynchronous work, and publication decisions before automating.",
+    "sections": [
+      {
+        "title": "Choose an interface",
+        "body": [
+          "Use the current API documentation to choose REST, Python SDK, CLI, or MCP for your environment. Confirm the endpoint and supported operations before implementing a workflow."
+        ]
+      },
+      {
+        "title": "Limit credentials and spending",
+        "body": [
+          "Create credentials with the access the workflow needs. Keep secrets outside source code and public briefs.",
+          "Configure budgets and review settings explicitly. A connected agent should not infer publication authority from permission to create a draft."
+        ]
+      },
+      {
+        "title": "Read job results",
+        "body": [
+          "An accepted request is not a completed video or article. Poll or use supported events to read the final status and inspect output.",
+          "On failure, check completed work and charges before retrying. Do not make an unlimited retry loop around a paid operation."
+        ]
+      },
+      {
+        "title": "Keep the last decision clear",
+        "body": [
+          "Use a distinct approval step for publishing or spending actions. Verify account identity, destination, and the version being approved.",
+          "Check the actual result after the operation. Provider errors, missing permissions, and expired connections require a recovery path."
+        ]
+      }
+    ]
+  },
+  "plan-content-budget": {
+    "title": "Plan a content budget without guessing output counts.",
+    "description": "Separate the platform commitment, generation usage, and advertising spend.",
+    "sections": [
+      {
+        "title": "Define the work you want to make",
+        "body": [
+          "List the formats, lengths, and frequency you want to evaluate. Start with a modest sample rather than assuming every generated draft will be publishable."
+        ]
+      },
+      {
+        "title": "Read the estimate for your settings",
+        "body": [
+          "Video costs change with models, scenes, duration, images, voice, and music. Articles and campaign work have their own production steps.",
+          "Use the estimate shown for the actual job. A dollar credit balance is spending capacity, not a guaranteed quantity of content."
+        ]
+      },
+      {
+        "title": "Include revision and review",
+        "body": [
+          "Leave room for drafts you reject and work that needs another attempt. Completed paid steps can consume credit even if the entire run fails.",
+          "Someone still needs to check facts, creative quality, permissions, and the publishing result. Include that effort when comparing your options."
+        ]
+      },
+      {
+        "title": "Keep separate budgets separate",
+        "body": [
+          "Current prepaid packs do not renew automatically. Proposed monthly plans have a base fee and an included generation allowance, but are not yet available to purchase.",
+          "Google and Meta media spend is separate. Do not treat generation credits as an advertising budget."
+        ]
+      }
+    ]
+  }
+}

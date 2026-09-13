@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalDoc } from "@/components/marketing/legal/LegalDoc";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://marketer.sh/legal/subprocessors" },
   title: "Subprocessors · marketer.sh",
   description: "Third parties that process data on behalf of marketer.sh.",
 };

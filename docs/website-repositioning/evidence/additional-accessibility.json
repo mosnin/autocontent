@@ -1,0 +1,14 @@
+[
+  {
+    "route": "/features/content",
+    "violations": []
+  },
+  {
+    "route": "/demo?plan=grow",
+    "violations": []
+  },
+  {
+    "route": "/resources/guides/content-brief",
+    "violations": []
+  }
+]

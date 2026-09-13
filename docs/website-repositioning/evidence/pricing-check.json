@@ -1,0 +1,39 @@
+{
+  "valid": true,
+  "errors": [],
+  "warnings": [
+    "Scenario arithmetic only; no validated demand, evidence authenticity, tax/refund/proration, or production metering."
+  ],
+  "calculations": [
+    {
+      "id": "launch",
+      "overage_units": "0",
+      "pretax_list_charge": "49",
+      "net_charge": "49",
+      "payment_fee": "1.47",
+      "modeled_cost": "25.103340",
+      "contribution": "23.896660",
+      "contribution_margin_percent": "48.76869387755102040816326530612244897959183673469387755102040816"
+    },
+    {
+      "id": "grow",
+      "overage_units": "0",
+      "pretax_list_charge": "149",
+      "net_charge": "149",
+      "payment_fee": "4.47",
+      "modeled_cost": "79.770025",
+      "contribution": "69.229975",
+      "contribution_margin_percent": "46.46307046979865771812080536912751677852348993288590604026845638"
+    },
+    {
+      "id": "scale",
+      "overage_units": "0",
+      "pretax_list_charge": "399",
+      "net_charge": "399",
+      "payment_fee": "11.97",
+      "modeled_cost": "205.603400",
+      "contribution": "193.396600",
+      "contribution_margin_percent": "48.47032581453634085213032581453634085213032581453634085213032581"
+    }
+  ]
+}

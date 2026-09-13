@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "status": "proposal",
+  "fictional": false,
+  "context_ref": "DESIGN.md:source-grounded-proposal;CompanyOS-unavailable",
+  "segment": "Founders and small marketing teams; hypothesis",
+  "value_metric": "Platform access plus retail USD generation allowance and active content-channel capacity",
+  "billing_period": "monthly, one account",
+  "tax_treatment": "Pretax; tax excluded from model",
+  "input_basis": "Prices, payment fee, fixed delivery cost are hypotheses; provider credit-cost ratio comes from source default billing_margin=1.5, not hosted invoices; fixed delivery field includes assumed $0.30 per-payment fixed fee so checker matches economics.csv",
+  "wtp_evidence": "None; interviews and paid cohort evidence required",
+  "uncertainty": "Retention, support costs, publishing fees and hosted margin unknown",
+  "experiment": "Comprehension and bounded paid-retention pilot only after billing implementation",
+  "currency": "USD",
+  "policies": {
+    "metering": "Retail USD credit using source model-dependent meter; no automatic overage; grant ledger implementation pending",
+    "discounts": "None proposed",
+    "trial": "Existing prepaid option; no free generation claim",
+    "renewal": "Proposed cancellable monthly billing, no catalog changed",
+    "migration": "No automatic migration; preserve prepaid balances and current terms",
+    "refunds": "Current prepaid policy retained; subscription refund terms require owner review",
+    "cancellation": "Proposed cancel at period end, no new charge after cancellation effective date"
+  },
+  "tiers": [
+    {
+      "id": "launch",
+      "entitlements": "PRICING.md proposed tier scope; not enabled",
+      "eligibility": "New opt-in monthly subscribers after implementation",
+      "limits": "Credit exhaustion pauses generation unless optional prepaid top-up purchased",
+      "base_price": "49",
+      "included_units": "20",
+      "overage_per_unit": "0",
+      "expected_units": "20",
+      "cost_per_unit": "0.666667",
+      "fixed_cost_per_period": "10.3",
+      "discount_percent": "0",
+      "payment_fee_percent": "3"
+    },
+    {
+      "id": "grow",
+      "entitlements": "PRICING.md proposed tier scope; not enabled",
+      "eligibility": "New opt-in monthly subscribers after implementation",
+      "limits": "Credit exhaustion pauses generation unless optional prepaid top-up purchased",
+      "base_price": "149",
+      "included_units": "75",
+      "overage_per_unit": "0",
+      "expected_units": "75",
+      "cost_per_unit": "0.666667",
+      "fixed_cost_per_period": "25.3",
+      "discount_percent": "0",
+      "payment_fee_percent": "3"
+    },
+    {
+      "id": "scale",
+      "entitlements": "PRICING.md proposed tier scope; not enabled",
+      "eligibility": "New opt-in monthly subscribers after implementation",
+      "limits": "Credit exhaustion pauses generation unless optional prepaid top-up purchased",
+      "base_price": "399",
+      "included_units": "200",
+      "overage_per_unit": "0",
+      "expected_units": "200",
+      "cost_per_unit": "0.666667",
+      "fixed_cost_per_period": "60.3",
+      "discount_percent": "0",
+      "payment_fee_percent": "3"
+    }
+  ]
+}

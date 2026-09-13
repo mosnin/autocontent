@@ -32,6 +32,7 @@ export function CtaPill({
         className,
       )}
       href={href}
+      prefetch={href.startsWith("/sign-") ? false : undefined}
       style={style}
     >
       {children}

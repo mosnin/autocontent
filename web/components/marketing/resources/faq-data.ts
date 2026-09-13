@@ -1,56 +1,47 @@
-/**
- * The /resources/faq questions. Plain strings so the FAQPage JSON-LD in the
- * page and the visible accordion always match exactly.
- */
 export type FaqItem = { q: string; a: string };
-
 export const FAQ_ITEMS: FaqItem[] = [
   {
-    q: "How do spend caps work?",
-    a: "Every channel has a daily budget you set, and your account has a global daily cap on top. Before any render starts, the system estimates its cost and checks both caps. If the estimate fits, the job runs and the actual metered cost is drawn from your prepaid balance.",
+    q: "What does Marketer actually make?",
+    a: "Marketer creates short-form videos, search-focused article drafts, and paid campaign drafts. You provide the product details and direction, then review the output before deciding what to publish.",
   },
   {
-    q: "What happens when a cap is hit?",
-    a: "The system fails closed. A job that would push a channel past its daily cap, or your account past the global cap, is refused before any money moves. Nothing is billed, nothing renders, and the job shows exactly which cap stopped it. Work resumes when the cap resets or you raise it.",
+    q: "Do I still need to review the work?",
+    a: "Yes. Check factual claims, tone, creative quality, and permissions. New channels use review-before-post mode. If you enable more automation later, choose the settings deliberately and continue reviewing results.",
   },
   {
-    q: "Do I have to approve every post?",
-    a: "Only if you want to. Each channel starts in review-before-post mode: drafts wait in a queue until you approve them. Once you trust the output, you can widen autonomy per channel and let approved formats publish on schedule. You can tighten back to full review at any time.",
+    q: "What should I bring to get started?",
+    a: "Bring a clear description of your product, audience, offer, and tone. Include the facts and assets the content must use. Start with one format so you can evaluate the result before setting up a recurring schedule.",
   },
   {
-    q: "Which platforms can it publish to?",
-    a: "Short videos go to TikTok, Instagram Reels, and YouTube Shorts on the times you pick. SEO articles come as ready drafts for your site. Ads draft on Google and Meta.",
+    q: "How do I pay?",
+    a: "Prepaid generation credits are available in $5, $20, and $50 packs today. The proposed monthly tiers on the pricing page are not yet available to purchase. Current packs provide the same feature access.",
   },
   {
-    q: "Who owns the content?",
-    a: "You do. Every video, script, article, and image made in your account is yours, even after you stop using marketer.sh.",
+    q: "What do generation credits cover?",
+    a: "Credits cover metered production work. Cost varies by model, format, length, and settings. Generating a draft consumes credit even if you do not publish it. Advertising spend on Google and Meta is separate.",
   },
   {
-    q: "How do agents connect?",
-    a: "You can use the dashboard, the API, a Python kit, a command line tool, or an MCP server. All of them use a token you create in Settings. Same rules, same budget.",
+    q: "Where can I publish?",
+    a: "Connect supported social accounts to schedule approved posts, including short-form video destinations such as TikTok, Instagram, and YouTube. Articles are prepared for your website. Check the available connections in your account before planning a workflow.",
   },
   {
-    q: "What AI models power the work?",
-    a: "We pick the model that is best for each step: research, writing, pictures, motion, and voice. That can change over time without you doing anything.",
+    q: "Can I try it without a monthly subscription?",
+    a: "Yes. The current prepaid packs are one-time purchases. Start with $5 of credit, check the cost estimate for the work you want, and add more only when you choose. A pack does not guarantee a fixed number of finished pieces.",
   },
   {
-    q: "How do credits and refunds work?",
-    a: "Credit is prepaid through Stripe and drawn down as work renders, at provider cost plus a flat margin. Credits don't expire. If you have unused balance and want out, contact support within 30 days of purchase and we refund the remainder of your last purchase.",
+    q: "How do budget controls work?",
+    a: "Set channel and account daily caps. Estimates and metered charges are checked as work runs. If a limit or balance prevents the next operation, review the job status and billing history before changing the budget or retrying.",
   },
   {
-    q: "How is my data handled?",
-    a: "Your briefs, channels, and generated assets stay yours and are not used to train models. Access tokens are hashed at rest and shown only once at creation. Every render, publish, and dollar spent is written to an audit log you can read.",
+    q: "Can my AI agent use Marketer?",
+    a: "The platform includes API, Python SDK, CLI, and MCP interfaces. Use scoped credentials and review the permissions and budgets for the connected workflow. The developer guides explain setup.",
   },
   {
-    q: "Can I bring my own topics?",
-    a: "Yes. Ideation proposes topics from your channel and past performance, but you can add your own at any time, from the dashboard, the API, the CLI, or an agent. Your topics run through the same production, quality checks, and caps as generated ones.",
+    q: "Will it guarantee traffic, rankings, or sales?",
+    a: "No. Marketer helps produce and manage content. Results also depend on your offer, audience, distribution, quality, and market. Review performance and use it to decide what deserves another iteration.",
   },
   {
-    q: "How many videos does a pack make?",
-    a: "A default-settings short costs about $3 all-in (metered provider cost plus our flat margin - a touch more with generated music on), so the $5 Starter pack renders 1–2 videos, the $20 Creator pack roughly 5–8, and the $50 Scale pack roughly 12–20. Shorter scenes and standard image quality stretch each pack further, and articles cost far less than videos.",
-  },
-  {
-    q: "Can I run several channels at once?",
-    a: "Yes. Each channel gets its own voice, style, posting windows, and daily cap, and the global cap bounds the total across all of them. The Scale pack is sized for people running several channels in parallel.",
+    q: "What are the refund and data terms?",
+    a: "The legal pages explain the current refund policy, privacy practices, and third-party services. Read them before purchase, especially if your briefs contain sensitive information or your use has special requirements.",
   },
 ];

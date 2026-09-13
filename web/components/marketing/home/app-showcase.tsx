@@ -21,28 +21,28 @@ type Step = {
 
 const STEPS: Step[] = [
   {
-    title: "Brief the niche",
-    body: "One sentence is enough: who it is for, and what you sell. The agent fills in the rest.",
+    title: "Explain your product",
+    body: "Describe your audience, offer, and tone. Add the details a customer would need to make a decision.",
   },
   {
     title: "Produce the work",
-    body: "Video and articles run in parallel from the same brief. Scripts, frames, voice, research, outline, write.",
+    body: "Choose a format and review the estimate. Marketer handles the generation steps, from script or outline to a draft you can inspect.",
   },
   {
     title: "Review before it ships",
-    body: "Drafts wait behind an approval gate until you trust the output. Tighten or widen autonomy per niche, any time.",
+    body: "Watch the video or read the article. Check product claims, tone, and details before approving the work.",
   },
   {
     title: "Publish on schedule",
-    body: "Approved work goes to TikTok, Reels, Shorts, and your site, on the schedule and budget you set.",
+    body: "Schedule approved social content to connected accounts. Prepare article drafts for your website and check the publishing result.",
   },
 ];
 
 const SCREEN_IMAGES = CAMPAIGN_SRCS;
 
 const PROMPT =
-  "35mm portrait at golden hour, wind in her hair, faint film grain";
-const PROMPT_CHIPS = ["Portrait", "35mm", "Golden hour", "Grain"];
+  "Introduce a new skincare product. Explain its texture and daily use, using only the product details in the brief.";
+const PROMPT_CHIPS = ["Product", "Audience", "Tone", "Key facts"];
 
 const STEP_COUNT = STEPS.length;
 const SEGMENT = 1 / STEP_COUNT;
@@ -63,7 +63,7 @@ function presenceWindow(index: number): { input: number[]; output: number[] } {
 
 function driftWindow(
   index: number,
-  distance: number
+  distance: number,
 ): { input: number[]; output: number[] } {
   const enter = index * SEGMENT;
   const exit = (index + 1) * SEGMENT;
@@ -313,17 +313,17 @@ function ScreenLayer({
     progress,
     isFirst ? [0, 1] : [enter - FADE, enter + FADE],
     isFirst ? ["0%", "0%"] : ["103%", "0%"],
-    { ease: SHEET_EASE }
+    { ease: SHEET_EASE },
   );
   const scale = useTransform(
     progress,
     isLast ? [0, 1] : [cover - FADE, cover + FADE],
-    isLast ? [1, 1] : [1, 0.93]
+    isLast ? [1, 1] : [1, 0.93],
   );
   const dim = useTransform(
     progress,
     isLast ? [0, 1] : [cover - FADE, cover + FADE],
-    isLast ? [0, 0] : [0, 0.42]
+    isLast ? [0, 0] : [0, 0.42],
   );
   const radius = useTransform(
     progress,
@@ -332,7 +332,7 @@ function ScreenLayer({
       : isLast
         ? [enter - FADE, enter + FADE]
         : [enter - FADE, enter + FADE, cover - FADE, cover + FADE],
-    isFirst ? [0, 24] : isLast ? [32, 0] : [32, 0, 0, 24]
+    isFirst ? [0, 24] : isLast ? [32, 0] : [32, 0, 0, 24],
   );
 
   return (
@@ -423,7 +423,7 @@ function SegmentTick({
   const fill = useTransform(
     progress,
     [index * SEGMENT, (index + 1) * SEGMENT],
-    [0, 1]
+    [0, 1],
   );
 
   return (
@@ -452,8 +452,8 @@ export function AppShowcase(): ReactNode {
     <section id="how-it-works" className="scroll-mt-24 pb-24 sm:pb-32">
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <SectionHeading
-          title="From sentence to a running channel"
-          description="The whole loop lives in one place. Brief, make, review, publish. Then do it again, inside the budget you set."
+          title="From your brief to your publishing calendar"
+          description="A repeatable workflow for the work between having an idea and putting it in front of your audience."
         />
       </div>
 

@@ -1,0 +1,930 @@
+{
+  "version": 1,
+  "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+  "items": [
+    {
+      "id": "upstream-head-doctype",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-head-charset",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-head-viewport",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-head-title",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-head-description",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-head-favicons",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-head-apple-web-app-meta",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Marketing website is not being installed as a mobile web app."
+    },
+    {
+      "id": "upstream-head-windows-tiles",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "No Windows pinned tile surface in this scope."
+    },
+    {
+      "id": "upstream-head-canonical",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-head-language-attribute",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-head-direction-attribute",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-head-alternate-language",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "English-only existing site; no alternate locale destinations."
+    },
+    {
+      "id": "upstream-head-x-default",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "No multilingual landing flow in this scope."
+    },
+    {
+      "id": "upstream-head-conditional-comments",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Internet Explorer is not a target; existing modern Next.js stack."
+    },
+    {
+      "id": "upstream-head-rss-feed",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Guides are static product documentation; no subscription feed offered."
+    },
+    {
+      "id": "upstream-head-css-critical",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-head-css-order",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-head-facebook-open-graph",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-head-twitter-card",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-html-html5-semantic-elements",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-html-error-pages",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-html-noopener",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-html-clean-up-comments",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-html-w3c-compliant",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-html-html-lint",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "upstream-html-link-checker",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-html-adblockers-test",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-webfonts-webfont-format",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-webfonts-webfont-size",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-webfonts-webfont-loader",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-responsive-web-design",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-css-css-print",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-preprocessors",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Tailwind/PostCSS is existing stack; Sass is not required."
+    },
+    {
+      "id": "upstream-css-unique-id",
+      "status": "not_tested",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Requires broader audit or full state coverage beyond current smoke checks."
+    },
+    {
+      "id": "upstream-css-reset-css",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-css-js-prefix",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "React controls behavior; no class-name DOM event convention."
+    },
+    {
+      "id": "upstream-css-embedded-or-inline-css",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Motion uses inline transforms and theme surfaces intentionally."
+    },
+    {
+      "id": "upstream-css-vendor-prefixes",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-concatenation",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Next route splitting; one CSS bundle is not a modern universal requirement."
+    },
+    {
+      "id": "upstream-css-minification",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-non-blocking",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-unused-css",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-stylelint",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-responsive-web-design-0547aec0",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-css-validator",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-desktop-browsers",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-mobile-browsers",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-os",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-css-design-fidelity",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-css-reading-direction",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "No RTL locale supplied; English LTR source and rendering retained."
+    },
+    {
+      "id": "upstream-images-optimization",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-images-picture-srcset",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-images-retina",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-images-sprite",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "No sprite requirement for existing vector/React icons."
+    },
+    {
+      "id": "upstream-images-width-and-height",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-images-alternative-text",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-images-lazy-loading",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-javascript-javascript-inline",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Next hydration uses framework-managed inline scripts."
+    },
+    {
+      "id": "upstream-javascript-concatenation",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Next route bundles are intentional."
+    },
+    {
+      "id": "upstream-javascript-minification",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-javascript-javascript-security",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-javascript-noscript-tag",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-javascript-non-blocking",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-javascript-optimized-and-updated-js-libraries",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-javascript-modernizr",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "No legacy feature-detection library is needed by this change."
+    },
+    {
+      "id": "upstream-javascript-eslint",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-security-https",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-security-http-strict-transport-security-hsts",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-security-cross-site-request-forgery-csrf",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-security-cross-site-scripting-xss",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-security-content-type-options",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-security-x-frame-options-xfo",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-security-content-security-policy",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-goals-to-achieve",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-minified-html",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-lazy-loading",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-cookie-size",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-third-party-components",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-dns-resolution",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-preconnection",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-prefetching",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-preloading",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-performance-google-pagespeed",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-accessibility-progressive-enhancement",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-accessibility-color-contrast",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-accessibility-h1",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-accessibility-headings",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-accessibility-specific-html5-input-types-are-used",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-accessibility-label",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-accessibility-accessibility-standards-testing",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-accessibility-keyboard-navigation",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "upstream-accessibility-screen-reader",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-accessibility-focus-style",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "upstream-seo-google-analytics",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "No new analytics tracking requested; do not add consent-sensitive tracking merely for checklist."
+    },
+    {
+      "id": "upstream-seo-search-console",
+      "status": "not_applicable",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "No Search Console administration authorized by website-copy task."
+    },
+    {
+      "id": "upstream-seo-headings-logic",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "upstream-seo-sitemap-xml",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-seo-robots-txt",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-seo-structured-data",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "upstream-seo-sitemap-html",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "routes",
+      "status": "passed",
+      "scope": "53 route scenarios, all public marketing pages plus selected-plan URL, local production Chrome",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "responsive",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "mobile_menu",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "semantics",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "keyboard",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "accessibility",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "motion",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "images",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "fonts",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "performance",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    },
+    {
+      "id": "html",
+      "status": "not_tested",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Requires broader audit or full state coverage beyond current smoke checks."
+    },
+    {
+      "id": "css",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "javascript",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "seo",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "social_metadata",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "links",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "security",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    },
+    {
+      "id": "auth",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    },
+    {
+      "id": "onboarding",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    },
+    {
+      "id": "privacy",
+      "status": "not_tested",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Requires broader audit or full state coverage beyond current smoke checks."
+    },
+    {
+      "id": "forms",
+      "status": "not_tested",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Requires broader audit or full state coverage beyond current smoke checks."
+    },
+    {
+      "id": "compatibility",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    },
+    {
+      "id": "testing",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "deployment",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    },
+    {
+      "id": "content_truth",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "Not established by bounded local marketing checks; retain as an open acceptance item."
+    },
+    {
+      "id": "content_inventory",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "page_intent",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "legal_content",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    },
+    {
+      "id": "design_handoff",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "theme_fidelity",
+      "status": "passed",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "evidence/route-checks.json;DESIGN.md;INVENTORY.md;source implementation",
+      "rationale": "Bounded source and route evidence only; no full product certification."
+    },
+    {
+      "id": "details",
+      "status": "passed",
+      "scope": "Changed marketing routes; production Chrome 1440 desktop, 390 mobile, 768 tablet; no live service or full-device claim",
+      "evidence_ref": "evidence/functional-checks.json;VERIFICATION.md",
+      "rationale": "Bounded local interface check. Full-product and full-device assurance remains open."
+    },
+    {
+      "id": "context",
+      "status": "not_tested",
+      "scope": "Local marketing repositioning on a099a57; production Chromium checks, source review; auth/provider/hosted release separate",
+      "evidence_ref": "",
+      "rationale": "See VERIFICATION.md remaining gates; no fabricated live or full-device evidence."
+    }
+  ]
+}

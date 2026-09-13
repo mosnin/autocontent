@@ -25,21 +25,21 @@ type Feature = {
 
 const FEATURES: Feature[] = [
   {
-    title: "Content",
+    title: "Videos that explain your product",
     href: "/features/content",
-    body: "Short videos for TikTok, Reels, and Shorts. Your agent writes them, makes them, and can post them.",
+    body: "Turn a brief into a script, scenes, voiceover, and captions. Review the video before scheduling it to your connected accounts.",
     image: CAMPAIGN_SRCS[0] ?? "",
   },
   {
-    title: "SEO",
+    title: "Articles that answer buyer questions",
     href: "/features/seo",
-    body: "Blog posts from what people already search, plus a check-up for pages you already have live.",
+    body: "Start with search research, then build an article with an outline, copy, and metadata. Check the facts before it reaches your site.",
     image: CAMPAIGN_SRCS[5] ?? "",
   },
   {
-    title: "Ads",
+    title: "Campaign drafts you can evaluate",
     href: "/features/ads",
-    body: "Paid ads on Google and Meta. The agent drafts them. Your budget is the limit.",
+    body: "Prepare Google and Meta campaign drafts. Review the message, targeting, and budget before authorizing a launch.",
     image: CAMPAIGN_SRCS[9] ?? "",
   },
 ];
@@ -70,8 +70,8 @@ export function Features(): ReactNode {
     <section id="overview" className="scroll-mt-24 pb-24 sm:pb-32">
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <SectionHeading
-          title="Three things it can make for you."
-          description="Content, SEO, and ads. Same login. Same prepaid credits. Same daily budget."
+          title="Give your ideas more ways to reach people."
+          description="Start with the format your audience needs. Add the others as your publishing routine grows."
         />
       </div>
 

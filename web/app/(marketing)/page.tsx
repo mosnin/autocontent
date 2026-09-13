@@ -12,13 +12,13 @@ import { Pricing } from "@/components/marketing/home/pricing";
 import { VideoShowcase } from "@/components/marketing/home/video-showcase";
 
 const DESCRIPTION =
-  "Prepaid credits, a niche, and a daily cap. marketer.sh generates short-form video and SEO articles, parks them for approval, then schedules to the socials you connected.";
+  "Create videos, search-focused articles, and ad drafts from your product brief. Review your content and publish to connected channels with marketer.sh.";
 
 export const metadata: Metadata = {
-  title: "marketer.sh · Marketing that just gets made",
+  title: "marketer.sh · Create, review, and publish your marketing",
   description: DESCRIPTION,
   openGraph: {
-    title: "marketer.sh · Marketing that just gets made",
+    title: "marketer.sh · Create, review, and publish your marketing",
     description: DESCRIPTION,
     type: "website",
   },

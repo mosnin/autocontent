@@ -1,0 +1,69 @@
+{
+  "medium": [
+    {
+      "text": "marketer.sh home",
+      "x": 40,
+      "right": 92
+    },
+    {
+      "text": "Menu",
+      "x": 818,
+      "right": 908.765625
+    }
+  ],
+  "wide": [
+    {
+      "text": "marketer.sh home",
+      "x": 40,
+      "right": 92
+    },
+    {
+      "text": "Product",
+      "x": 111,
+      "right": 212.65625
+    },
+    {
+      "text": "Solutions",
+      "x": 212.65625,
+      "right": 324.5
+    },
+    {
+      "text": "Resources",
+      "x": 324.5,
+      "right": 443.5625
+    },
+    {
+      "text": "Company",
+      "x": 443.5625,
+      "right": 555.625
+    },
+    {
+      "text": "Pricing",
+      "x": 555.625,
+      "right": 633.3125
+    },
+    {
+      "text": "Menu",
+      "x": 831.59375,
+      "right": 928.703125
+    },
+    {
+      "text": "Login",
+      "x": 1033.59375,
+      "right": 1109.625
+    },
+    {
+      "text": "Get started",
+      "x": 1117.625,
+      "right": 1240
+    }
+  ],
+  "narrow": {
+    "overflow": false,
+    "heading": "44px"
+  },
+  "normal": {
+    "headlineVisible": 1,
+    "featuresVisible": true
+  }
+}

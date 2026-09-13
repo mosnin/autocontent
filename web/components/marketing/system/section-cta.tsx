@@ -15,13 +15,13 @@ import { CtaPill } from "./cta-pill";
  */
 export function SectionCta({
   kicker: _kicker = "Get started",
-  headline = "Put your marketing on autopilot.",
+  headline = "Create your next piece of content.",
   highlight: _highlight,
-  sub = "Describe your brand once. Review what ships. Keep every dollar under a cap you set.",
-  primaryLabel = "Start creating",
+  sub = "Bring your brief, choose a format, and review the result before publishing.",
+  primaryLabel = "Get started",
   primaryHref = "/sign-up",
-  secondaryLabel = "See pricing",
-  secondaryHref = "/pricing",
+  secondaryLabel = "Book a demo",
+  secondaryHref = "/demo",
   className,
 }: {
   kicker?: string;

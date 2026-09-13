@@ -1,42 +1,41 @@
-import type { Metadata } from "next";
-
+import Link from "next/link";
+import stories from "@/lib/marketing/stories.json";
+import { PageHero } from "@/components/marketing/resources/page-hero";
 import { SectionCta } from "@/components/marketing/system";
-import { HubGrid } from "@/components/marketing/use-cases/hub-grid";
-import { UseCaseHero } from "@/components/marketing/use-cases/template";
-
-const DESCRIPTION =
-  "Six ways people use marketer.sh: creators, shops, software teams, agencies, local businesses, and AI agents. Same videos, articles, and ads. Your job.";
-
-export const metadata: Metadata = {
-  title: "Use cases · marketer.sh",
-  description: DESCRIPTION,
-  openGraph: {
-    title: "Use cases · marketer.sh",
-    description: DESCRIPTION,
-    type: "website",
-  },
+export const metadata = {
+  title: "Use Cases · marketer.sh",
+  description:
+    "Explore practical starting points for your audience, product, and publishing routine.",
   alternates: { canonical: "https://marketer.sh/use-cases" },
 };
-
-export default function UseCasesPage() {
+export default function Page() {
   return (
     <main>
-      <UseCaseHero
-        headline={["Built for how", "you actually market."]}
-        kicker="Use cases"
-        lede="One platform, six jobs. The same videos, articles, and ads, pointed at whatever you are trying to grow."
-        primaryHref="/sign-up"
-        primaryLabel="Start creating"
-        scene="pearl"
-        secondaryHref="/features"
-        secondaryLabel="See how it works"
+      <PageHero
+        kicker="Marketer"
+        headline="Find a workflow that fits your work."
+        sub="Explore practical starting points for your audience, product, and publishing routine."
       />
-      <HubGrid />
-      <SectionCta
-        headline="Find your shape, then press go."
-        kicker="Get started"
-        sub="Every use case runs on the same brief. Describe what you sell, set a cap, and review what ships."
-      />
+      <section className="mx-auto grid max-w-[1440px] gap-5 px-5 pb-24 sm:grid-cols-2 sm:px-8 lg:grid-cols-3 lg:px-10">
+        {Object.entries(stories)
+          .filter(([route]) => route.startsWith("/use-cases/"))
+          .map(([route, s]) => (
+            <Link
+              key={route}
+              href={route}
+              className="focus-ring border-border rounded-3xl border p-8 transition-colors hover:bg-muted"
+            >
+              <h2 className="text-2xl font-medium tracking-tight">{s.title}</h2>
+              <p className="text-muted-foreground mt-5 leading-relaxed">
+                {s.description}
+              </p>
+              <p className="mt-8 text-sm underline underline-offset-4">
+                Explore workflow
+              </p>
+            </Link>
+          ))}
+      </section>
+      <SectionCta />
     </main>
   );
 }

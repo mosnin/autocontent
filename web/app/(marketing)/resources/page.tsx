@@ -22,10 +22,28 @@ export const metadata: Metadata = {
 
 const CARDS = [
   {
+    category: "Guides",
+    title: "Prepare, create, and review",
+    description:
+      "Browse guides to briefing, budgets, editorial review, and repeatable production.",
+    href: "/resources/guides",
+    scene: "sky",
+    vignette: <StageMedia kind="image" label="Content production guide" />,
+  },
+  {
+    category: "Help",
+    title: "Find the next step",
+    description:
+      "Setup, credit questions, connected workflows, and what to check when a job stops.",
+    href: "/resources/help",
+    scene: "warm",
+    vignette: <StageMedia kind="image" label="Publishing help" />,
+  },
+  {
     category: "Start here",
     title: "Quickstart",
     description:
-      "From sign-up to a running channel in six steps. One sentence in, first video approved, autopilot on.",
+      "Set up a brief, check costs, and review your first piece of content.",
     href: "/resources/quickstart",
     scene: "sky",
     vignette: <StageMedia kind="image" label="Quickstart still" />,
@@ -41,16 +59,16 @@ const CARDS = [
   },
   {
     category: "Guide",
-    title: "Launch your first channel in an afternoon",
+    title: "Set up your first content channel",
     description:
-      "Framing a channel, writing the one-sentence brief, choosing a voice, and earning trust with approval mode.",
+      "Choose an audience, prepare a brief, and keep the first run in review.",
     href: "/resources/guides/first-channel",
     scene: "pearl",
     vignette: <StageMedia kind="image" label="First-channel guide still" />,
   },
   {
     category: "Guide",
-    title: "Rank with articles your agents write",
+    title: "Create an article that answers a real question",
     description:
       "How the article pipeline researches, outlines, and writes, and how to set up internal links and cadence per channel.",
     href: "/resources/guides/seo-articles",

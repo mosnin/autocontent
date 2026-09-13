@@ -35,12 +35,9 @@ export function PricingTiles() {
             }
           >
             <header className="flex items-center justify-between gap-4">
-              <h3 className="text-lg font-medium tracking-tight">{pack.label}</h3>
-              {featured ? (
-                <span className="rounded-full border border-current/25 px-2.5 py-1 text-[11px] leading-none font-medium">
-                  Most popular
-                </span>
-              ) : null}
+              <h3 className="text-lg font-medium tracking-tight">
+                {pack.label}
+              </h3>
             </header>
             <p
               className={cn(
@@ -63,7 +60,7 @@ export function PricingTiles() {
                   featured ? "opacity-65" : "text-muted-foreground",
                 )}
               >
-                / once
+                USD once
               </span>
             </div>
             <ul className="mt-8 flex-1 space-y-3">
@@ -100,7 +97,7 @@ export function PricingTiles() {
                     }}
                     variant="primary"
                   >
-                    Buy ${pack.amount} of credit
+                    Get started
                   </CtaPill>
                 </Magnetic>
               ) : (
@@ -109,7 +106,7 @@ export function PricingTiles() {
                   href="/sign-up"
                   variant="secondary"
                 >
-                  Buy ${pack.amount} of credit
+                  Get started
                 </CtaPill>
               )}
             </div>

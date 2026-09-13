@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import type { MenuLink } from "./menu-data";
@@ -27,12 +28,16 @@ export function MegaMenu({
 }: MegaMenuProps): ReactNode {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const menuId = useId();
 
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
     };
     const onPointer = (event: PointerEvent): void => {
       if (!wrapRef.current?.contains(event.target as Node)) {
@@ -51,10 +56,12 @@ export function MegaMenu({
     <div
       ref={wrapRef}
       className="relative"
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
     >
       <button
+        ref={buttonRef}
         type="button"
         aria-expanded={open}
         aria-controls={menuId}
@@ -65,7 +72,7 @@ export function MegaMenu({
         <ChevronDown
           className={cn(
             "size-3.5 transition-transform duration-200",
-            open && "rotate-180"
+            open && "rotate-180",
           )}
           strokeWidth={1.75}
           aria-hidden="true"
@@ -80,8 +87,8 @@ export function MegaMenu({
           variant === "product"
             ? "w-[min(720px,calc(100vw-2.5rem))]"
             : variant === "groups"
-              ? "w-[min(520px,calc(100vw-2.5rem))]"
-              : "w-72"
+              ? "left-auto right-0 w-[min(520px,calc(100vw-2.5rem))]"
+              : "w-72",
         )}
       >
         {variant === "product" ? (
@@ -143,9 +150,11 @@ function MegaItem({
   onClick: () => void;
   className: string;
 }): ReactNode {
+  const pathname = usePathname();
   return (
     <Link
       href={item.href}
+      aria-current={pathname === item.href ? "page" : undefined}
       onClick={onClick}
       className={cn("focus-ring block transition-colors", className)}
     >

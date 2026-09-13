@@ -8,14 +8,19 @@ import {
   LEGAL_LINKS,
   PRODUCT_LINKS,
   RESOURCE_LINKS,
-  SOCIAL_LINKS,
+  SOLUTION_LINKS,
 } from "@/components/marketing/nav/menu-data";
 import { MorphLabel } from "@/components/marketing/nav/morph-label";
 import { ScrollProgress } from "@/components/marketing/nav/scroll-progress";
 import { useIntroDone } from "@/lib/marketing/intro";
-import { softEase, useIsDesktop, useReducedMotion } from "@/lib/marketing/motion";
+import {
+  softEase,
+  useIsDesktop,
+  useReducedMotion,
+} from "@/lib/marketing/motion";
 import { AnimatePresence, motion, type Variants } from "motion/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const DIRECT_LINKS = [{ label: "Pricing", href: "/pricing" }];
@@ -52,6 +57,7 @@ const ITEM_VARIANTS: Variants = {
 };
 
 export function Nav(): ReactNode {
+  const pathname = usePathname();
   const prefersReducedMotion = useReducedMotion();
   const isDesktop = useIsDesktop();
   const introDone = useIntroDone();
@@ -99,8 +105,9 @@ export function Nav(): ReactNode {
       <div className="relative flex h-20 items-center justify-between px-5 sm:px-8 lg:px-10">
         <div className="flex items-center gap-3">
           <Logo tone="gradient" />
-          <nav className="bg-background border-border hidden h-13 items-center rounded-full border p-1.5 lg:flex">
+          <nav className="bg-background border-border hidden h-13 items-center rounded-full border p-1.5 xl:flex">
             <MegaMenu label="Product" items={PRODUCT_LINKS} variant="product" />
+            <MegaMenu label="Solutions" items={SOLUTION_LINKS} variant="list" />
             <MegaMenu label="Resources" items={RESOURCE_LINKS} variant="list" />
             <MegaMenu
               label="Company"
@@ -117,6 +124,7 @@ export function Nav(): ReactNode {
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={pathname === link.href ? "page" : undefined}
                 className="focus-ring text-muted-foreground hover:text-foreground flex h-10 items-center rounded-full px-4 text-sm font-medium transition-colors"
               >
                 {link.label}
@@ -125,7 +133,7 @@ export function Nav(): ReactNode {
           </nav>
         </div>
 
-        <div className="absolute top-1.5 right-5 z-50 lg:right-auto lg:left-1/2 lg:-translate-x-1/2">
+        <div className="absolute top-1.5 right-5 z-50 xl:relative xl:top-auto xl:right-auto xl:ml-auto xl:mr-4">
           <motion.div
             initial={false}
             animate={{
@@ -203,6 +211,18 @@ export function Nav(): ReactNode {
                           ))}
                         </MobileGroup>
 
+                        <MobileGroup title="Solutions" index={nextIndex()}>
+                          {SOLUTION_LINKS.map((link) => (
+                            <MobileLink
+                              key={link.href}
+                              href={link.href}
+                              onClick={closeMenu}
+                              index={nextIndex()}
+                            >
+                              {link.label}
+                            </MobileLink>
+                          ))}
+                        </MobileGroup>
                         <MobileGroup title="Resources" index={nextIndex()}>
                           {RESOURCE_LINKS.map((link) => (
                             <MobileLink
@@ -263,30 +283,6 @@ export function Nav(): ReactNode {
                             </motion.a>
                           ))}
                         </div>
-
-                        <div className="mt-7 flex flex-col gap-3">
-                          <motion.span
-                            custom={nextIndex()}
-                            variants={ITEM_VARIANTS}
-                            className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase"
-                          >
-                            Social media
-                          </motion.span>
-                          <div className="flex flex-wrap gap-x-5 gap-y-2">
-                            {SOCIAL_LINKS.map((link) => (
-                              <motion.a
-                                key={link.href}
-                                href={link.href}
-                                onClick={closeMenu}
-                                custom={nextIndex()}
-                                variants={ITEM_VARIANTS}
-                                className="focus-ring text-foreground/80 hover:text-foreground text-sm font-medium transition-colors"
-                              >
-                                {link.label}
-                              </motion.a>
-                            ))}
-                          </div>
-                        </div>
                       </motion.div>
                     </div>
                   </motion.div>
@@ -299,15 +295,17 @@ export function Nav(): ReactNode {
         <div className="flex items-center gap-2">
           <Link
             href="/sign-in"
-            className="focus-ring text-foreground hover:text-foreground hidden h-13 items-center rounded-full px-5 text-sm font-medium transition-colors md:inline-flex"
+            prefetch={false}
+            className="focus-ring text-foreground hover:text-foreground hidden h-13 items-center rounded-full px-5 text-sm font-medium transition-colors xl:inline-flex"
           >
             Login
           </Link>
           <Link
             href="/sign-up"
-            className="focus-ring bg-foreground text-background hidden h-13 items-center rounded-full px-6 text-sm font-medium transition-opacity hover:opacity-85 md:inline-flex"
+            prefetch={false}
+            className="focus-ring bg-foreground text-background hidden h-13 items-center rounded-full px-6 text-sm font-medium transition-opacity hover:opacity-85 xl:inline-flex"
           >
-            Sign up
+            Get started
           </Link>
         </div>
       </div>
@@ -364,9 +362,11 @@ function MobileLink({
   index: number;
   children: ReactNode;
 }): ReactNode {
+  const pathname = usePathname();
   return (
     <motion.a
       href={href}
+      aria-current={pathname === href ? "page" : undefined}
       onClick={onClick}
       custom={index}
       variants={ITEM_VARIANTS}

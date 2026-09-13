@@ -1,0 +1,3332 @@
+{
+  "version": 1,
+  "project": {
+    "company": "Marketer (user-specified product; company entity not newly verified)",
+    "product": "marketer.sh",
+    "fictional": false
+  },
+  "context_refs": [],
+  "pages": [
+    {
+      "id": "features-content",
+      "role": "product",
+      "title": "Make product videos from a brief.",
+      "purpose": "Create short-form videos with a script, generated scenes, voiceover, and captions. Spend your review time on the message and the finished result.",
+      "fact_ids": [
+        "features-content"
+      ],
+      "hero": {
+        "headline": "Make product videos from a brief."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Start with a product benefit, customer question, or use case. Give each short a clear purpose instead of packing your entire pitch into it.",
+          "fact_ids": [
+            "features-content"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Use scene-based videos, motion graphics, micro-dramas, or UGC-style creative. Match the format to the message and the assets you can provide.",
+          "fact_ids": [
+            "features-content"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Marketer connects the production steps so a product explanation can become a video you can watch, check, and schedule.",
+          "fact_ids": [
+            "features-content"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-0",
+      "animated_asset_id": "existing-reveal-0",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/content"
+    },
+    {
+      "id": "features-seo",
+      "role": "product",
+      "title": "Answer the questions buyers search for.",
+      "purpose": "Research topics, draft articles, and review the pages already on your site. Build useful explanations around what your product helps people do.",
+      "fact_ids": [
+        "features-seo"
+      ],
+      "hero": {
+        "headline": "Answer the questions buyers search for."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Use research to understand the subject before drafting an outline. Add your own experience and product knowledge where a generic answer would fall short.",
+          "fact_ids": [
+            "features-seo"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Work with the article, title, description, and supporting image as one content task.",
+          "fact_ids": [
+            "features-seo"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "A good article needs a clear reader question, useful evidence, a coherent structure, and an accurate answer. Marketer helps assemble the draft so you can focus on what deserves to be published.",
+          "fact_ids": [
+            "features-seo"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-5",
+      "animated_asset_id": "existing-reveal-5",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/seo"
+    },
+    {
+      "id": "features-ads",
+      "role": "product",
+      "title": "Review the campaign before you fund it.",
+      "purpose": "Prepare Google and Meta campaign drafts, inspect proposed changes, and keep creative decisions connected to budget decisions.",
+      "fact_ids": [
+        "features-ads"
+      ],
+      "hero": {
+        "headline": "Review the campaign before you fund it."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Review campaign drafts and the intended action before authorizing changes to an account.",
+          "fact_ids": [
+            "features-ads"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Generation credits pay for production work. Advertising budgets belong to the ad platform and need their own review.",
+          "fact_ids": [
+            "features-ads"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "The message, audience, landing page, and spend need to make sense together. Marketer gives campaign work a reviewable shape before you decide to act.",
+          "fact_ids": [
+            "features-ads"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-8",
+      "animated_asset_id": "existing-reveal-8",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/ads"
+    },
+    {
+      "id": "features-video",
+      "role": "product",
+      "title": "Create a short your audience can follow.",
+      "purpose": "Turn a focused brief into a scene-based video with narration and captions.",
+      "fact_ids": [
+        "features-video"
+      ],
+      "hero": {
+        "headline": "Create a short your audience can follow."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Look at the script and watch the output as a whole. Check whether the visual sequence supports the explanation.",
+          "fact_ids": [
+            "features-video"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Voiceover and captions make the explanation easier to follow. Check names, timing, pronunciation, and readability.",
+          "fact_ids": [
+            "features-video"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Use a single audience question to guide the script, scenes, and closing action.",
+          "fact_ids": [
+            "features-video"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-1",
+      "animated_asset_id": "existing-reveal-1",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/video"
+    },
+    {
+      "id": "features-articles",
+      "role": "product",
+      "title": "Turn a buyer question into a useful article.",
+      "purpose": "Build a researched article draft with structure, copy, and page metadata.",
+      "fact_ids": [
+        "features-articles"
+      ],
+      "hero": {
+        "headline": "Turn a buyer question into a useful article."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Review the structure so the article answers the question without wandering into unrelated sections.",
+          "fact_ids": [
+            "features-articles"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Prepare the body, title, description, and image together rather than leaving the publishing details until last.",
+          "fact_ids": [
+            "features-articles"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Start with the reader\u2019s question and the facts your business can contribute.",
+          "fact_ids": [
+            "features-articles"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-2",
+      "animated_asset_id": "existing-reveal-2",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/articles"
+    },
+    {
+      "id": "features-scheduling",
+      "role": "product",
+      "title": "Give approved content a place on the calendar.",
+      "purpose": "Plan when reviewed social content should publish to your connected accounts.",
+      "fact_ids": [
+        "features-scheduling"
+      ],
+      "hero": {
+        "headline": "Give approved content a place on the calendar."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Keep approved content connected to its scheduled destination and time.",
+          "fact_ids": [
+            "features-scheduling"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Check approval before scheduling instead of treating a generated file as automatically ready.",
+          "fact_ids": [
+            "features-scheduling"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Publishing requires an account, a time, and a final check that the right version is going out.",
+          "fact_ids": [
+            "features-scheduling"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-3",
+      "animated_asset_id": "existing-reveal-3",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/scheduling"
+    },
+    {
+      "id": "features-automation",
+      "role": "product",
+      "title": "Make repeatable production a routine.",
+      "purpose": "Set up recurring content work around a saved brief, publishing settings, and budget controls.",
+      "fact_ids": [
+        "features-automation"
+      ],
+      "hero": {
+        "headline": "Make repeatable production a routine."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Save the audience, tone, and content settings that guide your recurring work.",
+          "fact_ids": [
+            "features-automation"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Use scheduling settings to define when work should run. Choose a frequency you can review.",
+          "fact_ids": [
+            "features-automation"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "A stable brief and a sensible review routine can give recurring work a consistent starting point.",
+          "fact_ids": [
+            "features-automation"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-4",
+      "animated_asset_id": "existing-reveal-4",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/automation"
+    },
+    {
+      "id": "features-analytics",
+      "role": "product",
+      "title": "Use performance to choose your next idea.",
+      "purpose": "Review available content metrics alongside the work you published.",
+      "fact_ids": [
+        "features-analytics"
+      ],
+      "hero": {
+        "headline": "Use performance to choose your next idea."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Look at results across comparable content rather than declaring a winner from one isolated post.",
+          "fact_ids": [
+            "features-analytics"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Connect what happened to the hook, topic, or explanation that a viewer actually saw.",
+          "fact_ids": [
+            "features-analytics"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Use results as a reason to investigate which topics and formats deserve another attempt.",
+          "fact_ids": [
+            "features-analytics"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-5",
+      "animated_asset_id": "existing-reveal-5",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/analytics"
+    },
+    {
+      "id": "features-ugc",
+      "role": "product",
+      "title": "Explore a spokesperson format for your product.",
+      "purpose": "Create UGC-style video drafts using supported models and the product direction you provide.",
+      "fact_ids": [
+        "features-ugc"
+      ],
+      "hero": {
+        "headline": "Explore a spokesperson format for your product."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Explore how a spoken product explanation differs from a montage or motion graphic.",
+          "fact_ids": [
+            "features-ugc"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Supply the statements the creative can make and review them in the finished video.",
+          "fact_ids": [
+            "features-ugc"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Focus the draft on a clear use case and accurate product details.",
+          "fact_ids": [
+            "features-ugc"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-6",
+      "animated_asset_id": "existing-reveal-6",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/ugc"
+    },
+    {
+      "id": "features-dramas",
+      "role": "product",
+      "title": "Build a short story around your idea.",
+      "purpose": "Create multi-shot video drafts with a screenplay structure and recurring characters.",
+      "fact_ids": [
+        "features-dramas"
+      ],
+      "hero": {
+        "headline": "Build a short story around your idea."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Define the situation, tension, and resolution before requesting shots.",
+          "fact_ids": [
+            "features-dramas"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Character references guide recurring appearances across scenes. Inspect the actual continuity.",
+          "fact_ids": [
+            "features-dramas"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Use characters and a simple narrative to make an idea understandable.",
+          "fact_ids": [
+            "features-dramas"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-7",
+      "animated_asset_id": "existing-reveal-7",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/dramas"
+    },
+    {
+      "id": "features-motion",
+      "role": "product",
+      "title": "Give an explanation a visual rhythm.",
+      "purpose": "Turn narration into motion-led video with imagery and animated text.",
+      "fact_ids": [
+        "features-motion"
+      ],
+      "hero": {
+        "headline": "Give an explanation a visual rhythm."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Keep each beat focused so viewers can follow the argument.",
+          "fact_ids": [
+            "features-motion"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Pair text and imagery with the spoken explanation. Check that neither competes with the other.",
+          "fact_ids": [
+            "features-motion"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Use pacing and type to emphasize a sequence, feature, or explanation.",
+          "fact_ids": [
+            "features-motion"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-8",
+      "animated_asset_id": "existing-reveal-8",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/motion"
+    },
+    {
+      "id": "features-library",
+      "role": "product",
+      "title": "Keep useful content within reach.",
+      "purpose": "Browse the content and assets you have made so the next task can start from existing work.",
+      "fact_ids": [
+        "features-library"
+      ],
+      "hero": {
+        "headline": "Keep useful content within reach."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Browse available generated content and inspect what belongs to the next task.",
+          "fact_ids": [
+            "features-library"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Choose useful assets and ideas while checking their original context.",
+          "fact_ids": [
+            "features-library"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "A shared production history gives you a place to return when planning another piece.",
+          "fact_ids": [
+            "features-library"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-9",
+      "animated_asset_id": "existing-reveal-9",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/library"
+    },
+    {
+      "id": "features-templates",
+      "role": "product",
+      "title": "Start the next creative from a useful reference.",
+      "purpose": "Use templates and remix workflows to give new content a starting structure.",
+      "fact_ids": [
+        "features-templates"
+      ],
+      "hero": {
+        "headline": "Start the next creative from a useful reference."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Pick a starting point that fits the message and destination.",
+          "fact_ids": [
+            "features-templates"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Add your product facts, assets, and direction instead of inheriting unrelated claims.",
+          "fact_ids": [
+            "features-templates"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "A relevant reference can clarify the composition or format you want to explore.",
+          "fact_ids": [
+            "features-templates"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-10",
+      "animated_asset_id": "existing-reveal-10",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/templates"
+    },
+    {
+      "id": "features-niches",
+      "role": "product",
+      "title": "Give each content stream a clear direction.",
+      "purpose": "Save an audience, voice, and production setup for the subjects you publish about.",
+      "fact_ids": [
+        "features-niches"
+      ],
+      "hero": {
+        "headline": "Give each content stream a clear direction."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Keep the tone, subject, and audience of each stream explicit.",
+          "fact_ids": [
+            "features-niches"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Choose production and publishing settings that fit the work you can review.",
+          "fact_ids": [
+            "features-niches"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "A saved channel brief helps keep recurring work focused on the right people.",
+          "fact_ids": [
+            "features-niches"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-11",
+      "animated_asset_id": "existing-reveal-11",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/niches"
+    },
+    {
+      "id": "features-campaigns",
+      "role": "product",
+      "title": "Keep campaign content pointed at one goal.",
+      "purpose": "Organize production around a campaign brief, audience, and intended message.",
+      "fact_ids": [
+        "features-campaigns"
+      ],
+      "hero": {
+        "headline": "Keep campaign content pointed at one goal."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "State the audience, offer, message, and intended outcome in the brief.",
+          "fact_ids": [
+            "features-campaigns"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Develop the formats that support that message across the channels you use.",
+          "fact_ids": [
+            "features-campaigns"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "The pieces need a common offer and a reason for the audience to act.",
+          "fact_ids": [
+            "features-campaigns"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-0",
+      "animated_asset_id": "existing-reveal-0",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/campaigns"
+    },
+    {
+      "id": "features-seo-audit",
+      "role": "product",
+      "title": "Find a useful next edit for an existing page.",
+      "purpose": "Inspect a live URL and review SEO findings with the evidence behind them.",
+      "fact_ids": [
+        "features-seo-audit"
+      ],
+      "hero": {
+        "headline": "Find a useful next edit for an existing page."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Start from the URL you want to improve and review the detected issues.",
+          "fact_ids": [
+            "features-seo-audit"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Look at the supporting evidence before acting on a recommendation.",
+          "fact_ids": [
+            "features-seo-audit"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Use findings to investigate your page instead of treating a score as the goal.",
+          "fact_ids": [
+            "features-seo-audit"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-1",
+      "animated_asset_id": "existing-reveal-1",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/features/seo-audit"
+    },
+    {
+      "id": "use-cases-saas",
+      "role": "solution",
+      "title": "Explain your product before the next sales conversation.",
+      "purpose": "For founders and SaaS teams with product knowledge to share and limited time to turn it into content.",
+      "fact_ids": [
+        "use-cases-saas"
+      ],
+      "hero": {
+        "headline": "Explain your product before the next sales conversation."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Explain a specific job your product helps someone do, with details you can substantiate.",
+          "fact_ids": [
+            "use-cases-saas"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Draft useful articles about setup, fit, and tradeoffs. Keep comparisons current and evidence-based.",
+          "fact_ids": [
+            "use-cases-saas"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Turn recurring questions about the product into educational videos and articles.",
+          "fact_ids": [
+            "use-cases-saas"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-0",
+      "animated_asset_id": "existing-reveal-0",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/use-cases/saas"
+    },
+    {
+      "id": "use-cases-ecommerce",
+      "role": "solution",
+      "title": "Give each product a clearer story.",
+      "purpose": "For ecommerce brands creating product explanations, social videos, and campaign drafts.",
+      "fact_ids": [
+        "use-cases-ecommerce"
+      ],
+      "hero": {
+        "headline": "Give each product a clearer story."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Turn real details into a focused video or article. Show what the buyer needs to understand.",
+          "fact_ids": [
+            "use-cases-ecommerce"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Try a use case, a question, or a presentation style while keeping the underlying facts consistent.",
+          "fact_ids": [
+            "use-cases-ecommerce"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Use the features, materials, and use cases that actually matter to the buyer.",
+          "fact_ids": [
+            "use-cases-ecommerce"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-2",
+      "animated_asset_id": "existing-reveal-2",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/use-cases/ecommerce"
+    },
+    {
+      "id": "use-cases-agencies",
+      "role": "solution",
+      "title": "Give recurring production a repeatable process.",
+      "purpose": "For agencies that need to turn approved direction into content drafts across several streams of work.",
+      "fact_ids": [
+        "use-cases-agencies"
+      ],
+      "hero": {
+        "headline": "Give recurring production a repeatable process."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Use a clear brief for every account or content stream. Keep source facts and creative constraints easy to review.",
+          "fact_ids": [
+            "use-cases-agencies"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Use generation to create work your team can inspect and revise before seeking client approval.",
+          "fact_ids": [
+            "use-cases-agencies"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Reuse useful briefs and formats while keeping each client\u2019s facts and voice distinct.",
+          "fact_ids": [
+            "use-cases-agencies"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-5",
+      "animated_asset_id": "existing-reveal-5",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/use-cases/agencies"
+    },
+    {
+      "id": "use-cases-creators",
+      "role": "solution",
+      "title": "Keep making the content your audience came for.",
+      "purpose": "For creators turning a clear subject and point of view into a repeatable publishing routine.",
+      "fact_ids": [
+        "use-cases-creators"
+      ],
+      "hero": {
+        "headline": "Keep making the content your audience came for."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Choose a repeatable subject and an audience question for each piece.",
+          "fact_ids": [
+            "use-cases-creators"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Turn a topic into a video or an article without assuming the same draft fits both.",
+          "fact_ids": [
+            "use-cases-creators"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Marketer helps with production while you decide which ideas deserve your audience\u2019s attention.",
+          "fact_ids": [
+            "use-cases-creators"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-6",
+      "animated_asset_id": "existing-reveal-6",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/use-cases/creators"
+    },
+    {
+      "id": "use-cases-local-business",
+      "role": "solution",
+      "title": "Help people understand what your business offers.",
+      "purpose": "For local businesses that want useful explanations of services, products, and common customer questions.",
+      "fact_ids": [
+        "use-cases-local-business"
+      ],
+      "hero": {
+        "headline": "Help people understand what your business offers."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Describe what is included, who it is for, and how to take the next step.",
+          "fact_ids": [
+            "use-cases-local-business"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Use an article or short video to explain preparation, options, or how the service works.",
+          "fact_ids": [
+            "use-cases-local-business"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Turn those recurring conversations into content people can find and understand before they contact you.",
+          "fact_ids": [
+            "use-cases-local-business"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-7",
+      "animated_asset_id": "existing-reveal-7",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/use-cases/local-business"
+    },
+    {
+      "id": "use-cases-ai-agents",
+      "role": "solution",
+      "title": "Give your agent a content production workflow.",
+      "purpose": "For builders connecting software or AI agents to Marketer through the API, SDK, CLI, or MCP.",
+      "fact_ids": [
+        "use-cases-ai-agents"
+      ],
+      "hero": {
+        "headline": "Give your agent a content production workflow."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Choose the API, Python SDK, CLI, or MCP surface for the environment running your workflow.",
+          "fact_ids": [
+            "use-cases-ai-agents"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Use scoped credentials, budget controls, and deliberate approvals for publishing actions.",
+          "fact_ids": [
+            "use-cases-ai-agents"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Connect your planning workflow to production operations with explicit permissions and budgets.",
+          "fact_ids": [
+            "use-cases-ai-agents"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-10",
+      "animated_asset_id": "existing-reveal-10",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/use-cases/ai-agents"
+    },
+    {
+      "id": "how-it-works",
+      "role": "marketing",
+      "title": "From product brief to published content.",
+      "purpose": "A practical walkthrough of what you provide, what Marketer produces, and where you make the decisions.",
+      "fact_ids": [
+        "how-it-works"
+      ],
+      "hero": {
+        "headline": "From product brief to published content."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "Audience, offer, product details, tone, and source assets give the draft its direction.",
+          "fact_ids": [
+            "how-it-works"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Choose video, article, or campaign work. Generation connects the relevant production steps.",
+          "fact_ids": [
+            "how-it-works"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "Production becomes easier to evaluate when each step has a clear input and a result you can inspect.",
+          "fact_ids": [
+            "how-it-works"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-3",
+      "animated_asset_id": "existing-reveal-3",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/how-it-works"
+    },
+    {
+      "id": "about",
+      "role": "marketing",
+      "title": "Give good ideas a practical path to publication.",
+      "purpose": "Marketer brings content production, review, and publishing workflows into one place.",
+      "fact_ids": [
+        "about"
+      ],
+      "hero": {
+        "headline": "Give good ideas a practical path to publication."
+      },
+      "proof": {
+        "placement": "immediately_after_hero",
+        "fact_ids": [],
+        "logo_asset_ids": [],
+        "missing_reason": "No permissioned customer logo proof supplied. Original campaign artwork is illustrative."
+      },
+      "sections": [
+        {
+          "kind": "feature",
+          "content": "A clear audience and accurate information matter more than asking a model for more output.",
+          "fact_ids": [
+            "about"
+          ]
+        },
+        {
+          "kind": "benefit",
+          "content": "Drafts, production status, and spending should help you decide what to do next.",
+          "fact_ids": [
+            "about"
+          ]
+        },
+        {
+          "kind": "problem",
+          "content": "We\u2019re building around the work that happens between knowing what you want to say and having content ready to share.",
+          "fact_ids": [
+            "about"
+          ]
+        }
+      ],
+      "illustration_asset_id": "campaign-11",
+      "animated_asset_id": "existing-reveal-11",
+      "reduced_motion": "static_equivalent",
+      "bottom_cta": [
+        {
+          "label": "Get started",
+          "target": "/sign-up"
+        },
+        {
+          "label": "Book a demo",
+          "target": "/demo"
+        }
+      ],
+      "path": "/about"
+    },
+    {
+      "id": "home",
+      "role": "marketing",
+      "title": "/",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/"
+      },
+      "exceptions": [],
+      "path": "/"
+    },
+    {
+      "id": "demo",
+      "role": "contact",
+      "title": "/demo",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/demo"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/demo"
+    },
+    {
+      "id": "contact",
+      "role": "contact",
+      "title": "/contact",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/contact"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/contact"
+    },
+    {
+      "id": "resources",
+      "role": "article",
+      "title": "/resources",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources"
+    },
+    {
+      "id": "features",
+      "role": "marketing",
+      "title": "/features",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/features"
+      },
+      "exceptions": [],
+      "path": "/features"
+    },
+    {
+      "id": "docs",
+      "role": "article",
+      "title": "/docs",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/docs"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/docs"
+    },
+    {
+      "id": "use-cases",
+      "role": "marketing",
+      "title": "/use-cases",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/use-cases"
+      },
+      "exceptions": [],
+      "path": "/use-cases"
+    },
+    {
+      "id": "legal",
+      "role": "legal",
+      "title": "/legal",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal"
+    },
+    {
+      "id": "pricing",
+      "role": "pricing",
+      "title": "/pricing",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/pricing"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/pricing"
+    },
+    {
+      "id": "company",
+      "role": "marketing",
+      "title": "/company",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/company"
+      },
+      "exceptions": [],
+      "path": "/company"
+    },
+    {
+      "id": "legal-privacy",
+      "role": "legal",
+      "title": "/legal/privacy",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal/privacy"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal/privacy"
+    },
+    {
+      "id": "legal-terms",
+      "role": "legal",
+      "title": "/legal/terms",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal/terms"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal/terms"
+    },
+    {
+      "id": "legal-subprocessors",
+      "role": "legal",
+      "title": "/legal/subprocessors",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal/subprocessors"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal/subprocessors"
+    },
+    {
+      "id": "legal-dpa",
+      "role": "legal",
+      "title": "/legal/dpa",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal/dpa"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal/dpa"
+    },
+    {
+      "id": "legal-acceptable-use",
+      "role": "legal",
+      "title": "/legal/acceptable-use",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal/acceptable-use"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal/acceptable-use"
+    },
+    {
+      "id": "legal-refund",
+      "role": "legal",
+      "title": "/legal/refund",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal/refund"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal/refund"
+    },
+    {
+      "id": "legal-cookies",
+      "role": "legal",
+      "title": "/legal/cookies",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/legal/cookies"
+      },
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/legal/cookies"
+    },
+    {
+      "id": "resources-changelog",
+      "role": "article",
+      "title": "/resources/changelog",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/changelog"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/changelog"
+    },
+    {
+      "id": "resources-faq",
+      "role": "article",
+      "title": "/resources/faq",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/faq"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/faq"
+    },
+    {
+      "id": "resources-quickstart",
+      "role": "article",
+      "title": "/resources/quickstart",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/quickstart"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/quickstart"
+    },
+    {
+      "id": "resources-guides",
+      "role": "article",
+      "title": "/resources/guides",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/guides"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/guides"
+    },
+    {
+      "id": "resources-api",
+      "role": "article",
+      "title": "/resources/api",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/api"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/api"
+    },
+    {
+      "id": "resources-help",
+      "role": "article",
+      "title": "/resources/help",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/help"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/help"
+    },
+    {
+      "id": "resources-guides-first-channel",
+      "role": "article",
+      "title": "/resources/guides/first-channel",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/guides/first-channel"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/guides/first-channel"
+    },
+    {
+      "id": "resources-guides-plan-content-budget",
+      "role": "article",
+      "title": "/resources/guides/plan-content-budget",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/guides/plan-content-budget"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/guides/plan-content-budget"
+    },
+    {
+      "id": "resources-guides-content-brief",
+      "role": "article",
+      "title": "/resources/guides/content-brief",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/guides/content-brief"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/guides/content-brief"
+    },
+    {
+      "id": "resources-guides-seo-articles",
+      "role": "article",
+      "title": "/resources/guides/seo-articles",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/guides/seo-articles"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/guides/seo-articles"
+    },
+    {
+      "id": "resources-guides-review-checklist",
+      "role": "article",
+      "title": "/resources/guides/review-checklist",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/guides/review-checklist"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/guides/review-checklist"
+    },
+    {
+      "id": "resources-guides-agent-driven-marketing",
+      "role": "article",
+      "title": "/resources/guides/agent-driven-marketing",
+      "purpose": "Actual existing/new route; inspect source and route evidence",
+      "hero": {
+        "headline": "/resources/guides/agent-driven-marketing"
+      },
+      "exceptions": [
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Reading, policy, commercial comparison or contact task; no fabricated sales proof."
+        }
+      ],
+      "path": "/resources/guides/agent-driven-marketing"
+    },
+    {
+      "id": "sign-in",
+      "role": "auth",
+      "title": "/sign-in",
+      "purpose": "Existing protected/auth destination; hosted verification pending",
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/sign-in"
+    },
+    {
+      "id": "sign-up",
+      "role": "auth",
+      "title": "/sign-up",
+      "purpose": "Existing protected/auth destination; hosted verification pending",
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/sign-up"
+    },
+    {
+      "id": "app-home",
+      "role": "application",
+      "title": "/home",
+      "purpose": "Existing protected/auth destination; hosted verification pending",
+      "exceptions": [
+        {
+          "capability": "unique_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "proof_under_hero",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "feature_benefit_problem",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "unique_illustrations",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "animated_illustration",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        },
+        {
+          "capability": "dual_bottom_cta",
+          "rationale": "Task/policy destination; unrelated sales presentation is not appropriate. Existing auth/provider verification remains separate."
+        }
+      ],
+      "path": "/home"
+    }
+  ],
+  "assets": [
+    {
+      "id": "campaign-0",
+      "source": "web/lib/marketing/campaign-media.ts index 0",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-0",
+      "source": "web/lib/marketing/campaign-media.ts index 0",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-1",
+      "source": "web/lib/marketing/campaign-media.ts index 1",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-1",
+      "source": "web/lib/marketing/campaign-media.ts index 1",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-2",
+      "source": "web/lib/marketing/campaign-media.ts index 2",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-2",
+      "source": "web/lib/marketing/campaign-media.ts index 2",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-3",
+      "source": "web/lib/marketing/campaign-media.ts index 3",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-3",
+      "source": "web/lib/marketing/campaign-media.ts index 3",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-4",
+      "source": "web/lib/marketing/campaign-media.ts index 4",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-4",
+      "source": "web/lib/marketing/campaign-media.ts index 4",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-5",
+      "source": "web/lib/marketing/campaign-media.ts index 5",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-5",
+      "source": "web/lib/marketing/campaign-media.ts index 5",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-6",
+      "source": "web/lib/marketing/campaign-media.ts index 6",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-6",
+      "source": "web/lib/marketing/campaign-media.ts index 6",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-7",
+      "source": "web/lib/marketing/campaign-media.ts index 7",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-7",
+      "source": "web/lib/marketing/campaign-media.ts index 7",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-8",
+      "source": "web/lib/marketing/campaign-media.ts index 8",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-8",
+      "source": "web/lib/marketing/campaign-media.ts index 8",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-9",
+      "source": "web/lib/marketing/campaign-media.ts index 9",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-9",
+      "source": "web/lib/marketing/campaign-media.ts index 9",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-10",
+      "source": "web/lib/marketing/campaign-media.ts index 10",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-10",
+      "source": "web/lib/marketing/campaign-media.ts index 10",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "campaign-11",
+      "source": "web/lib/marketing/campaign-media.ts index 11",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    },
+    {
+      "id": "existing-reveal-11",
+      "source": "web/lib/marketing/campaign-media.ts index 11",
+      "rights": "permission",
+      "permission_ref": "User explicitly requests preservation of existing paid theme and graphics; do not infer customer endorsement"
+    }
+  ],
+  "facts": [
+    {
+      "id": "features-content",
+      "kind": "feature",
+      "statement": "Create short-form videos with a script, generated scenes, voiceover, and captions. Spend your review time on the message and the finished result.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/content"
+    },
+    {
+      "id": "features-seo",
+      "kind": "feature",
+      "statement": "Research topics, draft articles, and review the pages already on your site. Build useful explanations around what your product helps people do.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/seo"
+    },
+    {
+      "id": "features-ads",
+      "kind": "feature",
+      "statement": "Prepare Google and Meta campaign drafts, inspect proposed changes, and keep creative decisions connected to budget decisions.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/ads"
+    },
+    {
+      "id": "features-video",
+      "kind": "feature",
+      "statement": "Turn a focused brief into a scene-based video with narration and captions.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/video"
+    },
+    {
+      "id": "features-articles",
+      "kind": "feature",
+      "statement": "Build a researched article draft with structure, copy, and page metadata.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/articles"
+    },
+    {
+      "id": "features-scheduling",
+      "kind": "feature",
+      "statement": "Plan when reviewed social content should publish to your connected accounts.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/scheduling"
+    },
+    {
+      "id": "features-automation",
+      "kind": "feature",
+      "statement": "Set up recurring content work around a saved brief, publishing settings, and budget controls.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/automation"
+    },
+    {
+      "id": "features-analytics",
+      "kind": "feature",
+      "statement": "Review available content metrics alongside the work you published.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/analytics"
+    },
+    {
+      "id": "features-ugc",
+      "kind": "feature",
+      "statement": "Create UGC-style video drafts using supported models and the product direction you provide.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/ugc"
+    },
+    {
+      "id": "features-dramas",
+      "kind": "feature",
+      "statement": "Create multi-shot video drafts with a screenplay structure and recurring characters.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/dramas"
+    },
+    {
+      "id": "features-motion",
+      "kind": "feature",
+      "statement": "Turn narration into motion-led video with imagery and animated text.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/motion"
+    },
+    {
+      "id": "features-library",
+      "kind": "feature",
+      "statement": "Browse the content and assets you have made so the next task can start from existing work.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/library"
+    },
+    {
+      "id": "features-templates",
+      "kind": "feature",
+      "statement": "Use templates and remix workflows to give new content a starting structure.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/templates"
+    },
+    {
+      "id": "features-niches",
+      "kind": "feature",
+      "statement": "Save an audience, voice, and production setup for the subjects you publish about.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/niches"
+    },
+    {
+      "id": "features-campaigns",
+      "kind": "feature",
+      "statement": "Organize production around a campaign brief, audience, and intended message.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/campaigns"
+    },
+    {
+      "id": "features-seo-audit",
+      "kind": "feature",
+      "statement": "Inspect a live URL and review SEO findings with the evidence behind them.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/features/seo-audit"
+    },
+    {
+      "id": "use-cases-saas",
+      "kind": "use_case",
+      "statement": "For founders and SaaS teams with product knowledge to share and limited time to turn it into content.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/use-cases/saas"
+    },
+    {
+      "id": "use-cases-ecommerce",
+      "kind": "use_case",
+      "statement": "For ecommerce brands creating product explanations, social videos, and campaign drafts.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/use-cases/ecommerce"
+    },
+    {
+      "id": "use-cases-agencies",
+      "kind": "use_case",
+      "statement": "For agencies that need to turn approved direction into content drafts across several streams of work.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/use-cases/agencies"
+    },
+    {
+      "id": "use-cases-creators",
+      "kind": "use_case",
+      "statement": "For creators turning a clear subject and point of view into a repeatable publishing routine.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/use-cases/creators"
+    },
+    {
+      "id": "use-cases-local-business",
+      "kind": "use_case",
+      "statement": "For local businesses that want useful explanations of services, products, and common customer questions.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/use-cases/local-business"
+    },
+    {
+      "id": "use-cases-ai-agents",
+      "kind": "use_case",
+      "statement": "For builders connecting software or AI agents to Marketer through the API, SDK, CLI, or MCP.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/use-cases/ai-agents"
+    },
+    {
+      "id": "how-it-works",
+      "kind": "company",
+      "statement": "A practical walkthrough of what you provide, what Marketer produces, and where you make the decisions.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/how-it-works"
+    },
+    {
+      "id": "about",
+      "kind": "company",
+      "statement": "Marketer brings content production, review, and publishing workflows into one place.",
+      "status": "verified",
+      "evidence_ref": "VALUE.md:bounded-source-only;web/lib/marketing/stories.json#/about"
+    },
+    {
+      "id": "home",
+      "kind": "company",
+      "statement": "Repository contains the / destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)//page.tsx"
+    },
+    {
+      "id": "demo",
+      "kind": "company",
+      "statement": "Repository contains the /demo destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/demo/page.tsx"
+    },
+    {
+      "id": "contact",
+      "kind": "company",
+      "statement": "Repository contains the /contact destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/contact/page.tsx"
+    },
+    {
+      "id": "resources",
+      "kind": "resource",
+      "statement": "Repository contains the /resources destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/page.tsx"
+    },
+    {
+      "id": "features",
+      "kind": "company",
+      "statement": "Repository contains the /features destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/features/page.tsx"
+    },
+    {
+      "id": "docs",
+      "kind": "resource",
+      "statement": "Repository contains the /docs destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/docs/page.tsx"
+    },
+    {
+      "id": "use-cases",
+      "kind": "company",
+      "statement": "Repository contains the /use-cases destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/use-cases/page.tsx"
+    },
+    {
+      "id": "legal",
+      "kind": "legal",
+      "statement": "Repository contains the /legal destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/page.tsx"
+    },
+    {
+      "id": "pricing",
+      "kind": "company",
+      "statement": "Repository contains the /pricing destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/pricing/page.tsx"
+    },
+    {
+      "id": "company",
+      "kind": "company",
+      "statement": "Repository contains the /company destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/company/page.tsx"
+    },
+    {
+      "id": "legal-privacy",
+      "kind": "legal",
+      "statement": "Repository contains the /legal/privacy destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/privacy/page.tsx"
+    },
+    {
+      "id": "legal-terms",
+      "kind": "legal",
+      "statement": "Repository contains the /legal/terms destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/terms/page.tsx"
+    },
+    {
+      "id": "legal-subprocessors",
+      "kind": "legal",
+      "statement": "Repository contains the /legal/subprocessors destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/subprocessors/page.tsx"
+    },
+    {
+      "id": "legal-dpa",
+      "kind": "legal",
+      "statement": "Repository contains the /legal/dpa destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/dpa/page.tsx"
+    },
+    {
+      "id": "legal-acceptable-use",
+      "kind": "legal",
+      "statement": "Repository contains the /legal/acceptable-use destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/acceptable-use/page.tsx"
+    },
+    {
+      "id": "legal-refund",
+      "kind": "legal",
+      "statement": "Repository contains the /legal/refund destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/refund/page.tsx"
+    },
+    {
+      "id": "legal-cookies",
+      "kind": "legal",
+      "statement": "Repository contains the /legal/cookies destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/legal/cookies/page.tsx"
+    },
+    {
+      "id": "resources-changelog",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/changelog destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/changelog/page.tsx"
+    },
+    {
+      "id": "resources-faq",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/faq destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/faq/page.tsx"
+    },
+    {
+      "id": "resources-quickstart",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/quickstart destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/quickstart/page.tsx"
+    },
+    {
+      "id": "resources-guides",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/guides destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/guides/page.tsx"
+    },
+    {
+      "id": "resources-api",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/api destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/api/page.tsx"
+    },
+    {
+      "id": "resources-help",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/help destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/help/page.tsx"
+    },
+    {
+      "id": "resources-guides-first-channel",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/guides/first-channel destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/guides/first-channel/page.tsx"
+    },
+    {
+      "id": "resources-guides-plan-content-budget",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/guides/plan-content-budget destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/guides/plan-content-budget/page.tsx"
+    },
+    {
+      "id": "resources-guides-content-brief",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/guides/content-brief destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/guides/content-brief/page.tsx"
+    },
+    {
+      "id": "resources-guides-seo-articles",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/guides/seo-articles destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/guides/seo-articles/page.tsx"
+    },
+    {
+      "id": "resources-guides-review-checklist",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/guides/review-checklist destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/guides/review-checklist/page.tsx"
+    },
+    {
+      "id": "resources-guides-agent-driven-marketing",
+      "kind": "resource",
+      "statement": "Repository contains the /resources/guides/agent-driven-marketing destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/resources/guides/agent-driven-marketing/page.tsx"
+    },
+    {
+      "id": "sign-in",
+      "kind": "company",
+      "statement": "Repository contains the /sign-in destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/sign-in/page.tsx"
+    },
+    {
+      "id": "sign-up",
+      "kind": "company",
+      "statement": "Repository contains the /sign-up destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/sign-up/page.tsx"
+    },
+    {
+      "id": "app-home",
+      "kind": "company",
+      "statement": "Repository contains the /home destination; no customer outcome implied.",
+      "status": "verified",
+      "evidence_ref": "web/app/(marketing)/home/page.tsx"
+    }
+  ],
+  "navigation": [
+    {
+      "id": "logo",
+      "mode": "link",
+      "label": "Marketer",
+      "target": "/"
+    },
+    {
+      "id": "product",
+      "mode": "megamenu",
+      "items": [
+        {
+          "label": "Video creation",
+          "target": "/features/content",
+          "fact_ids": [
+            "features-content"
+          ]
+        },
+        {
+          "label": "Articles and SEO",
+          "target": "/features/seo",
+          "fact_ids": [
+            "features-seo"
+          ]
+        },
+        {
+          "label": "Ad campaigns",
+          "target": "/features/ads",
+          "fact_ids": [
+            "features-ads"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "solutions",
+      "mode": "dropdown",
+      "items": [
+        {
+          "label": "Explain your product before the next sales conversation.",
+          "target": "/use-cases/saas",
+          "fact_ids": [
+            "use-cases-saas"
+          ]
+        },
+        {
+          "label": "Give each product a clearer story.",
+          "target": "/use-cases/ecommerce",
+          "fact_ids": [
+            "use-cases-ecommerce"
+          ]
+        },
+        {
+          "label": "Give recurring production a repeatable process.",
+          "target": "/use-cases/agencies",
+          "fact_ids": [
+            "use-cases-agencies"
+          ]
+        },
+        {
+          "label": "Keep making the content your audience came for.",
+          "target": "/use-cases/creators",
+          "fact_ids": [
+            "use-cases-creators"
+          ]
+        },
+        {
+          "label": "Help people understand what your business offers.",
+          "target": "/use-cases/local-business",
+          "fact_ids": [
+            "use-cases-local-business"
+          ]
+        },
+        {
+          "label": "Give your agent a content production workflow.",
+          "target": "/use-cases/ai-agents",
+          "fact_ids": [
+            "use-cases-ai-agents"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "resources",
+      "mode": "dropdown",
+      "items": [
+        {
+          "label": "Guides",
+          "target": "/resources/guides",
+          "fact_ids": [
+            "resources-guides"
+          ]
+        },
+        {
+          "label": "Help",
+          "target": "/resources/help",
+          "fact_ids": [
+            "resources-help"
+          ]
+        },
+        {
+          "label": "API",
+          "target": "/resources/api",
+          "fact_ids": [
+            "resources-api"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "company",
+      "mode": "megamenu",
+      "items": [
+        {
+          "label": "About",
+          "target": "/about",
+          "fact_ids": [
+            "about"
+          ]
+        },
+        {
+          "label": "Contact",
+          "target": "/contact",
+          "fact_ids": [
+            "contact"
+          ]
+        },
+        {
+          "label": "Demo",
+          "target": "/demo",
+          "fact_ids": [
+            "demo"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pricing",
+      "mode": "link",
+      "label": "Pricing",
+      "target": "/pricing"
+    }
+  ],
+  "footer": [
+    {
+      "id": "use_cases",
+      "label": "Use Cases",
+      "items": [
+        {
+          "label": "Explain your product before the next sales conversation.",
+          "target": "/use-cases/saas",
+          "fact_ids": [
+            "use-cases-saas"
+          ]
+        },
+        {
+          "label": "Give each product a clearer story.",
+          "target": "/use-cases/ecommerce",
+          "fact_ids": [
+            "use-cases-ecommerce"
+          ]
+        },
+        {
+          "label": "Give recurring production a repeatable process.",
+          "target": "/use-cases/agencies",
+          "fact_ids": [
+            "use-cases-agencies"
+          ]
+        },
+        {
+          "label": "Keep making the content your audience came for.",
+          "target": "/use-cases/creators",
+          "fact_ids": [
+            "use-cases-creators"
+          ]
+        },
+        {
+          "label": "Help people understand what your business offers.",
+          "target": "/use-cases/local-business",
+          "fact_ids": [
+            "use-cases-local-business"
+          ]
+        },
+        {
+          "label": "Give your agent a content production workflow.",
+          "target": "/use-cases/ai-agents",
+          "fact_ids": [
+            "use-cases-ai-agents"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "product",
+      "label": "Product",
+      "items": [
+        {
+          "label": "Video creation",
+          "target": "/features/content",
+          "fact_ids": [
+            "features-content"
+          ]
+        },
+        {
+          "label": "Articles and SEO",
+          "target": "/features/seo",
+          "fact_ids": [
+            "features-seo"
+          ]
+        },
+        {
+          "label": "Ad campaigns",
+          "target": "/features/ads",
+          "fact_ids": [
+            "features-ads"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "company",
+      "label": "Company",
+      "items": [
+        {
+          "label": "About",
+          "target": "/about",
+          "fact_ids": [
+            "about"
+          ]
+        },
+        {
+          "label": "Contact",
+          "target": "/contact",
+          "fact_ids": [
+            "contact"
+          ]
+        },
+        {
+          "label": "Demo",
+          "target": "/demo",
+          "fact_ids": [
+            "demo"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "resources",
+      "label": "Resources",
+      "items": [
+        {
+          "label": "Guides",
+          "target": "/resources/guides",
+          "fact_ids": [
+            "resources-guides"
+          ]
+        },
+        {
+          "label": "Help",
+          "target": "/resources/help",
+          "fact_ids": [
+            "resources-help"
+          ]
+        },
+        {
+          "label": "API",
+          "target": "/resources/api",
+          "fact_ids": [
+            "resources-api"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "legal",
+      "label": "Legal",
+      "items": [
+        {
+          "label": "Policies",
+          "target": "/legal",
+          "fact_ids": [
+            "legal"
+          ]
+        }
+      ]
+    }
+  ],
+  "theme": {
+    "mode": "supplied_premium_primitives",
+    "source_ref": "a099a57:web/components/marketing and web/public/campaign",
+    "preserve_user_assets": true,
+    "follow_user_requests": true,
+    "primitives": {
+      "typography": "Geist and existing display roles",
+      "color": "globals.css existing theme variables",
+      "spacing": "1440px canvas; 20/32/40px insets",
+      "components": "FeatureHero, SectionHeading, Reveal, SectionCta",
+      "motion": "Existing Motion and reduced-motion provider",
+      "responsive": "Existing pill nav, mobile expandable menu, responsive grids"
+    }
+  },
+  "auth": {
+    "login": "/sign-in",
+    "signup": "/sign-up",
+    "reset": "/sign-in",
+    "accessible_errors": false,
+    "loading_states": false,
+    "session_recovery": false,
+    "safe_redirects": false,
+    "evidence_note": "Existing Clerk flow outside copy change; live success not tested."
+  },
+  "onboarding": {
+    "steps": [],
+    "animated": false,
+    "resumable": false,
+    "back_navigation": false,
+    "progress": false,
+    "validation": false,
+    "save_failure_recovery": false,
+    "reduced_motion": "unverified",
+    "welcome": "Existing app onboarding retained; not newly verified",
+    "application_target": "/home",
+    "evidence_note": "False means unverified declaration, not removal of existing app behavior."
+  },
+  "verification": [
+    {
+      "id": "routes",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "responsive",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "mobile_menu",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "semantics",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "keyboard",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "accessibility",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "motion",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "images",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "fonts",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "performance",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "html",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "css",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "javascript",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "seo",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "social_metadata",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "links",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "security",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "auth",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "onboarding",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "privacy",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "forms",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "compatibility",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "testing",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "deployment",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "content_truth",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "content_inventory",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "page_intent",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "legal_content",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "design_handoff",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "theme_fidelity",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "details",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    },
+    {
+      "id": "context",
+      "status": "planned",
+      "evidence_ref": "VERIFICATION.md"
+    }
+  ]
+}

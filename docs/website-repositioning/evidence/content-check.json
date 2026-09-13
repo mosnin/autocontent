@@ -1,0 +1,15 @@
+{
+  "mechanical_pass": true,
+  "errors": [],
+  "review": [],
+  "text_count": 728,
+  "human_review_required": [
+    "specific meaning",
+    "truthfulness",
+    "tone consistency",
+    "new cliches",
+    "reading time",
+    "inventory coverage"
+  ],
+  "comprehension": "not established"
+}

@@ -1,0 +1,543 @@
+{
+  "status": "violations",
+  "assurance": "specification_only",
+  "issues": [
+    {
+      "code": "missing_facts",
+      "path": "features-content.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-content",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-seo.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-seo",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-ads.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-ads",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-video.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-video",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-articles.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-articles",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-scheduling.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-scheduling",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-automation.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-automation",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-analytics.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-analytics",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "features-analytics",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-ugc.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-ugc",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-dramas.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-dramas",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-motion.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-motion",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "features-motion",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-library.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-library",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-templates.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-templates",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-niches.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-niches",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-campaigns.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-campaigns",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "features-campaigns",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features-seo-audit.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features-seo-audit",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "features-seo-audit",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "use-cases-saas.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "use-cases-saas",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "use-cases-saas",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "use-cases-ecommerce.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "use-cases-ecommerce",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "use-cases-ecommerce",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "use-cases-agencies.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "use-cases-agencies",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "use-cases-agencies",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "use-cases-creators.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "use-cases-creators",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "use-cases-creators",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "use-cases-local-business.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "use-cases-local-business",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "use-cases-local-business",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "use-cases-ai-agents.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "use-cases-ai-agents",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "use-cases-ai-agents",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "how-it-works.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "how-it-works",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "how-it-works",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "missing_facts",
+      "path": "about.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "about",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "unique_illustration",
+      "path": "about",
+      "message": "Use a page-specific illustration."
+    },
+    {
+      "code": "proof_placement",
+      "path": "home",
+      "message": "Place permissioned logo proof immediately underneath the hero."
+    },
+    {
+      "code": "missing_facts",
+      "path": "home.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "home",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "content_sections",
+      "path": "home",
+      "message": "Intentionally address actual features, benefits and problems solved."
+    },
+    {
+      "code": "asset_reference",
+      "path": "home",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "asset_reference",
+      "path": "home",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "reduced_motion",
+      "path": "home",
+      "message": "Animated illustrations need a static reduced-motion equivalent."
+    },
+    {
+      "code": "bottom_cta",
+      "path": "home",
+      "message": "Provide Get started and Book a demo at the page bottom."
+    },
+    {
+      "code": "proof_placement",
+      "path": "features",
+      "message": "Place permissioned logo proof immediately underneath the hero."
+    },
+    {
+      "code": "missing_facts",
+      "path": "features.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "features",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "content_sections",
+      "path": "features",
+      "message": "Intentionally address actual features, benefits and problems solved."
+    },
+    {
+      "code": "asset_reference",
+      "path": "features",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "asset_reference",
+      "path": "features",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "reduced_motion",
+      "path": "features",
+      "message": "Animated illustrations need a static reduced-motion equivalent."
+    },
+    {
+      "code": "bottom_cta",
+      "path": "features",
+      "message": "Provide Get started and Book a demo at the page bottom."
+    },
+    {
+      "code": "proof_placement",
+      "path": "use-cases",
+      "message": "Place permissioned logo proof immediately underneath the hero."
+    },
+    {
+      "code": "missing_facts",
+      "path": "use-cases.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "use-cases",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "content_sections",
+      "path": "use-cases",
+      "message": "Intentionally address actual features, benefits and problems solved."
+    },
+    {
+      "code": "asset_reference",
+      "path": "use-cases",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "asset_reference",
+      "path": "use-cases",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "reduced_motion",
+      "path": "use-cases",
+      "message": "Animated illustrations need a static reduced-motion equivalent."
+    },
+    {
+      "code": "bottom_cta",
+      "path": "use-cases",
+      "message": "Provide Get started and Book a demo at the page bottom."
+    },
+    {
+      "code": "proof_placement",
+      "path": "company",
+      "message": "Place permissioned logo proof immediately underneath the hero."
+    },
+    {
+      "code": "missing_facts",
+      "path": "company.proof",
+      "message": "Ground this content in actual product/company facts."
+    },
+    {
+      "code": "missing_logos",
+      "path": "company",
+      "message": "Supply permissioned proof logos or record the unresolved content gap."
+    },
+    {
+      "code": "content_sections",
+      "path": "company",
+      "message": "Intentionally address actual features, benefits and problems solved."
+    },
+    {
+      "code": "asset_reference",
+      "path": "company",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "asset_reference",
+      "path": "company",
+      "message": "Reference an inventoried asset with permission."
+    },
+    {
+      "code": "reduced_motion",
+      "path": "company",
+      "message": "Animated illustrations need a static reduced-motion equivalent."
+    },
+    {
+      "code": "bottom_cta",
+      "path": "company",
+      "message": "Provide Get started and Book a demo at the page bottom."
+    },
+    {
+      "code": "auth_state",
+      "path": "accessible_errors",
+      "message": "Declare accessible and resilient authentication behavior."
+    },
+    {
+      "code": "auth_state",
+      "path": "loading_states",
+      "message": "Declare accessible and resilient authentication behavior."
+    },
+    {
+      "code": "auth_state",
+      "path": "session_recovery",
+      "message": "Declare accessible and resilient authentication behavior."
+    },
+    {
+      "code": "auth_state",
+      "path": "safe_redirects",
+      "message": "Declare accessible and resilient authentication behavior."
+    },
+    {
+      "code": "onboarding_steps",
+      "path": "onboarding",
+      "message": "Use multiple purposeful onboarding steps."
+    },
+    {
+      "code": "onboarding_behavior",
+      "path": "animated",
+      "message": "Declare the required onboarding behavior."
+    },
+    {
+      "code": "onboarding_behavior",
+      "path": "resumable",
+      "message": "Declare the required onboarding behavior."
+    },
+    {
+      "code": "onboarding_behavior",
+      "path": "back_navigation",
+      "message": "Declare the required onboarding behavior."
+    },
+    {
+      "code": "onboarding_behavior",
+      "path": "progress",
+      "message": "Declare the required onboarding behavior."
+    },
+    {
+      "code": "onboarding_behavior",
+      "path": "validation",
+      "message": "Declare the required onboarding behavior."
+    },
+    {
+      "code": "onboarding_behavior",
+      "path": "save_failure_recovery",
+      "message": "Declare the required onboarding behavior."
+    },
+    {
+      "code": "onboarding_motion",
+      "path": "onboarding",
+      "message": "Honor reduced motion."
+    }
+  ],
+  "fictional": false,
+  "unverified": [
+    "rendered behavior",
+    "design quality",
+    "accessibility",
+    "performance",
+    "security",
+    "external facts and permissions",
+    "connector access"
+  ],
+  "publication_ready": false,
+  "verification_counts": {
+    "planned": 32,
+    "passed": 0,
+    "failed": 0,
+    "not_applicable": 0
+  }
+}
