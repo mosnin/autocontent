@@ -41,7 +41,7 @@ export function useIsDesktop(): boolean {
   return useSyncExternalStore(
     subscribeToMinWidth(query),
     () => window.matchMedia(query).matches,
-    () => true
+    () => true,
   );
 }
 
@@ -53,7 +53,7 @@ export function ReducedMotionProvider({
   const prefersReducedMotion = useSyncExternalStore(
     subscribeToReducedMotion,
     getReducedMotionSnapshot,
-    getReducedMotionServerSnapshot
+    getReducedMotionServerSnapshot,
   );
 
   return (
@@ -237,8 +237,9 @@ export function InView({
 
   return (
     <motion.div
-      initial="hidden"
-      whileInView="visible"
+      initial={prefersReducedMotion ? false : "hidden"}
+      animate={prefersReducedMotion ? "visible" : undefined}
+      whileInView={prefersReducedMotion ? undefined : "visible"}
       viewport={{ once: true, margin: "-80px" }}
       variants={activeVariants}
       transition={activeTransition}

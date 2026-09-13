@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalDoc } from "@/components/marketing/legal/LegalDoc";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://marketer.sh/legal/dpa" },
   title: "Data Processing Addendum · marketer.sh",
   description: "Our processor commitments for business customers (GDPR Art. 28).",
 };

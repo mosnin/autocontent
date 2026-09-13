@@ -1,0 +1,575 @@
+{
+  "results": [
+    {
+      "route": "/demo?plan=grow",
+      "status": 200,
+      "h1": 1,
+      "title": "Request a demo · marketer.sh",
+      "description": "Discuss your content workflow and request a Marketer walkthrough.",
+      "canonical": "https://marketer.sh/demo",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/",
+      "status": 200,
+      "h1": 1,
+      "title": "marketer.sh · Create, review, and publish your marketing",
+      "description": "Create videos, search-focused articles, and ad drafts from your product brief. Review your content and publish to connected channels with marketer.sh.",
+      "canonical": "https://marketer.sh/",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/about",
+      "status": 200,
+      "h1": 1,
+      "title": "Give good ideas a practical path to publication. · marketer.sh",
+      "description": "Marketer brings content production, review, and publishing workflows into one place.",
+      "canonical": "https://marketer.sh/about",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/contact",
+      "status": 200,
+      "h1": 1,
+      "title": "Contact · marketer.sh",
+      "description": "Talk to the marketer.sh team. Sales, support, press, or legal. A person reads every message.",
+      "canonical": "https://marketer.sh/contact",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/demo",
+      "status": 200,
+      "h1": 1,
+      "title": "Request a demo · marketer.sh",
+      "description": "Discuss your content workflow and request a Marketer walkthrough.",
+      "canonical": "https://marketer.sh/demo",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/docs",
+      "status": 200,
+      "h1": 1,
+      "title": "Documentation · marketer.sh",
+      "description": "Documentation for marketer.sh. How to start, how credits work, and how to call the API.",
+      "canonical": "https://marketer.sh/docs",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features",
+      "status": 200,
+      "h1": 1,
+      "title": "Features · marketer.sh",
+      "description": "Explore the production workflows, review tools, and publishing steps that connect a brief to a finished piece.",
+      "canonical": "https://marketer.sh/features",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/how-it-works",
+      "status": 200,
+      "h1": 1,
+      "title": "From product brief to published content. · marketer.sh",
+      "description": "A practical walkthrough of what you provide, what Marketer produces, and where you make the decisions.",
+      "canonical": "https://marketer.sh/how-it-works",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal",
+      "status": 200,
+      "h1": 1,
+      "title": "Legal · marketer.sh",
+      "description": "Terms, privacy, cookies, refunds, and the other marketer.sh policies.",
+      "canonical": "https://marketer.sh/legal",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/pricing",
+      "status": 200,
+      "h1": 1,
+      "title": "Pricing · marketer.sh",
+      "description": "Start with prepaid generation credits from $5. Explore proposed monthly plans with included credits for a growing content program.",
+      "canonical": "https://marketer.sh/pricing",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources",
+      "status": 200,
+      "h1": 1,
+      "title": "Resources · marketer.sh",
+      "description": "Guides, docs, the API, and answers for marketer.sh. Start with the quickstart, then pick the job you want.",
+      "canonical": "https://marketer.sh/resources",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/use-cases",
+      "status": 200,
+      "h1": 1,
+      "title": "Use Cases · marketer.sh",
+      "description": "Explore practical starting points for your audience, product, and publishing routine.",
+      "canonical": "https://marketer.sh/use-cases",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/ads",
+      "status": 200,
+      "h1": 1,
+      "title": "Review the campaign before you fund it. · marketer.sh",
+      "description": "Prepare Google and Meta campaign drafts, inspect proposed changes, and keep creative decisions connected to budget decisions.",
+      "canonical": "https://marketer.sh/features/ads",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/analytics",
+      "status": 200,
+      "h1": 1,
+      "title": "Use performance to choose your next idea. · marketer.sh",
+      "description": "Review available content metrics alongside the work you published.",
+      "canonical": "https://marketer.sh/features/analytics",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/articles",
+      "status": 200,
+      "h1": 1,
+      "title": "Turn a buyer question into a useful article. · marketer.sh",
+      "description": "Build a researched article draft with structure, copy, and page metadata.",
+      "canonical": "https://marketer.sh/features/articles",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/automation",
+      "status": 200,
+      "h1": 1,
+      "title": "Make repeatable production a routine. · marketer.sh",
+      "description": "Set up recurring content work around a saved brief, publishing settings, and budget controls.",
+      "canonical": "https://marketer.sh/features/automation",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/campaigns",
+      "status": 200,
+      "h1": 1,
+      "title": "Keep campaign content pointed at one goal. · marketer.sh",
+      "description": "Organize production around a campaign brief, audience, and intended message.",
+      "canonical": "https://marketer.sh/features/campaigns",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/content",
+      "status": 200,
+      "h1": 1,
+      "title": "Make product videos from a brief. · marketer.sh",
+      "description": "Create short-form videos with a script, generated scenes, voiceover, and captions. Spend your review time on the message and the finished result.",
+      "canonical": "https://marketer.sh/features/content",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/dramas",
+      "status": 200,
+      "h1": 1,
+      "title": "Build a short story around your idea. · marketer.sh",
+      "description": "Create multi-shot video drafts with a screenplay structure and recurring characters.",
+      "canonical": "https://marketer.sh/features/dramas",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/library",
+      "status": 200,
+      "h1": 1,
+      "title": "Keep useful content within reach. · marketer.sh",
+      "description": "Browse the content and assets you have made so the next task can start from existing work.",
+      "canonical": "https://marketer.sh/features/library",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/motion",
+      "status": 200,
+      "h1": 1,
+      "title": "Give an explanation a visual rhythm. · marketer.sh",
+      "description": "Turn narration into motion-led video with imagery and animated text.",
+      "canonical": "https://marketer.sh/features/motion",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/niches",
+      "status": 200,
+      "h1": 1,
+      "title": "Give each content stream a clear direction. · marketer.sh",
+      "description": "Save an audience, voice, and production setup for the subjects you publish about.",
+      "canonical": "https://marketer.sh/features/niches",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/scheduling",
+      "status": 200,
+      "h1": 1,
+      "title": "Give approved content a place on the calendar. · marketer.sh",
+      "description": "Plan when reviewed social content should publish to your connected accounts.",
+      "canonical": "https://marketer.sh/features/scheduling",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/seo",
+      "status": 200,
+      "h1": 1,
+      "title": "Answer the questions buyers search for. · marketer.sh",
+      "description": "Research topics, draft articles, and review the pages already on your site. Build useful explanations around what your product helps people do.",
+      "canonical": "https://marketer.sh/features/seo",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/seo-audit",
+      "status": 200,
+      "h1": 1,
+      "title": "Find a useful next edit for an existing page. · marketer.sh",
+      "description": "Inspect a live URL and review SEO findings with the evidence behind them.",
+      "canonical": "https://marketer.sh/features/seo-audit",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/templates",
+      "status": 200,
+      "h1": 1,
+      "title": "Start the next creative from a useful reference. · marketer.sh",
+      "description": "Use templates and remix workflows to give new content a starting structure.",
+      "canonical": "https://marketer.sh/features/templates",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/ugc",
+      "status": 200,
+      "h1": 1,
+      "title": "Explore a spokesperson format for your product. · marketer.sh",
+      "description": "Create UGC-style video drafts using supported models and the product direction you provide.",
+      "canonical": "https://marketer.sh/features/ugc",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/features/video",
+      "status": 200,
+      "h1": 1,
+      "title": "Create a short your audience can follow. · marketer.sh",
+      "description": "Turn a focused brief into a scene-based video with narration and captions.",
+      "canonical": "https://marketer.sh/features/video",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal/acceptable-use",
+      "status": 200,
+      "h1": 1,
+      "title": "Acceptable Use Policy · marketer.sh",
+      "description": "What you may and may not do with marketer.sh and its agents.",
+      "canonical": "https://marketer.sh/legal/acceptable-use",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal/cookies",
+      "status": 200,
+      "h1": 1,
+      "title": "Cookie Policy · marketer.sh",
+      "description": "The cookies and local storage marketer.sh uses.",
+      "canonical": "https://marketer.sh/legal/cookies",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal/dpa",
+      "status": 200,
+      "h1": 1,
+      "title": "Data Processing Addendum · marketer.sh",
+      "description": "Our processor commitments for business customers (GDPR Art. 28).",
+      "canonical": "https://marketer.sh/legal/dpa",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal/privacy",
+      "status": 200,
+      "h1": 1,
+      "title": "Privacy Policy · marketer.sh",
+      "description": "What marketer.sh collects, why, and the rights you have.",
+      "canonical": "https://marketer.sh/legal/privacy",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal/refund",
+      "status": 200,
+      "h1": 1,
+      "title": "Refund Policy · marketer.sh",
+      "description": "How prepaid credits, billing, and refunds work at marketer.sh.",
+      "canonical": "https://marketer.sh/legal/refund",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal/subprocessors",
+      "status": 200,
+      "h1": 1,
+      "title": "Subprocessors · marketer.sh",
+      "description": "Third parties that process data on behalf of marketer.sh.",
+      "canonical": "https://marketer.sh/legal/subprocessors",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/legal/terms",
+      "status": 200,
+      "h1": 1,
+      "title": "Terms of Service · marketer.sh",
+      "description": "The agreement that governs your use of marketer.sh.",
+      "canonical": "https://marketer.sh/legal/terms",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/api",
+      "status": 200,
+      "h1": 1,
+      "title": "API, SDK, CLI & MCP · marketer.sh",
+      "description": "One platform, four surfaces: the marketer.sh REST API, Python SDK, CLI, and MCP server. Authenticate with personal access tokens and let agents enqueue real work.",
+      "canonical": "https://marketer.sh/resources/api",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/changelog",
+      "status": 200,
+      "h1": 1,
+      "title": "Changelog · marketer.sh",
+      "description": "What shipped in marketer.sh and when: the articles pipeline, agent surfaces, prepaid credits, approval gates, performance-fed ideation, and more, newest first.",
+      "canonical": "https://marketer.sh/resources/changelog",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/faq",
+      "status": 200,
+      "h1": 1,
+      "title": "FAQ · marketer.sh",
+      "description": "Straight answers about marketer.sh: how spend caps work, what happens at the limit, approval gates, supported platforms, content ownership, refunds, and data handling.",
+      "canonical": "https://marketer.sh/resources/faq",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/guides",
+      "status": 200,
+      "h1": 1,
+      "title": "Content production guides · marketer.sh",
+      "description": "Prepare a brief, review a draft, plan usage, and build a publishing routine.",
+      "canonical": "https://marketer.sh/resources/guides",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/help",
+      "status": 200,
+      "h1": 1,
+      "title": "Help center · marketer.sh",
+      "description": "Find help with setup, credits, review, publishing, and connected agents.",
+      "canonical": "https://marketer.sh/resources/help",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/quickstart",
+      "status": 200,
+      "h1": 1,
+      "title": "Quickstart · marketer.sh",
+      "description": "Start with a manageable publishing routine and a brief you can improve.",
+      "canonical": "https://marketer.sh/resources/quickstart",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/use-cases/agencies",
+      "status": 200,
+      "h1": 1,
+      "title": "Give recurring production a repeatable process. · marketer.sh",
+      "description": "For agencies that need to turn approved direction into content drafts across several streams of work.",
+      "canonical": "https://marketer.sh/use-cases/agencies",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/use-cases/ai-agents",
+      "status": 200,
+      "h1": 1,
+      "title": "Give your agent a content production workflow. · marketer.sh",
+      "description": "For builders connecting software or AI agents to Marketer through the API, SDK, CLI, or MCP.",
+      "canonical": "https://marketer.sh/use-cases/ai-agents",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/use-cases/creators",
+      "status": 200,
+      "h1": 1,
+      "title": "Keep making the content your audience came for. · marketer.sh",
+      "description": "For creators turning a clear subject and point of view into a repeatable publishing routine.",
+      "canonical": "https://marketer.sh/use-cases/creators",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/use-cases/ecommerce",
+      "status": 200,
+      "h1": 1,
+      "title": "Give each product a clearer story. · marketer.sh",
+      "description": "For ecommerce brands creating product explanations, social videos, and campaign drafts.",
+      "canonical": "https://marketer.sh/use-cases/ecommerce",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/use-cases/local-business",
+      "status": 200,
+      "h1": 1,
+      "title": "Help people understand what your business offers. · marketer.sh",
+      "description": "For local businesses that want useful explanations of services, products, and common customer questions.",
+      "canonical": "https://marketer.sh/use-cases/local-business",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/use-cases/saas",
+      "status": 200,
+      "h1": 1,
+      "title": "Explain your product before the next sales conversation. · marketer.sh",
+      "description": "For founders and SaaS teams with product knowledge to share and limited time to turn it into content.",
+      "canonical": "https://marketer.sh/use-cases/saas",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/guides/agent-driven-marketing",
+      "status": 200,
+      "h1": 1,
+      "title": "Connect an agent without losing the review step. · marketer.sh",
+      "description": "Plan permissions, costs, asynchronous work, and publication decisions before automating.",
+      "canonical": "https://marketer.sh/resources/guides/agent-driven-marketing",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/guides/content-brief",
+      "status": 200,
+      "h1": 1,
+      "title": "Write a brief that gives the draft direction. · marketer.sh",
+      "description": "A practical structure for describing your product, audience, evidence, and desired response.",
+      "canonical": "https://marketer.sh/resources/guides/content-brief",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/guides/first-channel",
+      "status": 200,
+      "h1": 1,
+      "title": "Set up your first content channel. · marketer.sh",
+      "description": "Start with a manageable publishing routine and a brief you can improve.",
+      "canonical": "https://marketer.sh/resources/guides/first-channel",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/guides/plan-content-budget",
+      "status": 200,
+      "h1": 1,
+      "title": "Plan a content budget without guessing output counts. · marketer.sh",
+      "description": "Separate the platform commitment, generation usage, and advertising spend.",
+      "canonical": "https://marketer.sh/resources/guides/plan-content-budget",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/guides/review-checklist",
+      "status": 200,
+      "h1": 1,
+      "title": "Review a draft before it represents your business. · marketer.sh",
+      "description": "A publication checklist for generated videos, articles, and campaign creative.",
+      "canonical": "https://marketer.sh/resources/guides/review-checklist",
+      "overflow": false,
+      "badImages": []
+    },
+    {
+      "route": "/resources/guides/seo-articles",
+      "status": 200,
+      "h1": 1,
+      "title": "Create an article that answers a real question. · marketer.sh",
+      "description": "Use search research as context and your own expertise as the substance.",
+      "canonical": "https://marketer.sh/resources/guides/seo-articles",
+      "overflow": false,
+      "badImages": []
+    }
+  ],
+  "errors": [],
+  "accessibility": [],
+  "menus": [
+    {
+      "label": "Product",
+      "expanded": "true",
+      "closed": true,
+      "focusReturned": true
+    },
+    {
+      "label": "Solutions",
+      "expanded": "true",
+      "closed": true,
+      "focusReturned": true
+    },
+    {
+      "label": "Resources",
+      "expanded": "true",
+      "closed": true,
+      "focusReturned": true
+    },
+    {
+      "label": "Company",
+      "expanded": "true",
+      "closed": true,
+      "focusReturned": true
+    }
+  ],
+  "form": {
+    "reason": "Demo request",
+    "message": "I would like to discuss the proposed grow plan. My content workflow is: ",
+    "button": 1
+  },
+  "mobile": {
+    "expanded": "true",
+    "solutions": true,
+    "closed": true
+  },
+  "tablet": {
+    "overflow": false
+  }
+}

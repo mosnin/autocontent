@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalDoc } from "@/components/marketing/legal/LegalDoc";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://marketer.sh/legal/refund" },
   title: "Refund Policy · marketer.sh",
   description: "How prepaid credits, billing, and refunds work at marketer.sh.",
 };

@@ -9,7 +9,6 @@ import {
   CreditCard,
   Instagram,
   Linkedin,
-  Slack,
   Terminal,
   Twitter,
   Video,
@@ -37,7 +36,7 @@ const ROW_A: Integration[] = [
   { name: "Instagram", blurb: "Reels-ready", icon: Instagram },
   { name: "X", blurb: "Auto-post", icon: Twitter },
   { name: "LinkedIn", blurb: "Native posts", icon: Linkedin },
-  { name: "Slack", blurb: "Share to channels", icon: Slack },
+  { name: "Webhooks", blurb: "Custom workflows", icon: Webhook },
 ];
 
 const ROW_B: Integration[] = [
@@ -113,8 +112,8 @@ export function Integrations(): ReactNode {
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <SectionHeading
           align="center"
-          title="Lands where you publish"
-          description="Keepers route straight into the apps you post, pitch, and cut in. No export dance."
+          title="Connect production to your publishing workflow"
+          description="Schedule to supported social accounts, or connect your own workflow through the API and webhooks."
         />
       </div>
 

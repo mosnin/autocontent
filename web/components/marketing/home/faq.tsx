@@ -107,7 +107,7 @@ export function Faq(): ReactNode {
               >
                 hello@marketer.sh
               </a>
-              . A person reads every single message.
+              . We can help you assess fit and understand the workflow.
             </>
           }
         />

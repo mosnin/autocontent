@@ -1,228 +1,116 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-
 import { PageHero } from "@/components/marketing/resources/page-hero";
 import { PricingTiles } from "@/components/marketing/resources/pricing-tiles";
-import {
-  DisplayHeading,
-  GlassPanel,
-  GradientScene,
-  Kicker,
-  Lede,
-  Magnetic,
-  Reveal,
-  SectionCta,
-  Stagger,
-  TaggedPlaceholder,
-  TextReveal,
-} from "@/components/marketing/system";
-
-const DESCRIPTION =
-  "Prepaid credit packs from $5. No subscription. You pay for the work that runs. A daily budget stops overspend.";
-
+import { PricingPlans } from "@/components/marketing/pricing-plans";
+import { SectionCta } from "@/components/marketing/system";
+const description =
+  "Start with prepaid generation credits from $5. Explore proposed monthly plans with included credits for a growing content program.";
 export const metadata: Metadata = {
   title: "Pricing · marketer.sh",
-  description: DESCRIPTION,
-  openGraph: {
-    title: "Pricing · marketer.sh",
-    description: DESCRIPTION,
-    type: "website",
-  },
+  description,
   alternates: { canonical: "https://marketer.sh/pricing" },
+  openGraph: { title: "Pricing · marketer.sh", description },
 };
-
-const HOW_IT_WORKS = [
-  {
-    title: "Credit is prepaid",
-    copy: "Buy a pack once through Stripe and it becomes your balance. No subscription, no seats, no renewal date. Credits don't expire.",
-  },
-  {
-    title: "Every render is metered",
-    copy: "Each video and article draws down your balance at provider cost plus a flat margin. You see the estimate before a job runs and every charge in your billing history after.",
-  },
-  {
-    title: "Caps stop overruns",
-    copy: "Per-channel daily budgets plus a global cap, checked before every job. Work that would cross a cap is refused, not billed. The system fails closed.",
-  },
+const questions = [
+  [
+    "What can I buy today?",
+    "Prepaid credit packs of $5, $20, or $50. They differ in balance, not feature access. The monthly plans below are a proposal and cannot be purchased yet.",
+  ],
+  [
+    "How much does a video cost?",
+    "The estimate depends on the model, number of scenes, duration, image quality, voice, and music. Check the estimate in the app before starting. A credit pack does not promise a fixed number of videos.",
+  ],
+  [
+    "Am I charged only when I publish?",
+    "No. Generation uses paid services and consumes credit, including drafts you reject. A failed run may have completed paid steps. Review the usage history for actual charges.",
+  ],
+  [
+    "What happens if I run out?",
+    "You need enough balance for the next estimated operation. Add credit when you choose to continue. Check your channel and account budgets if a job is paused or refused.",
+  ],
+  [
+    "Does this include my ad budget?",
+    "No. Google and Meta media spend is separate from Marketer generation credits. Review both budgets before authorizing a campaign.",
+  ],
+  [
+    "Will existing customers lose access?",
+    "The current prepaid catalog and feature access are unchanged. Any future subscription migration needs separate notice and terms; the proposed limits do not apply to your current account.",
+  ],
 ];
-
-const MINI_FAQ = [
-  {
-    q: "Do credits expire?",
-    a: "No. Your balance sits until you use it. Buy $5 in January, render in June.",
-  },
-  {
-    q: "What does one video cost?",
-    a: "About $3 at default settings — metered provider cost plus our flat margin, with the estimate shown before every run. Shorter or leaner videos cost less, and articles cost far less.",
-  },
-  {
-    q: "Is anything gated by pack?",
-    a: "No. Every feature, including the API, SDK, CLI, and MCP server, works on every pack. Packs differ only in how much credit you load.",
-  },
-  {
-    q: "What if I want out?",
-    a: "Stop buying packs; there is nothing to cancel. If you have unused balance, contact support within 30 days of purchase and we refund the remainder of your last purchase.",
-  },
-];
-
 export default function PricingPage() {
   return (
     <main>
       <PageHero
-        headline="Pay for what ships. Nothing else."
+        headline="Choose a budget before you create."
         kicker="Pricing"
         size="xl"
-        sub="Three prepaid credit packs. Pay for the work that runs. No subscription."
+        sub="Start with prepaid credits today. Explore monthly plans for a more regular publishing routine."
       />
-
-      {/* Packs */}
       <section
-        aria-label="Credit packs"
-        className="mx-auto max-w-6xl px-6 pb-24 pt-20 md:pb-32 lg:pt-24"
+        id="prepaid"
+        className="mx-auto max-w-[1440px] px-5 pb-20 sm:px-8 lg:px-10"
       >
-        <PricingTiles />
-        <Reveal className="mt-8 text-center lg:mt-6" delay={0.2}>
-          <p className="text-sm text-muted-foreground">
-            One-time purchases through Stripe. Top up whenever, in any mix.
-          </p>
-        </Reveal>
-      </section>
-
-      {/* How credits work */}
-      <section aria-label="How credits work" className="px-4 py-6 md:px-6">
-        <GradientScene
-          className="mx-auto max-w-[88rem] rounded-[2.5rem] border border-border"
-          variant="sky"
-        >
-          <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
-            <Reveal className="max-w-2xl">
-              <Kicker>How credits work</Kicker>
-              <TextReveal
-                as="h2"
-                className="mt-4 font-display text-4xl font-medium tracking-tight text-balance text-foreground md:text-5xl"
-              >
-                A balance, a meter, and a hard limit.
-              </TextReveal>
-              <Lede className="mt-5">
-                The billing model is three moving parts, all visible in your
-                workspace: the estimate before every run, your balance in
-                Billing, and the caps in Settings.
-              </Lede>
-            </Reveal>
-            <Reveal className="mt-10 overflow-hidden rounded-[1.75rem] border border-border shadow-[0_8px_40px_rgba(15,23,42,0.06)]" delay={0.1}>
-              <div className="aspect-[16/7]">
-                <TaggedPlaceholder
-                  kind="illustration"
-                  label="How credits work - diagram"
-                  tone="warm"
-                />
-              </div>
-            </Reveal>
-            <Stagger
-              className="mt-10 grid gap-4 md:grid-cols-3"
-              gap={0.08}
-              itemClassName="h-full"
-            >
-              {HOW_IT_WORKS.map((item, i) => (
-                <div
-                  className="h-full rounded-[1.5rem] border border-border bg-background p-7 shadow-[0_8px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
-                  key={item.title}
-                >
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    0{i + 1}
-                  </span>
-                  <h3 className="mt-3 font-display text-lg font-medium tracking-tight text-foreground">
-                    {item.title}
-                  </h3>
-                  <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-                    {item.copy}
-                  </p>
-                </div>
-              ))}
-            </Stagger>
+        <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <h2 className="text-3xl font-medium tracking-tight">
+              Prepaid credits. Available now.
+            </h2>
+            <p className="text-muted-foreground mt-4 max-w-xl leading-relaxed">
+              One-time USD purchases with no subscription. Create an account,
+              then choose your pack in Billing.
+            </p>
           </div>
-        </GradientScene>
+          <Link
+            href="#monthly-plans"
+            className="focus-ring underline underline-offset-4"
+          >
+            Explore monthly plans
+          </Link>
+        </div>
+        <PricingTiles />
+        <p className="text-muted-foreground mt-6 max-w-3xl text-sm leading-relaxed">
+          Generation charges use your balance as work runs. Credits do not
+          promise a particular output count. Review the estimate before
+          generating and the actual cost afterward. Purchased credits do not
+          expire under the current terms.
+        </p>
       </section>
-
-      {/* Mini FAQ + agents & teams */}
-      <section
-        aria-label="Pricing questions"
-        className="mx-auto max-w-6xl px-6 py-24 md:py-32"
-      >
-        <Reveal className="max-w-2xl">
-          <Kicker>Common questions</Kicker>
-          <DisplayHeading className="mt-4">
-            The fine print, unfined.
-          </DisplayHeading>
-        </Reveal>
-        <Stagger className="mt-12 grid gap-4 sm:grid-cols-2" gap={0.08} itemClassName="h-full">
-          {MINI_FAQ.map((item) => (
-            <div
-              className="h-full rounded-[1.5rem] border border-border bg-background p-7 shadow-[0_8px_40px_rgba(15,23,42,0.05)]"
-              key={item.q}
+      <PricingPlans />
+      <section className="mx-auto grid max-w-[1440px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:px-10">
+        <h2 className="text-3xl font-medium tracking-tight sm:text-5xl">
+          Know what you’re paying for.
+        </h2>
+        <div>
+          {questions.map(([q, a]) => (
+            <details
+              key={q}
+              className="border-border border-t py-6 last:border-b"
             >
-              <h3 className="font-display text-lg font-medium tracking-tight text-foreground">
-                {item.q}
-              </h3>
-              <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">
-                {item.a}
+              <summary className="focus-ring cursor-pointer text-lg font-medium">
+                {q}
+              </summary>
+              <p className="text-muted-foreground mt-4 max-w-2xl leading-relaxed">
+                {a}
               </p>
-            </div>
+            </details>
           ))}
-        </Stagger>
-
-        <Reveal className="mt-6" delay={0.1}>
-          <GlassPanel className="p-8 md:p-10" tone="dark">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-              <div>
-                <p className="text-[11px] font-medium tracking-wider uppercase opacity-65">
-                  Agents &amp; teams
-                </p>
-                <h3 className="mt-3 font-display text-xl font-semibold tracking-tight text-white md:text-2xl">
-                  Running many channels, or a fleet of agents?
-                </h3>
-                <p className="mt-2 max-w-xl text-[15px] leading-relaxed text-zinc-400">
-                  The Scale pack covers most of it: per-channel caps, API and
-                  MCP access, several channels in parallel. If your setup is
-                  bigger or stranger than that, talk to us and we&apos;ll make
-                  it work.
-                </p>
-              </div>
-              <div className="flex shrink-0 flex-wrap gap-3">
-                <Magnetic>
-                  <a
-                    className="focus-ring inline-flex h-11 items-center rounded-full px-6 text-sm font-medium"
-                    href="mailto:hello@marketer.sh"
-                    style={{
-                      backgroundColor: "var(--surface-foreground)",
-                      color: "var(--surface)",
-                    }}
-                  >
-                    hello@marketer.sh
-                  </a>
-                </Magnetic>
-                <Magnetic>
-                  <Link
-                    className="focus-ring inline-flex h-11 items-center rounded-full border border-current/25 px-6 text-sm font-medium"
-                    href="/resources/api"
-                  >
-                    See the agent surfaces
-                  </Link>
-                </Magnetic>
-              </div>
-            </div>
-          </GlassPanel>
-        </Reveal>
+          <p className="text-muted-foreground mt-8 text-sm">
+            Read the{" "}
+            <Link className="underline underline-offset-4" href="/legal/refund">
+              refund policy
+            </Link>{" "}
+            and{" "}
+            <Link className="underline underline-offset-4" href="/legal/terms">
+              current terms
+            </Link>{" "}
+            before purchasing.
+          </p>
+        </div>
       </section>
-
       <SectionCta
-        headline="Five dollars says it works."
-        kicker="Get started"
-        primaryHref="/sign-up"
-        primaryLabel="Start creating"
-        secondaryHref="/resources/faq"
-        secondaryLabel="Read the FAQ"
-        sub="Five dollars renders your first videos with every feature on. Nothing publishes until you approve it."
+        headline="Start with one piece of content."
+        sub="Use a small prepaid balance to evaluate the workflow and the result before committing to a larger program."
       />
     </main>
   );

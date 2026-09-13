@@ -254,16 +254,16 @@ function FieldScene({
             uniforms,
             material,
           };
-        })
+        }),
       ),
-    []
+    [],
   );
 
   useEffect(
     () => () => {
       tiles.forEach((tile) => tile.material.dispose());
     },
-    [tiles]
+    [tiles],
   );
 
   const metrics = useMemo(() => {
@@ -272,7 +272,7 @@ function FieldScene({
     const vmax = Math.max(vw, vh) / 100;
     return {
       radii: RINGS.map((ring) =>
-        Math.min(ring.radiusVmax * vmax, ring.radiusMax)
+        Math.min(ring.radiusVmax * vmax, ring.radiusMax),
       ),
       tileW: Math.min(TILE_MAX_PX, vw * TILE_VW),
       imgSize: Math.min(IMAGE_MAX_PX, vw * IMAGE_VW),
@@ -286,13 +286,13 @@ function FieldScene({
     const ry = size.height * 1.05;
     const fadeH = Math.min(
       BOTTOM_FADE_MAX_PX,
-      size.height * BOTTOM_FADE_FRACTION
+      size.height * BOTTOM_FADE_FRACTION,
     );
     const yBottom = -size.height / 2;
     tiles.forEach((tile) => {
       tile.uniforms.uQuadSize.value.set(
         metrics.tileW + TILE_PAD,
-        tileH + TILE_PAD
+        tileH + TILE_PAD,
       );
       tile.uniforms.uTileHalf.value.set(metrics.tileW / 2, tileH / 2);
       tile.uniforms.uRadius.value = Math.min(tile.rounding, tileH / 2);
@@ -358,7 +358,7 @@ function FieldScene({
             texture.colorSpace = THREE.SRGBColorSpace;
             texture.anisotropy = Math.min(
               4,
-              gl.capabilities.getMaxAnisotropy()
+              gl.capabilities.getMaxAnisotropy(),
             );
             texture.needsUpdate = true;
             textures.current[tile.img] = texture;
@@ -592,28 +592,29 @@ export function Hero(): ReactNode {
             {...fadeUp(0.2)}
             className="text-foreground mt-5 text-[clamp(44px,7.5vw,84px)] leading-[1.02] font-medium tracking-tight text-balance"
           >
-            Your AI agent makes the marketing
+            Turn product knowledge into content you can publish
           </motion.h1>
           <motion.p
             {...fadeUp(0.32)}
             className="text-muted-foreground mt-6 max-w-md text-base leading-relaxed"
           >
-            Videos, SEO articles, and ads. You tell it what you sell. It
-            creates the work. You set a budget so it cannot overspend.
+            Create videos, articles, and ad drafts from your brief. Review the
+            work, choose what goes live, and build a publishing routine your
+            team can keep up with.
           </motion.p>
           <motion.div
             {...fadeUp(0.44)}
-            className="mt-9 flex items-center gap-3"
+            className="mt-9 flex flex-wrap justify-center items-center gap-3"
           >
             <MagneticLink
               href="/sign-up"
               reduce={prefersReducedMotion}
               className="focus-ring bg-foreground text-background inline-flex h-13 items-center rounded-full px-8 text-sm font-medium transition-opacity hover:opacity-85"
             >
-              Start creating
+              Get started
             </MagneticLink>
             <a
-              href="#product"
+              href="/how-it-works"
               className="focus-ring bg-background text-foreground border-border hover:bg-muted inline-flex h-13 items-center rounded-full border px-8 text-sm font-medium transition-colors"
             >
               See how it works

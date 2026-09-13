@@ -6,49 +6,94 @@ export type MenuLink = {
 
 export const PRODUCT_LINKS: MenuLink[] = [
   {
-    label: "Content",
+    label: "Video creation",
     href: "/features/content",
-    body: "Short videos for TikTok, Reels, and Shorts. Your agent writes, makes, and posts them.",
+    body: "Create scripts, scenes, voiceover, and captions from a brief.",
   },
   {
-    label: "SEO",
+    label: "Articles and SEO",
     href: "/features/seo",
-    body: "Blog posts that can rank, plus a check-up for pages you already have live.",
+    body: "Research buyer questions, draft articles, and audit existing pages.",
   },
   {
-    label: "Ads",
+    label: "Ad campaigns",
     href: "/features/ads",
-    body: "Google and Meta ads. Your agent drafts them. You set the budget.",
+    body: "Prepare campaign drafts and review proposed changes.",
   },
 ];
 
+export const SOLUTION_LINKS: MenuLink[] = [
+  {
+    label: "Founders and SaaS teams",
+    href: "/use-cases/saas",
+    body: "Explain your product and answer buyer questions.",
+  },
+  {
+    label: "Ecommerce brands",
+    href: "/use-cases/ecommerce",
+    body: "Build content around your products.",
+  },
+  {
+    label: "Agencies",
+    href: "/use-cases/agencies",
+    body: "Keep recurring production organized.",
+  },
+  {
+    label: "Creators",
+    href: "/use-cases/creators",
+    body: "Develop a repeatable publishing routine.",
+  },
+  {
+    label: "Local businesses",
+    href: "/use-cases/local-business",
+    body: "Show people what your business offers.",
+  },
+  {
+    label: "AI agent builders",
+    href: "/use-cases/ai-agents",
+    body: "Connect production to your own workflow.",
+  },
+];
 export const RESOURCE_LINKS: MenuLink[] = [
   {
-    label: "Resources",
-    href: "/resources",
-    body: "Guides, changelog, and answers in one place.",
+    label: "How it works",
+    href: "/how-it-works",
+    body: "Follow the journey from brief to publication.",
   },
   {
-    label: "Use cases",
-    href: "/use-cases",
-    body: "How creators, shops, and teams use marketer.sh.",
+    label: "Guides",
+    href: "/resources/guides",
+    body: "Practical help for your next piece of content.",
   },
   {
-    label: "Documentation",
-    href: "/docs",
-    body: "How to get started, set a budget, and ship work.",
+    label: "Help center",
+    href: "/resources/help",
+    body: "Setup, billing, approvals, and recovery.",
   },
   {
-    label: "API",
+    label: "API and integrations",
     href: "/resources/api",
-    body: "Call the same platform from code or an agent.",
+    body: "Connect your software and agents.",
+  },
+  {
+    label: "All resources",
+    href: "/resources",
+    body: "Documentation, FAQs, and product updates.",
   },
 ];
-
 export const COMPANY_LINKS: MenuLink[] = [
-  { label: "About", href: "/about", body: "Who we are and what we build." },
-  { label: "Contact", href: "/contact", body: "Write us. A person reads it." },
-  { label: "Legal", href: "/legal", body: "Terms, privacy, refunds, and more." },
+  { label: "About", href: "/about", body: "Why we built Marketer." },
+  {
+    label: "Contact",
+    href: "/contact",
+    body: "Questions, support, and product fit.",
+  },
+  {
+    label: "Book a demo",
+    href: "/demo",
+    body: "Request a walkthrough of your use case.",
+  },
+  { label: "Legal", href: "/legal", body: "Terms, privacy, and refunds." },
 ];
 
 export const LEGAL_LINKS: MenuLink[] = [
@@ -62,7 +107,5 @@ export const LEGAL_LINKS: MenuLink[] = [
   { label: "Subprocessors", href: "/legal/subprocessors" },
 ];
 
-export const SOCIAL_LINKS: MenuLink[] = [
-  { label: "X", href: "https://x.com" },
-  { label: "LinkedIn", href: "https://www.linkedin.com" },
-];
+// No verified company social destinations were supplied.
+export const SOCIAL_LINKS: MenuLink[] = [];

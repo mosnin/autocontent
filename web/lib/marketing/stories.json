@@ -1,0 +1,1298 @@
+{
+  "/features/content": {
+    "title": "Make product videos from a brief.",
+    "description": "Create short-form videos with a script, generated scenes, voiceover, and captions. Spend your review time on the message and the finished result.",
+    "image": 0,
+    "problem": "An idea still needs a script, a voice, and an edit.",
+    "context": "Marketer connects the production steps so a product explanation can become a video you can watch, check, and schedule.",
+    "benefits": [
+      {
+        "title": "Explain one thing well",
+        "body": "Start with a product benefit, customer question, or use case. Give each short a clear purpose instead of packing your entire pitch into it."
+      },
+      {
+        "title": "Choose a suitable format",
+        "body": "Use scene-based videos, motion graphics, micro-dramas, or UGC-style creative. Match the format to the message and the assets you can provide."
+      },
+      {
+        "title": "Keep publication deliberate",
+        "body": "Inspect the video and its claims before approval. Schedule the work you want your audience to see."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Write the brief",
+        "body": "Describe the audience, product facts, tone, and action you want the viewer to take."
+      },
+      {
+        "title": "Generate a draft",
+        "body": "Choose settings and check the estimate. Marketer produces the script, visual scenes, voiceover, and captions."
+      },
+      {
+        "title": "Review and schedule",
+        "body": "Watch the complete video. Check the details, approve it, and choose a publishing destination."
+      }
+    ],
+    "fit": "A useful fit for product explainers, educational shorts, and recurring social content where you can supply accurate information.",
+    "check": "Generated scenes may need revision. Check product likeness, factual claims, music and asset permissions. Cost varies by model and duration; connected accounts are required for publishing.",
+    "links": [
+      {
+        "title": "Short-form production",
+        "href": "/features/video",
+        "body": "Explore the scene-based workflow."
+      },
+      {
+        "title": "Creative formats",
+        "href": "/features/ugc",
+        "body": "Evaluate UGC-style videos for your product."
+      },
+      {
+        "title": "Publishing",
+        "href": "/features/scheduling",
+        "body": "Move reviewed work to your calendar."
+      }
+    ]
+  },
+  "/features/seo": {
+    "title": "Answer the questions buyers search for.",
+    "description": "Research topics, draft articles, and review the pages already on your site. Build useful explanations around what your product helps people do.",
+    "image": 5,
+    "problem": "A publishing calendar needs more than topics.",
+    "context": "A good article needs a clear reader question, useful evidence, a coherent structure, and an accurate answer. Marketer helps assemble the draft so you can focus on what deserves to be published.",
+    "benefits": [
+      {
+        "title": "Start with search context",
+        "body": "Use research to understand the subject before drafting an outline. Add your own experience and product knowledge where a generic answer would fall short."
+      },
+      {
+        "title": "Prepare the page together",
+        "body": "Work with the article, title, description, and supporting image as one content task."
+      },
+      {
+        "title": "Improve existing content",
+        "body": "Use the SEO audit to investigate a live page and turn findings into specific editorial work."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose a real question",
+        "body": "Name the audience, topic, and what the reader should understand after reading."
+      },
+      {
+        "title": "Review the draft",
+        "body": "Check the argument, facts, sources, and links. Add examples only your business can provide."
+      },
+      {
+        "title": "Publish and revisit",
+        "body": "Prepare the article for your site. Revisit it as the product, evidence, or reader need changes."
+      }
+    ],
+    "fit": "A good fit for educational content and product explanations when someone on the team can verify the subject matter.",
+    "check": "Search visibility is not guaranteed. Review facts, citations, and time-sensitive comparisons. Confirm your publishing destination and integration before scheduling work.",
+    "links": [
+      {
+        "title": "Article creation",
+        "href": "/features/articles",
+        "body": "See how research becomes a draft."
+      },
+      {
+        "title": "SEO audits",
+        "href": "/features/seo-audit",
+        "body": "Inspect pages you have already published."
+      },
+      {
+        "title": "Article guide",
+        "href": "/resources/guides/seo-articles",
+        "body": "Prepare and review search-focused content."
+      }
+    ]
+  },
+  "/features/ads": {
+    "title": "Review the campaign before you fund it.",
+    "description": "Prepare Google and Meta campaign drafts, inspect proposed changes, and keep creative decisions connected to budget decisions.",
+    "image": 8,
+    "problem": "An ad draft is only part of a launch decision.",
+    "context": "The message, audience, landing page, and spend need to make sense together. Marketer gives campaign work a reviewable shape before you decide to act.",
+    "benefits": [
+      {
+        "title": "See the proposed campaign",
+        "body": "Review campaign drafts and the intended action before authorizing changes to an account."
+      },
+      {
+        "title": "Separate production from media spend",
+        "body": "Generation credits pay for production work. Advertising budgets belong to the ad platform and need their own review."
+      },
+      {
+        "title": "Understand what happened",
+        "body": "Use campaign activity and approval records to distinguish a proposed change from an executed one."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Connect the right account",
+        "body": "Check access and account identity before asking for a campaign draft."
+      },
+      {
+        "title": "Inspect the proposal",
+        "body": "Review the creative, audience, budget, and destination. Resolve missing or inaccurate details."
+      },
+      {
+        "title": "Authorize deliberately",
+        "body": "Approve only the changes you intend. Check platform status and delivery after the action."
+      }
+    ],
+    "fit": "A fit for marketers who understand their offer and want help preparing campaign work while retaining launch decisions.",
+    "check": "Account permissions, platform policies, feature availability, and spend authorization still apply. Marketer does not guarantee ad approval, return on spend, or sales.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/video": {
+    "title": "Create a short your audience can follow.",
+    "description": "Turn a focused brief into a scene-based video with narration and captions.",
+    "image": 1,
+    "problem": "A video needs a clear story from start to finish.",
+    "context": "Use a single audience question to guide the script, scenes, and closing action.",
+    "benefits": [
+      {
+        "title": "Review the complete story",
+        "body": "Look at the script and watch the output as a whole. Check whether the visual sequence supports the explanation."
+      },
+      {
+        "title": "Keep the message legible",
+        "body": "Voiceover and captions make the explanation easier to follow. Check names, timing, pronunciation, and readability."
+      },
+      {
+        "title": "Reuse what you learn",
+        "body": "Keep the useful angles and revise what falls short before making the next piece."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "A product explanation, educational short, or recurring social series.",
+    "check": "Generated details and continuity need human review. Rendering time and cost depend on the chosen settings.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/articles": {
+    "title": "Turn a buyer question into a useful article.",
+    "description": "Build a researched article draft with structure, copy, and page metadata.",
+    "image": 2,
+    "problem": "A first draft should give you something worth editing.",
+    "context": "Start with the reader’s question and the facts your business can contribute.",
+    "benefits": [
+      {
+        "title": "Work from an outline",
+        "body": "Review the structure so the article answers the question without wandering into unrelated sections."
+      },
+      {
+        "title": "Keep the page coherent",
+        "body": "Prepare the body, title, description, and image together rather than leaving the publishing details until last."
+      },
+      {
+        "title": "Add your expertise",
+        "body": "Correct claims and add original examples. The strongest material often comes from what your team already knows."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Teams with real subject knowledge and a recurring need for educational content.",
+    "check": "Verify citations and factual claims. Generated copy is not a substitute for expertise or a promise of rankings.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/scheduling": {
+    "title": "Give approved content a place on the calendar.",
+    "description": "Plan when reviewed social content should publish to your connected accounts.",
+    "image": 3,
+    "problem": "Content is not finished when the file is ready.",
+    "context": "Publishing requires an account, a time, and a final check that the right version is going out.",
+    "benefits": [
+      {
+        "title": "Plan the handoff",
+        "body": "Keep approved content connected to its scheduled destination and time."
+      },
+      {
+        "title": "Keep review visible",
+        "body": "Check approval before scheduling instead of treating a generated file as automatically ready."
+      },
+      {
+        "title": "Check the result",
+        "body": "Watch publishing status so account or provider problems do not disappear into a calendar entry."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "A recurring social content schedule with connected, authorized publishing accounts.",
+    "check": "Confirm timezone, platform support, account permissions, and media requirements. A scheduled item is not proof of successful publication.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/automation": {
+    "title": "Make repeatable production a routine.",
+    "description": "Set up recurring content work around a saved brief, publishing settings, and budget controls.",
+    "image": 4,
+    "problem": "Repeating the setup should not consume the whole week.",
+    "context": "A stable brief and a sensible review routine can give recurring work a consistent starting point.",
+    "benefits": [
+      {
+        "title": "Reuse the direction",
+        "body": "Save the audience, tone, and content settings that guide your recurring work."
+      },
+      {
+        "title": "Set a production rhythm",
+        "body": "Use scheduling settings to define when work should run. Choose a frequency you can review."
+      },
+      {
+        "title": "Keep control as volume grows",
+        "body": "Review queues, spending limits, and job states before widening automation."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "A content series whose facts and creative direction are established.",
+    "check": "Automation needs monitoring. Start with review-before-post and inspect interrupted jobs before retrying them.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/analytics": {
+    "title": "Use performance to choose your next idea.",
+    "description": "Review available content metrics alongside the work you published.",
+    "image": 5,
+    "problem": "More output is not the same as better marketing.",
+    "context": "Use results as a reason to investigate which topics and formats deserve another attempt.",
+    "benefits": [
+      {
+        "title": "Find useful patterns",
+        "body": "Look at results across comparable content rather than declaring a winner from one isolated post."
+      },
+      {
+        "title": "Return to the creative",
+        "body": "Connect what happened to the hook, topic, or explanation that a viewer actually saw."
+      },
+      {
+        "title": "Inform the next brief",
+        "body": "Use what you learn to refine future topics while keeping your commercial goal in view."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Teams publishing often enough to compare content with similar audiences and goals.",
+    "check": "Metrics depend on platform access and reporting delays. A correlation does not prove the content caused a sale.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/ugc": {
+    "title": "Explore a spokesperson format for your product.",
+    "description": "Create UGC-style video drafts using supported models and the product direction you provide.",
+    "image": 6,
+    "problem": "A persuasive explanation needs more than a face on screen.",
+    "context": "Focus the draft on a clear use case and accurate product details.",
+    "benefits": [
+      {
+        "title": "Test a presentation style",
+        "body": "Explore how a spoken product explanation differs from a montage or motion graphic."
+      },
+      {
+        "title": "Keep claims grounded",
+        "body": "Supply the statements the creative can make and review them in the finished video."
+      },
+      {
+        "title": "Judge the complete output",
+        "body": "Check delivery, product representation, voice, and captions before using the draft in a campaign."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Teams evaluating AI-generated spokesperson creative for a clearly described product.",
+    "check": "Generated people are not customers or testimonial evidence. Do not imply an actual person used or endorsed the product.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/dramas": {
+    "title": "Build a short story around your idea.",
+    "description": "Create multi-shot video drafts with a screenplay structure and recurring characters.",
+    "image": 7,
+    "problem": "A sequence of clips needs a reason to belong together.",
+    "context": "Use characters and a simple narrative to make an idea understandable.",
+    "benefits": [
+      {
+        "title": "Start with a story",
+        "body": "Define the situation, tension, and resolution before requesting shots."
+      },
+      {
+        "title": "Keep the cast recognizable",
+        "body": "Character references guide recurring appearances across scenes. Inspect the actual continuity."
+      },
+      {
+        "title": "Review pacing and meaning",
+        "body": "Watch whether the story makes the product or concept clearer, rather than merely adding spectacle."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Narrative explainers and creative experiments where a story serves the message.",
+    "check": "Character references do not guarantee perfect visual consistency. Review every shot and any implied product claims.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/motion": {
+    "title": "Give an explanation a visual rhythm.",
+    "description": "Turn narration into motion-led video with imagery and animated text.",
+    "image": 8,
+    "problem": "Some ideas are easier to understand when the words have structure.",
+    "context": "Use pacing and type to emphasize a sequence, feature, or explanation.",
+    "benefits": [
+      {
+        "title": "Organize the narration",
+        "body": "Keep each beat focused so viewers can follow the argument."
+      },
+      {
+        "title": "Make key points visible",
+        "body": "Pair text and imagery with the spoken explanation. Check that neither competes with the other."
+      },
+      {
+        "title": "Inspect the finished edit",
+        "body": "Check reading time, timing, contrast, and voice before publishing."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Feature explanations, educational sequences, and messages that benefit from visible text.",
+    "check": "Review text at phone size. Dense narration or long lines may require a simpler script.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/library": {
+    "title": "Keep useful content within reach.",
+    "description": "Browse the content and assets you have made so the next task can start from existing work.",
+    "image": 9,
+    "problem": "A finished asset should not disappear after one post.",
+    "context": "A shared production history gives you a place to return when planning another piece.",
+    "benefits": [
+      {
+        "title": "Find earlier work",
+        "body": "Browse available generated content and inspect what belongs to the next task."
+      },
+      {
+        "title": "Reuse deliberately",
+        "body": "Choose useful assets and ideas while checking their original context."
+      },
+      {
+        "title": "Keep review attached to the version",
+        "body": "Check the actual output you are about to use, especially when facts or claims have changed."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Content programs with repeatable topics and assets worth returning to.",
+    "check": "Check usage permissions and current product details before reusing content. An old approval may not fit a revised campaign.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/templates": {
+    "title": "Start the next creative from a useful reference.",
+    "description": "Use templates and remix workflows to give new content a starting structure.",
+    "image": 10,
+    "problem": "Starting from nothing is not always the best creative brief.",
+    "context": "A relevant reference can clarify the composition or format you want to explore.",
+    "benefits": [
+      {
+        "title": "Choose a relevant structure",
+        "body": "Pick a starting point that fits the message and destination."
+      },
+      {
+        "title": "Bring your own substance",
+        "body": "Add your product facts, assets, and direction instead of inheriting unrelated claims."
+      },
+      {
+        "title": "Review what changed",
+        "body": "Inspect the remix as a new piece of content before publishing."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Repeatable creative formats where the structure helps people recognize the message.",
+    "check": "Template access does not establish rights to every input or output. Use references and source assets you are allowed to use.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/niches": {
+    "title": "Give each content stream a clear direction.",
+    "description": "Save an audience, voice, and production setup for the subjects you publish about.",
+    "image": 11,
+    "problem": "Different audiences need different explanations.",
+    "context": "A saved channel brief helps keep recurring work focused on the right people.",
+    "benefits": [
+      {
+        "title": "Separate the direction",
+        "body": "Keep the tone, subject, and audience of each stream explicit."
+      },
+      {
+        "title": "Set a sensible cadence",
+        "body": "Choose production and publishing settings that fit the work you can review."
+      },
+      {
+        "title": "Manage the budget",
+        "body": "Use channel-level controls alongside the account’s overall spending limits."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Teams running several subjects or formats from one account.",
+    "check": "A content channel is not a separate client workspace or permission boundary. Do not use it as a substitute for access isolation.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/campaigns": {
+    "title": "Keep campaign content pointed at one goal.",
+    "description": "Organize production around a campaign brief, audience, and intended message.",
+    "image": 0,
+    "problem": "A collection of assets is not yet a campaign.",
+    "context": "The pieces need a common offer and a reason for the audience to act.",
+    "benefits": [
+      {
+        "title": "Define the campaign",
+        "body": "State the audience, offer, message, and intended outcome in the brief."
+      },
+      {
+        "title": "Prepare related content",
+        "body": "Develop the formats that support that message across the channels you use."
+      },
+      {
+        "title": "Review consistency",
+        "body": "Check whether the pieces make compatible claims before they reach an audience."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Teams coordinating more than one piece of content around a launch or ongoing offer.",
+    "check": "Confirm the campaign features available in your account. Campaign organization does not guarantee attribution, approval, or delivery across providers.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/features/seo-audit": {
+    "title": "Find a useful next edit for an existing page.",
+    "description": "Inspect a live URL and review SEO findings with the evidence behind them.",
+    "image": 1,
+    "problem": "An audit should help you decide what to change.",
+    "context": "Use findings to investigate your page instead of treating a score as the goal.",
+    "benefits": [
+      {
+        "title": "Inspect the page",
+        "body": "Start from the URL you want to improve and review the detected issues."
+      },
+      {
+        "title": "Understand the finding",
+        "body": "Look at the supporting evidence before acting on a recommendation."
+      },
+      {
+        "title": "Prioritize useful edits",
+        "body": "Choose changes that improve the reader’s experience and the page’s clarity."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set the direction",
+        "body": "Provide the relevant brief, source material, and intended audience. Choose the product workflow that fits this task."
+      },
+      {
+        "title": "Inspect the work",
+        "body": "Review the draft or findings against your goal. Resolve missing facts and check the details before moving forward."
+      },
+      {
+        "title": "Choose the next action",
+        "body": "Approve, revise, schedule, or return to the brief based on what you observed. Check the actual result after the action."
+      }
+    ],
+    "fit": "Teams with existing content and someone able to apply and review website edits.",
+    "check": "An automated score cannot certify rankings or detect every issue. Verify findings in the page and measure the result after changes.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/use-cases/saas": {
+    "title": "Explain your product before the next sales conversation.",
+    "description": "For founders and SaaS teams with product knowledge to share and limited time to turn it into content.",
+    "image": 0,
+    "problem": "Your team knows the answers. Buyers still need to hear them.",
+    "context": "Turn recurring questions about the product into educational videos and articles.",
+    "benefits": [
+      {
+        "title": "Show a use case",
+        "body": "Explain a specific job your product helps someone do, with details you can substantiate."
+      },
+      {
+        "title": "Answer evaluation questions",
+        "body": "Draft useful articles about setup, fit, and tradeoffs. Keep comparisons current and evidence-based."
+      },
+      {
+        "title": "Keep launches connected",
+        "body": "Develop related content around a release without asking every format to tell the whole story."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose one useful piece",
+        "body": "Select a specific audience question and the format that would answer it well."
+      },
+      {
+        "title": "Bring the real details",
+        "body": "Supply the product facts, creative direction, and assets. Check the generation estimate."
+      },
+      {
+        "title": "Review before expanding",
+        "body": "Evaluate the first draft, correct what is missing, and build the next brief from what you learned."
+      }
+    ],
+    "fit": "A product team with accurate documentation and a person who can review claims.",
+    "check": "Marketer does not replace product strategy, technical validation, or a qualified reviewer. Start with one question, not an entire launch.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/use-cases/ecommerce": {
+    "title": "Give each product a clearer story.",
+    "description": "For ecommerce brands creating product explanations, social videos, and campaign drafts.",
+    "image": 2,
+    "problem": "Your product deserves more than another generic caption.",
+    "context": "Use the features, materials, and use cases that actually matter to the buyer.",
+    "benefits": [
+      {
+        "title": "Explain the product",
+        "body": "Turn real details into a focused video or article. Show what the buyer needs to understand."
+      },
+      {
+        "title": "Explore creative angles",
+        "body": "Try a use case, a question, or a presentation style while keeping the underlying facts consistent."
+      },
+      {
+        "title": "Prepare campaign work",
+        "body": "Bring reviewed creative into campaign planning with a clear destination and separate ad budget."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose one useful piece",
+        "body": "Select a specific audience question and the format that would answer it well."
+      },
+      {
+        "title": "Bring the real details",
+        "body": "Supply the product facts, creative direction, and assets. Check the generation estimate."
+      },
+      {
+        "title": "Review before expanding",
+        "body": "Evaluate the first draft, correct what is missing, and build the next brief from what you learned."
+      }
+    ],
+    "fit": "A brand with product information, source assets, and permission to use them.",
+    "check": "Check product likeness and every performance claim. Illustrative AI creative is not a customer review or evidence of product results.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/use-cases/agencies": {
+    "title": "Give recurring production a repeatable process.",
+    "description": "For agencies that need to turn approved direction into content drafts across several streams of work.",
+    "image": 5,
+    "problem": "Every deliverable should not require a new production process.",
+    "context": "Reuse useful briefs and formats while keeping each client’s facts and voice distinct.",
+    "benefits": [
+      {
+        "title": "Make direction explicit",
+        "body": "Use a clear brief for every account or content stream. Keep source facts and creative constraints easy to review."
+      },
+      {
+        "title": "Prepare drafts for review",
+        "body": "Use generation to create work your team can inspect and revise before seeking client approval."
+      },
+      {
+        "title": "Track production costs",
+        "body": "Review usage and estimates to understand how each project consumes credit."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose one useful piece",
+        "body": "Select a specific audience question and the format that would answer it well."
+      },
+      {
+        "title": "Bring the real details",
+        "body": "Supply the product facts, creative direction, and assets. Check the generation estimate."
+      },
+      {
+        "title": "Review before expanding",
+        "body": "Evaluate the first draft, correct what is missing, and build the next brief from what you learned."
+      }
+    ],
+    "fit": "An agency with an established review process and appropriate account separation.",
+    "check": "Content channels are not client workspaces. Do not promise client portals, separate permissions, or included team seats; those are not established by this website.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/use-cases/creators": {
+    "title": "Keep making the content your audience came for.",
+    "description": "For creators turning a clear subject and point of view into a repeatable publishing routine.",
+    "image": 6,
+    "problem": "Consistency needs a process you can keep using.",
+    "context": "Marketer helps with production while you decide which ideas deserve your audience’s attention.",
+    "benefits": [
+      {
+        "title": "Develop a focused series",
+        "body": "Choose a repeatable subject and an audience question for each piece."
+      },
+      {
+        "title": "Explore a second format",
+        "body": "Turn a topic into a video or an article without assuming the same draft fits both."
+      },
+      {
+        "title": "Learn from the response",
+        "body": "Review available performance and the content itself before repeating an angle."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose one useful piece",
+        "body": "Select a specific audience question and the format that would answer it well."
+      },
+      {
+        "title": "Bring the real details",
+        "body": "Supply the product facts, creative direction, and assets. Check the generation estimate."
+      },
+      {
+        "title": "Review before expanding",
+        "body": "Evaluate the first draft, correct what is missing, and build the next brief from what you learned."
+      }
+    ],
+    "fit": "A creator with a clear perspective and the time to judge the finished work.",
+    "check": "Your perspective and review still matter. Content volume does not guarantee audience growth or earnings.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/use-cases/local-business": {
+    "title": "Help people understand what your business offers.",
+    "description": "For local businesses that want useful explanations of services, products, and common customer questions.",
+    "image": 7,
+    "problem": "Customers need the details you explain every day.",
+    "context": "Turn those recurring conversations into content people can find and understand before they contact you.",
+    "benefits": [
+      {
+        "title": "Explain a service",
+        "body": "Describe what is included, who it is for, and how to take the next step."
+      },
+      {
+        "title": "Answer common questions",
+        "body": "Use an article or short video to explain preparation, options, or how the service works."
+      },
+      {
+        "title": "Keep information accurate",
+        "body": "Check location, hours, availability, and prices before anything goes live."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose one useful piece",
+        "body": "Select a specific audience question and the format that would answer it well."
+      },
+      {
+        "title": "Bring the real details",
+        "body": "Supply the product facts, creative direction, and assets. Check the generation estimate."
+      },
+      {
+        "title": "Review before expanding",
+        "body": "Evaluate the first draft, correct what is missing, and build the next brief from what you learned."
+      }
+    ],
+    "fit": "A business with accurate information and someone responsible for reviewing it.",
+    "check": "Generated imagery should not misrepresent your premises, staff, or completed work. Use real assets when those details matter.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/use-cases/ai-agents": {
+    "title": "Give your agent a content production workflow.",
+    "description": "For builders connecting software or AI agents to Marketer through the API, SDK, CLI, or MCP.",
+    "image": 10,
+    "problem": "A generated instruction is not a finished piece of content.",
+    "context": "Connect your planning workflow to production operations with explicit permissions and budgets.",
+    "benefits": [
+      {
+        "title": "Use the right interface",
+        "body": "Choose the API, Python SDK, CLI, or MCP surface for the environment running your workflow."
+      },
+      {
+        "title": "Keep actions bounded",
+        "body": "Use scoped credentials, budget controls, and deliberate approvals for publishing actions."
+      },
+      {
+        "title": "Inspect the result",
+        "body": "Read job states and outputs rather than assuming a request completed because it was accepted."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Choose one useful piece",
+        "body": "Select a specific audience question and the format that would answer it well."
+      },
+      {
+        "title": "Bring the real details",
+        "body": "Supply the product facts, creative direction, and assets. Check the generation estimate."
+      },
+      {
+        "title": "Review before expanding",
+        "body": "Evaluate the first draft, correct what is missing, and build the next brief from what you learned."
+      }
+    ],
+    "fit": "Builders comfortable managing credentials, asynchronous work, retries, and access controls.",
+    "check": "Check the current API contract and enabled features. A tool call is not proof of publication; external account permissions still apply.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/how-it-works": {
+    "title": "From product brief to published content.",
+    "description": "A practical walkthrough of what you provide, what Marketer produces, and where you make the decisions.",
+    "image": 3,
+    "problem": "Know the work before you start.",
+    "context": "Production becomes easier to evaluate when each step has a clear input and a result you can inspect.",
+    "benefits": [
+      {
+        "title": "You provide the knowledge",
+        "body": "Audience, offer, product details, tone, and source assets give the draft its direction."
+      },
+      {
+        "title": "Marketer handles production",
+        "body": "Choose video, article, or campaign work. Generation connects the relevant production steps."
+      },
+      {
+        "title": "You decide what goes live",
+        "body": "Review the result and authorize publishing actions. Check the outcome after scheduling or launching."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Set up a focused brief",
+        "body": "Create an account, choose a format, and provide the details needed for one piece of content."
+      },
+      {
+        "title": "Check cost and generate",
+        "body": "Review the estimate and available credit before running production. Inspect the draft when it is ready."
+      },
+      {
+        "title": "Approve and follow through",
+        "body": "Check facts and creative quality, connect the destination, and approve the next action. Review status afterward."
+      }
+    ],
+    "fit": "People with accurate product knowledge who want help turning it into publishable material.",
+    "check": "Production uses credits, and revisions may add cost. Provider access, account connections, and a human review routine are still needed.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  },
+  "/about": {
+    "title": "Give good ideas a practical path to publication.",
+    "description": "Marketer brings content production, review, and publishing workflows into one place.",
+    "image": 11,
+    "problem": "Product knowledge should have a route to the people who need it.",
+    "context": "We’re building around the work that happens between knowing what you want to say and having content ready to share.",
+    "benefits": [
+      {
+        "title": "Start with substance",
+        "body": "A clear audience and accurate information matter more than asking a model for more output."
+      },
+      {
+        "title": "Make the work inspectable",
+        "body": "Drafts, production status, and spending should help you decide what to do next."
+      },
+      {
+        "title": "Keep the decision with you",
+        "body": "Automation should support your direction and review, with deliberate control over what reaches the public."
+      }
+    ],
+    "steps": [
+      {
+        "title": "Explain",
+        "body": "Bring the offer, audience, and product knowledge."
+      },
+      {
+        "title": "Create",
+        "body": "Use production workflows to make a video, article, or campaign draft."
+      },
+      {
+        "title": "Review",
+        "body": "Decide whether the result deserves to be published or needs another pass."
+      }
+    ],
+    "fit": "Founders, small marketing teams, creators, and builders who can provide the context and review the result.",
+    "check": "Marketer is production software. It does not guarantee strategy, traffic, sales, or unattended business outcomes.",
+    "links": [
+      {
+        "title": "See the workflow",
+        "href": "/how-it-works",
+        "body": "Understand the steps from brief to publication."
+      },
+      {
+        "title": "Plan your budget",
+        "href": "/pricing",
+        "body": "Compare current credit packs and proposed monthly tiers."
+      },
+      {
+        "title": "Prepare your brief",
+        "href": "/resources/guides/content-brief",
+        "body": "Give the first draft a useful starting point."
+      }
+    ]
+  }
+}

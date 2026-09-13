@@ -14,7 +14,8 @@ import {
 const VIDEO_SRC = "/campaign/showcase-film.mp4";
 const VIDEO_POSTER = "/campaign/showcase-film-poster.jpg";
 const MAX_WIDTH = 1440;
-const CAPTION = "Twelve original campaign frames, produced with marketer.sh";
+const CAPTION =
+  "Illustrative campaign film featuring the site’s original artwork";
 
 const PEEK_VISIBLE = 50;
 const PEEK_WIDTH = 400;
@@ -81,12 +82,12 @@ export function VideoShowcase(): ReactNode {
   const width = useTransform(
     scrollYProgress,
     [0, GROWTH_END],
-    [PEEK_WIDTH, fullWidth]
+    [PEEK_WIDTH, fullWidth],
   );
   const height = useTransform(
     scrollYProgress,
     [0, GROWTH_END],
-    [PEEK_HEIGHT, fullHeight]
+    [PEEK_HEIGHT, fullHeight],
   );
   const y = useTransform(scrollYProgress, [0, GROWTH_END], [peekY, 0]);
   const captionOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0]);
@@ -94,7 +95,7 @@ export function VideoShowcase(): ReactNode {
   const scrollHintOpacity = useTransform(
     scrollYProgress,
     [GROWTH_END, GROWTH_END + 0.1, 0.9, 0.98],
-    [0, 1, 1, 0]
+    [0, 1, 1, 0],
   );
 
   useEffect(() => {
@@ -119,7 +120,7 @@ export function VideoShowcase(): ReactNode {
         inView = entries[0]?.isIntersecting ?? false;
         sync();
       },
-      { threshold: 0 }
+      { threshold: 0 },
     );
     observer.observe(video);
 

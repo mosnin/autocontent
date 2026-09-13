@@ -22,12 +22,12 @@ const DOCS = [
       {
         title: "Quickstart",
         href: "/resources/quickstart",
-        copy: "Create an account, write one sentence, and see the first draft.",
+        copy: "Create an account, prepare a brief, and review the first draft.",
       },
       {
         title: "Launch a channel",
         href: "/resources/guides/first-channel",
-        copy: "Pick a niche, set a voice, and decide what you want to approve.",
+        copy: "Choose an audience, set the tone, and keep the first run in review.",
       },
     ],
   },

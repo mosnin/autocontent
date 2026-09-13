@@ -3,11 +3,7 @@
 import * as React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-import {
-  CtaPill,
-  DisplayHeading,
-  Lede,
-} from "@/components/marketing/system";
+import { CtaPill, DisplayHeading, Lede } from "@/components/marketing/system";
 import { cn } from "@/lib/utils";
 
 function Rise({
@@ -44,7 +40,7 @@ export function FeatureHero({
   variant: _variant = "sky",
   highlight: _highlight,
   illustration,
-  primary = { label: "Start creating", href: "/sign-up" },
+  primary = { label: "Get started", href: "/sign-up" },
   secondary = { label: "See pricing", href: "/pricing" },
   magneticPrimary: _magneticPrimary = false,
 }: {

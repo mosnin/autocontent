@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalDoc } from "@/components/marketing/legal/LegalDoc";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://marketer.sh/legal/privacy" },
   title: "Privacy Policy · marketer.sh",
   description: "What marketer.sh collects, why, and the rights you have.",
 };

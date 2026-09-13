@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { LegalDoc } from "@/components/marketing/legal/LegalDoc";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "https://marketer.sh/legal/cookies" },
   title: "Cookie Policy · marketer.sh",
   description: "The cookies and local storage marketer.sh uses.",
 };

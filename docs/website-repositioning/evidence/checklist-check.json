@@ -1,0 +1,425 @@
+{
+  "status": "violations",
+  "assurance": "assessment_coverage_only",
+  "issues": [
+    {
+      "code": "unresolved_item",
+      "id": "upstream-head-favicons",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-head-direction-attribute",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-head-css-critical",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-head-css-order",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-head-facebook-open-graph",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-head-twitter-card",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-html-error-pages",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-html-noopener",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-html-clean-up-comments",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-html-w3c-compliant",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-html-link-checker",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-html-adblockers-test",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-webfonts-webfont-format",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-webfonts-webfont-size",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-webfonts-webfont-loader",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-css-print",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-unique-id",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-vendor-prefixes",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-minification",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-non-blocking",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-unused-css",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-stylelint",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-responsive-web-design-0547aec0",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-css-validator",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-desktop-browsers",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-mobile-browsers",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-css-os",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-images-optimization",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-images-picture-srcset",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-images-retina",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-images-lazy-loading",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-javascript-minification",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-javascript-javascript-security",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-javascript-noscript-tag",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-javascript-non-blocking",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-javascript-optimized-and-updated-js-libraries",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-javascript-eslint",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-security-https",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-security-http-strict-transport-security-hsts",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-security-cross-site-request-forgery-csrf",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-security-cross-site-scripting-xss",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-security-content-type-options",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-security-x-frame-options-xfo",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-security-content-security-policy",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-goals-to-achieve",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-minified-html",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-lazy-loading",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-cookie-size",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-third-party-components",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-dns-resolution",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-preconnection",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-prefetching",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-preloading",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-performance-google-pagespeed",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-accessibility-progressive-enhancement",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-accessibility-color-contrast",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-accessibility-accessibility-standards-testing",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-accessibility-screen-reader",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-seo-sitemap-xml",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-seo-robots-txt",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-seo-structured-data",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "upstream-seo-sitemap-html",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "responsive",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "accessibility",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "motion",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "images",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "fonts",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "performance",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "html",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "css",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "social_metadata",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "links",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "security",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "auth",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "onboarding",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "privacy",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "forms",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "compatibility",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "deployment",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "content_truth",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "legal_content",
+      "status": "not_tested"
+    },
+    {
+      "code": "unresolved_item",
+      "id": "context",
+      "status": "not_tested"
+    }
+  ],
+  "required_items": 132,
+  "recorded_items": 132,
+  "publication_ready": false,
+  "unverified": [
+    "evidence authenticity and sufficiency",
+    "rendered behavior",
+    "applicability rationale",
+    "release acceptance"
+  ]
+}

@@ -7,7 +7,7 @@ import { motion, useScroll, useTransform, type Variants } from "motion/react";
 import Image from "next/image";
 import { useRef, type ReactNode } from "react";
 
-const HEADLINE = "Tell it what you sell. It makes the rest.";
+const HEADLINE = "Give your next idea a path to publication.";
 const WORDS = HEADLINE.split(" ");
 
 const PRINTS = [
@@ -47,7 +47,7 @@ function PrintFan({ reduce }: { reduce: boolean }): ReactNode {
       initial={reduce ? false : "hidden"}
       viewport={{ once: true, margin: "-80px" }}
       variants={FAN_CONTAINER}
-      {...(reduce ? {} : { whileInView: "visible" })}
+      {...(reduce ? { animate: "visible" } : { whileInView: "visible" })}
       aria-hidden="true"
       className="relative h-24 w-full origin-top scale-50 sm:h-48 sm:scale-100"
     >
@@ -63,7 +63,9 @@ function PrintFan({ reduce }: { reduce: boolean }): ReactNode {
                 x: layout.x,
                 y: layout.y,
                 rotate: layout.r,
-                transition: { type: "spring", stiffness: 220, damping: 22 },
+                transition: reduce
+                  ? { duration: 0 }
+                  : { type: "spring", stiffness: 220, damping: 22 },
               },
             }}
             {...(reduce
@@ -151,8 +153,8 @@ export function FinalCta(): ReactNode {
           )}
         </h2>
         <p className="mt-6 max-w-md text-base leading-relaxed opacity-65">
-          Start at five dollars. Describe what you sell, look at the drafts,
-          and keep a daily budget so it cannot overspend.
+          Bring a product brief and choose one piece of content to make. Check
+          the estimate, review the draft, and decide what comes next.
         </p>
         <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
           <MagneticLink
@@ -164,13 +166,13 @@ export function FinalCta(): ReactNode {
             }}
             className="focus-ring inline-flex h-13 items-center rounded-full px-8 text-sm font-medium"
           >
-            Start creating
+            Get started
           </MagneticLink>
           <a
-            href="/pricing"
+            href="/demo"
             className="focus-ring inline-flex h-13 items-center rounded-full border border-current/25 px-8 text-sm font-medium transition-opacity hover:opacity-70"
           >
-            See pricing
+            Book a demo
           </a>
         </div>
       </motion.div>

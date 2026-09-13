@@ -1,11 +1,4 @@
-/**
- * The prepaid credit packs. Single source shared by the marketing pricing
- * teaser and the /pricing page. Video estimates are derived from the real
- * cost model (web/lib/cost-estimator.ts defaults × the billing margin):
- * a default-settings short is ≈ $3 all-in; leaner settings stretch
- * a pack further. Packs differ only in how much credit you load —
- * never in features.
- */
+/** Existing USD credit catalog. Keep amounts aligned with billing/packs.py. */
 export type Pack = {
   label: string;
   amount: number;
@@ -13,29 +6,79 @@ export type Pack = {
   points: string[];
   featured?: boolean;
 };
-
 export const PACKS: Pack[] = [
   {
     label: "Starter",
     amount: 5,
-    blurb: "Try the machine",
-    points: ["≈ 1–2 videos", "Every feature included", "No subscription"],
+    blurb: "Explore with a small balance",
+    points: [
+      "$5 in generation credit",
+      "No recurring payment",
+      "Review before publishing",
+    ],
   },
   {
     label: "Creator",
     amount: 20,
-    blurb: "A daily channel",
+    blurb: "Make room to try a few ideas",
     points: [
-      "≈ 5–8 videos",
-      "About a week of daily shorts",
-      "Top up any time",
+      "$20 in generation credit",
+      "Same feature access",
+      "Top up when you need to",
     ],
     featured: true,
   },
   {
     label: "Scale",
     amount: 50,
-    blurb: "Several channels at once",
-    points: ["≈ 12–20 videos", "Sized for several channels", "Same features as every pack"],
+    blurb: "Keep more credit available",
+    points: [
+      "$50 in generation credit",
+      "Same feature access",
+      "Track usage across channels",
+    ],
   },
 ];
+
+/** Commercial proposal only. No Stripe products or entitlements use this array. */
+export const PROPOSED_PLANS = [
+  {
+    name: "Launch",
+    price: 49,
+    credit: 20,
+    channels: 1,
+    audience: "Build a publishing routine for one brand.",
+    features: [
+      "Video and article creation",
+      "All supported creative formats",
+      "Review queue and manual scheduling",
+      "Content library and basic analytics",
+    ],
+  },
+  {
+    name: "Grow",
+    price: 149,
+    credit: 75,
+    channels: 5,
+    audience: "Keep several content streams moving.",
+    features: [
+      "Everything in Launch",
+      "Recurring production schedules",
+      "Search audits and campaign planning",
+      "Google and Meta ad draft workflows",
+    ],
+  },
+  {
+    name: "Scale",
+    price: 399,
+    credit: 200,
+    channels: 20,
+    audience: "Operate a larger content program.",
+    features: [
+      "Everything in Grow",
+      "API, SDK, CLI, and MCP workflows",
+      "Webhook-driven production handoffs",
+      "Channel-level budgets and reporting",
+    ],
+  },
+] as const;

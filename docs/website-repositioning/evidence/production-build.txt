@@ -1,0 +1,145 @@
+   ▲ Next.js 15.5.25
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOSPC: no space left on device, write
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOSPC: no space left on device, write
+ ✓ Compiled successfully in 7.5s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/6) ...
+   Generating static pages (1/6)
+   Generating static pages (2/6)
+   Generating static pages (4/6)
+ ✓ Generating static pages (6/6)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                      Size  First Load JS
+┌ ƒ /                                          254 kB         480 kB
+├ ƒ /_not-found                                 173 B         103 kB
+├ ƒ /about                                    1.05 kB         228 kB
+├ ƒ /ad-creatives                               185 B         148 kB
+├ ƒ /ad-creatives/[id]                        1.79 kB         149 kB
+├ ƒ /admin                                      176 B         106 kB
+├ ƒ /admin/audit                              5.49 kB         133 kB
+├ ƒ /admin/flags                              8.45 kB         158 kB
+├ ƒ /admin/health                             6.66 kB         139 kB
+├ ƒ /admin/media                                 3 kB         182 kB
+├ ƒ /admin/security                           1.15 kB         119 kB
+├ ƒ /admin/templates                          6.27 kB         139 kB
+├ ƒ /admin/users                              5.45 kB         181 kB
+├ ƒ /admin/users/[id]                         8.28 kB         190 kB
+├ ƒ /ads                                      3.64 kB         168 kB
+├ ƒ /ads/activity                             1.15 kB         119 kB
+├ ƒ /ads/approvals                            5.16 kB         138 kB
+├ ƒ /ads/campaigns                              209 B         195 kB
+├ ƒ /ads/campaigns/[id]                       2.77 kB         207 kB
+├ ƒ /ads/campaigns/new                         6.7 kB         134 kB
+├ ƒ /ads/connect                              11.1 kB         140 kB
+├ ƒ /ads/design                                 191 B         152 kB
+├ ƒ /ads/design/[id]                          2.83 kB         155 kB
+├ ƒ /ads/headshots                              183 B         146 kB
+├ ƒ /ads/headshots/[id]                       2.22 kB         148 kB
+├ ƒ /api/media                                  173 B         103 kB
+├ ƒ /api/media/file/[id]                        173 B         103 kB
+├ ƒ /api/proxy/[...path]                        173 B         103 kB
+├ ƒ /articles                                 10.6 kB         257 kB
+├ ƒ /articles/[id]                            8.68 kB         185 kB
+├ ƒ /calendar                                 6.76 kB         250 kB
+├ ƒ /campaigns                                1.17 kB         250 kB
+├ ƒ /campaigns/[id]                           4.17 kB         255 kB
+├ ƒ /company                                    173 B         103 kB
+├ ƒ /connect                                  4.19 kB         119 kB
+├ ƒ /contact                                  1.27 kB         107 kB
+├ ƒ /dashboard                                13.9 kB         347 kB
+├ ƒ /demo                                     1.68 kB         223 kB
+├ ƒ /docs                                       176 B         106 kB
+├ ƒ /dramas                                     199 B         175 kB
+├ ƒ /dramas/[id]                              3.03 kB         178 kB
+├ ƒ /features                                   744 B         222 kB
+├ ƒ /features/ads                             1.05 kB         228 kB
+├ ƒ /features/analytics                       1.05 kB         228 kB
+├ ƒ /features/articles                        1.05 kB         228 kB
+├ ƒ /features/automation                      1.05 kB         228 kB
+├ ƒ /features/campaigns                       1.05 kB         228 kB
+├ ƒ /features/content                         1.05 kB         228 kB
+├ ƒ /features/dramas                          1.05 kB         228 kB
+├ ƒ /features/library                         1.05 kB         228 kB
+├ ƒ /features/motion                          1.05 kB         228 kB
+├ ƒ /features/niches                          1.05 kB         228 kB
+├ ƒ /features/scheduling                      1.05 kB         228 kB
+├ ƒ /features/seo                             1.05 kB         228 kB
+├ ƒ /features/seo-audit                       1.05 kB         228 kB
+├ ƒ /features/templates                       1.05 kB         228 kB
+├ ƒ /features/ugc                             1.05 kB         228 kB
+├ ƒ /features/video                           1.05 kB         228 kB
+├ ƒ /home                                     3.22 kB         229 kB
+├ ƒ /how-it-works                             1.05 kB         228 kB
+├ ƒ /legal                                      176 B         106 kB
+├ ƒ /legal/acceptable-use                       173 B         103 kB
+├ ƒ /legal/cookies                              173 B         103 kB
+├ ƒ /legal/dpa                                  173 B         103 kB
+├ ƒ /legal/privacy                              173 B         103 kB
+├ ƒ /legal/refund                               173 B         103 kB
+├ ƒ /legal/subprocessors                        173 B         103 kB
+├ ƒ /legal/terms                                173 B         103 kB
+├ ƒ /library                                    11 kB         231 kB
+├ ƒ /motion                                     200 B         176 kB
+├ ƒ /motion/[id]                              3.32 kB         179 kB
+├ ƒ /niches                                    6.6 kB         235 kB
+├ ƒ /niches/[id]                              10.4 kB         365 kB
+├ ƒ /niches/[id]/edit                         6.25 kB         180 kB
+├ ƒ /onboarding                               37.2 kB         216 kB
+├ ƒ /onboarding/next                            176 B         106 kB
+├ ƒ /preview/campaigns                        5.55 kB         322 kB
+├ ƒ /preview/dash                             1.04 kB         309 kB
+├ ƒ /pricing                                    744 B         222 kB
+├ ƒ /queue                                    14.8 kB         270 kB
+├ ƒ /queue/[id]                               10.3 kB         256 kB
+├ ƒ /resources                                  738 B         222 kB
+├ ƒ /resources/api                            2.89 kB         224 kB
+├ ƒ /resources/changelog                        738 B         222 kB
+├ ƒ /resources/faq                            1.47 kB         223 kB
+├ ƒ /resources/guides                           677 B         222 kB
+├ ƒ /resources/guides/agent-driven-marketing    744 B         222 kB
+├ ƒ /resources/guides/content-brief             744 B         222 kB
+├ ƒ /resources/guides/first-channel             744 B         222 kB
+├ ƒ /resources/guides/plan-content-budget       744 B         222 kB
+├ ƒ /resources/guides/review-checklist          744 B         222 kB
+├ ƒ /resources/guides/seo-articles              744 B         222 kB
+├ ƒ /resources/help                             677 B         222 kB
+├ ƒ /resources/quickstart                       744 B         222 kB
+├ ○ /robots.txt                                 173 B         103 kB
+├ ƒ /scheduled                                13.9 kB         147 kB
+├ ƒ /seo-audit                                5.82 kB         163 kB
+├ ƒ /seo-audit/[id]                             836 B         153 kB
+├ ƒ /settings                                 13.5 kB         196 kB
+├ ƒ /settings/billing                         7.19 kB         149 kB
+├ ƒ /settings/brand                           7.27 kB         140 kB
+├ ƒ /settings/kits                            9.82 kB         159 kB
+├ ƒ /settings/personas                        5.71 kB         143 kB
+├ ƒ /settings/privacy                         8.73 kB         174 kB
+├ ƒ /settings/tokens                           8.9 kB         164 kB
+├ ƒ /settings/webhooks                        10.5 kB         165 kB
+├ ƒ /sign-in/[[...sign-in]]                    3.6 kB         152 kB
+├ ƒ /sign-up/[[...sign-up]]                    3.6 kB         152 kB
+├ ○ /sitemap.xml                                173 B         103 kB
+├ ƒ /templates                                6.01 kB         179 kB
+├ ƒ /ugc                                      8.87 kB         174 kB
+├ ƒ /use-cases                                  744 B         222 kB
+├ ƒ /use-cases/agencies                       1.05 kB         228 kB
+├ ƒ /use-cases/ai-agents                      1.05 kB         228 kB
+├ ƒ /use-cases/creators                       1.05 kB         228 kB
+├ ƒ /use-cases/ecommerce                      1.05 kB         228 kB
+├ ƒ /use-cases/local-business                 1.05 kB         228 kB
+└ ƒ /use-cases/saas                           1.05 kB         228 kB
++ First Load JS shared by all                  103 kB
+  ├ chunks/51345311-b3ebdde701334374.js       54.2 kB
+  ├ chunks/8324-2dec6599a4a55472.js           46.4 kB
+  └ other shared chunks (total)               2.08 kB
+
+
+ƒ Middleware                                  85.4 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

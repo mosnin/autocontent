@@ -75,7 +75,7 @@ function MarqueeRow({
     smoothVelocity,
     [0, 1200],
     [0, MAX_VELOCITY_BOOST],
-    { clamp: false }
+    { clamp: false },
   );
 
   const x = useTransform(baseX, (value) => `${wrap(-SET_FRACTION, 0, value)}%`);
@@ -108,7 +108,7 @@ function MarqueeRow({
         {Array.from({ length: COPIES }, (_, copy) =>
           shots.map((shot) => (
             <ShotCard key={`${copy}-${shot.src}`} shot={shot} />
-          ))
+          )),
         )}
       </motion.div>
     </div>
@@ -123,8 +123,8 @@ export function Gallery(): ReactNode {
     >
       <div className="mx-auto max-w-[1440px] px-5 sm:px-8 lg:px-10">
         <SectionHeading
-          title="Made with marketer.sh"
-          description="Every frame below came out of the pipelines. Prompts included. Nothing retouched, nothing staged."
+          title="Explore the campaign collection"
+          description="Original illustrative artwork for the Marketer website. Explore the visual direction and creative prompts."
         />
       </div>
 
