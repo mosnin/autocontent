@@ -15,7 +15,7 @@ from marketer.logging import configure as _configure_logging
 
 from .cors import resolve_cors_origins
 from .rate_limit import limiter
-from .routes import ad_creatives, admin, ads, articles, billing, brand_kit, calendar, campaigns, cinema, cms, connect, design, dramas, failures, formats, gatekeeper, headshots, healthz, image_posts, jobs, kits, library, metrics, motion, niches, oauth, ops, performance, personas, providers, scheduled_posts, seo_audits, spend, style_presets, templates, tokens, ugc, users, voices, webhook_endpoints, webhooks, x402
+from .routes import ad_creatives, admin, ads, articles, billing, brand_kit, calendar, campaigns, companyos, production, cinema, cms, connect, design, dramas, failures, formats, gatekeeper, headshots, healthz, image_posts, jobs, kits, library, metrics, motion, niches, oauth, ops, performance, personas, providers, scheduled_posts, seo_audits, spend, style_presets, templates, tokens, ugc, users, voices, webhook_endpoints, webhooks, x402
 from .security_headers import SecurityHeadersMiddleware
 
 logger = logging.getLogger(__name__)
@@ -109,6 +109,8 @@ def create_app() -> FastAPI:
     # spec's JSON shape rather than FastAPI's {"detail": ...}.
     app.add_exception_handler(oauth.OAuthProblem, oauth.oauth_problem_handler)
     app.include_router(oauth.router, prefix="", tags=["oauth"])
+    app.include_router(companyos.router, prefix="/api/companyos/v1", tags=["companyos"])
+    app.include_router(production.router, prefix="/api/v1/production", tags=["production"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
     app.include_router(niches.router, prefix="/api/v1/niches", tags=["niches"])
     app.include_router(performance.router, prefix="/api/v1/niches", tags=["performance"])

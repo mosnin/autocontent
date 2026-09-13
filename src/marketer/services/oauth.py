@@ -44,7 +44,7 @@ SCOPE_DESCRIPTIONS: dict[str, str] = {
     "profile": "See your account name, workspace and role.",
     "email": "See the email address on your account.",
     "offline_access": "Stay connected in the background without asking you to sign in again.",
-    "content:read": "Read the articles, videos and campaigns in your workspace.",
+    "content:read": "Read campaigns and creative outputs, including articles, videos, images and ad variations in your workspace.",
     "content:write": "Create and update articles, videos and campaigns in your workspace.",
 }
 

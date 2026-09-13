@@ -46,6 +46,28 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
     def _client() -> MarketerClient:
         return MarketerClient(base_url=base_url, token=token)
 
+    # ------------------------------------------------------------- production
+
+    @mcp.tool(description="Browse campaigns or creatives across every format. Read-only, cursor-paginated; continue nextCursor until null. IDs include a format prefix.")
+    async def production_library(collection: str = "creatives", limit: int = 25, cursor: str | None = None, kind: str | None = None, campaign_id: str | None = None, search: str = "") -> dict:
+        async with _client() as c:
+            return await c.production_library(collection=collection, limit=limit, cursor=cursor, kind=kind, campaign_id=campaign_id, search=search)
+
+    @mcp.tool(description="Read a creative's delivery brief, readiness issues, versioned notes, handoffs and results. Use its returned version and source fingerprint for any change.")
+    async def get_production(kind: str, creative_id: str) -> dict:
+        async with _client() as c:
+            return await c.get_production(kind, creative_id)
+
+    @mcp.tool(description="Save a production brief, add/resolve a note, approve an exact version, or record a handoff/result. No publishing, sending or spend. Supply expected_version and source_fingerprint from a fresh get_production. A 409 requires rereading and reconsidering, never blindly retrying approval. Results require handoff_version and evidence_url.")
+    async def update_production(kind: str, creative_id: str, command: dict) -> dict:
+        async with _client() as c:
+            return await c.update_production(kind, creative_id, command)
+
+    @mcp.tool(description="Read a small JPEG preview from owned storage; dataUrl is null when this format has no image preview. Read-only. Index selects an image-post slide.")
+    async def production_preview(kind: str, creative_id: str, index: int = 0) -> dict:
+        async with _client() as c:
+            return await c.production_preview(kind, creative_id, index)
+
     # ------------------------------------------------------------- niches
 
     @mcp.tool(description=(

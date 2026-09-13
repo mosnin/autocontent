@@ -37,6 +37,7 @@ const nextConfig = {
     const api = process.env.NEXT_PUBLIC_API_BASE_URL;
     if (!api) return [];
     return [
+      { source: "/api/companyos/:path*", destination: `${api}/api/companyos/:path*` },
       { source: "/oauth/:path*", destination: `${api}/oauth/:path*` },
       {
         source: "/.well-known/oauth-authorization-server",

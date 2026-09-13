@@ -29,6 +29,7 @@ from fastapi.routing import APIRoute
 
 from backend.auth import require_admin, require_user
 from backend.main import create_app
+from backend.routes.companyos import require_companyos_reader
 
 # path -> the mechanism that authenticates the request in place of a session.
 PUBLIC_ROUTES: dict[str, str] = {
@@ -67,7 +68,7 @@ PUBLIC_ROUTES: dict[str, str] = {
 
 # Anything that establishes who is calling. `require_admin` is strictly
 # stronger than `require_user`, so it satisfies the requirement too.
-IDENTITY_DEPENDENCIES = {require_user, require_admin}
+IDENTITY_DEPENDENCIES = {require_user, require_admin, require_companyos_reader}
 
 
 def _flatten(routes: list[Any], prefix: str = "") -> list[tuple[str, APIRoute]]:

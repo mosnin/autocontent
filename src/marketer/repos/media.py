@@ -52,7 +52,8 @@ async def record_asset(
         on conflict (user_id, storage, object_key) do update set
             size_bytes = excluded.size_bytes,
             duration_sec = excluded.duration_sec,
-            title = excluded.title
+            title = excluded.title,
+            revision = media_assets.revision + 1
         returning *
         """,
         user_id, niche_id, job_id, kind, scene_index, storage,
