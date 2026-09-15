@@ -13,6 +13,10 @@ reviewer should be able to take on trust afterwards:
   * refresh tokens rotate, and replaying a rotated one kills the family
   * revocation is idempotent and always answers 200
   * userinfo needs a live token and the openid scope
+  * a disabled client cannot authorize or spend a code
+  * resource indicators are rebound at token and refresh, not only at authorize
+  * a revoked grant, revoked token, expired refresh, or deleted user cannot
+    mint or serve claims
 """
 from __future__ import annotations
 
@@ -309,6 +313,20 @@ def test_unknown_client_renders_a_page_and_never_redirects(client: TestClient) -
     assert "not registered" in response.text
 
 
+def test_disabled_client_renders_a_page_and_never_redirects(
+    client: TestClient, repo: FakeOAuthRepo
+) -> None:
+    """Disabling a client is the off-switch for a compromised integration."""
+    repo.clients[_CLIENT_ID].disabled_at = _now()
+    response = client.get(
+        "/oauth/authorize", params=_authorize_params(), follow_redirects=False
+    )
+    assert response.status_code == 400
+    assert "location" not in {k.lower() for k in response.headers}
+    assert "disabled" in response.text
+    assert not repo.requests
+
+
 def test_redirect_uri_must_match_byte_for_byte(client: TestClient) -> None:
     """One trailing slash is a different URI, and it is not redirected to."""
     response = client.get(
@@ -360,6 +378,72 @@ def test_unknown_resource_indicator_is_refused(client: TestClient) -> None:
     )
     assert response.status_code == 303
     assert parse_qs(urlsplit(response.headers["location"]).query)["error"] == ["invalid_target"]
+
+
+def test_client_registered_resource_is_accepted_and_others_are_not(
+    client: TestClient, repo: FakeOAuthRepo
+) -> None:
+    """A client may advertise extra resource indicators; they are not a wildcard."""
+    partner = "https://partner.example/api"
+    repo.add_client(
+        client_id="mkoc_partner",
+        name="Partner App",
+        redirect_uris=[_REDIRECT_URI],
+        resources=[partner],
+    )
+    allowed = client.get(
+        "/oauth/authorize",
+        params=_authorize_params(client_id="mkoc_partner", resource=partner),
+    )
+    assert allowed.status_code == 200
+
+    refused = client.get(
+        "/oauth/authorize",
+        params=_authorize_params(
+            client_id="mkoc_partner", resource="https://elsewhere.example/api"
+        ),
+        follow_redirects=False,
+    )
+    assert refused.status_code == 303
+    assert parse_qs(urlsplit(refused.headers["location"]).query)["error"] == ["invalid_target"]
+
+
+def test_malformed_pkce_challenge_is_refused(client: TestClient) -> None:
+    """Absent PKCE is already covered; a short S256 challenge is a different branch."""
+    response = client.get(
+        "/oauth/authorize",
+        params=_authorize_params(code_challenge="short"),
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    query = parse_qs(urlsplit(response.headers["location"]).query)
+    assert query["error"] == ["invalid_request"]
+    assert "code_challenge" in query["error_description"][0]
+
+
+def test_unknown_scope_string_is_refused(client: TestClient) -> None:
+    """A scope outside SCOPE_DESCRIPTIONS must never reach the consent screen."""
+    response = client.get(
+        "/oauth/authorize",
+        params=_authorize_params(scope="openid admin:everything"),
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    query = parse_qs(urlsplit(response.headers["location"]).query)
+    assert query["error"] == ["invalid_scope"]
+    assert "unknown scope" in query["error_description"][0]
+
+
+def test_unsupported_response_type_is_refused(client: TestClient) -> None:
+    response = client.get(
+        "/oauth/authorize",
+        params=_authorize_params(response_type="token"),
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    query = parse_qs(urlsplit(response.headers["location"]).query)
+    assert query["error"] == ["unsupported_response_type"]
+    assert "code" not in query
 
 
 def test_signed_out_visitor_is_sent_to_sign_in_and_back(client: TestClient, signed_out) -> None:
@@ -449,6 +533,32 @@ def test_consent_request_is_single_use(client: TestClient) -> None:
     assert second.status_code == 400
 
 
+def test_session_expired_on_consent_post_issues_nothing(
+    client: TestClient, repo: FakeOAuthRepo, monkeypatch
+) -> None:
+    """A lapsed session after GET consent must not mint a code or redirect."""
+    page = client.get("/oauth/authorize", params=_authorize_params())
+    request_id = _request_id(page.text)
+
+    from backend.routes import oauth as oauth_route
+
+    async def _none(_request):
+        return None
+
+    monkeypatch.setattr(oauth_route, "resolve_browser_session", _none)
+
+    response = client.post(
+        "/oauth/authorize",
+        data={"request_id": request_id, "decision": "approve"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 401
+    assert "location" not in {k.lower() for k in response.headers}
+    assert "Session expired" in response.text
+    assert not repo.grants
+    assert not repo.codes
+
+
 # ---------------------------------------------------------------------------
 # Token: authorization_code
 # ---------------------------------------------------------------------------
@@ -526,6 +636,42 @@ def test_code_cannot_be_spent_by_a_different_client(
     assert all(grant.revoked_at is not None for grant in repo.grants.values())
 
 
+def test_resource_mismatch_at_token_is_refused(client: TestClient, repo: FakeOAuthRepo) -> None:
+    """RFC 8707 binding is checked again at exchange, not only at authorize."""
+    code = _approve(client)
+    response = _exchange(client, code, resource="https://evil.example/api")
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_target"
+    assert not repo.tokens
+
+
+def test_revoked_grant_cannot_exchange_an_unspent_code(
+    client: TestClient, repo: FakeOAuthRepo
+) -> None:
+    """A disconnected app must not mint tokens from a still-unspent code."""
+    code = _approve(client)
+    grant = next(iter(repo.grants.values()))
+    grant.revoked_at = _now()
+    grant.revoked_reason = "admin_revoke"
+    response = _exchange(client, code)
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "invalid_grant"
+    assert "revoked" in body["error_description"]
+    assert not repo.tokens
+
+
+def test_disabled_client_cannot_exchange_a_code(
+    client: TestClient, repo: FakeOAuthRepo
+) -> None:
+    code = _approve(client)
+    repo.clients[_CLIENT_ID].disabled_at = _now()
+    response = _exchange(client, code)
+    assert response.status_code == 401
+    assert response.json()["error"] == "invalid_client"
+    assert not repo.tokens
+
+
 # ---------------------------------------------------------------------------
 # Token: refresh
 # ---------------------------------------------------------------------------
@@ -593,6 +739,41 @@ def test_refresh_cannot_widen_scope(client: TestClient) -> None:
     response = _refresh(client, first["refresh_token"], scope="openid content:write")
     assert response.status_code == 400
     assert response.json()["error"] == "invalid_scope"
+
+
+def test_resource_mismatch_at_refresh_is_refused(client: TestClient) -> None:
+    issued = _exchange(client, _approve(client)).json()
+    response = _refresh(client, issued["refresh_token"], resource="https://evil.example/api")
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_target"
+    # The original refresh token is still live — a wrong resource is not theft.
+    assert _refresh(client, issued["refresh_token"]).status_code == 200
+
+
+def test_expired_refresh_token_is_refused(client: TestClient, repo: FakeOAuthRepo) -> None:
+    issued = _exchange(client, _approve(client)).json()
+    for token in repo.tokens.values():
+        if token.kind == "refresh":
+            token.expires_at = _now() - timedelta(seconds=1)
+    response = _refresh(client, issued["refresh_token"])
+    assert response.status_code == 400
+    assert "expired" in response.json()["error_description"]
+
+
+def test_refresh_cannot_be_spent_by_a_different_client(
+    client: TestClient, repo: FakeOAuthRepo
+) -> None:
+    """Wrong-client refresh must look like an unknown token, not a leak."""
+    issued = _exchange(client, _approve(client)).json()
+    repo.add_client(client_id="mkoc_other", name="Other App", redirect_uris=[_REDIRECT_URI])
+    response = _refresh(client, issued["refresh_token"], client_id="mkoc_other")
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "invalid_grant"
+    assert body["error_description"] == "unknown refresh token"
+    assert "grant_revoked" not in body
+    # Owner can still rotate it.
+    assert _refresh(client, issued["refresh_token"]).status_code == 200
 
 
 def test_refresh_can_narrow_scope(client: TestClient) -> None:
@@ -667,6 +848,44 @@ def test_unknown_client_at_token_endpoint(client: TestClient) -> None:
     response = _exchange(client, _approve(client), client_id="mkoc_ghost")
     assert response.status_code == 401
     assert response.json()["error"] == "invalid_client"
+
+
+def test_missing_client_id_at_token_is_refused(client: TestClient) -> None:
+    response = client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": "mko_ac_placeholder",
+            "code_verifier": _VERIFIER,
+            "redirect_uri": _REDIRECT_URI,
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_client"
+    assert "client_id" in response.json()["error_description"]
+
+
+def test_malformed_basic_auth_does_not_crash_the_token_endpoint(client: TestClient) -> None:
+    """Broken Basic must be invalid_client, not a 500 from the decoder."""
+    import base64
+
+    code = _approve(client)
+    form = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "code_verifier": _VERIFIER,
+        "redirect_uri": _REDIRECT_URI,
+    }
+    junk = client.post("/oauth/token", data=form, headers={"Authorization": "Basic !!!"})
+    assert junk.status_code == 400
+    assert junk.json()["error"] == "invalid_client"
+
+    no_colon = base64.b64encode(b"nocolon").decode("ascii")
+    broken = client.post(
+        "/oauth/token", data=form, headers={"Authorization": f"Basic {no_colon}"}
+    )
+    assert broken.status_code == 400
+    assert broken.json()["error"] == "invalid_client"
 
 
 # ---------------------------------------------------------------------------
@@ -785,3 +1004,50 @@ def test_a_refresh_token_is_not_an_access_token(client: TestClient) -> None:
         "/oauth/userinfo", headers={"authorization": f"Bearer {issued['refresh_token']}"}
     )
     assert response.status_code == 401
+
+
+def test_userinfo_rejects_a_revoked_access_token(client: TestClient, repo: FakeOAuthRepo) -> None:
+    """Expiry is already covered; a still-unexpired revoked token must also 401."""
+    issued = _exchange(client, _approve(client)).json()
+    for token in repo.tokens.values():
+        if token.kind == "access":
+            token.revoked_at = _now()
+    response = client.get(
+        "/oauth/userinfo", headers={"authorization": f"Bearer {issued['access_token']}"}
+    )
+    assert response.status_code == 401
+    assert response.json()["error"] == "invalid_token"
+    assert "revoked" in response.json()["error_description"]
+
+
+def test_userinfo_rejects_token_when_grant_is_revoked(
+    client: TestClient, repo: FakeOAuthRepo
+) -> None:
+    """Grant-level revocation must kill claims even if the token row is still live."""
+    issued = _exchange(client, _approve(client)).json()
+    for grant in repo.grants.values():
+        grant.revoked_at = _now()
+    response = client.get(
+        "/oauth/userinfo", headers={"authorization": f"Bearer {issued['access_token']}"}
+    )
+    assert response.status_code == 401
+    assert response.json()["error"] == "invalid_token"
+    assert "grant" in response.json()["error_description"]
+
+
+def test_userinfo_rejects_deleted_account(client: TestClient, monkeypatch) -> None:
+    issued = _exchange(client, _approve(client)).json()
+
+    from marketer.repos import users as users_repo
+
+    async def _gone(_user_id: str):
+        return None
+
+    monkeypatch.setattr(users_repo, "get", _gone)
+
+    response = client.get(
+        "/oauth/userinfo", headers={"authorization": f"Bearer {issued['access_token']}"}
+    )
+    assert response.status_code == 401
+    assert response.json()["error"] == "invalid_token"
+    assert "no longer exists" in response.json()["error_description"]

@@ -92,6 +92,7 @@ def test_registered_redirect_uri_match_accepts_the_exact_string() -> None:
         ("https://acme.example/cb", True),
         ("http://localhost:3000/cb", True),
         ("http://127.0.0.1:3000/cb", True),
+        ("http://[::1]:3000/cb", True),
         ("http://acme.example/cb", False),
         ("https://acme.example/cb#fragment", False),
         ("acme://callback", False),
