@@ -325,6 +325,32 @@ def test_deleting_a_source_removes_the_file(monkeypatch, env):
 # ------------------------------------------------------------ create
 
 
+def test_create_batch_403_when_generate_flag_off(monkeypatch, env):
+    """Headshot batches buy image renders — honor the generate kill-switch."""
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    source = env["store"].seed_source()
+    resp = _client(monkeypatch).post(
+        "/api/v1/headshots",
+        json={
+            "style_key": "editorial_founder",
+            "source_image_ids": [str(source["id"])],
+            "variant_count": 6,
+        },
+        headers=AUTH,
+    )
+    assert resp.status_code == 403
+    assert "generate" in resp.json()["detail"]
+    assert env["spawned"] == []
+    assert env["store"].batches == {}
+
+
 def test_create_batch_spawns_the_render(monkeypatch, env):
     _reset_limiter()
     source = env["store"].seed_source()

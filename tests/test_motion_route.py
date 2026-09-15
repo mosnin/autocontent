@@ -160,6 +160,23 @@ def test_create_refuses_when_unbilled_usage_disabled(monkeypatch, env):
     assert env["store"].rows == {}
 
 
+def test_create_403_when_generate_flag_off(monkeypatch, env):
+    """Admin generate kill-switch must 403 before a motion row or spawn."""
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    resp = _client(monkeypatch).post("/api/v1/motion/projects", json=body(), headers=AUTH)
+    assert resp.status_code == 403
+    assert "generate" in resp.json()["detail"]
+    assert env["spawns"] == []
+    assert env["store"].rows == {}
+
+
 def test_create_returns_202_and_spawns_the_worker(monkeypatch, env):
     _reset_limiter()
     resp = _client(monkeypatch).post("/api/v1/motion/projects", json=body(), headers=AUTH)

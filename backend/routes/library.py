@@ -24,7 +24,7 @@ from marketer.repos import media as media_repo
 from marketer.services import object_storage
 
 from ..auth import AuthCtx, CurrentUser
-from ..hosted_safety import refuse_unbilled_generate
+from ..hosted_safety import refuse_if_flag_off, refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -75,6 +75,7 @@ async def create_composition(
 ) -> Composition:
     """Validate the clips, persist the composition, spawn the render."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     assets = await media_repo.get_assets_bulk(body.clip_asset_ids, user_id=ctx.user_id)
     by_id = {a.id: a for a in assets}
     missing = [str(i) for i in body.clip_asset_ids if i not in by_id]
