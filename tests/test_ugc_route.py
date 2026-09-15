@@ -350,6 +350,32 @@ def test_dangling_image_reference_is_400(monkeypatch, env):
 # ------------------------------------------------------------ submit + metering
 
 
+def test_create_render_403_when_generate_flag_off(monkeypatch, env):
+    """UGC submits hit a paid video API — honor the generate kill-switch."""
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        assert key == "generate"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    resp = _client(monkeypatch).post(
+        "/api/v1/ugc/renders",
+        json={
+            "model_id": "seedance-2",
+            "prompt": "@image1 holds up @image2 and says it changed her mornings",
+            "duration": 10,
+            "image_urls": ["https://cdn.example.com/a.png",
+                           "https://cdn.example.com/b.png"],
+        },
+        headers=AUTH,
+    )
+    assert resp.status_code == 403
+    assert "generate" in resp.json()["detail"]
+    assert env["submits"] == []
+
+
 def test_create_render_submits_and_meters(monkeypatch, env):
     _reset_limiter()
     resp = _client(monkeypatch).post(

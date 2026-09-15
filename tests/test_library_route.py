@@ -136,6 +136,29 @@ def test_media_missing_asset_404(monkeypatch):
     assert r.status_code == 404
 
 
+def test_create_composition_403_when_generate_flag_off(monkeypatch):
+    """Library remix is a Modal render — honor the generate kill-switch."""
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.media as media_repo
+
+    async def _denied(key):
+        return key != "generate"
+
+    async def fake_bulk(*a, **k):  # pragma: no cover - must not be reached
+        raise AssertionError("must not load clips when generate is off")
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(media_repo, "get_assets_bulk", fake_bulk)
+    client = _make_authed_client(monkeypatch)
+    r = client.post("/api/v1/library/compositions", json={
+        "clip_asset_ids": [str(uuid4()), str(uuid4())],
+        "title": "remix one",
+        "audio_mode": "mute",
+    })
+    assert r.status_code == 403
+    assert "generate" in r.json()["detail"]
+
+
 def test_create_composition_validates_and_spawns(monkeypatch):
     import marketer.repos.media as media_repo
 

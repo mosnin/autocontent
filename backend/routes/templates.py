@@ -30,7 +30,7 @@ from marketer.repos import admin_audit
 from marketer.repos import templates as templates_repo
 
 from ..auth import AuthCtx, CurrentUser, require_admin
-from ..hosted_safety import refuse_unbilled_generate
+from ..hosted_safety import refuse_if_flag_off, refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -190,6 +190,7 @@ async def remix_template(
     _size_ok: None = Depends(_bounded_body),
 ) -> dict:
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     template = await templates_repo.get(template_id)
     if template is None or not template.is_published:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

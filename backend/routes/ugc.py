@@ -34,7 +34,7 @@ from marketer.ugc import catalog, pricing, render
 from marketer.ugc.prompts import UgcPromptError
 
 from ..auth import AuthCtx, CurrentUser
-from ..hosted_safety import refuse_unbilled_generate
+from ..hosted_safety import refuse_if_flag_off, refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -114,6 +114,7 @@ async def list_renders(
 @router.post("/renders", status_code=status.HTTP_202_ACCEPTED)
 async def create_render(body: UgcRenderCreate, ctx: AuthCtx = CurrentUser) -> dict:
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     _require_enabled()
 
     if (
@@ -169,6 +170,7 @@ async def get_render(render_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
 @router.post("/renders/{render_id}/retry", status_code=status.HTTP_202_ACCEPTED)
 async def retry_render(render_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     _require_enabled()
     try:
         row = await render.retry_render(render_id, user_id=ctx.user_id)

@@ -226,6 +226,36 @@ def test_every_generate_spawn_route_refuses_unbilled_at_http_edge():
     )
 
 
+# Inbox replay / CMS bulk-topics are the remaining generate-flag holes
+# tracked by PR 60. Everything else that buys a Modal generate worker
+# must refuse here, the same way POST /jobs already does.
+_GENERATE_FLAG_PENDING_PR60 = frozenset({"failures.py", "cms.py"})
+
+
+def test_every_generate_spawn_route_honors_generate_kill_switch():
+    """Admin disable of generate must 403 before a drama / motion / design
+    / headshot / ad-creative / template / library / formats spawn — not
+    only on POST /jobs. Missing the flag still buys a GPU run."""
+    from pathlib import Path
+
+    routes = Path(__file__).resolve().parent.parent / "backend" / "routes"
+    missing: list[str] = []
+    for path in sorted(routes.glob("*.py")):
+        if path.name in _GENERATE_FLAG_PENDING_PR60:
+            continue
+        source = path.read_text()
+        if "Function.from_name" not in source:
+            continue
+        if not any(name in source for name in _GENERATE_SPAWN_NAMES):
+            continue
+        if 'refuse_if_flag_off("generate")' not in source:
+            missing.append(path.name)
+    assert not missing, (
+        "these routers spawn paid Modal work without the generate "
+        f"kill-switch: {missing}"
+    )
+
+
 def test_http_drama_generate_refuses_without_creating_a_row(monkeypatch):
     """Highest-cost leftover: dramas accepted 202 with unbilled usage off."""
     from fastapi.testclient import TestClient

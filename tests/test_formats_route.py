@@ -184,6 +184,25 @@ def test_trends_is_not_swallowed_by_the_key_route(monkeypatch):
 # ------------------------------------------------------------- trends: run
 
 
+def test_research_403_when_generate_flag_off(monkeypatch, spawned):
+    """Trend research buys an LLM scrape — honor the generate kill-switch."""
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        return key != "generate"
+
+    async def fake_create(**kw):  # pragma: no cover - must not be reached
+        raise AssertionError("must not create a report when generate is off")
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(reports_repo, "create", fake_create)
+    client = _client(monkeypatch)
+    resp = client.post("/api/v1/formats/trends", json={"niche_id": str(NICHE_ID)})
+    assert resp.status_code == 403
+    assert "generate" in resp.json()["detail"]
+    assert spawned == []
+
+
 def test_starting_research_returns_202_and_spawns_the_job(monkeypatch, spawned):
     _stub_niche(monkeypatch, _niche())
     created: list[dict] = []

@@ -30,7 +30,7 @@ from marketer.repos import design_projects as projects_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
-from ..hosted_safety import refuse_unbilled_generate
+from ..hosted_safety import refuse_if_flag_off, refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -70,6 +70,7 @@ async def create_project(
 ) -> dict:
     """Create a design project and kick off planning in the background."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     if not body.brief.strip():
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail="brief is required"
@@ -124,6 +125,7 @@ async def get_step_image(
 async def retry_project(project_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Resume a failed project: completed steps keep their outputs."""
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     if not await projects_repo.claim_for_retry(project_id, user_id=ctx.user_id):
         existing = await projects_repo.get(project_id, user_id=ctx.user_id)
         if existing is None:
@@ -149,6 +151,7 @@ async def retry_step(
     claim, so two concurrent clicks can't both win and double-spend.
     """
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     project = await projects_repo.get(project_id, user_id=ctx.user_id)
     if project is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
