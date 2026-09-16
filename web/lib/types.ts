@@ -112,6 +112,7 @@ export interface User {
   ayrshare_profile_key: string | null;
   global_daily_cap_usd: string | null;
   email_notifications: boolean;
+  role: "user" | "admin";
   created_at: string;
 }
 

@@ -26,8 +26,9 @@ export const config = {
     "/(home|onboarding|dashboard|queue|calendar|articles|ads|connect|settings|niches|admin)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
-    // Media manager: GET stays public, POST/DELETE check auth() in-route —
-    // clerkMiddleware just needs to run here so auth() is available.
+    // Media manager: GET stays public. POST/DELETE require an admin role
+    // (checked in-route against the backend users row). clerkMiddleware
+    // still has to run here so auth() can read the session.
     "/api/media",
   ],
 };
