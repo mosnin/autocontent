@@ -3,7 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { promises as fs } from "fs";
 import path from "path";
 
+import { api } from "@/lib/api";
 import { mediaSlotById } from "@/lib/media-slots";
+import type { User } from "@/lib/types";
 
 // Runtime store for admin-uploaded media. Files live on the web server's
 // disk (data/media under the app root) so uploads work anywhere `next
@@ -49,20 +51,35 @@ export async function GET() {
   );
 }
 
-async function requireUser() {
+async function requireAdmin(): Promise<401 | 403 | null> {
+  // Clerk session is not enough — slot writes change the public marketing
+  // site for every visitor. Role is read from the backend users row (same
+  // source as /admin), never from a token claim.
   try {
     const { userId } = await auth();
-    return userId;
+    if (!userId) return 401;
   } catch {
-    return null;
+    return 401;
   }
+  try {
+    const me = await api<User>("/api/v1/users/me");
+    return me.role === "admin" ? null : 403;
+  } catch {
+    return 403;
+  }
+}
+
+function reject(status: 401 | 403) {
+  return NextResponse.json(
+    { error: status === 401 ? "unauthorized" : "admin access required" },
+    { status },
+  );
 }
 
 /** Admin: upload/replace one slot. Body: { id, dataUrl }. */
 export async function POST(req: NextRequest) {
-  if (!(await requireUser())) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = await requireAdmin();
+  if (denied) return reject(denied);
   const body = (await req.json().catch(() => null)) as
     | { id?: string; dataUrl?: string }
     | null;
@@ -99,9 +116,8 @@ export async function POST(req: NextRequest) {
 
 /** Admin: clear one slot (?id=…) back to its placeholder. */
 export async function DELETE(req: NextRequest) {
-  if (!(await requireUser())) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const denied = await requireAdmin();
+  if (denied) return reject(denied);
   const id = req.nextUrl.searchParams.get("id") ?? "";
   const slot = mediaSlotById(id);
   if (!slot) {
