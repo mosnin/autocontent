@@ -58,6 +58,79 @@ def test_voice_preview_synthesizes_once_then_caches(client, monkeypatch, tmp_pat
     assert calls == ["nova"]  # second hit served from cache
 
 
+def test_voice_preview_cache_miss_is_402_when_unbilled_refused(
+    client, monkeypatch, tmp_path
+):
+    """A first listen synthesizes TTS. That must not run on a deployment
+    that refuses unbilled usage — the preview is an operator cost, but
+    it still burns the shared OpenAI key."""
+    from marketer.config import settings
+    from backend.routes import voices as voices_route
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    monkeypatch.setattr(
+        voices_route, "preview_path", lambda v: tmp_path / f"{v}.wav"
+    )
+
+    async def explode(*_a, **_k):
+        raise AssertionError("TTS must not run when unbilled usage is refused")
+
+    monkeypatch.setattr(voices_route.openai_tts, "synthesize", explode)
+
+    resp = client.get(
+        "/api/v1/voices/nova/preview", headers={"Authorization": "Bearer mkt_x"}
+    )
+    assert resp.status_code == 402
+    assert "unbilled" in resp.json()["detail"]
+    assert not (tmp_path / "nova.wav").exists()
+
+
+def test_voice_preview_cache_hit_skips_unbilled_gate(
+    client, monkeypatch, tmp_path
+):
+    """A cached WAV is a file read. Refusing unbilled must not 402 a
+    preview that will never touch a provider."""
+    from marketer.config import settings
+    from backend.routes import voices as voices_route
+
+    monkeypatch.setattr(settings, "billing_enabled", False)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", False)
+    cached = tmp_path / "nova.wav"
+    cached.write_bytes(b"RIFFcached")
+    monkeypatch.setattr(voices_route, "preview_path", lambda v: tmp_path / f"{v}.wav")
+
+    async def explode(*_a, **_k):
+        raise AssertionError("cached preview must not synthesize")
+
+    monkeypatch.setattr(voices_route.openai_tts, "synthesize", explode)
+
+    resp = client.get(
+        "/api/v1/voices/nova/preview", headers={"Authorization": "Bearer mkt_x"}
+    )
+    assert resp.status_code == 200
+    assert resp.content == b"RIFFcached"
+
+
+def test_voice_preview_synthesis_failure_is_502(client, monkeypatch, tmp_path):
+    from backend.routes import voices as voices_route
+
+    monkeypatch.setattr(
+        voices_route, "preview_path", lambda v: tmp_path / f"{v}.wav"
+    )
+
+    async def boom(*_a, **_k):
+        raise RuntimeError("openai down")
+
+    monkeypatch.setattr(voices_route.openai_tts, "synthesize", boom)
+
+    resp = client.get(
+        "/api/v1/voices/nova/preview", headers={"Authorization": "Bearer mkt_x"}
+    )
+    assert resp.status_code == 502
+    assert "voice preview synthesis failed" in resp.json()["detail"]
+
+
 def test_character_sheet_404_before_first_run(client, monkeypatch):
     from marketer.repos import niches as niches_repo
 

@@ -785,3 +785,102 @@ def test_a_refresh_token_is_not_an_access_token(client: TestClient) -> None:
         "/oauth/userinfo", headers={"authorization": f"Bearer {issued['refresh_token']}"}
     )
     assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Remaining HTTP edges (complement the disable/resource/revocation suite)
+# ---------------------------------------------------------------------------
+
+
+def test_authorize_with_missing_account_issues_no_consent(
+    client: TestClient, repo: FakeOAuthRepo, monkeypatch
+) -> None:
+    """A signed-in visitor whose user row is gone must not create a pending
+    consent request — there is no subject to bind the grant to."""
+    from marketer.repos import users as users_repo
+
+    async def _nobody(_user_id: str) -> User | None:
+        return None
+
+    monkeypatch.setattr(users_repo, "get", _nobody)
+    page = client.get("/oauth/authorize", params=_authorize_params())
+    assert page.status_code == 401
+    assert "Account not found" in page.text
+    assert repo.requests == {}
+
+
+def test_malformed_consent_request_id_issues_nothing(
+    client: TestClient, repo: FakeOAuthRepo
+) -> None:
+    """A forged or truncated request_id must not mint a code."""
+    before = dict(repo.grants)
+    response = client.post(
+        "/oauth/authorize",
+        data={"request_id": "not-a-uuid", "decision": "approve"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 400
+    assert "malformed" in response.text.lower()
+    assert repo.grants == before
+    assert repo.codes == {}
+
+
+def test_token_exchange_requires_code_verifier_and_redirect(
+    client: TestClient,
+) -> None:
+    """Missing any of the three exchange fields is invalid_request, not a
+    500 from hashing an empty code."""
+    response = client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "client_id": _CLIENT_ID,
+            "code": "",
+            "code_verifier": _VERIFIER,
+            "redirect_uri": _REDIRECT_URI,
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["error"] == "invalid_request"
+
+
+def test_refresh_without_token_is_invalid_request(client: TestClient) -> None:
+    response = client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "refresh_token",
+            "client_id": _CLIENT_ID,
+        },
+    )
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "invalid_request"
+    assert "refresh_token" in body["error_description"]
+
+
+def test_revoke_without_a_token_is_still_200(client: TestClient, repo: FakeOAuthRepo) -> None:
+    """RFC 7009: an empty or unknown token is not an error. Telling the
+    caller which strings are real tokens would be an oracle."""
+    _approve(client)
+    assert repo.grants
+    response = client.post(
+        "/oauth/revoke",
+        data={"client_id": _CLIENT_ID, "token": ""},
+    )
+    assert response.status_code == 200
+    assert response.content == b""
+    assert all(g.is_live for g in repo.grants.values())
+
+
+def test_userinfo_without_bearer_is_401(client: TestClient) -> None:
+    missing = client.get("/oauth/userinfo")
+    assert missing.status_code == 401
+    assert missing.json()["error"] == "invalid_request"
+    assert "bearer" in missing.json()["error_description"].lower()
+
+    basic = client.get(
+        "/oauth/userinfo", headers={"authorization": "Basic Zm9vOmJhcg=="}
+    )
+    assert basic.status_code == 401
+    assert basic.json()["error"] == "invalid_request"
+
