@@ -77,6 +77,35 @@ def test_draft_returns_full_spec(client, monkeypatch):
         assert k in body
 
 
+def test_draft_spend_cap_is_402_without_a_spec(client, monkeypatch):
+    """Unbilled is a different gate. A live cap breach from the drafter
+    must still 402 and must not leak a 500."""
+    from marketer.config import settings
+    from marketer.repos.spend import SpendCapExceeded
+    import marketer.agents.niche_draft as nd
+    import marketer.repos.brand_kit as bk
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+    monkeypatch.setattr(settings, "allow_unbilled_usage", True)
+
+    async def _no_kit(_uid):
+        return None
+
+    async def _capped(*_a, **_k):
+        raise SpendCapExceeded("user hit global daily cap: $10.00 >= $10.00", scope="global")
+
+    monkeypatch.setattr(bk, "get", _no_kit)
+    monkeypatch.setattr(nd, "draft_niche", _capped)
+
+    resp = client.post(
+        "/api/v1/niches/draft",
+        json={"description": "claymation videos explaining economics for adults"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402
+    assert "global daily cap" in resp.json()["detail"]
+
+
 def test_draft_spec_voice_is_constrained():
     """The draft model must only emit voices the TTS layer supports."""
     from marketer.agents.niche_draft import NicheDraft

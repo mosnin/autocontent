@@ -79,6 +79,68 @@ def test_ssrf_allows_public_ip_literal():
     assert ok is True
 
 
+def test_ssrf_blocks_hostname_that_resolves_private(monkeypatch):
+    """The DNS-rebinding defense: a public-looking host that answers with
+    a private A record must be refused, not just literal private IPs."""
+    import socket
+
+    from marketer.services import ssrf
+
+    def _private(_host, port, proto=0):
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.8", port))]
+
+    monkeypatch.setattr(socket, "getaddrinfo", _private)
+    ok, reason = ssrf.check_public_url("https://hooks.example/hook")
+    assert ok is False
+    assert "10.0.0.8" in reason
+
+
+def test_ssrf_blocks_mixed_public_and_private_answers(monkeypatch):
+    """One private answer in a multi-A response is enough — otherwise a
+    rebinding host that also publishes an 8.8.8.8 record would pass."""
+    import socket
+
+    from marketer.services import ssrf
+
+    def _mixed(_host, port, proto=0):
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("8.8.8.8", port)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("169.254.169.254", port)),
+        ]
+
+    monkeypatch.setattr(socket, "getaddrinfo", _mixed)
+    ok, reason = ssrf.check_public_url("https://hooks.example/hook")
+    assert ok is False
+    assert "169.254.169.254" in reason
+
+
+def test_ssrf_blocks_unresolvable_and_empty_answers(monkeypatch):
+    import socket
+
+    from marketer.services import ssrf
+
+    def _nxdomain(_host, _port, proto=0):
+        raise socket.gaierror("name or service not known")
+
+    monkeypatch.setattr(socket, "getaddrinfo", _nxdomain)
+    ok, reason = ssrf.check_public_url("https://no-such-host.invalid/hook")
+    assert ok is False
+    assert "does not resolve" in reason
+
+    monkeypatch.setattr(socket, "getaddrinfo", lambda *_a, **_k: [])
+    ok, reason = ssrf.check_public_url("https://empty.example/hook")
+    assert ok is False
+    assert "does not resolve" in reason
+
+
+def test_ssrf_refuses_url_without_a_host():
+    from marketer.services import ssrf
+
+    ok, reason = ssrf.check_public_url("https:///hook")
+    assert ok is False
+    assert "no host" in reason
+
+
 # --------------------------------------------------------------------------- admin audit
 
 
