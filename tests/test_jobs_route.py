@@ -219,6 +219,41 @@ def test_enqueue_job_returns_202(monkeypatch):
     assert resp.json()["status"] == "queued"
 
 
+def test_enqueue_job_rejects_archived_niche(monkeypatch):
+    """Archive is a hard stop on new paid runs — 409, nothing spawned."""
+    _reset_limiter()
+    import marketer.repos.niches as niches_repo
+    from types import SimpleNamespace
+
+    created = []
+
+    async def _niche_get(niche_id, *, user_id):
+        return SimpleNamespace(
+            id=niche_id,
+            platforms=["tiktok"],
+            archived_at=datetime.now(timezone.utc),
+        )
+
+    async def _create(**kwargs):
+        created.append(kwargs)
+        return _make_job()
+
+    import marketer.repos.jobs as jobs_repo
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    monkeypatch.setattr(jobs_repo, "create", _create)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "tiktok"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 409
+    assert "archived" in resp.json()["detail"]
+    assert created == []
+
+
 def test_enqueue_job_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()

@@ -43,15 +43,19 @@ def env(monkeypatch):
         "campaign": _campaign(),
         "spent": Decimal("0"),
         "items": [],
-        "counts": {"video": {}, "article": {}},
+        "counts": {"video": {}, "article": {}, "image": {}},
         "status_calls": [],
         "videos": [],
         "articles": [],
+        "images": [],
         "niches": {},
     }
 
     async def fake_spent(cid, *, user_id):
         return state["spent"]
+
+    async def fake_pending(cid, *, user_id):
+        return 0
 
     async def fake_items(cid, *, user_id):
         return state["items"]
@@ -67,6 +71,7 @@ def env(monkeypatch):
         return state["niches"].get(nid)
 
     monkeypatch.setattr(campaigns_repo, "spent_usd", fake_spent)
+    monkeypatch.setattr(campaigns_repo, "pending_work_count", fake_pending)
     monkeypatch.setattr(campaigns_repo, "list_items", fake_items)
     monkeypatch.setattr(campaigns_repo, "work_counts", fake_counts)
     monkeypatch.setattr(campaigns_repo, "set_status", fake_status)
@@ -78,8 +83,12 @@ def env(monkeypatch):
     async def spawn_article(uid, nid, cid):
         state["articles"].append(nid)
 
+    async def spawn_image(uid, nid, cid):
+        state["images"].append(nid)
+
     state["spawn_video"] = spawn_video
     state["spawn_article"] = spawn_article
+    state["spawn_image"] = spawn_image
     return state
 
 
@@ -88,6 +97,7 @@ async def _tick(state):
         state["campaign"],
         spawn_video=state["spawn_video"],
         spawn_article=state["spawn_article"],
+        spawn_image=state["spawn_image"],
         now=NOW,
     )
 
@@ -177,6 +187,29 @@ async def test_disabled_lane_skipped(env):
     )]
     await _tick(env)
     assert env["videos"] == []
+
+
+async def test_archived_niche_lanes_do_not_spawn(env):
+    """Archive promises 'stop new posts' — a running campaign must not
+    keep paying for video/article/image work on an archived niche."""
+    vid, art, img = uuid4(), uuid4(), uuid4()
+    env["niches"][vid] = _niche(vid).model_copy(update={"archived_at": NOW})
+    env["niches"][art] = _niche(art).model_copy(update={"archived_at": NOW})
+    env["niches"][img] = _niche(img).model_copy(update={"archived_at": NOW})
+    env["items"] = [
+        CampaignItem(id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+                     kind="video", ref_id=vid, cadence_per_week=7),
+        CampaignItem(id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+                     kind="article", ref_id=art, cadence_per_week=7),
+        CampaignItem(id=uuid4(), campaign_id=env["campaign"].id, user_id=USER,
+                     kind="image", ref_id=img, cadence_per_week=7),
+    ]
+    result = await _tick(env)
+    assert result["action"] == "ticked"
+    assert result["spawned"] == []
+    assert env["videos"] == []
+    assert env["articles"] == []
+    assert env["images"] == []
 
 
 async def test_tick_all_contains_per_campaign_failures(monkeypatch, env):
