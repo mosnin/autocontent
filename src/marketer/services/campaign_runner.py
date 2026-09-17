@@ -141,7 +141,7 @@ async def run_campaign_tick(
             if not _due(counts["video"].get(item.ref_id), item.cadence_per_week, now):
                 continue
             niche = await niches_repo.get(item.ref_id, user_id=uid)
-            if niche is None or not niche.platforms:
+            if niche is None or niches_repo.is_archived(niche) or not niche.platforms:
                 continue
             # Rotate platforms across spawns so all socials get coverage.
             total = (counts["video"].get(item.ref_id) or {"total": 0})["total"]
@@ -153,7 +153,7 @@ async def run_campaign_tick(
             if not _due(counts.get("image", {}).get(item.ref_id), item.cadence_per_week, now):
                 continue
             niche = await niches_repo.get(item.ref_id, user_id=uid)
-            if niche is None:
+            if niche is None or niches_repo.is_archived(niche):
                 continue
             await spawn_image(uid, niche.id, campaign.id)
             projected += est
@@ -162,7 +162,7 @@ async def run_campaign_tick(
             if not _due(counts["article"].get(item.ref_id), item.cadence_per_week, now):
                 continue
             niche = await niches_repo.get(item.ref_id, user_id=uid)
-            if niche is None:
+            if niche is None or niches_repo.is_archived(niche):
                 continue
             await spawn_article(uid, niche.id, campaign.id)
             projected += est

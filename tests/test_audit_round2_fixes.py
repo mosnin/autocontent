@@ -210,6 +210,71 @@ def test_create_campaign_normalizes_naive_datetimes(monkeypatch):
     assert r.status_code == 422
 
 
+def test_add_campaign_item_rejects_archived_niche(monkeypatch):
+    from marketer.models import Campaign, Niche, PostingWindow
+    import marketer.repos.campaigns as campaigns_repo
+    import marketer.repos.niches as niches_repo
+
+    added = []
+    cid = uuid4()
+    nid = uuid4()
+
+    async def fake_get(campaign_id, *, user_id):
+        return Campaign(
+            id=cid, user_id=_USER_ID, name="live", status="running",
+            budget_usd=Decimal("10"),
+        )
+
+    async def fake_niche(niche_id, *, user_id):
+        return Niche(
+            id=niche_id, user_id=_USER_ID, title="t", description="d",
+            target_audience="a", visual_style="v", voice="onyx",
+            target_duration_sec=30, scene_count=2,
+            posting_windows=[PostingWindow(hour=9, minute=0, tz="UTC")],
+            platforms=["tiktok"], daily_spend_cap_usd=Decimal("5"),
+            archived_at=NOW,
+        )
+
+    async def fake_add(**kwargs):
+        added.append(kwargs)
+        raise AssertionError("archived niche must not add a lane")
+
+    monkeypatch.setattr(campaigns_repo, "get", fake_get)
+    monkeypatch.setattr(niches_repo, "get", fake_niche)
+    monkeypatch.setattr(campaigns_repo, "add_item", fake_add)
+    client = _make_authed_client(monkeypatch)
+    r = client.post(
+        f"/api/v1/campaigns/{cid}/items",
+        json={"kind": "video", "ref_id": str(nid), "cadence_per_week": 3},
+    )
+    assert r.status_code == 409
+    assert "archived" in r.json()["detail"]
+    assert added == []
+
+
+def test_enqueue_image_post_rejects_archived_niche(monkeypatch):
+    import marketer.repos.image_posts as image_posts_repo
+    import marketer.repos.niches as niches_repo
+    from types import SimpleNamespace
+
+    created = []
+
+    async def fake_niche(niche_id, *, user_id):
+        return SimpleNamespace(id=niche_id, archived_at=NOW)
+
+    async def fake_create(**kwargs):
+        created.append(kwargs)
+        return {"id": uuid4()}
+
+    monkeypatch.setattr(niches_repo, "get", fake_niche)
+    monkeypatch.setattr(image_posts_repo, "create", fake_create)
+    client = _make_authed_client(monkeypatch)
+    r = client.post("/api/v1/image-posts", json={"niche_id": str(uuid4())})
+    assert r.status_code == 409
+    assert "archived" in r.json()["detail"]
+    assert created == []
+
+
 def test_patch_item_wrong_campaign_is_scoped_in_sql(monkeypatch):
     import marketer.repos.campaigns as campaigns_repo
 

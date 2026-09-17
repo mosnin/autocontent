@@ -15,6 +15,7 @@ const PLATFORM_META: Record<Platform, { label: string; icon: LucideIcon }> = {
 export function NicheRunButtons({ niche }: { niche: Niche }) {
   const { openRunConfirm } = useRunConfirm();
 
+  if (niche.archived_at) return null;
   if (niche.platforms.length === 0) return null;
 
   return (

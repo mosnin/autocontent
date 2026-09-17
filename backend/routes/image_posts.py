@@ -41,8 +41,13 @@ async def list_image_posts(
 async def enqueue_image_post(
     body: ImagePostCreate, ctx: AuthCtx = CurrentUser
 ) -> dict:
-    if await niches_repo.get(body.niche_id, user_id=ctx.user_id) is None:
+    niche = await niches_repo.get(body.niche_id, user_id=ctx.user_id)
+    if niche is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+    if niches_repo.is_archived(niche):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="niche is archived"
+        )
     post = await image_posts_repo.create(
         user_id=ctx.user_id, niche_id=body.niche_id, kind=body.kind,
         topic=body.topic.strip(), slide_count=body.slide_count,

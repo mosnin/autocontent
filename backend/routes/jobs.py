@@ -56,6 +56,10 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     niche = await niches_repo.get(body.niche_id, user_id=ctx.user_id)
     if niche is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+    if niches_repo.is_archived(niche):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, detail="niche is archived"
+        )
     if body.platform not in niche.platforms:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -138,10 +138,16 @@ async def add_item(
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    # Lane refs must belong to the caller.
+    # Lane refs must belong to the caller and still be active —
+    # archived niches must not accept new paid work.
     if body.kind in ("video", "article", "image"):
-        if await niches_repo.get(body.ref_id, user_id=ctx.user_id) is None:
+        niche = await niches_repo.get(body.ref_id, user_id=ctx.user_id)
+        if niche is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
+        if niches_repo.is_archived(niche):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT, detail="niche is archived"
+            )
     else:  # ad
         from marketer.repos import ads as ads_repo
 

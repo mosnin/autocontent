@@ -155,6 +155,35 @@ def test_enqueue_article_202_and_spawns_with_article_id(monkeypatch):
     assert spawned == [(_USER_ID, str(_NICHE_ID), str(_ARTICLE_ID), "test topic")]
 
 
+def test_enqueue_article_rejects_archived_niche(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.niches as niches_repo
+    import marketer.repos.articles as articles_repo
+
+    created = []
+
+    async def _niche_get(niche_id, *, user_id):
+        return types.SimpleNamespace(
+            id=niche_id, archived_at=datetime.now(timezone.utc)
+        )
+
+    async def _create(**kwargs):
+        created.append(kwargs)
+        return _make_article()
+
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    monkeypatch.setattr(articles_repo, "create", _create)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/articles",
+        json={"niche_id": str(_NICHE_ID)},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 409
+    assert "archived" in resp.json()["detail"]
+    assert created == []
+
+
 def test_enqueue_article_404_on_foreign_niche(monkeypatch):
     _reset_limiter()
     import marketer.repos.niches as niches_repo

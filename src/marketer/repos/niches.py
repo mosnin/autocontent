@@ -102,6 +102,17 @@ async def get(niche_id: UUID, *, user_id: str) -> Niche | None:
     return _row_to_niche(row) if row else None
 
 
+def is_archived(niche: Niche) -> bool:
+    """True when the niche has been archived and must not spawn new work.
+
+    ``get()`` still returns archived rows so historical jobs and the
+    detail page keep working. Spawn / enqueue paths must call this
+    (or skip the row) — the dashboard archive confirm promises
+    "This will stop new posts."
+    """
+    return getattr(niche, "archived_at", None) is not None
+
+
 async def update(
     niche_id: UUID,
     *,
