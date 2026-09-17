@@ -21,6 +21,38 @@ def test_sign_is_hmac_sha256_over_ts_dot_body():
     assert webhook_delivery.sign(secret, ts, body) == expected
 
 
+async def test_deliver_one_blocks_when_ssrf_guard_fails(monkeypatch):
+    """A URL that later resolves privately must not receive a signed POST."""
+    posted: list[str] = []
+
+    class _Client:
+        def __init__(self, *a, **k): ...
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def post(self, url, *, content, headers):
+            posted.append(url)
+            raise AssertionError("must not POST a signed payload to a private host")
+
+    monkeypatch.setattr(webhook_delivery.httpx, "AsyncClient", _Client)
+    monkeypatch.setattr(
+        "marketer.services.ssrf.check_public_url",
+        lambda url: (False, "resolves to a private address"),
+    )
+    code = await webhook_delivery.deliver_one(
+        "https://hook.example/x",
+        "whsec_abc",
+        event="job.done",
+        payload={"job_id": "j1"},
+        timestamp=111,
+    )
+    assert code is None
+    assert posted == []
+
+
 async def test_deliver_one_signs_and_posts(monkeypatch):
     captured = {}
 
