@@ -198,3 +198,214 @@ def test_patch_unknown_endpoint_404s(monkeypatch):
         json={"enabled": True}, headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 404
+
+
+def test_delete_foreign_or_unknown_endpoint_404s(monkeypatch):
+    """A miss and a foreign id are the same 404 — never confirm the row
+    exists for another tenant, and never DELETE without user_id."""
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    seen: dict = {}
+
+    async def _delete(endpoint_id, *, user_id):
+        seen["id"] = endpoint_id
+        seen["user_id"] = user_id
+        return False
+
+    monkeypatch.setattr(repo, "delete", _delete)
+    client = _client(monkeypatch)
+    eid = uuid4()
+    resp = client.delete(
+        f"/api/v1/webhook-endpoints/{eid}",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert seen == {"id": eid, "user_id": _USER}
+
+
+def test_delete_owned_endpoint_is_204(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    seen: dict = {}
+
+    async def _delete(endpoint_id, *, user_id):
+        seen["id"] = endpoint_id
+        seen["user_id"] = user_id
+        return True
+
+    monkeypatch.setattr(repo, "delete", _delete)
+    client = _client(monkeypatch)
+    eid = uuid4()
+    resp = client.delete(
+        f"/api/v1/webhook-endpoints/{eid}",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 204
+    assert seen == {"id": eid, "user_id": _USER}
+
+
+def _endpoint(eid=None, *, url="https://ok.example/x", enabled=True):
+    from datetime import datetime, timezone
+
+    from marketer.repos.webhooks_out import WebhookEndpoint
+
+    return WebhookEndpoint(
+        id=eid or uuid4(),
+        user_id=_USER,
+        url=url,
+        events=[],
+        enabled=enabled,
+        description="",
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+def test_send_test_foreign_or_unknown_endpoint_404s(monkeypatch):
+    """A test ping to someone else's endpoint must not open a socket."""
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    seen: dict = {}
+
+    async def _get(endpoint_id, *, user_id):
+        seen["id"] = endpoint_id
+        seen["user_id"] = user_id
+        return None
+
+    async def _boom(*_a, **_k):
+        raise AssertionError("must not deliver or look up a secret on a 404")
+
+    monkeypatch.setattr(repo, "get", _get)
+    monkeypatch.setattr(repo, "deliverable_for_event", _boom)
+    monkeypatch.setattr(webhook_delivery, "deliver_one", _boom)
+    client = _client(monkeypatch)
+    eid = uuid4()
+    resp = client.post(
+        f"/api/v1/webhook-endpoints/{eid}/test",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert seen == {"id": eid, "user_id": _USER}
+
+
+def test_send_test_disabled_endpoint_409s_without_posting(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    ep = _endpoint(enabled=True)
+    posted = {"n": 0}
+
+    async def _get(endpoint_id, *, user_id):
+        return ep
+
+    async def _targets(user_id, event):
+        return []
+
+    async def _deliver(*_a, **_k):
+        posted["n"] += 1
+        return 200
+
+    monkeypatch.setattr(repo, "get", _get)
+    monkeypatch.setattr(repo, "deliverable_for_event", _targets)
+    monkeypatch.setattr(webhook_delivery, "deliver_one", _deliver)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/webhook-endpoints/{ep.id}/test",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 409
+    assert posted["n"] == 0
+
+
+def test_send_test_posts_signed_ping_and_records_status(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    ep = _endpoint()
+    delivered: dict = {}
+    recorded: dict = {}
+
+    async def _get(endpoint_id, *, user_id):
+        assert user_id == _USER
+        return ep
+
+    async def _targets(user_id, event):
+        assert user_id == _USER
+        assert event == "test.ping"
+        return [(ep.url, "whsec_test")]
+
+    async def _deliver(url, secret, *, event, payload, timestamp):
+        delivered.update(
+            url=url, secret=secret, event=event, payload=payload, timestamp=timestamp
+        )
+        return 204
+
+    async def _record(url, user_id, status_code):
+        recorded.update(url=url, user_id=user_id, status_code=status_code)
+
+    monkeypatch.setattr(repo, "get", _get)
+    monkeypatch.setattr(repo, "deliverable_for_event", _targets)
+    monkeypatch.setattr(webhook_delivery, "deliver_one", _deliver)
+    monkeypatch.setattr(repo, "record_delivery", _record)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/webhook-endpoints/{ep.id}/test",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"delivered": True, "status_code": 204}
+    assert delivered["url"] == ep.url
+    assert delivered["secret"] == "whsec_test"
+    assert delivered["event"] == "test.ping"
+    assert delivered["payload"]["endpoint_id"] == str(ep.id)
+    assert recorded == {"url": ep.url, "user_id": _USER, "status_code": 204}
+
+
+async def test_delete_sql_is_scoped_to_the_caller(monkeypatch):
+    """A DELETE that drops `user_id` would let any PAT erase any hook."""
+    import marketer.repos.webhooks_out as repo
+
+    captured: dict = {}
+
+    class _Pool:
+        async def execute(self, sql, *args):
+            captured["sql"] = sql
+            captured["args"] = args
+            return "DELETE 0"
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(repo, "get_pool", _pool)
+    eid = uuid4()
+    assert await repo.delete(eid, user_id=_USER) is False
+    sql = " ".join(captured["sql"].split())
+    assert "delete from webhook_endpoints" in sql
+    assert "id = $1 and user_id = $2" in sql
+    assert captured["args"] == (eid, _USER)
+
+
+async def test_deliverable_sql_requires_enabled_and_caller(monkeypatch):
+    """Disabled or foreign endpoints must not receive a signed payload."""
+    import marketer.repos.webhooks_out as repo
+
+    captured: dict = {}
+
+    class _Pool:
+        async def fetch(self, sql, *args):
+            captured["sql"] = sql
+            captured["args"] = args
+            return []
+
+    async def _pool():
+        return _Pool()
+
+    monkeypatch.setattr(repo, "get_pool", _pool)
+    assert await repo.deliverable_for_event(_USER, "job.done") == []
+    sql = " ".join(captured["sql"].split())
+    assert "user_id = $1" in sql
+    assert "enabled" in sql
+    assert "cardinality(events) = 0 or $2 = any(events)" in sql
+    assert captured["args"] == (_USER, "job.done")
