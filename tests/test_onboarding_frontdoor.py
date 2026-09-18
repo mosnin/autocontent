@@ -31,8 +31,11 @@ def test_draft_rejects_too_short(client):
 def test_draft_returns_full_spec(client, monkeypatch):
     from marketer.agents.niche_draft import NicheDraft
 
+    captured: dict = {}
+
     async def fake_draft(description, *, brand_context="", spend=None):
         assert "economics" in description
+        captured["spend"] = spend
         return NicheDraft(
             title="Clay Economics",
             description="Claymation explainers on economics.",
@@ -48,15 +51,21 @@ def test_draft_returns_full_spec(client, monkeypatch):
             tts_style_directions="calm and warm",
         )
 
+    async def fake_ctx(**kw):
+        captured["ctx_kw"] = kw
+        return object()
+
     # The endpoint imports draft_niche lazily; patch at the agent module.
     import marketer.agents.niche_draft as nd
     import marketer.repos.brand_kit as bk
+    import marketer.services.spend_context as sc
 
     async def _no_kit(uid):
         return None
 
     monkeypatch.setattr(nd, "draft_niche", fake_draft)
     monkeypatch.setattr(bk, "get", _no_kit)
+    monkeypatch.setattr(sc, "default_context", fake_ctx)
 
     resp = client.post(
         "/api/v1/niches/draft",
@@ -68,6 +77,10 @@ def test_draft_returns_full_spec(client, monkeypatch):
     assert body["title"] == "Clay Economics"
     assert body["voice"] == "onyx"
     assert body["video_resolution"] == "720p"
+    # Metered: spend context is built niche-less and handed to the agent.
+    assert captured["spend"] is not None
+    assert captured["ctx_kw"]["user_id"] == "user_a"
+    assert captured["ctx_kw"]["niche_id"] is None
     # Every wizard-inferable field is present.
     for k in (
         "target_audience", "hashtags", "visual_style",
@@ -75,6 +88,42 @@ def test_draft_returns_full_spec(client, monkeypatch):
         "scene_max_duration_sec", "tts_style_directions",
     ):
         assert k in body
+
+
+def test_draft_402_when_spend_blocked(client, monkeypatch):
+    """Onboarding draft is a paid LLM call — honor caps / prepaid credit."""
+    from marketer.repos.spend import SpendCapExceeded
+    import marketer.agents.niche_draft as nd
+    import marketer.repos.brand_kit as bk
+    import marketer.services.spend_context as sc
+
+    called: list[str] = []
+
+    async def _no_kit(uid):
+        return None
+
+    async def fake_ctx(**kw):
+        return object()
+
+    async def fake_draft(description, *, brand_context="", spend=None):
+        called.append(description)
+        raise SpendCapExceeded(
+            "user user_a has $0 credit; call would charge $0.01. Top up to continue.",
+            scope="credits",
+        )
+
+    monkeypatch.setattr(nd, "draft_niche", fake_draft)
+    monkeypatch.setattr(bk, "get", _no_kit)
+    monkeypatch.setattr(sc, "default_context", fake_ctx)
+
+    resp = client.post(
+        "/api/v1/niches/draft",
+        json={"description": "claymation videos explaining economics for adults"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402
+    assert "credit" in resp.json()["detail"]
+    assert called  # agent ran far enough to refuse; route maps the error
 
 
 def test_draft_spec_voice_is_constrained():
