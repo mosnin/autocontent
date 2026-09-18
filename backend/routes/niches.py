@@ -48,9 +48,17 @@ async def draft_niche_spec(
 ) -> dict:
     """One sentence in, a full channel spec out. The onboarding front
     door: the client shows the returned fields on a review screen so the
-    user launches instead of filling a 16-field form."""
+    user launches instead of filling a 16-field form.
+
+    Metered: the draft agent is a real LLM call. Charge it through the
+    same SpendContext as article social remix / template remix so global
+    caps and prepaid credit apply. There is no niche yet, so per-niche
+    caps do not.
+    """
     from marketer.agents.niche_draft import draft_niche
     from marketer.repos import brand_kit as brand_kit_repo
+    from marketer.repos.spend import SpendCapExceeded
+    from marketer.services.spend_context import default_context
 
     text = body.description.strip()
     if len(text) < 8:
@@ -61,8 +69,14 @@ async def draft_niche_spec(
     # Steer the draft with the user's brand kit when they have one.
     kit = await brand_kit_repo.get(ctx.user_id)
     brand_context = brand_kit_repo.as_prompt_context(kit)
+    # Niche-less: global daily cap + hosted prepaid balance still apply.
+    spend = await default_context(
+        user_id=ctx.user_id, niche_id=None, job_id=None, cap_usd=None,
+    )
     try:
-        draft = await draft_niche(text, brand_context=brand_context)
+        draft = await draft_niche(text, brand_context=brand_context, spend=spend)
+    except SpendCapExceeded as e:
+        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, detail=str(e)) from e
     except Exception as e:  # noqa: BLE001 — surface as a clean 502
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
