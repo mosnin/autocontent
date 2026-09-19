@@ -494,6 +494,38 @@ def definition_section_from_research(
     return f"## {title}\n\n{body}\n"
 
 
+def how_to_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """'How to start with X' as numbered SERP highlights. No invented steps."""
+    key = (heading or "").strip().casefold()
+    if not key.startswith("how to start"):
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 3:
+        return None
+    lines = [f"## {(heading or 'How to start').strip()}\n"]
+    for i, item in enumerate(highlights[:6], 1):
+        lines.append(f"{i}. {item.rstrip('.')[:180]}")
+    return "\n".join(lines) + "\n"
+
+
+def mistakes_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """'Mistakes to avoid' as SERP highlight bullets. No invented failure modes."""
+    key = (heading or "").strip().casefold()
+    if "mistake" not in key:
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 3:
+        return None
+    lines = [f"## {(heading or 'Mistakes to avoid').strip()}\n"]
+    for item in highlights[:6]:
+        lines.append(f"- {item.rstrip('.')[:180]}")
+    return "\n".join(lines) + "\n"
+
+
 def heuristic_quality(
     article_md: str,
     focus_keyword: str,

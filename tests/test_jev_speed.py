@@ -511,6 +511,16 @@ def test_faq_section_and_publishable_metadata():
     assert definition and definition.startswith("## What espresso actually is")
     assert "18 grams" in definition
     assert fastpath.definition_section_from_research("How to start", rich) is None
+    how_to = fastpath.how_to_section_from_research("How to start with espresso", rich)
+    assert how_to and how_to.startswith("## How to start with espresso")
+    assert "1." in how_to and "2." in how_to
+    assert fastpath.how_to_section_from_research("FAQ", rich) is None
+    mistakes = fastpath.mistakes_section_from_research(
+        "Mistakes to avoid with espresso", rich
+    )
+    assert mistakes and mistakes.startswith("## Mistakes to avoid")
+    assert mistakes.count("\n- ") >= 3
+    assert fastpath.mistakes_section_from_research("How to start with espresso", rich) is None
     assert fastpath.metadata_is_publishable(
         "Dial in espresso at home: a practical guide",
         "A practical guide to espresso for home baristas who want sweeter, more consistent shots every morning.",

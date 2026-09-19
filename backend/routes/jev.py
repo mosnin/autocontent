@@ -46,6 +46,7 @@ from ..rate_limit import limiter
 router = APIRouter()
 _JEV_LIMIT = "40/minute"
 _ADS_LIMIT = "20/minute"
+_KNOWLEDGE_LIMIT = "30/minute"
 log = get_logger(__name__)
 
 T = TypeVar("T")
@@ -243,7 +244,8 @@ async def jev_route(
 
 
 @router.get("/knowledge")
-async def jev_knowledge(ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_KNOWLEDGE_LIMIT)
+async def jev_knowledge(request: Request, ctx: AuthCtx = CurrentUser) -> dict:
     rows = await knowledge_repo.list_for_user(ctx.user_id, limit=40)
     return {
         "items": [r.model_dump(mode="json") for r in rows],

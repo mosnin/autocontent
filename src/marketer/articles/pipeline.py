@@ -217,6 +217,8 @@ async def _write_sections(
                 fastpath.faq_section_from_research(heading, ctx.research)
                 or fastpath.checklist_section_from_research(heading, ctx.research)
                 or fastpath.definition_section_from_research(heading, ctx.research)
+                or fastpath.how_to_section_from_research(heading, ctx.research)
+                or fastpath.mistakes_section_from_research(heading, ctx.research)
             )
             if templated:
                 return templated

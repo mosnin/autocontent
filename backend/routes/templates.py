@@ -34,6 +34,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _REMIX_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 MAX_IMAGE_B64 = 8 * 1024 * 1024  # ~6MB binary
 # Whole-request ceiling: image b64 + prompt + slack. Checked from the
@@ -175,7 +176,10 @@ async def list_all_templates(admin=Depends(require_admin)) -> list[Template]:
 
 
 @router.get("/{template_id}/reference")
-async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
+@limiter.limit(_MEDIA_LIMIT)
+async def template_reference(
+    request: Request, template_id: UUID, ctx: AuthCtx = CurrentUser
+):
     template = await templates_repo.get(template_id)
     if template is None or not template.is_published or not template.reference_key:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

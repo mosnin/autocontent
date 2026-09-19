@@ -558,38 +558,11 @@ async def _run_job_inner(
     if not await _ensure_cap(job, niche):
         return job
 
-    from .jev.client import warm as jev_warm
-    from .jev.planner import plan_video_run
-
-    try:
-        await jev_warm()
-    except Exception:  # noqa: BLE001 — prefetch never blocks a job
-        pass
-
-    plan = await plan_video_run(
-        {
-            "niche": niche.title,
-            "platform": platform,
-            "description": niche.description,
-            "audience": niche.target_audience,
-            "script_model": niche.script_model or "",
-            "prior_qa_failed": not allow_regenerate,
-        },
-        script_model=niche.script_model or "",
-        spend=spend,
-    )
-    job.harness = {**(job.harness or {}), "plan": plan.as_dict()}
-
-    # Fail fast on a misconfigured/rotated ElevenLabs key — BEFORE any
-    # ideation/image/render spend. Without this, a niche whose
-    # voice_provider is 'elevenlabs' but whose key is missing/rotated only
-    # discovers the problem at the voicing stage, after script + all
-    # keyframes + all renders have already been bought. Left unchanged by
-    # provider fallback: this is a deploy-config guard (the key is simply
-    # absent, not a transient/persistent *provider* failure), and an
-    # operator who wants elevenlabs but forgot the key should see that
-    # immediately rather than have every job quietly render with the
-    # niche's non-chosen voice.
+    # Fail fast on a misconfigured/rotated ElevenLabs key — BEFORE
+    # planner Jev, character-sheet, ideation, or render spend. Without
+    # this, a missing key used to pay a planner hop (and used to be
+    # checked only after that hop). Left unchanged by provider fallback:
+    # this is a deploy-config guard, not a transient provider failure.
     if niche.voice_provider == "elevenlabs" and not elevenlabs_tts.enabled():
         return await _fail_with(
             job,
@@ -598,9 +571,9 @@ async def _run_job_inner(
             "before this job can spend anything",
         )
 
-    # Character sheet depends only on the niche look — start it before
-    # ideation/script so gpt-image-1 latency hides behind the writer.
-    # cast_mode 'none' never builds a sheet (subject-mode videos).
+    # Character sheet depends only on the niche look. Start it before
+    # planner + ideation so gpt-image-1 hides behind Jev and the setup
+    # reads. cast_mode 'none' never builds a sheet.
     sheet_task: asyncio.Task | None = None
     if niche.creative_brief.visual.cast_mode != "none":
         sheet_task = asyncio.create_task(
@@ -609,6 +582,28 @@ async def _run_job_inner(
             )
         )
 
+    from .jev.client import warm as jev_warm
+    from .jev.planner import plan_video_run
+
+    async def _plan_work():
+        try:
+            await jev_warm()
+        except Exception:  # noqa: BLE001 — prefetch never blocks a job
+            pass
+        return await plan_video_run(
+            {
+                "niche": niche.title,
+                "platform": platform,
+                "description": niche.description,
+                "audience": niche.target_audience,
+                "script_model": niche.script_model or "",
+                "prior_qa_failed": not allow_regenerate,
+            },
+            script_model=niche.script_model or "",
+            spend=spend,
+        )
+
+    plan_task = asyncio.create_task(_plan_work())
     try:
         return await _run_job_after_sheet(
             job,
@@ -618,15 +613,11 @@ async def _run_job_inner(
             spend,
             sheet_task=sheet_task,
             allow_regenerate=allow_regenerate,
-            plan=plan,
+            plan_task=plan_task,
         )
     finally:
-        if sheet_task is not None and not sheet_task.done():
-            sheet_task.cancel()
-            try:
-                await sheet_task
-            except (asyncio.CancelledError, Exception):  # noqa: BLE001
-                pass
+        await _cancel_task(sheet_task)
+        await _cancel_task(plan_task)
 
 
 async def _run_job_after_sheet(
@@ -638,9 +629,9 @@ async def _run_job_after_sheet(
     *,
     sheet_task: asyncio.Task | None,
     allow_regenerate: bool,
-    plan: VideoPlan,
+    plan_task: asyncio.Task,
 ) -> Job:
-    from .jev.planner import VideoPlan, script_has_caption_source, script_has_usable_visuals
+    from .jev.planner import script_has_caption_source, script_has_usable_visuals
 
     # Stage resume: a retried job that still carries a script from the
     # failed attempt reuses it (and any per-scene/VO artifacts below)
@@ -651,6 +642,8 @@ async def _run_job_after_sheet(
     banned_words: list[str] = []
 
     if resumed:
+        plan = await plan_task
+        job.harness = {**(job.harness or {}), "plan": plan.as_dict()}
         script: Script = _lock_script_facts(job.script, niche)
         job.script = script
         log.info("resume: reusing script from prior attempt")
@@ -658,11 +651,14 @@ async def _run_job_after_sheet(
     else:
         # 1. Ideation — fed the full brief: niche description/audience,
         # brand voice, recent-topic dedupe list, and performance context.
+        # Planner Jev overlaps the four setup reads; it does not feed
+        # ideation (and must not substitute plan.model_id as script_model).
         with _stage(JobStatus.ideating.value):
             job.status = JobStatus.ideating
             await _persist(job)
-            perf_ctx, (brand_voice, banned_words), recent, design_kit_content = (
+            plan, perf_ctx, (brand_voice, banned_words), recent, design_kit_content = (
                 await asyncio.gather(
+                    plan_task,
                     build_performance_context(
                         niche_id=niche.id,
                         user_id=job.user_id,
@@ -675,6 +671,7 @@ async def _run_job_after_sheet(
                     _load_design_kit(job.user_id, niche),
                 )
             )
+            job.harness = {**(job.harness or {}), "plan": plan.as_dict()}
             idea = await run_ideation(
                 niche.title,
                 performance_context=perf_ctx,
