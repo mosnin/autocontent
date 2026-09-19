@@ -6,9 +6,8 @@ authenticated user, same contract as /jobs.
 """
 from __future__ import annotations
 
-from uuid import UUID
-
 import os
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, PlainTextResponse
@@ -22,6 +21,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _SOCIAL_LIMIT = "20/minute"
+_ENQUEUE_LIMIT = "10/minute"
 
 
 class ArticleEnqueue(BaseModel):
@@ -69,7 +69,10 @@ async def get_article_markdown(
 
 
 @router.post("", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
-async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def enqueue_article(
+    request: Request, body: ArticleEnqueue, ctx: AuthCtx = CurrentUser
+) -> Article:
     """Create the article row and spawn the Modal pipeline against it.
     Poll GET /{article_id} for status."""
     import modal
@@ -127,7 +130,7 @@ async def repurpose_to_social(
             article.title or article.topic, article.article_markdown,
             body.platforms, spend=spend,
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         # Cap tripped or provider error — surface a clean 4xx/5xx.
         from marketer.repos.spend import SpendCapExceeded
         if isinstance(exc, SpendCapExceeded):
@@ -152,7 +155,10 @@ async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> File
 
 
 @router.post("/{article_id}/retry", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
-async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def retry_article(
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Article:
     """Re-run a failed article from scratch (same row, same topic)."""
     import modal
 

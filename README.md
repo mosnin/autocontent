@@ -38,8 +38,9 @@ The harness follows the LangChain pattern
 - **Campaign next_action** — HOLD / BLOCKED / ROUTE_HUMAN / DONE skips a tick instead of burning credits.
 - **Research rank + citation audit** — Exa pages are judged before the outline; unsourced numbers are stripped, then Jev scores the rest.
 - **Cascade + compact state** — cheap Qwen first; retry bumps a tier. `ask()` trims state to 4k so Jev stays fast and calibrated.
-- **Template ideation / article fastpaths** — Jev picks among code-built ideas, outlines, titles, FAQs, social snippets. The writer only writes prose. Dark-path article and video QA are heuristics, not a second LLM.
-- **Keep-alive HTTP** — Jev, OpenRouter, Exa, Ayrshare, ElevenLabs reuse one client so the 70–500ms decision budget is not eaten by TLS.
+- **Template ideation / article fastpaths** — Jev picks among code-built ideas, outlines, titles, FAQs, social snippets. The writer only writes prose. Dark-path article and video QA are heuristics; dark-path ideation and carousels use the first template, not a writer tournament.
+- **Keep-alive HTTP** — Jev, OpenRouter, Exa, Ayrshare, ElevenLabs, Pixabay, Resend, x402, and outbound webhooks reuse one client so the 70–500ms decision budget is not eaten by TLS.
+- **HTTP bounds** — 40/min Jev judges, 20/min ads + article social, 10/min enqueue/retry, 8/min voice + niche draft. Every `/jev` POST meters spend fail-open.
 - **jev-curate** — can skip indexing a discard-worthy final in the media library.
 - **Failures overlay** — jev-code triage attaches class / actionable / severity to the inbox.
 - **Company OS** (`company_os/`) — route work onto Studio / Press / Ads / Suite.

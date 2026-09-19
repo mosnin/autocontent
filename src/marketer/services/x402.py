@@ -13,13 +13,29 @@ happens in CI. Amounts are handled in USDC's 6-decimal atomic units.
 """
 from __future__ import annotations
 
+import asyncio
 import base64
 import binascii
 import json
 from dataclasses import dataclass
 from decimal import Decimal
 
+import httpx
+
 from ..config import settings
+
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(timeout=20)
+        return _http
 
 X402_VERSION = 1
 # USDC and most facilitator-supported stablecoins use 6 decimals.
@@ -123,13 +139,11 @@ def decode_payment_header(header: str) -> dict:
 
 async def _facilitator_post(path: str, body: dict) -> dict:
     _require_enabled()
-    import httpx  # lazy
-
     url = settings.x402_facilitator_url.rstrip("/") + path
-    async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.post(url, json=body)
-        resp.raise_for_status()
-        return resp.json()
+    client = await _shared_client()
+    resp = await client.post(url, json=body)
+    resp.raise_for_status()
+    return resp.json()
 
 
 async def verify_and_settle(
@@ -148,14 +162,14 @@ async def verify_and_settle(
     verify = await _facilitator_post("/verify", verify_body)
     if not verify.get("isValid", verify.get("valid", False)):
         return SettleResult(
-            False, "", "", Decimal("0"),
+            False, "", "", Decimal(0),
             error=str(verify.get("invalidReason", "payment failed verification")),
         )
 
     settle = await _facilitator_post("/settle", verify_body)
     if not settle.get("success", False):
         return SettleResult(
-            False, "", "", Decimal("0"),
+            False, "", "", Decimal(0),
             error=str(settle.get("errorReason", "settlement failed")),
         )
     settlement_id = str(
@@ -174,7 +188,7 @@ async def verify_and_settle(
             accepts["maxAmountRequired"],
         )
         return SettleResult(
-            False, "", "", Decimal("0"),
+            False, "", "", Decimal(0),
             error="settlement succeeded but returned no transaction id",
         )
     amount = from_atomic(accepts["maxAmountRequired"])

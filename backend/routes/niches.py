@@ -5,7 +5,7 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -14,8 +14,10 @@ from marketer.repos import niches as niches_repo
 from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_DRAFT_LIMIT = "8/minute"
 
 # ElevenLabs voice ids are short alphanumeric tokens (e.g.
 # "21m00Tcm4TlvDq8ikWAM"). This value is interpolated directly into a
@@ -43,8 +45,9 @@ class DraftRequest(BaseModel):
 
 
 @router.post("/draft")
+@limiter.limit(_DRAFT_LIMIT)
 async def draft_niche_spec(
-    body: DraftRequest, ctx: AuthCtx = CurrentUser
+    request: Request, body: DraftRequest, ctx: AuthCtx = CurrentUser
 ) -> dict:
     """One sentence in, a full channel spec out. The onboarding front
     door: the client shows the returned fields on a review screen so the
@@ -63,7 +66,7 @@ async def draft_niche_spec(
     brand_context = brand_kit_repo.as_prompt_context(kit)
     try:
         draft = await draft_niche(text, brand_context=brand_context)
-    except Exception as e:  # noqa: BLE001 — surface as a clean 502
+    except Exception as e:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
             detail=f"could not draft a channel: {e}",

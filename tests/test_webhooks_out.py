@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from datetime import UTC
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -28,16 +29,16 @@ async def test_deliver_one_signs_and_posts(monkeypatch):
         status_code = 200
 
     class _Client:
-        def __init__(self, *a, **k): ...
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): return False
         async def post(self, url, *, content, headers):
             captured["url"] = url
             captured["content"] = content
             captured["headers"] = headers
             return _Resp()
 
-    monkeypatch.setattr(webhook_delivery.httpx, "AsyncClient", _Client)
+    async def _shared():
+        return _Client()
+
+    monkeypatch.setattr(webhook_delivery, "_shared_client", _shared)
     # This test exercises signing, not the SSRF guard; the .example host
     # doesn't resolve, so stub the guard to allow it.
     monkeypatch.setattr("marketer.services.ssrf.check_public_url", lambda url: (True, ""))
@@ -127,14 +128,15 @@ def test_create_rejects_unknown_event(monkeypatch):
 
 def test_create_returns_secret_once(monkeypatch):
     _reset_limiter()
+    from datetime import datetime
+
     import marketer.repos.webhooks_out as repo
     from marketer.repos.webhooks_out import WebhookEndpoint
-    from datetime import datetime, timezone
 
     async def _create(*, user_id, url, events, description=""):
         ep = WebhookEndpoint(
             id=uuid4(), user_id=user_id, url=url, events=events, enabled=True,
-            description=description, created_at=datetime.now(timezone.utc),
+            description=description, created_at=datetime.now(UTC),
         )
         ep.secret = "whsec_reveal"
         return ep
@@ -155,9 +157,10 @@ def test_create_returns_secret_once(monkeypatch):
 
 def test_patch_toggles_enabled(monkeypatch):
     _reset_limiter()
+    from datetime import datetime
+
     import marketer.repos.webhooks_out as repo
     from marketer.repos.webhooks_out import WebhookEndpoint
-    from datetime import datetime, timezone
 
     eid = uuid4()
     seen = {}
@@ -168,7 +171,7 @@ def test_patch_toggles_enabled(monkeypatch):
         return WebhookEndpoint(
             id=endpoint_id, user_id=user_id, url="https://ok.example/x",
             events=[], enabled=enabled, description="",
-            created_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
         )
 
     monkeypatch.setattr(repo, "set_enabled", _set_enabled)

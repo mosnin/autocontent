@@ -10,15 +10,17 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ENQUEUE_LIMIT = "10/minute"
 
 
 class ImagePostCreate(BaseModel):
@@ -38,8 +40,9 @@ async def list_image_posts(
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(_ENQUEUE_LIMIT)
 async def enqueue_image_post(
-    body: ImagePostCreate, ctx: AuthCtx = CurrentUser
+    request: Request, body: ImagePostCreate, ctx: AuthCtx = CurrentUser
 ) -> dict:
     if await niches_repo.get(body.niche_id, user_id=ctx.user_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
@@ -63,7 +66,10 @@ async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dic
 
 
 @router.post("/{image_post_id}/retry", status_code=status.HTTP_202_ACCEPTED)
-async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def retry_image_post(
+    request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     """Re-run a failed post from the top (fresh plan + renders)."""
     if not await image_posts_repo.claim_for_retry(image_post_id, user_id=ctx.user_id):
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)

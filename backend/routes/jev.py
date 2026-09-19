@@ -16,8 +16,6 @@ from pydantic import BaseModel, Field, field_validator
 
 from marketer.company_os import capture_from_state, route_workspace
 from marketer.config import settings
-from marketer.logging import get_logger
-from marketer.repos import company_knowledge as knowledge_repo
 from marketer.jev import available, enabled
 from marketer.jev.ask import DecisionUnavailable
 from marketer.jev.ask import ask as jev_ask
@@ -30,6 +28,8 @@ from marketer.jev.decisions import (
 )
 from marketer.jev.harness import auto_mode, default_generation_model, next_action, route_model
 from marketer.jev.router import route_intent
+from marketer.logging import get_logger
+from marketer.repos import company_knowledge as knowledge_repo
 from marketer.services import openrouter
 from marketer.symbolic import assess as foreman_assess
 from marketer.symbolic.jev_code import (
@@ -76,6 +76,19 @@ def _require_available() -> None:
             status.HTTP_409_CONFLICT,
             detail="Jev is not configured (need TYPESAFE or OpenRouter key)",
         )
+
+
+async def _optional_spend(ctx: AuthCtx):
+    """Ledger HTTP judges. Fail-open — a missing user row must not block."""
+    try:
+        from marketer.services.spend_context import default_context
+
+        return await default_context(
+            user_id=ctx.user_id, niche_id=None, job_id=None
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.warning("jev.spend_context_failed", extra={"error": str(exc)})
+        return None
 
 
 async def _run_decision(coro: Awaitable[T]) -> T:
@@ -173,15 +186,7 @@ async def jev_ask_endpoint(
     request: Request, body: AskBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    spend = None
-    try:
-        from marketer.services.spend_context import default_context
-
-        spend = await default_context(
-            user_id=ctx.user_id, niche_id=None, job_id=None
-        )
-    except Exception as exc:  # noqa: BLE001 — ledger must never block a judge
-        log.warning("jev.ask.spend_context_failed", extra={"error": str(exc)})
+    spend = await _optional_spend(ctx)
     result = await _run_decision(
         jev_ask(body.state, _coerce_questions(body.questions), spend=spend)
     )
@@ -204,14 +209,15 @@ async def jev_route(
 ) -> dict:
     """Intent + company OS in parallel. Model tier rides on the intent fan-out."""
     _require_available()
+    spend = await _optional_spend(ctx)
     intent, company = await asyncio.gather(
-        _run_decision(route_intent(body.state)),
-        _run_decision(route_workspace(body.state)),
+        _run_decision(route_intent(body.state, spend=spend)),
+        _run_decision(route_workspace(body.state, spend=spend)),
     )
     if intent.model is not None:
         model = intent.model
     else:
-        model = await _run_decision(route_model(body.state))
+        model = await _run_decision(route_model(body.state, spend=spend))
     knowledge: list[dict] = []
     if company.knowledge_write:
         try:
@@ -261,7 +267,10 @@ async def jev_next_action(
     request: Request, body: NextActionBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    action = await _run_decision(next_action(body.state, targets=body.targets))
+    spend = await _optional_spend(ctx)
+    action = await _run_decision(
+        next_action(body.state, targets=body.targets, spend=spend)
+    )
     return {
         "operation": action.operation,
         "target": action.target,
@@ -287,7 +296,10 @@ async def jev_auto_mode(
     request: Request, body: AutoModeBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    decision = await _run_decision(auto_mode(body.state or {}, tool=body.tool))
+    spend = await _optional_spend(ctx)
+    decision = await _run_decision(
+        auto_mode(body.state or {}, tool=body.tool, spend=spend)
+    )
     return decision.as_dict()
 
 
@@ -297,7 +309,8 @@ async def jev_screen(
     request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    v = await _run_decision(screen_content(body.state))
+    spend = await _optional_spend(ctx)
+    v = await _run_decision(screen_content(body.state, spend=spend))
     return {
         "malicious": v.malicious,
         "jailbreak": v.jailbreak,
@@ -313,7 +326,8 @@ async def jev_curate(
     request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    v = await _run_decision(curate_asset(body.state))
+    spend = await _optional_spend(ctx)
+    v = await _run_decision(curate_asset(body.state, spend=spend))
     return {
         "keep": v.keep,
         "cluster": v.cluster,
@@ -328,7 +342,8 @@ async def jev_ads_judge(
     request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    v = await _run_decision(judge_ad_action(body.state))
+    spend = await _optional_spend(ctx)
+    v = await _run_decision(judge_ad_action(body.state, spend=spend))
     return {
         "action": v.action,
         "reason": v.reason,
@@ -348,7 +363,10 @@ async def jev_citation(
     request: Request, body: CitationBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    return await _run_decision(verify_citation(body.claim, body.source))
+    spend = await _optional_spend(ctx)
+    return await _run_decision(
+        verify_citation(body.claim, body.source, spend=spend)
+    )
 
 
 @router.post("/symbolic/foreman")
@@ -357,7 +375,8 @@ async def jev_foreman(
     request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    return (await _run_decision(foreman_assess(body.state))).as_dict()
+    spend = await _optional_spend(ctx)
+    return (await _run_decision(foreman_assess(body.state, spend=spend))).as_dict()
 
 
 class SymbolicBody(BaseModel):
@@ -378,15 +397,26 @@ async def jev_code(
     request: Request, body: SymbolicBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
+    spend = await _optional_spend(ctx)
     workflow = body.workflow
     if not workflow and body.request:
-        workflow = await _run_decision(classify_request(body.request))
+        workflow = await _run_decision(classify_request(body.request, spend=spend))
     if workflow == "find":
-        return (await _run_decision(find_relevant(body.task or body.request, body.candidates))).as_dict()
+        return (
+            await _run_decision(
+                find_relevant(body.task or body.request, body.candidates, spend=spend)
+            )
+        ).as_dict()
     if workflow == "triage_failures":
-        return (await _run_decision(triage_failures(body.log_text or body.request))).as_dict()
+        return (
+            await _run_decision(
+                triage_failures(body.log_text or body.request, spend=spend)
+            )
+        ).as_dict()
     if workflow == "triage_review":
-        return (await _run_decision(triage_review(body.comments))).as_dict()
+        return (
+            await _run_decision(triage_review(body.comments, spend=spend))
+        ).as_dict()
     return (
         await _run_decision(
             check_changes(
@@ -394,6 +424,7 @@ async def jev_code(
                 body.diff,
                 rules=body.rules,
                 acceptance=body.acceptance,
+                spend=spend,
             )
         )
     ).as_dict()

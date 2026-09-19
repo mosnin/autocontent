@@ -17,15 +17,14 @@ from __future__ import annotations
 
 import asyncio
 
+from agents import Agent
 from pydantic import BaseModel, Field
 
-from agents import Agent
-
 from ..config import settings
-from .metered import run_metered
 from ..models import Idea
 from ..models.creative_brief import CreativeBrief
-from ..services.spend_context import SpendContext  # noqa: TC001 — used in signature
+from ..services.spend_context import SpendContext
+from .metered import run_metered
 
 IDEATION_INSTRUCTIONS = """You are an expert short-form content strategist.
 Given a niche brief, produce ONE Idea optimized for educational short-form video.
@@ -234,7 +233,7 @@ async def run_ideation(
     banned_words: list[str] | None = None,
     recent_topics: list[str] | None = None,
     brief: CreativeBrief | None = None,
-    spend: "SpendContext | None" = None,
+    spend: SpendContext | None = None,
 ) -> Idea:
     """Generate `settings.ideation_candidates` ideas and return the winner.
 
@@ -268,15 +267,16 @@ async def run_ideation(
         banned_words=banned_words,
         limit=max(n, 4),
     )
-    if len(templates) >= 2:
+    # n==1 is the last writer hop (prompt-injection + a lone operator
+    # lens). n≥2 is templates + Jev; a dark harness does not buy a
+    # tournament just because four templates exist.
+    if n >= 2 and len(templates) >= 2:
         try:
             from ..config import settings as _settings
             from ..jev import available as jev_available
             from ..jev.decisions import judge_ideas
 
             # Templates + one System One fan-out (Jev or Qwen wrapper).
-            # Dark harness keeps the LLM tournament so tests without keys
-            # still exercise Runner.run.
             if _settings.jev_enabled and jev_available():
                 judge_prompt = build_ideation_prompt(
                     niche_title,
@@ -292,6 +292,9 @@ async def run_ideation(
 
             if isinstance(exc, SpendCapExceeded):
                 raise
+        # Dark harness / judge miss: first template. Classification is
+        # not worth a 3-way writer tournament.
+        return templates[0]
 
     if n == 1:
         # Honor the creator's preferred hook mechanism even without a
@@ -353,7 +356,7 @@ async def run_ideation(
             pick = await judge_ideas(judge_prompt, candidates, spend=spend)
             if 0 <= pick.winner_index < len(candidates):
                 return candidates[pick.winner_index]
-    except Exception as exc:  # noqa: BLE001 — tournament never becomes a failure mode
+    except Exception as exc:
         from ..repos.spend import SpendCapExceeded
 
         if isinstance(exc, SpendCapExceeded):
@@ -373,7 +376,7 @@ async def run_ideation(
         verdict = verdict_result.final_output_as(IdeaVerdict)
         if 0 <= verdict.winner_index < len(candidates):
             return candidates[verdict.winner_index]
-    except Exception as exc:  # noqa: BLE001 — tournament never becomes a failure mode
+    except Exception as exc:
         from ..repos.spend import SpendCapExceeded
 
         if isinstance(exc, SpendCapExceeded):

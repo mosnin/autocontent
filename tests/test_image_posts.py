@@ -21,7 +21,7 @@ def _niche(**over) -> Niche:
         target_audience="devs", visual_style="clean diagram style", voice="onyx",
         target_duration_sec=30, scene_count=2,
         posting_windows=[PostingWindow(hour=9, minute=0, tz="UTC")],
-        platforms=["reels"], daily_spend_cap_usd=Decimal("5"),
+        platforms=["reels"], daily_spend_cap_usd=Decimal(5),
     )
     base.update(over)
     return Niche(**base)
@@ -96,7 +96,6 @@ def env(tmp_path, monkeypatch):
 
     async def fake_default_context(**kwargs):
         assert kwargs.get("image_post_id") == POST_ID  # attribution wired
-        return None
 
     monkeypatch.setattr(svc, "default_context", fake_default_context)
     monkeypatch.setattr(svc, "ensure_layout", lambda p: tmp_path / p)
@@ -170,6 +169,26 @@ async def test_generation_failure_is_terminal_not_zombie(env, monkeypatch):
     assert "image provider down" in result["error"]
 
 
+async def test_plan_is_always_template(monkeypatch):
+    """Dark-path carousels must not buy a planner LLM."""
+    from agents import Runner
+
+    async def boom(*a, **k):
+        raise AssertionError("carousel plan is a template, not a writer")
+
+    monkeypatch.setattr(Runner, "run", boom)
+    plan = await svc._plan(
+        topic="claude tips",
+        kind="carousel",
+        slide_count=3,
+        niche=_niche(),
+        spend=None,  # type: ignore[arg-type]
+    )
+    assert len(plan.slides) == 3
+    assert plan.slides[0].index == 0
+    assert "claude tips" in plan.slides[0].heading.lower() or plan.caption
+
+
 # --------------------------------------------------------------------------- remix
 
 async def test_template_remix_uses_both_references(tmp_path, monkeypatch):
@@ -199,7 +218,6 @@ async def test_template_remix_uses_both_references(tmp_path, monkeypatch):
 
     async def fake_ctx(**kwargs):
         assert kwargs["niche_id"] is None  # niche-less spend context
-        return None
 
     monkeypatch.setattr(template_remix, "default_context", fake_ctx)
 

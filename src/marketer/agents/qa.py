@@ -8,9 +8,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from pydantic import BaseModel
-
 from agents import Agent
+from pydantic import BaseModel
 
 from ..config import settings
 

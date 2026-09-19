@@ -16,14 +16,12 @@ all see it.
 """
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from ..agents.metered import run_metered
-from ..agents.carousel import CarouselPlan, build_carousel_agent, template_carousel_plan
+from ..agents.carousel import CarouselPlan, template_carousel_plan
 from ..logging import get_logger
 from ..models import Niche
 from ..repos import image_posts as image_posts_repo
@@ -53,36 +51,16 @@ def image_platform(niche: Niche, override: str | None = None) -> str | None:
 async def _plan(
     *, topic: str, kind: str, slide_count: int, niche: Niche, spend: SpendContext
 ) -> CarouselPlan:
-    brief_lines = (
-        niche.creative_brief.ideation_lines()
-        + niche.creative_brief.scriptwriter_lines()
-        + niche.creative_brief.image_lines()
+    plan = template_carousel_plan(
+        topic=topic,
+        kind=kind,
+        slide_count=slide_count,
+        niche_title=niche.title,
+        visual_style=niche.visual_style,
     )
-    payload = {
-        "topic": topic,
-        "kind": kind,
-        "slide_count": 1 if kind == "single" else max(2, min(MAX_SLIDES, slide_count)),
-        "niche": f"{niche.title} — {niche.description}",
-        "audience": niche.target_audience,
-        "visual_style": niche.visual_style,
-        "brief_lines": brief_lines,
-    }
-    from ..config import settings
-    from ..jev import available as jev_available
-
-    if settings.jev_enabled and jev_available():
-        plan = template_carousel_plan(
-            topic=topic,
-            kind=kind,
-            slide_count=slide_count,
-            niche_title=niche.title,
-            visual_style=niche.visual_style,
-        )
-    else:
-        result = await run_metered(
-            build_carousel_agent(), json.dumps(payload), spend=spend
-        )
-        plan = result.final_output_as(CarouselPlan)
+    # Templates do not meter. `spend` stays on the signature so callers
+    # and campaign attribution do not fork.
+    _ = spend
     # Normalize: sort by claimed index then reindex 0..n-1 so duplicate or
     # gapped planner indices can't overwrite slide files.
     ordered = sorted(plan.slides, key=lambda sl: sl.index)
@@ -247,7 +225,7 @@ async def schedule_image_post(
             )
 
         await image_posts_repo.set_status(image_post_id, user_id=user_id, status="scheduling")
-        when = datetime.now(timezone.utc)
+        when = datetime.now(UTC)
 
         poster = apply_schedule or scheduler.schedule_image_post
         provider_post_id = await poster(

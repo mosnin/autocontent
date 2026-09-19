@@ -12,9 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from marketer.agents.ideation import build_ideation_prompt, _PERF_PREAMBLE
+from marketer.agents.ideation import _PERF_PREAMBLE, build_ideation_prompt
 from marketer.models import Idea
-
 
 # ---------------------------------------------------------------------------
 # build_ideation_prompt (pure function — no LLM needed)
@@ -74,12 +73,13 @@ async def test_run_ideation_no_perf_sends_simple_prompt(monkeypatch):
     fake_result = MagicMock()
     fake_result.final_output_as = MagicMock(return_value=fake_idea)
 
-    async def fake_run(agent, *, input):  # noqa: A002
+    async def fake_run(agent, *, input):
         captured.append(input)
         return fake_result
 
-    import marketer.orchestrator as _orch
     from agents import Runner
+
+    import marketer.orchestrator as _orch
 
     monkeypatch.setattr(Runner, "run", fake_run)
 
@@ -104,12 +104,13 @@ async def test_run_ideation_with_perf_injects_context_into_prompt(monkeypatch):
     fake_result = MagicMock()
     fake_result.final_output_as = MagicMock(return_value=fake_idea)
 
-    async def fake_run(agent, *, input):  # noqa: A002
+    async def fake_run(agent, *, input):
         captured.append(input)
         return fake_result
 
-    import marketer.orchestrator as _orch
     from agents import Runner
+
+    import marketer.orchestrator as _orch
 
     monkeypatch.setattr(Runner, "run", fake_run)
 
@@ -142,12 +143,13 @@ async def test_run_ideation_default_kwarg_is_empty(monkeypatch):
     fake_result = MagicMock()
     fake_result.final_output_as = MagicMock(return_value=fake_idea)
 
-    async def fake_run(agent, *, input):  # noqa: A002
+    async def fake_run(agent, *, input):
         captured.append(input)
         return fake_result
 
-    import marketer.orchestrator as _orch
     from agents import Runner
+
+    import marketer.orchestrator as _orch
 
     monkeypatch.setattr(Runner, "run", fake_run)
 
@@ -157,77 +159,56 @@ async def test_run_ideation_default_kwarg_is_empty(monkeypatch):
     assert captured[0] == "Niche: my niche"
 
 
-async def test_run_ideation_tournament_generates_n_plus_judge(monkeypatch):
-    """3 candidates -> 3 ideation calls + 1 judge call; judge's pick wins."""
+async def test_run_ideation_dark_path_uses_first_template(monkeypatch):
+    """n≥2 + dark Jev returns a template. No writer tournament."""
+    from marketer.agents.ideation import idea_candidates
     from marketer.config import settings as _settings
-    from marketer.agents.ideation import IdeaVerdict
-    from marketer.models import Idea
 
     monkeypatch.setattr(_settings, "ideation_candidates", 3)
+    monkeypatch.setattr(_settings, "jev_enabled", False)
 
-    ideas = [
-        Idea(topic=f"t{i}", angle="a", hook=f"hook {i}",
-             target_audience="x", why_it_works="y")
-        for i in range(3)
-    ]
     calls = {"n": 0}
 
-    class _Result:
-        def __init__(self, output):
-            self._output = output
-            self.context_wrapper = type("W", (), {"usage": type(
-                "U", (), {"total_tokens": 10, "input_tokens": 5, "output_tokens": 5})()})()
-
-        def final_output_as(self, cls):
-            return self._output
-
-    async def fake_run(agent, *, input):  # noqa: A002
+    async def fake_run(agent, *, input):
         calls["n"] += 1
-        if agent.name == "IdeaJudge":
-            return _Result(IdeaVerdict(winner_index=2, reasoning="strongest hook"))
-        return _Result(ideas[min(calls["n"] - 1, 2)])
+        raise AssertionError("dark-path ideation must not call the writer")
+
+    from agents import Runner
 
     import marketer.orchestrator as _orch
-    from agents import Runner
 
     monkeypatch.setattr(Runner, "run", fake_run)
 
     idea = await _orch.run_ideation("claymation econ")
-    assert calls["n"] == 4  # 3 candidates + 1 judge
-    assert idea.topic == "t2"  # judge's pick
+    assert calls["n"] == 0
+    assert idea.topic == idea_candidates("claymation econ")[0].topic
 
 
-async def test_run_ideation_tournament_judge_failure_falls_back(monkeypatch):
-    """A judge blow-up returns candidate 0 instead of failing the job."""
+async def test_run_ideation_dark_path_judge_miss_still_template(monkeypatch):
+    """A live-Jev miss (or judge miss) still returns template 0, never fails."""
+    from marketer.agents.ideation import idea_candidates
     from marketer.config import settings as _settings
-    from marketer.models import Idea
 
     monkeypatch.setattr(_settings, "ideation_candidates", 2)
+    monkeypatch.setattr(_settings, "jev_enabled", True)
 
-    first = Idea(topic="first", angle="a", hook="h",
-                 target_audience="x", why_it_works="y")
+    monkeypatch.setattr("marketer.jev.available", lambda: False)
 
-    class _Result:
-        def __init__(self, output):
-            self._output = output
-            self.context_wrapper = type("W", (), {"usage": type(
-                "U", (), {"total_tokens": 10, "input_tokens": 5, "output_tokens": 5})()})()
+    calls = {"n": 0}
 
-        def final_output_as(self, cls):
-            return self._output
+    async def fake_run(agent, *, input):
+        calls["n"] += 1
+        raise AssertionError("dark harness must not fall back to a writer judge")
 
-    async def fake_run(agent, *, input):  # noqa: A002
-        if agent.name == "IdeaJudge":
-            raise RuntimeError("judge exploded")
-        return _Result(first)
+    from agents import Runner
 
     import marketer.orchestrator as _orch
-    from agents import Runner
 
     monkeypatch.setattr(Runner, "run", fake_run)
 
     idea = await _orch.run_ideation("niche")
-    assert idea.topic == "first"
+    assert calls["n"] == 0
+    assert idea.topic == idea_candidates("niche")[0].topic
 
 
 async def test_ideation_prompt_includes_full_brief_and_dedupe():

@@ -721,3 +721,17 @@ Dark-path article QA uses word count, keyword density, sentence length, and dash
 | Article `/social` 20/min | Extracted snippets are cheap; the bound still stops a tight loop |
 
 Jev still judges video when the key is live. Social copy is now an extract — worse poetry, zero invented facts, zero writer spend.
+
+---
+
+## 19. Loop — dark-path writers gone, every HTTP judge metered
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Dark-path ideation returns `templates[0]` | Classification is not worth a 3-way writer tournament. `n==1` still hits the writer so prompt-injection tests and a lone operator lens keep working |
+| Image-post `_plan` is always `template_carousel_plan` | gpt-image-1 still renders. A dark harness no longer spends a planner completion inventing slide copy |
+| Every `/jev/*` POST meters spend (fail-open, `niche_id` null) | Stolen token / noisy UI pays the ledger, not just the 40/min cap |
+| Enqueue + retry 10/min (jobs, articles, image posts); niche draft 8/min | Modal + writer spend cannot be melted by a tight loop |
+| Pixabay / Resend / x402 / outbound webhook keep-alive | Music search, mail, facilitator verify, and signed fan-out skip a TLS handshake per call |
+
+Jev still picks among templates when the key is live. Ads overlay is unchanged: deny / force-approve only; `AdSpendGuard` never relaxes.

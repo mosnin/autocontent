@@ -23,6 +23,19 @@ from . import ssrf
 log = get_logger(__name__)
 
 _TIMEOUT = 10.0
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    """Reuse one keep-alive client across fan-out. Hosts still get their own pool slot."""
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(timeout=_TIMEOUT)
+        return _http
 
 
 def sign(secret: str, timestamp: int, body: str) -> str:
@@ -49,9 +62,9 @@ async def deliver_one(url: str, secret: str, *, event: str, payload: dict, times
         "x-marketer-signature": f"t={timestamp},v1={signature}",
     }
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            resp = await client.post(url, content=body, headers=headers)
-            return resp.status_code
+        client = await _shared_client()
+        resp = await client.post(url, content=body, headers=headers)
+        return resp.status_code
     except httpx.HTTPError as exc:
         log.warning("webhook delivery failed", extra={"url": url, "error": str(exc)})
         return None
