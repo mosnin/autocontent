@@ -974,14 +974,13 @@ async def _run_job_inner(
     # 9. Archive — mirror clips/keyframes/VO/final into the media library
     # (Wasabi when configured, volume-indexed otherwise). Fail-open: a
     # storage hiccup never fails a QA-passed video.
-    with _stage("archiving"):
-        await media_archive.archive_job_media(job, niche)
-
     # 10. Approval gate — the trust ramp. When the niche requires sign-off,
     # a fully rendered + QA-passed video parks here instead of posting.
     # The operator approves via the API, which resumes at the scheduling
     # stage through `schedule_approved_job`.
     if niche.approve_before_post:
+        with _stage("archiving"):
+            await media_archive.archive_job_media(job, niche)
         job.status = JobStatus.awaiting_approval
         await _persist(job)
         log.info("awaiting approval", extra={"job_id": str(job.id)})
@@ -989,11 +988,18 @@ async def _run_job_inner(
         await _emit_webhook(job, "job.awaiting_approval")
         return job
 
-    # 11. Schedule via Ayrshare (per-user profile)
-    return await _schedule_stage(job, niche)
+    # 11. Schedule via Ayrshare (per-user profile). Archive overlaps
+    # Auto Mode so Wasabi/volume I/O does not sit in front of Jev.
+    return await _schedule_stage(job, niche, archive=True)
 
 
-async def _schedule_stage(job: Job, niche: Niche, *, human_approved: bool = False) -> Job:
+async def _schedule_stage(
+    job: Job,
+    niche: Niche,
+    *,
+    human_approved: bool = False,
+    archive: bool = False,
+) -> Job:
     """Upload + schedule the rendered video, then mark the job done.
 
     Shared by the autonomous path (straight after QA) and the approval
@@ -1001,7 +1007,7 @@ async def _schedule_stage(job: Job, niche: Niche, *, human_approved: bool = Fals
     assert job.rendered is not None and job.script is not None
     from .jev.loops import publish_gate
 
-    gate = await publish_gate(
+    gate_coro = publish_gate(
         {
             "job_id": str(job.id),
             "niche": niche.title,
@@ -1013,6 +1019,14 @@ async def _schedule_stage(job: Job, niche: Niche, *, human_approved: bool = Fals
         tool="schedule_post",
         human_approved=human_approved,
     )
+    if archive:
+        with _stage("archiving"):
+            gate, _ = await asyncio.gather(
+                gate_coro,
+                media_archive.archive_job_media(job, niche),
+            )
+    else:
+        gate = await gate_coro
     job.harness = {**(job.harness or {}), **gate.payload}
     if gate.fail:
         return await _fail_with(job, gate.reason or "jev auto-mode blocked publish")

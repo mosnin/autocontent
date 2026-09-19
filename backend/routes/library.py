@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -24,10 +24,12 @@ from marketer.repos import media as media_repo
 from marketer.services import object_storage
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
 
 MAX_COMPOSITION_CLIPS = 40
+_COMPOSE_LIMIT = "10/minute"
 
 
 @router.get("", response_model=list[MediaAsset])
@@ -69,8 +71,9 @@ async def list_compositions(
     response_model=Composition,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@limiter.limit(_COMPOSE_LIMIT)
 async def create_composition(
-    body: CompositionCreate, ctx: AuthCtx = CurrentUser
+    request: Request, body: CompositionCreate, ctx: AuthCtx = CurrentUser
 ) -> Composition:
     """Validate the clips, persist the composition, spawn the render."""
     assets = await media_repo.get_assets_bulk(body.clip_asset_ids, user_id=ctx.user_id)

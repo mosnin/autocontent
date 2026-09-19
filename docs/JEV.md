@@ -790,3 +790,16 @@ Jev still judges hook / niche / clarity when the render is deliverable. Soft fai
 | Job reject 10/min | The veto door matches approve / enqueue. A stolen token cannot spray-reject the approval queue |
 
 Setup I/O is not Jev, but it sits on the time-to-first-publish path in front of the writer. Ads overlay and delivery-fact floors are unchanged.
+
+---
+
+## 24. Loop — parallel archive, overlap Auto Mode, bound remix spawn
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `archive_job_media` gathers clip / keyframe / VO / music + jev-curate | A 4-scene job used to upload 8+ artifacts one after another. One failed upload no longer aborts the rest. Curate runs in the same beat as the scene uploads |
+| Autonomous path `gather(publish_gate, archive)` | Wasabi/volume I/O no longer sits in front of Auto Mode. Approval-gated jobs still archive then park (no Auto Mode until the operator approves) |
+| Article setup gather includes `recent_titles` | Topic pick no longer waits for brand/knowledge/kit to finish first |
+| Library `POST /compositions` 10/min | Remix spawns Modal `render_composition`. Same class of bound as enqueue |
+
+Ads overlay and delivery-fact floors are unchanged. Jev still cannot generate video or move money.

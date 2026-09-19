@@ -243,10 +243,18 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         except Exception:  # noqa: BLE001 — kits season, they never block
             return None
 
-    brand, block, writing_kit = await asyncio.gather(
+    async def _recent_titles() -> list[str]:
+        if article.topic:
+            return []
+        return await articles_repo.recent_titles_for_niche(
+            article.niche_id, user_id=article.user_id
+        )
+
+    brand, block, writing_kit, recent = await asyncio.gather(
         brand_kit_repo.get(article.user_id),
         _knowledge_block(),
         _writing_kit(),
+        _recent_titles(),
     )
     tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
     if block:
@@ -260,9 +268,6 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
 
     # 0. Topic — templates + Jev, not a chat completion.
     if not article.topic:
-        recent = await articles_repo.recent_titles_for_niche(
-            article.niche_id, user_id=article.user_id
-        )
         pick = await fastpath.pick_topic(
             niche.title,
             niche.description,
