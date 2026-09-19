@@ -212,12 +212,44 @@ def check_openrouter() -> CheckResult:
     from . import openrouter
 
     if openrouter.enabled():
-        return _ok("script.openrouter", "OpenRouter API key configured — alternate scriptwriter models available.")
+        return _ok("script.openrouter", "OpenRouter API key configured — Qwen generation + Jev fallback available.")
     return _warn(
         "script.openrouter",
         "MARKETER_OPENROUTER_API_KEY is not set — a niche selecting an "
         "OpenRouter script model falls back to the stock agent_model "
-        "instead of the model actually chosen.",
+        "instead of the model actually chosen, and Jev has no Qwen fallback.",
+    )
+
+
+def check_jev() -> CheckResult:
+    from ..jev.client import enabled as jev_key
+
+    if jev_key():
+        return _ok(
+            "jev",
+            f"TypeSafe Jev configured (model={settings.jev_model}).",
+        )
+    if settings.openrouter_api_key:
+        return _ok(
+            "jev",
+            "TypeSafe key unset — Jev questions fall back to Qwen System One wrapper.",
+        )
+    return _warn(
+        "jev",
+        "Neither MARKETER_TYPESAFE_API_KEY nor OpenRouter is set — "
+        "pipeline judges stay on the pre-Jev LLM path.",
+    )
+
+
+def check_voice_mode() -> CheckResult:
+    if settings.openai_api_key:
+        return _ok(
+            "voice.realtime",
+            f"OpenAI voice mode available (model={settings.voice_realtime_model}).",
+        )
+    return _warn(
+        "voice.realtime",
+        "MARKETER_OPENAI_API_KEY is not set — Realtime voice mode is dark.",
     )
 
 
@@ -378,6 +410,8 @@ _CHECKS = (
     check_fal_video,
     check_fal_price_overrides,
     check_openrouter,
+    check_jev,
+    check_voice_mode,
     check_elevenlabs_voice,
     check_generated_music,
     check_object_storage,

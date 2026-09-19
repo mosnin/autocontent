@@ -122,9 +122,34 @@ class Settings(BaseSettings):
     # Imagine). Empty key = provider unavailable; niches selecting it
     # fail with a clear error instead of silently falling back.
     fal_api_key: str = ""
-    # OpenRouter (per-niche scriptwriter model choice). Empty = the stock
-    # OpenAI agent_model writes every script.
+    # OpenRouter (per-niche scriptwriter model choice + Qwen generation).
+    # Empty = the stock OpenAI agent_model writes every script.
     openrouter_api_key: str = ""
+    # Default Qwen model when the Jev harness routes generation through
+    # OpenRouter. Overridable without a deploy.
+    qwen_default_model: str = "qwen/qwen3-32b"
+
+    # --- TypeSafe Jev (System One decisions) ---------------------------
+    # Fast typed decisions (Noul / Choice / Score). Empty = the harness
+    # falls back to Qwen answering the same primitives, then to the
+    # pre-Jev LLM judges. Never required to boot.
+    typesafe_api_key: str = ""
+    # Pin a version (e.g. jev-1.13.0) once thresholds are tuned; the
+    # alias jev-latest moves when TypeSafe ships a release.
+    jev_model: str = "jev-latest"
+    # OpenRouter model used by the System One LLM wrapper when Jev is
+    # unavailable. Must stay a structured-output-capable chat model.
+    jev_fallback_model: str = "qwen/qwen3-32b"
+    # Master switch for piping pipeline judges (ideation, QA, article
+    # score, ads Auto Mode) through Jev. On by default — each call is
+    # fail-open except ads, which stay fail-closed via AdSpendGuard.
+    jev_enabled: bool = True
+
+    # --- OpenAI voice mode (Realtime) ---------------------------------
+    # Conversational voice for the operator. Separate from per-niche TTS.
+    # Empty openai key keeps the feature dark.
+    voice_realtime_model: str = "gpt-4o-realtime-preview"
+    voice_realtime_voice: str = "alloy"
     # ElevenLabs: premium voiceover (per-niche voice choice) AND generative
     # background music. Empty key = both features unavailable; niches
     # selecting them fail loudly (voice) or fall back (music).

@@ -224,6 +224,27 @@ async def run_ideation(
         return candidates[0]
 
     try:
+        from ..config import settings as _settings
+        from ..jev import available as jev_available
+        from ..jev.decisions import judge_ideas
+        from ..repos.spend import SpendCapExceeded
+
+        if _settings.jev_enabled and jev_available():
+            brief = build_ideation_prompt(
+                niche_title,
+                niche_description=niche_description,
+                target_audience=target_audience,
+                platform=platform,
+            )
+            pick = await judge_ideas(brief, candidates, spend=spend)
+            if 0 <= pick.winner_index < len(candidates):
+                return candidates[pick.winner_index]
+    except Exception as exc:  # noqa: BLE001 — tournament never becomes a failure mode
+        from ..repos.spend import SpendCapExceeded
+
+        if isinstance(exc, SpendCapExceeded):
+            raise
+    try:
         judge_payload = build_ideation_prompt(
             niche_title,
             niche_description=niche_description,

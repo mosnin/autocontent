@@ -295,6 +295,14 @@ async def h_tokens_revoke(c: MarketerClient, a: argparse.Namespace) -> None:
     _confirm(f"revoked token {a.id}")
 
 
+async def h_jev_status(c: MarketerClient, a: argparse.Namespace) -> None:
+    _print_one(await c.jev_status())
+
+
+async def h_jev_route(c: MarketerClient, a: argparse.Namespace) -> None:
+    _print_one(await c.jev_route(a.state))
+
+
 # ---------------------------------------------------------------- parser
 
 
@@ -424,6 +432,15 @@ def build_parser() -> argparse.ArgumentParser:
     p = tokens.add_parser("revoke")
     p.add_argument("id")
     p.set_defaults(handler=h_tokens_revoke)
+
+    jev = sub.add_parser("jev", help="System One decision harness").add_subparsers(
+        dest="cmd", required=True
+    )
+    p = jev.add_parser("status")
+    p.set_defaults(handler=h_jev_status)
+    p = jev.add_parser("route")
+    p.add_argument("state", help="brief or JSON state to classify")
+    p.set_defaults(handler=h_jev_route)
 
     return parser
 

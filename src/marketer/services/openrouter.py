@@ -32,7 +32,30 @@ class ScriptModel(BaseModel):
 
 
 # Curated writer models. Prices per 1M tokens.
+# Qwen leads: the Jev harness routes generation here by default. Other
+# frontier writers stay available for per-niche overrides.
 OPENROUTER_MODELS: list[ScriptModel] = [
+    ScriptModel(
+        id="qwen/qwen3-8b",
+        name="Qwen3 8B",
+        tagline="Fast Qwen tier — lookups, extraction, localized edits",
+        usd_per_m_input=Decimal("0.05"),
+        usd_per_m_output=Decimal("0.20"),
+    ),
+    ScriptModel(
+        id="qwen/qwen3-32b",
+        name="Qwen3 32B",
+        tagline="Default generation model — scripts and article sections",
+        usd_per_m_input=Decimal("0.10"),
+        usd_per_m_output=Decimal("0.30"),
+    ),
+    ScriptModel(
+        id="qwen/qwen3-235b-a22b",
+        name="Qwen3 235B",
+        tagline="Powerful Qwen tier — strategy and high-stakes copy",
+        usd_per_m_input=Decimal("0.30"),
+        usd_per_m_output=Decimal("1.20"),
+    ),
     ScriptModel(
         id="anthropic/claude-sonnet-4.5",
         name="Claude Sonnet 4.5",

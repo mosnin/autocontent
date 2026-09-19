@@ -127,7 +127,36 @@ async def _gather_and_guard(
     )
     if not decision.allowed:
         raise AdSpendDenied(decision.reason)
-    return delta, decision.requires_approval, ""
+    requires_approval = decision.requires_approval
+    # Jev Auto Mode overlay — never *relaxes* the deterministic guard.
+    # deny → hard refuse; approve → force human review even on a small
+    # delta. Missing Jev is a no-op (AdSpendGuard already fail-closes).
+    if settings.jev_enabled:
+        try:
+            from ..jev import available as jev_available
+            from ..jev.decisions import judge_ad_action
+
+            if jev_available():
+                verdict = await judge_ad_action(
+                    {
+                        "campaign_id": str(campaign.id),
+                        "name": campaign.name,
+                        "prev_daily_budget_usd": str(prev),
+                        "new_daily_budget_usd": str(new_daily_budget_usd),
+                        "dollar_delta_usd": str(delta),
+                        "account_status": getattr(gov, "status", None) if gov else None,
+                        "killswitch": getattr(gov, "killswitch", None) if gov else None,
+                    }
+                )
+                if verdict.action == "deny":
+                    raise AdSpendDenied(f"jev auto-mode deny: {verdict.reason}")
+                if verdict.action == "approve":
+                    requires_approval = True
+        except AdSpendDenied:
+            raise
+        except Exception:
+            pass
+    return delta, requires_approval, ""
 
 
 async def propose_budget_change(

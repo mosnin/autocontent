@@ -415,6 +415,28 @@ async def score_article(
     em_count = article_md.count("—")
     en_count = article_md.count("–")
 
+    from ..jev import available as jev_available
+    from ..jev.decisions import judge_article
+
+    if settings.jev_enabled and jev_available():
+        try:
+            verdict = await judge_article(
+                article_md, focus_keyword,
+                word_count=word_count, density=density, spend=spend,
+            )
+            quality = verdict.quality
+            if em_count or en_count:
+                quality.notes.append(
+                    f"Em/en-dash usage detected: {em_count} em-dash(es), "
+                    f"{en_count} en-dash(es). Replace with commas or periods."
+                )
+            return quality
+        except Exception as exc:  # noqa: BLE001 — Jev is an upgrade
+            from ..repos.spend import SpendCapExceeded
+
+            if isinstance(exc, SpendCapExceeded):
+                raise
+
     system = (
         "You are an editorial QA evaluator. Score the article for E-E-A-T "
         "(experience, expertise, authoritativeness, trustworthiness) and "

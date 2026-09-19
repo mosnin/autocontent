@@ -18,6 +18,28 @@ jumps between them; the sidebar shows only the active product):
 All products share the same niches, spend caps, billing, brand kit, and agent
 surfaces (REST API, Python SDK, CLI, MCP server).
 
+## Jev harness
+
+Marketing is a pile of decisions (which idea, which model, ship or rewrite,
+is this slop, is this ad change safe). Those used to be LLM chat calls.
+They are now **Jev** — TypeSafe's System One model — which returns typed
+probabilities instead of prose. Qwen writes; Jev judges; OpenAI is voice.
+
+The harness follows the LangChain pattern
+([Building a Harness with Jev](https://www.langchain.com/blog/building-a-harness-with-jev)):
+
+- **Model router** — cheapest Qwen tier that can do the work
+  (`qwen3-8b` / `qwen3-32b` / `qwen3-235b-a22b`).
+- **Auto Mode** — classify risky tool / ad actions before they execute.
+- **Speculative fan-out** — many atomic questions in one call; code composes.
+- **Confidence gates** — uncertain answers escalate instead of guessing.
+- **Foreman** (`symbolic/`) — watches pipeline evidence and steers/stops/finishes.
+- **jev-code** (`symbolic/`) — find / check / triage bounded workflows.
+- **Company OS** (`company_os/`) — route work onto Studio / Press / Ads / Suite.
+
+Surfaces: `/decisions`, `/voice`, `GET /api/v1/jev/status`,
+`POST /api/v1/jev/route`, `POST /api/v1/voice/session`, `marketer jev status`.
+
 ## Video pipeline
 
 1. **Ideation** — pick a topic + write the hook
@@ -102,7 +124,10 @@ user's payment method on the ad platform — so it is engineered around a strict
 
 ## Stack
 
-- **Orchestration**: OpenAI Agents SDK (multi-agent handoffs)
+- **Decisions**: TypeSafe Jev (System One — Noul / Choice / Score)
+- **Generation**: Qwen via OpenRouter (Jev routes the tier)
+- **Voice mode**: OpenAI Realtime
+- **Orchestration**: OpenAI Agents SDK (multi-agent handoffs) + Jev harness
 - **Runtime**: Modal (serverless GPU + scheduled jobs + volumes)
 - **Image gen**: OpenAI DALL-E 3
 - **Animation**: Grok Imagine (xAI)
@@ -175,7 +200,8 @@ falls back) and the rest of the platform is unaffected. Set them as
 | Key | Unlocks |
 | --- | --- |
 | `MARKETER_FAL_API_KEY` | Fal video models (Kling, Veo 3, Sora 2, Hailuo, Luma, Pixverse, Wan) + OmniHuman lip-synced UGC avatars |
-| `MARKETER_OPENROUTER_API_KEY` | Per-niche scriptwriter model choice (Claude, GPT, Gemini, DeepSeek, Llama) |
+| `MARKETER_OPENROUTER_API_KEY` | Qwen generation + per-niche scriptwriter models (Qwen, Claude, GPT, Gemini, DeepSeek, Llama) |
+| `MARKETER_TYPESAFE_API_KEY` | Jev / System One decisions (routing, QA, Auto Mode, Foreman). Empty falls back to Qwen answering the same primitives |
 | `MARKETER_ELEVENLABS_API_KEY` | ElevenLabs voices (`voice_provider='elevenlabs'`) **and** generated background music (`music_provider='auto'/'generated'`) |
 | `MARKETER_PIXABAY_API_KEY` | Stock music fallback chain |
 | `MARKETER_WASABI_*` (`wasabi_enabled=true`, endpoint, region, bucket, keys) | Durable object storage for every produced artifact + template reference mirroring |

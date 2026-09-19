@@ -118,7 +118,7 @@ const SUITE: Product = {
   label: "Suite",
   tagline: "Account-wide settings, connections, and admin",
   home: "/settings",
-  match: ["/settings", "/connect", "/admin"],
+  match: ["/settings", "/connect", "/admin", "/voice", "/decisions"],
   groups: [
     {
       label: "Account",
@@ -129,6 +129,13 @@ const SUITE: Product = {
         { href: "/connect", label: "Connect socials" },
         { href: "/settings/tokens", label: "Tokens" },
         { href: "/settings/billing", label: "Billing" },
+      ],
+    },
+    {
+      label: "Harness",
+      items: [
+        { href: "/voice", label: "Voice" },
+        { href: "/decisions", label: "Decisions" },
       ],
     },
     {

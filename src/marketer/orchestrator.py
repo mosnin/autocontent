@@ -25,6 +25,7 @@ from .agents import (
 )
 from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
 from .agents.metered import run_metered
+from .config import settings
 from .models import Idea, Niche, Script
 from .models.creative_brief import CreativeBrief
 from .agents.qa import QAReport
@@ -54,18 +55,21 @@ async def run_scriptwriter(
 
     # Per-niche writer model via OpenRouter. Unknown ids or a missing key
     # fall back to the stock agent (never fail a job over a dropdown).
+    # When the niche left the dropdown empty, the Jev harness still
+    # prefers Qwen (standard tier) so generation is Qwen-first.
     metered_kwargs: dict = {}
-    if script_model:
-        from .services import openrouter
+    from .services import openrouter
+    from .jev.harness import default_generation_model
 
-        or_model = openrouter.get_model(script_model)
-        if or_model is not None and openrouter.enabled():
-            agent.model = openrouter.agents_model(script_model)
-            metered_kwargs = {
-                "provider": openrouter.PROVIDER,
-                "sku": f"llm:{script_model}",
-                "cost_fn": lambda i, o: openrouter.llm_cost(or_model, i, o),
-            }
+    chosen = script_model or default_generation_model()
+    or_model = openrouter.get_model(chosen)
+    if or_model is not None and openrouter.enabled() and chosen != settings.agent_model:
+        agent.model = openrouter.agents_model(chosen)
+        metered_kwargs = {
+            "provider": openrouter.PROVIDER,
+            "sku": f"llm:{chosen}",
+            "cost_fn": lambda i, o: openrouter.llm_cost(or_model, i, o),
+        }
 
     result = await run_metered(agent, prompt, spend=spend, **metered_kwargs)
     return result.final_output_as(Script)
@@ -115,6 +119,19 @@ async def run_qa(
     qa_constraints = niche.creative_brief.qa_lines()
     if qa_constraints:
         payload["creative_constraints"] = qa_constraints
+    from .config import settings as _settings
+    from .jev import available as jev_available
+    from .jev.decisions import judge_video
+
+    if _settings.jev_enabled and jev_available():
+        try:
+            verdict = await judge_video(payload, spend=spend)
+            return verdict.report
+        except Exception as exc:  # noqa: BLE001 — Jev is an upgrade, never a new fail
+            from .repos.spend import SpendCapExceeded
+
+            if isinstance(exc, SpendCapExceeded):
+                raise
     result = await run_metered(agent, json.dumps(payload), spend=spend)
     return result.final_output_as(QAReport)
 
