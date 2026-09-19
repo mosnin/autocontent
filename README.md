@@ -56,22 +56,28 @@ Surfaces: `/decisions`, `/voice`, `GET /api/v1/jev/status`,
 Judges are rate-limited (40/min, ads 20/min, voice sessions 8/min).
 
 Full theory, install, wiring map, and security model: [`docs/JEV.md`](docs/JEV.md).
+The finished product map is **§68**.
 
 ## Video pipeline
 
-1. **Ideation** — pick a topic + write the hook
-2. **Script** — break the topic into scenes (each scene = 1 image + 1 animation + caption beat)
-3. **Visuals** — DALL-E 3 generates a keyframe per scene
-4. **Animation** — Grok Imagine animates each keyframe into a short clip
-5. **Voiceover** — TTS narrates the script
-6. **Music** — background track is picked + ducked under VO
-7. **Edit** — clips, VO, music are stitched with ffmpeg
-8. **Captions** — timed from the script's narration (Whisper only if the script has no words)
-9. **QA** — two gates: a deterministic ffprobe pass on the rendered file
-   (real duration covers the narration, streams present, audio not silent,
-   fits the upload size limit — auto re-encoded when it doesn't) and a
-   Jev-first content pass (hook strength, niche drift; LLM only if Jev is dark)
-10. **Publish** — schedule to TikTok / Reels / Shorts
+1. **Ideation** — code-built templates + one Jev pick (writer only for a
+   pinned hook lens)
+2. **Script** — Qwen when the operator pinned a model or the brief is
+   narrative; otherwise templates. Fact lock strips invented stats using
+   brand + knowledge already loaded for the job
+3. **Visuals + VO + music** — DALL-E keyframes, TTS, and the music pick
+   start together after the fact lock. Visual Director runs only when
+   the script lacks usable visuals or a design kit / visual brief is set
+4. **Animation** — Grok Imagine animates each keyframe
+5. **Edit** — clips, VO, and music are stitched with ffmpeg
+6. **Captions** — timed from the script's narration (Whisper only if the
+   script has no words)
+7. **QA** — ffprobe delivery facts (duration, streams, silence, size)
+   plus a Jev-first content pass and Foreman in one gather. Hard
+   rerender facts are never overridden by Jev
+8. **Publish** — persist overlaps the Ayrshare user load; Auto Mode
+   classifies `schedule_post`, then Ayrshare. After a human approve, a
+   high-confidence `block` fails instead of posting
 
 Scene keyframes are steered by a per-niche character/style reference
 sheet; set a niche's `character_description` to cast your own recurring
@@ -95,14 +101,18 @@ without re-paying for generation.
 
 ## Article pipeline
 
-1. **Topic** — picked for the niche (deduped against recent articles) or supplied by the caller
-2. **Research** — Exa SERP analysis of what currently ranks (degrades to model knowledge when unconfigured)
-3. **Outline** — one H1, 5-10 H2s with writer notes
-4. **Write** — sections drafted in parallel, E-E-A-T prose rules enforced
-5. **QA** — keyword density + E-E-A-T + readability scoring; one corrective rewrite below threshold
-6. **SEO metadata** — title, slug, meta description, keywords, JSON-LD (Article + FAQPage)
-7. **Internal links** — suggestions against the user's prior articles
-8. **Hero image** — gpt-image-1 editorial hero (optional)
+1. **Topic** — templates + one Jev pick (deduped against recent articles)
+   or supplied by the caller
+2. **Research** — Exa SERP plus Jev rank. Persist and Jev-warm overlap
+   the fetch. Degrades to model knowledge when Exa is unconfigured
+3. **Outline / metadata / schema / interlink** — deterministic fastpath
+4. **Write** — Qwen sections in parallel. Playbook H2s stitch two SERP
+   highlights; thin SERP still buys the writer. Fact lock keeps tone,
+   brief, and knowledge already loaded
+5. **QA** — keyword density + E-E-A-T + readability, plus Jev article
+   score and citation audit; one corrective rewrite below threshold
+6. **Hero image** — gpt-image-1 editorial hero, overlapped with research
+   (optional)
 
 Every LLM/image call in both pipelines is metered into the same
 `spend_ledger` and gated by per-niche + global daily caps and prepaid
@@ -228,7 +238,7 @@ falls back) and the rest of the platform is unaffected. Set them as
 | `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
 
 Deploy checklist when bumping to this version: `marketer-migrate up`
-(migrations through 0026), `modal deploy modal_app.py`, then set any new
+(migrations through 0027), `modal deploy modal_app.py`, then set any new
 keys above.
 
 ## Platform surfaces

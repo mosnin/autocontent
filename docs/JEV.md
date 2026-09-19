@@ -17,6 +17,10 @@ The product code lives under `src/marketer/jev/`, `src/marketer/symbolic/`,
 and `src/marketer/company_os/`. Nothing from those GitHub repos is vendored.
 We ported the *decision contracts* and wrote marketer-owned policy.
 
+This document is the finished product map. The upgrade loop is stopped.
+Sections 15–67 are the incremental log; **section 68** weaves Studio,
+Press, Ads, and Suite together as one decide → act → evaluate system.
+
 ---
 
 ## 1. Theory — Jev is System One, not a writer
@@ -131,8 +135,9 @@ marketer-migrate up
 
 Jev itself is stateless. The only new table is **`company_knowledge`**
 (migration `0026_company_knowledge.sql`): verbatim spans the brain
-extracted, keyed by `user_id`. Writes and reads **fail-open** if
-`MARKETER_DATABASE_URL` is unset or the migration is pending.
+extracted, keyed by `user_id`. Migration **`0027`** adds the unique
+`(user_id, lower(span))` index as the race backstop. Writes and reads
+**fail-open** if `MARKETER_DATABASE_URL` is unset or the migration is pending.
 
 ### 2.3 Deploy
 
@@ -191,6 +196,7 @@ src/marketer/company_os/
 
 src/marketer/repos/company_knowledge.py
 db/migrations/0026_company_knowledge.sql
+db/migrations/0027_company_knowledge_unique_span.sql
 ```
 
 We speak the HTTP API directly. There is no `typesafe-sdk` dependency
@@ -343,7 +349,7 @@ Residual risk (accepted, documented):
 
 ## 8. What was implemented (this branch)
 
-Three landings on `cursor/jev-qwen-voice-harness-bce5`:
+Four landings on `cursor/jev-qwen-voice-harness-bce5`:
 
 1. **Harness core** — client, fallback, ask, policy, primitives,
    router, Auto Mode, next_action, Foreman, jev-code, company route,
@@ -355,11 +361,17 @@ Three landings on `cursor/jev-qwen-voice-harness-bce5`:
 3. **New surfaces** — `company_knowledge` brain, nightly window gate,
    image-post Auto Mode, high-confidence article remix spawn, knowledge
    injection into brand voice and article tone, HTTP size caps.
+4. **Finished weave** — classification and dark-path QA stay off the
+   LLM; leftover writers share `openrouter.generation_metered`; fact
+   locks keep already-loaded brand / knowledge / topic; sequential
+   leftover I/O on publish, ideation, articles, spend, ads, compose,
+   remix, and metrics now gather. See §68.
 
 Tests: `tests/test_jev.py` (primitives, gates, packs, loops, knowledge,
 image-post park, knowledge GET). Existing
 `test_security_web_hardening` covers 401s. Campaign runner fixtures
-mock `pending_work_count` so they do not need live Postgres.
+mock `pending_work_count` so they do not need live Postgres. The unit
+suite excluding integration is the production-ready bar.
 
 ---
 
@@ -367,7 +379,7 @@ mock `pending_work_count` so they do not need live Postgres.
 
 1. Set `MARKETER_TYPESAFE_API_KEY` (and OpenRouter if you want a
    fallback / Qwen writer).
-2. `marketer-migrate up` through **0026**.
+2. `marketer-migrate up` through **0027**.
 3. `modal deploy modal_app.py`.
 4. Open `/decisions`, paste a brief, confirm backends show ready.
 5. Confirm ads still fail-closed with Jev off
@@ -424,6 +436,7 @@ Wiring checklist (each pack has a production caller):
 | FastAPI router | `backend/main.py` prefix `/api/v1/jev` |
 | Voice router | `/api/v1/voice` |
 | Migration 0026 | `db/migrations/0026_company_knowledge.sql` |
+| Migration 0027 | `db/migrations/0027_company_knowledge_unique_span.sql` |
 
 Focused tests (fresh run on this revision):
 
@@ -532,6 +545,7 @@ persistence, and voice session minting.
 | `web/app/(app)/voice/*` | Voice UI |
 | `web/lib/jev-types.ts` | shared types |
 | `db/migrations/0026_company_knowledge.sql` | brain table |
+| `db/migrations/0027_company_knowledge_unique_span.sql` | unique `(user_id, lower(span))` race backstop |
 | `docs/JEV.md` | this document |
 | `tests/test_jev.py` | harness unit + HTTP tests |
 
@@ -1258,5 +1272,61 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Active accounts sync in one gather | Independent Composio pulls. Inactive rows still skip |
 | Passed `account=` skips `get_account` | The list already has the row. A mismatch fail-closes |
 | Daily upserts gather after fetch | Campaign+date writes are independent. Idempotent. AdSpendGuard is unchanged |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 68. Finished product — one harness across the suite
+
+The loop is stopped. This is the product.
+
+Studio, Press, Ads, and Suite share one decide → act → evaluate loop.
+Jev answers typed questions. Qwen writes only when templates or
+extracts cannot. OpenAI is voice, TTS, and last-resort images.
+Deterministic guards own money and delivery facts.
+
+```
+Studio (video / image-post / remix)
+  templates + Jev pick  →  Qwen only when a lens / kit / brief needs prose
+  fact lock (brand + knowledge already loaded)
+  VO + music overlap images; avatar keyframe ∥ scene VO
+  ffprobe + Jev QA + Foreman in one gather
+  persist ∥ Ayrshare user  →  Auto Mode  →  schedule
+
+Press (article)
+  templates + Jev topic  →  Exa + Jev rank (persist + warm overlap)
+  deterministic outline / metadata / schema / interlink
+  playbook H2s stitch ≥2 SERP highlights; thin SERP still buys Qwen
+  fact lock keeps tone + brief + knowledge
+  hero overlaps research  →  Jev article QA + citation audit
+
+Ads
+  AdSpendGuard first (account + committed + today + month in one gather)
+  Jev overlay may only deny or force-approve
+  optimizer gathers campaign + metrics + kit, then proposes
+  metrics cron gathers every user's accounts, then active syncs
+
+Suite
+  spend preflight gathers niche + global + credits
+  knowledge spans are verbatim; 0027 unique index is the race backstop
+  HTTP judges 40/min; ads mutations 20/min; money POSTs 5–10/min
+  keep-alive clients on Jev, OpenRouter, Exa, Ayrshare, Fal, Grok
+```
+
+Independent reads gather. Dependent writes stay sequential. A persist
+failure never starts a metered provider call. Ownership is checked
+before a 404. Mismatched `niche_id` fail-closes before spend.
+
+| Surface | Decide | Act | Evaluate |
+| --- | --- | --- | --- |
+| Video idea | Jev Choice on templates | Writer only for n==1 lens | Foreman after QA |
+| Video script / VD | Planner + skip hints | `generation_metered` or templates | Script / image fact lock |
+| Publish | Auto Mode | Ayrshare | Delivery facts beat Jev |
+| Article | Rank + topic Choice | Qwen sections | Citation verifier + SEO Score |
+| Ads | Overlay after guard | Platform call | Audit row; no replay |
+| Knowledge | Noul write? + span Choice | Code extracts verbatim | Unique index 0027 |
+| Campaign tick | `next_action` | Spawn or HOLD | Nightly window gate |
+
+Operator install is still §9: keys, migrate through **0027**, deploy,
+confirm `/decisions`, confirm ads fail-closed with Jev off.
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
