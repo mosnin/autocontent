@@ -374,6 +374,11 @@ async def test_remix_refuses_unpublished_template(monkeypatch):
         )
 
     monkeypatch.setattr(templates_repo, "get", fake_get)
+
+    async def fake_ctx(**kwargs):
+        return None
+
+    monkeypatch.setattr(template_remix, "default_context", fake_ctx)
     result = await template_remix.run_remix(
         user_id=USER, template_id=uuid4(), count=1,
     )

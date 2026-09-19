@@ -1130,3 +1130,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Same mismatch fail-close as the HTTP path | A spoofed campaign spawn cannot spend against someone else's brief |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 55. Loop — remix gathers template + spend
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `run_remix` gathers `templates.get` + `default_context` | Independent reads. Every remix waited on the template row before loading the user for the global cap |
+| Unpublished / missing template still fail-closes before gpt-image-1 | The spend snapshot is a read. No ledger write happens until a render |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
