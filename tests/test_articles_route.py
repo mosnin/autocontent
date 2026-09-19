@@ -88,6 +88,65 @@ def test_list_articles_rejects_bad_limit(monkeypatch):
     assert resp.status_code == 422
 
 
+def test_hero_image_404_when_foreign_or_missing_file(monkeypatch, tmp_path):
+    """Hero bytes are ownership-scoped; a guessed id or gone file is 404."""
+    _reset_limiter()
+    import marketer.repos.articles as articles_repo
+
+    seen: list[tuple] = []
+
+    async def _missing(article_id, *, user_id):
+        seen.append((article_id, user_id))
+        return None
+
+    monkeypatch.setattr(articles_repo, "get", _missing)
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/articles/{_ARTICLE_ID}/hero-image",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert seen == [(_ARTICLE_ID, _USER_ID)]
+
+    gone = _make_article(status=ArticleStatus.done)
+    gone.hero_image_path = str(tmp_path / "nope.png")
+
+    async def _gone(article_id, *, user_id):
+        return gone
+
+    monkeypatch.setattr(articles_repo, "get", _gone)
+    resp = client.get(
+        f"/api/v1/articles/{_ARTICLE_ID}/hero-image",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "no hero image"
+
+
+def test_hero_image_streams_owned_file(monkeypatch, tmp_path):
+    _reset_limiter()
+    import marketer.repos.articles as articles_repo
+
+    hero = tmp_path / "hero.png"
+    hero.write_bytes(b"\x89PNG\r\n\x1a\nowned")
+    art = _make_article(status=ArticleStatus.done)
+    art.hero_image_path = str(hero)
+
+    async def _get(article_id, *, user_id):
+        assert user_id == _USER_ID
+        return art
+
+    monkeypatch.setattr(articles_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/articles/{_ARTICLE_ID}/hero-image",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("image/png")
+    assert resp.content.endswith(b"owned")
+
+
 def test_get_article_404_when_missing(monkeypatch):
     _reset_limiter()
     import marketer.repos.articles as articles_repo
