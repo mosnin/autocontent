@@ -201,6 +201,10 @@ async def source_audit_notes(
 ) -> list[str]:
     if not _live() or not pages:
         return []
+    from .grounding import extract_claim_sentences
+
+    if not extract_claim_sentences(article_md):
+        return []
     try:
         passages = [
             {
@@ -217,6 +221,19 @@ async def source_audit_notes(
         return []
 
 
+async def source_audit_penalty(
+    article_md: str,
+    pages: list[dict[str, Any]],
+    *,
+    spend: SpendContext | None = None,
+) -> tuple[list[str], float]:
+    """Citation-verifier notes plus the quality-score drop they imply."""
+    from .grounding import audit_penalty
+
+    notes = await source_audit_notes(article_md, pages, spend=spend)
+    return notes, audit_penalty(notes)
+
+
 async def seo_metadata_notes(
     *,
     title: str,
@@ -226,6 +243,10 @@ async def seo_metadata_notes(
     spend: SpendContext | None = None,
 ) -> list[str]:
     if not _live():
+        return []
+    from ..articles.fastpath import metadata_is_publishable
+
+    if metadata_is_publishable(title, meta_description, focus_keyword):
         return []
     try:
         verdict = await grade_seo_metadata(

@@ -98,6 +98,7 @@ async def plan_video_run(
     """One fan-out: generation tier + skip hints. Dark harness → defaults."""
     from ..config import settings
 
+    prior_fail = isinstance(state, dict) and bool(state.get("prior_qa_failed"))
     if script_model:
         # Operator pinned a writer. Do not second-guess the dropdown.
         return VideoPlan(
@@ -109,7 +110,17 @@ async def plan_video_run(
             backend="operator",
         )
     if not (settings.jev_enabled and available()):
-        return _dark_video_plan()
+        dark = _dark_video_plan()
+        if prior_fail:
+            return VideoPlan(
+                model_id=DEFAULT_MODEL_FLEET["standard"]["id"],
+                tier="standard",
+                prefer_skip_visual_director=dark.prefer_skip_visual_director,
+                caption_source=dark.caption_source,
+                confidence=dark.confidence,
+                backend=dark.backend,
+            )
+        return dark
     try:
         result = await jev_ask(
             state,
@@ -148,6 +159,9 @@ async def plan_video_run(
         picked.choice if picked.choice in DEFAULT_MODEL_FLEET else "standard"  # type: ignore[assignment]
     )
     if tier not in DEFAULT_MODEL_FLEET:
+        tier = "standard"
+    # Cascade: a failed QA pass does not get the cheap tier again.
+    if prior_fail and tier == "fast":
         tier = "standard"
     captions = result.choice("captions").choice
     caption_source: CaptionSource = "whisper" if captions == "whisper" else "script"

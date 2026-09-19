@@ -457,6 +457,7 @@ async def _run_job_inner(
             "description": niche.description,
             "audience": niche.target_audience,
             "script_model": niche.script_model or "",
+            "prior_qa_failed": not allow_regenerate,
         },
         script_model=niche.script_model or "",
         spend=spend,

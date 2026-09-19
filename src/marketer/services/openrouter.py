@@ -94,6 +94,7 @@ OPENROUTER_MODELS: list[ScriptModel] = [
 ]
 
 _BY_ID = {m.id: m for m in OPENROUTER_MODELS}
+_openai_client = None
 
 
 def enabled() -> bool:
@@ -125,5 +126,11 @@ def agents_model(model_id: str):
     from agents import OpenAIChatCompletionsModel
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(base_url=BASE_URL, api_key=settings.openrouter_api_key)
-    return OpenAIChatCompletionsModel(model=model_id, openai_client=client)
+    global _openai_client
+    if _openai_client is None:
+        _openai_client = AsyncOpenAI(
+            base_url=BASE_URL, api_key=settings.openrouter_api_key
+        )
+    return OpenAIChatCompletionsModel(
+        model=model_id, openai_client=_openai_client
+    )

@@ -513,8 +513,9 @@ persistence, and voice session minting.
 | `src/marketer/jev/decisions.py` | domain packs |
 | `src/marketer/jev/loops.py` | pipeline adapters |
 | `src/marketer/jev/cache.py` | 5-minute LRU for identical `ask()` fan-outs |
-| `src/marketer/jev/planner.py` | one-shot video plan (tier + skip hints) |
-| `src/marketer/articles/fastpath.py` | deterministic SERP / schema / interlink / topic / hero |
+| `src/marketer/jev/planner.py` | one-shot video plan (tier + skip hints + Cascade) |
+| `src/marketer/jev/grounding.py` | compact state, fact lock, citation penalty |
+| `src/marketer/articles/fastpath.py` | deterministic SERP / schema / interlink / topic / outline / metadata / hero / FAQ |
 | `src/marketer/symbolic/foreman.py` | supervision policy |
 | `src/marketer/symbolic/jev_code.py` | code triage workflows |
 | `src/marketer/company_os/opencompany.py` | company surface routing |
@@ -574,9 +575,9 @@ could already finish.
 | Jev HTTP 15s × 3 attempts | 8s × 2 | Fail over to Qwen / fail-open fast |
 | Repeated identical `ask()` | 5-minute LRU (`jev/cache.py`) | Retries and resume must not re-pay |
 
-Outline, section prose, SEO title/meta, and ideation candidates still
-use a writer (Qwen). Those are generation. Everything else on the
-critical path is now a decision or a deterministic extract.
+Section prose still uses a writer (Qwen). Outline, SEO title/meta,
+ideation candidates, FAQ blocks, and fact-lock cleanup are now
+decisions or deterministic extracts.
 
 ### The planner
 
@@ -597,5 +598,60 @@ A fresh short-form job that used to do ideation → script → visual
 director → Whisper now does ideation → script → images. Caption burn
 is free. QA is already Jev-first. Foreman, the outbound screen, and
 the repurpose hint share one wall-clock beat. Article research /
-schema / interlink / topic / hero no longer enqueue four extra chat
-completions before the writer even starts.
+schema / interlink / topic / outline / metadata / hero / FAQ no
+longer enqueue extra chat completions before (or instead of) the
+writer.
+
+---
+
+## 14. Speed + hallucination wave — Cascade, compact state, fact lock
+
+TypeSafe's remaining unused patterns after the first speed pass:
+
+| Pattern | Where it landed | Why it is faster *and* more accurate |
+| --- | --- | --- |
+| **The Cascade** | `plan_video_run` + article rewrite | Cheap tier first. A failed QA pass cannot pick `qwen3-8b` again; the rewrite tries the stronger writer first. |
+| **Compact state** | `ask()` always runs `compact_state` (4k cap, 1.2k/field) | TypeSafe jaggedness: pad the state and accuracy falls. Smaller payload is also a shorter RTT. |
+| **Keep-alive HTTP** | module-level `httpx.AsyncClient` + `warm()` during research | A new client per ask paid ~200ms of TLS. That ate the 70–500ms claim. OpenRouter / Qwen fallback clients are reused the same way. |
+| **Template ideation** | `idea_candidates` + `judge_ideas` when TypeSafe is live | Three Qwen hook drafts + a judge LLM → one 70–500ms Choice. Dark harness keeps the old tournament so tests / Qwen-only installs do not change. |
+| **Deterministic outline + metadata** | `outline_from_research`, `metadata_from_article` | SERP headings already *are* the outline. Title/slug/meta are extracts, not prose. |
+| **Deterministic FAQ** | `faq_section_from_research` | Searcher questions + highlights become the FAQ H2. One less writer call. |
+| **Retrieve-then-judge** | `judge_article` / `audit_sources` send *claims*, not the 8k article | Jev has no world knowledge. Dumping a transcript makes it judge padding. |
+| **Citation-verifier as a QA gate** | `source_audit_penalty` *before* the rewrite threshold | Notes-only audit never forced a rewrite. Each flag now drops `overall` (0.08, cap 0.35). |
+| **Fact lock** | `allowed_facts` + `strip_ungrounded_claims` | Invented `%` / `$` / years / "research shows" sentences are stripped in milliseconds. No second LLM pass required to un-hallucinate. |
+| **Skip empty work** | no claims → skip citation Jev; publishable title/meta → skip pagegrade | A clean writer should not pay another 70–500ms to be told it is clean. |
+| **Parallel QA** | `asyncio.gather(score_article, source_audit_penalty)` | Same policy, one wall-clock beat. |
+
+### Fact lock (the hallucination backstop)
+
+Jev cannot generate knowledge sentences, and it also cannot *delete*
+them. Code owns the lock:
+
+1. Research highlights become the only allowed number/year/money tokens.
+2. The writer prompt lists those tokens and forbids anything else.
+3. After the write, `strip_ungrounded_claims` removes sentences that
+   introduce a token the sources do not have, or that say
+   "research shows" with no sourced number.
+4. If nothing checkable remains, citation-verifier is skipped.
+
+The writer is still an LLM. The lock is what makes a hallucinated
+stat unpublishable without waiting for another model to notice.
+
+### Cascade
+
+```
+first pass  →  cheapest tier Jev will allow
+QA fail     →  bump fast → standard; rewrite with the stronger writer
+```
+
+`prior_qa_failed` is set when the video pipeline is already on its
+bounded regenerate. A dark harness also refuses the cheap tier on
+retry so we do not loop 8B → fail → 8B.
+
+### What the operator should feel now
+
+Time-to-first-publish is ideation + one script/article write +
+images. Everything that used to be "ask a chat model to classify /
+outline / title / caption / FAQ / fact-check" is either Jev (one
+fan-out) or Python (zero RTT). Hallucinated numbers do not survive
+the fact lock even when Jev is dark.

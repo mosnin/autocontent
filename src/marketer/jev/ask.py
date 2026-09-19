@@ -17,6 +17,7 @@ from ..services.spend_context import SpendContext
 from . import cache as ask_cache
 from . import client as jev_client
 from . import fallback as qwen_fallback
+from .grounding import compact_state
 from .primitives import Questions, State, SystemOneResult
 
 log = get_logger(__name__)
@@ -83,6 +84,7 @@ async def ask(
     and resume paths do not pay another 70–500ms (or a Qwen fallback).
     Cache hits do not re-log spend.
     """
+    state = compact_state(state)
     key = ask_cache.cache_key(state, questions, prefer) if use_cache else ""
     if use_cache:
         hit = ask_cache.get(key)

@@ -3,7 +3,7 @@
 SERP distillation, JSON-LD, internal links, topic candidates, and hero
 prompts used to each be a chat completion. Those are classification /
 extraction / schema jobs. Jev picks among topic templates; everything
-else is Python. Outline + section prose still go through the writer.
+else is Python. Section prose still goes through the writer.
 """
 from __future__ import annotations
 
@@ -13,8 +13,11 @@ from collections import Counter
 from typing import Any
 
 from .models import (
+    ArticleMetadata,
     ImagePrompt,
     InterlinkSuggestion,
+    Outline,
+    OutlineSection,
     SerpAnalysis,
     SerpResult,
     TopicPick,
@@ -313,6 +316,133 @@ def interlink_lexical(
         )
     scored.sort(key=lambda item: item.score, reverse=True)
     return scored[:limit]
+
+
+def outline_from_research(
+    topic: str,
+    keyword: str,
+    serp: SerpAnalysis | None = None,
+) -> Outline:
+    """H1 + 5-10 H2s from SERP headings / questions / a default playbook."""
+    title = (topic or keyword or "Untitled").strip()
+    seen: set[str] = set()
+    h2s: list[OutlineSection] = []
+
+    def add(heading: str, notes: str) -> None:
+        clean = re.sub(r"\s+", " ", (heading or "").strip().rstrip("?"))
+        if not clean:
+            return
+        key = clean.casefold()
+        if key in seen or key == title.casefold():
+            return
+        seen.add(key)
+        h2s.append(OutlineSection(level=2, heading=clean, notes=notes))
+
+    analysis = serp or SerpAnalysis()
+    focus = keyword or topic
+    for heading in analysis.commonHeadings:
+        add(heading, f"Cover what ranking pages say about {heading}. Stay specific to {focus}.")
+    for question in analysis.questionsAnswered:
+        add(question, f"Answer the searcher question: {question}")
+    for heading, notes in (
+        (f"What {focus} actually is", "Define in concrete terms. No fluff."),
+        (f"Why {focus} matters now", "Stakes for the target reader."),
+        (f"How to start with {focus}", "Step-by-step, first-hand."),
+        (f"Mistakes to avoid with {focus}", "Specific failure modes."),
+        (f"{focus} checklist", "A scannable list the reader can ship."),
+        ("FAQ", "Answer leftover searcher questions without inventing studies."),
+    ):
+        if len(h2s) >= 8:
+            break
+        add(heading, notes)
+    while len(h2s) < 5:
+        add(f"{focus} in practice {len(h2s) + 1}", "Concrete examples from the brief.")
+    return Outline(
+        title=title,
+        sections=[OutlineSection(level=1, heading=title, notes="H1")] + h2s[:10],
+    )
+
+
+def _slugify(text: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
+    return slug[:80] or "article"
+
+
+def metadata_from_article(
+    topic: str,
+    keyword: str,
+    article_md: str,
+) -> ArticleMetadata:
+    """Title / slug / meta from the article itself. No chat completion."""
+    from .llm import strip_ai_dashes
+
+    heading = topic.strip() or keyword.strip() or "Untitled"
+    if len(heading) < 40:
+        heading = f"{heading}: a practical guide"
+    title = strip_ai_dashes(heading)[:60].rstrip(" :,-")
+    paras = [
+        p.strip()
+        for p in re.split(r"\n\s*\n", article_md or "")
+        if p.strip() and not p.lstrip().startswith("#")
+    ]
+    first = strip_ai_dashes(paras[0] if paras else f"A practical guide to {keyword or topic}.")
+    first = re.sub(r"\s+", " ", first)
+    meta = first[:157]
+    if len(first) > 157:
+        meta = meta.rsplit(" ", 1)[0].rstrip(".,;:") + "."
+    kws = [keyword] if keyword else []
+    for tok in sorted(tokens(topic)):
+        if tok not in {k.casefold() for k in kws}:
+            kws.append(tok)
+        if len(kws) >= 8:
+            break
+    return ArticleMetadata(
+        title=title,
+        slug=_slugify(keyword or topic),
+        metaDescription=meta[:160],
+        focusKeyword=keyword or topic,
+        keywords=kws,
+    )
+
+
+def metadata_is_publishable(title: str, meta: str, keyword: str) -> bool:
+    """Skip the pagegrade Jev hop when title/meta already satisfy the brief."""
+    kw = (keyword or "").strip().casefold()
+    heading = (title or "").strip()
+    description = (meta or "").strip()
+    if not kw or not heading or not description:
+        return False
+    return (
+        kw in heading.casefold()
+        and 40 <= len(heading) <= 70
+        and 80 <= len(description) <= 160
+    )
+
+
+def faq_section_from_research(heading: str, research: SerpAnalysis | None) -> str | None:
+    """Write the FAQ H2 from SERP questions + highlights. No chat completion."""
+    key = (heading or "").strip().casefold()
+    if key not in {"faq", "frequently asked questions"} and not key.startswith("faq"):
+        return None
+    if research is None or len(research.questionsAnswered) < 2:
+        return None
+    highlights: list[str] = []
+    for row in research.topResults:
+        highlights.extend(str(h) for h in (row.highlights or []) if str(h).strip())
+    lines = [f"## {(heading or 'FAQ').strip()}\n"]
+    fallback_topic = (research.commonTopics[0] if research.commonTopics else "the basics")
+    for question in research.questionsAnswered[:5]:
+        q_tokens = tokens(question)
+        answer = next((h for h in highlights if tokens(h) & q_tokens), "")
+        if not answer and highlights:
+            answer = highlights[0]
+        if not answer:
+            answer = (
+                f"Start from {fallback_topic} in the sections above rather than "
+                "a generic overview."
+            )
+        lines.append(f"**{question.strip()}**\n\n{answer[:280]}\n")
+    return "\n".join(lines)
 
 
 def hero_prompt(title: str, keyword: str) -> ImagePrompt:

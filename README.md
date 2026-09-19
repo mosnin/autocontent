@@ -8,8 +8,8 @@ shell, each with its own dashboard and focused navigation (an app switcher
 jumps between them; the sidebar shows only the active product):
 
 - **Studio** — hook-driven short-form video for TikTok / Reels / Shorts.
-- **Press** — SEO-optimized long-form articles: SERP research, structured
-  outline, section-parallel writing, QA scoring, metadata + JSON-LD, hero image.
+- **Press** — SEO-optimized long-form articles: SERP research, deterministic
+  outline + metadata, section-parallel writing, fact-locked QA, JSON-LD, hero image.
 - **Ads** — create, manage, and scale **paid** campaigns (Google Ads, Meta Ads)
   with agents, governed by fail-closed budget guardrails, human approvals, and
   an audit trail. See "Ads product" below.
@@ -36,7 +36,9 @@ The harness follows the LangChain pattern
 - **Foreman** (`symbolic/`) — watches pipeline evidence after content QA and steers/stops/finishes.
 - **Publish Auto Mode** — classifies `schedule_post` before Ayrshare; parks or (after human approve) refuses.
 - **Campaign next_action** — HOLD / BLOCKED / ROUTE_HUMAN / DONE skips a tick instead of burning credits.
-- **Research rank + citation audit** — Exa pages are judged before the outline; sources are checked after write.
+- **Research rank + citation audit** — Exa pages are judged before the outline; unsourced numbers are stripped, then Jev scores the rest.
+- **Cascade + compact state** — cheap Qwen first; retry bumps a tier. `ask()` trims state to 4k so Jev stays fast and calibrated.
+- **Template ideation / article fastpaths** — Jev picks among code-built ideas, outlines, titles, FAQs. The writer only writes prose.
 - **jev-curate** — can skip indexing a discard-worthy final in the media library.
 - **Failures overlay** — jev-code triage attaches class / actionable / severity to the inbox.
 - **Company OS** (`company_os/`) — route work onto Studio / Press / Ads / Suite.
@@ -61,11 +63,11 @@ Full theory, install, wiring map, and security model: [`docs/JEV.md`](docs/JEV.m
 5. **Voiceover** — TTS narrates the script
 6. **Music** — background track is picked + ducked under VO
 7. **Edit** — clips, VO, music are stitched with ffmpeg
-8. **Captions** — Whisper transcribes the VO; captions are burned in
+8. **Captions** — timed from the script's narration (Whisper only if the script has no words)
 9. **QA** — two gates: a deterministic ffprobe pass on the rendered file
    (real duration covers the narration, streams present, audio not silent,
-   fits the upload size limit — auto re-encoded when it doesn't) and an
-   LLM content pass (hook strength, niche drift)
+   fits the upload size limit — auto re-encoded when it doesn't) and a
+   Jev-first content pass (hook strength, niche drift; LLM only if Jev is dark)
 10. **Publish** — schedule to TikTok / Reels / Shorts
 
 Scene keyframes are steered by a per-niche character/style reference

@@ -231,12 +231,15 @@ async def judge_article(
     density: float,
     spend: SpendContext | None = None,
 ) -> ArticleVerdict:
+    from .grounding import extract_claim_sentences
+
     result = await jev_ask(
         {
             "focus_keyword": focus_keyword,
             "word_count": word_count,
             "keyword_density": density,
-            "article": article_md[:8000],
+            "claims": extract_claim_sentences(article_md),
+            "excerpt": article_md[:1500],
         },
         {
             "eeat": score(
@@ -647,11 +650,16 @@ async def audit_sources(
     """One fan-out citation check (citation-verifier cookbook)."""
     if not passages:
         return []
+    from .grounding import extract_claim_sentences
+
+    claims = extract_claim_sentences(article_excerpt)
+    if not claims:
+        return []
     questions: dict[str, Any] = {}
     trimmed = passages[:4]
     for i, _p in enumerate(trimmed):
         questions[f"s{i}"] = choice(
-            f"Does source {i} support claims in the article excerpt?",
+            f"Does source {i} support the checkable claims?",
             {
                 "supports": "The source states or entails a claim in the excerpt",
                 "partial": "Related, but the excerpt overreaches",
@@ -660,7 +668,7 @@ async def audit_sources(
             },
         )
     result = await jev_ask(
-        {"excerpt": article_excerpt[:2500], "sources": list(trimmed)},
+        {"claims": claims, "sources": list(trimmed)},
         questions,
         spend=spend,
     )

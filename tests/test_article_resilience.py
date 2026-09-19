@@ -181,6 +181,7 @@ def stub_all(monkeypatch, tmp_path):
     from marketer.config import settings
     monkeypatch.setattr(settings, "artifacts_dir", str(tmp_path / "artifacts"))
     monkeypatch.setattr(settings, "article_hero_image", True)
+    monkeypatch.setattr(settings, "jev_enabled", False)
 
     return state
 
@@ -394,10 +395,10 @@ async def test_hero_image_spend_cap_still_fails_article(stub_all, monkeypatch):
 
 
 async def test_spend_cap_in_outline_stage_fails_article(stub_all, monkeypatch):
-    async def capped(topic, keyword, research, tone, audience, *, spend=None):
+    async def capped(heading, notes, ctx, *, spend=None):
         raise SpendCapExceeded("global daily cap hit", scope="global")
 
-    monkeypatch.setattr(apipe.llm, "generate_outline", capped)
+    monkeypatch.setattr(apipe.llm, "write_section", capped)
     art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID, topic="espresso")
     assert art.status == ArticleStatus.failed
     assert "cap" in (art.error or "")

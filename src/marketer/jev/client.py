@@ -33,6 +33,8 @@ from .primitives import (
 PROVIDER = "typesafe"
 BASE_URL = "https://api.typesafe.ai/v1"
 DEFAULT_MODEL = "jev-latest"
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
 # Official list price: $0.042 / MTok input, output free.
 USD_PER_M_INPUT = Decimal("0.042")
 USD_PER_M_OUTPUT = Decimal(0)
@@ -62,6 +64,27 @@ class JevOverloadedError(JevError):
 
 class JevDisabled(JevError):
     """Raised only when a caller insisted on Jev and the key is missing."""
+
+
+async def _shared_client(timeout: float) -> httpx.AsyncClient:
+    """Reuse one keep-alive client. A new client per ask pays TLS (~200ms)."""
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(
+                timeout=timeout,
+                limits=httpx.Limits(max_keepalive_connections=8, max_connections=16),
+            )
+        return _http
+
+
+async def warm() -> None:
+    """Open the keep-alive pool during research so the first ask skips TLS."""
+    if not enabled():
+        return
+    await _shared_client(8.0)
 
 
 def enabled() -> bool:
@@ -163,22 +186,22 @@ async def system_one(
         "content-type": "application/json",
     }
     last_error: Exception | None = None
-    async with httpx.AsyncClient(timeout=timeout) as client:
-        for attempt in range(1, max_attempts + 1):
-            try:
-                resp = await client.post(
-                    f"{BASE_URL}/systemone", json=body, headers=headers
-                )
-                _raise_for_status(resp)
-                return _parse_result(resp.json(), backend="jev")
-            except (JevRateLimitError, JevOverloadedError, httpx.TransportError) as exc:
-                last_error = exc
-                if attempt >= max_attempts:
-                    break
-                delay = 0.4 * (2 ** (attempt - 1))
-                if isinstance(exc, JevRateLimitError) and exc.retry_after:
-                    delay = max(delay, exc.retry_after)
-                await asyncio.sleep(delay)
+    client = await _shared_client(timeout)
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = await client.post(
+                f"{BASE_URL}/systemone", json=body, headers=headers
+            )
+            _raise_for_status(resp)
+            return _parse_result(resp.json(), backend="jev")
+        except (JevRateLimitError, JevOverloadedError, httpx.TransportError) as exc:
+            last_error = exc
+            if attempt >= max_attempts:
+                break
+            delay = 0.4 * (2 ** (attempt - 1))
+            if isinstance(exc, JevRateLimitError) and exc.retry_after:
+                delay = max(delay, exc.retry_after)
+            await asyncio.sleep(delay)
     raise last_error or JevError("TypeSafe request failed")
 
 

@@ -23,6 +23,13 @@ from .client import (
     noul,
     score,
     system_one,
+    warm,
+)
+from .grounding import (
+    allowed_facts,
+    compact_state,
+    extract_claim_sentences,
+    strip_ungrounded_claims,
 )
 from .harness import (
     AutoModeDecision,
@@ -45,6 +52,7 @@ from .loops import (
     should_index_asset,
     should_spawn_repurpose,
     source_audit_notes,
+    source_audit_penalty,
 )
 from .planner import (
     VideoPlan,
@@ -86,15 +94,18 @@ __all__ = [
     "UltrafastAction",
     "VideoPlan",
     "after_content_qa",
+    "allowed_facts",
     "ask",
     "auto_mode",
     "available",
     "campaign_tick_gate",
     "choice",
     "clear_ask_cache",
+    "compact_state",
     "default_generation_model",
     "enabled",
     "enrich_failure_rows",
+    "extract_claim_sentences",
     "filter_research_pages",
     "gate_choice",
     "gate_noul",
@@ -114,6 +125,9 @@ __all__ = [
     "should_index_asset",
     "should_spawn_repurpose",
     "source_audit_notes",
+    "source_audit_penalty",
+    "strip_ungrounded_claims",
     "system_one",
+    "warm",
     "weighted_composite",
 ]

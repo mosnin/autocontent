@@ -81,6 +81,86 @@ Return the winning index (0-based) and one sentence of reasoning.
 """
 
 
+def idea_candidates(
+    niche_title: str,
+    *,
+    niche_description: str = "",
+    target_audience: str = "",
+    platform: str = "",
+    recent_topics: list[str] | None = None,
+    banned_words: list[str] | None = None,
+    limit: int = 5,
+) -> list[Idea]:
+    """Deterministic idea set — Jev picks, Qwen does not invent three hooks.
+
+    Production ideation used to buy N chat completions before a judge.
+    Templates + one Jev composite score is the 70–500ms path.
+    """
+    title = (niche_title or "this niche").strip() or "this niche"
+    audience = (target_audience or "this audience").strip() or "this audience"
+    plat = (platform or "short-form").strip()
+    recent = {t.strip().casefold() for t in (recent_topics or []) if t.strip()}
+    banned = {w.strip().casefold() for w in (banned_words or []) if w.strip()}
+    raw = [
+        Idea(
+            topic=f"The {title} mistake that wastes the first week",
+            angle="costly mistake",
+            hook=f"You're doing {title} the hard way",
+            target_audience=audience,
+            why_it_works="loss aversion plus a concrete first-week payoff",
+        ),
+        Idea(
+            topic=f"What {audience} get wrong about {title}",
+            angle="contrarian",
+            hook=f"{audience} keep getting {title} backwards",
+            target_audience=audience,
+            why_it_works="identity challenge stops the scroll on " + plat,
+        ),
+        Idea(
+            topic=f"How {title} actually works in 60 seconds",
+            angle="curiosity gap",
+            hook=f"Nobody explains {title} this simply",
+            target_audience=audience,
+            why_it_works="open loop plus a promised 60-second payoff",
+        ),
+        Idea(
+            topic=f"The {title} checklist that actually ships",
+            angle="practical payoff",
+            hook=f"Steal this {title} checklist",
+            target_audience=audience,
+            why_it_works="tangible artifact the viewer can screenshot",
+        ),
+        Idea(
+            topic=f"Stop treating {title} like a beginner",
+            angle="stakes",
+            hook=f"This {title} habit is costing you",
+            target_audience=audience,
+            why_it_works="status plus a hidden cost the niche already feels",
+        ),
+    ]
+    if niche_description:
+        raw.append(
+            Idea(
+                topic=niche_description.strip()[:80],
+                angle="first principles",
+                hook=f"{title}: the part nobody mentions",
+                target_audience=audience,
+                why_it_works="pattern interrupt from the niche's own brief",
+            )
+        )
+    out: list[Idea] = []
+    for idea in raw:
+        blob = f"{idea.topic} {idea.hook}".casefold()
+        if idea.topic.casefold() in recent:
+            continue
+        if any(word in blob for word in banned):
+            continue
+        out.append(idea)
+        if len(out) >= limit:
+            break
+    return out or raw[:limit]
+
+
 def build_ideation_agent() -> Agent:
     return Agent(
         model=settings.agent_model,
@@ -179,6 +259,39 @@ async def run_ideation(
             brief=brief,
         )
 
+    templates = idea_candidates(
+        niche_title,
+        niche_description=niche_description,
+        target_audience=target_audience,
+        platform=platform,
+        recent_topics=recent_topics,
+        banned_words=banned_words,
+        limit=max(n, 4),
+    )
+    if len(templates) >= 2:
+        try:
+            from ..config import settings as _settings
+            from ..jev.client import enabled as jev_http_enabled
+            from ..jev.decisions import judge_ideas
+
+            # Real TypeSafe Jev only — Qwen fallback would still be an LLM
+            # RTT, and existing ideation tests mock Runner.run.
+            if _settings.jev_enabled and jev_http_enabled():
+                judge_prompt = build_ideation_prompt(
+                    niche_title,
+                    niche_description=niche_description,
+                    target_audience=target_audience,
+                    platform=platform,
+                )
+                pick = await judge_ideas(judge_prompt, templates, spend=spend)
+                if 0 <= pick.winner_index < len(templates):
+                    return templates[pick.winner_index]
+        except Exception as exc:
+            from ..repos.spend import SpendCapExceeded
+
+            if isinstance(exc, SpendCapExceeded):
+                raise
+
     if n == 1:
         # Honor the creator's preferred hook mechanism even without a
         # tournament: single-shot uses their first lens.
@@ -230,13 +343,13 @@ async def run_ideation(
         from ..repos.spend import SpendCapExceeded
 
         if _settings.jev_enabled and jev_available():
-            brief = build_ideation_prompt(
+            judge_prompt = build_ideation_prompt(
                 niche_title,
                 niche_description=niche_description,
                 target_audience=target_audience,
                 platform=platform,
             )
-            pick = await judge_ideas(brief, candidates, spend=spend)
+            pick = await judge_ideas(judge_prompt, candidates, spend=spend)
             if 0 <= pick.winner_index < len(candidates):
                 return candidates[pick.winner_index]
     except Exception as exc:  # noqa: BLE001 — tournament never becomes a failure mode

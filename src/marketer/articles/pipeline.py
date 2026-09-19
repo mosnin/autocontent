@@ -159,6 +159,9 @@ async def _write_sections(
 
     async def _bounded(heading: str, notes: str) -> str:
         async with sem:
+            faq = fastpath.faq_section_from_research(heading, ctx.research)
+            if faq:
+                return faq
             return await llm.write_section(heading, notes, ctx, spend=spend)
 
     pieces = await asyncio.gather(
@@ -268,7 +271,19 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
     # 1. Research — Exa + Jev rank, then deterministic SERP extract.
     with _stage(ArticleStatus.researching.value):
         await _set_status(article, ArticleStatus.researching)
-        pages = await exa.serp_pages(article.focus_keyword)
+
+        async def _warm_jev() -> None:
+            try:
+                from ..jev.client import warm
+
+                await warm()
+            except Exception:  # noqa: BLE001 — prefetch never blocks research
+                return
+
+        pages, _ = await asyncio.gather(
+            exa.serp_pages(article.focus_keyword),
+            _warm_jev(),
+        )
         from ..jev.loops import filter_research_pages
 
         pages = await filter_research_pages(
@@ -277,20 +292,15 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         if pages:
             serp = fastpath.serp_from_pages(article.focus_keyword, pages)
         else:
-            # Degraded mode: no SERP provider configured/reachable. The
-            # outline prompt still works from model knowledge.
+            # Degraded mode: no SERP provider configured/reachable.
+            # Outline falls back to the default playbook headings.
             serp = SerpAnalysis()
 
-    # 2. Outline
+    # 2. Outline — SERP headings + playbook. No chat completion.
     with _stage(ArticleStatus.outlining.value):
         await _set_status(article, ArticleStatus.outlining)
-        outline = await llm.generate_outline(
-            article.topic,
-            article.focus_keyword,
-            serp.model_dump(),
-            tone,
-            audience,
-            spend=spend,
+        outline = fastpath.outline_from_research(
+            article.topic, article.focus_keyword, serp
         )
 
     # 3. Write (parallel per-H2 fan-out)
@@ -306,13 +316,22 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             research=serp if serp.topResults else None,
         )
         markdown = await _write_sections(outline, ctx, spend=spend)
+        from ..jev.grounding import allowed_facts, strip_ungrounded_claims
 
-    # 4. QA — one corrective rewrite when below threshold.
+        markdown, lock_notes = strip_ungrounded_claims(markdown, allowed_facts(serp))
+
+    # 4. QA — fact-lock first, then score + citation-verifier in parallel.
     with _stage(ArticleStatus.qa.value):
         await _set_status(article, ArticleStatus.qa)
-        quality = await llm.score_article(
-            markdown, article.focus_keyword, spend=spend
+        from ..jev.loops import source_audit_penalty
+
+        quality, (audit_notes, penalty) = await asyncio.gather(
+            llm.score_article(markdown, article.focus_keyword, spend=spend),
+            source_audit_penalty(markdown, pages if pages else [], spend=spend),
         )
+        quality.notes.extend(lock_notes)
+        quality.notes.extend(audit_notes)
+        quality.overall = max(0.0, float(quality.overall) - penalty)
         if quality.overall < QA_THRESHOLD:
             log.info(
                 "article qa below threshold; one corrective rewrite",
@@ -320,22 +339,26 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             )
             ctx = ctx.model_copy(update={"revisionNotes": quality.notes})
             markdown = await _write_sections(outline, ctx, spend=spend)
-            quality = await llm.score_article(
-                markdown, article.focus_keyword, spend=spend
+            markdown, lock_notes = strip_ungrounded_claims(
+                markdown, allowed_facts(serp)
             )
-        from ..jev.loops import source_audit_notes
-
-        quality.notes.extend(
-            await source_audit_notes(markdown, pages if pages else [], spend=spend)
-        )
+            quality, (audit_notes, penalty) = await asyncio.gather(
+                llm.score_article(markdown, article.focus_keyword, spend=spend),
+                source_audit_penalty(
+                    markdown, pages if pages else [], spend=spend
+                ),
+            )
+            quality.notes.extend(lock_notes)
+            quality.notes.extend(audit_notes)
+            quality.overall = max(0.0, float(quality.overall) - penalty)
         article.quality = quality
         article.word_count = len(markdown.split())
 
     # 5. Metadata + JSON-LD schema + internal-link suggestions
     with _stage(ArticleStatus.metadata.value):
         await _set_status(article, ArticleStatus.metadata)
-        meta = await llm.generate_metadata(
-            article.topic, article.focus_keyword, markdown, tone, spend=spend
+        meta = fastpath.metadata_from_article(
+            article.topic, article.focus_keyword, markdown
         )
         article.title = meta.title
         article.slug = meta.slug

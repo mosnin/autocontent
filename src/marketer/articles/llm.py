@@ -246,15 +246,20 @@ async def write_section(
         "commas, periods, or parentheses instead. Maintain tonal continuity "
         "with the previously-written sections. Include the focus keyword "
         "naturally (do not stuff). Output pure markdown only; no front-matter, "
-        "no code fences around the whole section."
+        "no code fences around the whole section. Never invent studies, "
+        "percentages, quotes, or citations that are not in the grounding sources."
     )
+    from ..jev.grounding import research_grounding_block
+
+    ground = research_grounding_block(context.research)
+    ground_block = f"\n{ground}\n" if ground else "\n"
     user = (
         f"Article title: {context.title}\n"
         f"Topic: {context.topic}\n"
         f"Focus keyword: {context.focusKeyword}\n"
         f"Tone: {context.tone or 'professional, clear'}\n"
         f"Target audience: {context.targetAudience or 'general readers'}\n"
-        f"{revision_block}\n"
+        f"{revision_block}{ground_block}\n"
         f"Section heading: {heading}\n"
         f"Section notes: {notes}\n\n"
         f"Previously written sections (tail, for tonal continuity):\n{prev_tail}\n\n"
@@ -283,6 +288,9 @@ async def write_section(
     # article. Fall back to the stock agent_model, same philosophy as
     # provider_fallback.synthesize_vo_with_fallback for video voiceover.
     chain = provider_fallback.writer_model_fallback_chain(settings.article_writer_model)
+    # Cascade: a QA rewrite does not retry the same cheap writer first.
+    if context.revisionNotes and len(chain) > 1:
+        chain = chain[1:] + chain[:1]
     text, _model_used = await provider_fallback.call_with_model_fallback(
         _call, chain, log_event="article.writer.fallback",
     )

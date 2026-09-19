@@ -33,6 +33,7 @@ from .primitives import (
 )
 
 QWEN_DECISION_MODEL = "qwen/qwen3-32b"
+_qwen_client = None
 
 
 class QwenDecisionError(RuntimeError):
@@ -163,11 +164,14 @@ async def system_one_qwen(
 
     from openai import AsyncOpenAI
 
+    global _qwen_client
     model_id = model or settings.jev_fallback_model or QWEN_DECISION_MODEL
-    client = AsyncOpenAI(
-        base_url=openrouter.BASE_URL,
-        api_key=settings.openrouter_api_key,
-    )
+    if _qwen_client is None:
+        _qwen_client = AsyncOpenAI(
+            base_url=openrouter.BASE_URL,
+            api_key=settings.openrouter_api_key,
+        )
+    client = _qwen_client
     user = json.dumps(
         {"state": state, "questions": questions_payload(questions)},
         default=str,
