@@ -150,6 +150,10 @@ def stub_env(monkeypatch, tmp_path: Path):
         return ""
     monkeypatch.setattr(pipeline, "build_performance_context", fake_build_performance_context)
 
+    async def fake_recent_topics(niche_id, *, user_id, limit=20):
+        return []
+    monkeypatch.setattr(pipeline.jobs_repo, "recent_topics_for_niche", fake_recent_topics)
+
     async def fake_ideation(title, *, performance_context="", niche_description="",
                             target_audience="", platform="", brand_voice="",
                             banned_words=None, recent_topics=None, brief=None, spend=None):
@@ -294,6 +298,21 @@ def stub_env(monkeypatch, tmp_path: Path):
         return "post-id-resume-hardening"
     monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
 
+    # niche_lock / user_lock take real pg advisory locks. Unit tests
+    # without Postgres must no-op them or run_job dies in get_pool().
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def _fake_niche_lock(niche_id):
+        yield True
+
+    @asynccontextmanager
+    async def _fake_user_lock(user_id, *, max_parallel):
+        yield
+
+    monkeypatch.setattr(pipeline, "niche_lock", _fake_niche_lock)
+    monkeypatch.setattr(pipeline, "user_lock", _fake_user_lock)
+
     return {"calls": calls, "niche_box": niche_box, "saved": saved, "tmp_path": tmp_path}
 
 
@@ -389,11 +408,16 @@ async def test_elevenlabs_misconfig_fails_before_any_spend(stub_env, monkeypatch
     )
     monkeypatch.setattr(settings, "elevenlabs_api_key", "")
 
+    async def boom_plan(*a, **k):
+        raise AssertionError("planner must not run when elevenlabs is misconfigured")
+
+    monkeypatch.setattr("marketer.jev.planner.plan_video_run", boom_plan)
+
     result = await pipeline.run_job(user_id=USER_ID, niche_id=NICHE_ID, platform="tiktok")
 
     assert result.status == JobStatus.failed
     assert result.error is not None and "elevenlabs" in result.error.lower()
-    # No ideation/keyframe/render spend happened.
+    # No planner / ideation / keyframe / render spend happened.
     assert calls["generate_keyframe"] == 0
     assert calls["animate"] == 0
     assert calls["tts"] == []

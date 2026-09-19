@@ -25,6 +25,8 @@ from .agents import (
 )
 from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
 from .agents.metered import run_metered
+from .agents.scriptwriter import should_template_script, template_script
+from .agents.visual_director import should_template_visuals, template_visual_director
 from .models import Idea, Niche, Script
 from .models.creative_brief import CreativeBrief
 from .agents.qa import QAReport
@@ -41,6 +43,14 @@ async def run_scriptwriter(
     script_model: str = "",
     spend: SpendContext | None = None,
 ) -> Script:
+    # Default / dark path: templates, not a 5–20s writer. Operator-pinned
+    # script_model and a narrative brief still buy the LLM.
+    if should_template_script(script_model=script_model, brief=brief):
+        return template_script(
+            idea,
+            scene_count=scene_count,
+            target_duration_sec=target_duration_sec,
+        )
     agent = build_scriptwriter_agent()
     prompt = (
         f"Idea:\n{idea.model_dump_json(indent=2)}\n\n"
@@ -52,22 +62,16 @@ async def run_scriptwriter(
         for line in brief.scriptwriter_lines():
             prompt += f"\n{line}"
 
-    # Per-niche writer model via OpenRouter. Unknown ids or a missing key
-    # fall back to the stock agent (never fail a job over a dropdown).
-    metered_kwargs: dict = {}
-    if script_model:
-        from .services import openrouter
+    # Per-niche writer via OpenRouter. Unknown ids or a missing key
+    # keep the stock agent. Empty dropdown still prefers Qwen.
+    from .services import openrouter
 
-        or_model = openrouter.get_model(script_model)
-        if or_model is not None and openrouter.enabled():
-            agent.model = openrouter.agents_model(script_model)
-            metered_kwargs = {
-                "provider": openrouter.PROVIDER,
-                "sku": f"llm:{script_model}",
-                "cost_fn": lambda i, o: openrouter.llm_cost(or_model, i, o),
-            }
-
-    result = await run_metered(agent, prompt, spend=spend, **metered_kwargs)
+    result = await run_metered(
+        agent,
+        prompt,
+        spend=spend,
+        **openrouter.generation_metered(agent, script_model),
+    )
     return result.final_output_as(Script)
 
 
@@ -80,6 +84,12 @@ async def run_visual_director(
     design_kit: str = "",
     spend: SpendContext | None = None,
 ) -> Script:
+    if should_template_visuals(brief=brief, design_kit=design_kit):
+        return template_visual_director(
+            script,
+            visual_style=visual_style,
+            character_description=character_description,
+        )
     agent = build_visual_director_agent()
     payload = {
         "style": visual_style,
@@ -92,8 +102,72 @@ async def run_visual_director(
         vd_brief = brief.visual_director_brief()
         if vd_brief:
             payload["creative_brief"] = vd_brief
-    result = await run_metered(agent, json.dumps(payload), spend=spend)
+
+    # Same Qwen-first hop as scriptwriter when the operator actually
+    # bought Visual Director (design kit / visual brief). Templates
+    # already skipped this function.
+    from .services import openrouter
+
+    result = await run_metered(
+        agent,
+        json.dumps(payload),
+        spend=spend,
+        **openrouter.generation_metered(agent),
+    )
     return result.final_output_as(Script)
+
+
+def qa_payload(
+    script: Script,
+    transcript: str,
+    duration_sec: float,
+    niche: Niche,
+) -> dict:
+    """Slim state for Jev / heuristic video QA. Shared so the pipeline can
+    fan-out judge_video with Foreman in one RTT."""
+    scenes = getattr(script, "scenes", None) or []
+    payload = {
+        "hook": (scenes[0].narration if scenes else ""),
+        "narration": " ".join(str(getattr(s, "narration", "") or "") for s in scenes),
+        "transcript": (transcript or "")[:1500],
+        "duration_sec": duration_sec,
+        "target_duration_sec": niche.target_duration_sec,
+        "niche": niche.title,
+    }
+    qa_constraints = niche.creative_brief.qa_lines()
+    if qa_constraints:
+        payload["creative_constraints"] = qa_constraints
+    return payload
+
+
+async def resolve_video_qa(
+    payload: dict,
+    heuristic: QAReport,
+    *,
+    spend: SpendContext | None = None,
+) -> QAReport:
+    """Jev when live; otherwise the already-computed heuristic. Never a writer.
+
+    Hard rerender floors (duration / empty captions) stay with the
+    heuristic — Jev has no clock and must not publish a broken render.
+    """
+    from .agents.qa import is_hard_rerender
+    from .config import settings as _settings
+    from .jev import available as jev_available
+    from .jev.decisions import judge_video
+
+    if is_hard_rerender(heuristic):
+        return heuristic
+    if _settings.jev_enabled and jev_available():
+        try:
+            verdict = await judge_video(payload, spend=spend)
+            return verdict.report
+        except Exception as exc:  # noqa: BLE001 — Jev is an upgrade, never a new fail
+            from .repos.spend import SpendCapExceeded
+
+            if isinstance(exc, SpendCapExceeded):
+                raise
+    return heuristic
 
 
 async def run_qa(
@@ -104,19 +178,11 @@ async def run_qa(
     niche: Niche,
     spend: SpendContext | None = None,
 ) -> QAReport:
-    agent = build_qa_agent()
-    payload = {
-        "script": script.model_dump(),
-        "transcript": transcript,
-        "duration_sec": duration_sec,
-        "target_duration_sec": niche.target_duration_sec,
-        "niche": niche.title,
-    }
-    qa_constraints = niche.creative_brief.qa_lines()
-    if qa_constraints:
-        payload["creative_constraints"] = qa_constraints
-    result = await run_metered(agent, json.dumps(payload), spend=spend)
-    return result.final_output_as(QAReport)
+    from .agents.qa import heuristic_qa_report
+
+    payload = qa_payload(script, transcript, duration_sec, niche)
+    heuristic = heuristic_qa_report(payload)
+    return await resolve_video_qa(payload, heuristic, spend=spend)
 
 
 def all_agents() -> list[Agent]:

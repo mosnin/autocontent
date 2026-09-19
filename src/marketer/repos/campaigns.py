@@ -144,11 +144,22 @@ async def set_item_enabled(
     return _row_to_item(row) if row else None
 
 
-async def remove_item(item_id: UUID, *, user_id: str) -> bool:
+async def remove_item(
+    item_id: UUID, *, user_id: str, campaign_id: UUID | None = None
+) -> bool:
+    """Delete a campaign item. Scoped to the URL campaign when provided
+    so ``DELETE /campaigns/{A}/items/{id}`` cannot remove an item that
+    belongs to campaign B."""
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
     pool = await get_pool()
     result = await pool.execute(
-        "delete from campaign_items where id = $1 and user_id = $2",
-        item_id, user_id,
+        """
+        delete from campaign_items
+         where id = $1 and user_id = $2
+           and ($3::uuid is null or campaign_id = $3)
+        """,
+        item_id, user_id, campaign_id,
     )
     return result.endswith("1")
 

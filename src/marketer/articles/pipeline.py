@@ -26,13 +26,15 @@ from opentelemetry import trace
 
 from ..config import settings
 from ..logging import get_logger
+from ..models import User
 from ..repos import articles as articles_repo
 from ..repos import brand_kit as brand_kit_repo
 from ..repos import niches as niches_repo
 from ..repos import spend as spend_repo
+from ..repos import users as users_repo
 from ..services import openai_images, otel
 from ..services.spend_context import SpendContext, default_context
-from . import exa, llm
+from . import exa, fastpath, llm
 from .models import Article, ArticleStatus, Outline, SectionContext, SerpAnalysis
 
 log = get_logger(__name__)
@@ -103,15 +105,27 @@ async def _emit_webhook(article: Article, event: str) -> None:
         log.warning("webhook emit failed", extra={"error": str(e)})
 
 
-async def _notify(article: Article, *, kind: str) -> None:
+async def _user_or_none(user_id: str) -> User | None:
+    """Fail-open user load so a down users table never blocks persist."""
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
+    try:
+        return await users_repo.get(user_id)
+    except Exception:  # noqa: BLE001 — notify seasons, never fails the row
+        return None
+
+
+async def _notify(article: Article, *, kind: str, user: User | None = None) -> None:
     """Email the operator when an article reaches a terminal state. Fail-open
     and gated on the user's email-notification preference — matches the video
     pipeline so both content types notify consistently."""
+    if user is not None and not isinstance(user, User):
+        raise TypeError("user must be a User")
     try:
-        from ..repos import users as users_repo
         from ..services import email as email_svc
 
-        user = await users_repo.get(article.user_id)
+        if user is None:
+            user = await _user_or_none(article.user_id)
         if user is None or not user.email or not user.email_notifications:
             return
         title = article.title or article.topic or None
@@ -124,12 +138,26 @@ async def _notify(article: Article, *, kind: str) -> None:
         log.warning("article notification failed", extra={"error": str(e)})
 
 
+async def _signal_terminal(
+    article: Article, *, kind: str, event: str, user: User | None = None
+) -> None:
+    """Email + outbound webhook in one beat. Both are fail-open."""
+    if user is not None and not isinstance(user, User):
+        raise TypeError("user must be a User")
+    await asyncio.gather(
+        _notify(article, kind=kind, user=user),
+        _emit_webhook(article, event),
+    )
+
+
 async def _fail_with(article: Article, error: str, exc: BaseException | None = None) -> Article:
     article.status = ArticleStatus.failed
     article.error = error
-    await articles_repo.save(article)
-    await _notify(article, kind="failed")
-    await _emit_webhook(article, "article.failed")
+    _, user = await asyncio.gather(
+        articles_repo.save(article),
+        _user_or_none(article.user_id),
+    )
+    await _signal_terminal(article, kind="failed", event="article.failed", user=user)
     try:
         import sentry_sdk
         if exc is not None:
@@ -141,6 +169,53 @@ async def _fail_with(article: Article, error: str, exc: BaseException | None = N
     except Exception:  # sentry not installed/initialised — never block the pipeline
         pass
     return article
+
+
+async def _render_hero(
+    prompt: str,
+    path: Path,
+    *,
+    alt: str,
+    quality: str,
+    spend: SpendContext,
+) -> tuple[Path, str]:
+    await openai_images.generate_keyframe(
+        prompt, path, quality=quality, spend=spend
+    )
+    return path, alt
+
+
+def _start_hero_task(
+    article: Article,
+    *,
+    quality: str,
+    spend: SpendContext,
+) -> asyncio.Task | None:
+    """Kick gpt-image-1 once topic + keyword exist. Template prompt — no writer."""
+    try:
+        prompt = fastpath.hero_prompt(article.topic, article.focus_keyword)
+    except Exception as exc:  # noqa: BLE001 — prompt is non-essential
+        log.warning(
+            "article hero prompt degraded",
+            extra={"article_id": str(article.id), "error": str(exc)},
+        )
+        return None
+    hero = (
+        Path(settings.artifacts_dir)
+        / article.user_id
+        / "articles"
+        / str(article.id)
+        / "hero.png"
+    )
+    return asyncio.create_task(
+        _render_hero(
+            prompt.prompt,
+            hero,
+            alt=prompt.altText,
+            quality=quality,
+            spend=spend,
+        )
+    )
 
 
 async def _write_sections(
@@ -159,6 +234,20 @@ async def _write_sections(
 
     async def _bounded(heading: str, notes: str) -> str:
         async with sem:
+            templated = (
+                fastpath.faq_section_from_research(heading, ctx.research)
+                or fastpath.checklist_section_from_research(heading, ctx.research)
+                or fastpath.definition_section_from_research(heading, ctx.research)
+                or fastpath.how_to_section_from_research(heading, ctx.research)
+                or fastpath.mistakes_section_from_research(heading, ctx.research)
+                or fastpath.stakes_section_from_research(heading, ctx.research)
+                or fastpath.practice_section_from_research(heading, ctx.research)
+                or fastpath.question_section_from_research(heading, ctx.research)
+                or fastpath.serp_heading_section_from_research(heading, ctx.research)
+                or fastpath.grounded_section_from_research(heading, ctx.research)
+            )
+            if templated:
+                return templated
             return await llm.write_section(heading, notes, ctx, spend=spend)
 
     pieces = await asyncio.gather(
@@ -175,28 +264,47 @@ async def run_article(
     article_id: UUID | None = None,
     topic: str = "",
 ) -> Article:
-    niche = await niches_repo.get(niche_id, user_id=user_id)
-    if niche is None:
-        raise ValueError(f"niche {niche_id} not found for user {user_id}")
-
     if article_id is not None:
-        article = await articles_repo.get(article_id, user_id=user_id)
+        # Enqueue / retry always pass the row id. Niche, article, and
+        # spend are independent reads — waiting on niche first was a
+        # leftover RTT on every Modal run.
+        niche, article, spend = await asyncio.gather(
+            niches_repo.get(niche_id, user_id=user_id),
+            articles_repo.get(article_id, user_id=user_id),
+            default_context(
+                user_id=user_id,
+                niche_id=niche_id,
+                job_id=None,
+                article_id=article_id,
+                cap_usd=None,
+            ),
+        )
+        if niche is None:
+            raise ValueError(f"niche {niche_id} not found for user {user_id}")
         if article is None:
             raise ValueError(f"article {article_id} not found for user {user_id}")
+        if spend is not None:
+            spend.cap_usd = niche.daily_spend_cap_usd
         if topic:
             article.topic = topic
     else:
-        article = await articles_repo.create(
-            user_id=user_id, niche_id=niche_id, topic=topic
+        niche = await niches_repo.get(niche_id, user_id=user_id)
+        if niche is None:
+            raise ValueError(f"niche {niche_id} not found for user {user_id}")
+        article, spend = await asyncio.gather(
+            articles_repo.create(
+                user_id=user_id, niche_id=niche_id, topic=topic
+            ),
+            default_context(
+                user_id=user_id,
+                niche_id=niche_id,
+                job_id=None,
+                article_id=None,
+                cap_usd=niche.daily_spend_cap_usd,
+            ),
         )
-
-    spend = await default_context(
-        user_id=user_id,
-        niche_id=niche_id,
-        job_id=None,
-        article_id=article.id,
-        cap_usd=niche.daily_spend_cap_usd,
-    )
+        if spend is not None:
+            spend.article_id = article.id
 
     tracer = otel.get_tracer(__name__)
     with tracer.start_as_current_span("article.run") as span:
@@ -220,60 +328,142 @@ async def run_article(
 
 
 async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
-    brand = await brand_kit_repo.get(article.user_id)
-    tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
-    # Writing kit: the user's reusable voice/style skill. Pinned on the
-    # niche, else their default writing kit. Fail-open.
-    try:
-        from ..repos import kits as kits_repo
+    async def _knowledge_block() -> str:
+        try:
+            from ..company_os.knowledge import prompt_block
 
-        writing_kit = await kits_repo.resolve(
-            user_id=article.user_id, kind="writing",
-            kit_id=getattr(niche, "writing_kit_id", None),
-        )
-        if writing_kit is not None and writing_kit.content:
-            tone = (
-                f"{tone}\nWriting kit — the author's voice & style system, "
-                f"follow it throughout:\n{writing_kit.content}"
+            return await prompt_block(article.user_id)
+        except Exception:  # noqa: BLE001 — knowledge seasons, never blocks
+            return ""
+
+    async def _writing_kit():
+        try:
+            from ..repos import kits as kits_repo
+
+            return await kits_repo.resolve(
+                user_id=article.user_id,
+                kind="writing",
+                kit_id=getattr(niche, "writing_kit_id", None),
             )
-    except Exception:  # noqa: BLE001 — kits season, they never block
-        pass
-    audience = niche.target_audience
+        except Exception:  # noqa: BLE001 — kits season, they never block
+            return None
 
-    # 0. Topic — pick one when the caller didn't supply it.
-    if not article.topic:
-        recent = await articles_repo.recent_titles_for_niche(
+    async def _recent_titles() -> list[str]:
+        if article.topic:
+            return []
+        return await articles_repo.recent_titles_for_niche(
             article.niche_id, user_id=article.user_id
         )
-        pick = await llm.pick_topic(
-            niche.title, niche.description, recent, spend=spend
+
+    async def _early_serp():
+        # Topic-known enqueues can hide Exa behind kit/brand reads.
+        # Empty topic still researches after pick_topic (keyword unknown).
+        kw = (article.focus_keyword or article.topic or "").strip()
+        if not kw:
+            return None
+        return await exa.serp_pages(kw)
+
+    brand, block, writing_kit, recent, early_pages = await asyncio.gather(
+        brand_kit_repo.get(article.user_id),
+        _knowledge_block(),
+        _writing_kit(),
+        _recent_titles(),
+        _early_serp(),
+    )
+    tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
+    if block:
+        tone = f"{tone}\n{block}"
+    if writing_kit is not None and writing_kit.content:
+        tone = (
+            f"{tone}\nWriting kit — the author's voice & style system, "
+            f"follow it throughout:\n{writing_kit.content}"
+        )
+    audience = niche.target_audience
+
+    # 0. Topic — templates + Jev, not a chat completion.
+    if not article.topic:
+        pick = await fastpath.pick_topic(
+            niche.title,
+            niche.description,
+            recent,
+            audience=audience,
+            spend=spend,
         )
         article.topic = pick.topic
         article.focus_keyword = pick.focusKeyword
     if not article.focus_keyword:
         article.focus_keyword = article.topic
 
-    # 1. Research
+    # Hero only needs topic + keyword. Start it before research so
+    # gpt-image-1 hides behind Exa + write + QA. Imaging still awaits;
+    # spend-cap still fails the article; other failures still degrade.
+    hero_task: asyncio.Task | None = None
+    try:
+        if settings.article_hero_image:
+            hero_task = _start_hero_task(
+                article, quality=niche.image_quality, spend=spend
+            )
+
+        return await _run_after_topic(
+            article, niche, spend, audience, tone, hero_task, early_pages
+        )
+    finally:
+        if hero_task is not None and not hero_task.done():
+            hero_task.cancel()
+            try:
+                await hero_task
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
+
+
+async def _run_after_topic(
+    article: Article,
+    niche,
+    spend: SpendContext,
+    audience: str,
+    tone: str,
+    hero_task: asyncio.Task | None,
+    early_pages=None,
+) -> Article:
+    # 1. Research — Exa + Jev rank, then deterministic SERP extract.
     with _stage(ArticleStatus.researching.value):
-        await _set_status(article, ArticleStatus.researching)
-        pages = await exa.serp_pages(article.focus_keyword)
+        async def _warm_jev() -> None:
+            try:
+                from ..jev.client import warm
+
+                await warm()
+            except Exception:  # noqa: BLE001 — prefetch never blocks research
+                return
+
+        async def _pages():
+            if early_pages is not None:
+                return early_pages
+            return await exa.serp_pages(article.focus_keyword)
+
+        # Persist and Exa/Jev-warm are independent. Waiting on the
+        # snapshot left a leftover RTT in front of research.
+        pages, _, _ = await asyncio.gather(
+            _pages(),
+            _warm_jev(),
+            _set_status(article, ArticleStatus.researching),
+        )
+        from ..jev.loops import filter_research_pages
+
+        pages = await filter_research_pages(
+            article.focus_keyword, pages, spend=spend
+        )
         if pages:
-            serp = await llm.summarize_serp(article.focus_keyword, pages, spend=spend)
+            serp = fastpath.serp_from_pages(article.focus_keyword, pages)
         else:
-            # Degraded mode: no SERP provider configured/reachable. The
-            # outline prompt still works from model knowledge.
+            # Degraded mode: no SERP provider configured/reachable.
+            # Outline falls back to the default playbook headings.
             serp = SerpAnalysis()
 
-    # 2. Outline
+    # 2. Outline — SERP headings + playbook. No chat completion.
     with _stage(ArticleStatus.outlining.value):
         await _set_status(article, ArticleStatus.outlining)
-        outline = await llm.generate_outline(
-            article.topic,
-            article.focus_keyword,
-            serp.model_dump(),
-            tone,
-            audience,
-            spend=spend,
+        outline = fastpath.outline_from_research(
+            article.topic, article.focus_keyword, serp
         )
 
     # 3. Write (parallel per-H2 fan-out)
@@ -289,13 +479,34 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             research=serp if serp.topResults else None,
         )
         markdown = await _write_sections(outline, ctx, spend=spend)
+        from ..jev.grounding import allowed_facts, strip_ungrounded_claims
 
-    # 4. QA — one corrective rewrite when below threshold.
+        lock_extra = " ".join(
+            part
+            for part in (
+                tone,
+                getattr(niche, "title", "") or "",
+                getattr(niche, "description", "") or "",
+                audience,
+            )
+            if part
+        )
+        markdown, lock_notes = strip_ungrounded_claims(
+            markdown, allowed_facts(serp, extra=lock_extra)
+        )
+
+    # 4. QA — fact-lock first, then score + citation-verifier in parallel.
     with _stage(ArticleStatus.qa.value):
         await _set_status(article, ArticleStatus.qa)
-        quality = await llm.score_article(
-            markdown, article.focus_keyword, spend=spend
+        from ..jev.loops import source_audit_penalty
+
+        quality, (audit_notes, penalty) = await asyncio.gather(
+            llm.score_article(markdown, article.focus_keyword, spend=spend),
+            source_audit_penalty(markdown, pages if pages else [], spend=spend),
         )
+        quality.notes.extend(lock_notes)
+        quality.notes.extend(audit_notes)
+        quality.overall = max(0.0, float(quality.overall) - penalty)
         if quality.overall < QA_THRESHOLD:
             log.info(
                 "article qa below threshold; one corrective rewrite",
@@ -303,81 +514,85 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             )
             ctx = ctx.model_copy(update={"revisionNotes": quality.notes})
             markdown = await _write_sections(outline, ctx, spend=spend)
-            quality = await llm.score_article(
-                markdown, article.focus_keyword, spend=spend
+            markdown, lock_notes = strip_ungrounded_claims(
+                markdown, allowed_facts(serp, extra=lock_extra)
             )
+            quality, (audit_notes, penalty) = await asyncio.gather(
+                llm.score_article(markdown, article.focus_keyword, spend=spend),
+                source_audit_penalty(
+                    markdown, pages if pages else [], spend=spend
+                ),
+            )
+            quality.notes.extend(lock_notes)
+            quality.notes.extend(audit_notes)
+            quality.overall = max(0.0, float(quality.overall) - penalty)
         article.quality = quality
         article.word_count = len(markdown.split())
 
-    # 5. Metadata + JSON-LD schema + internal-link suggestions
+    # 5. Metadata + JSON-LD schema + internal-link suggestions.
+    # Hero already started after topic pick — this stage is SEO only.
     with _stage(ArticleStatus.metadata.value):
         await _set_status(article, ArticleStatus.metadata)
-        meta = await llm.generate_metadata(
-            article.topic, article.focus_keyword, markdown, tone, spend=spend
+        meta = fastpath.metadata_from_article(
+            article.topic, article.focus_keyword, markdown
         )
         article.title = meta.title
         article.slug = meta.slug
         article.meta_description = meta.metaDescription
+        from ..jev.loops import seo_metadata_notes
+
+        seo_notes, candidates = await asyncio.gather(
+            seo_metadata_notes(
+                title=meta.title,
+                meta_description=meta.metaDescription,
+                focus_keyword=article.focus_keyword,
+                article_excerpt=markdown,
+                spend=spend,
+            ),
+            articles_repo.interlink_candidates(article.user_id),
+        )
+        if seo_notes and article.quality is not None:
+            article.quality.notes.extend(seo_notes)
         article.keywords = meta.keywords
-        article.schema_jsonld = await llm.generate_schema_json(
+        article.schema_jsonld = fastpath.schema_json(
             title=meta.title,
             slug=meta.slug,
             meta_description=meta.metaDescription,
             focus_keyword=meta.focusKeyword,
             keywords=meta.keywords,
             article_md=markdown,
-            spend=spend,
         )
-        candidates = await articles_repo.interlink_candidates(article.user_id)
         candidates = [c for c in candidates if c["slug"] != meta.slug]
-        article.link_suggestions = await llm.interlink_suggest(
-            markdown, candidates, spend=spend
-        )
+        article.link_suggestions = fastpath.interlink_lexical(markdown, candidates)
         article.article_markdown = markdown
 
-    # 6. Hero image (optional, non-essential) — reuses the video pipeline's
-    # gpt-image-1 provider, so pricing/caps/ledger are identical. An article
-    # is fully publishable without a hero image, so a failure here (content
-    # policy rejection, transient provider outage, malformed prompt payload)
-    # must DEGRADE — log and continue without one — rather than fail the
-    # whole article. A spend-cap breach is the one exception: that's a
-    # real-money guardrail, not a hero-image problem, so it still fails the
-    # article cleanly like every other metered stage.
+    # 6. Hero image (optional, non-essential) — render started after
+    # topic pick so gpt-image-1 overlaps research + write + QA. A
+    # failure here must DEGRADE rather than fail the article. A
+    # spend-cap breach is the one exception: that's a real-money
+    # guardrail. Imaging stage still exists so stage-order tests pass.
     if settings.article_hero_image:
         with _stage(ArticleStatus.imaging.value):
             await _set_status(article, ArticleStatus.imaging)
-            try:
-                prompt = await llm.generate_hero_prompt(
-                    article.title or article.topic,
-                    article.focus_keyword,
-                    markdown,
-                    spend=spend,
-                )
-                if prompt is not None:
-                    hero = (
-                        Path(settings.artifacts_dir)
-                        / article.user_id
-                        / "articles"
-                        / str(article.id)
-                        / "hero.png"
+            if hero_task is not None:
+                try:
+                    path, alt = await hero_task
+                    article.hero_image_path = str(path)
+                    article.hero_image_alt = alt
+                except spend_repo.SpendCapExceeded:
+                    raise
+                except Exception as exc:  # noqa: BLE001 — hero is non-essential
+                    log.warning(
+                        "article hero image degraded; publishing without one",
+                        extra={"article_id": str(article.id), "error": str(exc)},
                     )
-                    await openai_images.generate_keyframe(
-                        prompt.prompt, hero, quality=niche.image_quality, spend=spend
-                    )
-                    article.hero_image_path = str(hero)
-                    article.hero_image_alt = prompt.altText
-            except spend_repo.SpendCapExceeded:
-                raise
-            except Exception as exc:  # noqa: BLE001 — hero image is non-essential
-                log.warning(
-                    "article hero image degraded; publishing without one",
-                    extra={"article_id": str(article.id), "error": str(exc)},
-                )
 
     article.status = ArticleStatus.done
     article.error = None
-    await articles_repo.save(article)
+    _, user = await asyncio.gather(
+        articles_repo.save(article),
+        _user_or_none(article.user_id),
+    )
     log.info("article done", extra={"article_id": str(article.id)})
-    await _notify(article, kind="done")
-    await _emit_webhook(article, "article.done")
+    await _signal_terminal(article, kind="done", event="article.done", user=user)
     return article

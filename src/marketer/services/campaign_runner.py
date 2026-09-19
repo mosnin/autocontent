@@ -23,6 +23,7 @@ defaults spawn the Modal functions.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -63,7 +64,7 @@ async def _default_spawn_image_post(user_id: str, niche_id: UUID,
         user_id=user_id, niche_id=niche_id, campaign_id=campaign_id,
     )
     fn = modal.Function.from_name("marketer-sh", "run_image_post")
-    fn.spawn(user_id, str(post["id"]))
+    fn.spawn(user_id, str(post["id"]), str(niche_id))
 
 
 async def _default_spawn_article(user_id: str, niche_id: UUID,
@@ -114,7 +115,12 @@ async def run_campaign_tick(
         await campaigns_repo.set_status(campaign.id, user_id=uid, status="completed")
         return {"campaign_id": str(campaign.id), "action": "completed", "reason": "window ended"}
 
-    spent = await campaigns_repo.spent_usd(campaign.id, user_id=uid)
+    spent, items_all, counts, pending = await asyncio.gather(
+        campaigns_repo.spent_usd(campaign.id, user_id=uid),
+        campaigns_repo.list_items(campaign.id, user_id=uid),
+        campaigns_repo.work_counts(campaign.id, user_id=uid),
+        campaigns_repo.pending_work_count(campaign.id, user_id=uid),
+    )
     if spent >= campaign.budget_usd:
         await campaigns_repo.set_status(campaign.id, user_id=uid, status="completed")
         return {
@@ -122,25 +128,69 @@ async def run_campaign_tick(
             "reason": f"budget exhausted (${spent} >= ${campaign.budget_usd})",
         }
 
-    items = [i for i in await campaigns_repo.list_items(campaign.id, user_id=uid) if i.enabled]
-    counts = await campaigns_repo.work_counts(campaign.id, user_id=uid)
+    items = [i for i in items_all if i.enabled]
 
     # Budget projection: landed spend + in-flight pieces (whose spend
     # hasn't hit the ledger yet) at the configured per-piece estimate.
     # Without this, every lane could spawn once per tick right up to the
     # ledger catching up — overshooting the budget by lanes x cost.
     est = Decimal(str(settings.campaign_est_cost_per_piece_usd))
-    pending = await campaigns_repo.pending_work_count(campaign.id, user_id=uid)
     projected = spent + est * pending
 
     spawned: list[str] = []
+    due_targets: dict[str, str] = {}
     for item in items:
+        due_targets[f"{item.kind}:{item.ref_id}"] = (
+            f"{item.kind} lane for niche {item.ref_id} at cadence {item.cadence_per_week}/wk"
+        )
+    from ..jev.loops import campaign_tick_gate
+
+    gate = await campaign_tick_gate(
+        {
+            "campaign": campaign.name,
+            "spent_usd": str(spent),
+            "budget_usd": str(campaign.budget_usd),
+            "pending": pending,
+            "lane_count": len(items),
+        },
+        targets=due_targets,
+    )
+    if gate.hold:
+        return {
+            "campaign_id": str(campaign.id),
+            "action": "held",
+            "reason": gate.reason,
+            "spent_usd": str(spent),
+            "budget_usd": str(campaign.budget_usd),
+            "spawned": [],
+            "harness": gate.payload,
+        }
+
+    due: list = []
+    for item in items:
+        if item.kind == "video":
+            if _due(counts["video"].get(item.ref_id), item.cadence_per_week, now):
+                due.append(item)
+        elif item.kind == "image":
+            if _due(counts.get("image", {}).get(item.ref_id), item.cadence_per_week, now):
+                due.append(item)
+        elif item.kind == "article":
+            if _due(counts["article"].get(item.ref_id), item.cadence_per_week, now):
+                due.append(item)
+        # kind == "ad": linked for reporting; lifecycle stays in the
+        # governed ads layer.
+
+    niche_ids = list({item.ref_id for item in due})
+    fetched = await asyncio.gather(
+        *(niches_repo.get(nid, user_id=uid) for nid in niche_ids)
+    )
+    niches = {nid: row for nid, row in zip(niche_ids, fetched)}
+
+    for item in due:
         if projected + est > campaign.budget_usd:
             break  # no headroom for another piece
+        niche = niches.get(item.ref_id)
         if item.kind == "video":
-            if not _due(counts["video"].get(item.ref_id), item.cadence_per_week, now):
-                continue
-            niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None or not niche.platforms:
                 continue
             # Rotate platforms across spawns so all socials get coverage.
@@ -150,25 +200,17 @@ async def run_campaign_tick(
             projected += est
             spawned.append(f"video:{niche.id}:{platform}")
         elif item.kind == "image":
-            if not _due(counts.get("image", {}).get(item.ref_id), item.cadence_per_week, now):
-                continue
-            niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
                 continue
             await spawn_image(uid, niche.id, campaign.id)
             projected += est
             spawned.append(f"image:{niche.id}")
         elif item.kind == "article":
-            if not _due(counts["article"].get(item.ref_id), item.cadence_per_week, now):
-                continue
-            niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
                 continue
             await spawn_article(uid, niche.id, campaign.id)
             projected += est
             spawned.append(f"article:{niche.id}")
-        # kind == "ad": linked for reporting; lifecycle stays in the
-        # governed ads layer.
 
     return {
         "campaign_id": str(campaign.id),

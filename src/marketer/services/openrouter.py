@@ -32,7 +32,30 @@ class ScriptModel(BaseModel):
 
 
 # Curated writer models. Prices per 1M tokens.
+# Qwen leads: the Jev harness routes generation here by default. Other
+# frontier writers stay available for per-niche overrides.
 OPENROUTER_MODELS: list[ScriptModel] = [
+    ScriptModel(
+        id="qwen/qwen3-8b",
+        name="Qwen3 8B",
+        tagline="Fast Qwen tier — lookups, extraction, localized edits",
+        usd_per_m_input=Decimal("0.05"),
+        usd_per_m_output=Decimal("0.20"),
+    ),
+    ScriptModel(
+        id="qwen/qwen3-32b",
+        name="Qwen3 32B",
+        tagline="Default generation model — scripts and article sections",
+        usd_per_m_input=Decimal("0.10"),
+        usd_per_m_output=Decimal("0.30"),
+    ),
+    ScriptModel(
+        id="qwen/qwen3-235b-a22b",
+        name="Qwen3 235B",
+        tagline="Powerful Qwen tier — strategy and high-stakes copy",
+        usd_per_m_input=Decimal("0.30"),
+        usd_per_m_output=Decimal("1.20"),
+    ),
     ScriptModel(
         id="anthropic/claude-sonnet-4.5",
         name="Claude Sonnet 4.5",
@@ -71,6 +94,7 @@ OPENROUTER_MODELS: list[ScriptModel] = [
 ]
 
 _BY_ID = {m.id: m for m in OPENROUTER_MODELS}
+_openai_client = None
 
 
 def enabled() -> bool:
@@ -78,7 +102,38 @@ def enabled() -> bool:
 
 
 def get_model(model_id: str) -> ScriptModel | None:
+    if not isinstance(model_id, str):
+        raise TypeError("model_id must be a string")
     return _BY_ID.get(model_id)
+
+
+def generation_metered(agent, model_id: str | None = "") -> dict:
+    """Route an Agents-SDK writer through OpenRouter/Qwen when live.
+
+    Mutates ``agent.model`` and returns kwargs for ``run_metered``.
+    Off / unknown id / stock ``agent_model`` → empty dict (no change).
+    ``None`` is empty (a missing niche dropdown must not TypeError a job).
+    Scriptwriter, Visual Director, and the leftover ideation writer
+    share this so a missing key cannot silently split fleets.
+    """
+    if agent is None:
+        raise TypeError("agent is required")
+    if model_id is None:
+        model_id = ""
+    if not isinstance(model_id, str):
+        raise TypeError("model_id must be a string")
+    from ..jev.harness import default_generation_model
+
+    chosen = model_id.strip() or default_generation_model()
+    or_model = get_model(chosen)
+    if or_model is None or not enabled() or chosen == settings.agent_model:
+        return {}
+    agent.model = agents_model(chosen)
+    return {
+        "provider": PROVIDER,
+        "sku": f"llm:{chosen}",
+        "cost_fn": lambda i, o, m=or_model: llm_cost(m, i, o),
+    }
 
 
 def llm_cost(model: ScriptModel, input_tokens: int, output_tokens: int) -> Decimal:
@@ -87,6 +142,20 @@ def llm_cost(model: ScriptModel, input_tokens: int, output_tokens: int) -> Decim
         + model.usd_per_m_output * Decimal(output_tokens)
     ) / Decimal(1_000_000)
     return cost.quantize(Decimal("0.000001"))
+
+
+def chat_client():
+    """Shared OpenRouter OpenAI-compatible client (keep-alive)."""
+    from openai import AsyncOpenAI
+
+    global _openai_client
+    if not enabled():
+        raise RuntimeError("MARKETER_OPENROUTER_API_KEY is not set")
+    if _openai_client is None:
+        _openai_client = AsyncOpenAI(
+            base_url=BASE_URL, api_key=settings.openrouter_api_key
+        )
+    return _openai_client
 
 
 def agents_model(model_id: str):
@@ -100,7 +169,7 @@ def agents_model(model_id: str):
         raise ValueError(f"unknown openrouter model {model_id!r}")
 
     from agents import OpenAIChatCompletionsModel
-    from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(base_url=BASE_URL, api_key=settings.openrouter_api_key)
-    return OpenAIChatCompletionsModel(model=model_id, openai_client=client)
+    return OpenAIChatCompletionsModel(
+        model=model_id, openai_client=chat_client()
+    )

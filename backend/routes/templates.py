@@ -30,8 +30,11 @@ from marketer.repos import admin_audit
 from marketer.repos import templates as templates_repo
 
 from ..auth import AuthCtx, CurrentUser, require_admin
+from ..rate_limit import limiter
 
 router = APIRouter()
+_REMIX_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 MAX_IMAGE_B64 = 8 * 1024 * 1024  # ~6MB binary
 # Whole-request ceiling: image b64 + prompt + slack. Checked from the
@@ -153,7 +156,9 @@ class RemixRequest(BaseModel):
 
 
 @router.get("", response_model=list[Template])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_templates(
+    request: Request,
     kind: Literal["video", "image", "carousel"] | None = None,
     ctx: AuthCtx = CurrentUser,
 ) -> list[Template]:
@@ -167,13 +172,19 @@ async def list_templates(
 # segment for GET, so this ordering is defense-in-depth rather than a
 # live bug; keep it first regardless so that stays true as routes evolve.
 @router.get("/admin/all", response_model=list[Template])
-async def list_all_templates(admin=Depends(require_admin)) -> list[Template]:
+@limiter.limit(_MEDIA_LIMIT)
+async def list_all_templates(
+    request: Request, admin=Depends(require_admin)
+) -> list[Template]:
     """Every template, drafts included — the admin curation view."""
     return await templates_repo.list_templates(published_only=False)
 
 
 @router.get("/{template_id}/reference")
-async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
+@limiter.limit(_MEDIA_LIMIT)
+async def template_reference(
+    request: Request, template_id: UUID, ctx: AuthCtx = CurrentUser
+):
     template = await templates_repo.get(template_id)
     if template is None or not template.is_published or not template.reference_key:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -184,8 +195,12 @@ async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
 
 
 @router.post("/{template_id}/remix", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(_REMIX_LIMIT)
 async def remix_template(
-    template_id: UUID, body: RemixRequest, ctx: AuthCtx = CurrentUser,
+    request: Request,
+    template_id: UUID,
+    body: RemixRequest,
+    ctx: AuthCtx = CurrentUser,
     _size_ok: None = Depends(_bounded_body),
 ) -> dict:
     template = await templates_repo.get(template_id)
@@ -234,7 +249,9 @@ async def _mirror_reference(dest: Path) -> None:
 
 
 @router.post("", response_model=Template, status_code=status.HTTP_201_CREATED)
+@limiter.limit(_REMIX_LIMIT)
 async def create_template(
+    request: Request,
     body: TemplateCreate, admin=Depends(require_admin),
     _size_ok: None = Depends(_bounded_body),
 ) -> Template:
@@ -274,8 +291,12 @@ async def _audit_template(admin, action: str, template_id, metadata: dict) -> No
 
 
 @router.put("/{template_id}", response_model=Template)
+@limiter.limit(_REMIX_LIMIT)
 async def update_template(
-    template_id: UUID, body: TemplateUpdate, admin=Depends(require_admin)
+    request: Request,
+    template_id: UUID,
+    body: TemplateUpdate,
+    admin=Depends(require_admin),
 ) -> Template:
     fields = body.model_dump(exclude_unset=True)
     template = await templates_repo.update(template_id, **fields)
@@ -287,7 +308,10 @@ async def update_template(
 
 
 @router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_template(template_id: UUID, admin=Depends(require_admin)) -> None:
+@limiter.limit(_REMIX_LIMIT)
+async def delete_template(
+    request: Request, template_id: UUID, admin=Depends(require_admin)
+) -> None:
     if not await templates_repo.delete(template_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     await _audit_template(admin, "template.delete", template_id, {})

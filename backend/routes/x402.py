@@ -23,8 +23,10 @@ from marketer.services import x402
 from marketer.services.x402 import X402Disabled, X402PaymentError
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_CREDITS_LIMIT = "10/minute"
 
 _RESOURCE = "/api/v1/x402/credits"
 
@@ -43,7 +45,8 @@ def _parse_amount(amount_usd: str) -> Decimal:
 
 
 @router.get("/config")
-async def x402_config(ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit("30/minute")
+async def x402_config(request: Request, ctx: AuthCtx = CurrentUser) -> dict:
     """Discover whether x402 top-ups are available and the accepted network/
     asset/bounds — so an agent can decide before attempting a payment."""
     from marketer.config import settings
@@ -60,6 +63,7 @@ async def x402_config(ctx: AuthCtx = CurrentUser) -> dict:
 
 
 @router.post("/credits")
+@limiter.limit(_CREDITS_LIMIT)
 async def buy_credits(
     request: Request,
     response: Response,

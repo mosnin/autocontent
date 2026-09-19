@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -13,8 +14,11 @@ from marketer.repos import jobs as jobs_repo
 from marketer.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ENQUEUE_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 
 class JobEnqueue(BaseModel):
@@ -23,7 +27,9 @@ class JobEnqueue(BaseModel):
 
 
 @router.get("", response_model=list[Job])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_jobs(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     status_filter: JobStatus | None = None,
     niche_id: UUID | None = None,
@@ -35,7 +41,10 @@ async def list_jobs(
 
 
 @router.get("/{job_id}", response_model=Job)
-async def get_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     job = await jobs_repo.get(job_id, user_id=ctx.user_id)
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -43,7 +52,10 @@ async def get_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
 
 
 @router.post("", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
-async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def enqueue_job(
+    request: Request, body: JobEnqueue, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Spawn a pipeline run on Modal. Returns the queued Job row;
     poll GET /{job_id} for status."""
     import modal
@@ -73,7 +85,10 @@ async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
 
 
 @router.get("/{job_id}/video")
-async def get_job_video(job_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_job_video(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> FileResponse:
     """Stream the rendered mp4 for a finished job.
 
     Ownership is checked (the job must belong to ``ctx.user_id``). Any
@@ -97,7 +112,10 @@ class JobMetricsResponse(BaseModel):
 
 
 @router.get("/{job_id}/metrics", response_model=JobMetricsResponse)
-async def get_job_metrics(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobMetricsResponse:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_job_metrics(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> JobMetricsResponse:
     """Return the latest analytics sample and full time-series history for a job.
 
     Auth-scoped: the job must belong to the requesting user. Returns 404 if the
@@ -107,13 +125,18 @@ async def get_job_metrics(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobMetric
     job = await jobs_repo.get(job_id, user_id=ctx.user_id)
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    latest = await post_metrics_repo.latest_for_job(job_id, user_id=ctx.user_id)
-    history = await post_metrics_repo.list_for_job(job_id, user_id=ctx.user_id)
+    latest, history = await asyncio.gather(
+        post_metrics_repo.latest_for_job(job_id, user_id=ctx.user_id),
+        post_metrics_repo.list_for_job(job_id, user_id=ctx.user_id),
+    )
     return JobMetricsResponse(latest=latest, history=history)
 
 
 @router.post("/{job_id}/approve", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
-async def approve_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def approve_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Operator sign-off on an `awaiting_approval` job. Spawns the Modal
     `finish_scheduling` function, which uploads + schedules the already
     rendered video and marks the job done."""
@@ -132,12 +155,15 @@ async def approve_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
             detail=f"job is {existing.status.value}, not awaiting_approval",
         )
     fn = modal.Function.from_name("marketer-sh", "finish_scheduling")
-    fn.spawn(ctx.user_id, str(job_id))
+    fn.spawn(ctx.user_id, str(job_id), str(job.niche_id))
     return job
 
 
 @router.post("/{job_id}/reject", response_model=Job)
-async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def reject_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Operator veto on an `awaiting_approval` job. The rendered video
     stays on the volume (retention GC handles cleanup); the job is marked
     failed so it never posts."""
@@ -157,7 +183,10 @@ async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
 
 
 @router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
-async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def retry_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Re-run a previously failed job from scratch. Only works on jobs in
     `failed` state owned by the caller."""
     import modal

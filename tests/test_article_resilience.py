@@ -104,6 +104,16 @@ def stub_all(monkeypatch, tmp_path):
     monkeypatch.setattr(apipe.articles_repo, "recent_titles_for_niche", fake_recent_titles)
     monkeypatch.setattr(apipe.articles_repo, "interlink_candidates", fake_candidates)
 
+    from marketer.models import User
+
+    async def fake_user_get(user_id):
+        return User(
+            id=user_id, email="a@a.com", email_notifications=False,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(apipe.users_repo, "get", fake_user_get)
+
     from marketer.services.spend_context import SpendContext
 
     async def fake_default_context(**kwargs):
@@ -181,6 +191,7 @@ def stub_all(monkeypatch, tmp_path):
     from marketer.config import settings
     monkeypatch.setattr(settings, "artifacts_dir", str(tmp_path / "artifacts"))
     monkeypatch.setattr(settings, "article_hero_image", True)
+    monkeypatch.setattr(settings, "jev_enabled", False)
 
     return state
 
@@ -363,10 +374,10 @@ async def test_hero_image_failure_degrades_article_completes(stub_all, monkeypat
 
 
 async def test_hero_prompt_failure_degrades_article_completes(stub_all, monkeypatch):
-    async def boom_prompt(title, kw, md, *, spend=None):
+    def boom_prompt(title, keyword):
         raise RuntimeError("hero prompt generation exploded")
 
-    monkeypatch.setattr(apipe.llm, "generate_hero_prompt", boom_prompt)
+    monkeypatch.setattr(apipe.fastpath, "hero_prompt", boom_prompt)
 
     art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID, topic="espresso")
     assert art.status == ArticleStatus.done
@@ -394,10 +405,10 @@ async def test_hero_image_spend_cap_still_fails_article(stub_all, monkeypatch):
 
 
 async def test_spend_cap_in_outline_stage_fails_article(stub_all, monkeypatch):
-    async def capped(topic, keyword, research, tone, audience, *, spend=None):
+    async def capped(heading, notes, ctx, *, spend=None):
         raise SpendCapExceeded("global daily cap hit", scope="global")
 
-    monkeypatch.setattr(apipe.llm, "generate_outline", capped)
+    monkeypatch.setattr(apipe.llm, "write_section", capped)
     art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID, topic="espresso")
     assert art.status == ArticleStatus.failed
     assert "cap" in (art.error or "")

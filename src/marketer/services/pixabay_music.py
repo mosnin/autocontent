@@ -9,6 +9,7 @@ Response shape:
 """
 from __future__ import annotations
 
+import asyncio
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -22,6 +23,19 @@ log = get_logger(__name__)
 
 _BASE_URL = "https://pixabay.com/api/music/"
 _TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=5.0)
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    """Reuse one keep-alive client. Search + download share the pool."""
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(timeout=_TIMEOUT)
+        return _http
 
 
 class PixabayError(RuntimeError):
@@ -65,8 +79,8 @@ async def search(
         "per_page": str(min(limit, 200)),  # API cap is 200
     }
 
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        response = await client.get(_BASE_URL, params=params)
+    client = await _shared_client()
+    response = await client.get(_BASE_URL, params=params)
 
     if response.status_code == 401:
         raise PixabayError(401, "invalid API key")
@@ -111,13 +125,13 @@ async def download(track_url: str, dest: Path) -> Path:
     tmp = dest.with_suffix(".tmp")
 
     log.info("pixabay.download.start", extra={"url": track_url, "dest": str(dest)})
-    async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        async with client.stream("GET", track_url) as response:
-            if not response.is_success:
-                raise PixabayError(response.status_code, f"download failed: {track_url}")
-            with tmp.open("wb") as fh:
-                async for chunk in response.aiter_bytes(chunk_size=65536):
-                    fh.write(chunk)
+    client = await _shared_client()
+    async with client.stream("GET", track_url) as response:
+        if not response.is_success:
+            raise PixabayError(response.status_code, f"download failed: {track_url}")
+        with tmp.open("wb") as fh:
+            async for chunk in response.aiter_bytes(chunk_size=65536):
+                fh.write(chunk)
 
     shutil.move(str(tmp), str(dest))
     log.info("pixabay.download.done", extra={"dest": str(dest)})

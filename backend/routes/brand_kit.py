@@ -3,15 +3,18 @@ from __future__ import annotations
 
 import re
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, field_validator
 
 from marketer.repos import brand_kit as repo
 from marketer.repos.brand_kit import BrandKit
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_KIT_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
@@ -34,14 +37,18 @@ class BrandKitBody(BaseModel):
 
 
 @router.get("", response_model=BrandKit)
-async def get_brand_kit(ctx: AuthCtx = CurrentUser) -> BrandKit:
+@limiter.limit(_READ_LIMIT)
+async def get_brand_kit(request: Request, ctx: AuthCtx = CurrentUser) -> BrandKit:
     """Return the user's brand kit, or an empty kit if none is set yet."""
     kit = await repo.get(ctx.user_id)
     return kit or BrandKit()
 
 
 @router.put("", response_model=BrandKit)
-async def put_brand_kit(body: BrandKitBody, ctx: AuthCtx = CurrentUser) -> BrandKit:
+@limiter.limit(_KIT_LIMIT)
+async def put_brand_kit(
+    request: Request, body: BrandKitBody, ctx: AuthCtx = CurrentUser
+) -> BrandKit:
     # Normalize hashtags to a leading '#', drop blanks.
     tags = [
         ("#" + t.lstrip("#")).strip()

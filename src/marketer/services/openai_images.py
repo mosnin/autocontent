@@ -23,7 +23,6 @@ from openai import AsyncOpenAI
 from opentelemetry import trace
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from ..config import settings
 from ..logging import get_logger
 from .openai_pricing import image_cost
 from .retry_policy import is_content_policy_error, is_transient_openai_error
@@ -48,7 +47,9 @@ _client: AsyncOpenAI | None = None
 def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=settings.openai_api_key)
+        from .openai_shared import shared_client
+
+        _client = shared_client()
     return _client
 
 

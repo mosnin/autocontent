@@ -92,6 +92,16 @@ def stub_all(monkeypatch, tmp_path):
     monkeypatch.setattr(apipe.articles_repo, "recent_titles_for_niche", fake_recent_titles)
     monkeypatch.setattr(apipe.articles_repo, "interlink_candidates", fake_candidates)
 
+    from marketer.models import User
+
+    async def fake_user_get(user_id):
+        return User(
+            id=user_id, email="a@a.com", email_notifications=False,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(apipe.users_repo, "get", fake_user_get)
+
     # spend context: no DB
     from marketer.services.spend_context import SpendContext
 
@@ -101,11 +111,13 @@ def stub_all(monkeypatch, tmp_path):
         async def _rec(entry):
             entries.append(entry)
 
-        return SpendContext(
+        ctx = SpendContext(
             user_id=kwargs["user_id"], niche_id=kwargs["niche_id"],
             job_id=None, article_id=kwargs.get("article_id"),
-            record=_rec, cap_usd=None,
+            record=_rec, cap_usd=kwargs.get("cap_usd"),
         )
+        state["spend"] = ctx
+        return ctx
 
     monkeypatch.setattr(apipe, "default_context", fake_default_context)
 
@@ -176,22 +188,38 @@ def stub_all(monkeypatch, tmp_path):
     from marketer.config import settings
     monkeypatch.setattr(settings, "artifacts_dir", str(tmp_path / "artifacts"))
     monkeypatch.setattr(settings, "article_hero_image", True)
+    monkeypatch.setattr(settings, "jev_enabled", False)
 
     return state
+
+
+async def test_existing_article_gathers_niche_and_spend(stub_all):
+    art = await apipe.articles_repo.create(
+        user_id=USER_ID, niche_id=NICHE_ID, topic="espresso"
+    )
+    result = await apipe.run_article(
+        user_id=USER_ID, niche_id=NICHE_ID, article_id=art.id, topic="espresso"
+    )
+    assert result.id == art.id
+    assert result.status == ArticleStatus.done
+    spend = stub_all["spend"]
+    assert spend.cap_usd == Decimal("3.00")
+    assert spend.article_id == art.id
 
 
 async def test_happy_path_reaches_done(stub_all):
     art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID)
     assert art.status == ArticleStatus.done
-    assert art.title == "Dial In Espresso at Home: Complete Guide"
-    assert art.slug == "dial-in-espresso-at-home"
-    assert art.article_markdown and art.article_markdown.startswith("# Dialing In Espresso")
+    assert art.title
+    assert art.slug and art.slug.replace("-", "").isalnum()
+    assert art.article_markdown and art.article_markdown.startswith("#")
     assert art.schema_jsonld and "schema.org" in art.schema_jsonld
     assert art.hero_image_path and art.hero_image_path.endswith("hero.png")
     assert art.word_count and art.word_count > 0
-    assert art.link_suggestions and art.link_suggestions[0].targetUrl == "/old-espresso-post"
-    # topic was auto-picked
-    assert art.topic == "dialing in espresso"
+    assert art.link_suggestions
+    assert any(s.targetUrl == "/old-espresso-post" for s in art.link_suggestions)
+    # topic is auto-picked from templates (no LLM)
+    assert art.topic
     # stage progression persisted in order
     s = stub_all["statuses"]
     for a, b in [("researching", "outlining"), ("outlining", "writing"),
@@ -208,13 +236,13 @@ async def test_low_qa_triggers_exactly_one_rewrite(stub_all):
 
 
 async def test_stage_exception_terminates_as_failed(stub_all, monkeypatch):
-    async def boom(topic, keyword, research, tone, audience, *, spend=None):
-        raise RuntimeError("outline exploded")
+    async def boom(heading, notes, ctx, *, spend=None):
+        raise RuntimeError("writer exploded")
 
-    monkeypatch.setattr(apipe.llm, "generate_outline", boom)
+    monkeypatch.setattr(apipe.llm, "write_section", boom)
     art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID, topic="espresso")
     assert art.status == ArticleStatus.failed
-    assert "outline exploded" in (art.error or "")
+    assert "writer exploded" in (art.error or "")
 
 
 async def test_spend_cap_terminates_as_failed(stub_all, monkeypatch):
@@ -263,11 +291,11 @@ async def test_brand_voice_reaches_the_writer(stub_all, monkeypatch):
 
     seen: dict = {}
 
-    async def capture_outline(topic, keyword, research, tone, audience, *, spend=None):
-        seen["tone"] = tone
-        return _outline()
+    async def capture_write(heading, notes, ctx, *, spend=None):
+        seen["tone"] = ctx.tone
+        return f"## {heading}\n\nHow to {ctx.focusKeyword} at home, step by step."
 
-    monkeypatch.setattr(apipe.llm, "generate_outline", capture_outline)
+    monkeypatch.setattr(apipe.llm, "write_section", capture_write)
 
     art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID, topic="espresso")
     assert art.status == ArticleStatus.done
@@ -281,3 +309,126 @@ def test_strip_ai_dashes():
     assert llm.strip_ai_dashes("2019–2024") == "2019-2024"
     assert llm.strip_ai_dashes("plain text") == "plain text"
     assert llm.strip_ai_dashes("") == ""
+
+
+async def test_research_gathers_status_and_serp(stub_all, monkeypatch):
+    """Research persist used to wait before Exa."""
+    import asyncio
+
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    async def _mark():
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def slow_save(article):
+        if article.status == ArticleStatus.researching:
+            await _mark()
+        stub_all["saved"].append(article.model_copy(deep=True))
+        stub_all["statuses"].append(article.status.value)
+
+    async def slow_serp(keyword, num_results=8):
+        await _mark()
+        return []
+
+    monkeypatch.setattr(apipe.articles_repo, "save", slow_save)
+    monkeypatch.setattr(exa, "serp_pages", slow_serp)
+    monkeypatch.setattr(apipe.exa, "serp_pages", slow_serp)
+
+    art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID)
+    assert art.status == ArticleStatus.done
+    assert started == 2
+    assert max_inflight == 2
+
+
+async def test_fail_with_gathers_save_and_user(monkeypatch):
+    import asyncio
+
+    from marketer.models import User
+
+    article = Article(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, topic="espresso",
+        created_at=datetime.now(timezone.utc),
+    )
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    signaled: dict = {}
+
+    async def slow_save(art):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def slow_user(user_id):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return User(id=user_id, email="a@a.com", email_notifications=False)
+
+    async def fake_signal(art, *, kind, event, user=None):
+        signaled["kind"] = kind
+        signaled["user"] = user
+
+    monkeypatch.setattr(apipe.articles_repo, "save", slow_save)
+    monkeypatch.setattr(apipe.users_repo, "get", slow_user)
+    monkeypatch.setattr(apipe, "_signal_terminal", fake_signal)
+
+    out = await apipe._fail_with(article, "boom")
+    assert out.status == ArticleStatus.failed
+    assert started == 2
+    assert max_inflight == 2
+    assert signaled["kind"] == "failed"
+    assert signaled["user"] is not None
+    assert signaled["user"].email == "a@a.com"
+
+
+async def test_notify_reuses_passed_user(monkeypatch):
+    from marketer.models import User
+    from marketer.services import email as email_svc
+
+    sent: list[str] = []
+
+    async def fake_send(*, to, subject, html):
+        sent.append(to)
+        return True
+
+    async def boom(_user_id):
+        raise AssertionError("passed user must not reload")
+
+    monkeypatch.setattr(email_svc, "send_email", fake_send)
+    monkeypatch.setattr(apipe.users_repo, "get", boom)
+
+    article = Article(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, topic="espresso",
+        created_at=datetime.now(timezone.utc),
+    )
+    user = User(id=USER_ID, email="a@a.com", email_notifications=True)
+    await apipe._notify(article, kind="failed", user=user)
+    assert sent == ["a@a.com"]

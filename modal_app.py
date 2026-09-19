@@ -123,18 +123,25 @@ async def run_pipeline(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 10,
 )
-async def finish_scheduling(user_id: str, job_id: str) -> dict:
+async def finish_scheduling(user_id: str, job_id: str, niche_id: str = "") -> dict:
     """Resume an operator-approved job at the scheduling stage.
 
     Spawned by `POST /api/v1/jobs/{id}/approve` — the video is already
     rendered on the artifacts volume; only the Ayrshare upload +
-    schedule remain."""
+    schedule remain. Optional ``niche_id`` (from the claimed row) lets
+    job + niche load in one gather.
+    """
     from uuid import UUID
     from marketer.pipeline import schedule_approved_job
     from marketer.services.otel import force_flush
 
     try:
-        job = await schedule_approved_job(user_id=user_id, job_id=UUID(job_id))
+        extra: dict[str, UUID] = {}
+        if niche_id:
+            extra["niche_id"] = UUID(niche_id)
+        job = await schedule_approved_job(
+            user_id=user_id, job_id=UUID(job_id), **extra
+        )
         return job.model_dump(mode="json")
     finally:
         force_flush(timeout_ms=5000)
@@ -159,12 +166,23 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 30,
 )
-async def run_image_post(user_id: str, image_post_id: str) -> dict:
-    """Drive one image post (still or carousel) to a terminal state."""
+async def run_image_post(
+    user_id: str, image_post_id: str, niche_id: str = ""
+) -> dict:
+    """Drive one image post (still or carousel) to a terminal state.
+
+    Optional ``niche_id`` (from enqueue / retry) lets post + niche +
+    spend load in one gather.
+    """
     from uuid import UUID
     from marketer.services.image_posts import run_image_post as _run
 
-    result = await _run(user_id=user_id, image_post_id=UUID(image_post_id))
+    extra: dict[str, UUID] = {}
+    if niche_id:
+        extra["niche_id"] = UUID(niche_id)
+    result = await _run(
+        user_id=user_id, image_post_id=UUID(image_post_id), **extra
+    )
     artifacts.commit()
     return {"status": result.get("status")}
 
@@ -173,12 +191,26 @@ async def run_image_post(user_id: str, image_post_id: str) -> dict:
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 10,
 )
-async def finish_image_post(user_id: str, image_post_id: str) -> dict:
-    """Resume an approved image post at the scheduling stage."""
+async def finish_image_post(
+    user_id: str, image_post_id: str, niche_id: str = ""
+) -> dict:
+    """Resume an approved image post at the scheduling stage.
+
+    Optional ``niche_id`` (from the claimed row) lets post + niche
+    load in one gather.
+    """
     from uuid import UUID
     from marketer.services.image_posts import schedule_image_post as _schedule
 
-    result = await _schedule(user_id=user_id, image_post_id=UUID(image_post_id))
+    extra: dict[str, UUID] = {}
+    if niche_id:
+        extra["niche_id"] = UUID(niche_id)
+    result = await _schedule(
+        user_id=user_id,
+        image_post_id=UUID(image_post_id),
+        human_approved=True,
+        **extra,
+    )
     return {"status": result.get("status")}
 
 
@@ -304,6 +336,9 @@ async def nightly_batch() -> dict:
 
     spawned = 0
     skipped = 0
+    held = 0
+    from marketer.jev.loops import campaign_tick_gate
+
     for r in rows:
         user_id = r["id"]
         for niche in await niches_repo.list_for_user(user_id):
@@ -322,11 +357,23 @@ async def nightly_batch() -> dict:
             if await jobs_repo.has_active_for_niche(niche.id, within_minutes=45):
                 skipped += 1
                 continue
+            gate = await campaign_tick_gate(
+                {
+                    "niche": niche.title,
+                    "user_id": user_id,
+                    "window_bucket": window_bucket,
+                    "platforms": list(niche.platforms),
+                },
+                targets={"video": f"nightly window for {niche.title}"},
+            )
+            if gate.hold:
+                held += 1
+                continue
             run_niche_window.spawn(
                 user_id, str(niche.id), list(niche.platforms), window_bucket
             )
             spawned += 1
-    return {"spawned": spawned, "skipped_active": skipped}
+    return {"spawned": spawned, "skipped_active": skipped, "held": held}
 
 
 @app.function(

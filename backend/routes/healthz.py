@@ -38,57 +38,75 @@ async def healthz() -> dict:
     return {"ok": True}
 
 
-@router.get("/healthz/deep")
-async def healthz_deep() -> JSONResponse:
-    """Deep readiness probe — validates DB connectivity and Clerk JWKS."""
-    checks: dict = {}
-    all_critical_ok = True
-
-    # ── DB probe ──────────────────────────────────────────────────────────────
+async def _check_db() -> tuple[str, dict, bool]:
     t0 = time.monotonic()
     try:
         pool = await asyncio.wait_for(get_pool(), timeout=2.0)
         await asyncio.wait_for(pool.fetchval("SELECT 1"), timeout=2.0)
-        latency_ms = round((time.monotonic() - t0) * 1000)
-        checks["db"] = {"ok": True, "latency_ms": latency_ms}
+        return "db", {"ok": True, "latency_ms": round((time.monotonic() - t0) * 1000)}, True
     except Exception as exc:  # noqa: BLE001
-        latency_ms = round((time.monotonic() - t0) * 1000)
-        checks["db"] = {"ok": False, "latency_ms": latency_ms, "error": str(exc)}
-        all_critical_ok = False
+        return (
+            "db",
+            {
+                "ok": False,
+                "latency_ms": round((time.monotonic() - t0) * 1000),
+                "error": str(exc),
+            },
+            False,
+        )
 
-    # ── Clerk JWKS probe ──────────────────────────────────────────────────────
-    if settings.clerk_jwks_url:
-        t0 = time.monotonic()
-        try:
-            async with httpx.AsyncClient(timeout=2.0) as client:
-                resp = await client.head(settings.clerk_jwks_url)
-            resp.raise_for_status()
-            latency_ms = round((time.monotonic() - t0) * 1000)
-            checks["clerk_jwks"] = {"ok": True, "latency_ms": latency_ms}
-        except Exception as exc:  # noqa: BLE001
-            latency_ms = round((time.monotonic() - t0) * 1000)
-            checks["clerk_jwks"] = {"ok": False, "latency_ms": latency_ms, "error": str(exc)}
-            all_critical_ok = False
-    else:
-        checks["clerk_jwks"] = {"ok": False, "error": "MARKETER_CLERK_JWKS_URL not set"}
-        all_critical_ok = False
 
-    # ── Migration status check ────────────────────────────────────────────────
+async def _check_jwks() -> tuple[str, dict, bool]:
+    if not settings.clerk_jwks_url:
+        return "clerk_jwks", {"ok": False, "error": "MARKETER_CLERK_JWKS_URL not set"}, False
+    t0 = time.monotonic()
+    try:
+        async with httpx.AsyncClient(timeout=2.0) as client:
+            resp = await client.head(settings.clerk_jwks_url)
+        resp.raise_for_status()
+        return (
+            "clerk_jwks",
+            {"ok": True, "latency_ms": round((time.monotonic() - t0) * 1000)},
+            True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        return (
+            "clerk_jwks",
+            {
+                "ok": False,
+                "latency_ms": round((time.monotonic() - t0) * 1000),
+                "error": str(exc),
+            },
+            False,
+        )
+
+
+async def _check_migrations() -> tuple[str, dict, bool]:
     try:
         from scripts.migrate import status as migration_status  # noqa: PLC0415
 
         # migration_status() uses psycopg2 (sync); run in a thread to avoid
         # blocking the async event loop.
-        loop = asyncio.get_event_loop()
-        mig = await loop.run_in_executor(None, migration_status)
-        checks["migrations"] = {"ok": mig["pending"] == 0, **mig}
-        if mig["pending"] > 0:
-            all_critical_ok = False
+        mig = await asyncio.to_thread(migration_status)
+        ok = mig["pending"] == 0
+        return "migrations", {"ok": ok, **mig}, ok
     except Exception as exc:  # noqa: BLE001
-        checks["migrations"] = {"ok": False, "error": str(exc)}
-        all_critical_ok = False
+        return "migrations", {"ok": False, "error": str(exc)}, False
 
-    # ── Optional API-key presence checks ─────────────────────────────────────
+
+@router.get("/healthz/deep")
+async def healthz_deep() -> JSONResponse:
+    """Deep readiness probe — validates DB, Clerk JWKS, and migrations
+    in one beat. Optional API-key presence never affects the status."""
+    checks: dict = {}
+    all_critical_ok = True
+    for name, payload, ok in await asyncio.gather(
+        _check_db(), _check_jwks(), _check_migrations()
+    ):
+        checks[name] = payload
+        if not ok:
+            all_critical_ok = False
+
     checks["openai_api_key"] = {"configured": bool(settings.openai_api_key)}
     checks["xai_api_key"] = {"configured": bool(settings.xai_api_key)}
     checks["ayrshare_api_key"] = {"configured": bool(settings.ayrshare_api_key)}

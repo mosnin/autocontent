@@ -173,9 +173,11 @@ def _make_ops_client(monkeypatch, *, role: str = "admin", suspended: bool = Fals
     # Standalone app mounting just the ops router — main.py wiring is done
     # by the orchestrator separately; this test only needs the router +
     # auth dependency to behave exactly as they will once wired.
+    from backend.rate_limit import limiter
     from backend.routes import ops
 
     app = FastAPI()
+    app.state.limiter = limiter
     app.include_router(ops.router, prefix="/api/v1/ops")
     return TestClient(app, raise_server_exceptions=False)
 

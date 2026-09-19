@@ -10,15 +10,18 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ENQUEUE_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class ImagePostCreate(BaseModel):
@@ -29,8 +32,12 @@ class ImagePostCreate(BaseModel):
 
 
 @router.get("")
+@limiter.limit(_READ_LIMIT)
 async def list_image_posts(
-    status_filter: str | None = None, limit: int = 50, ctx: AuthCtx = CurrentUser
+    request: Request,
+    status_filter: str | None = None,
+    limit: int = 50,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[dict]:
     return await image_posts_repo.list_for_user(
         ctx.user_id, status=status_filter, limit=min(max(limit, 1), 200)
@@ -38,8 +45,9 @@ async def list_image_posts(
 
 
 @router.post("", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(_ENQUEUE_LIMIT)
 async def enqueue_image_post(
-    body: ImagePostCreate, ctx: AuthCtx = CurrentUser
+    request: Request, body: ImagePostCreate, ctx: AuthCtx = CurrentUser
 ) -> dict:
     if await niches_repo.get(body.niche_id, user_id=ctx.user_id) is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="niche not found")
@@ -50,12 +58,15 @@ async def enqueue_image_post(
     import modal
 
     fn = modal.Function.from_name("marketer-sh", "run_image_post")
-    fn.spawn(ctx.user_id, str(post["id"]))
+    fn.spawn(ctx.user_id, str(post["id"]), str(body.niche_id))
     return post
 
 
 @router.get("/{image_post_id}")
-async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def get_image_post(
+    request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     post = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
     if post is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -63,9 +74,15 @@ async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dic
 
 
 @router.post("/{image_post_id}/retry", status_code=status.HTTP_202_ACCEPTED)
-async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def retry_image_post(
+    request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     """Re-run a failed post from the top (fresh plan + renders)."""
-    if not await image_posts_repo.claim_for_retry(image_post_id, user_id=ctx.user_id):
+    claimed = await image_posts_repo.claim_for_retry(
+        image_post_id, user_id=ctx.user_id
+    )
+    if not claimed:
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -76,16 +93,20 @@ async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> d
     import modal
 
     fn = modal.Function.from_name("marketer-sh", "run_image_post")
-    fn.spawn(ctx.user_id, str(image_post_id))
+    fn.spawn(ctx.user_id, str(image_post_id), str(claimed["niche_id"]))
     return {"status": "queued"}
 
 
 @router.post("/{image_post_id}/approve", status_code=status.HTTP_202_ACCEPTED)
-async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def approve_image_post(
+    request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     """Operator sign-off: atomically claim and resume at scheduling."""
-    if not await image_posts_repo.claim_for_scheduling(
+    claimed = await image_posts_repo.claim_for_scheduling(
         image_post_id, user_id=ctx.user_id
-    ):
+    )
+    if not claimed:
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -96,5 +117,5 @@ async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) ->
     import modal
 
     fn = modal.Function.from_name("marketer-sh", "finish_image_post")
-    fn.spawn(ctx.user_id, str(image_post_id))
+    fn.spawn(ctx.user_id, str(image_post_id), str(claimed["niche_id"]))
     return {"status": "scheduling"}

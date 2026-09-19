@@ -1,6 +1,8 @@
 """Tests for composition rendering (repos, ffmpeg, storage mocked)."""
 from __future__ import annotations
 
+import asyncio
+import threading
 from pathlib import Path
 from uuid import uuid4
 
@@ -38,7 +40,7 @@ def env(tmp_path: Path, monkeypatch):
         return state["comp"]
 
     async def fake_claim(cid, *, user_id):
-        return state["claimed"]
+        return state["comp"] if state["claimed"] else None
 
     async def fake_bulk(ids, *, user_id):
         return [c for c in state["clips"] if c.id in ids]
@@ -125,3 +127,81 @@ async def test_volume_clip_gone_marks_failed(env):
     )
     assert result.status == "failed"
     assert "no longer on the volume" in (result.error or "")
+
+
+async def test_wasabi_clips_materialize_in_one_gather(env, monkeypatch):
+    """Independent clip I/O used to wait on each download. Gather starts
+    every clip at once; concat still sees the requested order."""
+    from marketer.services import object_storage
+
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    async def fake_download(key, dest):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        if started < 2:
+            await release.wait()
+        else:
+            release.set()
+        dest = Path(dest)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(f"DL-{key}".encode())
+        inflight -= 1
+        return dest
+
+    env["clips"] = [
+        MediaAsset(
+            id=c.id, user_id=USER, kind="clip", storage="wasabi",
+            object_key=f"users/{USER}/clips/{i}.mp4",
+        )
+        for i, c in enumerate(env["clips"])
+    ]
+    monkeypatch.setattr(object_storage, "download_file", fake_download)
+
+    result = await compose.render_composition(
+        user_id=USER, composition_id=env["comp"].id
+    )
+    assert result.status == "done"
+    assert started == 2
+    assert max_inflight == 2
+    call = env["concat_calls"][0]
+    assert [Path(p).name for p in call["paths"]] == ["in_0.mp4", "in_1.mp4"]
+
+
+async def test_audio_probes_run_in_one_gather(env, monkeypatch):
+    """keep-audio probes used to wait on each ffprobe. Concat still
+    sees keep_audio=False if any clip is silent."""
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    lock = threading.Lock()
+    release = threading.Event()
+
+    def fake_probe(path):
+        nonlocal started, max_inflight, inflight
+        with lock:
+            started += 1
+            inflight += 1
+            max_inflight = max(max_inflight, inflight)
+            n = started
+        if n < 2:
+            release.wait()
+        else:
+            release.set()
+        with lock:
+            inflight -= 1
+        return True
+
+    monkeypatch.setattr(ffmpeg, "probe_has_audio", fake_probe)
+    result = await compose.render_composition(
+        user_id=USER, composition_id=env["comp"].id
+    )
+    assert result.status == "done"
+    assert started == 2
+    assert max_inflight == 2
+    assert env["concat_calls"][0]["keep_audio"] is True

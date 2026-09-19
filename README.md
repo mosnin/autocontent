@@ -8,8 +8,8 @@ shell, each with its own dashboard and focused navigation (an app switcher
 jumps between them; the sidebar shows only the active product):
 
 - **Studio** — hook-driven short-form video for TikTok / Reels / Shorts.
-- **Press** — SEO-optimized long-form articles: SERP research, structured
-  outline, section-parallel writing, QA scoring, metadata + JSON-LD, hero image.
+- **Press** — SEO-optimized long-form articles: SERP research, deterministic
+  outline + metadata, section-parallel writing, fact-locked QA, JSON-LD, hero image.
 - **Ads** — create, manage, and scale **paid** campaigns (Google Ads, Meta Ads)
   with agents, governed by fail-closed budget guardrails, human approvals, and
   an audit trail. See "Ads product" below.
@@ -18,21 +18,66 @@ jumps between them; the sidebar shows only the active product):
 All products share the same niches, spend caps, billing, brand kit, and agent
 surfaces (REST API, Python SDK, CLI, MCP server).
 
+## Jev harness
+
+Marketing is a pile of decisions (which idea, which model, ship or rewrite,
+is this slop, is this ad change safe). Those used to be LLM chat calls.
+They are now **Jev** — TypeSafe's System One model — which returns typed
+probabilities instead of prose. Qwen writes; Jev judges; OpenAI is voice.
+
+The harness follows the LangChain pattern
+([Building a Harness with Jev](https://www.langchain.com/blog/building-a-harness-with-jev)):
+
+- **Model router** — cheapest Qwen tier that can do the work
+  (`qwen3-8b` / `qwen3-32b` / `qwen3-235b-a22b`).
+- **Auto Mode** — classify risky tool / ad actions before they execute.
+- **Speculative fan-out** — many atomic questions in one call; code composes.
+- **Confidence gates** — uncertain answers escalate instead of guessing.
+- **Foreman** (`symbolic/`) — watches pipeline evidence after content QA and steers/stops/finishes.
+- **Publish Auto Mode** — classifies `schedule_post` before Ayrshare; parks or (after human approve) refuses.
+- **Campaign next_action** — HOLD / BLOCKED / ROUTE_HUMAN / DONE skips a tick instead of burning credits.
+- **Research rank + citation audit** — Exa pages are judged before the outline; unsourced numbers are stripped, then Jev scores the rest.
+- **Cascade + compact state** — cheap Qwen first; retry bumps a tier. `ask()` trims state to 4k so Jev stays fast and calibrated.
+- **Template ideation / article fastpaths** — Jev picks among code-built ideas, outlines, titles, FAQs, checklists, definitions, how-tos, mistakes, in-practice H2s, leftover SERP question H2s, last-resort grounded leftover H2s, social snippets, and onboarding niche drafts. The writer only writes prose when research is too thin to ground a section. Dark-path article and video QA are heuristics; dark-path ideation, carousels, default video scripts, niche drafts, and Visual Director (no design kit / visual brief) use templates, not a writer. An operator-pinned script model or a narrative brief still buys the scriptwriter LLM (Qwen-first). A filled design kit or visual brief still buys Visual Director (Qwen-first). An n==1 hook lens still buys one ideation writer shot (Qwen-first). Scriptwriter, Visual Director, and that leftover ideation hop share `openrouter.generation_metered`.
+- **Keep-alive HTTP** — Jev, OpenRouter, Exa, Ayrshare, ElevenLabs, Pixabay, Resend, x402, outbound webhooks, Fal, and Grok Imagine reuse one client so the 70–500ms decision budget (and every scene poll) is not eaten by TLS.
+- **HTTP bounds** — 40/min Jev judges, 20/min ads mutations (judge + connect/budget/status/decide/refresh/create/governance/disconnect) + article social, 30/min job video + article markdown/hero + character sheet + library media + template reference + Jev knowledge + Jev/voice status + providers + style-presets + webhook list + failures inbox + admin reads + ops metrics/config-health + calendar + spend/today + spend/history + metrics/summary + jobs/articles/niches/image-posts/library/templates/campaigns/kits lists + job/article/niche/image-post/kit/composition detail + users/me + x402 config + connect status + job metrics + ads accounts/campaigns/approvals/actions/overview + performance + billing balance + brand-kit GET, 10/min enqueue/retry/approve/reject/replay/remix + library compositions create + campaign create/start/pause/items + kits create/update/delete + template create/update/delete + admin mutations + brand-kit PUT + user settings + webhook create/update/delete/test + x402 credits + token revoke, 8/min voice + voice preview + niche draft/create/update/archive, 5/min billing checkout + account erase + token create + GDPR export. Every `/jev` POST meters spend fail-open. Video obtain-job overlaps the user cap snapshot. Article get/create and image-post niche get do the same. `_ensure_cap` reuses that snapshot instead of a second users.get. Video QA + Foreman + repurpose is one fan-out. Character sheet and planner overlap ideation setup. Article hero overlaps research + write + QA. Topic-known articles start Exa during kit/brand gather. VO + music start before Visual Director and continue through image fan-out. Image-post slides 1..n fan-out after slide 0. Default video scripts and n==1 ideation without a lens are templates. Images / TTS / Whisper share one OpenAI client. Duration / empty captions fail without a Jev hop. Script and image-post fact lock strip invented stats. Playbook, leftover SERP questions, and last-resort grounded H2s stitch highlights (thin SERP still buys the writer). Onboarding niche drafts are templates + Jev. Article social skips niche + spend. Jev skips ranking when Exa returns fewer than 4 pages. Campaign ticks prefetch unique niches. Composio reuses one client. Ads overview, job metrics, and niche performance gather independent reads. Video approval persist/archive/notify is one gather. Brand kit + knowledge gather on every video job. ElevenLabs misconfig fails before planner spend. Clerk JWT + `GET /me` are get-first (`users.ensure`); niche kit-ref validation gathers both lookups. Campaign item DELETE is scoped to the URL campaign. `GET /spend/history` is 30/min. Visual Director's LLM path is Qwen-first when OpenRouter is on.
+- **jev-curate** — can skip indexing a discard-worthy final in the media library.
+- **Failures overlay** — jev-code triage attaches class / actionable / severity to the inbox.
+- **Company OS** (`company_os/`) — route work onto Studio / Press / Ads / Suite.
+- **Knowledge brain** — Jev flags a durable write; code extracts verbatim spans
+  (Jev cannot invent brand rules) and injects them into video voice + article tone.
+- **Nightly window gate** — `next_action` can HOLD a due niche instead of burning a render.
+- **Image-post Auto Mode** — same park / fail-closed publish gate as video.
+- **Repurpose spawn** — a high-confidence (`≥ 0.7`) article hint creates a Press job.
+
+Surfaces: `/decisions`, `/voice`, `GET /api/v1/jev/status`,
+`POST /api/v1/jev/route`, `GET /api/v1/jev/knowledge`,
+`POST /api/v1/voice/session`, `marketer jev status|route|knowledge`.
+Judges are rate-limited (40/min, ads 20/min, voice sessions 8/min).
+
+Full theory, install, wiring map, and security model: [`docs/JEV.md`](docs/JEV.md).
+The finished product map is **§68**.
+
 ## Video pipeline
 
-1. **Ideation** — pick a topic + write the hook
-2. **Script** — break the topic into scenes (each scene = 1 image + 1 animation + caption beat)
-3. **Visuals** — DALL-E 3 generates a keyframe per scene
-4. **Animation** — Grok Imagine animates each keyframe into a short clip
-5. **Voiceover** — TTS narrates the script
-6. **Music** — background track is picked + ducked under VO
-7. **Edit** — clips, VO, music are stitched with ffmpeg
-8. **Captions** — Whisper transcribes the VO; captions are burned in
-9. **QA** — two gates: a deterministic ffprobe pass on the rendered file
-   (real duration covers the narration, streams present, audio not silent,
-   fits the upload size limit — auto re-encoded when it doesn't) and an
-   LLM content pass (hook strength, niche drift)
-10. **Publish** — schedule to TikTok / Reels / Shorts
+1. **Ideation** — code-built templates + one Jev pick (writer only for a
+   pinned hook lens)
+2. **Script** — Qwen when the operator pinned a model or the brief is
+   narrative; otherwise templates. Fact lock strips invented stats using
+   brand + knowledge already loaded for the job
+3. **Visuals + VO + music** — DALL-E keyframes, TTS, and the music pick
+   start together after the fact lock. Visual Director runs only when
+   the script lacks usable visuals or a design kit / visual brief is set
+4. **Animation** — Grok Imagine animates each keyframe
+5. **Edit** — clips, VO, and music are stitched with ffmpeg
+6. **Captions** — timed from the script's narration (Whisper only if the
+   script has no words)
+7. **QA** — ffprobe delivery facts (duration, streams, silence, size)
+   plus a Jev-first content pass and Foreman in one gather. Hard
+   rerender facts are never overridden by Jev
+8. **Publish** — persist overlaps the Ayrshare user load; Auto Mode
+   classifies `schedule_post`, then Ayrshare. After a human approve, a
+   high-confidence `block` fails instead of posting
 
 Scene keyframes are steered by a per-niche character/style reference
 sheet; set a niche's `character_description` to cast your own recurring
@@ -56,14 +101,18 @@ without re-paying for generation.
 
 ## Article pipeline
 
-1. **Topic** — picked for the niche (deduped against recent articles) or supplied by the caller
-2. **Research** — Exa SERP analysis of what currently ranks (degrades to model knowledge when unconfigured)
-3. **Outline** — one H1, 5-10 H2s with writer notes
-4. **Write** — sections drafted in parallel, E-E-A-T prose rules enforced
-5. **QA** — keyword density + E-E-A-T + readability scoring; one corrective rewrite below threshold
-6. **SEO metadata** — title, slug, meta description, keywords, JSON-LD (Article + FAQPage)
-7. **Internal links** — suggestions against the user's prior articles
-8. **Hero image** — gpt-image-1 editorial hero (optional)
+1. **Topic** — templates + one Jev pick (deduped against recent articles)
+   or supplied by the caller
+2. **Research** — Exa SERP plus Jev rank. Persist and Jev-warm overlap
+   the fetch. Degrades to model knowledge when Exa is unconfigured
+3. **Outline / metadata / schema / interlink** — deterministic fastpath
+4. **Write** — Qwen sections in parallel. Playbook H2s stitch two SERP
+   highlights; thin SERP still buys the writer. Fact lock keeps tone,
+   brief, and knowledge already loaded
+5. **QA** — keyword density + E-E-A-T + readability, plus Jev article
+   score and citation audit; one corrective rewrite below threshold
+6. **Hero image** — gpt-image-1 editorial hero, overlapped with research
+   (optional)
 
 Every LLM/image call in both pipelines is metered into the same
 `spend_ledger` and gated by per-niche + global daily caps and prepaid
@@ -102,7 +151,10 @@ user's payment method on the ad platform — so it is engineered around a strict
 
 ## Stack
 
-- **Orchestration**: OpenAI Agents SDK (multi-agent handoffs)
+- **Decisions**: TypeSafe Jev (System One — Noul / Choice / Score)
+- **Generation**: Qwen via OpenRouter (Jev routes the tier)
+- **Voice mode**: OpenAI Realtime
+- **Orchestration**: OpenAI Agents SDK (multi-agent handoffs) + Jev harness
 - **Runtime**: Modal (serverless GPU + scheduled jobs + volumes)
 - **Image gen**: OpenAI DALL-E 3
 - **Animation**: Grok Imagine (xAI)
@@ -130,6 +182,9 @@ src/marketer/
   orchestrator.py      # OpenAI Agents SDK wiring
   agents/              # one agent per LLM stage (video)
   articles/            # article pipeline (research, outline, write, QA, SEO)
+  jev/                 # System One harness (ask, decisions, loops, Auto Mode)
+  company_os/          # workspace routing + verbatim knowledge brain
+  symbolic/            # Foreman supervision + jev-code triage
   services/            # provider clients (DALL-E, Grok, ffmpeg, ...)
   models/              # pydantic schemas (User, Niche, Job, SpendEntry, ...)
   repos/               # asyncpg repositories (users, niches, jobs, articles, spend)
@@ -175,14 +230,15 @@ falls back) and the rest of the platform is unaffected. Set them as
 | Key | Unlocks |
 | --- | --- |
 | `MARKETER_FAL_API_KEY` | Fal video models (Kling, Veo 3, Sora 2, Hailuo, Luma, Pixverse, Wan) + OmniHuman lip-synced UGC avatars |
-| `MARKETER_OPENROUTER_API_KEY` | Per-niche scriptwriter model choice (Claude, GPT, Gemini, DeepSeek, Llama) |
+| `MARKETER_OPENROUTER_API_KEY` | Qwen generation + per-niche scriptwriter models (Qwen, Claude, GPT, Gemini, DeepSeek, Llama) |
+| `MARKETER_TYPESAFE_API_KEY` | Jev / System One decisions (routing, QA, Auto Mode, Foreman). Empty falls back to Qwen answering the same primitives |
 | `MARKETER_ELEVENLABS_API_KEY` | ElevenLabs voices (`voice_provider='elevenlabs'`) **and** generated background music (`music_provider='auto'/'generated'`) |
 | `MARKETER_PIXABAY_API_KEY` | Stock music fallback chain |
 | `MARKETER_WASABI_*` (`wasabi_enabled=true`, endpoint, region, bucket, keys) | Durable object storage for every produced artifact + template reference mirroring |
 | `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
 
 Deploy checklist when bumping to this version: `marketer-migrate up`
-(migrations through 0023), `modal deploy modal_app.py`, then set any new
+(migrations through 0027), `modal deploy modal_app.py`, then set any new
 keys above.
 
 ## Platform surfaces

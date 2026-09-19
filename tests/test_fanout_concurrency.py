@@ -99,6 +99,9 @@ async def test_fanout_respects_concurrency_limit(monkeypatch, tmp_path: Path, pa
 
     monkeypatch.setattr(pipeline, "_generate_scene_assets", probed_generate)
 
+    from tests.conftest import stub_pipeline_unit_seams
+
+    stub_pipeline_unit_seams(monkeypatch)
     # Stub out all the pipeline dependencies so we only run the fan-out stage.
     async def fake_niches_get(niche_id, *, user_id):
         return _make_niche()

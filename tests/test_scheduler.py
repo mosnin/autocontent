@@ -18,6 +18,9 @@ POST_ID = "RhrbDtYh7hdSMc67zC8H"
 def _ayrshare_key(monkeypatch):
     from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_api_key", "ayr-test")
+    scheduler._http = None
+    yield
+    scheduler._http = None
 
 
 @pytest.fixture
@@ -37,6 +40,9 @@ def patch_async_client(monkeypatch):
 
     def install(transport: httpx.MockTransport) -> None:
         holder["transport"] = transport
+        # Keep-alive reuses the first client; drop it so the next call
+        # picks up this transport instead of the previous mock.
+        scheduler._http = None
 
     return install
 

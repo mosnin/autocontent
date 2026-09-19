@@ -354,6 +354,33 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
     # ------------------------------------------------------------- spend
 
     @mcp.tool(description=(
+        "Jev / System One harness status: whether TypeSafe Jev and the Qwen "
+        "fallback are configured, plus the default generation model. Cheap, "
+        "read-only."
+    ))
+    async def jev_status() -> str:
+        async with _client() as c:
+            return json.dumps(await c.jev_status(), indent=2)
+
+    @mcp.tool(description=(
+        "Route a brief through Jev: content kind, specialist skill, Qwen "
+        "model tier, and company-OS surface. Cheap. Does not spend on "
+        "generation or publish anything."
+    ))
+    async def jev_route(state: str) -> str:
+        async with _client() as c:
+            return json.dumps(await c.jev_route(state), indent=2)
+
+    @mcp.tool(description=(
+        "List verbatim company-knowledge spans Jev extracted from prior "
+        "route turns (brand rules, constraints, decisions, audience). "
+        "Read-only. Empty when the brain has nothing stored."
+    ))
+    async def jev_knowledge() -> str:
+        async with _client() as c:
+            return json.dumps(await c.jev_knowledge(), indent=2)
+
+    @mcp.tool(description=(
         "Today's USD spend, broken down by niche. Cheap, read-only. Use before "
         "enqueueing jobs to check headroom against per-niche daily caps."
     ))

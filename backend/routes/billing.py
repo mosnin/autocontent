@@ -7,6 +7,7 @@ session id makes retries no-ops).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from decimal import Decimal
 
@@ -18,6 +19,7 @@ from marketer.models import CreditTransaction
 from marketer.repos import billing as billing_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,21 @@ PACKS: dict[str, dict] = {
     "creator": {"amount_cents": 2000, "credit_usd": Decimal("20.00"), "name": "Creator — $20 of pipeline credit"},
     "studio": {"amount_cents": 5000, "credit_usd": Decimal("50.00"), "name": "Studio — $50 of pipeline credit"},
 }
+
+
+_stripe_key: str | None = None
+
+
+def _stripe():
+    """Reuse one Stripe module config per process + secret."""
+    import stripe
+
+    global _stripe_key
+    key = settings.stripe_secret_key
+    if _stripe_key != key:
+        stripe.api_key = key
+        _stripe_key = key
+    return stripe
 
 
 def _require_billing() -> None:
@@ -56,17 +73,15 @@ class BalanceResponse(BaseModel):
 
 
 @router.get("/balance", response_model=BalanceResponse)
-async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
-    bal = (
-        await billing_repo.balance(ctx.user_id)
-        if settings.billing_enabled
-        else Decimal("0")
-    )
-    txs = (
-        await billing_repo.transactions(ctx.user_id, limit=50)
-        if settings.billing_enabled
-        else []
-    )
+@limiter.limit("30/minute")
+async def get_balance(request: Request, ctx: AuthCtx = CurrentUser) -> BalanceResponse:
+    if settings.billing_enabled:
+        bal, txs = await asyncio.gather(
+            billing_repo.balance(ctx.user_id),
+            billing_repo.transactions(ctx.user_id, limit=50),
+        )
+    else:
+        bal, txs = Decimal("0"), []
     return BalanceResponse(
         balance_usd=bal,
         billing_enabled=settings.billing_enabled,
@@ -76,17 +91,16 @@ async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
+@limiter.limit("5/minute")
 async def create_checkout(
-    body: CheckoutRequest, ctx: AuthCtx = CurrentUser
+    request: Request, body: CheckoutRequest, ctx: AuthCtx = CurrentUser
 ) -> CheckoutResponse:
     _require_billing()
     pack = PACKS.get(body.pack)
     if pack is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="unknown pack")
 
-    import stripe
-
-    stripe.api_key = settings.stripe_secret_key
+    stripe = _stripe()
     base = settings.app_url.rstrip("/") or "http://localhost:3000"
     session = stripe.checkout.Session.create(
         mode="payment",
@@ -119,7 +133,7 @@ async def stripe_webhook(request: Request) -> dict:
             detail="stripe webhook secret not configured",
         )
 
-    import stripe
+    stripe = _stripe()
 
     payload = await request.body()
     signature = request.headers.get("stripe-signature", "")

@@ -8,9 +8,10 @@ SOC2 posture: least privilege (role gate), complete audit trail
 """
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.repos import admin as admin_repo
@@ -18,8 +19,11 @@ from marketer.repos import admin_audit
 from marketer.repos import feature_flags as flags_repo
 
 from ..auth import AdminCtx, CurrentAdmin
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ADMIN_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 async def _audit(
@@ -45,7 +49,10 @@ async def _audit(
 # --------------------------------------------------------------------------- overview
 
 @router.get("/overview", response_model=admin_repo.PlatformOverview)
-async def overview(ctx: AdminCtx = CurrentAdmin) -> admin_repo.PlatformOverview:
+@limiter.limit(_READ_LIMIT)
+async def overview(
+    request: Request, ctx: AdminCtx = CurrentAdmin
+) -> admin_repo.PlatformOverview:
     result = await admin_repo.overview()
     await _audit(ctx, "overview.view", target_type="system")
     return result
@@ -54,7 +61,9 @@ async def overview(ctx: AdminCtx = CurrentAdmin) -> admin_repo.PlatformOverview:
 # --------------------------------------------------------------------------- users
 
 @router.get("/users", response_model=list[admin_repo.AdminUserRow])
+@limiter.limit(_READ_LIMIT)
 async def list_users(
+    request: Request,
     ctx: AdminCtx = CurrentAdmin,
     q: str | None = None,
     limit: int = Query(default=50, ge=1, le=200),
@@ -66,7 +75,10 @@ async def list_users(
 
 
 @router.get("/users/{user_id}", response_model=admin_repo.AdminUserRow)
-async def get_user(user_id: str, ctx: AdminCtx = CurrentAdmin) -> admin_repo.AdminUserRow:
+@limiter.limit(_READ_LIMIT)
+async def get_user(
+    request: Request, user_id: str, ctx: AdminCtx = CurrentAdmin
+) -> admin_repo.AdminUserRow:
     row = await admin_repo.get_user(user_id)
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "user not found")
@@ -80,8 +92,9 @@ class SuspendBody(BaseModel):
 
 
 @router.post("/users/{user_id}/suspension", response_model=admin_repo.AdminUserRow)
+@limiter.limit(_ADMIN_LIMIT)
 async def set_suspension(
-    user_id: str, body: SuspendBody, ctx: AdminCtx = CurrentAdmin
+    request: Request, user_id: str, body: SuspendBody, ctx: AdminCtx = CurrentAdmin
 ) -> admin_repo.AdminUserRow:
     if user_id == ctx.user_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "cannot suspend yourself")
@@ -103,7 +116,10 @@ class RoleBody(BaseModel):
 
 
 @router.post("/users/{user_id}/role", response_model=admin_repo.AdminUserRow)
-async def set_role(user_id: str, body: RoleBody, ctx: AdminCtx = CurrentAdmin) -> admin_repo.AdminUserRow:
+@limiter.limit(_ADMIN_LIMIT)
+async def set_role(
+    request: Request, user_id: str, body: RoleBody, ctx: AdminCtx = CurrentAdmin
+) -> admin_repo.AdminUserRow:
     if body.role not in ("user", "admin"):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "role must be user|admin")
     if user_id == ctx.user_id and body.role != "admin":
@@ -125,7 +141,10 @@ class GrantBody(BaseModel):
 
 
 @router.post("/users/{user_id}/credits")
-async def grant_credits(user_id: str, body: GrantBody, ctx: AdminCtx = CurrentAdmin) -> dict:
+@limiter.limit(_ADMIN_LIMIT)
+async def grant_credits(
+    request: Request, user_id: str, body: GrantBody, ctx: AdminCtx = CurrentAdmin
+) -> dict:
     try:
         new_balance = await admin_repo.grant_credit(user_id, body.amount_usd)
     except ValueError:
@@ -140,7 +159,10 @@ async def grant_credits(user_id: str, body: GrantBody, ctx: AdminCtx = CurrentAd
 # --------------------------------------------------------------------------- feature flags
 
 @router.get("/flags", response_model=list[flags_repo.FeatureFlag])
-async def list_flags(ctx: AdminCtx = CurrentAdmin) -> list[flags_repo.FeatureFlag]:
+@limiter.limit(_READ_LIMIT)
+async def list_flags(
+    request: Request, ctx: AdminCtx = CurrentAdmin
+) -> list[flags_repo.FeatureFlag]:
     return await flags_repo.list_all()
 
 
@@ -150,7 +172,10 @@ class FlagBody(BaseModel):
 
 
 @router.put("/flags/{key}", response_model=flags_repo.FeatureFlag)
-async def upsert_flag(key: str, body: FlagBody, ctx: AdminCtx = CurrentAdmin) -> flags_repo.FeatureFlag:
+@limiter.limit(_ADMIN_LIMIT)
+async def upsert_flag(
+    request: Request, key: str, body: FlagBody, ctx: AdminCtx = CurrentAdmin
+) -> flags_repo.FeatureFlag:
     if not key or len(key) > 100:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid flag key")
     flag = await flags_repo.upsert(
@@ -166,7 +191,8 @@ async def upsert_flag(key: str, body: FlagBody, ctx: AdminCtx = CurrentAdmin) ->
 # --------------------------------------------------------------------------- system health
 
 @router.get("/health")
-async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def system_health(request: Request, ctx: AdminCtx = CurrentAdmin) -> dict:
     """Operational snapshot: DB reachability + recent failure/skew signals.
     Read-only; audited as a view."""
     from marketer.db import get_pool
@@ -178,16 +204,21 @@ async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
     except Exception:  # noqa: BLE001
         db_ok = False
 
-    stuck = await pool.fetchval(
-        """
-        select count(*) from jobs
-         where status not in ('done', 'failed', 'skipped', 'awaiting_approval')
-           and updated_at < now() - interval '2 hours'
-        """
-    ) if db_ok else None
-    failed_24h = await pool.fetchval(
-        "select count(*) from jobs where status = 'failed' and created_at >= now() - interval '24 hours'"
-    ) if db_ok else None
+    stuck = failed_24h = None
+    if db_ok:
+        stuck, failed_24h = await asyncio.gather(
+            pool.fetchval(
+                """
+                select count(*) from jobs
+                 where status not in ('done', 'failed', 'skipped', 'awaiting_approval')
+                   and updated_at < now() - interval '2 hours'
+                """
+            ),
+            pool.fetchval(
+                "select count(*) from jobs where status = 'failed' "
+                "and created_at >= now() - interval '24 hours'"
+            ),
+        )
 
     await _audit(ctx, "health.view", target_type="system")
     return {"db_ok": db_ok, "stuck_jobs": stuck, "failed_jobs_24h": failed_24h}
@@ -196,7 +227,9 @@ async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
 # --------------------------------------------------------------------------- audit log
 
 @router.get("/audit-log", response_model=list[admin_audit.AuditEntry])
+@limiter.limit(_READ_LIMIT)
 async def audit_log(
+    request: Request,
     ctx: AdminCtx = CurrentAdmin,
     actor_id: str | None = None,
     target_type: str | None = None,

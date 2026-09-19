@@ -98,7 +98,7 @@ def test_approve_spawns_finish_scheduling(client, monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 202
-    assert spawned == [("user_a", str(job.id))]
+    assert spawned == [("user_a", str(job.id), str(job.niche_id))]
 
 
 def test_approve_conflicts_when_not_awaiting(client, monkeypatch):
@@ -158,3 +158,200 @@ async def test_schedule_approved_job_rejects_wrong_status(monkeypatch):
 
     with pytest.raises(ValueError, match="not awaiting_approval"):
         await pipeline.schedule_approved_job(user_id="user_a", job_id=job.id)
+
+
+async def test_schedule_approved_job_mismatch_niche_fail_closes(monkeypatch):
+    from uuid import uuid4
+
+    from marketer import pipeline
+
+    job = _job(status=JobStatus.scheduling)
+    other = uuid4()
+
+    async def fake_get(job_id, *, user_id):
+        return job
+
+    async def fake_niche(niche_id, *, user_id):
+        return _niche()
+
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_get)
+    monkeypatch.setattr(pipeline.niches_repo, "get", fake_niche)
+
+    with pytest.raises(ValueError, match="niche mismatch"):
+        await pipeline.schedule_approved_job(
+            user_id="user_a", job_id=job.id, niche_id=other
+        )
+
+
+async def test_schedule_stage_gathers_persist_and_user(monkeypatch, tmp_path):
+    """Persist(scheduling) and users.get used to be sequential."""
+    import asyncio
+
+    from marketer import pipeline
+    from marketer.jev.loops import LoopVerdict
+    from marketer.models import Idea, RenderedVideo, Scene, Script, User
+
+    video = tmp_path / "out.mp4"
+    video.write_bytes(b"mp4")
+
+    job = _job(status=JobStatus.awaiting_approval)
+    job.script = Script(
+        idea=Idea(
+            topic="t", angle="a", hook="hook", target_audience="x", why_it_works="y"
+        ),
+        scenes=[
+            Scene(
+                index=0,
+                narration="n",
+                visual_prompt="v",
+                motion_prompt="m",
+                duration_sec=5,
+            )
+        ],
+        total_duration_sec=5,
+    )
+    job.rendered = RenderedVideo(path=str(video), duration_sec=5)
+    niche = _niche(approve=False)
+
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    posted: dict[str, str | None] = {}
+
+    async def slow_persist(j):
+        nonlocal started, max_inflight, inflight
+        if j.status != JobStatus.scheduling:
+            return
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def slow_user(user_id):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return User(id=user_id, email="a@a", ayrshare_profile_key="pk-video")
+
+    async def fake_gate(*_a, **_k):
+        return LoopVerdict()
+
+    async def fake_schedule_post(
+        *,
+        video_path,
+        caption,
+        hashtags,
+        platform,
+        scheduled_for,
+        profile_key,
+        user_id,
+    ):
+        posted["profile_key"] = profile_key
+        return "post-1"
+
+    async def fake_signal(*_a, **_k):
+        return None
+
+    monkeypatch.setattr(pipeline, "_persist", slow_persist)
+    monkeypatch.setattr(pipeline.users_repo, "get", slow_user)
+    monkeypatch.setattr("marketer.jev.loops.publish_gate", fake_gate)
+    monkeypatch.setattr(pipeline.scheduler, "schedule_post", fake_schedule_post)
+    monkeypatch.setattr(pipeline, "_signal_terminal", fake_signal)
+
+    out = await pipeline._schedule_stage(job, niche, human_approved=True)
+    assert out.status == JobStatus.done
+    assert started == 2
+    assert max_inflight == 2
+    assert posted["profile_key"] == "pk-video"
+
+
+async def test_fail_with_gathers_persist_and_user(monkeypatch):
+    """Failed persist and the notify user used to be sequential."""
+    import asyncio
+
+    from marketer import pipeline
+    from marketer.models import User
+
+    job = _job(status=JobStatus.scripting)
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    signaled: dict = {}
+
+    async def slow_persist(j):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def slow_user(user_id):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return User(id=user_id, email="a@a", email_notifications=False)
+
+    async def fake_signal(j, *, kind, event, user=None):
+        signaled["kind"] = kind
+        signaled["user"] = user
+
+    monkeypatch.setattr(pipeline, "_persist", slow_persist)
+    monkeypatch.setattr(pipeline.users_repo, "get", slow_user)
+    monkeypatch.setattr(pipeline, "_signal_terminal", fake_signal)
+
+    out = await pipeline._fail_with(job, "boom")
+    assert out.status == JobStatus.failed
+    assert started == 2
+    assert max_inflight == 2
+    assert signaled["kind"] == "failed"
+    assert signaled["user"] is not None
+    assert signaled["user"].email == "a@a"
+
+
+async def test_notify_reuses_passed_user(monkeypatch):
+    from marketer import pipeline
+    from marketer.models import User
+    from marketer.services import email as email_svc
+
+    sent: list[str] = []
+
+    async def fake_send(*, to, subject, html):
+        sent.append(to)
+        return True
+
+    async def boom(_user_id):
+        raise AssertionError("passed user must not reload")
+
+    monkeypatch.setattr(email_svc, "send_email", fake_send)
+    monkeypatch.setattr(pipeline.users_repo, "get", boom)
+
+    job = _job(status=JobStatus.failed)
+    user = User(id="user_a", email="a@a.com", email_notifications=True)
+    await pipeline._notify(job, kind="failed", user=user)
+    assert sent == ["a@a.com"]

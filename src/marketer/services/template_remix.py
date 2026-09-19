@@ -10,6 +10,7 @@ caps don't, since remixes belong to no niche).
 """
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -33,7 +34,14 @@ async def run_remix(
     count: int = 2,
     note: str = "",
 ) -> dict:
-    template = await templates_repo.get(template_id)
+    # Template row and the niche-less spend snapshot are independent.
+    # Waiting on the template first left a leftover users.get on every remix.
+    template, spend = await asyncio.gather(
+        templates_repo.get(template_id),
+        default_context(
+            user_id=user_id, niche_id=None, job_id=None, cap_usd=None,
+        ),
+    )
     if template is None or not template.is_published:
         return {"status": "failed", "error": "template not found"}
 
@@ -61,10 +69,6 @@ async def run_remix(
         )
     if note:
         prompt += f"\nCreator note: {note}"
-
-    spend = await default_context(
-        user_id=user_id, niche_id=None, job_id=None, cap_usd=None,
-    )
 
     out_dir = Path(settings.artifacts_dir) / user_id / "remixes" / str(template_id)
     generated = 0

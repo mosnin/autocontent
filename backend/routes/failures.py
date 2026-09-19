@@ -24,11 +24,12 @@ view, not an admin cross-tenant one.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import asyncio
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
 from marketer.articles.models import ArticleStatus
@@ -37,8 +38,11 @@ from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import jobs as jobs_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_REPLAY_LIMIT = "10/minute"
+_INBOX_LIMIT = "30/minute"
 
 FailureKind = Literal["job", "image_post", "article"]
 
@@ -52,6 +56,9 @@ class FailureItem(BaseModel):
     error: str | None
     category: str
     created_at: datetime | None
+    jev_class: str | None = None
+    jev_actionable: float | None = None
+    jev_severity: float | None = None
 
 
 class FailuresInboxResponse(BaseModel):
@@ -61,7 +68,9 @@ class FailuresInboxResponse(BaseModel):
 
 
 @router.get("", response_model=FailuresInboxResponse)
+@limiter.limit(_INBOX_LIMIT)
 async def list_failures(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     limit: int = Query(default=100, ge=1, le=500),
 ) -> FailuresInboxResponse:
@@ -72,12 +81,14 @@ async def list_failures(
     keeping every source's most-recent window cheap and independent
     rather than paginating a UNION.
     """
-    job_rows = await jobs_repo.failures_for_user(ctx.user_id, limit=limit)
-    image_post_rows = await image_posts_repo.list_for_user(
-        ctx.user_id, status="failed", limit=limit
-    )
-    article_rows = await articles_repo.list_for_user(
-        ctx.user_id, status=ArticleStatus.failed, limit=limit
+    job_rows, image_post_rows, article_rows = await asyncio.gather(
+        jobs_repo.failures_for_user(ctx.user_id, limit=limit),
+        image_posts_repo.list_for_user(
+            ctx.user_id, status="failed", limit=limit
+        ),
+        articles_repo.list_for_user(
+            ctx.user_id, status=ArticleStatus.failed, limit=limit
+        ),
     )
 
     items: list[FailureItem] = []
@@ -123,7 +134,12 @@ async def list_failures(
 
     # Articles can have a null created_at pre-migration/back-compat; sort
     # those last rather than letting None vs. datetime blow up the sort.
-    items.sort(key=lambda i: i.created_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    items.sort(key=lambda i: i.created_at or datetime.min.replace(tzinfo=UTC), reverse=True)
+
+    from marketer.jev.loops import enrich_failure_rows
+
+    enriched = await enrich_failure_rows([i.model_dump() for i in items])
+    items = [FailureItem.model_validate(row) for row in enriched]
 
     counts: dict[str, int] = {c: 0 for c in jobs_repo.FAILURE_CATEGORIES}
     for i in items:
@@ -133,8 +149,12 @@ async def list_failures(
 
 
 @router.post("/replay/{kind}/{item_id}", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(_REPLAY_LIMIT)
 async def replay_failure(
-    kind: FailureKind, item_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request,
+    kind: FailureKind,
+    item_id: UUID,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
     """Replay a single failed item by delegating to the same repo call
     and Modal function the item's own retry endpoint uses. No new spawn
@@ -155,7 +175,10 @@ async def replay_failure(
         return {"kind": "job", "id": str(job.id), "status": job.status.value}
 
     if kind == "image_post":
-        if not await image_posts_repo.claim_for_retry(item_id, user_id=ctx.user_id):
+        claimed = await image_posts_repo.claim_for_retry(
+            item_id, user_id=ctx.user_id
+        )
+        if not claimed:
             existing = await image_posts_repo.get(item_id, user_id=ctx.user_id)
             if existing is None:
                 raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -164,7 +187,7 @@ async def replay_failure(
                 detail=f"post is {existing['status']}, not failed",
             )
         fn = modal.Function.from_name("marketer-sh", "run_image_post")
-        fn.spawn(ctx.user_id, str(item_id))
+        fn.spawn(ctx.user_id, str(item_id), str(claimed["niche_id"]))
         return {"kind": "image_post", "id": str(item_id), "status": "queued"}
 
     # kind == "article" — atomic failed->queued claim (no double-spawn).

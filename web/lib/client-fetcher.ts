@@ -21,3 +21,20 @@ export async function clientFetch<T>(path: string): Promise<T> {
   }
   return res.json() as Promise<T>;
 }
+
+export async function clientPost<T>(path: string, body?: unknown): Promise<T> {
+  const url = path.startsWith("/api/proxy/")
+    ? path
+    : `/api/proxy${path.startsWith("/") ? path : `/${path}`}`;
+  const res = await fetch(url, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new ApiError(res.status, `${res.status} ${text}`);
+  }
+  return res.json() as Promise<T>;
+}

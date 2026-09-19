@@ -17,12 +17,13 @@ plain ``/{niche_id}`` path and this router owns ``/{niche_id}/performance``.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from marketer.models import JobPerformance, NichePerformance, PerformanceSummary
 from marketer.repos import jobs as jobs_repo
@@ -31,12 +32,16 @@ from marketer.repos import post_metrics as post_metrics_repo
 from marketer.repos import spend as spend_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_READ_LIMIT = "30/minute"
 
 
 @router.get("/{niche_id}/performance", response_model=NichePerformance)
+@limiter.limit(_READ_LIMIT)
 async def niche_performance(
+    request: Request,
     niche_id: UUID,
     ctx: AuthCtx = CurrentUser,
     days: Annotated[int, Query(ge=1, le=365)] = 30,
@@ -49,7 +54,7 @@ async def niche_performance(
     3. Batch-fetch spend and latest metrics in two round-trips.
     4. Build JobPerformance entries, then compute summary stats.
     """
-    # 1. Ownership check + capture visual_style from niche row.
+    # 1. Ownership check first — do not list another user's jobs.
     niche = await niches_repo.get(niche_id, user_id=ctx.user_id)
     if niche is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "niche not found")
@@ -96,17 +101,20 @@ async def niche_performance(
 
     job_ids = [j.id for j in jobs_in_window]
 
-    # 3a. Batch-fetch spend — one DB round-trip.
-    costs: dict[UUID, Decimal] = await spend_repo.cost_by_job(job_ids, user_id=ctx.user_id)
-
-    # 3b. Fetch latest metrics for each job — one call per job via D1's
-    #     latest_for_job.  This is N calls today; a future optimisation can
-    #     batch with a multi-job variant once D1 lands.
-    metrics_by_job: dict[UUID, object] = {}
-    for jid in job_ids:
-        m = await post_metrics_repo.latest_for_job(jid, user_id=ctx.user_id)
-        if m is not None:
-            metrics_by_job[jid] = m
+    # 3. Spend + latest metrics in one beat (metrics are still per-job
+    #    reads; gather hides the N-round-trip wall clock).
+    costs, metric_rows = await asyncio.gather(
+        spend_repo.cost_by_job(job_ids, user_id=ctx.user_id),
+        asyncio.gather(
+            *[
+                post_metrics_repo.latest_for_job(jid, user_id=ctx.user_id)
+                for jid in job_ids
+            ]
+        ),
+    )
+    metrics_by_job: dict[UUID, object] = {
+        jid: m for jid, m in zip(job_ids, metric_rows, strict=True) if m is not None
+    }
 
     # 4. Build JobPerformance list.
     job_perfs: list[JobPerformance] = []

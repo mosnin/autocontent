@@ -5,12 +5,30 @@ All network I/O is mocked — no real HTTP calls are made.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
 
+from marketer.services import pixabay_music
 from marketer.services.pixabay_music import PixabayError, Track, download, search
+
+
+def _install_client(monkeypatch, *, get=None, stream=None) -> MagicMock:
+    """Keep-alive client — tests never construct AsyncClient as a context manager."""
+    pixabay_music._http = None
+    instance = MagicMock()
+    instance.is_closed = False
+    if get is not None:
+        instance.get = get
+    if stream is not None:
+        instance.stream = stream
+
+    async def _shared() -> MagicMock:
+        return instance
+
+    monkeypatch.setattr(pixabay_music, "_shared_client", _shared)
+    return instance
 
 
 # ---------------------------------------------------------------------------
@@ -44,11 +62,8 @@ async def test_search_returns_parsed_tracks(monkeypatch):
     payload = _search_payload(_hit(id=1, duration=90), _hit(id=2, duration=120))
     fake_resp = _fake_response(200, payload)
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.get = AsyncMock(return_value=fake_resp)
-
-        tracks = await search("upbeat", min_duration=60, max_duration=150)
+    _install_client(monkeypatch, get=AsyncMock(return_value=fake_resp))
+    tracks = await search("upbeat", min_duration=60, max_duration=150)
 
     assert len(tracks) == 2
     assert isinstance(tracks[0], Track)
@@ -61,11 +76,8 @@ async def test_search_empty_hits_returns_empty_list(monkeypatch):
     monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     fake_resp = _fake_response(200, _search_payload())
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.get = AsyncMock(return_value=fake_resp)
-
-        tracks = await search("obscure-query", min_duration=30, max_duration=60)
+    _install_client(monkeypatch, get=AsyncMock(return_value=fake_resp))
+    tracks = await search("obscure-query", min_duration=30, max_duration=60)
 
     assert tracks == []
 
@@ -74,12 +86,9 @@ async def test_search_401_raises_pixabay_error(monkeypatch):
     monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "bad")
     fake_resp = _fake_response(401)
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.get = AsyncMock(return_value=fake_resp)
-
-        with pytest.raises(PixabayError) as exc_info:
-            await search("q", min_duration=0, max_duration=200)
+    _install_client(monkeypatch, get=AsyncMock(return_value=fake_resp))
+    with pytest.raises(PixabayError) as exc_info:
+        await search("q", min_duration=0, max_duration=200)
 
     assert exc_info.value.status_code == 401
     assert "invalid API key" in str(exc_info.value)
@@ -89,12 +98,9 @@ async def test_search_429_raises_pixabay_error(monkeypatch):
     monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     fake_resp = _fake_response(429)
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.get = AsyncMock(return_value=fake_resp)
-
-        with pytest.raises(PixabayError) as exc_info:
-            await search("q", min_duration=0, max_duration=200)
+    _install_client(monkeypatch, get=AsyncMock(return_value=fake_resp))
+    with pytest.raises(PixabayError) as exc_info:
+        await search("q", min_duration=0, max_duration=200)
 
     assert exc_info.value.status_code == 429
 
@@ -103,12 +109,9 @@ async def test_search_500_raises_pixabay_error(monkeypatch):
     monkeypatch.setattr("marketer.services.pixabay_music.settings.pixabay_api_key", "k")
     fake_resp = _fake_response(503, text="Service Unavailable")
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.get = AsyncMock(return_value=fake_resp)
-
-        with pytest.raises(PixabayError) as exc_info:
-            await search("q", min_duration=0, max_duration=200)
+    _install_client(monkeypatch, get=AsyncMock(return_value=fake_resp))
+    with pytest.raises(PixabayError) as exc_info:
+        await search("q", min_duration=0, max_duration=200)
 
     assert exc_info.value.status_code == 503
 
@@ -131,11 +134,8 @@ async def test_search_skips_hits_without_audio(monkeypatch):
     )
     fake_resp = _fake_response(200, payload)
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.get = AsyncMock(return_value=fake_resp)
-
-        tracks = await search("q", min_duration=0, max_duration=200)
+    _install_client(monkeypatch, get=AsyncMock(return_value=fake_resp))
+    tracks = await search("q", min_duration=0, max_duration=200)
 
     assert len(tracks) == 1
     assert tracks[0].id == 1
@@ -145,7 +145,7 @@ async def test_search_skips_hits_without_audio(monkeypatch):
 # download()
 # ---------------------------------------------------------------------------
 
-async def test_download_writes_file(tmp_path: Path):
+async def test_download_writes_file(tmp_path: Path, monkeypatch):
     dest = tmp_path / "pixabay" / "42.mp3"
     content = b"MP3_DATA" * 10
 
@@ -167,32 +167,33 @@ async def test_download_writes_file(tmp_path: Path):
         async def __aexit__(self, *args):
             pass
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.stream = MagicMock(return_value=_StreamCtx())
-
-        result = await download("https://example.com/42.mp3", dest)
+    _install_client(monkeypatch, stream=MagicMock(return_value=_StreamCtx()))
+    result = await download("https://example.com/42.mp3", dest)
 
     assert result == dest
     assert dest.exists()
     assert dest.read_bytes() == content
 
 
-async def test_download_skips_if_exists(tmp_path: Path):
+async def test_download_skips_if_exists(tmp_path: Path, monkeypatch):
     dest = tmp_path / "42.mp3"
     dest.write_bytes(b"EXISTING")
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        MockClient.return_value.__aenter__.return_value.stream = AsyncMock(
-            side_effect=lambda *a, **k: (_ for _ in ()).throw(AssertionError("should not download"))
-        )
-        result = await download("https://example.com/42.mp3", dest)
+    _install_client(
+        monkeypatch,
+        stream=AsyncMock(
+            side_effect=lambda *a, **k: (_ for _ in ()).throw(
+                AssertionError("should not download")
+            )
+        ),
+    )
+    result = await download("https://example.com/42.mp3", dest)
 
     assert result == dest
     assert dest.read_bytes() == b"EXISTING"
 
 
-async def test_download_atomic_on_failure(tmp_path: Path):
+async def test_download_atomic_on_failure(tmp_path: Path, monkeypatch):
     """If the download stream fails, no partial file is left at dest."""
     dest = tmp_path / "42.mp3"
 
@@ -214,12 +215,9 @@ async def test_download_atomic_on_failure(tmp_path: Path):
         async def __aexit__(self, *args):
             pass
 
-    with patch("marketer.services.pixabay_music.httpx.AsyncClient") as MockClient:
-        instance = MockClient.return_value.__aenter__.return_value
-        instance.stream = MagicMock(return_value=_StreamCtx())
-
-        with pytest.raises(OSError):
-            await download("https://example.com/42.mp3", dest)
+    _install_client(monkeypatch, stream=MagicMock(return_value=_StreamCtx()))
+    with pytest.raises(OSError):
+        await download("https://example.com/42.mp3", dest)
 
     # dest should not exist; the .tmp file may or may not exist depending on
     # where the error was thrown, but dest itself must be clean.

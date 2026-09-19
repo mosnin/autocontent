@@ -14,7 +14,38 @@ from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
-from .routes import admin, ads, articles, billing, brand_kit, calendar, campaigns, connect, failures, healthz, image_posts, jobs, kits, library, metrics, niches, ops, performance, providers, spend, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, x402
+from .routes import (
+    admin,
+    ads,
+    articles,
+    billing,
+    brand_kit,
+    calendar,
+    campaigns,
+    connect,
+    failures,
+    healthz,
+    image_posts,
+    jev,
+    jobs,
+    kits,
+    library,
+    metrics,
+    niches,
+    ops,
+    performance,
+    providers,
+    spend,
+    style_presets,
+    templates,
+    tokens,
+    users,
+    voice_mode,
+    voices,
+    webhook_endpoints,
+    webhooks,
+    x402,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +100,12 @@ def _run_boot_preflight() -> None:
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     _run_boot_preflight()
+    try:
+        from marketer.jev.client import warm
+
+        await warm()
+    except Exception:  # noqa: BLE001 — first-ask TLS is optional
+        logger.warning("jev.warm_failed", exc_info=True)
     yield
 
 
@@ -117,6 +154,8 @@ def create_app() -> FastAPI:
     app.include_router(connect.router, prefix="/api/v1/connect", tags=["connect"])
     app.include_router(tokens.router, prefix="/api/v1/tokens", tags=["tokens"])
     app.include_router(voices.router, prefix="/api/v1/voices", tags=["voices"])
+    app.include_router(voice_mode.router, prefix="/api/v1/voice", tags=["voice-mode"])
+    app.include_router(jev.router, prefix="/api/v1/jev", tags=["jev"])
     app.include_router(billing.router, prefix="/api/v1/billing", tags=["billing"])
     app.include_router(metrics.router, prefix="/api/v1/metrics", tags=["metrics"])
     app.include_router(webhooks.router, prefix="/api/v1/webhooks", tags=["webhooks"])

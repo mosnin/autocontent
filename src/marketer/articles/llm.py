@@ -7,7 +7,6 @@ raises SpendCapExceeded from ``spend.log`` after recording.
 """
 from __future__ import annotations
 
-import json
 import re
 from decimal import Decimal
 
@@ -37,8 +36,31 @@ PROVIDER = "openai"
 def _oai() -> openai.AsyncOpenAI:
     global _client
     if _client is None:
-        _client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+        from ..services.openai_shared import shared_client
+
+        _client = shared_client()
     return _client
+
+
+def resolve_article_writer_model() -> str:
+    """Qwen via OpenRouter when the operator did not pin a different writer."""
+    from ..jev.harness import default_generation_model
+    from ..services import openrouter
+
+    pinned = settings.article_writer_model
+    if openrouter.get_model(pinned) is not None and openrouter.enabled():
+        return pinned
+    if pinned == settings.agent_model and openrouter.enabled():
+        return default_generation_model()
+    return pinned
+
+
+def _chat_client(model: str):
+    from ..services import openrouter
+
+    if openrouter.get_model(model) is not None and openrouter.enabled():
+        return openrouter.chat_client()
+    return _oai()
 
 
 def strip_ai_dashes(text: str) -> str:
@@ -63,57 +85,21 @@ async def _log_usage(resp: object, model: str, spend: SpendContext | None) -> No
     out_tok = int(
         getattr(u, "completion_tokens", None) or getattr(u, "output_tokens", 0) or 0
     )
+    from ..services import openrouter
+
+    or_model = openrouter.get_model(model)
+    if or_model is not None:
+        cost = openrouter.llm_cost(or_model, in_tok, out_tok)
+        provider = openrouter.PROVIDER
+    else:
+        cost = llm_cost(model, in_tok, out_tok)
+        provider = PROVIDER
     await spend.log(
-        provider=PROVIDER,
+        provider=provider,
         sku=f"llm:{model}",
         units=Decimal(in_tok + out_tok),
-        cost_usd=llm_cost(model, in_tok, out_tok),
+        cost_usd=cost,
     )
-
-
-async def _parse_call(
-    *, model: str, system: str, user: str, response_format, temperature: float,
-    spend: SpendContext | None,
-):
-    if spend is not None:
-        await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-    resp = await _oai().beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        response_format=response_format,
-        temperature=temperature,
-    )
-    await _log_usage(resp, model, spend)
-    parsed = resp.choices[0].message.parsed
-    if parsed is None:
-        raise RuntimeError(f"{response_format.__name__}: model returned no parsed payload")
-    return parsed
-
-
-async def _json_call(
-    *, model: str, system: str, user: str, temperature: float,
-    spend: SpendContext | None,
-) -> dict:
-    if spend is not None:
-        await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-    resp = await _oai().chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        response_format={"type": "json_object"},
-        temperature=temperature,
-    )
-    await _log_usage(resp, model, spend)
-    raw = resp.choices[0].message.content or "{}"
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -128,24 +114,11 @@ async def pick_topic(
     *,
     spend: SpendContext | None = None,
 ) -> TopicPick:
-    """Choose the next article topic + focus keyword for a niche."""
-    system = (
-        "You are an SEO content strategist. Given a content niche, propose "
-        "ONE article topic with a specific, winnable focus keyword. Prefer "
-        "specific long-tail angles over generic overviews. Avoid topics that "
-        "duplicate the recent titles provided. Never use em-dashes or "
-        "en-dashes."
-    )
-    user = (
-        f"Niche: {niche_title}\n"
-        f"Description: {niche_description}\n\n"
-        f"Recent article titles (avoid duplicating):\n"
-        + "\n".join(f"- {t}" for t in recent_titles[:25])
-        + "\n\nReturn a TopicPick."
-    )
-    return await _parse_call(
-        model=settings.agent_model, system=system, user=user,
-        response_format=TopicPick, temperature=0.8, spend=spend,
+    """Topic pick is classification. Fastpath + Jev own it."""
+    from .fastpath import pick_topic as _fast
+
+    return await _fast(
+        niche_title, niche_description, recent_titles, spend=spend
     )
 
 
@@ -157,27 +130,10 @@ async def pick_topic(
 async def summarize_serp(
     keyword: str, pages: list[dict], *, spend: SpendContext | None = None
 ) -> SerpAnalysis:
-    """Distill raw SERP page content into a SerpAnalysis the outline and
-    writer can use (common headings/topics, questions answered)."""
-    system = (
-        "You are an SEO SERP analyst. Given the focus keyword and excerpts "
-        "of the current top-ranking pages, produce a SerpAnalysis: the "
-        "commonHeadings and commonTopics shared across results, the concrete "
-        "questionsAnswered, and a recommendedWordCount (between 800 and 4000) "
-        "based on what currently ranks. Echo the provided topResults, "
-        "avgWordCount, and topDomains unchanged. Never use em-dashes or "
-        "en-dashes."
-    )
-    user = (
-        f"Focus keyword: {keyword}\n\n"
-        f"SERP pages (JSON, excerpts may be truncated):\n"
-        f"{json.dumps(pages, separators=(',', ':'))[:12000]}\n\n"
-        "Return the SerpAnalysis."
-    )
-    return await _parse_call(
-        model=settings.agent_model, system=system, user=user,
-        response_format=SerpAnalysis, temperature=0.4, spend=spend,
-    )
+    """SERP distillation is extraction, not prose. Fastpath owns it."""
+    from .fastpath import serp_from_pages
+
+    return serp_from_pages(keyword, pages)
 
 
 # ---------------------------------------------------------------------------
@@ -189,29 +145,20 @@ async def generate_outline(
     topic: str, keyword: str, research: dict, tone: str, audience: str,
     *, spend: SpendContext | None = None,
 ) -> Outline:
-    """Produce a structured Outline (one H1, 5-10 H2s, 0-3 H3s per H2)."""
-    system = (
-        "You are an expert SEO content strategist. Produce a structured article "
-        "outline that ranks and serves the reader. Rules: exactly one H1 "
-        "(level=1) as the first section, 5 to 10 H2 sections (level=2), and 0 "
-        "to 3 H3 sections (level=3) immediately under each H2. Every section "
-        "must include concrete notes the writer can follow. Never use em-dashes "
-        "or en-dashes in headings or notes. Every heading must be unique within "
-        "the outline and phrased differently from the H1."
-    )
-    research_summary = json.dumps(research or {}, separators=(",", ":"))[:6000]
-    user = (
-        f"Topic: {topic}\n"
-        f"Focus keyword: {keyword}\n"
-        f"Tone: {tone}\n"
-        f"Target audience: {audience}\n\n"
-        f"Research (JSON, may be truncated):\n{research_summary}\n\n"
-        "Return the outline as structured JSON matching the Outline schema."
-    )
-    return await _parse_call(
-        model=settings.agent_model, system=system, user=user,
-        response_format=Outline, temperature=0.7, spend=spend,
-    )
+    """Outline is structure. Fastpath builds it from SERP headings."""
+    from .fastpath import outline_from_research
+    from .models import SerpAnalysis
+
+    serp = None
+    if isinstance(research, SerpAnalysis):
+        serp = research
+    elif isinstance(research, dict) and research:
+        try:
+            raw = research.get("serp", research)
+            serp = SerpAnalysis.model_validate(raw)
+        except Exception:  # noqa: BLE001 — empty research still gets a playbook
+            serp = None
+    return outline_from_research(topic, keyword, serp)
 
 
 # ---------------------------------------------------------------------------
@@ -246,15 +193,22 @@ async def write_section(
         "commas, periods, or parentheses instead. Maintain tonal continuity "
         "with the previously-written sections. Include the focus keyword "
         "naturally (do not stuff). Output pure markdown only; no front-matter, "
-        "no code fences around the whole section."
+        "no code fences around the whole section. Never invent studies, "
+        "percentages, quotes, or citations that are not in the grounding sources."
     )
+    from ..jev.grounding import research_grounding_block
+
+    ground = research_grounding_block(
+        context.research, extra=context.tone or ""
+    )
+    ground_block = f"\n{ground}\n" if ground else "\n"
     user = (
         f"Article title: {context.title}\n"
         f"Topic: {context.topic}\n"
         f"Focus keyword: {context.focusKeyword}\n"
         f"Tone: {context.tone or 'professional, clear'}\n"
         f"Target audience: {context.targetAudience or 'general readers'}\n"
-        f"{revision_block}\n"
+        f"{revision_block}{ground_block}\n"
         f"Section heading: {heading}\n"
         f"Section notes: {notes}\n\n"
         f"Previously written sections (tail, for tonal continuity):\n{prev_tail}\n\n"
@@ -266,7 +220,7 @@ async def write_section(
     async def _call(model: str) -> str:
         if spend is not None:
             await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-        resp = await _oai().chat.completions.create(
+        resp = await _chat_client(model).chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system},
@@ -282,7 +236,12 @@ async def write_section(
     # retries already ran inside the OpenAI SDK) must not kill the whole
     # article. Fall back to the stock agent_model, same philosophy as
     # provider_fallback.synthesize_vo_with_fallback for video voiceover.
-    chain = provider_fallback.writer_model_fallback_chain(settings.article_writer_model)
+    chain = provider_fallback.writer_model_fallback_chain(
+        resolve_article_writer_model()
+    )
+    # Cascade: a QA rewrite does not retry the same cheap writer first.
+    if context.revisionNotes and len(chain) > 1:
+        chain = chain[1:] + chain[:1]
     text, _model_used = await provider_fallback.call_with_model_fallback(
         _call, chain, log_event="article.writer.fallback",
     )
@@ -298,61 +257,27 @@ async def generate_metadata(
     topic: str, keyword: str, article_md: str, tone: str,
     *, spend: SpendContext | None = None,
 ) -> ArticleMetadata:
-    """SEO metadata: title 50-60 chars, kebab-case slug, meta 150-160 chars."""
-    system = (
-        "You are an SEO metadata specialist. Generate concise, high-CTR "
-        "metadata. Strict constraints: title 50-60 characters, slug in "
-        "kebab-case (lowercase, hyphen-separated, no punctuation), meta "
-        "description 150-160 characters. Include the focus keyword naturally "
-        "in the title and meta description. Never use em-dashes or en-dashes."
-    )
-    excerpt = article_md[:6000]
-    user = (
-        f"Topic: {topic}\n"
-        f"Focus keyword: {keyword}\n"
-        f"Tone: {tone}\n\n"
-        f"Article (may be truncated):\n{excerpt}\n\n"
-        "Return metadata as structured JSON matching the ArticleMetadata schema."
-    )
-    parsed: ArticleMetadata = await _parse_call(
-        model=settings.agent_model, system=system, user=user,
-        response_format=ArticleMetadata, temperature=0.5, spend=spend,
-    )
-    parsed.title = strip_ai_dashes(parsed.title)
-    parsed.metaDescription = strip_ai_dashes(parsed.metaDescription)
-    return parsed
+    """Title/slug/meta are extracts, not prose."""
+    from .fastpath import metadata_from_article
+
+    return metadata_from_article(topic, keyword, article_md)
 
 
 async def generate_schema_json(
     *, title: str, slug: str, meta_description: str, focus_keyword: str,
     keywords: list[str], article_md: str, spend: SpendContext | None = None,
 ) -> str:
-    """Return a JSON-LD string (Article + FAQPage in @graph)."""
-    system = (
-        "You are a schema.org JSON-LD expert. Produce a JSON-LD document that "
-        "combines an Article entry and an FAQPage entry under a single @graph "
-        "array. Use https://schema.org as @context. The Article needs "
-        "headline, description, keywords, author (Person), datePublished, "
-        "dateModified, publisher (Organization), mainEntityOfPage, and image. "
-        "The FAQPage must include 3-5 realistic Question/Answer pairs drawn "
-        "from the article. Optimize for Google rich results. Return a JSON "
-        "object with a single key 'schema' whose value is the JSON-LD object."
+    """JSON-LD is structure. Fastpath owns the @graph."""
+    from .fastpath import schema_json
+
+    return schema_json(
+        title=title,
+        slug=slug,
+        meta_description=meta_description,
+        focus_keyword=focus_keyword,
+        keywords=keywords,
+        article_md=article_md,
     )
-    user = (
-        f"Title: {title}\n"
-        f"Slug: {slug}\n"
-        f"Meta description: {meta_description}\n"
-        f"Focus keyword: {focus_keyword}\n"
-        f"Keywords: {', '.join(keywords)}\n\n"
-        f"Article markdown (may be truncated):\n{article_md[:8000]}\n\n"
-        'Return {"schema": { ...JSON-LD... }}.'
-    )
-    parsed = await _json_call(
-        model=settings.agent_model, system=system, user=user,
-        temperature=0.5, spend=spend,
-    )
-    payload = parsed.get("schema", parsed)
-    return json.dumps(payload, indent=2) if payload else ""
 
 
 # ---------------------------------------------------------------------------
@@ -363,34 +288,10 @@ async def generate_schema_json(
 async def interlink_suggest(
     article_md: str, candidates: list[dict], *, spend: SpendContext | None = None
 ) -> list[InterlinkSuggestion]:
-    """Suggest up to 5 internal links into the user's prior articles."""
-    if not candidates:
-        return []
-    system = (
-        "You recommend high-relevance internal links. Given a new article and "
-        "a list of the user's existing articles (title + slug), pick up to 5 "
-        "targets that a reader would genuinely want to follow. For each pick, "
-        "propose a short natural anchor phrase that appears (or could appear) "
-        'in the article body and score the relevance 0 to 1. Return JSON: '
-        '{"suggestions": [{"anchor": str, "targetUrl": str, "score": number}]}. '
-        "targetUrl must be the slug prefixed with '/'."
-    )
-    user = (
-        f"New article (may be truncated):\n{article_md[:6000]}\n\n"
-        f"Existing articles (JSON):\n{json.dumps(candidates, separators=(',', ':'))}\n\n"
-        "Return up to 5 suggestions, highest score first."
-    )
-    parsed = await _json_call(
-        model=settings.agent_model, system=system, user=user,
-        temperature=0.5, spend=spend,
-    )
-    out: list[InterlinkSuggestion] = []
-    for item in (parsed.get("suggestions") or [])[:5]:
-        try:
-            out.append(InterlinkSuggestion.model_validate(item))
-        except Exception:  # noqa: BLE001 — skip malformed suggestions
-            continue
-    return out
+    """Internal links are lexical overlap, not a chat completion."""
+    from .fastpath import interlink_lexical
+
+    return interlink_lexical(article_md, candidates)
 
 
 # ---------------------------------------------------------------------------
@@ -415,39 +316,37 @@ async def score_article(
     em_count = article_md.count("—")
     en_count = article_md.count("–")
 
-    system = (
-        "You are an editorial QA evaluator. Score the article for E-E-A-T "
-        "(experience, expertise, authoritativeness, trustworthiness) and "
-        "readability on a 0-1 scale. Also return a weighted overall 0-1 "
-        'score. Return JSON of shape {"overall": number, "eeatScore": '
-        'number, "readability": number, "notes": [string]}. Notes should '
-        "list concrete improvement observations."
-    )
-    user = (
-        f"Focus keyword: {focus_keyword}\n"
-        f"Computed word count: {word_count}\n"
-        f"Computed keyword density: {density:.4f}\n\n"
-        f"Article (may be truncated):\n{article_md[:8000]}\n\n"
-        "Return the scored JSON object."
-    )
-    parsed = await _json_call(
-        model=settings.agent_model, system=system, user=user,
-        temperature=0.5, spend=spend,
-    )
+    from ..jev import available as jev_available
+    from ..jev.decisions import judge_article
 
-    notes = list(parsed.get("notes") or [])
-    if em_count or en_count:
-        notes.append(
-            f"Em/en-dash usage detected: {em_count} em-dash(es), "
-            f"{en_count} en-dash(es). Replace with commas or periods."
-        )
+    if settings.jev_enabled and jev_available():
+        try:
+            verdict = await judge_article(
+                article_md, focus_keyword,
+                word_count=word_count, density=density, spend=spend,
+            )
+            quality = verdict.quality
+            if em_count or en_count:
+                quality.notes.append(
+                    f"Em/en-dash usage detected: {em_count} em-dash(es), "
+                    f"{en_count} en-dash(es). Replace with commas or periods."
+                )
+            return quality
+        except Exception as exc:  # noqa: BLE001 — Jev is an upgrade
+            from ..repos.spend import SpendCapExceeded
 
-    return QualityScore(
-        overall=float(parsed.get("overall", 0.0) or 0.0),
-        keywordDensity=float(density),
-        eeatScore=float(parsed.get("eeatScore", 0.0) or 0.0),
-        readability=float(parsed.get("readability", 0.0) or 0.0),
-        notes=notes,
+            if isinstance(exc, SpendCapExceeded):
+                raise
+
+    from .fastpath import heuristic_quality
+
+    return heuristic_quality(
+        article_md,
+        focus_keyword,
+        word_count=word_count,
+        density=density,
+        em_count=em_count,
+        en_count=en_count,
     )
 
 
@@ -459,50 +358,15 @@ async def score_article(
 async def generate_hero_prompt(
     title: str, keyword: str, article_md: str, *, spend: SpendContext | None = None
 ) -> ImagePrompt | None:
-    """One photorealistic editorial hero-image prompt for the article."""
-    system = (
-        "You design photorealistic, cinematic image prompts for editorial "
-        "articles. Describe a single scene: hyper-realistic photograph, 50mm "
-        "lens, soft natural lighting, shallow depth of field, color graded, "
-        "editorial style. Do not include text, logos, watermarks, or celebrity "
-        "likenesses. The altText must mention the focus keyword naturally. "
-        'Return JSON of shape {"images": [{"type": "hero", "prompt": str, '
-        '"altText": str}]}.'
-    )
-    user = (
-        f"Title: {title}\n"
-        f"Focus keyword: {keyword}\n\n"
-        f"Article (may be truncated):\n{article_md[:5000]}\n\n"
-        "Return exactly 1 image spec."
-    )
-    parsed = await _json_call(
-        model=settings.agent_model, system=system, user=user,
-        temperature=0.7, spend=spend,
-    )
-    for item in (parsed.get("images") or [])[:1]:
-        try:
-            return ImagePrompt.model_validate(item)
-        except Exception:  # noqa: BLE001
-            return None
-    return None
+    """Hero still is a template. gpt-image-1 still renders."""
+    from .fastpath import hero_prompt
+
+    return hero_prompt(title, keyword)
 
 
 # ---------------------------------------------------------------------------
 # Content repurposing: article -> platform-native social snippets
 # ---------------------------------------------------------------------------
-
-_PLATFORM_GUIDANCE = {
-    "twitter": "A single punchy tweet under 280 characters. Hook first. 1-2 hashtags.",
-    "linkedin": "A professional LinkedIn post: a strong first line, 3-5 short lines of "
-                "insight, a soft CTA. 3-5 hashtags.",
-    "instagram": "An Instagram caption: warm, first-person, a hook line then value, "
-                 "5-10 relevant hashtags.",
-    "facebook": "A conversational Facebook post: 2-4 sentences, a question to drive "
-                "comments. 0-2 hashtags.",
-    "newsletter": "A short newsletter blurb: a subject-line-style hook, 2-3 sentences, "
-                  "and a read-more nudge. No hashtags.",
-}
-
 
 async def generate_social_snippets(
     title: str,
@@ -511,36 +375,11 @@ async def generate_social_snippets(
     *,
     spend: SpendContext | None = None,
 ) -> list[SocialSnippet]:
-    """Repurpose a finished article into platform-native social posts. One
-    metered LLM call produces all requested platforms at once."""
+    """Repurpose a finished article into platform posts from the article text.
 
-    wanted = [p for p in platforms if p in _PLATFORM_GUIDANCE] or list(_PLATFORM_GUIDANCE)
-    guidance = "\n".join(f"- {p}: {_PLATFORM_GUIDANCE[p]}" for p in wanted)
-    system = (
-        "You are a social media editor. Given an article, write native posts "
-        "for each requested platform that drive clicks back to the article. "
-        "Match each platform's norms exactly. Never use em-dashes or en-dashes. "
-        "Do not invent facts not in the article. Return JSON of shape "
-        '{"snippets": [{"platform": str, "body": str, "hashtags": [str]}]} '
-        "with exactly one entry per requested platform.\n\nPlatform rules:\n"
-        f"{guidance}"
-    )
-    user = (
-        f"Article title: {title}\n"
-        f"Requested platforms: {', '.join(wanted)}\n\n"
-        f"Article (may be truncated):\n{article_md[:7000]}\n\n"
-        "Return the snippets JSON."
-    )
-    parsed = await _json_call(
-        model=settings.agent_model, system=system, user=user,
-        temperature=0.7, spend=spend,
-    )
-    out: list[SocialSnippet] = []
-    for item in parsed.get("snippets") or []:
-        try:
-            snip = SocialSnippet.model_validate(item)
-            snip.body = strip_ai_dashes(snip.body)
-            out.append(snip)
-        except Exception:  # noqa: BLE001 — skip malformed
-            continue
-    return out
+    This is extraction, not generation — Jev cannot write captions, and an
+    LLM here invented hooks that were not in the piece.
+    """
+    from .fastpath import template_social_snippets
+
+    return template_social_snippets(title, article_md, platforms)

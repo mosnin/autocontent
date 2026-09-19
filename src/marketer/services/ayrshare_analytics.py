@@ -31,12 +31,26 @@ downstream. We store raw + parsed nullable columns in post_metrics.
 """
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 
 from ..config import settings
 
 BASE_URL = "https://app.ayrshare.com/api"
 HTTP_TIMEOUT_SEC = 60.0
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC)
+        return _http
 
 
 class AyrshareAnalyticsError(RuntimeError):
@@ -63,15 +77,15 @@ async def fetch_post_analytics(provider_post_id: str, platforms: list[str]) -> d
         "id": provider_post_id,
         "platforms": platforms,
     }
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
-        resp = await client.post(
-            "/analytics/post",
-            headers={
-                "Authorization": f"Bearer {_api_key()}",
-                "Content-Type": "application/json",
-            },
-            json=body,
-        )
+    client = await _shared_client()
+    resp = await client.post(
+        "/analytics/post",
+        headers={
+            "Authorization": f"Bearer {_api_key()}",
+            "Content-Type": "application/json",
+        },
+        json=body,
+    )
     if resp.status_code != 200:
         raise AyrshareAnalyticsError(
             f"Ayrshare analytics returned {resp.status_code}: {resp.text!r}"

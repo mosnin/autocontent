@@ -12,6 +12,9 @@ from marketer.services import ayrshare_profiles
 def _ayrshare_key(monkeypatch):
     from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_api_key", "ayr-test")
+    ayrshare_profiles._http = None
+    yield
+    ayrshare_profiles._http = None
 
 
 @pytest.fixture
@@ -31,6 +34,7 @@ def patch_async_client(monkeypatch):
 
     def install(transport: httpx.MockTransport) -> None:
         holder["transport"] = transport
+        ayrshare_profiles._http = None
 
     return install
 

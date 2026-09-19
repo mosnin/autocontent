@@ -120,15 +120,17 @@ def test_prompt_override_length_bounded():
 
 # --------------------------------------------------------------------------- threading
 
-async def test_ideation_prompt_includes_brief_and_tournament_uses_its_lenses(
+async def test_ideation_prompt_includes_brief_and_solo_lens(
     monkeypatch,
 ):
-    from marketer.config import settings
-    from marketer.models import Idea
-    import marketer.orchestrator as _orch
     from agents import Runner
 
-    monkeypatch.setattr(settings, "ideation_candidates", 2)
+    import marketer.orchestrator as _orch
+    from marketer.config import settings
+    from marketer.models import Idea
+
+    # n==1 is the only writer hop left; n≥2 is templates + Jev.
+    monkeypatch.setattr(settings, "ideation_candidates", 1)
     brief = _full_brief()
 
     captured: list[str] = []
@@ -142,12 +144,8 @@ async def test_ideation_prompt_includes_brief_and_tournament_uses_its_lenses(
         def final_output_as(self, cls):
             return self._output
 
-    from marketer.agents.ideation import IdeaVerdict
-
-    async def fake_run(agent, *, input):  # noqa: A002
+    async def fake_run(agent, *, input):
         captured.append(input)
-        if agent.name == "IdeaJudge":
-            return _Result(IdeaVerdict(winner_index=0, reasoning="r"))
         return _Result(Idea(topic="t", angle="a", hook="h",
                             target_audience="x", why_it_works="y"))
 
@@ -155,20 +153,19 @@ async def test_ideation_prompt_includes_brief_and_tournament_uses_its_lenses(
 
     await _orch.run_ideation("niche", brief=brief)
 
-    candidate_prompts = captured[:2]
-    # brief lines present in every candidate prompt
-    assert all("Spanish" in p for p in candidate_prompts)
-    # lenses come from the brief's preferred mechanisms, not the stock set
-    assert MECHANISM_LENSES["story_cold_open"] in candidate_prompts[0]
-    assert MECHANISM_LENSES["myth_bust"] in candidate_prompts[1]
+    assert len(captured) == 1
+    assert "Spanish" in captured[0]
+    # Solo shot still honors the creator's first preferred mechanism.
+    assert MECHANISM_LENSES["story_cold_open"] in captured[0]
 
 
 async def test_scriptwriter_and_vd_receive_brief(monkeypatch):
     import json
 
-    from marketer.models import Idea, Scene, Script
-    import marketer.orchestrator as _orch
     from agents import Runner
+
+    import marketer.orchestrator as _orch
+    from marketer.models import Idea, Scene, Script
 
     script = Script(
         idea=Idea(topic="t", angle="a", hook="h", target_audience="x",
@@ -188,7 +185,7 @@ async def test_scriptwriter_and_vd_receive_brief(monkeypatch):
         def final_output_as(self, cls):
             return self._output
 
-    async def fake_run(agent, *, input):  # noqa: A002
+    async def fake_run(agent, *, input):
         captured.append((agent.name, input))
         return _Result(script)
 

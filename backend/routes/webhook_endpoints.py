@@ -6,7 +6,7 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 
 from marketer.repos import webhooks_out
@@ -14,8 +14,11 @@ from marketer.repos.webhooks_out import VALID_EVENTS, WebhookEndpoint
 from marketer.services import ssrf
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_WEBHOOK_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class WebhookCreate(BaseModel):
@@ -40,12 +43,18 @@ class WebhookCreate(BaseModel):
 
 
 @router.get("", response_model=list[WebhookEndpoint])
-async def list_endpoints(ctx: AuthCtx = CurrentUser) -> list[WebhookEndpoint]:
+@limiter.limit(_READ_LIMIT)
+async def list_endpoints(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> list[WebhookEndpoint]:
     return await webhooks_out.list_for_user(ctx.user_id)
 
 
 @router.post("", response_model=WebhookEndpoint, status_code=status.HTTP_201_CREATED)
-async def create_endpoint(body: WebhookCreate, ctx: AuthCtx = CurrentUser) -> WebhookEndpoint:
+@limiter.limit(_WEBHOOK_LIMIT)
+async def create_endpoint(
+    request: Request, body: WebhookCreate, ctx: AuthCtx = CurrentUser
+) -> WebhookEndpoint:
     """Register an endpoint. The signing secret is returned exactly once in
     this response (never again) — the client must store it to verify
     signatures."""
@@ -64,8 +73,12 @@ class WebhookEnabledPatch(BaseModel):
 
 
 @router.patch("/{endpoint_id}", response_model=WebhookEndpoint)
+@limiter.limit(_WEBHOOK_LIMIT)
 async def update_endpoint(
-    endpoint_id: UUID, body: WebhookEnabledPatch, ctx: AuthCtx = CurrentUser
+    request: Request,
+    endpoint_id: UUID,
+    body: WebhookEnabledPatch,
+    ctx: AuthCtx = CurrentUser,
 ) -> WebhookEndpoint:
     """Pause or resume delivery. A disabled endpoint keeps its history and
     signing secret; re-enabling resumes with the same secret."""
@@ -78,14 +91,20 @@ async def update_endpoint(
 
 
 @router.delete("/{endpoint_id}", status_code=204)
-async def delete_endpoint(endpoint_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit(_WEBHOOK_LIMIT)
+async def delete_endpoint(
+    request: Request, endpoint_id: UUID, ctx: AuthCtx = CurrentUser
+) -> None:
     ok = await webhooks_out.delete(endpoint_id, user_id=ctx.user_id)
     if not ok:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "endpoint not found")
 
 
 @router.post("/{endpoint_id}/test")
-async def send_test(endpoint_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_WEBHOOK_LIMIT)
+async def send_test(
+    request: Request, endpoint_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     """Send a signed `test.ping` event so the client can validate their
     receiver and signature verification before real events fire."""
     from datetime import datetime, timezone

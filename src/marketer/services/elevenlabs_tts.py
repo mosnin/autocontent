@@ -16,6 +16,7 @@ registry-style pin matches how fal/openrouter prices are handled).
 """
 from __future__ import annotations
 
+import asyncio
 import wave
 from decimal import Decimal
 from pathlib import Path
@@ -29,6 +30,18 @@ from .spend_context import SpendContext
 PROVIDER = "elevenlabs"
 API_BASE = "https://api.elevenlabs.io/v1"
 HTTP_TIMEOUT_SEC = 120.0
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(timeout=HTTP_TIMEOUT_SEC)
+        return _http
 
 SAMPLE_RATE = 24_000  # matches output_format=pcm_24000
 USD_PER_1K_CHARS = Decimal("0.15")
@@ -73,18 +86,18 @@ def _write_wav(pcm: bytes, out_path: Path) -> None:
     retry=retry_if_exception(_is_retryable),
 )
 async def _call_api(text: str, voice_id: str) -> bytes:
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SEC) as client:
-        resp = await client.post(
-            f"{API_BASE}/text-to-speech/{voice_id}",
-            params={"output_format": "pcm_24000"},
-            headers={"xi-api-key": settings.elevenlabs_api_key},
-            json={
-                "text": text,
-                "model_id": settings.elevenlabs_model_id,
-            },
-        )
-        resp.raise_for_status()
-        return resp.content
+    client = await _shared_client()
+    resp = await client.post(
+        f"{API_BASE}/text-to-speech/{voice_id}",
+        params={"output_format": "pcm_24000"},
+        headers={"xi-api-key": settings.elevenlabs_api_key},
+        json={
+            "text": text,
+            "model_id": settings.elevenlabs_model_id,
+        },
+    )
+    resp.raise_for_status()
+    return resp.content
 
 
 async def synthesize(

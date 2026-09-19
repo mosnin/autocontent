@@ -6,6 +6,8 @@ annoyance, a failed job is a refund.
 """
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 
 from ..config import settings
@@ -14,6 +16,18 @@ from ..logging import get_logger
 log = get_logger(__name__)
 
 _RESEND_URL = "https://api.resend.com/emails"
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(timeout=10)
+        return _http
 
 
 async def send_email(*, to: str, subject: str, html: str) -> bool:
@@ -22,17 +36,17 @@ async def send_email(*, to: str, subject: str, html: str) -> bool:
     if not settings.resend_api_key or not to:
         return False
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(
-                _RESEND_URL,
-                headers={"Authorization": f"Bearer {settings.resend_api_key}"},
-                json={
-                    "from": settings.email_from,
-                    "to": [to],
-                    "subject": subject,
-                    "html": html,
-                },
-            )
+        client = await _shared_client()
+        resp = await client.post(
+            _RESEND_URL,
+            headers={"Authorization": f"Bearer {settings.resend_api_key}"},
+            json={
+                "from": settings.email_from,
+                "to": [to],
+                "subject": subject,
+                "html": html,
+            },
+        )
         if resp.status_code >= 400:
             log.warning(
                 "email send failed",

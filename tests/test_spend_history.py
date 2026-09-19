@@ -1,8 +1,7 @@
 """Tests for GET /api/v1/spend/history.
 
-We monkeypatch ``spend_repo.history`` so no asyncpg pool is needed.
-Auth is exercised by calling the route function directly with/without a
-valid AuthCtx, mirroring the pattern in test_jobs_routes.py.
+No DB required — spend_repo.history is monkeypatched. Auth is bypassed
+via FastAPI dependency_overrides so the 30/min limiter can see Request.
 """
 from __future__ import annotations
 
@@ -10,45 +9,63 @@ from datetime import date
 from decimal import Decimal
 from uuid import UUID
 
-import pytest
-from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
-from backend.auth import AuthCtx
-from backend.routes import spend as spend_route
 from marketer.models import SpendHistoryRow
-
-
-# ── helpers ──────────────────────────────────────────────────────────────────
 
 NICHE_A = UUID("00000000-0000-0000-0000-000000000001")
 NICHE_B = UUID("00000000-0000-0000-0000-000000000002")
 
-_CTX = AuthCtx(user_id="user_test", email="test@example.com")
+
+def _reset_limiter():
+    from backend.rate_limit import limiter
+    limiter._storage.reset()
+
+
+def _make_authed_client(monkeypatch) -> TestClient:
+    from marketer.config import settings
+    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
+
+    from backend.auth import AuthCtx, require_user
+
+    async def _fake_require_user():
+        return AuthCtx(user_id="user_test", email="test@example.com")
+
+    from backend.main import create_app
+    app = create_app()
+    app.dependency_overrides[require_user] = _fake_require_user
+    return TestClient(app, raise_server_exceptions=False)
 
 
 def _make_row(day: date, niche_id: UUID, cost: str) -> SpendHistoryRow:
     return SpendHistoryRow(day=day, niche_id=niche_id, cost_usd=Decimal(cost))
 
 
-# ── tests ─────────────────────────────────────────────────────────────────────
-
-
-async def test_empty_history_returns_empty_rows(monkeypatch):
-    """When the ledger has no rows in the window, the response is empty."""
+def test_empty_history_returns_empty_rows(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.spend as spend_repo
 
     async def _history(*, user_id, days, niche_id=None):
         return []
 
-    monkeypatch.setattr(spend_route.spend_repo, "history", _history)
+    monkeypatch.setattr(spend_repo, "history", _history)
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        "/api/v1/spend/history",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["rows"] == []
+    assert data["days"] == 30
+    assert Decimal(data["total_usd"]) == Decimal(0)
 
-    result = await spend_route.spend_history(ctx=_CTX)
-    assert result.rows == []
-    assert result.days == 30
-    assert result.total_usd == Decimal(0)
 
+def test_seeded_data_returns_expected_sums(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.spend as spend_repo
 
-async def test_seeded_data_returns_expected_sums(monkeypatch):
-    """Rows from the repo are passed through and total_usd is the sum."""
     day1 = date(2026, 1, 1)
     day2 = date(2026, 1, 2)
     fake_rows = [
@@ -60,62 +77,80 @@ async def test_seeded_data_returns_expected_sums(monkeypatch):
     async def _history(*, user_id, days, niche_id=None):
         return fake_rows
 
-    monkeypatch.setattr(spend_route.spend_repo, "history", _history)
+    monkeypatch.setattr(spend_repo, "history", _history)
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        "/api/v1/spend/history?days=7",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["rows"]) == 3
+    assert Decimal(data["total_usd"]) == Decimal("0.75")
+    assert data["days"] == 7
 
-    result = await spend_route.spend_history(ctx=_CTX, days=7)
-    assert len(result.rows) == 3
-    assert result.total_usd == Decimal("0.75")
-    assert result.days == 7
 
+def test_niche_filter_forwarded_to_repo(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.spend as spend_repo
 
-async def test_niche_filter_forwarded_to_repo(monkeypatch):
-    """niche_id query param is passed through to spend_repo.history."""
     called_with: dict = {}
 
     async def _history(*, user_id, days, niche_id=None):
         called_with["niche_id"] = niche_id
         return []
 
-    monkeypatch.setattr(spend_route.spend_repo, "history", _history)
-
-    await spend_route.spend_history(ctx=_CTX, niche_id=NICHE_A)
+    monkeypatch.setattr(spend_repo, "history", _history)
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/spend/history?niche_id={NICHE_A}",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200
     assert called_with["niche_id"] == NICHE_A
 
 
-async def test_bad_days_too_small_returns_422(monkeypatch):
-    """days=0 violates the cap guard → 422."""
-    with pytest.raises(HTTPException) as ei:
-        await spend_route.spend_history(ctx=_CTX, days=0)
-    assert ei.value.status_code == 422
+def test_bad_days_too_small_returns_422(monkeypatch):
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        "/api/v1/spend/history?days=0",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
 
 
-async def test_bad_days_too_large_returns_422(monkeypatch):
-    """days=91 exceeds the cap → 422."""
-    with pytest.raises(HTTPException) as ei:
-        await spend_route.spend_history(ctx=_CTX, days=91)
-    assert ei.value.status_code == 422
+def test_bad_days_too_large_returns_422(monkeypatch):
+    _reset_limiter()
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        "/api/v1/spend/history?days=91",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
 
 
-async def test_days_at_boundaries_are_valid(monkeypatch):
-    """days=1 and days=90 are both within range — no exception."""
+def test_days_at_boundaries_are_valid(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.spend as spend_repo
 
     async def _history(*, user_id, days, niche_id=None):
         return []
 
-    monkeypatch.setattr(spend_route.spend_repo, "history", _history)
-
-    result_1 = await spend_route.spend_history(ctx=_CTX, days=1)
-    assert result_1.days == 1
-
-    result_90 = await spend_route.spend_history(ctx=_CTX, days=90)
-    assert result_90.days == 90
+    monkeypatch.setattr(spend_repo, "history", _history)
+    client = _make_authed_client(monkeypatch)
+    headers = {"Authorization": "Bearer mkt_tok"}
+    assert client.get("/api/v1/spend/history?days=1", headers=headers).status_code == 200
+    assert client.get("/api/v1/spend/history?days=90", headers=headers).status_code == 200
 
 
-async def test_auth_required_no_ctx():
-    """Calling the route without an AuthCtx is not something we can easily
-    simulate at the function level, but we verify the route annotates the
-    dependency correctly by checking the route function signature."""
-    import inspect
+def test_history_without_auth_returns_401(monkeypatch):
+    _reset_limiter()
+    from marketer.config import settings
+    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    sig = inspect.signature(spend_route.spend_history)
-    assert "ctx" in sig.parameters
+    from backend.main import create_app
+    client = TestClient(create_app(), raise_server_exceptions=False)
+    resp = client.get("/api/v1/spend/history")
+    assert resp.status_code == 401

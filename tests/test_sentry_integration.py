@@ -93,6 +93,12 @@ def test_fail_with_calls_capture_exception(monkeypatch):
     import marketer.repos.jobs as jobs_repo
     monkeypatch.setattr(jobs_repo, "save_snapshot", _noop)
 
+    async def _fake_user(user_id):
+        return None
+
+    import marketer.repos.users as users_repo
+    monkeypatch.setattr(users_repo, "get", _fake_user)
+
     import importlib
 
     with patch.dict("sys.modules", {"sentry_sdk": mock_sentry}):

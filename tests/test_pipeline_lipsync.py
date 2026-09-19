@@ -8,6 +8,7 @@ under the existing track instead of muxed with a separate VO.
 """
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -70,6 +71,9 @@ def _make_script() -> Script:
 @pytest.fixture
 def stub_lipsync(monkeypatch, tmp_path: Path, passing_render_qa):
     """Full pipeline stub for the avatar branch. Records what ran."""
+    from tests.conftest import stub_pipeline_unit_seams
+
+    stub_pipeline_unit_seams(monkeypatch)
     monkeypatch.setattr(settings, "fal_api_key", "fal-test")
     calls: dict = {"tts": [], "avatar": [], "extract": 0, "mix_music": 0,
                    "mix_audio": 0, "concat_keep_audio": None}
@@ -268,3 +272,67 @@ async def test_lipsync_keeps_clip_audio_and_ducks_music(stub_lipsync):
     # ...music ducked under the embedded audio; the VO-mux path never runs.
     assert stub_lipsync["mix_music"] == 1
     assert stub_lipsync["mix_audio"] == 0
+
+
+async def test_avatar_keyframe_and_scene_vo_start_together(
+    monkeypatch, tmp_path: Path, fake_spend
+):
+    """Keyframe and per-scene VO are independent. Avatar render still
+    waits for both files."""
+    spend, _ = fake_spend
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    async def _gate() -> None:
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        if started < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def fake_keyframe(prompt, out_path, *, quality,
+                            reference_image_path=None, spend=None):
+        await _gate()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"PNG")
+        return out_path
+
+    async def fake_vo(text, out_path, *, niche, spend):
+        await _gate()
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(b"WAV")
+        return out_path
+
+    async def fake_avatar(keyframe, audio, out, *, niche, avatar_model_id, spend=None):
+        assert Path(keyframe).exists()
+        assert Path(audio).exists()
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(b"MP4")
+        return out
+
+    monkeypatch.setattr(pipeline.openai_images, "generate_keyframe", fake_keyframe)
+    monkeypatch.setattr(pipeline, "_synthesize_vo", fake_vo)
+    monkeypatch.setattr(
+        pipeline.provider_fallback, "render_avatar_scene", fake_avatar
+    )
+    monkeypatch.setattr(pipeline.ffmpeg, "probe_duration", lambda p: 5.0)
+
+    scene = Scene(
+        index=0, narration="hello", visual_prompt="vp0",
+        motion_prompt="mp0", duration_sec=5,
+    )
+    clip = await pipeline._generate_scene_assets(
+        scene, tmp_path, niche=_make_niche(), reference_image=None,
+        spend=spend, avatar_model_id=AVATAR_MODEL,
+    )
+    assert started == 2
+    assert max_inflight == 2
+    assert clip.scene_index == 0
+    assert Path(clip.keyframe_path).exists()
+    assert Path(clip.video_path).exists()

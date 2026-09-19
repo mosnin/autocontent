@@ -3,24 +3,36 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from marketer.models import User, UserSettingsUpdate
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ERASE_LIMIT = "5/minute"
+_SETTINGS_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 @router.get("/me", response_model=User)
-async def me(ctx: AuthCtx = CurrentUser) -> User:
+@limiter.limit(_READ_LIMIT)
+async def me(request: Request, ctx: AuthCtx = CurrentUser) -> User:
     from marketer.repos import users as users_repo
-    return await users_repo.upsert(ctx.user_id, ctx.email)
+
+    # Auth already ensured the row. A write here is only a race fallback
+    # (erased mid-request); the hot path is a SELECT.
+    user = await users_repo.get(ctx.user_id)
+    if user is None:
+        return await users_repo.upsert(ctx.user_id, ctx.email)
+    return user
 
 
 @router.get("/me/export")
-async def export_my_data(ctx: AuthCtx = CurrentUser) -> JSONResponse:
+@limiter.limit(_ERASE_LIMIT)
+async def export_my_data(request: Request, ctx: AuthCtx = CurrentUser) -> JSONResponse:
     """GDPR data portability: download everything we hold about you as JSON.
     Personal access tokens are exported by prefix only (never the secret)."""
     from marketer.repos import privacy
@@ -34,7 +46,8 @@ async def export_my_data(ctx: AuthCtx = CurrentUser) -> JSONResponse:
 
 
 @router.delete("/me", status_code=204)
-async def erase_my_account(ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit(_ERASE_LIMIT)
+async def erase_my_account(request: Request, ctx: AuthCtx = CurrentUser) -> None:
     """GDPR right to erasure: permanently delete the account and all its data
     (niches, jobs, articles, spend history, tokens) via FK cascade. This is
     irreversible; the frontend must confirm before calling."""
@@ -44,7 +57,9 @@ async def erase_my_account(ctx: AuthCtx = CurrentUser) -> None:
 
 
 @router.patch("/me", response_model=User)
+@limiter.limit(_SETTINGS_LIMIT)
 async def update_me(
+    request: Request,
     body: UserSettingsUpdate,
     ctx: AuthCtx = CurrentUser,
 ) -> User:

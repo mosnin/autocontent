@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -24,14 +24,19 @@ from marketer.repos import media as media_repo
 from marketer.services import object_storage
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
 
 MAX_COMPOSITION_CLIPS = 40
+_COMPOSE_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 
 @router.get("", response_model=list[MediaAsset])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_assets(
+    request: Request,
     kind: Literal["clip", "keyframe", "voiceover", "final", "composition", "music"] | None = None,
     niche_id: UUID | None = None,
     job_id: UUID | None = None,
@@ -56,8 +61,12 @@ class CompositionCreate(BaseModel):
 
 
 @router.get("/compositions", response_model=list[Composition])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_compositions(
-    limit: int = 50, offset: int = 0, ctx: AuthCtx = CurrentUser
+    request: Request,
+    limit: int = 50,
+    offset: int = 0,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[Composition]:
     return await media_repo.list_compositions(
         user_id=ctx.user_id, limit=min(max(limit, 1), 200), offset=max(offset, 0)
@@ -69,8 +78,9 @@ async def list_compositions(
     response_model=Composition,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@limiter.limit(_COMPOSE_LIMIT)
 async def create_composition(
-    body: CompositionCreate, ctx: AuthCtx = CurrentUser
+    request: Request, body: CompositionCreate, ctx: AuthCtx = CurrentUser
 ) -> Composition:
     """Validate the clips, persist the composition, spawn the render."""
     assets = await media_repo.get_assets_bulk(body.clip_asset_ids, user_id=ctx.user_id)
@@ -113,8 +123,9 @@ async def create_composition(
 
 
 @router.get("/compositions/{composition_id}", response_model=Composition)
+@limiter.limit(_MEDIA_LIMIT)
 async def get_composition(
-    composition_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, composition_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> Composition:
     comp = await media_repo.get_composition(composition_id, user_id=ctx.user_id)
     if comp is None:
@@ -123,7 +134,10 @@ async def get_composition(
 
 
 @router.get("/{asset_id}/media")
-async def get_asset_media(asset_id: UUID, ctx: AuthCtx = CurrentUser):
+@limiter.limit(_MEDIA_LIMIT)
+async def get_asset_media(
+    request: Request, asset_id: UUID, ctx: AuthCtx = CurrentUser
+):
     """Playback/download for one asset.
 
     Wasabi-stored assets redirect to a short-lived presigned URL (the

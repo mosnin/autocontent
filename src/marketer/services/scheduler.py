@@ -20,6 +20,7 @@ Our internal `platform` values map to Ayrshare platforms:
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -32,6 +33,18 @@ from ..repos import users as users_repo
 BASE_URL = "https://api.ayrshare.com/api"
 HTTP_TIMEOUT_SEC = 60.0
 MAX_UPLOAD_BYTES = 30 * 1024 * 1024  # Ayrshare's documented limit
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC)
+        return _http
 
 PLATFORM_MAP: dict[str, str] = {
     "tiktok": "tiktok",
@@ -82,17 +95,17 @@ async def upload_media(video_path: Path, *, profile_key: str | None = None) -> s
         raise AyrshareError(
             f"{video_path.name} is {size} bytes; Ayrshare upload limit is {MAX_UPLOAD_BYTES}"
         )
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
-        with video_path.open("rb") as fp:
-            import mimetypes
+    client = await _shared_client()
+    with video_path.open("rb") as fp:
+        import mimetypes
 
-            mime = mimetypes.guess_type(video_path.name)[0] or "video/mp4"
-            resp = await client.post(
-                "/media/upload",
-                headers=_headers(profile_key),
-                files={"file": (video_path.name, fp, mime)},
-                data={"fileName": video_path.name},
-            )
+        mime = mimetypes.guess_type(video_path.name)[0] or "video/mp4"
+        resp = await client.post(
+            "/media/upload",
+            headers=_headers(profile_key),
+            files={"file": (video_path.name, fp, mime)},
+            data={"fileName": video_path.name},
+        )
     resp.raise_for_status()
     url = resp.json().get("url")
     if not url:
@@ -125,21 +138,23 @@ async def schedule_image_post(
     if not ayr_platform:
         raise AyrshareError(f"unknown platform {platform!r}")
 
-    media_urls = [
-        await upload_media(p, profile_key=profile_key) for p in image_paths
-    ]
+    media_urls = list(
+        await asyncio.gather(
+            *[upload_media(p, profile_key=profile_key) for p in image_paths]
+        )
+    )
     body = {
         "post": _format_caption(caption, hashtags),
         "platforms": [ayr_platform],
         "mediaUrls": media_urls,
         "scheduleDate": _iso_utc(scheduled_for),
     }
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
-        resp = await client.post(
-            "/post",
-            headers={**_headers(profile_key), "Content-Type": "application/json"},
-            json=body,
-        )
+    client = await _shared_client()
+    resp = await client.post(
+        "/post",
+        headers={**_headers(profile_key), "Content-Type": "application/json"},
+        json=body,
+    )
     resp.raise_for_status()
     body_out = resp.json()
     if body_out.get("status") not in ("scheduled", "success"):
@@ -183,12 +198,12 @@ async def schedule_post(
         "scheduleDate": _iso_utc(scheduled_for),
     }
 
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
-        resp = await client.post(
-            "/post",
-            headers={**_headers(profile_key), "Content-Type": "application/json"},
-            json=body,
-        )
+    client = await _shared_client()
+    resp = await client.post(
+        "/post",
+        headers={**_headers(profile_key), "Content-Type": "application/json"},
+        json=body,
+    )
     resp.raise_for_status()
     body_out = resp.json()
 

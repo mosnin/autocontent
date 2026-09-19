@@ -21,6 +21,8 @@ const SETTINGS_LINKS = [
   { href: "/settings/tokens", label: "Tokens", desc: "Scoped API tokens for the CLI, MCP, and agents" },
   { href: "/settings/webhooks", label: "Webhooks", desc: "Signed real-time events for automation" },
   { href: "/settings/privacy", label: "Privacy", desc: "Export your data, or delete your account" },
+  { href: "/voice", label: "Voice mode", desc: "Talk to marketer through OpenAI Realtime" },
+  { href: "/decisions", label: "Jev decisions", desc: "System One routing, QA, and Auto Mode" },
 ];
 
 export function SettingsShell({

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import re
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -14,8 +15,11 @@ from marketer.repos import niches as niches_repo
 from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_DRAFT_LIMIT = "8/minute"
+_MEDIA_LIMIT = "30/minute"
 
 # ElevenLabs voice ids are short alphanumeric tokens (e.g.
 # "21m00Tcm4TlvDq8ikWAM"). This value is interpolated directly into a
@@ -43,8 +47,9 @@ class DraftRequest(BaseModel):
 
 
 @router.post("/draft")
+@limiter.limit(_DRAFT_LIMIT)
 async def draft_niche_spec(
-    body: DraftRequest, ctx: AuthCtx = CurrentUser
+    request: Request, body: DraftRequest, ctx: AuthCtx = CurrentUser
 ) -> dict:
     """One sentence in, a full channel spec out. The onboarding front
     door: the client shows the returned fields on a review screen so the
@@ -63,7 +68,7 @@ async def draft_niche_spec(
     brand_context = brand_kit_repo.as_prompt_context(kit)
     try:
         draft = await draft_niche(text, brand_context=brand_context)
-    except Exception as e:  # noqa: BLE001 — surface as a clean 502
+    except Exception as e:
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
             detail=f"could not draft a channel: {e}",
@@ -149,7 +154,8 @@ class NicheUpdate(BaseModel):
 
 
 @router.get("", response_model=list[Niche])
-async def list_niches(ctx: AuthCtx = CurrentUser) -> list[Niche]:
+@limiter.limit(_MEDIA_LIMIT)
+async def list_niches(request: Request, ctx: AuthCtx = CurrentUser) -> list[Niche]:
     return await niches_repo.list_for_user(ctx.user_id)
 
 
@@ -177,13 +183,25 @@ async def _validate_kit_refs(
     user_id: str, design_kit_id, writing_kit_id
 ) -> None:
     """Reject wrong-kind or foreign kit ids loudly — resolve() would
-    otherwise silently substitute the default kit."""
+    otherwise silently substitute the default kit.
+
+    Both kit lookups fan out; create/update wait one RTT, not two.
+    """
     from marketer.repos import kits as kits_repo
 
-    for kit_id, kind in ((design_kit_id, "design"), (writing_kit_id, "writing")):
-        if kit_id is None:
-            continue
-        kit = await kits_repo.get(kit_id, user_id=user_id)
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
+    pairs = [
+        (kit_id, kind)
+        for kit_id, kind in ((design_kit_id, "design"), (writing_kit_id, "writing"))
+        if kit_id is not None
+    ]
+    if not pairs:
+        return
+    kits = await asyncio.gather(
+        *(kits_repo.get(kit_id, user_id=user_id) for kit_id, _ in pairs)
+    )
+    for kit, (_, kind) in zip(kits, pairs, strict=True):
         if kit is None or kit.kind != kind:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -192,14 +210,20 @@ async def _validate_kit_refs(
 
 
 @router.post("", response_model=Niche, status_code=status.HTTP_201_CREATED)
-async def create_niche(body: NicheCreate, ctx: AuthCtx = CurrentUser) -> Niche:
+@limiter.limit(_DRAFT_LIMIT)
+async def create_niche(
+    request: Request, body: NicheCreate, ctx: AuthCtx = CurrentUser
+) -> Niche:
     await _validate_kit_refs(ctx.user_id, body.design_kit_id, body.writing_kit_id)
     _validate_voice_provider(body.voice_provider)
     return await niches_repo.create(ctx.user_id, **body.model_dump())
 
 
 @router.get("/{niche_id}", response_model=Niche)
-async def get_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> Niche:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_niche(
+    request: Request, niche_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Niche:
     n = await niches_repo.get(niche_id, user_id=ctx.user_id)
     if n is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -207,7 +231,9 @@ async def get_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> Niche:
 
 
 @router.put("/{niche_id}", response_model=Niche)
+@limiter.limit(_DRAFT_LIMIT)
 async def update_niche(
+    request: Request,
     niche_id: UUID,
     body: NicheUpdate,
     ctx: AuthCtx = CurrentUser,
@@ -228,13 +254,17 @@ async def update_niche(
 
 
 @router.delete("/{niche_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def archive_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit(_DRAFT_LIMIT)
+async def archive_niche(
+    request: Request, niche_id: UUID, ctx: AuthCtx = CurrentUser
+) -> None:
     await niches_repo.archive(niche_id, user_id=ctx.user_id)
 
 
 @router.get("/{niche_id}/character-sheet")
+@limiter.limit(_MEDIA_LIMIT)
 async def character_sheet_image(
-    niche_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, niche_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> FileResponse:
     """The niche's generated character sheet — the face of the channel.
 

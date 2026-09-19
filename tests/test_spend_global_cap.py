@@ -9,6 +9,7 @@ Covers:
 """
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 from uuid import UUID, uuid4
 
@@ -126,6 +127,49 @@ async def test_global_cap_tighter_than_niche():
     with pytest.raises(SpendCapExceeded) as exc_info:
         await ctx.ensure_can_spend(Decimal("0.30"))  # 2.80+0.30 > 3.00
     assert exc_info.value.scope == "global"
+
+
+async def test_ensure_can_spend_gathers_niche_and_global():
+    """Niche and global ledger reads are independent. Both caps still
+    fail-close; niche still wins when both would trip."""
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    async def _gate(value: Decimal) -> Decimal:
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        if started < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return value
+
+    async def fake_niche(*, user_id, niche_id):
+        return await _gate(Decimal("0.80"))
+
+    async def fake_global(*, user_id):
+        return await _gate(Decimal("9.00"))
+
+    ctx = SpendContext(
+        user_id="user_global",
+        niche_id=UUID("00000000-0000-0000-0000-000000000010"),
+        job_id=uuid4(),
+        record=_Recorder(),
+        cap_usd=Decimal("1.00"),
+        today_spend=fake_niche,
+        global_cap_usd=Decimal("10.00"),
+        today_total_spend=fake_global,
+    )
+    with pytest.raises(SpendCapExceeded) as exc_info:
+        await ctx.ensure_can_spend(Decimal("0.30"))
+    assert exc_info.value.scope == "niche"
+    assert started == 2
+    assert max_inflight == 2
 
 
 # ---------------------------------------------------------------------------

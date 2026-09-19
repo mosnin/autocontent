@@ -21,6 +21,8 @@ def _clear_all(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(settings, "fal_api_key", "")
     monkeypatch.setattr(settings, "fal_price_overrides", "")
     monkeypatch.setattr(settings, "openrouter_api_key", "")
+    monkeypatch.setattr(settings, "typesafe_api_key", "")
+    monkeypatch.setattr(settings, "jev_enabled", True)
     monkeypatch.setattr(settings, "elevenlabs_api_key", "")
     monkeypatch.setattr(settings, "wasabi_enabled", False)
     monkeypatch.setattr(settings, "wasabi_bucket", "")
@@ -66,6 +68,8 @@ def test_all_disabled_is_clean(monkeypatch):
     assert _find(report, "tts.elevenlabs").status == "warn"
     assert _find(report, "music.generated").status == "warn"
     assert _find(report, "script.openrouter").status == "warn"
+    assert _find(report, "jev").status == "warn"
+    assert _find(report, "voice.realtime").status == "warn"
     assert _find(report, "object_storage.wasabi").status == "ok"
     assert _find(report, "billing").status == "ok"
     assert _find(report, "ads").status == "ok"
@@ -108,6 +112,14 @@ def test_openrouter_key_present_is_ok(monkeypatch):
     monkeypatch.setattr(settings, "openrouter_api_key", "or-test-key")
     report = preflight.run_preflight()
     assert _find(report, "script.openrouter").status == "ok"
+    assert _find(report, "jev").status == "ok"  # Qwen System One fallback
+
+
+def test_typesafe_key_present_is_ok(monkeypatch):
+    _clear_all(monkeypatch)
+    monkeypatch.setattr(settings, "typesafe_api_key", "ts-test-key")
+    report = preflight.run_preflight()
+    assert _find(report, "jev").status == "ok"
 
 
 # ---------------------------------------------------------------------------

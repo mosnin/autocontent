@@ -18,6 +18,7 @@ per-user scoped.
 """
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from uuid import UUID
 
@@ -55,14 +56,22 @@ async def _materialize_clip(asset, workdir: Path, index: int) -> Path:
 
 
 async def render_composition(*, user_id: str, composition_id: UUID) -> Composition:
-    comp = await media_repo.get_composition(composition_id, user_id=user_id)
-    if comp is None:
-        raise ComposeError(f"composition {composition_id} not found for {user_id}")
-    if not await media_repo.claim_composition_for_render(
+    """Claim first. The UPDATE already has the row; a leftover get sat
+    in front of every render. A lost claim still loads once to return
+    the existing state (or 404)."""
+    claimed = await media_repo.claim_composition_for_render(
         composition_id, user_id=user_id
-    ):
-        # Already rendering/done/failed — idempotent no-op for double spawns.
-        return comp
+    )
+    if not claimed:
+        existing = await media_repo.get_composition(
+            composition_id, user_id=user_id
+        )
+        if existing is None:
+            raise ComposeError(
+                f"composition {composition_id} not found for {user_id}"
+            )
+        return existing
+    comp = claimed
 
     try:
         assets = await media_repo.get_assets_bulk(comp.clip_asset_ids, user_id=user_id)
@@ -76,13 +85,27 @@ async def render_composition(*, user_id: str, composition_id: UUID) -> Compositi
 
         workdir = _workdir(user_id, composition_id)
         ordered = [by_id[i] for i in comp.clip_asset_ids]
-        local_paths = []
-        for idx, asset in enumerate(ordered):
-            local_paths.append(await _materialize_clip(asset, workdir, idx))
-
-        keep_audio = comp.audio_mode == "keep" and all(
-            ffmpeg.probe_has_audio(p) for p in local_paths
+        local_paths = list(
+            await asyncio.gather(
+                *[
+                    _materialize_clip(asset, workdir, idx)
+                    for idx, asset in enumerate(ordered)
+                ]
+            )
         )
+
+        if comp.audio_mode == "keep" and local_paths:
+            # ffprobe per clip is independent subprocess I/O. Sequential
+            # probes waited on each container before starting the next.
+            has_audio = await asyncio.gather(
+                *[
+                    asyncio.to_thread(ffmpeg.probe_has_audio, p)
+                    for p in local_paths
+                ]
+            )
+            keep_audio = all(has_audio)
+        else:
+            keep_audio = False
         out_path = workdir / "composition.mp4"
         ffmpeg.concat_clips(
             local_paths, out_path, aspect=settings.aspect, keep_audio=keep_audio

@@ -74,3 +74,37 @@ def test_enabled_without_package_raises_adsdisabled_not_importerror(monkeypatch)
     # -> AdsDisabled.
     with pytest.raises(AdsDisabled):
         cc.initiate_connection(user_id="u1", platform="google_ads")
+
+
+def test_client_cached_per_api_key(monkeypatch):
+    """One Composio instance per process + key; a rotated secret rebuilds."""
+    import sys
+    import types
+
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "ads_enabled", True)
+    monkeypatch.setattr(settings, "composio_api_key", "ck_a")
+    calls = {"n": 0}
+
+    class FakeComposio:
+        def __init__(self, api_key=None):
+            calls["n"] += 1
+            self.api_key = api_key
+
+    mod = types.ModuleType("composio")
+    mod.Composio = FakeComposio
+    monkeypatch.setitem(sys.modules, "composio", mod)
+    cc._cached = None
+    try:
+        first = cc._client()
+        second = cc._client()
+        assert first is second
+        assert calls["n"] == 1
+        monkeypatch.setattr(settings, "composio_api_key", "ck_b")
+        rotated = cc._client()
+        assert rotated is not first
+        assert rotated.api_key == "ck_b"
+        assert calls["n"] == 2
+    finally:
+        cc._cached = None

@@ -15,15 +15,18 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.models import Kit
 from marketer.repos import kits as kits_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_KIT_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class KitCreate(BaseModel):
@@ -44,7 +47,9 @@ class KitUpdate(BaseModel):
 
 
 @router.get("", response_model=list[Kit])
+@limiter.limit(_READ_LIMIT)
 async def list_kits(
+    request: Request,
     kind: Literal["design", "ad", "writing"] | None = None,
     ctx: AuthCtx = CurrentUser,
 ) -> list[Kit]:
@@ -52,12 +57,18 @@ async def list_kits(
 
 
 @router.post("", response_model=Kit, status_code=status.HTTP_201_CREATED)
-async def create_kit(body: KitCreate, ctx: AuthCtx = CurrentUser) -> Kit:
+@limiter.limit(_KIT_LIMIT)
+async def create_kit(
+    request: Request, body: KitCreate, ctx: AuthCtx = CurrentUser
+) -> Kit:
     return await kits_repo.create(user_id=ctx.user_id, **body.model_dump())
 
 
 @router.get("/{kit_id}", response_model=Kit)
-async def get_kit(kit_id: UUID, ctx: AuthCtx = CurrentUser) -> Kit:
+@limiter.limit(_READ_LIMIT)
+async def get_kit(
+    request: Request, kit_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Kit:
     kit = await kits_repo.get(kit_id, user_id=ctx.user_id)
     if kit is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -65,8 +76,9 @@ async def get_kit(kit_id: UUID, ctx: AuthCtx = CurrentUser) -> Kit:
 
 
 @router.put("/{kit_id}", response_model=Kit)
+@limiter.limit(_KIT_LIMIT)
 async def update_kit(
-    kit_id: UUID, body: KitUpdate, ctx: AuthCtx = CurrentUser
+    request: Request, kit_id: UUID, body: KitUpdate, ctx: AuthCtx = CurrentUser
 ) -> Kit:
     kit = await kits_repo.update(
         kit_id, user_id=ctx.user_id, **body.model_dump(exclude_unset=True)
@@ -77,6 +89,9 @@ async def update_kit(
 
 
 @router.delete("/{kit_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_kit(kit_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit(_KIT_LIMIT)
+async def delete_kit(
+    request: Request, kit_id: UUID, ctx: AuthCtx = CurrentUser
+) -> None:
     if not await kits_repo.delete(kit_id, user_id=ctx.user_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND)

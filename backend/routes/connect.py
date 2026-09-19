@@ -50,7 +50,10 @@ async def connect_ayrshare(request: Request, ctx: AuthCtx = CurrentUser) -> Conn
 
 
 @router.get("/ayrshare/status", response_model=ConnectStatusResponse)
-async def connect_ayrshare_status(ctx: AuthCtx = CurrentUser) -> ConnectStatusResponse:
+@limiter.limit("30/minute")
+async def connect_ayrshare_status(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> ConnectStatusResponse:
     user = await users_repo.get(ctx.user_id)
     key = user.ayrshare_profile_key if user else None
     return ConnectStatusResponse(connected=bool(key), profile_key=key)

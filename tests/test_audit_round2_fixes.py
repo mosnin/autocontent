@@ -24,6 +24,9 @@ def _make_authed_client(monkeypatch) -> TestClient:
         return AuthCtx(user_id=_USER_ID, email="t@t.com")
 
     from backend.main import create_app
+    from backend.rate_limit import limiter
+
+    limiter.reset()
     app = create_app()
     app.dependency_overrides[require_user] = _fake_require_user
     return TestClient(app, raise_server_exceptions=False)
@@ -227,6 +230,23 @@ def test_patch_item_wrong_campaign_is_scoped_in_sql(monkeypatch):
     assert seen["campaign_id"] == cid  # scope reached the WHERE clause
 
 
+def test_delete_item_wrong_campaign_is_scoped_in_sql(monkeypatch):
+    import marketer.repos.campaigns as campaigns_repo
+
+    seen = {}
+
+    async def fake_remove(item_id, *, user_id, campaign_id=None):
+        seen["campaign_id"] = campaign_id
+        return False  # SQL-scoped miss
+
+    monkeypatch.setattr(campaigns_repo, "remove_item", fake_remove)
+    client = _make_authed_client(monkeypatch)
+    cid, iid = uuid4(), uuid4()
+    r = client.delete(f"/api/v1/campaigns/{cid}/items/{iid}")
+    assert r.status_code == 404
+    assert seen["campaign_id"] == cid
+
+
 # --------------------------------------------------------------------------- templates routes
 
 
@@ -384,10 +404,16 @@ async def test_schedule_image_post_failure_marks_failed(monkeypatch):
         state["failed"] = error
         return {"status": "failed", "error": error}
 
+    from marketer.models import User
+
+    async def fake_user_get(user_id):
+        return User(id=user_id, email="x@y.z", ayrshare_profile_key="pk-audit")
+
     monkeypatch.setattr(repo, "get", fake_get)
     monkeypatch.setattr(repo, "set_status", fake_set_status)
     monkeypatch.setattr(repo, "fail", fake_fail)
     monkeypatch.setattr(niches_repo, "get", fake_niche)
+    monkeypatch.setattr(svc.users_repo, "get", fake_user_get)
 
     async def exploding_poster(**kwargs):
         raise RuntimeError("ayrshare 500")

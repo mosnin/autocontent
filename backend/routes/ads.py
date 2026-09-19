@@ -8,11 +8,13 @@ surface as 409 (feature off / not configured), never a 500.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.repos import ad_actions, ad_approvals
@@ -29,8 +31,11 @@ from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_bud
 from marketer.services.composio_client import AdsDisabled
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ADS_LIMIT = "20/minute"
+_READ_LIMIT = "30/minute"
 
 
 # --------------------------------------------------------------------------- accounts
@@ -40,12 +45,18 @@ class ConnectBody(BaseModel):
 
 
 @router.get("/accounts", response_model=list[ads_repo.AdAccount])
-async def list_accounts(ctx: AuthCtx = CurrentUser) -> list[ads_repo.AdAccount]:
+@limiter.limit(_READ_LIMIT)
+async def list_accounts(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> list[ads_repo.AdAccount]:
     return await ads_repo.list_accounts(ctx.user_id)
 
 
 @router.post("/accounts/connect")
-async def connect_account(body: ConnectBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_ADS_LIMIT)
+async def connect_account(
+    request: Request, body: ConnectBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     try:
         return await ad_connections.start_connection(
             user_id=ctx.user_id, platform=body.platform
@@ -55,8 +66,9 @@ async def connect_account(body: ConnectBody, ctx: AuthCtx = CurrentUser) -> dict
 
 
 @router.post("/accounts/{account_id}/refresh", response_model=ads_repo.AdAccount)
+@limiter.limit(_ADS_LIMIT)
 async def refresh_account(
-    account_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, account_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdAccount:
     acc = await ad_connections.refresh_status(user_id=ctx.user_id, account_id=account_id)
     if acc is None:
@@ -65,8 +77,9 @@ async def refresh_account(
 
 
 @router.delete("/accounts/{account_id}", response_model=ads_repo.AdAccount)
+@limiter.limit(_ADS_LIMIT)
 async def disconnect_account(
-    account_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, account_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdAccount:
     acc = await ad_connections.disconnect(user_id=ctx.user_id, account_id=account_id)
     if acc is None:
@@ -81,8 +94,9 @@ class GovernanceBody(BaseModel):
 
 
 @router.patch("/accounts/{account_id}/governance", response_model=ads_repo.AdAccount)
+@limiter.limit(_ADS_LIMIT)
 async def set_governance(
-    account_id: UUID, body: GovernanceBody, ctx: AuthCtx = CurrentUser
+    request: Request, account_id: UUID, body: GovernanceBody, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdAccount:
     kwargs: dict = {}
     if "daily_cap_usd" in body.model_fields_set:
@@ -113,8 +127,11 @@ async def set_governance(
 # --------------------------------------------------------------------------- campaigns
 
 @router.get("/campaigns", response_model=list[ads_repo.AdCampaign])
+@limiter.limit(_READ_LIMIT)
 async def list_campaigns(
-    account_id: UUID | None = None, ctx: AuthCtx = CurrentUser
+    request: Request,
+    account_id: UUID | None = None,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[ads_repo.AdCampaign]:
     return await ads_repo.list_campaigns(ctx.user_id, ad_account_id=account_id)
 
@@ -130,8 +147,9 @@ class CreateCampaignBody(BaseModel):
 
 
 @router.post("/campaigns", response_model=ads_repo.AdCampaign, status_code=201)
+@limiter.limit(_ADS_LIMIT)
 async def create_campaign(
-    body: CreateCampaignBody, ctx: AuthCtx = CurrentUser
+    request: Request, body: CreateCampaignBody, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdCampaign:
     """Create a DRAFT campaign. No spend — drafts are never on a platform until
     activated. The account must belong to the caller."""
@@ -157,8 +175,12 @@ class BudgetBody(BaseModel):
 
 
 @router.post("/campaigns/{campaign_id}/budget")
+@limiter.limit(_ADS_LIMIT)
 async def change_budget(
-    campaign_id: UUID, body: BudgetBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    campaign_id: UUID,
+    body: BudgetBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
     """Change a campaign's daily budget through the safe-execute layer:
     guarded, approval-gated for large deltas, and audited. 402 on a hard deny."""
@@ -177,8 +199,12 @@ class StatusBody(BaseModel):
 
 
 @router.post("/campaigns/{campaign_id}/status")
+@limiter.limit(_ADS_LIMIT)
 async def change_status(
-    campaign_id: UUID, body: StatusBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    campaign_id: UUID,
+    body: StatusBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
     """Activate / pause / end a campaign. Pausing/ending always allowed.
     Activation is spend-affecting: it must pass BOTH the guard's non-budget
@@ -217,7 +243,7 @@ async def change_status(
             approval = await ad_approvals.create(
                 user_id=ctx.user_id, action="campaign.activate",
                 summary=f"Activate campaign with daily budget "
-                        f"${camp.daily_budget_usd or Decimal('0')}",
+                        f"${camp.daily_budget_usd or Decimal(0)}",
                 dollar_delta_usd=delta, ad_account_id=camp.ad_account_id,
                 campaign_id=camp.id, payload={}, requested_by="user",
             )
@@ -242,11 +268,16 @@ async def change_status(
 
 
 @router.get("/campaigns/{campaign_id}")
-async def get_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
-    camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
+@limiter.limit(_READ_LIMIT)
+async def get_campaign(
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
+    camp, metrics = await asyncio.gather(
+        ads_repo.get_campaign(campaign_id, user_id=ctx.user_id),
+        ads_repo.campaign_metrics(campaign_id, user_id=ctx.user_id),
+    )
     if camp is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "campaign not found")
-    metrics = await ads_repo.campaign_metrics(campaign_id, user_id=ctx.user_id)
     return {
         "campaign": camp.model_dump(mode="json"),
         "metrics": [m.model_dump(mode="json") for m in metrics],
@@ -256,19 +287,26 @@ async def get_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
 # --------------------------------------------------------------------------- approvals
 
 @router.get("/approvals", response_model=list[ad_approvals.AdApproval])
+@limiter.limit(_READ_LIMIT)
 async def list_approvals(
-    status_filter: str | None = None, ctx: AuthCtx = CurrentUser
+    request: Request,
+    status_filter: str | None = None,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[ad_approvals.AdApproval]:
     return await ad_approvals.list_(user_id=ctx.user_id, status=status_filter)
 
 
 class DecideBody(BaseModel):
-    decision: str  # 'approved' | 'rejected'
+    decision: Literal["approved", "rejected"]
 
 
 @router.post("/approvals/{approval_id}/decide", response_model=ad_approvals.AdApproval)
+@limiter.limit(_ADS_LIMIT)
 async def decide_approval(
-    approval_id: UUID, body: DecideBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    approval_id: UUID,
+    body: DecideBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> ad_approvals.AdApproval:
     """Decide a pending approval. Approving does not just flip the row to
     'approved' — it also EXECUTES the underlying spend change (budget
@@ -278,8 +316,6 @@ async def decide_approval(
     moved since the approval was granted), the approval row stays 'approved'
     for a later retry and we surface a 402 with the reason — we never crash
     or silently drop the approved-but-unexecuted change."""
-    if body.decision not in {"approved", "rejected"}:
-        raise HTTPException(422, "decision must be 'approved' or 'rejected'")
     decided = await ad_approvals.decide(
         approval_id, user_id=ctx.user_id, status=body.decision,
         decided_by=ctx.email or ctx.user_id,
@@ -313,33 +349,49 @@ async def decide_approval(
 # --------------------------------------------------------------------------- audit + overview
 
 @router.get("/actions", response_model=list[ad_actions.AdActionEntry])
+@limiter.limit(_READ_LIMIT)
 async def list_actions(
-    limit: int = 100, ctx: AuthCtx = CurrentUser
+    request: Request,
+    limit: int = 100,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[ad_actions.AdActionEntry]:
     return await ad_actions.list_(user_id=ctx.user_id, limit=min(limit, 500))
 
 
 @router.get("/overview")
-async def overview(ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def overview(request: Request, ctx: AuthCtx = CurrentUser) -> dict:
     """Ads dashboard summary: spend today / 30d, active campaigns, pending
     approvals. Cheap read-only aggregation across the user's accounts."""
-    accounts = await ads_repo.list_accounts(ctx.user_id)
-    campaigns = await ads_repo.list_campaigns(ctx.user_id, limit=500)
     today = date.today()
     month_start = today.replace(day=1)
-
-    spend_today = Decimal("0")
-    spend_30d = Decimal("0")
     thirty_ago = today - timedelta(days=30)
-    for acc in accounts:
-        spend_today += await ads_repo.account_spend_on(
-            acc.id, user_id=ctx.user_id, day=today
+    accounts, campaigns, pending = await asyncio.gather(
+        ads_repo.list_accounts(ctx.user_id),
+        ads_repo.list_campaigns(ctx.user_id, limit=500),
+        ad_approvals.list_(user_id=ctx.user_id, status="pending"),
+    )
+    spend_today = Decimal(0)
+    spend_30d = Decimal(0)
+    if accounts:
+        todays, months = await asyncio.gather(
+            asyncio.gather(
+                *[
+                    ads_repo.account_spend_on(acc.id, user_id=ctx.user_id, day=today)
+                    for acc in accounts
+                ]
+            ),
+            asyncio.gather(
+                *[
+                    ads_repo.account_spend_between(
+                        acc.id, user_id=ctx.user_id, start=thirty_ago, end=today
+                    )
+                    for acc in accounts
+                ]
+            ),
         )
-        spend_30d += await ads_repo.account_spend_between(
-            acc.id, user_id=ctx.user_id, start=thirty_ago, end=today
-        )
-
-    pending = await ad_approvals.list_(user_id=ctx.user_id, status="pending")
+        spend_today = sum(todays, Decimal(0))
+        spend_30d = sum(months, Decimal(0))
     active = [c for c in campaigns if c.status == "active"]
     return {
         "accounts": len(accounts),

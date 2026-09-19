@@ -414,9 +414,11 @@ def test_image_post_retry_route(monkeypatch):
     post_id = uuid4()
     claimed: dict = {}
 
+    niche_id = uuid4()
+
     async def fake_claim(pid, *, user_id):
         claimed["pid"] = pid
-        return True
+        return {"id": pid, "niche_id": niche_id, "status": "queued"}
 
     spawned: dict = {}
 
@@ -432,7 +434,37 @@ def test_image_post_retry_route(monkeypatch):
     resp = client.post(f"/api/v1/image-posts/{post_id}/retry")
     assert resp.status_code == 202
     assert claimed["pid"] == post_id
-    assert spawned["args"][1] == str(post_id)
+    assert spawned["args"][1:] == (str(post_id), str(niche_id))
+
+
+def test_image_post_approve_spawns_finish_with_niche(monkeypatch):
+    from uuid import uuid4
+
+    from tests.test_audit_round2_fixes import _make_authed_client
+
+    client = _make_authed_client(monkeypatch)
+    from marketer.repos import image_posts as repo
+
+    post_id = uuid4()
+    niche_id = uuid4()
+
+    async def fake_claim(pid, *, user_id):
+        return {"id": pid, "niche_id": niche_id, "status": "scheduling"}
+
+    spawned: dict = {}
+
+    class _Fn:
+        def spawn(self, *a):
+            spawned["args"] = a
+
+    import modal
+
+    monkeypatch.setattr(repo, "claim_for_scheduling", fake_claim)
+    monkeypatch.setattr(modal.Function, "from_name", staticmethod(lambda app, name: _Fn()))
+
+    resp = client.post(f"/api/v1/image-posts/{post_id}/approve")
+    assert resp.status_code == 202
+    assert spawned["args"][1:] == (str(post_id), str(niche_id))
 
 
 def test_image_post_retry_conflict_when_not_failed(monkeypatch):

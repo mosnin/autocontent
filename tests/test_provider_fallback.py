@@ -472,6 +472,9 @@ def stub_pipeline_fallback(monkeypatch, tmp_path: Path, passing_render_qa):
     """Full pipeline stub where grok_imagine.animate (video) and
     elevenlabs_tts.synthesize (VO) both raise persistent errors — the job
     must still complete via the fallback providers (fal + openai_tts)."""
+    from tests.conftest import stub_pipeline_unit_seams
+
+    stub_pipeline_unit_seams(monkeypatch)
     monkeypatch.setattr(settings, "fal_api_key", "fal-test")
     # Key IS configured (so the pre-flight "misconfigured elevenlabs"
     # fail-fast in _run_job_inner doesn't short-circuit before voicing) —

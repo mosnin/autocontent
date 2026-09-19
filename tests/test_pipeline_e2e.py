@@ -76,6 +76,9 @@ def stage_log() -> list[str]:
 @pytest.fixture
 def stub_all(monkeypatch, tmp_path: Path, stage_log: list[str], passing_render_qa):
     """Monkeypatch every external dependency `pipeline.run_job` reaches."""
+    from tests.conftest import stub_pipeline_unit_seams
+
+    stub_pipeline_unit_seams(monkeypatch)
     # --- DB layer ----------------------------------------------------------
     niche_holder = {"niche": _make_niche()}
 

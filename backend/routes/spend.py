@@ -4,18 +4,21 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from marketer.models import SpendHistory, TodaySpend
 from marketer.repos import spend as spend_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_READ_LIMIT = "30/minute"
 
 
 @router.get("/today", response_model=TodaySpend)
-async def today_spend(ctx: AuthCtx = CurrentUser) -> TodaySpend:
+@limiter.limit(_READ_LIMIT)
+async def today_spend(request: Request, ctx: AuthCtx = CurrentUser) -> TodaySpend:
     rows = await spend_repo.today_spend_by_niche(user_id=ctx.user_id)
     # Niche-less spend (e.g. template remixes) buckets under "other"
     # instead of the stringified-None pseudo-key.
@@ -24,7 +27,9 @@ async def today_spend(ctx: AuthCtx = CurrentUser) -> TodaySpend:
 
 
 @router.get("/history", response_model=SpendHistory)
+@limiter.limit(_READ_LIMIT)
 async def spend_history(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     days: Annotated[int, Query(ge=1, le=90)] = 30,
     niche_id: UUID | None = None,

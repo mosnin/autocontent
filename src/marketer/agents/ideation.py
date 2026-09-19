@@ -1,31 +1,19 @@
 """Ideation: propose the topic, angle, and hook for the next video.
 
-Two upgrades over the original single-shot, title-only version:
-
-1. **Full context.** The prompt carries the whole niche brief (description,
-   audience, platform), the account brand voice, a do-not-repeat list of
-   recent topics, and the performance context (top/bottom performers) —
-   the agent used to see only the niche *title*.
-2. **Tournament.** `settings.ideation_candidates` ideas are generated in
-   parallel, each forced through a different hook lens (curiosity gap /
-   contrarian / mistake-or-stakes), then a single judge call picks the
-   strongest. Ideation tokens are the cheapest in the pipeline and the
-   idea is the highest-leverage decision, so this trades pennies for the
-   pick of three instead of a single draw.
+Default path is templates + one Jev Choice. The leftover writer hop is
+n==1 with an operator hook lens (Qwen-first when OpenRouter is on).
+A 3-way LLM tournament is not reachable on the stock template set.
 """
 from __future__ import annotations
 
-import asyncio
-
+from agents import Agent
 from pydantic import BaseModel, Field
 
-from agents import Agent
-
 from ..config import settings
-from .metered import run_metered
 from ..models import Idea
 from ..models.creative_brief import CreativeBrief
-from ..services.spend_context import SpendContext  # noqa: TC001 — used in signature
+from ..services.spend_context import SpendContext
+from .metered import run_metered
 
 IDEATION_INSTRUCTIONS = """You are an expert short-form content strategist.
 Given a niche brief, produce ONE Idea optimized for educational short-form video.
@@ -79,6 +67,86 @@ shares from this exact audience. Weigh, in order:
 3. Freshness — penalize anything generic or likely already seen.
 Return the winning index (0-based) and one sentence of reasoning.
 """
+
+
+def idea_candidates(
+    niche_title: str,
+    *,
+    niche_description: str = "",
+    target_audience: str = "",
+    platform: str = "",
+    recent_topics: list[str] | None = None,
+    banned_words: list[str] | None = None,
+    limit: int = 5,
+) -> list[Idea]:
+    """Deterministic idea set — Jev picks, Qwen does not invent three hooks.
+
+    Production ideation used to buy N chat completions before a judge.
+    Templates + one Jev composite score is the 70–500ms path.
+    """
+    title = (niche_title or "this niche").strip() or "this niche"
+    audience = (target_audience or "this audience").strip() or "this audience"
+    plat = (platform or "short-form").strip()
+    recent = {t.strip().casefold() for t in (recent_topics or []) if t.strip()}
+    banned = {w.strip().casefold() for w in (banned_words or []) if w.strip()}
+    raw = [
+        Idea(
+            topic=f"The {title} mistake that wastes the first week",
+            angle="costly mistake",
+            hook=f"You're doing {title} the hard way",
+            target_audience=audience,
+            why_it_works="loss aversion plus a concrete first-week payoff",
+        ),
+        Idea(
+            topic=f"What {audience} get wrong about {title}",
+            angle="contrarian",
+            hook=f"{audience} keep getting {title} backwards",
+            target_audience=audience,
+            why_it_works="identity challenge stops the scroll on " + plat,
+        ),
+        Idea(
+            topic=f"How {title} actually works in 60 seconds",
+            angle="curiosity gap",
+            hook=f"Nobody explains {title} this simply",
+            target_audience=audience,
+            why_it_works="open loop plus a promised 60-second payoff",
+        ),
+        Idea(
+            topic=f"The {title} checklist that actually ships",
+            angle="practical payoff",
+            hook=f"Steal this {title} checklist",
+            target_audience=audience,
+            why_it_works="tangible artifact the viewer can screenshot",
+        ),
+        Idea(
+            topic=f"Stop treating {title} like a beginner",
+            angle="stakes",
+            hook=f"This {title} habit is costing you",
+            target_audience=audience,
+            why_it_works="status plus a hidden cost the niche already feels",
+        ),
+    ]
+    if niche_description:
+        raw.append(
+            Idea(
+                topic=niche_description.strip()[:80],
+                angle="first principles",
+                hook=f"{title}: the part nobody mentions",
+                target_audience=audience,
+                why_it_works="pattern interrupt from the niche's own brief",
+            )
+        )
+    out: list[Idea] = []
+    for idea in raw:
+        blob = f"{idea.topic} {idea.hook}".casefold()
+        if idea.topic.casefold() in recent:
+            continue
+        if any(word in blob for word in banned):
+            continue
+        out.append(idea)
+        if len(out) >= limit:
+            break
+    return out or raw[:limit]
 
 
 def build_ideation_agent() -> Agent:
@@ -154,7 +222,7 @@ async def run_ideation(
     banned_words: list[str] | None = None,
     recent_topics: list[str] | None = None,
     brief: CreativeBrief | None = None,
-    spend: "SpendContext | None" = None,
+    spend: SpendContext | None = None,
 ) -> Idea:
     """Generate `settings.ideation_candidates` ideas and return the winner.
 
@@ -179,68 +247,69 @@ async def run_ideation(
             brief=brief,
         )
 
-    if n == 1:
-        # Honor the creator's preferred hook mechanism even without a
-        # tournament: single-shot uses their first lens.
-        solo_lens = (brief.candidate_lenses() if brief else [])
-        result = await run_metered(
-            agent, _prompt(solo_lens[0] if solo_lens else ""), spend=spend
+    templates = idea_candidates(
+        niche_title,
+        niche_description=niche_description,
+        target_audience=target_audience,
+        platform=platform,
+        recent_topics=recent_topics,
+        banned_words=banned_words,
+        limit=max(n, 4),
+    )
+    # n==1 is the last writer hop (prompt-injection + a lone operator
+    # lens). n≥2 is templates + Jev; a dark harness does not buy a
+    # tournament just because four templates exist.
+    if n >= 2 and len(templates) >= 2:
+        try:
+            from ..config import settings as _settings
+            from ..jev import available as jev_available
+            from ..jev.decisions import judge_ideas
+
+            # Templates + one System One fan-out (Jev or Qwen wrapper).
+            if _settings.jev_enabled and jev_available():
+                judge_prompt = build_ideation_prompt(
+                    niche_title,
+                    niche_description=niche_description,
+                    target_audience=target_audience,
+                    platform=platform,
+                )
+                pick = await judge_ideas(judge_prompt, templates, spend=spend)
+                if 0 <= pick.winner_index < len(templates):
+                    return templates[pick.winner_index]
+        except Exception as exc:
+            from ..repos.spend import SpendCapExceeded
+
+            if isinstance(exc, SpendCapExceeded):
+                raise
+        # Dark harness / judge miss: first template. Classification is
+        # not worth a 3-way writer tournament.
+        return templates[0]
+
+    async def _write(prompt: str):
+        from ..services import openrouter
+
+        return await run_metered(
+            agent,
+            prompt,
+            spend=spend,
+            **openrouter.generation_metered(agent),
         )
+
+    if n == 1:
+        # Operator-chosen hook lens still buys one writer shot. Without
+        # a lens, a template is the same as dark n≥2 — no invented hook.
+        solo_lens = (brief.candidate_lenses() if brief else [])
+        if solo_lens:
+            result = await _write(_prompt(solo_lens[0]))
+            return result.final_output_as(Idea)
+        if templates:
+            return templates[0]
+        result = await _write(_prompt(""))
         return result.final_output_as(Idea)
 
-    # A brief with preferred hook mechanisms replaces the stock lens set —
-    # candidates then compete inside the creator's own hook space.
-    lens_pool = (brief.candidate_lenses() if brief else []) or CANDIDATE_LENSES
-    lenses = [lens_pool[i % len(lens_pool)] for i in range(n)]
-    results = await asyncio.gather(
-        *[run_metered(agent, _prompt(lens), spend=spend) for lens in lenses],
-        # Tolerate partial failure: one bad candidate must not abort the
-        # tournament while its awaited siblings' spend is already logged.
-        return_exceptions=True,
-    )
-    if any(isinstance(r, asyncio.CancelledError) for r in results):
-        raise asyncio.CancelledError
-
-    from ..repos.spend import SpendCapExceeded
-
-    errors = [r for r in results if isinstance(r, BaseException)]
-    # A cap breach anywhere ends the run — money safety beats tournament
-    # completeness, and the next stage would refuse to spend anyway.
-    for e in errors:
-        if isinstance(e, SpendCapExceeded):
-            raise e
-
-    candidates: list[Idea] = []
-    for r in results:
-        if isinstance(r, BaseException):
-            continue
-        try:
-            candidates.append(r.final_output_as(Idea))
-        except Exception:  # noqa: BLE001 — one malformed candidate is survivable
-            continue
-    if not candidates:
-        raise errors[0] if errors else RuntimeError("ideation produced no candidates")
-    if len(candidates) == 1:
-        return candidates[0]
-
-    try:
-        judge_payload = build_ideation_prompt(
-            niche_title,
-            niche_description=niche_description,
-            target_audience=target_audience,
-            platform=platform,
-        ) + "\n\nCandidates:\n" + "\n".join(
-            f"{i}: {c.model_dump_json()}" for i, c in enumerate(candidates)
-        )
-        verdict_result = await run_metered(
-            build_idea_judge_agent(), judge_payload, spend=spend
-        )
-        verdict = verdict_result.final_output_as(IdeaVerdict)
-        if 0 <= verdict.winner_index < len(candidates):
-            return candidates[verdict.winner_index]
-    except Exception as exc:  # noqa: BLE001 — tournament never becomes a failure mode
-        from ..repos.spend import SpendCapExceeded
-
-        if isinstance(exc, SpendCapExceeded):
-            raise  # cap breach must propagate; only judge failures fall back
-    return candidates[0]
+    # n≥2 with fewer than 2 templates is unreachable on the stock set
+    # (limit=max(n, 4)). Do not resurrect a writer tournament.
+    if templates:
+        return templates[0]
+    result = await _write(_prompt(""))
+    return result.final_output_as(Idea)

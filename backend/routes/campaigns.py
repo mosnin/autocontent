@@ -14,12 +14,13 @@ or their ad campaign) — no cross-tenant references.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.models import Campaign, CampaignItem
@@ -27,8 +28,11 @@ from marketer.repos import campaigns as campaigns_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_START_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class CampaignCreate(BaseModel):
@@ -58,13 +62,15 @@ class CampaignOverview(BaseModel):
 
 
 @router.get("", response_model=list[Campaign])
-async def list_campaigns(ctx: AuthCtx = CurrentUser) -> list[Campaign]:
+@limiter.limit(_READ_LIMIT)
+async def list_campaigns(request: Request, ctx: AuthCtx = CurrentUser) -> list[Campaign]:
     return await campaigns_repo.list_for_user(ctx.user_id)
 
 
 @router.post("", response_model=Campaign, status_code=status.HTTP_201_CREATED)
+@limiter.limit(_START_LIMIT)
 async def create_campaign(
-    body: CampaignCreate, ctx: AuthCtx = CurrentUser
+    request: Request, body: CampaignCreate, ctx: AuthCtx = CurrentUser
 ) -> Campaign:
     # Normalize naive datetimes to UTC so mixed aware/naive input can't
     # TypeError inside the comparison (a 500) or skew the runner's gates.
@@ -82,15 +88,18 @@ async def create_campaign(
 
 
 @router.get("/{campaign_id}", response_model=CampaignOverview)
+@limiter.limit(_READ_LIMIT)
 async def get_campaign(
-    campaign_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> CampaignOverview:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    items = await campaigns_repo.list_items(campaign_id, user_id=ctx.user_id)
-    spent = await campaigns_repo.spent_usd(campaign_id, user_id=ctx.user_id)
-    counts = await campaigns_repo.work_counts(campaign_id, user_id=ctx.user_id)
+    items, spent, counts = await asyncio.gather(
+        campaigns_repo.list_items(campaign_id, user_id=ctx.user_id),
+        campaigns_repo.spent_usd(campaign_id, user_id=ctx.user_id),
+        campaigns_repo.work_counts(campaign_id, user_id=ctx.user_id),
+    )
     return CampaignOverview(
         campaign=campaign,
         items=items,
@@ -101,7 +110,10 @@ async def get_campaign(
 
 
 @router.post("/{campaign_id}/start", response_model=Campaign)
-async def start_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campaign:
+@limiter.limit(_START_LIMIT)
+async def start_campaign(
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Campaign:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -115,7 +127,10 @@ async def start_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campa
 
 
 @router.post("/{campaign_id}/pause", response_model=Campaign)
-async def pause_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campaign:
+@limiter.limit(_START_LIMIT)
+async def pause_campaign(
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Campaign:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -131,8 +146,9 @@ async def pause_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campa
     response_model=CampaignItem,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit(_START_LIMIT)
 async def add_item(
-    campaign_id: UUID, body: ItemCreate, ctx: AuthCtx = CurrentUser
+    request: Request, campaign_id: UUID, body: ItemCreate, ctx: AuthCtx = CurrentUser
 ) -> CampaignItem:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:
@@ -158,8 +174,13 @@ async def add_item(
 
 
 @router.patch("/{campaign_id}/items/{item_id}", response_model=CampaignItem)
+@limiter.limit(_START_LIMIT)
 async def patch_item(
-    campaign_id: UUID, item_id: UUID, body: ItemPatch, ctx: AuthCtx = CurrentUser
+    request: Request,
+    campaign_id: UUID,
+    item_id: UUID,
+    body: ItemPatch,
+    ctx: AuthCtx = CurrentUser,
 ) -> CampaignItem:
     # Scoped in SQL: a wrong-campaign item id must not be mutated and
     # then 404'd — the WHERE clause rejects it before any state change.
@@ -175,8 +196,11 @@ async def patch_item(
 @router.delete(
     "/{campaign_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT
 )
+@limiter.limit(_START_LIMIT)
 async def delete_item(
-    campaign_id: UUID, item_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, campaign_id: UUID, item_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> None:
-    if not await campaigns_repo.remove_item(item_id, user_id=ctx.user_id):
+    if not await campaigns_repo.remove_item(
+        item_id, user_id=ctx.user_id, campaign_id=campaign_id
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND)

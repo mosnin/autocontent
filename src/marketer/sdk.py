@@ -360,3 +360,29 @@ class MarketerClient:
 
     async def revoke_token(self, token_id: UUID | str) -> None:
         await self._request("DELETE", f"/api/v1/tokens/{token_id}")
+
+    # ------------------------------------------------------------------ jev / voice
+
+    async def jev_status(self) -> dict:
+        resp = await self._request("GET", "/api/v1/jev/status")
+        return resp.json()
+
+    async def jev_route(self, state: Any) -> dict:
+        """Classify work (intent + Qwen tier + company surface). Cheap."""
+        resp = await self._request("POST", "/api/v1/jev/route", json={"state": state})
+        return resp.json()
+
+    async def jev_knowledge(self) -> dict:
+        """List verbatim company-knowledge spans for this account."""
+        resp = await self._request("GET", "/api/v1/jev/knowledge")
+        return resp.json()
+
+    async def jev_ask(self, state: Any, questions: dict[str, Any]) -> dict:
+        resp = await self._request(
+            "POST", "/api/v1/jev/ask", json={"state": state, "questions": questions}
+        )
+        return resp.json()
+
+    async def voice_status(self) -> dict:
+        resp = await self._request("GET", "/api/v1/voice/status")
+        return resp.json()

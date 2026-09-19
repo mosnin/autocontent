@@ -6,11 +6,10 @@ authenticated user, same contract as /jobs.
 """
 from __future__ import annotations
 
+import os
 from uuid import UUID
 
-import os
-
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -18,8 +17,12 @@ from marketer.articles.models import Article, ArticleStatus
 from marketer.repos import articles as articles_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_SOCIAL_LIMIT = "20/minute"
+_ENQUEUE_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 
 class ArticleEnqueue(BaseModel):
@@ -30,7 +33,9 @@ class ArticleEnqueue(BaseModel):
 
 
 @router.get("", response_model=list[Article])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_articles(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     status_filter: ArticleStatus | None = None,
     niche_id: UUID | None = None,
@@ -42,7 +47,10 @@ async def list_articles(
 
 
 @router.get("/{article_id}", response_model=Article)
-async def get_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_article(
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Article:
     article = await articles_repo.get(article_id, user_id=ctx.user_id)
     if article is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -50,8 +58,9 @@ async def get_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
 
 
 @router.get("/{article_id}/markdown")
+@limiter.limit(_MEDIA_LIMIT)
 async def get_article_markdown(
-    article_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> PlainTextResponse:
     article = await articles_repo.get(article_id, user_id=ctx.user_id)
     if article is None:
@@ -67,7 +76,10 @@ async def get_article_markdown(
 
 
 @router.post("", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
-async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def enqueue_article(
+    request: Request, body: ArticleEnqueue, ctx: AuthCtx = CurrentUser
+) -> Article:
     """Create the article row and spawn the Modal pipeline against it.
     Poll GET /{article_id} for status."""
     import modal
@@ -92,16 +104,18 @@ class SocialRepurposeBody(BaseModel):
 
 
 @router.post("/{article_id}/social")
+@limiter.limit(_SOCIAL_LIMIT)
 async def repurpose_to_social(
-    article_id: UUID, body: SocialRepurposeBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    article_id: UUID,
+    body: SocialRepurposeBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
-    """Repurpose a finished article into platform-native social posts. One
-    metered LLM call (charged to the article's niche daily cap). The article
+    """Repurpose a finished article into platform posts extracted from the
+    article. No writer call — snippets cannot invent facts. The article
     must be done and have content."""
     from marketer.articles import llm
     from marketer.articles.models import ArticleStatus
-    from marketer.repos import niches as niches_repo
-    from marketer.services.spend_context import default_context
 
     article = await articles_repo.get(article_id, user_id=ctx.user_id)
     if article is None:
@@ -110,28 +124,21 @@ async def repurpose_to_social(
         raise HTTPException(
             status.HTTP_409_CONFLICT, "article is not finished yet"
         )
-    niche = await niches_repo.get(article.niche_id, user_id=ctx.user_id)
-    cap = niche.daily_spend_cap_usd if niche else None
-    spend = await default_context(
-        user_id=ctx.user_id, niche_id=article.niche_id, job_id=None,
-        article_id=article.id, cap_usd=cap,
-    )
     try:
         snippets = await llm.generate_social_snippets(
             article.title or article.topic, article.article_markdown,
-            body.platforms, spend=spend,
+            body.platforms,
         )
-    except Exception as exc:  # noqa: BLE001
-        # Cap tripped or provider error — surface a clean 4xx/5xx.
-        from marketer.repos.spend import SpendCapExceeded
-        if isinstance(exc, SpendCapExceeded):
-            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, str(exc)) from exc
+    except Exception as exc:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "generation failed") from exc
     return {"snippets": [s.model_dump() for s in snippets]}
 
 
 @router.get("/{article_id}/hero-image")
-async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_article_hero(
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
+) -> FileResponse:
     """Stream the article's editorial hero image (gpt-image-1 PNG).
 
     Ownership-scoped like every other media endpoint. 404 if the article is
@@ -146,7 +153,10 @@ async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> File
 
 
 @router.post("/{article_id}/retry", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
-async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def retry_article(
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Article:
     """Re-run a failed article from scratch (same row, same topic)."""
     import modal
 

@@ -48,13 +48,15 @@ DEFAULT_RESOLUTION = "480p"
 POLL_INTERVAL_SEC = 4.0
 POLL_TIMEOUT_SEC = 600.0  # 10 min — generation typically completes in <2min
 HTTP_TIMEOUT_SEC = 60.0
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
 
 
 class GrokImagineError(RuntimeError):
     pass
 
 
-def _client() -> httpx.AsyncClient:
+def _make_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(
         base_url=BASE_URL,
         timeout=HTTP_TIMEOUT_SEC,
@@ -63,6 +65,29 @@ def _client() -> httpx.AsyncClient:
             "Content-Type": "application/json",
         },
     )
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    """Reuse one keep-alive client across submit / poll / download."""
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = _make_client()
+        return _http
+
+
+class _KeepAliveCM:
+    async def __aenter__(self) -> httpx.AsyncClient:
+        return await _shared_client()
+
+    async def __aexit__(self, *exc: object) -> bool:
+        return False
+
+
+def _client() -> _KeepAliveCM:
+    return _KeepAliveCM()
 
 
 def _image_to_data_uri(path: Path) -> str:

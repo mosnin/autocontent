@@ -63,6 +63,9 @@ def _make_script() -> Script:
 @pytest.fixture
 def stub_no_music(monkeypatch, tmp_path: Path, passing_render_qa):
     """Full pipeline stub with music.pick_track returning None."""
+    from tests.conftest import stub_pipeline_unit_seams
+
+    stub_pipeline_unit_seams(monkeypatch)
     async def fake_niches_get(niche_id, *, user_id):
         return _make_niche()
     monkeypatch.setattr(pipeline.niches_repo, "get", fake_niches_get)

@@ -10,13 +10,34 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from starlette.requests import Request
 
 from backend.auth import AuthCtx
+from backend.rate_limit import limiter
 from backend.routes import jobs as jobs_route
+
+
+def _request() -> Request:
+    return Request(
+        {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": "GET",
+            "scheme": "http",
+            "path": "/api/v1/jobs/video",
+            "raw_path": b"/api/v1/jobs/video",
+            "query_string": b"",
+            "headers": [],
+            "client": ("testclient", 50000),
+            "server": ("testserver", 80),
+        }
+    )
 
 
 async def test_get_job_video_404_when_no_rendered(monkeypatch):
     """Owned job exists but rendered.path is missing — 404, not 200."""
+    limiter.reset()
     job_id = uuid4()
 
     async def _get(_id, *, user_id):  # noqa: ARG001
@@ -30,12 +51,13 @@ async def test_get_job_video_404_when_no_rendered(monkeypatch):
 
     ctx = AuthCtx(user_id="user_x", email="")
     with pytest.raises(HTTPException) as ei:
-        await jobs_route.get_job_video(job_id, ctx)
+        await jobs_route.get_job_video(_request(), job_id, ctx)
     assert ei.value.status_code == 404
 
 
 async def test_get_job_video_404_when_job_missing(monkeypatch):
     """Job not owned (repo returns None) -> 404."""
+    limiter.reset()
     job_id = uuid4()
 
     async def _get(_id, *, user_id):  # noqa: ARG001
@@ -45,5 +67,5 @@ async def test_get_job_video_404_when_job_missing(monkeypatch):
 
     ctx = AuthCtx(user_id="user_x", email="")
     with pytest.raises(HTTPException) as ei:
-        await jobs_route.get_job_video(job_id, ctx)
+        await jobs_route.get_job_video(_request(), job_id, ctx)
     assert ei.value.status_code == 404

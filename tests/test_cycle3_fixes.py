@@ -79,6 +79,8 @@ def test_music_handler_fails_on_post_spend_breach():
     fail the job on a real (post-spend) breach rather than swallow it."""
     from marketer import pipeline
 
-    src = inspect.getsource(pipeline._run_job_inner)
-    assert 'getattr(e, "after_spend"' in src
-    assert "return await _fail_with(job, str(e))" in src
+    resolve = inspect.getsource(pipeline._resolve_music)
+    after = inspect.getsource(pipeline._run_job_after_sheet)
+    # Pre-flight stays in the composer; the job fails the post-spend raise.
+    assert 'getattr(e, "after_spend"' in resolve
+    assert "return await _fail_with(job, str(e))" in after

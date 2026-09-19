@@ -93,7 +93,54 @@ def test_draft_spec_voice_is_constrained():
         )
 
 
-async def test_account_summary_shape(monkeypatch):
+def test_template_niche_drafts_are_reviewable():
+    from marketer.agents.niche_draft import NicheDraft, parse_brand_context, template_niche_drafts
+
+    drafts = template_niche_drafts(
+        "claymation videos explaining economics for curious adults"
+    )
+    assert len(drafts) >= 2
+    assert all(isinstance(d, NicheDraft) for d in drafts)
+    assert all(d.voice in {
+        "alloy", "echo", "fable", "onyx", "nova", "shimmer", "ash", "sage", "coral",
+    } for d in drafts)
+    assert any("clay" in d.visual_style.casefold() for d in drafts)
+    kit = parse_brand_context(
+        "Brand kit (match this identity):\n"
+        "- Brand: Clay Lab\n"
+        "- Core audience: night-shift baristas\n"
+        "- Preferred hashtags: espresso, craft\n"
+        "- Tone of voice: calm and conspiratorial\n"
+    )
+    assert kit["brand"] == "Clay Lab"
+    branded = template_niche_drafts(
+        "espresso explainers for home baristas",
+        brand_context=(
+            "Brand kit (match this identity):\n"
+            "- Core audience: night-shift baristas\n"
+            "- Preferred hashtags: espresso, craft\n"
+            "- Tone of voice: calm and conspiratorial\n"
+        ),
+    )
+    assert branded[0].target_audience == "night-shift baristas"
+    assert "espresso" in branded[0].hashtags
+    assert branded[0].tts_style_directions == "calm and conspiratorial"
+
+
+async def test_draft_niche_dark_path_is_first_template(monkeypatch):
+    from marketer.agents import niche_draft as nd
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "jev_enabled", False)
+    draft = await nd.draft_niche("claymation videos explaining economics for adults")
+    expected = nd.template_niche_drafts(
+        "claymation videos explaining economics for adults"
+    )[0]
+    assert draft.title == expected.title
+    assert draft.voice == expected.voice
+
+
+def test_account_summary_shape(client, monkeypatch):
     """metrics_summary maps the repo aggregate into the response model."""
     from backend.routes import metrics as metrics_route
 
@@ -109,7 +156,12 @@ async def test_account_summary_shape(monkeypatch):
     monkeypatch.setattr(
         metrics_route.post_metrics_repo, "account_summary", fake_summary
     )
-    out = await metrics_route.metrics_summary(AuthCtx(user_id="user_a", email=""))
-    assert out.total_views == 1234
-    assert out.best_views == 900
-    assert out.days == 30
+    resp = client.get(
+        "/api/v1/metrics/summary",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    out = resp.json()
+    assert out["total_views"] == 1234
+    assert out["best_views"] == 900
+    assert out["days"] == 30
