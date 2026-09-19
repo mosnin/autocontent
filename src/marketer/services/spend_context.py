@@ -84,13 +84,12 @@ class SpendContext:
     async def ensure_can_spend(self, estimated_usd: Decimal) -> None:
         """Refuse a provider call if it would exceed today's cap.
 
-        No-op when cap_usd is None. Checks abort_event first (cheap
-        in-process signal set by a sibling task that already tripped the
-        cap), then reads today_spend from the DB once and raises
-        SpendCapExceeded if (today + estimated) > cap.
-
-        If global_cap_usd is also set, performs the same check against
-        the user's total cross-niche spend for the day.
+        No-op when no cap and billing is off. Checks abort_event first
+        (cheap in-process signal set by a sibling task that already
+        tripped the cap), then gathers independent ledger reads and
+        raises SpendCapExceeded if (today + estimated) would exceed
+        the tightest configured gate. Decision order is niche, global,
+        then prepaid credits.
         """
         from ..repos.spend import SpendCapExceeded
 
@@ -101,37 +100,65 @@ class SpendContext:
                 scope=self.abort_scope,
             )
 
-        if self.cap_usd is not None:
-            spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
-            if spent + estimated_usd > self.cap_usd:
-                self._trip("niche")
-                raise SpendCapExceeded(
-                    f"niche {self.niche_id} pre-flight cap check: "
-                    f"${spent} + ${estimated_usd} > ${self.cap_usd}",
-                    scope="niche",
-                )
-
-        if self.global_cap_usd is not None and self.today_total_spend is not None:
-            total_spent = await self.today_total_spend(user_id=self.user_id)
-            if total_spent + estimated_usd > self.global_cap_usd:
-                self._trip("global")
-                raise SpendCapExceeded(
-                    f"user {self.user_id} pre-flight global cap check: "
-                    f"${total_spent} + ${estimated_usd} > ${self.global_cap_usd}",
-                    scope="global",
-                )
-
-        # Hosted product: prepaid credit is the final gate. The estimated
-        # charge includes the billing margin so a call is refused before
-        # it would take the balance negative.
+        # Niche spend, global spend, and prepaid balance are independent
+        # reads. Sequential checks left leftover RTTs in front of every
+        # metered provider call. Decision order is unchanged: niche,
+        # then global, then credits.
         from ..config import settings
 
-        if settings.billing_enabled:
-            from decimal import Decimal as _D
+        need_niche = self.cap_usd is not None
+        need_global = (
+            self.global_cap_usd is not None and self.today_total_spend is not None
+        )
+        need_credits = bool(settings.billing_enabled)
+        if not (need_niche or need_global or need_credits):
+            return
 
+        tasks: list = []
+        if need_niche:
+            tasks.append(
+                self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
+            )
+        if need_global:
+            tasks.append(self.today_total_spend(user_id=self.user_id))
+        if need_credits:
             from ..repos import billing as billing_repo
 
-            bal = await billing_repo.balance(self.user_id)
+            tasks.append(billing_repo.balance(self.user_id))
+
+        results = await asyncio.gather(*tasks)
+        idx = 0
+        spent = None
+        if need_niche:
+            spent = results[idx]
+            idx += 1
+        total_spent = None
+        if need_global:
+            total_spent = results[idx]
+            idx += 1
+        bal = None
+        if need_credits:
+            bal = results[idx]
+
+        if need_niche and spent + estimated_usd > self.cap_usd:
+            self._trip("niche")
+            raise SpendCapExceeded(
+                f"niche {self.niche_id} pre-flight cap check: "
+                f"${spent} + ${estimated_usd} > ${self.cap_usd}",
+                scope="niche",
+            )
+
+        if need_global and total_spent + estimated_usd > self.global_cap_usd:
+            self._trip("global")
+            raise SpendCapExceeded(
+                f"user {self.user_id} pre-flight global cap check: "
+                f"${total_spent} + ${estimated_usd} > ${self.global_cap_usd}",
+                scope="global",
+            )
+
+        if need_credits:
+            from decimal import Decimal as _D
+
             charge = estimated_usd * _D(str(settings.billing_margin))
             if bal < charge:
                 self._trip("credits")
@@ -207,27 +234,43 @@ class SpendContext:
                 after_spend=True,
             )
 
-        if self.cap_usd is not None:
-            spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
-            if spent >= self.cap_usd:
-                self._trip("niche")
-                raise SpendCapExceeded(
-                    f"niche {self.niche_id} hit daily cap during job: "
-                    f"${spent} >= ${self.cap_usd}",
-                    scope="niche",
-                    after_spend=True,
-                )
-
-        if self.global_cap_usd is not None and self.today_total_spend is not None:
+        need_niche = self.cap_usd is not None
+        need_global = (
+            self.global_cap_usd is not None and self.today_total_spend is not None
+        )
+        if need_niche and need_global:
+            spent, total_spent = await asyncio.gather(
+                self.today_spend(user_id=self.user_id, niche_id=self.niche_id),
+                self.today_total_spend(user_id=self.user_id),
+            )
+        elif need_niche:
+            spent = await self.today_spend(
+                user_id=self.user_id, niche_id=self.niche_id
+            )
+            total_spent = None
+        elif need_global:
+            spent = None
             total_spent = await self.today_total_spend(user_id=self.user_id)
-            if total_spent >= self.global_cap_usd:
-                self._trip("global")
-                raise SpendCapExceeded(
-                    f"user {self.user_id} hit global daily cap during job: "
-                    f"${total_spent} >= ${self.global_cap_usd}",
-                    scope="global",
-                    after_spend=True,
-                )
+        else:
+            return
+
+        if need_niche and spent >= self.cap_usd:
+            self._trip("niche")
+            raise SpendCapExceeded(
+                f"niche {self.niche_id} hit daily cap during job: "
+                f"${spent} >= ${self.cap_usd}",
+                scope="niche",
+                after_spend=True,
+            )
+
+        if need_global and total_spent >= self.global_cap_usd:
+            self._trip("global")
+            raise SpendCapExceeded(
+                f"user {self.user_id} hit global daily cap during job: "
+                f"${total_spent} >= ${self.global_cap_usd}",
+                scope="global",
+                after_spend=True,
+            )
 
 
 async def _default_record(entry: SpendEntry) -> None:

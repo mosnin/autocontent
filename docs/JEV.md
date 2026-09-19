@@ -1197,3 +1197,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Kit lookup still fail-opens | A down kits table never blocks a guarded proposal. AdSpendGuard still fail-closes the execute path |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 62. Loop — spend preflight gathers niche + global + credits
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `ensure_can_spend` gathers niche spend, global spend, and prepaid balance | Independent ledger reads. Every metered provider call waited on the niche total before asking global / credits |
+| `log` gathers the two post-debit cap re-reads | Same leftover pair after every recorded spend |
+| Decision order is unchanged | Niche still wins when both would trip. Missing reader / `cap_usd=None` still skips that check. Abort-event still short-circuits before any read |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
