@@ -220,6 +220,7 @@ async def _write_sections(
                 or fastpath.how_to_section_from_research(heading, ctx.research)
                 or fastpath.mistakes_section_from_research(heading, ctx.research)
                 or fastpath.stakes_section_from_research(heading, ctx.research)
+                or fastpath.serp_heading_section_from_research(heading, ctx.research)
             )
             if templated:
                 return templated

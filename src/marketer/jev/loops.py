@@ -163,7 +163,7 @@ async def filter_research_pages(
     spend: SpendContext | None = None,
 ) -> list[dict[str, Any]]:
     """jev-search retrieve-then-judge. Empty rank falls back to the Exa list."""
-    if not _live() or len(pages) < 2:
+    if not _live() or len(pages) < 4:
         return pages
     try:
         safe: list[dict[str, str]] = []

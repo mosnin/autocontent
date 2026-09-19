@@ -34,6 +34,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _ADS_LIMIT = "20/minute"
+_READ_LIMIT = "30/minute"
 
 
 # --------------------------------------------------------------------------- accounts
@@ -43,7 +44,10 @@ class ConnectBody(BaseModel):
 
 
 @router.get("/accounts", response_model=list[ads_repo.AdAccount])
-async def list_accounts(ctx: AuthCtx = CurrentUser) -> list[ads_repo.AdAccount]:
+@limiter.limit(_READ_LIMIT)
+async def list_accounts(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> list[ads_repo.AdAccount]:
     return await ads_repo.list_accounts(ctx.user_id)
 
 
@@ -122,8 +126,11 @@ async def set_governance(
 # --------------------------------------------------------------------------- campaigns
 
 @router.get("/campaigns", response_model=list[ads_repo.AdCampaign])
+@limiter.limit(_READ_LIMIT)
 async def list_campaigns(
-    account_id: UUID | None = None, ctx: AuthCtx = CurrentUser
+    request: Request,
+    account_id: UUID | None = None,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[ads_repo.AdCampaign]:
     return await ads_repo.list_campaigns(ctx.user_id, ad_account_id=account_id)
 
@@ -260,7 +267,10 @@ async def change_status(
 
 
 @router.get("/campaigns/{campaign_id}")
-async def get_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def get_campaign(
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     camp, metrics = await asyncio.gather(
         ads_repo.get_campaign(campaign_id, user_id=ctx.user_id),
         ads_repo.campaign_metrics(campaign_id, user_id=ctx.user_id),
@@ -276,8 +286,11 @@ async def get_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
 # --------------------------------------------------------------------------- approvals
 
 @router.get("/approvals", response_model=list[ad_approvals.AdApproval])
+@limiter.limit(_READ_LIMIT)
 async def list_approvals(
-    status_filter: str | None = None, ctx: AuthCtx = CurrentUser
+    request: Request,
+    status_filter: str | None = None,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[ad_approvals.AdApproval]:
     return await ad_approvals.list_(user_id=ctx.user_id, status=status_filter)
 
@@ -337,14 +350,18 @@ async def decide_approval(
 # --------------------------------------------------------------------------- audit + overview
 
 @router.get("/actions", response_model=list[ad_actions.AdActionEntry])
+@limiter.limit(_READ_LIMIT)
 async def list_actions(
-    limit: int = 100, ctx: AuthCtx = CurrentUser
+    request: Request,
+    limit: int = 100,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[ad_actions.AdActionEntry]:
     return await ad_actions.list_(user_id=ctx.user_id, limit=min(limit, 500))
 
 
 @router.get("/overview")
-async def overview(ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def overview(request: Request, ctx: AuthCtx = CurrentUser) -> dict:
     """Ads dashboard summary: spend today / 30d, active campaigns, pending
     approvals. Cheap read-only aggregation across the user's accounts."""
     today = date.today()

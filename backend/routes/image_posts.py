@@ -21,6 +21,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _ENQUEUE_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class ImagePostCreate(BaseModel):
@@ -31,8 +32,12 @@ class ImagePostCreate(BaseModel):
 
 
 @router.get("")
+@limiter.limit(_READ_LIMIT)
 async def list_image_posts(
-    status_filter: str | None = None, limit: int = 50, ctx: AuthCtx = CurrentUser
+    request: Request,
+    status_filter: str | None = None,
+    limit: int = 50,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[dict]:
     return await image_posts_repo.list_for_user(
         ctx.user_id, status=status_filter, limit=min(max(limit, 1), 200)

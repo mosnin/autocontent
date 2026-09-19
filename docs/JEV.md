@@ -603,7 +603,7 @@ director → Whisper now does ideation → script → images. Caption burn
 is free. QA is already Jev-first. Foreman, the outbound screen, and
 the repurpose hint share one wall-clock beat. Article research /
 schema / interlink / topic / outline / metadata / hero / FAQ /
-checklist / definition / how-to / mistakes / stakes no longer enqueue extra
+checklist / definition / how-to / mistakes / stakes / SERP headings no longer enqueue extra
 chat completions before (or instead of) the writer.
 
 ---
@@ -621,7 +621,7 @@ TypeSafe's remaining unused patterns after the first speed pass:
 | **Deterministic outline + metadata** | `outline_from_research`, `metadata_from_article` | SERP headings already *are* the outline. Title/slug/meta are extracts, not prose. |
 | **Deterministic FAQ** | `faq_section_from_research` | Searcher questions + highlights become the FAQ H2. One less writer call. |
 | **Deterministic checklist + definition** | `checklist_section_from_research`, `definition_section_from_research` | Playbook H2s that are already lists/definitions stitch SERP highlights. |
-| **Deterministic how-to + mistakes + stakes** | `how_to_section_from_research`, `mistakes_section_from_research`, `stakes_section_from_research` | Numbered start steps, failure-mode bullets, and "why it matters" from SERP highlights. Writer stays on leftover SERP headings. |
+| **Deterministic how-to + mistakes + stakes + SERP H2s** | `how_to_section_from_research`, `mistakes_section_from_research`, `stakes_section_from_research`, `serp_heading_section_from_research` | Playbook H2s plus leftover SERP headings stitch token-overlapping highlights. Writer stays on thin overlap. |
 | **Retrieve-then-judge** | `judge_article` / `audit_sources` send *claims*, not the 8k article | Jev has no world knowledge. Dumping a transcript makes it judge padding. |
 | **Citation-verifier as a QA gate** | `source_audit_penalty` *before* the rewrite threshold | Notes-only audit never forced a rewrite. Each flag now drops `overall` (0.08, cap 0.35). |
 | **Fact lock** | `allowed_facts` + `strip_ungrounded_claims` | Invented `%` / `$` / years / "research shows" sentences are stripped in milliseconds. No second LLM pass required to un-hallucinate. |
@@ -931,5 +931,16 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Admin overview / users / user / flags / health / audit-log 30/min | Last unbounded privileged dumps. Mutations stay 10/min |
 | Ops `/metrics` + `/config-health` 30/min | Live ledger + stuck-work aggregates. Same spray class as admin health |
 | Calendar + spend/today + metrics/summary 30/min | Dashboard polls that were unbounded |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 36. Loop — grounded SERP H2s, skip tiny rank hops, bound dashboard lists
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `serp_heading_section_from_research` stitches leftover SERP H2s | `commonHeadings` land first in the outline. Two token-overlapping highlights skip a writer hop. Playbook templates still win. Thin overlap still buys prose |
+| Skip Jev `rank_passages` when Exa returns fewer than 4 pages | Ranking 2–3 URLs cannot drop much without emptying the set (already falls back). Saves a 70–500ms RTT |
+| Jobs / articles / niches / image-posts lists + job metrics 30/min | Last unbounded operator list polls. Enqueue stays 10/min |
+| Ads accounts / campaigns / approvals / actions / overview 30/min | Privileged spend-adjacent dumps. Mutations stay 20/min |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

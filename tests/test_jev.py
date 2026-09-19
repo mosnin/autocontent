@@ -515,6 +515,23 @@ async def test_loops_noop_when_jev_dark(monkeypatch):
     assert await loops.should_index_asset({"kind": "final"}) is True
 
 
+async def test_filter_research_skips_rank_on_small_set(monkeypatch):
+    from marketer.jev import loops
+
+    called = False
+
+    async def _rank(*_a, **_k):
+        nonlocal called
+        called = True
+        return []
+
+    monkeypatch.setattr(loops, "_live", lambda: True)
+    monkeypatch.setattr(loops, "rank_passages", _rank)
+    pages = [{"url": "a"}, {"url": "b"}, {"url": "c"}]
+    assert await loops.filter_research_pages("q", pages) == pages
+    assert called is False
+
+
 def test_candidate_spans_are_verbatim():
     from marketer.company_os.knowledge import candidate_spans, state_text
 

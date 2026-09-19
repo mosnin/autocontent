@@ -27,7 +27,9 @@ class JobEnqueue(BaseModel):
 
 
 @router.get("", response_model=list[Job])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_jobs(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     status_filter: JobStatus | None = None,
     niche_id: UUID | None = None,
@@ -107,7 +109,10 @@ class JobMetricsResponse(BaseModel):
 
 
 @router.get("/{job_id}/metrics", response_model=JobMetricsResponse)
-async def get_job_metrics(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobMetricsResponse:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_job_metrics(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> JobMetricsResponse:
     """Return the latest analytics sample and full time-series history for a job.
 
     Auth-scoped: the job must belong to the requesting user. Returns 404 if the

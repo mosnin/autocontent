@@ -153,7 +153,8 @@ class NicheUpdate(BaseModel):
 
 
 @router.get("", response_model=list[Niche])
-async def list_niches(ctx: AuthCtx = CurrentUser) -> list[Niche]:
+@limiter.limit(_MEDIA_LIMIT)
+async def list_niches(request: Request, ctx: AuthCtx = CurrentUser) -> list[Niche]:
     return await niches_repo.list_for_user(ctx.user_id)
 
 

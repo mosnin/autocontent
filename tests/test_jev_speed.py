@@ -527,6 +527,30 @@ def test_faq_section_and_publishable_metadata():
     assert stakes.count("\n\n") >= 2
     assert fastpath.stakes_section_from_research("FAQ", rich) is None
     assert fastpath.stakes_section_from_research("How to start with espresso", rich) is None
+    grind = SerpAnalysis(
+        questionsAnswered=rich.questionsAnswered,
+        commonTopics=rich.commonTopics,
+        topResults=[
+            SerpResult(
+                title="Grind",
+                url="https://b.example",
+                domain="b.example",
+                highlights=[
+                    "Use a burr grinder for a consistent grind.",
+                    "Dose 18 grams; grind finer if the shot runs fast.",
+                    "Start at 18 grams and a 1:2 ratio.",
+                ],
+            )
+        ],
+    )
+    heading = fastpath.serp_heading_section_from_research("Best grind size", grind)
+    assert heading and heading.startswith("## Best grind size")
+    assert "grinder" in heading.casefold() or "grind finer" in heading.casefold()
+    assert fastpath.serp_heading_section_from_research("FAQ", grind) is None
+    assert fastpath.serp_heading_section_from_research(
+        "How to start with espresso", grind
+    ) is None
+    assert fastpath.serp_heading_section_from_research("Best grind size", serp) is None
     assert fastpath.metadata_is_publishable(
         "Dial in espresso at home: a practical guide",
         "A practical guide to espresso for home baristas who want sweeter, more consistent shots every morning.",

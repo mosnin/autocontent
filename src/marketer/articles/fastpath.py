@@ -509,6 +509,47 @@ def stakes_section_from_research(
     return f"## {title}\n\n{body}\n"
 
 
+def _playbook_heading(key: str) -> bool:
+    """Headings owned by a dedicated template. Do not steal their shape."""
+    if key in {"faq", "frequently asked questions"} or key.startswith("faq"):
+        return True
+    if "checklist" in key:
+        return True
+    if key.startswith("what ") and "actually is" in key:
+        return True
+    if key.startswith("why ") and "matters" in key:
+        return True
+    if key.startswith("how to start"):
+        return True
+    return "mistake" in key
+
+
+def serp_heading_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """SERP-derived H2 from highlights that share tokens with the heading.
+
+    commonHeadings land first in the outline. When two or more highlights
+    already talk about that heading, stitching them is grounded and skips
+    a writer hop. Thin overlap still buys prose.
+    """
+    key = (heading or "").strip().casefold()
+    if not key or _playbook_heading(key):
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 2:
+        return None
+    h_tokens = tokens(heading)
+    if not h_tokens:
+        return None
+    matched = [h for h in highlights if tokens(h) & h_tokens]
+    if len(matched) < 2:
+        return None
+    title = (heading or "").strip()
+    body = "\n\n".join(h[:280] for h in matched[:4])
+    return f"## {title}\n\n{body}\n"
+
+
 def how_to_section_from_research(
     heading: str, research: SerpAnalysis | None
 ) -> str | None:

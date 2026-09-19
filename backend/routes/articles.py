@@ -33,7 +33,9 @@ class ArticleEnqueue(BaseModel):
 
 
 @router.get("", response_model=list[Article])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_articles(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     status_filter: ArticleStatus | None = None,
     niche_id: UUID | None = None,
