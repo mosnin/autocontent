@@ -83,6 +83,9 @@ async def update_kit(
 
 
 @router.delete("/{kit_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_kit(kit_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit(_KIT_LIMIT)
+async def delete_kit(
+    request: Request, kit_id: UUID, ctx: AuthCtx = CurrentUser
+) -> None:
     if not await kits_repo.delete(kit_id, user_id=ctx.user_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND)

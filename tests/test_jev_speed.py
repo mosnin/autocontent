@@ -768,3 +768,65 @@ async def test_score_article_skips_llm_when_jev_dark(monkeypatch):
     )
     assert 0.0 <= score.overall <= 1.0
     assert score.keywordDensity > 0
+
+
+def test_should_template_script_gates_pin_and_brief():
+    from marketer.agents.scriptwriter import should_template_script
+    from marketer.models import CreativeBrief
+
+    assert should_template_script() is True
+    assert should_template_script(script_model="qwen/qwen3-32b") is False
+    brief = CreativeBrief.model_validate({"narrative": {"pacing": "rapid-fire"}})
+    assert should_template_script(brief=brief) is False
+    assert should_template_script(brief=CreativeBrief()) is True
+
+
+def test_template_script_is_deterministic_and_skips_vd():
+    from marketer.agents.scriptwriter import template_script
+    from marketer.jev.planner import script_has_usable_visuals
+
+    idea = Idea(
+        topic="home espresso",
+        angle="costly mistake",
+        hook="You're dialing espresso the hard way",
+        target_audience="home baristas",
+        why_it_works="loss aversion plus a concrete first-week payoff",
+    )
+    script = template_script(idea, scene_count=4, target_duration_sec=20)
+    assert len(script.scenes) == 4
+    spoken = " ".join(s.narration for s in script.scenes)
+    assert "%" not in spoken and "$" not in spoken
+    assert not any(tok.isdigit() and len(tok) == 4 for tok in spoken.split())
+    assert all(2.0 <= s.duration_sec <= 7.0 for s in script.scenes)
+    assert abs(script.total_duration_sec - 20) <= 2.0
+    for scene in script.scenes:
+        words = scene.narration.split()
+        lo = max(4, int(2.0 * scene.duration_sec))
+        hi = max(lo, int(3.2 * scene.duration_sec))
+        assert lo <= len(words) <= hi
+    assert script_has_usable_visuals(script)
+    again = template_script(idea, scene_count=4, target_duration_sec=20)
+    assert again.model_dump() == script.model_dump()
+
+
+async def test_run_scriptwriter_default_uses_template(monkeypatch):
+    import marketer.orchestrator as _orch
+
+    async def boom(*_a, **_k):
+        raise AssertionError("default scriptwriter must not call the writer")
+
+    monkeypatch.setattr(_orch, "run_metered", boom)
+    idea = Idea(
+        topic="home espresso",
+        angle="costly mistake",
+        hook="You're dialing espresso the hard way",
+        target_audience="home baristas",
+        why_it_works="loss aversion plus a concrete first-week payoff",
+    )
+    script = await _orch.run_scriptwriter(
+        idea, scene_count=4, target_duration_sec=20
+    )
+    assert script.scenes
+    from marketer.jev.planner import script_has_usable_visuals
+
+    assert script_has_usable_visuals(script)

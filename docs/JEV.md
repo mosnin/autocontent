@@ -854,3 +854,13 @@ Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.
 | User settings PATCH 10/min; niche archive 8/min; kit update 10/min | Spend-cap edits and archive spray were the remaining unbounded doors |
 
 Jev still does not write hooks unless the operator set a lens. Ads overlay never relaxes AdSpendGuard.
+
+## 29. Loop — template scripts, bound leftover deletes
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Default `run_scriptwriter` is `template_script` | Last 5–20s writer hop on a stock niche. Operator-pinned `script_model` and a narrative brief still buy the LLM. Pipeline no longer substitutes `plan.model_id` (that forced a writer on every job) |
+| Template scenes emit usable visual + motion prompts | Visual Director stays skipped. Fact lock stays a no-op — no invented % / $ / years |
+| Campaign item PATCH/DELETE, webhook PATCH/DELETE, kit DELETE, token revoke, admin template PUT/DELETE at 10/min | Last unbounded mutation doors (lane flips, webhook kill, kit wipe, token revoke, global template edits) |
+
+Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.

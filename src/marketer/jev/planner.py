@@ -12,6 +12,10 @@ A video job used to pay for:
 4. Whisper (script already has narration + per-scene durations)
 5. sequential Foreman then screen then repurpose Jev calls
 
+Default jobs now skip (1) and (2) as well: templates + one Jev pick
+for the idea, then `template_script` unless the operator pinned a
+writer or filled a narrative brief.
+
 This planner collapses (model tier + skip hints) into one Jev call.
 Skip-VD and script captions are then enforced in code so a shy noul
 cannot re-introduce a multi-second LLM when the artifacts are already

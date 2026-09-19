@@ -26,6 +26,7 @@ from uuid import UUID
 from opentelemetry import trace
 
 from .agents.performance_context import build_performance_context
+from .agents.scriptwriter import should_template_script
 from .config import settings
 from .logging import get_logger, job_context
 from .models import AudioTrack, Clip, Job, JobStatus, Niche, RenderedVideo, Scene, Script
@@ -689,13 +690,20 @@ async def _run_job_after_sheet(
                     "\nDesign kit — the creator's direction system, follow "
                     f"it throughout:\n{design_kit_content}"
                 )
+            # Empty niche.script_model is the template path. Do not
+            # substitute plan.model_id — that is a writer tier, and it
+            # would force a 5–20s LLM on every default job.
+            if should_template_script(
+                script_model=niche.script_model, brief=niche.creative_brief
+            ):
+                job.harness = {**(job.harness or {}), "skipped_scriptwriter": True}
             script = await run_scriptwriter(
                 idea,
                 scene_count=niche.scene_count,
                 target_duration_sec=niche.target_duration_sec,
                 audience_context=audience_ctx,
                 brief=niche.creative_brief,
-                script_model=niche.script_model or plan.model_id,
+                script_model=niche.script_model,
                 spend=spend,
             )
             # cast_mode 'none' means NO characters — a lingering

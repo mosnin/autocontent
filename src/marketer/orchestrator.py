@@ -25,6 +25,7 @@ from .agents import (
 )
 from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
 from .agents.metered import run_metered
+from .agents.scriptwriter import should_template_script, template_script
 from .config import settings
 from .models import Idea, Niche, Script
 from .models.creative_brief import CreativeBrief
@@ -42,6 +43,14 @@ async def run_scriptwriter(
     script_model: str = "",
     spend: SpendContext | None = None,
 ) -> Script:
+    # Default / dark path: templates, not a 5–20s writer. Operator-pinned
+    # script_model and a narrative brief still buy the LLM.
+    if should_template_script(script_model=script_model, brief=brief):
+        return template_script(
+            idea,
+            scene_count=scene_count,
+            target_duration_sec=target_duration_sec,
+        )
     agent = build_scriptwriter_agent()
     prompt = (
         f"Idea:\n{idea.model_dump_json(indent=2)}\n\n"

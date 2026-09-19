@@ -282,8 +282,12 @@ async def _audit_template(admin, action: str, template_id, metadata: dict) -> No
 
 
 @router.put("/{template_id}", response_model=Template)
+@limiter.limit(_REMIX_LIMIT)
 async def update_template(
-    template_id: UUID, body: TemplateUpdate, admin=Depends(require_admin)
+    request: Request,
+    template_id: UUID,
+    body: TemplateUpdate,
+    admin=Depends(require_admin),
 ) -> Template:
     fields = body.model_dump(exclude_unset=True)
     template = await templates_repo.update(template_id, **fields)
@@ -295,7 +299,10 @@ async def update_template(
 
 
 @router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_template(template_id: UUID, admin=Depends(require_admin)) -> None:
+@limiter.limit(_REMIX_LIMIT)
+async def delete_template(
+    request: Request, template_id: UUID, admin=Depends(require_admin)
+) -> None:
     if not await templates_repo.delete(template_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     await _audit_template(admin, "template.delete", template_id, {})

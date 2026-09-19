@@ -171,8 +171,13 @@ async def add_item(
 
 
 @router.patch("/{campaign_id}/items/{item_id}", response_model=CampaignItem)
+@limiter.limit(_START_LIMIT)
 async def patch_item(
-    campaign_id: UUID, item_id: UUID, body: ItemPatch, ctx: AuthCtx = CurrentUser
+    request: Request,
+    campaign_id: UUID,
+    item_id: UUID,
+    body: ItemPatch,
+    ctx: AuthCtx = CurrentUser,
 ) -> CampaignItem:
     # Scoped in SQL: a wrong-campaign item id must not be mutated and
     # then 404'd — the WHERE clause rejects it before any state change.
@@ -188,8 +193,9 @@ async def patch_item(
 @router.delete(
     "/{campaign_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT
 )
+@limiter.limit(_START_LIMIT)
 async def delete_item(
-    campaign_id: UUID, item_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, campaign_id: UUID, item_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> None:
     if not await campaigns_repo.remove_item(item_id, user_id=ctx.user_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND)

@@ -51,7 +51,10 @@ async def create_token(
 
 
 @router.delete("/{token_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def revoke_token(token_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit("10/minute")
+async def revoke_token(
+    request: Request, token_id: UUID, ctx: AuthCtx = CurrentUser
+) -> None:
     ok = await tokens_repo.revoke(token_id, ctx.user_id)
     if not ok:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "token not found or already revoked")
