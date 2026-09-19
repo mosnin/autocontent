@@ -766,3 +766,15 @@ Ads overlay is unchanged. Jev still does not generate video or move money.
 | Ads account refresh 20/min | Hits Composio. Same bound as connect / budget / decide |
 
 Foreman still fail-closes when it answered. Ads overlay is unchanged: deny / force-approve only; `AdSpendGuard` never relaxes. Extra overlay Jev on a failing QA is accepted — one cheap call vs a sequential RTT on every success path.
+
+---
+
+## 22. Loop — delivery facts beat Jev, bound ads governance
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `is_hard_rerender` short-circuits video QA | Duration >20% and empty captions are facts. Jev has no clock and used to be able to *publish* a broken render. Code now fails immediately and skips Foreman + repurpose |
+| `resolve_video_qa` returns the heuristic on hard rerender | HTTP / other callers cannot pay TypeSafe to override a delivery floor |
+| Ads create campaign + governance 20/min | Draft create and kill-switch / cap writes are money-adjacent. Same bound as connect / budget / decide |
+
+Jev still judges hook / niche / clarity when the render is deliverable. Soft fails (`regenerate_script`) still gather so Jev can confirm. `AdSpendGuard` is unchanged.

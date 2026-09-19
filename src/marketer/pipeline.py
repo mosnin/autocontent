@@ -881,11 +881,18 @@ async def _run_job_inner(
                 job, "render QA failed: " + "; ".join(render_report.issues)
             )
         transcript = " ".join(w["word"] for w in words)
-        from .agents.qa import heuristic_qa_report
+        from .agents.qa import heuristic_qa_report, is_hard_rerender
         from .jev.loops import after_content_qa, repurpose_hint, should_spawn_repurpose
 
         duration = render_report.duration_sec or script.total_duration_sec
         heuristic = heuristic_qa_report(qa_payload(script, transcript, duration, niche))
+
+        # Duration / empty captions are facts. Do not pay Jev, Foreman,
+        # or repurpose to confirm a render the clock already failed.
+        if is_hard_rerender(heuristic):
+            return await _fail_with(
+                job, "content QA failed: " + "; ".join(heuristic.issues)
+            )
         # One fan-out: Jev/heuristic QA + Foreman/screen + repurpose.
         # Sequential here used to add a second 70–500ms RTT after a
         # passing judge. Overlay sees the instant heuristic; the gather

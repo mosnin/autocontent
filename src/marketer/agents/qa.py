@@ -146,6 +146,11 @@ def heuristic_qa_report(payload: dict[str, Any]) -> QAReport:
     )
 
 
+def is_hard_rerender(report: QAReport) -> bool:
+    """Duration drift and empty captions are facts. Jev cannot override them."""
+    return (not report.passed) and report.suggested_action == "rerender"
+
+
 def build_qa_agent() -> Agent:
     return Agent(
         model=settings.agent_model,

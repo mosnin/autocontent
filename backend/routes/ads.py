@@ -87,8 +87,9 @@ class GovernanceBody(BaseModel):
 
 
 @router.patch("/accounts/{account_id}/governance", response_model=ads_repo.AdAccount)
+@limiter.limit(_ADS_LIMIT)
 async def set_governance(
-    account_id: UUID, body: GovernanceBody, ctx: AuthCtx = CurrentUser
+    request: Request, account_id: UUID, body: GovernanceBody, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdAccount:
     kwargs: dict = {}
     if "daily_cap_usd" in body.model_fields_set:
@@ -136,8 +137,9 @@ class CreateCampaignBody(BaseModel):
 
 
 @router.post("/campaigns", response_model=ads_repo.AdCampaign, status_code=201)
+@limiter.limit(_ADS_LIMIT)
 async def create_campaign(
-    body: CreateCampaignBody, ctx: AuthCtx = CurrentUser
+    request: Request, body: CreateCampaignBody, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdCampaign:
     """Create a DRAFT campaign. No spend — drafts are never on a platform until
     activated. The account must belong to the caller."""

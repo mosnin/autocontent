@@ -129,11 +129,18 @@ async def resolve_video_qa(
     *,
     spend: SpendContext | None = None,
 ) -> QAReport:
-    """Jev when live; otherwise the already-computed heuristic. Never a writer."""
+    """Jev when live; otherwise the already-computed heuristic. Never a writer.
+
+    Hard rerender floors (duration / empty captions) stay with the
+    heuristic — Jev has no clock and must not publish a broken render.
+    """
+    from .agents.qa import is_hard_rerender
     from .config import settings as _settings
     from .jev import available as jev_available
     from .jev.decisions import judge_video
 
+    if is_hard_rerender(heuristic):
+        return heuristic
     if _settings.jev_enabled and jev_available():
         try:
             verdict = await judge_video(payload, spend=spend)

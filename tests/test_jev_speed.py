@@ -654,6 +654,33 @@ def test_qa_payload_is_slim():
     assert "scenes" not in payload
 
 
+async def test_resolve_video_qa_skips_jev_on_hard_rerender(monkeypatch):
+    from marketer.agents.qa import heuristic_qa_report, is_hard_rerender
+    from marketer.config import settings
+    from marketer.orchestrator import resolve_video_qa
+
+    monkeypatch.setattr(settings, "jev_enabled", True)
+
+    async def boom(*args, **kwargs):
+        raise AssertionError("hard rerender must not call Jev")
+
+    monkeypatch.setattr("marketer.jev.decisions.judge_video", boom)
+    payload = {
+        "hook": "Stop wasting shots.",
+        "narration": "Stop wasting shots. Dial espresso.",
+        "transcript": "",
+        "duration_sec": 40.0,
+        "target_duration_sec": 4,
+        "niche": "espresso",
+    }
+    heuristic = heuristic_qa_report(payload)
+    assert is_hard_rerender(heuristic)
+    report = await resolve_video_qa(payload, heuristic)
+    assert report is heuristic
+    assert report.passed is False
+    assert report.suggested_action == "rerender"
+
+
 async def test_resolve_video_qa_returns_heuristic_when_dark(monkeypatch):
     from marketer.agents.qa import QAReport, heuristic_qa_report
     from marketer.config import settings
