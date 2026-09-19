@@ -204,7 +204,7 @@ We speak the HTTP API directly. There is no `typesafe-sdk` dependency
 
 | Decision | Pack | Wired in |
 | --- | --- | --- |
-| Idea tournament | `judge_ideas` (hook / payoff / freshness composite) | `agents/ideation.py` |
+| Idea pick among templates | `judge_ideas` (hook / payoff / freshness composite) | `agents/ideation.py` |
 | Video QA | `judge_video` | `orchestrator.run_qa` |
 | Article QA | `judge_article` | `articles/llm.score_article` |
 | Scriptwriter model | `route_model` / `default_generation_model` | `orchestrator.py` |
@@ -617,7 +617,7 @@ TypeSafe's remaining unused patterns after the first speed pass:
 | **The Cascade** | `plan_video_run` + article rewrite | Cheap tier first. A failed QA pass cannot pick `qwen3-8b` again; the rewrite tries the stronger writer first. |
 | **Compact state** | `ask()` always runs `compact_state` (4k cap, 1.2k/field) | TypeSafe jaggedness: pad the state and accuracy falls. Smaller payload is also a shorter RTT. |
 | **Keep-alive HTTP** | module-level `httpx.AsyncClient` + `warm()` during research | A new client per ask paid ~200ms of TLS. That ate the 70–500ms claim. OpenRouter / Qwen fallback clients are reused the same way. |
-| **Template ideation** | `idea_candidates` + `judge_ideas` when TypeSafe is live | Three Qwen hook drafts + a judge LLM → one 70–500ms Choice. Dark harness keeps the old tournament so tests / Qwen-only installs do not change. |
+| **Template ideation** | `idea_candidates` + `judge_ideas` when TypeSafe is live | Code builds the hook set; Jev Choice picks. Dark harness / judge miss → `templates[0]`. No writer tournament. n==1 with an operator lens still buys one Qwen hop. |
 | **Deterministic outline + metadata** | `outline_from_research`, `metadata_from_article` | SERP headings already *are* the outline. Title/slug/meta are extracts, not prose. |
 | **Deterministic FAQ** | `faq_section_from_research` | Searcher questions + highlights become the FAQ H2. One less writer call. |
 | **Deterministic checklist + definition** | `checklist_section_from_research`, `definition_section_from_research` | Playbook H2s that are already lists/definitions stitch SERP highlights. |
@@ -678,7 +678,7 @@ obvious abuse windows on the HTTP judges:
 | Voice Realtime keep-alive client | Session mint no longer pays a new TLS client |
 | Knowledge span dedup | Same rule cannot bloat writer prompts forever |
 | `rank_passages` one noul per page (cap 8) | Half the questions, same retrieve-then-judge |
-| Qwen-only ideation uses templates + `ask()` | OpenRouter-only installs skip the 3-way writer tournament |
+| Qwen-only ideation uses templates + `ask()` | OpenRouter-only installs never buy a 3-way writer tournament |
 | HTTP limits: 40/min judges, 20/min ads, 8/min voice | Stolen token / noisy UI cannot melt TypeSafe or OpenAI |
 | `apply_jev_ads_overlay` tests | Deny / force-approve / fail-open cannot relax AdSpendGuard |
 
@@ -730,7 +730,7 @@ Jev still judges video when the key is live. Social copy is now an extract — w
 
 | Change | Why it is guaranteed better |
 | --- | --- |
-| Dark-path ideation returns `templates[0]` | Classification is not worth a 3-way writer tournament. `n==1` still hits the writer so prompt-injection tests and a lone operator lens keep working |
+| Dark-path ideation returns `templates[0]` | Classification is not worth a writer. `n==1` without a lens is the same template. A lone operator hook lens still buys one Qwen hop |
 | Image-post `_plan` is always `template_carousel_plan` | gpt-image-1 still renders. A dark harness no longer spends a planner completion inventing slide copy |
 | Every `/jev/*` POST meters spend (fail-open, `niche_id` null) | Stolen token / noisy UI pays the ledger, not just the 40/min cap |
 | Enqueue + retry 10/min (jobs, articles, image posts); niche draft 8/min | Modal + writer spend cannot be melted by a tight loop |
@@ -1009,5 +1009,16 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | `openrouter.generation_metered` shared by scriptwriter, Visual Director, and ideation | Three copies of Qwen-first routing could drift. One helper, same fail-open (off / unknown / stock model → no change) |
 | n==1 ideation writer (operator hook lens) is Qwen-first | Last stock-`agent_model` writer on the operator-lens path. Templates still win n≥2 and n==1 without a lens |
 | Dead 3-way LLM tournament deleted | Unreachable on the stock template set (`limit=max(n,4)`). A future empty-candidate change cannot buy N chat completions + a judge |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 43. Wrap-up — tournament docs + None-safe Qwen hop
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `generation_metered(None)` is empty, not a TypeError | A missing niche dropdown must not fail a paid leftover writer |
+| JEV.md no longer claims a dark-path writer tournament | Install/theory matched the deleted 3-way hop. Operators reading §14/§19 would re-introduce it |
+| n≥2 ideation never calls `run_metered` (regression test) | Tournament cannot regress in behind templates + Jev |
+| Pin ruff `select` to `E4,E7,E9,F`; drop leftover `settings` imports | Ruff 0.16 treats omitted select as every rule. CI died on 560 style nits and never reached pytest |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

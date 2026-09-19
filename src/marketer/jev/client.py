@@ -231,4 +231,4 @@ def score(instructions: str, criteria: list[str]) -> Score:
 
 
 # Re-export the constructors' return types for callers that import from client.
-from .primitives import Choice, Noul, Score
+from .primitives import Choice, Noul, Score  # noqa: E402

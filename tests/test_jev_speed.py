@@ -747,6 +747,34 @@ def test_generation_metered_empty_when_openrouter_off(monkeypatch):
     assert agent.model == "gpt-5.4-mini"
 
 
+def test_generation_metered_none_is_empty_not_typeerror(monkeypatch):
+    from marketer.config import settings
+    from marketer.services import openrouter
+
+    class _Agent:
+        model = "gpt-5.4-mini"
+
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+    agent = _Agent()
+    assert openrouter.generation_metered(agent, None) == {}
+    assert agent.model == "gpt-5.4-mini"
+
+
+async def test_run_ideation_n_ge_2_never_calls_writer(monkeypatch):
+    from marketer.agents import ideation as ideation_mod
+    from marketer.agents.ideation import idea_candidates
+    from marketer.config import settings
+
+    async def boom(*_a, **_k):
+        raise AssertionError("n>=2 must not call the leftover writer")
+
+    monkeypatch.setattr(settings, "ideation_candidates", 3)
+    monkeypatch.setattr(settings, "jev_enabled", False)
+    monkeypatch.setattr(ideation_mod, "run_metered", boom)
+    idea = await ideation_mod.run_ideation("espresso")
+    assert idea.topic == idea_candidates("espresso")[0].topic
+
+
 def test_scriptwriter_forbids_invented_stats():
     from marketer.agents.scriptwriter import SCRIPTWRITER_INSTRUCTIONS
 

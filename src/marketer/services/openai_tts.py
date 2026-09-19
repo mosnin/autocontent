@@ -13,7 +13,6 @@ from openai import AsyncOpenAI
 from opentelemetry import trace
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from ..config import settings
 from .openai_pricing import tts_cost, tts_cost_estimated
 from .retry_policy import is_transient_openai_error
 from .spend_context import SpendContext

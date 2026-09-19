@@ -120,7 +120,7 @@ def test_prompt_override_length_bounded():
 
 # --------------------------------------------------------------------------- threading
 
-async def test_ideation_prompt_includes_brief_and_tournament_uses_its_lenses(
+async def test_ideation_prompt_includes_brief_and_solo_lens(
     monkeypatch,
 ):
     from agents import Runner
