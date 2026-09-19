@@ -540,6 +540,25 @@ def test_faq_section_and_publishable_metadata():
     assert checklist.count("\n- ") >= 3
     assert fastpath.checklist_section_from_research("FAQ", rich) is None
     assert fastpath.checklist_section_from_research("espresso checklist", serp) is None
+    pair = SerpAnalysis(
+        topResults=[
+            SerpResult(
+                title="Espresso",
+                url="https://a.example",
+                domain="a.example",
+                highlights=[
+                    "Start at 18 grams and a 1:2 ratio.",
+                    "Use a 9-bar pump and a burr grinder.",
+                ],
+            )
+        ],
+    )
+    assert fastpath.how_to_section_from_research("How to start with espresso", pair)
+    assert fastpath.mistakes_section_from_research(
+        "Mistakes to avoid with espresso", pair
+    )
+    assert fastpath.checklist_section_from_research("espresso checklist", pair)
+    assert fastpath.how_to_section_from_research("How to start with espresso", serp) is None
     definition = fastpath.definition_section_from_research(
         "What espresso actually is", rich
     )

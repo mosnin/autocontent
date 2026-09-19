@@ -466,7 +466,7 @@ def checklist_section_from_research(
     if "checklist" not in key:
         return None
     highlights = _research_highlights(research)
-    if len(highlights) < 3:
+    if len(highlights) < 2:
         return None
     lines = [f"## {(heading or 'Checklist').strip()}\n"]
     for item in highlights[:8]:
@@ -621,7 +621,7 @@ def how_to_section_from_research(
     if not key.startswith("how to start"):
         return None
     highlights = _research_highlights(research)
-    if len(highlights) < 3:
+    if len(highlights) < 2:
         return None
     lines = [f"## {(heading or 'How to start').strip()}\n"]
     for i, item in enumerate(highlights[:6], 1):
@@ -637,7 +637,7 @@ def mistakes_section_from_research(
     if "mistake" not in key:
         return None
     highlights = _research_highlights(research)
-    if len(highlights) < 3:
+    if len(highlights) < 2:
         return None
     lines = [f"## {(heading or 'Mistakes to avoid').strip()}\n"]
     for item in highlights[:6]:

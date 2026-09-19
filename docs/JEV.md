@@ -1072,3 +1072,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Approval resume still loads | `finish_image_post` only has the id. Same fail-closed empty-slides contract |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 49. Loop — playbook H2s stitch two SERP highlights
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| How-to, mistakes, and checklist templates accept 2 highlights | They required 3 and fell through to `write_section` on a two-highlight SERP. Stitching is grounded; the writer invented steps |
+| One highlight still buys the writer | Same thin-SERP contract as definition / stakes / last-resort grounded |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
