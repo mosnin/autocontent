@@ -71,8 +71,9 @@ async def refresh_account(
 
 
 @router.delete("/accounts/{account_id}", response_model=ads_repo.AdAccount)
+@limiter.limit(_ADS_LIMIT)
 async def disconnect_account(
-    account_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, account_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdAccount:
     acc = await ad_connections.disconnect(user_id=ctx.user_id, account_id=account_id)
     if acc is None:

@@ -61,14 +61,24 @@ def _require_enabled() -> None:
         )
 
 
+_cached: tuple[str, object] | None = None
+
+
 def _client():
-    """Construct a Composio client. Lazy so the package is optional."""
+    """Reuse one Composio client per process + API key. Lazy so the
+    package is optional; keyed so a rotated secret does not stick."""
+    global _cached
     _require_enabled()
+    key = settings.composio_api_key
+    if _cached is not None and _cached[0] == key:
+        return _cached[1]
     try:
         from composio import Composio  # type: ignore
     except Exception as e:  # noqa: BLE001 — package optional
         raise AdsDisabled(f"composio package not available: {e}") from e
-    return Composio(api_key=settings.composio_api_key)
+    client = Composio(api_key=key)
+    _cached = (key, client)
+    return client
 
 
 def initiate_connection(*, user_id: str, platform: str) -> ConnectionInit:

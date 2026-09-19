@@ -189,6 +189,39 @@ async def test_plan_is_always_template(monkeypatch):
     assert "claude tips" in plan.slides[0].heading.lower() or plan.caption
 
 
+async def test_plan_strips_invented_stats(monkeypatch):
+    """Caption facts the niche brief does not contain are stripped."""
+
+    def fake_template(**kwargs):
+        return CarouselPlan(
+            slides=[
+                CarouselSlide(
+                    index=0,
+                    heading="We save 47%. Next step.",
+                    body="Study shows 2024. Do this.",
+                    visual_prompt="diagram",
+                )
+            ],
+            caption="Research shows 99% of marketers fail. Do this next.",
+            hashtags=["claude"],
+        )
+
+    monkeypatch.setattr(svc, "template_carousel_plan", fake_template)
+    plan = await svc._plan(
+        topic="claude tips",
+        kind="single",
+        slide_count=1,
+        niche=_niche(),
+        spend=None,  # type: ignore[arg-type]
+    )
+    assert "99%" not in plan.caption
+    assert "Do this next" in plan.caption
+    assert "47%" not in plan.slides[0].heading
+    assert "Next step" in plan.slides[0].heading
+    assert "2024" not in plan.slides[0].body
+    assert "Do this" in plan.slides[0].body
+
+
 # --------------------------------------------------------------------------- remix
 
 async def test_template_remix_uses_both_references(tmp_path, monkeypatch):

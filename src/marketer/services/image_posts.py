@@ -16,6 +16,7 @@ all see it.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -68,7 +69,64 @@ async def _plan(
         sl.model_copy(update={"index": i})
         for i, sl in enumerate(ordered[: (1 if kind == "single" else MAX_SLIDES)])
     ]
-    return plan
+    return _lock_image_copy(plan, niche)
+
+
+def _lock_image_copy(plan: CarouselPlan, niche: Niche) -> CarouselPlan:
+    """Drop invented % / $ / study-year sentences from caption + on-image copy.
+
+    Allowed tokens come from the niche brief — carousels have no SERP.
+    A heading/body/caption that would empty is left alone (fail-open).
+    """
+    from ..jev.grounding import fact_tokens, strip_ungrounded_claims
+
+    allowed = fact_tokens(
+        " ".join(
+            part
+            for part in (niche.title, niche.description, niche.target_audience)
+            if part
+        )
+    )
+    caption, notes = strip_ungrounded_claims(plan.caption or "", allowed)
+    slides = []
+    for slide in plan.slides:
+        heading, heading_notes = strip_ungrounded_claims(slide.heading or "", allowed)
+        body, body_notes = strip_ungrounded_claims(slide.body or "", allowed)
+        notes.extend(heading_notes)
+        notes.extend(body_notes)
+        updates: dict[str, str] = {}
+        if heading_notes and heading.strip():
+            updates["heading"] = heading
+        if body_notes and body.strip():
+            updates["body"] = body
+        slides.append(slide.model_copy(update=updates) if updates else slide)
+    if not notes:
+        return plan
+    log.info("image-post fact lock", extra={"stripped": len(notes)})
+    updates: dict[str, Any] = {"slides": slides}
+    if caption.strip():
+        updates["caption"] = caption
+    return plan.model_copy(update=updates)
+
+
+async def _archive_slides_fail_open(
+    *,
+    user_id: str,
+    niche_id: UUID,
+    image_post_id: UUID,
+    slide_paths: list[Path],
+    title: str,
+) -> None:
+    try:
+        await media_archive.archive_image_slides(
+            user_id=user_id,
+            niche_id=niche_id,
+            image_post_id=image_post_id,
+            slide_paths=slide_paths,
+            title=title,
+        )
+    except Exception as e:  # noqa: BLE001
+        log.warning("image post archive failed", extra={"error": str(e)})
 
 
 async def run_image_post(
@@ -100,6 +158,7 @@ async def run_image_post(
         cap_usd=niche.daily_spend_cap_usd,
     )
     root = ensure_layout(f"{user_id}/imageposts/{image_post_id}")
+    archive_task: asyncio.Task | None = None
 
     try:
         # 1. Plan
@@ -143,26 +202,41 @@ async def run_image_post(
             image_post_id, user_id=user_id, payload=payload
         )
 
-        # 3. Archive into the library (fail-open, same as video).
-        try:
-            await media_archive.archive_image_slides(
-                user_id=user_id, niche_id=niche.id, image_post_id=image_post_id,
-                slide_paths=paths, title=plan.caption.splitlines()[0] if plan.caption else post["topic"],
+        # 3. Archive in the same beat as park / publish_gate. Fail-open.
+        archive_task = asyncio.create_task(
+            _archive_slides_fail_open(
+                user_id=user_id,
+                niche_id=niche.id,
+                image_post_id=image_post_id,
+                slide_paths=paths,
+                title=plan.caption.splitlines()[0] if plan.caption else post["topic"],
             )
-        except Exception as e:  # noqa: BLE001
-            log.warning("image post archive failed", extra={"error": str(e)})
+        )
 
         # 4. Approval gate (trust ramp parity with video).
         if niche.approve_before_post:
-            return await image_posts_repo.set_status(
-                image_post_id, user_id=user_id, status="awaiting_approval"
+            parked, _ = await asyncio.gather(
+                image_posts_repo.set_status(
+                    image_post_id, user_id=user_id, status="awaiting_approval"
+                ),
+                archive_task,
             )
+            return parked
 
-        # 5. Schedule.
+        # 5. Schedule — publish_gate overlaps the remaining archive work.
         return await schedule_image_post(
-            user_id=user_id, image_post_id=image_post_id, apply_schedule=apply_schedule
+            user_id=user_id,
+            image_post_id=image_post_id,
+            apply_schedule=apply_schedule,
+            archive_task=archive_task,
         )
     except Exception as e:  # noqa: BLE001 — terminal backstop, no zombie rows
+        if archive_task is not None and not archive_task.done():
+            archive_task.cancel()
+            try:
+                await archive_task
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
         log.warning(
             "image post failed", extra={"image_post_id": str(image_post_id), "error": str(e)}
         )
@@ -177,15 +251,22 @@ async def schedule_image_post(
     image_post_id: UUID,
     apply_schedule=None,
     human_approved: bool = False,
+    archive_task: asyncio.Task | None = None,
 ) -> dict:
     """Post the generated slides. Shared by the autonomous path and the
-    approval resume."""
+    approval resume. `archive_task` (when provided) overlaps Auto Mode."""
     post = await image_posts_repo.get(image_post_id, user_id=user_id)
     if post is None:
         raise ValueError(f"image post {image_post_id} not found")
     niche = await niches_repo.get(post["niche_id"], user_id=user_id)
     slides = post["payload"].get("slides", [])
     if not slides or niche is None:
+        if archive_task is not None:
+            archive_task.cancel()
+            try:
+                await archive_task
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
         return await image_posts_repo.fail(
             image_post_id, user_id=user_id, error="nothing generated to post"
         )
@@ -196,7 +277,7 @@ async def schedule_image_post(
         caption = post["payload"].get("caption", "")
         hashtags = post["payload"].get("hashtags", [])
         platform = image_platform(niche, post["payload"].get("platform")) or "reels"
-        gate = await publish_gate(
+        gate_coro = publish_gate(
             {
                 "image_post_id": str(image_post_id),
                 "caption": caption,
@@ -207,6 +288,10 @@ async def schedule_image_post(
             tool="schedule_image_post",
             human_approved=human_approved,
         )
+        if archive_task is not None:
+            gate, _ = await asyncio.gather(gate_coro, archive_task)
+        else:
+            gate = await gate_coro
         if gate.payload:
             payload = dict(post.get("payload") or {})
             payload["harness"] = gate.payload

@@ -15,15 +15,17 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.models import Kit
 from marketer.repos import kits as kits_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_KIT_LIMIT = "10/minute"
 
 
 class KitCreate(BaseModel):
@@ -52,7 +54,10 @@ async def list_kits(
 
 
 @router.post("", response_model=Kit, status_code=status.HTTP_201_CREATED)
-async def create_kit(body: KitCreate, ctx: AuthCtx = CurrentUser) -> Kit:
+@limiter.limit(_KIT_LIMIT)
+async def create_kit(
+    request: Request, body: KitCreate, ctx: AuthCtx = CurrentUser
+) -> Kit:
     return await kits_repo.create(user_id=ctx.user_id, **body.model_dump())
 
 

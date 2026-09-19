@@ -14,6 +14,7 @@ or their ad campaign) — no cross-tenant references.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Literal
@@ -91,9 +92,11 @@ async def get_campaign(
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    items = await campaigns_repo.list_items(campaign_id, user_id=ctx.user_id)
-    spent = await campaigns_repo.spent_usd(campaign_id, user_id=ctx.user_id)
-    counts = await campaigns_repo.work_counts(campaign_id, user_id=ctx.user_id)
+    items, spent, counts = await asyncio.gather(
+        campaigns_repo.list_items(campaign_id, user_id=ctx.user_id),
+        campaigns_repo.spent_usd(campaign_id, user_id=ctx.user_id),
+        campaigns_repo.work_counts(campaign_id, user_id=ctx.user_id),
+    )
     return CampaignOverview(
         campaign=campaign,
         items=items,
@@ -140,8 +143,9 @@ async def pause_campaign(
     response_model=CampaignItem,
     status_code=status.HTTP_201_CREATED,
 )
+@limiter.limit(_START_LIMIT)
 async def add_item(
-    campaign_id: UUID, body: ItemCreate, ctx: AuthCtx = CurrentUser
+    request: Request, campaign_id: UUID, body: ItemCreate, ctx: AuthCtx = CurrentUser
 ) -> CampaignItem:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:

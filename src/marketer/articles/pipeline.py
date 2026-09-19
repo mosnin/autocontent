@@ -124,12 +124,19 @@ async def _notify(article: Article, *, kind: str) -> None:
         log.warning("article notification failed", extra={"error": str(e)})
 
 
+async def _signal_terminal(article: Article, *, kind: str, event: str) -> None:
+    """Email + outbound webhook in one beat. Both are fail-open."""
+    await asyncio.gather(
+        _notify(article, kind=kind),
+        _emit_webhook(article, event),
+    )
+
+
 async def _fail_with(article: Article, error: str, exc: BaseException | None = None) -> Article:
     article.status = ArticleStatus.failed
     article.error = error
     await articles_repo.save(article)
-    await _notify(article, kind="failed")
-    await _emit_webhook(article, "article.failed")
+    await _signal_terminal(article, kind="failed", event="article.failed")
     try:
         import sentry_sdk
         if exc is not None:
@@ -443,6 +450,5 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
     article.error = None
     await articles_repo.save(article)
     log.info("article done", extra={"article_id": str(article.id)})
-    await _notify(article, kind="done")
-    await _emit_webhook(article, "article.done")
+    await _signal_terminal(article, kind="done", event="article.done")
     return article

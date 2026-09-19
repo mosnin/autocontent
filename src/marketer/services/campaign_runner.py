@@ -23,6 +23,7 @@ defaults spawn the Modal functions.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -114,7 +115,12 @@ async def run_campaign_tick(
         await campaigns_repo.set_status(campaign.id, user_id=uid, status="completed")
         return {"campaign_id": str(campaign.id), "action": "completed", "reason": "window ended"}
 
-    spent = await campaigns_repo.spent_usd(campaign.id, user_id=uid)
+    spent, items_all, counts, pending = await asyncio.gather(
+        campaigns_repo.spent_usd(campaign.id, user_id=uid),
+        campaigns_repo.list_items(campaign.id, user_id=uid),
+        campaigns_repo.work_counts(campaign.id, user_id=uid),
+        campaigns_repo.pending_work_count(campaign.id, user_id=uid),
+    )
     if spent >= campaign.budget_usd:
         await campaigns_repo.set_status(campaign.id, user_id=uid, status="completed")
         return {
@@ -122,15 +128,13 @@ async def run_campaign_tick(
             "reason": f"budget exhausted (${spent} >= ${campaign.budget_usd})",
         }
 
-    items = [i for i in await campaigns_repo.list_items(campaign.id, user_id=uid) if i.enabled]
-    counts = await campaigns_repo.work_counts(campaign.id, user_id=uid)
+    items = [i for i in items_all if i.enabled]
 
     # Budget projection: landed spend + in-flight pieces (whose spend
     # hasn't hit the ledger yet) at the configured per-piece estimate.
     # Without this, every lane could spawn once per tick right up to the
     # ledger catching up — overshooting the budget by lanes x cost.
     est = Decimal(str(settings.campaign_est_cost_per_piece_usd))
-    pending = await campaigns_repo.pending_work_count(campaign.id, user_id=uid)
     projected = spent + est * pending
 
     spawned: list[str] = []

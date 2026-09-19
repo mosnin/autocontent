@@ -816,3 +816,17 @@ Ads overlay and delivery-fact floors are unchanged. Jev still cannot generate vi
 | Campaign create 10/min; niche create 8/min | Spray-create is the front door onto the runner / writer. Same class of bound as start / draft |
 
 Jev still does not write narration. Ads overlay and delivery-fact floors are unchanged.
+
+## 26. Loop — article signals, image archive overlap, Composio cache
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Article `_signal_terminal` gathers email + webhook | Same leftover as video: fail / done waited for Resend then the fan-out. Independent, fail-open |
+| Image-slide archive fans out | Wasabi uploads no longer wait on each other. One failed slide does not abort the rest |
+| Archive overlaps park / publish_gate | Autonomous image posts start Auto Mode while slides upload. Approval parks in the same beat as archive |
+| Image-post fact lock | Caption / heading / body drop invented `%` / `$` / study-year sentences against the niche brief. Empty leftovers stay (fail-open) |
+| Composio client cached per API key | Connect / status / execute reused a new SDK client each call. Rotating the key still rebuilds |
+| Campaign tick + detail gather four/three independent reads | `spent_usd` + items + counts + pending were sequential RTTs on every hourly tick and every GET |
+| Campaign items 10/min; kits create 10/min; template create 10/min; ads disconnect 20/min | Lane attach and kit spray are spawn front doors. Disconnect is the same abuse class as connect |
+
+Jev still does not write captions. Ads overlay never relaxes AdSpendGuard.

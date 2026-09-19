@@ -240,7 +240,9 @@ async def _mirror_reference(dest: Path) -> None:
 
 
 @router.post("", response_model=Template, status_code=status.HTTP_201_CREATED)
+@limiter.limit(_REMIX_LIMIT)
 async def create_template(
+    request: Request,
     body: TemplateCreate, admin=Depends(require_admin),
     _size_ok: None = Depends(_bounded_body),
 ) -> Template:
