@@ -1053,3 +1053,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | No new brand I/O | Topic is already in `_plan`. Same fail-open empty-caption contract |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 47. Loop — article enqueue/retry is one gather
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `run_article(article_id=)` gathers niche + article + spend | Modal enqueue/retry always pass the row id. Niche-first was a leftover DB RTT on every article |
+| Cap is applied after gather (`if spend is not None`) | `default_context` does not need the niche row. Missing spend still fail-opens |
+| Create-without-id still checks niche first | A missing niche must not insert an orphan article |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

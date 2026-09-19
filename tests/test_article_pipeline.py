@@ -101,11 +101,13 @@ def stub_all(monkeypatch, tmp_path):
         async def _rec(entry):
             entries.append(entry)
 
-        return SpendContext(
+        ctx = SpendContext(
             user_id=kwargs["user_id"], niche_id=kwargs["niche_id"],
             job_id=None, article_id=kwargs.get("article_id"),
-            record=_rec, cap_usd=None,
+            record=_rec, cap_usd=kwargs.get("cap_usd"),
         )
+        state["spend"] = ctx
+        return ctx
 
     monkeypatch.setattr(apipe, "default_context", fake_default_context)
 
@@ -179,6 +181,20 @@ def stub_all(monkeypatch, tmp_path):
     monkeypatch.setattr(settings, "jev_enabled", False)
 
     return state
+
+
+async def test_existing_article_gathers_niche_and_spend(stub_all):
+    art = await apipe.articles_repo.create(
+        user_id=USER_ID, niche_id=NICHE_ID, topic="espresso"
+    )
+    result = await apipe.run_article(
+        user_id=USER_ID, niche_id=NICHE_ID, article_id=art.id, topic="espresso"
+    )
+    assert result.id == art.id
+    assert result.status == ArticleStatus.done
+    spend = stub_all["spend"]
+    assert spend.cap_usd == Decimal("3.00")
+    assert spend.article_id == art.id
 
 
 async def test_happy_path_reaches_done(stub_all):

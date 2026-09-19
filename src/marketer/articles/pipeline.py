@@ -243,26 +243,33 @@ async def run_article(
     article_id: UUID | None = None,
     topic: str = "",
 ) -> Article:
-    niche = await niches_repo.get(niche_id, user_id=user_id)
-    if niche is None:
-        raise ValueError(f"niche {niche_id} not found for user {user_id}")
-
     if article_id is not None:
-        article, spend = await asyncio.gather(
+        # Enqueue / retry always pass the row id. Niche, article, and
+        # spend are independent reads — waiting on niche first was a
+        # leftover RTT on every Modal run.
+        niche, article, spend = await asyncio.gather(
+            niches_repo.get(niche_id, user_id=user_id),
             articles_repo.get(article_id, user_id=user_id),
             default_context(
                 user_id=user_id,
                 niche_id=niche_id,
                 job_id=None,
                 article_id=article_id,
-                cap_usd=niche.daily_spend_cap_usd,
+                cap_usd=None,
             ),
         )
+        if niche is None:
+            raise ValueError(f"niche {niche_id} not found for user {user_id}")
         if article is None:
             raise ValueError(f"article {article_id} not found for user {user_id}")
+        if spend is not None:
+            spend.cap_usd = niche.daily_spend_cap_usd
         if topic:
             article.topic = topic
     else:
+        niche = await niches_repo.get(niche_id, user_id=user_id)
+        if niche is None:
+            raise ValueError(f"niche {niche_id} not found for user {user_id}")
         article, spend = await asyncio.gather(
             articles_repo.create(
                 user_id=user_id, niche_id=niche_id, topic=topic
