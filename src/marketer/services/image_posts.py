@@ -70,21 +70,31 @@ async def _plan(
         sl.model_copy(update={"index": i})
         for i, sl in enumerate(ordered[: (1 if kind == "single" else MAX_SLIDES)])
     ]
-    return _lock_image_copy(plan, niche)
+    return _lock_image_copy(plan, niche, extra=topic)
 
 
-def _lock_image_copy(plan: CarouselPlan, niche: Niche) -> CarouselPlan:
+def _lock_image_copy(plan: CarouselPlan, niche: Niche, extra: str = "") -> CarouselPlan:
     """Drop invented % / $ / study-year sentences from caption + on-image copy.
 
-    Allowed tokens come from the niche brief — carousels have no SERP.
+    Allowed tokens come from the niche brief plus the already-loaded
+    topic — templates copy that topic into caption and headings.
     A heading/body/caption that would empty is left alone (fail-open).
     """
+    if extra is None:
+        extra = ""
+    if not isinstance(extra, str):
+        raise TypeError("extra must be a string")
     from ..jev.grounding import fact_tokens, strip_ungrounded_claims
 
     allowed = fact_tokens(
         " ".join(
             part
-            for part in (niche.title, niche.description, niche.target_audience)
+            for part in (
+                niche.title,
+                niche.description,
+                niche.target_audience,
+                extra,
+            )
             if part
         )
     )

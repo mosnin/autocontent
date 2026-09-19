@@ -665,6 +665,49 @@ def test_template_carousel_plan_is_deterministic():
     assert carousel.caption
 
 
+def test_lock_image_copy_keeps_topic_stats():
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from marketer.agents.carousel import CarouselPlan, CarouselSlide
+    from marketer.models import Niche, PostingWindow
+    from marketer.services.image_posts import _lock_image_copy
+
+    plan = CarouselPlan(
+        slides=[
+            CarouselSlide(
+                index=0,
+                heading="Research shows 87% of shots fail",
+                body="Dial the grind first",
+                visual_prompt="vp",
+            )
+        ],
+        caption="Research shows 87% of shots fail. Save this for later.",
+        hashtags=["espresso"],
+    )
+    niche = Niche(
+        id=uuid4(),
+        user_id="u",
+        title="home espresso",
+        description="Dial grind size for sweeter shots.",
+        target_audience="baristas",
+        visual_style="warm",
+        voice="onyx",
+        target_duration_sec=4,
+        scene_count=1,
+        posting_windows=[PostingWindow(hour=9, minute=0, tz="UTC")],
+        platforms=["reels"],
+        daily_spend_cap_usd=Decimal("5"),
+    )
+    stripped = _lock_image_copy(plan, niche)
+    assert "87%" not in stripped.caption
+    kept = _lock_image_copy(
+        plan, niche, extra="Research shows 87% of shots fail."
+    )
+    assert "87%" in kept.caption
+    assert "87%" in kept.slides[0].heading
+
+
 def test_template_visual_director_fills_thin_prompts():
     from marketer.agents.visual_director import (
         should_template_visuals,

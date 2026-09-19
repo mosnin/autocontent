@@ -1044,3 +1044,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | `extra=None` is empty, not a TypeError | Missing tone must not fail a paid article |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 46. Loop — image-post fact lock keeps the loaded topic
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `_lock_image_copy(..., extra=topic)` | Templates copy the topic into caption and headings. Brief-only lock stripped numbers the operator already typed |
+| No new brand I/O | Topic is already in `_plan`. Same fail-open empty-caption contract |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
