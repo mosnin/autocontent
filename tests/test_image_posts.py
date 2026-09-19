@@ -146,6 +146,46 @@ async def test_carousel_flow_slide1_is_reference_and_posts(env):
     assert "planning" in env["statuses"] and "generating" in env["statuses"]
 
 
+async def test_run_image_post_mismatch_niche_fail_closes(env):
+    other = uuid4()
+    with pytest.raises(ValueError, match="niche mismatch"):
+        await svc.run_image_post(
+            user_id=USER,
+            image_post_id=POST_ID,
+            apply_schedule=env["poster"],
+            niche_id=other,
+        )
+
+
+async def test_schedule_image_post_mismatch_niche_fail_closes(env):
+    env["post"] = {
+        **env["post"],
+        "payload": {
+            "caption": "Hook line",
+            "hashtags": ["claude"],
+            "slides": [{"index": 0, "heading": "h0", "path": "/tmp/s0.png"}],
+        },
+    }
+    other = uuid4()
+    with pytest.raises(ValueError, match="niche mismatch"):
+        await svc.schedule_image_post(
+            user_id=USER,
+            image_post_id=POST_ID,
+            apply_schedule=env["poster"],
+            niche_id=other,
+        )
+
+
+async def test_run_image_post_gathers_when_niche_id_passed(env):
+    result = await svc.run_image_post(
+        user_id=USER,
+        image_post_id=POST_ID,
+        apply_schedule=env["poster"],
+        niche_id=NICHE_ID,
+    )
+    assert result["status"] == "done"
+
+
 async def test_schedule_reuses_loaded_post_and_niche(env, monkeypatch):
     from marketer.repos import image_posts as repo
     from marketer.repos import niches as niches_repo

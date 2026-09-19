@@ -112,32 +112,40 @@ async def fail(image_post_id: UUID, *, user_id: str, error: str) -> dict:
     return _row(row)
 
 
-async def claim_for_retry(image_post_id: UUID, *, user_id: str) -> bool:
-    """Atomic failed -> queued reset (retry button double-click safety)."""
+async def claim_for_retry(image_post_id: UUID, *, user_id: str) -> dict | None:
+    """Atomic failed -> queued reset (retry button double-click safety).
+
+    Returns the claimed row (so callers can pass ``niche_id`` into
+    ``run_image_post``) or None if the post wasn't claimable.
+    """
     pool = await get_pool()
     row = await pool.fetchrow(
         """
         update image_posts set status = 'queued', error = null, updated_at = now()
         where id = $1 and user_id = $2 and status = 'failed'
-        returning id
+        returning *
         """,
         image_post_id, user_id,
     )
-    return row is not None
+    return _row(row) if row else None
 
 
-async def claim_for_scheduling(image_post_id: UUID, *, user_id: str) -> bool:
-    """Atomic awaiting_approval -> scheduling claim (double-click safety)."""
+async def claim_for_scheduling(image_post_id: UUID, *, user_id: str) -> dict | None:
+    """Atomic awaiting_approval -> scheduling claim (double-click safety).
+
+    Returns the claimed row (so approve can pass ``niche_id`` into
+    ``finish_image_post``) or None if the post wasn't claimable.
+    """
     pool = await get_pool()
     row = await pool.fetchrow(
         """
         update image_posts set status = 'scheduling', updated_at = now()
         where id = $1 and user_id = $2 and status = 'awaiting_approval'
-        returning id
+        returning *
         """,
         image_post_id, user_id,
     )
-    return row is not None
+    return _row(row) if row else None
 
 
 _REAPABLE_STATUSES = ("queued", "planning", "generating", "scheduling")

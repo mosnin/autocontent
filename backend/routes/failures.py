@@ -175,7 +175,10 @@ async def replay_failure(
         return {"kind": "job", "id": str(job.id), "status": job.status.value}
 
     if kind == "image_post":
-        if not await image_posts_repo.claim_for_retry(item_id, user_id=ctx.user_id):
+        claimed = await image_posts_repo.claim_for_retry(
+            item_id, user_id=ctx.user_id
+        )
+        if not claimed:
             existing = await image_posts_repo.get(item_id, user_id=ctx.user_id)
             if existing is None:
                 raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -184,7 +187,7 @@ async def replay_failure(
                 detail=f"post is {existing['status']}, not failed",
             )
         fn = modal.Function.from_name("marketer-sh", "run_image_post")
-        fn.spawn(ctx.user_id, str(item_id))
+        fn.spawn(ctx.user_id, str(item_id), str(claimed["niche_id"]))
         return {"kind": "image_post", "id": str(item_id), "status": "queued"}
 
     # kind == "article" — atomic failed->queued claim (no double-spawn).

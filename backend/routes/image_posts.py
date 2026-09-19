@@ -58,7 +58,7 @@ async def enqueue_image_post(
     import modal
 
     fn = modal.Function.from_name("marketer-sh", "run_image_post")
-    fn.spawn(ctx.user_id, str(post["id"]))
+    fn.spawn(ctx.user_id, str(post["id"]), str(body.niche_id))
     return post
 
 
@@ -79,7 +79,10 @@ async def retry_image_post(
     request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> dict:
     """Re-run a failed post from the top (fresh plan + renders)."""
-    if not await image_posts_repo.claim_for_retry(image_post_id, user_id=ctx.user_id):
+    claimed = await image_posts_repo.claim_for_retry(
+        image_post_id, user_id=ctx.user_id
+    )
+    if not claimed:
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -90,7 +93,7 @@ async def retry_image_post(
     import modal
 
     fn = modal.Function.from_name("marketer-sh", "run_image_post")
-    fn.spawn(ctx.user_id, str(image_post_id))
+    fn.spawn(ctx.user_id, str(image_post_id), str(claimed["niche_id"]))
     return {"status": "queued"}
 
 
@@ -100,9 +103,10 @@ async def approve_image_post(
     request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> dict:
     """Operator sign-off: atomically claim and resume at scheduling."""
-    if not await image_posts_repo.claim_for_scheduling(
+    claimed = await image_posts_repo.claim_for_scheduling(
         image_post_id, user_id=ctx.user_id
-    ):
+    )
+    if not claimed:
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -113,5 +117,5 @@ async def approve_image_post(
     import modal
 
     fn = modal.Function.from_name("marketer-sh", "finish_image_post")
-    fn.spawn(ctx.user_id, str(image_post_id))
+    fn.spawn(ctx.user_id, str(image_post_id), str(claimed["niche_id"]))
     return {"status": "scheduling"}

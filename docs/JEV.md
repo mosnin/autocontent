@@ -1101,3 +1101,14 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Missing `niche_id` still loads sequentially | Old Modal workers and direct tests keep working |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 52. Loop — image-post enqueue/retry/approve gather post + niche
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `run_image_post(niche_id=)` gathers post + niche + spend | Enqueue already had the niche. Generate loaded post then niche + spend sequentially |
+| `schedule_image_post(niche_id=)` gathers post + niche | Approve resume was the leftover sequential pair after generate started passing both |
+| Claim returns the row; mismatch fail-closes | Retry / inbox replay / approve already paid the UPDATE. A spoofed niche id cannot spend or schedule against someone else's brief |
+| Missing `niche_id` still loads sequentially | Old Modal workers and direct tests keep working |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

@@ -141,23 +141,50 @@ async def _archive_slides_fail_open(
 
 
 async def run_image_post(
-    *, user_id: str, image_post_id: UUID, apply_schedule=None
+    *,
+    user_id: str,
+    image_post_id: UUID,
+    apply_schedule=None,
+    niche_id: UUID | None = None,
 ) -> dict:
     """Drive one image post to a terminal state. `apply_schedule` is
-    injectable for tests; production posts through Ayrshare."""
-    post = await image_posts_repo.get(image_post_id, user_id=user_id)
+    injectable for tests; production posts through Ayrshare.
+
+    Enqueue / retry already know ``niche_id`` — pass it so post +
+    niche + spend load in one gather. A mismatch fail-closes.
+    """
+    if niche_id is not None and not isinstance(niche_id, UUID):
+        raise TypeError("niche_id must be a UUID")
+    if niche_id is not None:
+        post, niche, spend = await asyncio.gather(
+            image_posts_repo.get(image_post_id, user_id=user_id),
+            niches_repo.get(niche_id, user_id=user_id),
+            default_context(
+                user_id=user_id,
+                niche_id=niche_id,
+                job_id=None,
+                image_post_id=image_post_id,
+                cap_usd=None,
+            ),
+        )
+    else:
+        post = await image_posts_repo.get(image_post_id, user_id=user_id)
+        if post is None:
+            raise ValueError(f"image post {image_post_id} not found for {user_id}")
+        niche, spend = await asyncio.gather(
+            niches_repo.get(post["niche_id"], user_id=user_id),
+            default_context(
+                user_id=user_id,
+                niche_id=post["niche_id"],
+                job_id=None,
+                image_post_id=image_post_id,
+                cap_usd=None,
+            ),
+        )
     if post is None:
         raise ValueError(f"image post {image_post_id} not found for {user_id}")
-    niche, spend = await asyncio.gather(
-        niches_repo.get(post["niche_id"], user_id=user_id),
-        default_context(
-            user_id=user_id,
-            niche_id=post["niche_id"],
-            job_id=None,
-            image_post_id=image_post_id,
-            cap_usd=None,
-        ),
-    )
+    if niche_id is not None and UUID(str(post["niche_id"])) != niche_id:
+        raise ValueError(f"image post {image_post_id} niche mismatch")
     if niche is None:
         return await image_posts_repo.fail(
             image_post_id, user_id=user_id, error="niche not found"
@@ -286,21 +313,33 @@ async def schedule_image_post(
     archive_task: asyncio.Task | None = None,
     post: dict[str, Any] | None = None,
     niche: Niche | None = None,
+    niche_id: UUID | None = None,
 ) -> dict:
     """Post the generated slides. Shared by the autonomous path and the
     approval resume. `archive_task` (when provided) overlaps Auto Mode.
 
     The generate path already loaded post + niche; pass them through so
-    we do not pay two leftover reads before publish_gate.
+    we do not pay two leftover reads before publish_gate. Approval
+    resume passes ``niche_id`` so post + niche load in one gather.
+    A mismatch fail-closes.
     """
     if post is not None and not isinstance(post, dict):
         raise TypeError("post must be a dict")
     if niche is not None and not isinstance(niche, Niche):
         raise TypeError("niche must be a Niche")
-    if post is None:
+    if niche_id is not None and not isinstance(niche_id, UUID):
+        raise TypeError("niche_id must be a UUID")
+    if post is None and niche is None and niche_id is not None:
+        post, niche = await asyncio.gather(
+            image_posts_repo.get(image_post_id, user_id=user_id),
+            niches_repo.get(niche_id, user_id=user_id),
+        )
+    elif post is None:
         post = await image_posts_repo.get(image_post_id, user_id=user_id)
     if post is None:
         raise ValueError(f"image post {image_post_id} not found")
+    if niche_id is not None and UUID(str(post["niche_id"])) != niche_id:
+        raise ValueError(f"image post {image_post_id} niche mismatch")
     if niche is None:
         niche = await niches_repo.get(post["niche_id"], user_id=user_id)
     slides = post["payload"].get("slides", [])

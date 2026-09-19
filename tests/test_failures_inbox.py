@@ -346,9 +346,9 @@ def test_replay_job_conflict_when_not_failed(monkeypatch):
 def test_replay_image_post_delegates_to_claim_for_retry(monkeypatch):
     from marketer.repos import image_posts as image_posts_repo
 
-    async def _claim(image_post_id: UUID, *, user_id: str) -> bool:
+    async def _claim(image_post_id: UUID, *, user_id: str):
         assert user_id == _USER_ID
-        return True
+        return {"id": image_post_id, "niche_id": _IMAGE_POST_ID, "status": "queued"}
 
     monkeypatch.setattr(image_posts_repo, "claim_for_retry", _claim)
 

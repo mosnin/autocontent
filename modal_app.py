@@ -166,12 +166,23 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 30,
 )
-async def run_image_post(user_id: str, image_post_id: str) -> dict:
-    """Drive one image post (still or carousel) to a terminal state."""
+async def run_image_post(
+    user_id: str, image_post_id: str, niche_id: str = ""
+) -> dict:
+    """Drive one image post (still or carousel) to a terminal state.
+
+    Optional ``niche_id`` (from enqueue / retry) lets post + niche +
+    spend load in one gather.
+    """
     from uuid import UUID
     from marketer.services.image_posts import run_image_post as _run
 
-    result = await _run(user_id=user_id, image_post_id=UUID(image_post_id))
+    extra: dict[str, UUID] = {}
+    if niche_id:
+        extra["niche_id"] = UUID(niche_id)
+    result = await _run(
+        user_id=user_id, image_post_id=UUID(image_post_id), **extra
+    )
     artifacts.commit()
     return {"status": result.get("status")}
 
@@ -180,13 +191,25 @@ async def run_image_post(user_id: str, image_post_id: str) -> dict:
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 10,
 )
-async def finish_image_post(user_id: str, image_post_id: str) -> dict:
-    """Resume an approved image post at the scheduling stage."""
+async def finish_image_post(
+    user_id: str, image_post_id: str, niche_id: str = ""
+) -> dict:
+    """Resume an approved image post at the scheduling stage.
+
+    Optional ``niche_id`` (from the claimed row) lets post + niche
+    load in one gather.
+    """
     from uuid import UUID
     from marketer.services.image_posts import schedule_image_post as _schedule
 
+    extra: dict[str, UUID] = {}
+    if niche_id:
+        extra["niche_id"] = UUID(niche_id)
     result = await _schedule(
-        user_id=user_id, image_post_id=UUID(image_post_id), human_approved=True
+        user_id=user_id,
+        image_post_id=UUID(image_post_id),
+        human_approved=True,
+        **extra,
     )
     return {"status": result.get("status")}
 
