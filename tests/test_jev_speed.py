@@ -441,7 +441,7 @@ def test_faq_section_and_publishable_metadata():
     assert fastpath.faq_section_from_research("Grind size", serp) is None
     assert fastpath.metadata_is_publishable(
         "Dial in espresso at home: a practical guide",
-        "A practical guide to espresso for home baristas who want sweeter shots.",
+        "A practical guide to espresso for home baristas who want sweeter, more consistent shots every morning.",
         "espresso",
     )
     assert not fastpath.metadata_is_publishable("x", "short", "espresso")
