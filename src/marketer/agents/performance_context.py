@@ -14,6 +14,7 @@ falls back to its default priors unchanged.
 """
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -43,23 +44,38 @@ async def build_performance_context(
     Returns an empty string when no metrics are available yet (cold-start).
     Jobs that no longer exist or that were never scripted are silently skipped.
     """
-    top_pairs = await post_metrics.top_performers_for_niche(
-        niche_id, user_id=user_id, limit=top_n, days=lookback_days
-    )
-    bottom_pairs = await post_metrics.bottom_performers_for_niche(
-        niche_id, user_id=user_id, limit=bottom_n, days=lookback_days
+    top_pairs, bottom_pairs = await asyncio.gather(
+        post_metrics.top_performers_for_niche(
+            niche_id, user_id=user_id, limit=top_n, days=lookback_days
+        ),
+        post_metrics.bottom_performers_for_niche(
+            niche_id, user_id=user_id, limit=bottom_n, days=lookback_days
+        ),
     )
 
     if not top_pairs and not bottom_pairs:
         return ""
 
-    async def _hydrate(pairs) -> list[WinnerLoser]:
+    seen: set[UUID] = set()
+    ordered_ids: list[UUID] = []
+    for pairs in (top_pairs, bottom_pairs):
+        for job_id, *_rest in pairs:
+            if job_id not in seen:
+                seen.add(job_id)
+                ordered_ids.append(job_id)
+
+    fetched = await asyncio.gather(
+        *(jobs_repo.get(job_id, user_id=user_id) for job_id in ordered_ids)
+    )
+    jobs = {jid: job for jid, job in zip(ordered_ids, fetched)}
+
+    def _hydrate(pairs) -> list[WinnerLoser]:
         # Tolerates (job_id, views) pairs and (job_id, views, completion)
         # triples so older callers/fixtures keep working.
         results: list[WinnerLoser] = []
         for job_id, views, *rest in pairs:
             completion = rest[0] if rest else None
-            job = await jobs_repo.get(job_id, user_id=user_id)
+            job = jobs.get(job_id)
             if job is None:
                 continue
             if job.script is None or job.script.idea is None:
@@ -70,13 +86,15 @@ async def build_performance_context(
                     hook=job.script.idea.hook,
                     topic=job.script.idea.topic,
                     views=views,
-                    completion_rate=float(completion) if completion is not None else None,
+                    completion_rate=float(completion)
+                    if completion is not None
+                    else None,
                 )
             )
         return results
 
-    winners = await _hydrate(top_pairs)
-    losers = await _hydrate(bottom_pairs)
+    winners = _hydrate(top_pairs)
+    losers = _hydrate(bottom_pairs)
 
     if not winners and not losers:
         return ""

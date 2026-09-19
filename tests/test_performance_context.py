@@ -5,6 +5,7 @@ No DB, no network.
 """
 from __future__ import annotations
 
+import asyncio
 from uuid import UUID, uuid4
 
 import pytest
@@ -212,3 +213,91 @@ async def test_section_ordering_and_numbering(monkeypatch):
     assert lines.index(item1) < lines.index(item2)
     assert "hook 0" in item1
     assert "hook 1" in item2
+
+
+@pytest.mark.asyncio
+async def test_top_and_bottom_metrics_load_in_one_gather(monkeypatch):
+    """Winner and loser queries used to wait on each other."""
+    top_id = uuid4()
+    bottom_id = uuid4()
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    async def _slow(pairs):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return pairs
+
+    async def fake_top(niche_id, *, user_id, limit, days):
+        return await _slow([(top_id, 1_000)])
+
+    async def fake_bottom(niche_id, *, user_id, limit, days):
+        return await _slow([(bottom_id, 10)])
+
+    async def fake_jobs_get(job_id, *, user_id):
+        hook = "win" if job_id == top_id else "lose"
+        return _make_job(job_id, hook, hook)
+
+    import marketer.repos.post_metrics as _pm
+    import marketer.repos.jobs as _jobs
+
+    monkeypatch.setattr(_pm, "top_performers_for_niche", fake_top)
+    monkeypatch.setattr(_pm, "bottom_performers_for_niche", fake_bottom)
+    monkeypatch.setattr(_jobs, "get", fake_jobs_get)
+
+    result = await build_performance_context(niche_id=NICHE_ID, user_id=USER_ID)
+    assert started == 2
+    assert max_inflight == 2
+    assert "win" in result and "lose" in result
+
+
+@pytest.mark.asyncio
+async def test_job_rows_hydrate_in_one_gather(monkeypatch):
+    """Each performer used to wait on the previous jobs.get."""
+    ids = [uuid4(), uuid4()]
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    async def fake_top(niche_id, *, user_id, limit, days):
+        return [(ids[0], 5_000), (ids[1], 3_000)]
+
+    async def fake_bottom(niche_id, *, user_id, limit, days):
+        return []
+
+    async def fake_jobs_get(job_id, *, user_id):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        idx = ids.index(job_id)
+        return _make_job(job_id, f"hook {idx}", f"topic {idx}")
+
+    import marketer.repos.post_metrics as _pm
+    import marketer.repos.jobs as _jobs
+
+    monkeypatch.setattr(_pm, "top_performers_for_niche", fake_top)
+    monkeypatch.setattr(_pm, "bottom_performers_for_niche", fake_bottom)
+    monkeypatch.setattr(_jobs, "get", fake_jobs_get)
+
+    result = await build_performance_context(niche_id=NICHE_ID, user_id=USER_ID)
+    assert started == 2
+    assert max_inflight == 2
+    assert "hook 0" in result and "hook 1" in result

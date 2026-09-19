@@ -1218,3 +1218,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Fake posters already accept `profile_key` | Existing e2e / lipsync / image-post stubs keep working |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 64. Loop — performance context gathers metrics and job rows
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `build_performance_context` gathers top + bottom performer queries | Independent analytics reads. Ideation waited on winners before asking losers |
+| Unique job rows hydrate in one gather | Up to ten sequential `jobs.get` calls collapsed. Order of each list is unchanged |
+| Missing / unscripted jobs still skip | Cold-start still returns `""`. A ghost id cannot crash ideation |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
