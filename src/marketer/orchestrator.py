@@ -100,14 +100,14 @@ async def run_visual_director(
     return result.final_output_as(Script)
 
 
-async def run_qa(
+def qa_payload(
     script: Script,
     transcript: str,
     duration_sec: float,
-    *,
     niche: Niche,
-    spend: SpendContext | None = None,
-) -> QAReport:
+) -> dict:
+    """Slim state for Jev / heuristic video QA. Shared so the pipeline can
+    fan-out judge_video with Foreman in one RTT."""
     scenes = getattr(script, "scenes", None) or []
     payload = {
         "hook": (scenes[0].narration if scenes else ""),
@@ -120,6 +120,16 @@ async def run_qa(
     qa_constraints = niche.creative_brief.qa_lines()
     if qa_constraints:
         payload["creative_constraints"] = qa_constraints
+    return payload
+
+
+async def resolve_video_qa(
+    payload: dict,
+    heuristic: QAReport,
+    *,
+    spend: SpendContext | None = None,
+) -> QAReport:
+    """Jev when live; otherwise the already-computed heuristic. Never a writer."""
     from .config import settings as _settings
     from .jev import available as jev_available
     from .jev.decisions import judge_video
@@ -133,9 +143,22 @@ async def run_qa(
 
             if isinstance(exc, SpendCapExceeded):
                 raise
+    return heuristic
+
+
+async def run_qa(
+    script: Script,
+    transcript: str,
+    duration_sec: float,
+    *,
+    niche: Niche,
+    spend: SpendContext | None = None,
+) -> QAReport:
     from .agents.qa import heuristic_qa_report
 
-    return heuristic_qa_report(payload)
+    payload = qa_payload(script, transcript, duration_sec, niche)
+    heuristic = heuristic_qa_report(payload)
+    return await resolve_video_qa(payload, heuristic, spend=spend)
 
 
 def all_agents() -> list[Agent]:

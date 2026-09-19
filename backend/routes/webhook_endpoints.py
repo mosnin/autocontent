@@ -6,7 +6,7 @@ from __future__ import annotations
 import asyncio
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 
 from marketer.repos import webhooks_out
@@ -14,8 +14,10 @@ from marketer.repos.webhooks_out import VALID_EVENTS, WebhookEndpoint
 from marketer.services import ssrf
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_WEBHOOK_LIMIT = "10/minute"
 
 
 class WebhookCreate(BaseModel):
@@ -45,7 +47,10 @@ async def list_endpoints(ctx: AuthCtx = CurrentUser) -> list[WebhookEndpoint]:
 
 
 @router.post("", response_model=WebhookEndpoint, status_code=status.HTTP_201_CREATED)
-async def create_endpoint(body: WebhookCreate, ctx: AuthCtx = CurrentUser) -> WebhookEndpoint:
+@limiter.limit(_WEBHOOK_LIMIT)
+async def create_endpoint(
+    request: Request, body: WebhookCreate, ctx: AuthCtx = CurrentUser
+) -> WebhookEndpoint:
     """Register an endpoint. The signing secret is returned exactly once in
     this response (never again) — the client must store it to verify
     signatures."""
@@ -85,7 +90,10 @@ async def delete_endpoint(endpoint_id: UUID, ctx: AuthCtx = CurrentUser) -> None
 
 
 @router.post("/{endpoint_id}/test")
-async def send_test(endpoint_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_WEBHOOK_LIMIT)
+async def send_test(
+    request: Request, endpoint_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     """Send a signed `test.ping` event so the client can validate their
     receiver and signature verification before real events fire."""
     from datetime import datetime, timezone

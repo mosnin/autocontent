@@ -365,12 +365,15 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         article.meta_description = meta.metaDescription
         from ..jev.loops import seo_metadata_notes
 
-        seo_notes = await seo_metadata_notes(
-            title=meta.title,
-            meta_description=meta.metaDescription,
-            focus_keyword=article.focus_keyword,
-            article_excerpt=markdown,
-            spend=spend,
+        seo_notes, candidates = await asyncio.gather(
+            seo_metadata_notes(
+                title=meta.title,
+                meta_description=meta.metaDescription,
+                focus_keyword=article.focus_keyword,
+                article_excerpt=markdown,
+                spend=spend,
+            ),
+            articles_repo.interlink_candidates(article.user_id),
         )
         if seo_notes and article.quality is not None:
             article.quality.notes.extend(seo_notes)
@@ -383,7 +386,6 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             keywords=meta.keywords,
             article_md=markdown,
         )
-        candidates = await articles_repo.interlink_candidates(article.user_id)
         candidates = [c for c in candidates if c["slug"] != meta.slug]
         article.link_suggestions = fastpath.interlink_lexical(markdown, candidates)
         article.article_markdown = markdown

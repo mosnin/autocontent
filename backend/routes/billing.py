@@ -18,6 +18,7 @@ from marketer.models import CreditTransaction
 from marketer.repos import billing as billing_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +77,9 @@ async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
+@limiter.limit("5/minute")
 async def create_checkout(
-    body: CheckoutRequest, ctx: AuthCtx = CurrentUser
+    request: Request, body: CheckoutRequest, ctx: AuthCtx = CurrentUser
 ) -> CheckoutResponse:
     _require_billing()
     pack = PACKS.get(body.pack)

@@ -749,3 +749,20 @@ Jev still picks among templates when the key is live. Ads overlay is unchanged: 
 | Ads connect / budget / status / decide 20/min | Money mutations already fail-closed; a stolen token still cannot spray the guard |
 
 Ads overlay is unchanged. Jev still does not generate video or move money.
+
+---
+
+## 21. Loop — one-RTT publish QA, bound checkout / webhooks / campaigns
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Video pipeline `gather(run_qa, after_content_qa, repurpose_hint)` | After render, QA then Foreman was a second 70–500ms RTT. Overlay uses the instant heuristic; the gather result is live Jev when the key is on. Tests still patch `pipeline.run_qa` |
+| `qa_payload` / `resolve_video_qa` extracted | Pipeline and HTTP judges share one slim state. Dark path stays heuristic; SpendCapExceeded still re-raises |
+| Article metadata `gather(seo_metadata_notes, interlink_candidates)` | Pagegrade and the DB lookup are independent. One wall-clock beat |
+| Billing checkout 5/min | Stripe session create is money. A stolen token cannot spray hosted checkouts |
+| x402 `/credits` 10/min | Facilitator verify + ledger credit cannot be melted |
+| Webhook endpoint create + test 10/min | SSRF-guarded outbound POSTs cannot be sprayed from a stolen token |
+| Campaign start / pause 10/min | Lifecycle mutations spawn the runner. Same class of bound as enqueue |
+| Ads account refresh 20/min | Hits Composio. Same bound as connect / budget / decide |
+
+Foreman still fail-closes when it answered. Ads overlay is unchanged: deny / force-approve only; `AdSpendGuard` never relaxes. Extra overlay Jev on a failing QA is accepted — one cheap call vs a sequential RTT on every success path.

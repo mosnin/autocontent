@@ -23,8 +23,10 @@ from marketer.services import x402
 from marketer.services.x402 import X402Disabled, X402PaymentError
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_CREDITS_LIMIT = "10/minute"
 
 _RESOURCE = "/api/v1/x402/credits"
 
@@ -60,6 +62,7 @@ async def x402_config(ctx: AuthCtx = CurrentUser) -> dict:
 
 
 @router.post("/credits")
+@limiter.limit(_CREDITS_LIMIT)
 async def buy_credits(
     request: Request,
     response: Response,

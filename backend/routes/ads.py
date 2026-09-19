@@ -60,8 +60,9 @@ async def connect_account(
 
 
 @router.post("/accounts/{account_id}/refresh", response_model=ads_repo.AdAccount)
+@limiter.limit(_ADS_LIMIT)
 async def refresh_account(
-    account_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, account_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> ads_repo.AdAccount:
     acc = await ad_connections.refresh_status(user_id=ctx.user_id, account_id=account_id)
     if acc is None:

@@ -607,6 +607,79 @@ async def test_run_qa_skips_llm_when_jev_dark(monkeypatch):
     assert report.passed is True
 
 
+def test_qa_payload_is_slim():
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from marketer.models import Idea, Niche, PostingWindow, Scene, Script
+    from marketer.orchestrator import qa_payload
+
+    script = Script(
+        idea=Idea(
+            topic="t", angle="a", hook="Stop wasting shots.", target_audience="x",
+            why_it_works="y",
+        ),
+        scenes=[
+            Scene(
+                index=0,
+                narration="Stop wasting shots.",
+                visual_prompt="vp",
+                motion_prompt="mp",
+                duration_sec=4.0,
+            )
+        ],
+        total_duration_sec=4.0,
+    )
+    niche = Niche(
+        id=uuid4(),
+        user_id="u",
+        title="espresso",
+        description="home espresso",
+        target_audience="baristas",
+        visual_style="warm",
+        voice="onyx",
+        target_duration_sec=4,
+        scene_count=1,
+        posting_windows=[PostingWindow(hour=9, minute=0, tz="UTC")],
+        platforms=["reels"],
+        daily_spend_cap_usd=Decimal("5"),
+    )
+    long_transcript = ("word " * 800).strip()
+    payload = qa_payload(script, long_transcript, 4.0, niche)
+    assert payload["hook"] == "Stop wasting shots."
+    assert payload["niche"] == "espresso"
+    assert payload["duration_sec"] == 4.0
+    assert len(payload["transcript"]) <= 1500
+    assert "script" not in payload
+    assert "scenes" not in payload
+
+
+async def test_resolve_video_qa_returns_heuristic_when_dark(monkeypatch):
+    from marketer.agents.qa import QAReport, heuristic_qa_report
+    from marketer.config import settings
+    from marketer.orchestrator import resolve_video_qa
+
+    monkeypatch.setattr(settings, "jev_enabled", False)
+
+    async def boom(*args, **kwargs):
+        raise AssertionError("dark resolve_video_qa must not call Jev")
+
+    monkeypatch.setattr("marketer.jev.decisions.judge_video", boom)
+    payload = {
+        "hook": "Stop wasting shots.",
+        "narration": "Stop wasting shots. Dial espresso.",
+        "transcript": "Stop wasting shots. Dial espresso.",
+        "duration_sec": 4.0,
+        "target_duration_sec": 4,
+        "niche": "espresso",
+    }
+    heuristic = heuristic_qa_report(payload)
+    report = await resolve_video_qa(payload, heuristic)
+    assert report is heuristic
+    assert isinstance(report, QAReport)
+    assert report.passed is True
+
+
 async def test_score_article_skips_llm_when_jev_dark(monkeypatch):
     from marketer.articles import llm as article_llm
     from marketer.config import settings

@@ -29,7 +29,13 @@ from .agents.performance_context import build_performance_context
 from .config import settings
 from .logging import get_logger, job_context
 from .models import AudioTrack, Clip, Job, JobStatus, Niche, RenderedVideo, Scene, Script
-from .orchestrator import run_ideation, run_qa, run_scriptwriter, run_visual_director
+from .orchestrator import (
+    qa_payload,
+    run_ideation,
+    run_qa,
+    run_scriptwriter,
+    run_visual_director,
+)
 from .repos import jobs as jobs_repo
 from .repos import niches as niches_repo
 from .repos import spend as spend_repo
@@ -875,13 +881,37 @@ async def _run_job_inner(
                 job, "render QA failed: " + "; ".join(render_report.issues)
             )
         transcript = " ".join(w["word"] for w in words)
-        report = await run_qa(
-            script,
-            transcript,
-            # Judge the real rendered duration, not the script's claim.
-            render_report.duration_sec or script.total_duration_sec,
-            niche=niche,
-            spend=spend,
+        from .agents.qa import heuristic_qa_report
+        from .jev.loops import after_content_qa, repurpose_hint, should_spawn_repurpose
+
+        duration = render_report.duration_sec or script.total_duration_sec
+        heuristic = heuristic_qa_report(qa_payload(script, transcript, duration, niche))
+        # One fan-out: Jev/heuristic QA + Foreman/screen + repurpose.
+        # Sequential here used to add a second 70–500ms RTT after a
+        # passing judge. Overlay sees the instant heuristic; the gather
+        # result is the live Jev report when the key is on.
+        report, overlay, hint = await asyncio.gather(
+            run_qa(script, transcript, duration, niche=niche, spend=spend),
+            after_content_qa(
+                {
+                    "job_id": str(job.id),
+                    "niche": niche.title,
+                    "platform": platform,
+                    "hook": script.idea.hook,
+                    "qa": heuristic.model_dump(),
+                    "transcript": transcript[:4000],
+                },
+                spend=spend,
+            ),
+            repurpose_hint(
+                {
+                    "hook": script.idea.hook,
+                    "topic": script.idea.topic,
+                    "niche": niche.title,
+                    "platform": platform,
+                },
+                spend=spend,
+            ),
         )
         if not report.passed:
             # One bounded in-run regenerate when QA says the *script* is
@@ -904,31 +934,6 @@ async def _run_job_inner(
             return await _fail_with(
                 job, "content QA failed: " + "; ".join(report.issues)
             )
-
-        from .jev.loops import after_content_qa, repurpose_hint, should_spawn_repurpose
-
-        overlay, hint = await asyncio.gather(
-            after_content_qa(
-                {
-                    "job_id": str(job.id),
-                    "niche": niche.title,
-                    "platform": platform,
-                    "hook": script.idea.hook,
-                    "qa": report.model_dump(),
-                    "transcript": transcript[:4000],
-                },
-                spend=spend,
-            ),
-            repurpose_hint(
-                {
-                    "hook": script.idea.hook,
-                    "topic": script.idea.topic,
-                    "niche": niche.title,
-                    "platform": platform,
-                },
-                spend=spend,
-            ),
-        )
         job.harness = {**(job.harness or {}), **overlay.payload}
         if overlay.fail:
             return await _fail_with(job, overlay.reason)

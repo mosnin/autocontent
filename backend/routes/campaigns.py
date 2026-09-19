@@ -19,7 +19,7 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.models import Campaign, CampaignItem
@@ -27,8 +27,10 @@ from marketer.repos import campaigns as campaigns_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_START_LIMIT = "10/minute"
 
 
 class CampaignCreate(BaseModel):
@@ -101,7 +103,10 @@ async def get_campaign(
 
 
 @router.post("/{campaign_id}/start", response_model=Campaign)
-async def start_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campaign:
+@limiter.limit(_START_LIMIT)
+async def start_campaign(
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Campaign:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -115,7 +120,10 @@ async def start_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campa
 
 
 @router.post("/{campaign_id}/pause", response_model=Campaign)
-async def pause_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campaign:
+@limiter.limit(_START_LIMIT)
+async def pause_campaign(
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Campaign:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
