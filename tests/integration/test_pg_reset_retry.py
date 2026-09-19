@@ -76,7 +76,8 @@ async def _mkfailed_job(pool, uid, niche_id, *, error="boom", with_state=False):
             audio=AudioTrack(voiceover_path="/tmp/vo.wav"),
         )
     job = Job(id=jid, user_id=uid, niche_id=niche_id, platform="tiktok",
-              status=JobStatus.failed, error=error, **kw)
+              status=JobStatus.failed, error=error,
+              provider_post_id="ayr-old-post", **kw)
     await pool.execute(
         """
         insert into jobs (id, user_id, niche_id, platform, status, error, payload)
@@ -146,6 +147,9 @@ async def test_reset_for_retry_transient_keeps_state(pool):
     assert job is not None and job.status.value == "queued" and job.error is None
     assert job.script is not None
     assert len(job.clips) == 1 and job.audio is not None
+    # Previous Ayrshare post id must not survive retry — a delayed webhook
+    # for the old post must not be able to find this new attempt.
+    assert job.provider_post_id is None
 
 
 async def test_reset_for_retry_foreign_user_denied(pool):

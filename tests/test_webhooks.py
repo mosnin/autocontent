@@ -186,3 +186,74 @@ def test_alternate_signature_header_accepted(client):
     )
     assert resp.status_code == 200
     assert saved[0].status == JobStatus.done
+
+
+def test_empty_post_id_is_ignored(client):
+    """A signed body with no post id must not look up '' in the jobs table."""
+    tc, saved = client
+    resp = _post_webhook(tc, {"id": "", "status": "errored", "errors": [{"message": "x"}]})
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+    assert saved == []
+
+
+def test_errored_on_already_done_job_does_not_revert(monkeypatch, make_job):
+    """Late platform errors must not flip a published job back to failed.
+
+    The pipeline writes provider_post_id in the same persist that marks
+    the job done. A later Ayrshare 'errored' (takedown / delayed reject)
+    used to save_snapshot(failed), which put the row in the failures
+    inbox and invited a Retry that re-spent and double-posted.
+    """
+    make_job.status = JobStatus.done
+    saved: list[Job] = []
+
+    async def _get_by_provider_post_id(post_id: str) -> Job | None:
+        return make_job if post_id == PROVIDER_POST_ID else None
+
+    async def _save_snapshot(job: Job) -> None:
+        saved.append(job)
+
+    import marketer.repos.jobs as jobs_repo
+
+    monkeypatch.setattr(jobs_repo, "get_by_provider_post_id", _get_by_provider_post_id)
+    monkeypatch.setattr(jobs_repo, "save_snapshot", _save_snapshot)
+
+    from backend.main import create_app
+
+    tc = TestClient(create_app())
+    resp = _post_webhook(
+        tc,
+        {
+            "id": PROVIDER_POST_ID,
+            "status": "errored",
+            "errors": [{"message": "TikTok rejected the video"}],
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True}
+    assert saved == []
+    assert make_job.status == JobStatus.done
+
+
+def test_success_on_already_done_job_is_noop(monkeypatch, make_job):
+    make_job.status = JobStatus.done
+    saved: list[Job] = []
+
+    async def _get_by_provider_post_id(post_id: str) -> Job | None:
+        return make_job if post_id == PROVIDER_POST_ID else None
+
+    async def _save_snapshot(job: Job) -> None:
+        saved.append(job)
+
+    import marketer.repos.jobs as jobs_repo
+
+    monkeypatch.setattr(jobs_repo, "get_by_provider_post_id", _get_by_provider_post_id)
+    monkeypatch.setattr(jobs_repo, "save_snapshot", _save_snapshot)
+
+    from backend.main import create_app
+
+    tc = TestClient(create_app())
+    resp = _post_webhook(tc, {"id": PROVIDER_POST_ID, "status": "success", "errors": []})
+    assert resp.status_code == 200
+    assert saved == []
