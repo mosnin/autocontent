@@ -778,3 +778,15 @@ Foreman still fail-closes when it answered. Ads overlay is unchanged: deny / for
 | Ads create campaign + governance 20/min | Draft create and kill-switch / cap writes are money-adjacent. Same bound as connect / budget / decide |
 
 Jev still judges hook / niche / clarity when the render is deliverable. Soft fails (`regenerate_script`) still gather so Jev can confirm. `AdSpendGuard` is unchanged.
+
+---
+
+## 23. Loop — overlap setup I/O, bound job reject
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Video ideation `gather(perf_ctx, brand_voice, recent_topics)` | Three independent DB/knowledge reads were sequential on every job. Same inputs, one wall-clock beat before the writer |
+| Article tone `gather(brand_kit, knowledge, writing_kit)` | Same pattern on Press. Knowledge and kits already fail-open |
+| Job reject 10/min | The veto door matches approve / enqueue. A stolen token cannot spray-reject the approval queue |
+
+Setup I/O is not Jev, but it sits on the time-to-first-publish path in front of the writer. Ads overlay and delivery-fact floors are unchanged.

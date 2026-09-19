@@ -223,32 +223,39 @@ async def run_article(
 
 
 async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
-    brand = await brand_kit_repo.get(article.user_id)
-    tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
-    try:
-        from ..company_os.knowledge import prompt_block
+    async def _knowledge_block() -> str:
+        try:
+            from ..company_os.knowledge import prompt_block
 
-        block = await prompt_block(article.user_id)
-        if block:
-            tone = f"{tone}\n{block}"
-    except Exception:  # noqa: BLE001 — knowledge seasons, never blocks
-        pass
-    # Writing kit: the user's reusable voice/style skill. Pinned on the
-    # niche, else their default writing kit. Fail-open.
-    try:
-        from ..repos import kits as kits_repo
+            return await prompt_block(article.user_id)
+        except Exception:  # noqa: BLE001 — knowledge seasons, never blocks
+            return ""
 
-        writing_kit = await kits_repo.resolve(
-            user_id=article.user_id, kind="writing",
-            kit_id=getattr(niche, "writing_kit_id", None),
-        )
-        if writing_kit is not None and writing_kit.content:
-            tone = (
-                f"{tone}\nWriting kit — the author's voice & style system, "
-                f"follow it throughout:\n{writing_kit.content}"
+    async def _writing_kit():
+        try:
+            from ..repos import kits as kits_repo
+
+            return await kits_repo.resolve(
+                user_id=article.user_id,
+                kind="writing",
+                kit_id=getattr(niche, "writing_kit_id", None),
             )
-    except Exception:  # noqa: BLE001 — kits season, they never block
-        pass
+        except Exception:  # noqa: BLE001 — kits season, they never block
+            return None
+
+    brand, block, writing_kit = await asyncio.gather(
+        brand_kit_repo.get(article.user_id),
+        _knowledge_block(),
+        _writing_kit(),
+    )
+    tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
+    if block:
+        tone = f"{tone}\n{block}"
+    if writing_kit is not None and writing_kit.content:
+        tone = (
+            f"{tone}\nWriting kit — the author's voice & style system, "
+            f"follow it throughout:\n{writing_kit.content}"
+        )
     audience = niche.target_audience
 
     # 0. Topic — templates + Jev, not a chat completion.

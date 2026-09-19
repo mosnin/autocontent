@@ -509,14 +509,16 @@ async def _run_job_inner(
         with _stage(JobStatus.ideating.value):
             job.status = JobStatus.ideating
             await _persist(job)
-            perf_ctx = await build_performance_context(
-                niche_id=niche.id,
-                user_id=job.user_id,
-                lookback_days=30,
-            )
-            brand_voice, banned_words = await _load_brand_voice(job.user_id)
-            recent = await jobs_repo.recent_topics_for_niche(
-                niche.id, user_id=job.user_id, limit=20
+            perf_ctx, (brand_voice, banned_words), recent = await asyncio.gather(
+                build_performance_context(
+                    niche_id=niche.id,
+                    user_id=job.user_id,
+                    lookback_days=30,
+                ),
+                _load_brand_voice(job.user_id),
+                jobs_repo.recent_topics_for_niche(
+                    niche.id, user_id=job.user_id, limit=20
+                ),
             )
             idea = await run_ideation(
                 niche.title,

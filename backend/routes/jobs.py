@@ -145,7 +145,10 @@ async def approve_job(
 
 
 @router.post("/{job_id}/reject", response_model=Job)
-async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def reject_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Operator veto on an `awaiting_approval` job. The rendered video
     stays on the volume (retention GC handles cleanup); the job is marked
     failed so it never posts."""
