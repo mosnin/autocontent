@@ -73,7 +73,8 @@ class BalanceResponse(BaseModel):
 
 
 @router.get("/balance", response_model=BalanceResponse)
-async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
+@limiter.limit("30/minute")
+async def get_balance(request: Request, ctx: AuthCtx = CurrentUser) -> BalanceResponse:
     if settings.billing_enabled:
         bal, txs = await asyncio.gather(
             billing_repo.balance(ctx.user_id),

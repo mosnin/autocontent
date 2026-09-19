@@ -944,3 +944,15 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Ads accounts / campaigns / approvals / actions / overview 30/min | Privileged spend-adjacent dumps. Mutations stay 20/min |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 37. Loop — overlap setup I/O on every run, skip redundant cap user-fetch
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Video `obtain_job` gathers `default_context` | Job row + user cap snapshot are independent. Fresh create and resume both hide the users.get behind obtain |
+| Article get/create gathers `default_context` | Same user snapshot no longer waits on the article row |
+| Image-post niche get gathers `default_context` | After the post exists, niche + user cap overlap. Cap is applied on the snapshot |
+| `_ensure_cap` reuses `spend.global_cap_usd` | Pre-stage checks ran a second users.get 2–3 times per video. The spend context already has the snapshot |
+| Library / templates / campaigns / kits lists + performance + billing balance + brand-kit GET 30/min | Last unbounded dashboard dumps. Mutations stay 10/min |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

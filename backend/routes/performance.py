@@ -23,7 +23,7 @@ from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from marketer.models import JobPerformance, NichePerformance, PerformanceSummary
 from marketer.repos import jobs as jobs_repo
@@ -32,12 +32,16 @@ from marketer.repos import post_metrics as post_metrics_repo
 from marketer.repos import spend as spend_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_READ_LIMIT = "30/minute"
 
 
 @router.get("/{niche_id}/performance", response_model=NichePerformance)
+@limiter.limit(_READ_LIMIT)
 async def niche_performance(
+    request: Request,
     niche_id: UUID,
     ctx: AuthCtx = CurrentUser,
     days: Annotated[int, Query(ge=1, le=365)] = 30,

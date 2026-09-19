@@ -318,7 +318,9 @@ async def _persist(job: Job) -> None:
     await jobs_repo.save_snapshot(job)
 
 
-async def _ensure_cap(job: Job, niche: Niche) -> bool:
+async def _ensure_cap(
+    job: Job, niche: Niche, spend: SpendContext | None = None
+) -> bool:
     try:
         await spend_repo.assert_within_cap(
             user_id=job.user_id,
@@ -331,16 +333,21 @@ async def _ensure_cap(job: Job, niche: Niche) -> bool:
         await _persist(job)
         return False
 
-    # Global cap check — read user record to get global_daily_cap_usd.
-    from .repos import users as users_repo
+    # `default_context` already loaded the user. Reuse that snapshot
+    # instead of a second users.get on every pre-stage check.
+    global_cap = spend.global_cap_usd if spend is not None else None
+    if spend is None:
+        from .repos import users as users_repo
 
-    user = await users_repo.get(job.user_id)
-    if user is not None and user.global_daily_cap_usd is not None:
+        user = await users_repo.get(job.user_id)
+        if user is not None:
+            global_cap = user.global_daily_cap_usd
+    if global_cap is not None:
         total = await spend_repo.today_spend_total_usd(user_id=job.user_id)
-        if total >= user.global_daily_cap_usd:
+        if total >= global_cap:
             msg = (
                 f"user global daily cap exceeded: "
-                f"${total} >= ${user.global_daily_cap_usd}"
+                f"${total} >= ${global_cap}"
             )
             job.status = JobStatus.failed
             job.error = msg
@@ -546,16 +553,20 @@ async def run_job(
         async with user_lock(
             user_id, max_parallel=settings.pipeline_per_user_concurrency
         ):
-            job = await _obtain_job(
-                user_id=user_id, niche_id=niche_id, platform=platform, job_id=job_id
+            job, spend = await asyncio.gather(
+                _obtain_job(
+                    user_id=user_id, niche_id=niche_id, platform=platform, job_id=job_id
+                ),
+                default_context(
+                    user_id=user_id,
+                    niche_id=niche_id,
+                    job_id=job_id,
+                    cap_usd=niche.daily_spend_cap_usd,
+                ),
             )
+            if spend is not None:
+                spend.job_id = job.id
             root = ensure_layout(f"{user_id}/{job.id}")
-            spend = await default_context(
-                user_id=user_id,
-                niche_id=niche_id,
-                job_id=job.id,
-                cap_usd=niche.daily_spend_cap_usd,
-            )
 
             tracer = otel.get_tracer(__name__)
             with tracer.start_as_current_span("pipeline.run_job") as span:
@@ -588,7 +599,7 @@ async def _run_job_inner(
     *,
     allow_regenerate: bool = True,
 ) -> Job:
-    if not await _ensure_cap(job, niche):
+    if not await _ensure_cap(job, niche, spend):
         return job
 
     # Fail fast on a misconfigured/rotated ElevenLabs key — BEFORE
@@ -767,7 +778,7 @@ async def _run_job_after_sheet(
             # avoidable latency on a fresh job — skip it when every
             # scene is already usable. When VD does run, VO + music
             # start first so TTS / Pixabay hide behind that hop too.
-            if not await _ensure_cap(job, niche):
+            if not await _ensure_cap(job, niche, spend):
                 return job
             music_task, vo_task = _spawn_audio_tasks(
                 script,
@@ -802,7 +813,7 @@ async def _run_job_after_sheet(
     # VO and music only need the locked script. Fresh jobs already
     # started them before Visual Director; resume starts them here.
     # Avatar mode still synthesizes per-scene VO inside the fan-out.
-    if not await _ensure_cap(job, niche):
+    if not await _ensure_cap(job, niche, spend):
         await _cancel_task(vo_task)
         await _cancel_task(music_task)
         return job

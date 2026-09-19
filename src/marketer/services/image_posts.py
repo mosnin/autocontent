@@ -138,11 +138,22 @@ async def run_image_post(
     post = await image_posts_repo.get(image_post_id, user_id=user_id)
     if post is None:
         raise ValueError(f"image post {image_post_id} not found for {user_id}")
-    niche = await niches_repo.get(post["niche_id"], user_id=user_id)
+    niche, spend = await asyncio.gather(
+        niches_repo.get(post["niche_id"], user_id=user_id),
+        default_context(
+            user_id=user_id,
+            niche_id=post["niche_id"],
+            job_id=None,
+            image_post_id=image_post_id,
+            cap_usd=None,
+        ),
+    )
     if niche is None:
         return await image_posts_repo.fail(
             image_post_id, user_id=user_id, error="niche not found"
         )
+    if spend is not None:
+        spend.cap_usd = niche.daily_spend_cap_usd
 
     if image_platform(niche, post["payload"].get("platform")) is None:
         return await image_posts_repo.fail(
@@ -150,14 +161,6 @@ async def run_image_post(
             error="no image-capable platform on this niche (YouTube/shorts "
                   "can't take still-image posts) — add reels or tiktok",
         )
-
-    spend = await default_context(
-        user_id=user_id,
-        niche_id=niche.id,
-        job_id=None,
-        image_post_id=image_post_id,
-        cap_usd=niche.daily_spend_cap_usd,
-    )
     root = ensure_layout(f"{user_id}/imageposts/{image_post_id}")
     archive_task: asyncio.Task | None = None
 

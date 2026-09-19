@@ -26,6 +26,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _KIT_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class KitCreate(BaseModel):
@@ -46,7 +47,9 @@ class KitUpdate(BaseModel):
 
 
 @router.get("", response_model=list[Kit])
+@limiter.limit(_READ_LIMIT)
 async def list_kits(
+    request: Request,
     kind: Literal["design", "ad", "writing"] | None = None,
     ctx: AuthCtx = CurrentUser,
 ) -> list[Kit]:

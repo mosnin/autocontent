@@ -14,6 +14,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _KIT_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 _HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
@@ -36,7 +37,8 @@ class BrandKitBody(BaseModel):
 
 
 @router.get("", response_model=BrandKit)
-async def get_brand_kit(ctx: AuthCtx = CurrentUser) -> BrandKit:
+@limiter.limit(_READ_LIMIT)
+async def get_brand_kit(request: Request, ctx: AuthCtx = CurrentUser) -> BrandKit:
     """Return the user's brand kit, or an empty kit if none is set yet."""
     kit = await repo.get(ctx.user_id)
     return kit or BrandKit()

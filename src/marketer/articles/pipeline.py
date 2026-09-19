@@ -245,23 +245,35 @@ async def run_article(
         raise ValueError(f"niche {niche_id} not found for user {user_id}")
 
     if article_id is not None:
-        article = await articles_repo.get(article_id, user_id=user_id)
+        article, spend = await asyncio.gather(
+            articles_repo.get(article_id, user_id=user_id),
+            default_context(
+                user_id=user_id,
+                niche_id=niche_id,
+                job_id=None,
+                article_id=article_id,
+                cap_usd=niche.daily_spend_cap_usd,
+            ),
+        )
         if article is None:
             raise ValueError(f"article {article_id} not found for user {user_id}")
         if topic:
             article.topic = topic
     else:
-        article = await articles_repo.create(
-            user_id=user_id, niche_id=niche_id, topic=topic
+        article, spend = await asyncio.gather(
+            articles_repo.create(
+                user_id=user_id, niche_id=niche_id, topic=topic
+            ),
+            default_context(
+                user_id=user_id,
+                niche_id=niche_id,
+                job_id=None,
+                article_id=None,
+                cap_usd=niche.daily_spend_cap_usd,
+            ),
         )
-
-    spend = await default_context(
-        user_id=user_id,
-        niche_id=niche_id,
-        job_id=None,
-        article_id=article.id,
-        cap_usd=niche.daily_spend_cap_usd,
-    )
+        if spend is not None:
+            spend.article_id = article.id
 
     tracer = otel.get_tracer(__name__)
     with tracer.start_as_current_span("article.run") as span:

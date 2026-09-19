@@ -32,6 +32,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _START_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class CampaignCreate(BaseModel):
@@ -61,7 +62,8 @@ class CampaignOverview(BaseModel):
 
 
 @router.get("", response_model=list[Campaign])
-async def list_campaigns(ctx: AuthCtx = CurrentUser) -> list[Campaign]:
+@limiter.limit(_READ_LIMIT)
+async def list_campaigns(request: Request, ctx: AuthCtx = CurrentUser) -> list[Campaign]:
     return await campaigns_repo.list_for_user(ctx.user_id)
 
 
@@ -86,8 +88,9 @@ async def create_campaign(
 
 
 @router.get("/{campaign_id}", response_model=CampaignOverview)
+@limiter.limit(_READ_LIMIT)
 async def get_campaign(
-    campaign_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, campaign_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> CampaignOverview:
     campaign = await campaigns_repo.get(campaign_id, user_id=ctx.user_id)
     if campaign is None:

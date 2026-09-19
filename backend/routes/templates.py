@@ -156,7 +156,9 @@ class RemixRequest(BaseModel):
 
 
 @router.get("", response_model=list[Template])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_templates(
+    request: Request,
     kind: Literal["video", "image", "carousel"] | None = None,
     ctx: AuthCtx = CurrentUser,
 ) -> list[Template]:
@@ -170,7 +172,10 @@ async def list_templates(
 # segment for GET, so this ordering is defense-in-depth rather than a
 # live bug; keep it first regardless so that stays true as routes evolve.
 @router.get("/admin/all", response_model=list[Template])
-async def list_all_templates(admin=Depends(require_admin)) -> list[Template]:
+@limiter.limit(_MEDIA_LIMIT)
+async def list_all_templates(
+    request: Request, admin=Depends(require_admin)
+) -> list[Template]:
     """Every template, drafts included — the admin curation view."""
     return await templates_repo.list_templates(published_only=False)
 

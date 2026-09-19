@@ -34,7 +34,9 @@ _MEDIA_LIMIT = "30/minute"
 
 
 @router.get("", response_model=list[MediaAsset])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_assets(
+    request: Request,
     kind: Literal["clip", "keyframe", "voiceover", "final", "composition", "music"] | None = None,
     niche_id: UUID | None = None,
     job_id: UUID | None = None,
@@ -59,8 +61,12 @@ class CompositionCreate(BaseModel):
 
 
 @router.get("/compositions", response_model=list[Composition])
+@limiter.limit(_MEDIA_LIMIT)
 async def list_compositions(
-    limit: int = 50, offset: int = 0, ctx: AuthCtx = CurrentUser
+    request: Request,
+    limit: int = 50,
+    offset: int = 0,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[Composition]:
     return await media_repo.list_compositions(
         user_id=ctx.user_id, limit=min(max(limit, 1), 200), offset=max(offset, 0)
