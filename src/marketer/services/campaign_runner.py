@@ -64,7 +64,7 @@ async def _default_spawn_image_post(user_id: str, niche_id: UUID,
         user_id=user_id, niche_id=niche_id, campaign_id=campaign_id,
     )
     fn = modal.Function.from_name("marketer-sh", "run_image_post")
-    fn.spawn(user_id, str(post["id"]))
+    fn.spawn(user_id, str(post["id"]), str(niche_id))
 
 
 async def _default_spawn_article(user_id: str, niche_id: UUID,

@@ -1121,3 +1121,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Shared helper on e2e / fanout / lipsync / no-music / traces / fallback / skip | One leftover DB read was failing 28 unit tests locally. Production lock and topic-dedupe contracts are unchanged |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 54. Loop — campaign image spawn passes niche_id
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `_default_spawn_image_post` passes `niche_id` into `run_image_post` | HTTP enqueue / retry / approve already did. Campaign create already had the niche; generate still loaded post then niche + spend |
+| Same mismatch fail-close as the HTTP path | A spoofed campaign spawn cannot spend against someone else's brief |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

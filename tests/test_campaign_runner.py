@@ -207,3 +207,34 @@ async def test_tick_all_contains_per_campaign_failures(monkeypatch, env):
         campaign_runner.run_campaign_tick = orig
     assert calls["n"] == 2
     assert result["errors"] == 1 and result["campaigns"] == 1
+
+
+async def test_default_spawn_image_post_passes_niche_id(monkeypatch):
+    """Campaign already has the niche. Omitting it reloads post then niche."""
+    import sys
+    import types
+    from uuid import UUID
+
+    from marketer.repos import image_posts as image_posts_repo
+
+    post_id = uuid4()
+    niche_id = uuid4()
+    campaign_id = uuid4()
+    spawned: list[tuple] = []
+
+    async def fake_create(*, user_id, niche_id, campaign_id):
+        return {"id": post_id, "niche_id": niche_id, "campaign_id": campaign_id}
+
+    class _FakeFn:
+        def spawn(self, *a):
+            spawned.append(a)
+
+    fake_modal = types.SimpleNamespace(
+        Function=types.SimpleNamespace(from_name=lambda app, name: _FakeFn())
+    )
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+    monkeypatch.setattr(image_posts_repo, "create", fake_create)
+
+    await campaign_runner._default_spawn_image_post(USER, niche_id, campaign_id)
+    assert spawned == [(USER, str(post_id), str(niche_id))]
+    assert isinstance(niche_id, UUID)
