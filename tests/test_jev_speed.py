@@ -445,3 +445,75 @@ def test_faq_section_and_publishable_metadata():
         "espresso",
     )
     assert not fastpath.metadata_is_publishable("x", "short", "espresso")
+
+
+def test_resolve_article_writer_uses_qwen_when_openrouter_on(monkeypatch):
+    from marketer.articles import llm as article_llm
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "article_writer_model", "gpt-5.4-mini")
+    monkeypatch.setattr(settings, "agent_model", "gpt-5.4-mini")
+    monkeypatch.setattr(settings, "openrouter_api_key", "sk-or-test")
+    monkeypatch.setattr(settings, "qwen_default_model", "qwen/qwen3-32b")
+    assert article_llm.resolve_article_writer_model() == "qwen/qwen3-32b"
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+    assert article_llm.resolve_article_writer_model() == "gpt-5.4-mini"
+
+
+def test_template_carousel_plan_is_deterministic():
+    from marketer.agents.carousel import template_carousel_plan
+
+    single = template_carousel_plan(
+        topic="home espresso", kind="single", slide_count=5, visual_style="warm"
+    )
+    assert len(single.slides) == 1
+    assert "home espresso" in single.slides[0].heading.casefold()
+    carousel = template_carousel_plan(
+        topic="home espresso", kind="carousel", slide_count=4, visual_style="warm"
+    )
+    assert len(carousel.slides) == 4
+    assert all(s.visual_prompt for s in carousel.slides)
+    assert carousel.caption
+
+
+def test_scriptwriter_forbids_invented_stats():
+    from marketer.agents.scriptwriter import SCRIPTWRITER_INSTRUCTIONS
+
+    assert "Never invent studies" in SCRIPTWRITER_INSTRUCTIONS
+
+
+def test_heuristic_quality_is_deterministic():
+    long = (
+        "Espresso is a short coffee drink. " * 80
+        + "Dial the grind so espresso tastes sweet. "
+        + "A 1:2 ratio is a practical espresso starting point. "
+    )
+    good = fastpath.heuristic_quality(
+        long, "espresso", word_count=len(long.split()), density=0.015
+    )
+    assert 0.6 <= good.overall <= 1.0
+    assert good.keywordDensity == 0.015
+    short = fastpath.heuristic_quality(
+        "Espresso.", "espresso", word_count=40, density=0.001, em_count=1
+    )
+    assert short.overall < good.overall
+    assert any("Short article" in n for n in short.notes)
+    assert any("Em/en-dash" in n for n in short.notes)
+
+
+async def test_score_article_skips_llm_when_jev_dark(monkeypatch):
+    from marketer.articles import llm as article_llm
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "jev_enabled", False)
+
+    async def boom(**kwargs):
+        raise AssertionError("dark-path QA must not call the editorial LLM")
+
+    monkeypatch.setattr(article_llm, "_json_call", boom)
+    score = await article_llm.score_article(
+        "Espresso is a short coffee drink. " * 90 + "Keep espresso sweet.",
+        "espresso",
+    )
+    assert 0.0 <= score.overall <= 1.0
+    assert score.keywordDensity > 0

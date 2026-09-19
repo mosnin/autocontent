@@ -64,16 +64,29 @@ async def insert(
         )
         if existing:
             return _row(existing)
-        row = await pool.fetchrow(
-            f"""
-            insert into company_knowledge
-                (user_id, kind, span, source, confidence, backend)
-            values ($1, $2, $3, $4, $5, $6)
-            returning {_COLS}
-            """,
-            user_id, kind, text, source[:400], confidence, backend[:80],
-        )
-        return _row(row) if row else None
+        try:
+            row = await pool.fetchrow(
+                f"""
+                insert into company_knowledge
+                    (user_id, kind, span, source, confidence, backend)
+                values ($1, $2, $3, $4, $5, $6)
+                returning {_COLS}
+                """,
+                user_id, kind, text, source[:400], confidence, backend[:80],
+            )
+            return _row(row) if row else None
+        except Exception as race:  # noqa: BLE001 — concurrent duplicate after 0027
+            if type(race).__name__ != "UniqueViolationError":
+                raise
+            raced = await pool.fetchrow(
+                f"""
+                select {_COLS} from company_knowledge
+                 where user_id = $1 and lower(span) = lower($2)
+                 limit 1
+                """,
+                user_id, text,
+            )
+            return _row(raced) if raced else None
     except Exception as exc:  # noqa: BLE001 — knowledge never blocks
         log.warning("company_knowledge.insert_failed", extra={"error": str(exc)})
         return None

@@ -68,8 +68,7 @@ async def emit(user_id: str, event: str, payload: dict, *, timestamp: int) -> in
         logging.getLogger(__name__).warning("webhook lookup failed for %s", user_id)
         return 0
 
-    delivered = 0
-    for url, secret in targets:
+    async def _one(url: str, secret: str) -> int:
         try:
             status = await deliver_one(
                 url, secret, event=event, payload=payload, timestamp=timestamp
@@ -77,9 +76,14 @@ async def emit(user_id: str, event: str, payload: dict, *, timestamp: int) -> in
         except Exception:  # noqa: BLE001 — one endpoint must never break the rest
             logging.getLogger(__name__).warning("webhook deliver_one raised for %s", url)
             status = None
-        delivered += 1
         try:
             await webhooks_out.record_delivery(url, user_id, status)
         except Exception:  # noqa: BLE001 — bookkeeping must never break delivery
             pass
-    return delivered
+        return 1
+
+    results = await asyncio.gather(
+        *[_one(url, secret) for url, secret in targets],
+        return_exceptions=True,
+    )
+    return sum(1 for r in results if r == 1)

@@ -113,6 +113,20 @@ def llm_cost(model: ScriptModel, input_tokens: int, output_tokens: int) -> Decim
     return cost.quantize(Decimal("0.000001"))
 
 
+def chat_client():
+    """Shared OpenRouter OpenAI-compatible client (keep-alive)."""
+    from openai import AsyncOpenAI
+
+    global _openai_client
+    if not enabled():
+        raise RuntimeError("MARKETER_OPENROUTER_API_KEY is not set")
+    if _openai_client is None:
+        _openai_client = AsyncOpenAI(
+            base_url=BASE_URL, api_key=settings.openrouter_api_key
+        )
+    return _openai_client
+
+
 def agents_model(model_id: str):
     """An Agents-SDK model object routing through OpenRouter.
 
@@ -124,13 +138,7 @@ def agents_model(model_id: str):
         raise ValueError(f"unknown openrouter model {model_id!r}")
 
     from agents import OpenAIChatCompletionsModel
-    from openai import AsyncOpenAI
 
-    global _openai_client
-    if _openai_client is None:
-        _openai_client = AsyncOpenAI(
-            base_url=BASE_URL, api_key=settings.openrouter_api_key
-        )
     return OpenAIChatCompletionsModel(
-        model=model_id, openai_client=_openai_client
+        model=model_id, openai_client=chat_client()
     )

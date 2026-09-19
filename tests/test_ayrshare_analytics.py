@@ -20,6 +20,9 @@ PROVIDER_POST_ID = "ayr-post-abc123"
 def _set_api_key(monkeypatch):
     from marketer.config import settings
     monkeypatch.setattr(settings, "ayrshare_api_key", "ayr-test-key")
+    analytics_module._http = None
+    yield
+    analytics_module._http = None
 
 
 @pytest.fixture
@@ -37,6 +40,7 @@ def patch_async_client(monkeypatch):
 
     def install(transport: httpx.MockTransport) -> None:
         holder["transport"] = transport
+        analytics_module._http = None
 
     return install
 

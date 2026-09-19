@@ -679,3 +679,31 @@ obvious abuse windows on the HTTP judges:
 | Qwen-only ideation uses templates + `ask()` | OpenRouter-only installs skip the 3-way writer tournament |
 | HTTP limits: 40/min judges, 20/min ads, 8/min voice | Stolen token / noisy UI cannot melt TypeSafe or OpenAI |
 | `apply_jev_ads_overlay` tests | Deny / force-approve / fail-open cannot relax AdSpendGuard |
+
+---
+
+## 16. Loop — Qwen writes articles, keep-alive research/publish
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Article writer resolves to Qwen when OpenRouter is on and the operator did not pin a different model | Matches the harness contract and is cheaper than `gpt-5.4-mini` |
+| OpenRouter `chat_client()` reused | Article sections and Agents-SDK writers share one TLS pool |
+| Exa keep-alive client | SERP research no longer opens a new client per article |
+| Ayrshare keep-alive + parallel carousel uploads | Publish path skips TLS and waits for slides concurrently |
+| Template carousel plans when Jev is live | Image posts skip a planner LLM; gpt-image-1 still renders |
+| Slim video QA state (hook + narration + 1.5k transcript) | Jev judges the checkable parts, not a full script dump |
+| Scriptwriter fact lock | Narration cannot invent studies / % / $ / years |
+
+---
+
+## 17. Loop — more TLS reuse, unique knowledge, heuristic QA
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Ayrshare profiles + analytics keep-alive | Connect and metrics polls skip a TLS handshake each call |
+| ElevenLabs TTS + music keep-alive | Voiceover and generated tracks reuse one client |
+| Parallel outbound webhook fan-out | N endpoints wait one RTT, not N; still fail-open |
+| Unique index on `(user_id, lower(span))` | Concurrent extracts cannot duplicate a brand rule and bloat every prompt |
+| `heuristic_quality` when Jev is dark | Article QA is classification. A dark harness no longer spends 2–8s on an editorial LLM that invents scores |
+
+Dark-path article QA uses word count, keyword density, sentence length, and dash counts — the same numbers the old LLM was given. Jev still scores when the key is live. Citation-verifier and the fact lock stay in front of publish either way.

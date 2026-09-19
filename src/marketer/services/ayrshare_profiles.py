@@ -14,6 +14,8 @@ provider OAuth tokens land on the profile identified by `profileKey`.
 """
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -21,6 +23,18 @@ from ..config import settings
 
 BASE_URL = "https://api.ayrshare.com/api"
 HTTP_TIMEOUT_SEC = 30.0
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC)
+        return _http
 
 
 class AyrshareProfileError(RuntimeError):
@@ -45,12 +59,12 @@ def _headers() -> dict[str, str]:
 )
 async def create_profile(*, title: str) -> tuple[str, str]:
     """Create a new Ayrshare User Profile. Returns (profile_key, ref_id)."""
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
-        resp = await client.post(
-            "/profiles",
-            headers={**_headers(), "Content-Type": "application/json"},
-            json={"title": title},
-        )
+    client = await _shared_client()
+    resp = await client.post(
+        "/profiles",
+        headers={**_headers(), "Content-Type": "application/json"},
+        json={"title": title},
+    )
     if resp.status_code >= 400:
         raise AyrshareProfileError(
             f"create_profile failed: {resp.status_code} {resp.text!r}"
@@ -73,12 +87,12 @@ async def create_profile(*, title: str) -> tuple[str, str]:
 )
 async def generate_login_jwt(*, profile_key: str) -> str:
     """Generate a short-lived hosted-OAuth URL for the given profile."""
-    async with httpx.AsyncClient(base_url=BASE_URL, timeout=HTTP_TIMEOUT_SEC) as client:
-        resp = await client.get(
-            "/profiles/generateJWT",
-            headers=_headers(),
-            params={"profileKey": profile_key},
-        )
+    client = await _shared_client()
+    resp = await client.get(
+        "/profiles/generateJWT",
+        headers=_headers(),
+        params={"profileKey": profile_key},
+    )
     if resp.status_code >= 400:
         raise AyrshareProfileError(
             f"generate_login_jwt failed: {resp.status_code} {resp.text!r}"

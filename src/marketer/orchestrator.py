@@ -109,9 +109,11 @@ async def run_qa(
     spend: SpendContext | None = None,
 ) -> QAReport:
     agent = build_qa_agent()
+    scenes = getattr(script, "scenes", None) or []
     payload = {
-        "script": script.model_dump(),
-        "transcript": transcript,
+        "hook": (scenes[0].narration if scenes else ""),
+        "narration": " ".join(str(getattr(s, "narration", "") or "") for s in scenes),
+        "transcript": (transcript or "")[:1500],
         "duration_sec": duration_sec,
         "target_duration_sec": niche.target_duration_sec,
         "niche": niche.title,

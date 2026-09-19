@@ -18,6 +18,7 @@ from .models import (
     InterlinkSuggestion,
     Outline,
     OutlineSection,
+    QualityScore,
     SerpAnalysis,
     SerpResult,
     TopicPick,
@@ -443,6 +444,62 @@ def faq_section_from_research(heading: str, research: SerpAnalysis | None) -> st
             )
         lines.append(f"**{question.strip()}**\n\n{answer[:280]}\n")
     return "\n".join(lines)
+
+
+def heuristic_quality(
+    article_md: str,
+    focus_keyword: str,
+    *,
+    word_count: int,
+    density: float,
+    em_count: int = 0,
+    en_count: int = 0,
+) -> QualityScore:
+    """Deterministic QA when Jev is dark. Classification, not prose.
+
+    Replaces an 8k-token editorial LLM that invented scores. Metrics are
+    already computed; notes stay checkable (length, density, dashes).
+    """
+    notes: list[str] = []
+    if word_count < 600:
+        notes.append(
+            f"Short article ({word_count} words); readers expect more depth."
+        )
+        length_score = 0.45
+    elif word_count < 1200:
+        length_score = 0.7
+    else:
+        length_score = 0.85
+    if density < 0.004:
+        notes.append(
+            "Focus keyword appears rarely; add it to one more heading or paragraph."
+        )
+        density_score = 0.5
+    elif density > 0.035:
+        notes.append("Keyword density is high; it may read as stuffed.")
+        density_score = 0.55
+    else:
+        density_score = 0.85
+    sentences = [s for s in re.split(r"[.!?]+", article_md or "") if s.strip()]
+    avg_len = (word_count / len(sentences)) if sentences else 0.0
+    readability = 0.8 if 8 <= avg_len <= 28 else 0.55
+    if sentences and not (8 <= avg_len <= 28):
+        notes.append("Sentence length is uneven; mix short and medium sentences.")
+    eeat = min(1.0, (length_score + density_score) / 2)
+    overall = (eeat + readability) / 2
+    if em_count or en_count:
+        notes.append(
+            f"Em/en-dash usage detected: {em_count} em-dash(es), "
+            f"{en_count} en-dash(es). Replace with commas or periods."
+        )
+        overall = max(0.0, overall - 0.08)
+    return QualityScore(
+        overall=max(0.0, min(1.0, overall)),
+        keywordDensity=float(density),
+        eeatScore=max(0.0, min(1.0, eeat)),
+        readability=max(0.0, min(1.0, readability)),
+        notes=notes,
+    )
 
 
 def hero_prompt(title: str, keyword: str) -> ImagePrompt:

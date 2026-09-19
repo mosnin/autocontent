@@ -16,6 +16,7 @@ API (docs.elevenlabs.io): POST /v1/music with a text prompt and
 """
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 from pathlib import Path
 
@@ -32,6 +33,18 @@ PROVIDER = "elevenlabs"
 SKU = "music"
 API_BASE = "https://api.elevenlabs.io/v1"
 HTTP_TIMEOUT_SEC = 300.0
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(timeout=HTTP_TIMEOUT_SEC)
+        return _http
 
 # Pinned per generated minute (registry-style, like fal/openrouter).
 USD_PER_MINUTE = Decimal("0.50")
@@ -78,15 +91,15 @@ def _is_retryable(exc: BaseException) -> bool:
     retry=retry_if_exception(_is_retryable),
 )
 async def _call_api(prompt: str, length_ms: int) -> bytes:
-    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_SEC) as client:
-        resp = await client.post(
-            f"{API_BASE}/music",
-            params={"output_format": "mp3_44100_128"},
-            headers={"xi-api-key": settings.elevenlabs_api_key},
-            json={"prompt": prompt, "music_length_ms": length_ms},
-        )
-        resp.raise_for_status()
-        return resp.content
+    client = await _shared_client()
+    resp = await client.post(
+        f"{API_BASE}/music",
+        params={"output_format": "mp3_44100_128"},
+        headers={"xi-api-key": settings.elevenlabs_api_key},
+        json={"prompt": prompt, "music_length_ms": length_ms},
+    )
+    resp.raise_for_status()
+    return resp.content
 
 
 async def compose(

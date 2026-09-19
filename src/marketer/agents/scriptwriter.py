@@ -45,6 +45,8 @@ VISUALS:
 Educational rules:
 - Avoid filler. No "in this video we'll cover". No greetings.
 - Speak directly to the viewer ("you"), present tense, concrete nouns.
+- Never invent studies, percentages, dollar figures, or citation years.
+  If a number is not in the brief, speak qualitatively.
 """
 
 

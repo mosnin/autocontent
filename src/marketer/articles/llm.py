@@ -41,6 +41,27 @@ def _oai() -> openai.AsyncOpenAI:
     return _client
 
 
+def resolve_article_writer_model() -> str:
+    """Qwen via OpenRouter when the operator did not pin a different writer."""
+    from ..jev.harness import default_generation_model
+    from ..services import openrouter
+
+    pinned = settings.article_writer_model
+    if openrouter.get_model(pinned) is not None and openrouter.enabled():
+        return pinned
+    if pinned == settings.agent_model and openrouter.enabled():
+        return default_generation_model()
+    return pinned
+
+
+def _chat_client(model: str):
+    from ..services import openrouter
+
+    if openrouter.get_model(model) is not None and openrouter.enabled():
+        return openrouter.chat_client()
+    return _oai()
+
+
 def strip_ai_dashes(text: str) -> str:
     """Deterministic backstop for the no-em/en-dash style rule: prompts
     forbid them but models drift. Numeric ranges keep a plain hyphen;
@@ -63,11 +84,20 @@ async def _log_usage(resp: object, model: str, spend: SpendContext | None) -> No
     out_tok = int(
         getattr(u, "completion_tokens", None) or getattr(u, "output_tokens", 0) or 0
     )
+    from ..services import openrouter
+
+    or_model = openrouter.get_model(model)
+    if or_model is not None:
+        cost = openrouter.llm_cost(or_model, in_tok, out_tok)
+        provider = openrouter.PROVIDER
+    else:
+        cost = llm_cost(model, in_tok, out_tok)
+        provider = PROVIDER
     await spend.log(
-        provider=PROVIDER,
+        provider=provider,
         sku=f"llm:{model}",
         units=Decimal(in_tok + out_tok),
-        cost_usd=llm_cost(model, in_tok, out_tok),
+        cost_usd=cost,
     )
 
 
@@ -271,7 +301,7 @@ async def write_section(
     async def _call(model: str) -> str:
         if spend is not None:
             await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-        resp = await _oai().chat.completions.create(
+        resp = await _chat_client(model).chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": system},
@@ -287,7 +317,9 @@ async def write_section(
     # retries already ran inside the OpenAI SDK) must not kill the whole
     # article. Fall back to the stock agent_model, same philosophy as
     # provider_fallback.synthesize_vo_with_fallback for video voiceover.
-    chain = provider_fallback.writer_model_fallback_chain(settings.article_writer_model)
+    chain = provider_fallback.writer_model_fallback_chain(
+        resolve_article_writer_model()
+    )
     # Cascade: a QA rewrite does not retry the same cheap writer first.
     if context.revisionNotes and len(chain) > 1:
         chain = chain[1:] + chain[:1]
@@ -445,39 +477,15 @@ async def score_article(
             if isinstance(exc, SpendCapExceeded):
                 raise
 
-    system = (
-        "You are an editorial QA evaluator. Score the article for E-E-A-T "
-        "(experience, expertise, authoritativeness, trustworthiness) and "
-        "readability on a 0-1 scale. Also return a weighted overall 0-1 "
-        'score. Return JSON of shape {"overall": number, "eeatScore": '
-        'number, "readability": number, "notes": [string]}. Notes should '
-        "list concrete improvement observations."
-    )
-    user = (
-        f"Focus keyword: {focus_keyword}\n"
-        f"Computed word count: {word_count}\n"
-        f"Computed keyword density: {density:.4f}\n\n"
-        f"Article (may be truncated):\n{article_md[:8000]}\n\n"
-        "Return the scored JSON object."
-    )
-    parsed = await _json_call(
-        model=settings.agent_model, system=system, user=user,
-        temperature=0.5, spend=spend,
-    )
+    from .fastpath import heuristic_quality
 
-    notes = list(parsed.get("notes") or [])
-    if em_count or en_count:
-        notes.append(
-            f"Em/en-dash usage detected: {em_count} em-dash(es), "
-            f"{en_count} en-dash(es). Replace with commas or periods."
-        )
-
-    return QualityScore(
-        overall=float(parsed.get("overall", 0.0) or 0.0),
-        keywordDensity=float(density),
-        eeatScore=float(parsed.get("eeatScore", 0.0) or 0.0),
-        readability=float(parsed.get("readability", 0.0) or 0.0),
-        notes=notes,
+    return heuristic_quality(
+        article_md,
+        focus_keyword,
+        word_count=word_count,
+        density=density,
+        em_count=em_count,
+        en_count=en_count,
     )
 
 
