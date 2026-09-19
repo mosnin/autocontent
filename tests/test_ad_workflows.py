@@ -3,6 +3,7 @@ budget recommendation are pure/injectable and tested here; the Inngest mount is
 verified to be a clean no-op when disabled."""
 from __future__ import annotations
 
+import asyncio
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
@@ -88,3 +89,86 @@ def test_inngest_enabled_requires_ads_and_key(monkeypatch):
     assert inngest_app.is_enabled() is False
     monkeypatch.setattr(settings, "inngest_signing_key", "signkey")
     assert inngest_app.is_enabled() is True
+
+
+async def test_optimize_gathers_campaign_metrics_and_kit(monkeypatch):
+    """Campaign, metrics, and ad-kit knobs are independent. A missing
+    campaign still fail-closes before any proposal."""
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    proposed = []
+
+    async def _gate():
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        if started < 3:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def fake_get(campaign_id, *, user_id):
+        await _gate()
+        return None
+
+    async def fake_metrics(campaign_id, *, user_id):
+        await _gate()
+        return []
+
+    async def fake_knobs(user_id, target_roas):
+        await _gate()
+        return {"target_roas": target_roas}
+
+    async def must_not_propose(**kwargs):
+        proposed.append(kwargs)
+        raise AssertionError("missing campaign must not propose")
+
+    monkeypatch.setattr(ad_workflows.ads_repo, "get_campaign", fake_get)
+    monkeypatch.setattr(ad_workflows.ads_repo, "campaign_metrics", fake_metrics)
+    monkeypatch.setattr(ad_workflows, "_ad_kit_knobs", fake_knobs)
+    monkeypatch.setattr(ad_workflows, "propose_budget_change", must_not_propose)
+
+    out = await ad_workflows.optimize_campaign(
+        user_id="u1", campaign_id=uuid4()
+    )
+    assert out == {"status": "skipped", "reason": "not found"}
+    assert started == 3
+    assert max_inflight == 3
+    assert proposed == []
+
+
+async def test_optimize_kit_failure_still_evaluates(monkeypatch):
+    camp = _campaign()
+
+    async def fake_get(campaign_id, *, user_id):
+        return camp
+
+    async def fake_metrics(campaign_id, *, user_id):
+        return _metrics(10, 40)
+
+    async def boom(*, user_id, kind, kit_id=None):
+        raise RuntimeError("kit db down")
+
+    seen = []
+
+    async def fake_propose(**kwargs):
+        seen.append(kwargs["new_daily_budget_usd"])
+        return {"status": "pending_approval"}
+
+    import marketer.repos.kits as kits_repo
+
+    monkeypatch.setattr(ad_workflows.ads_repo, "get_campaign", fake_get)
+    monkeypatch.setattr(ad_workflows.ads_repo, "campaign_metrics", fake_metrics)
+    monkeypatch.setattr(kits_repo, "resolve", boom)
+    monkeypatch.setattr(ad_workflows, "propose_budget_change", fake_propose)
+
+    out = await ad_workflows.optimize_campaign(
+        user_id="u1", campaign_id=camp.id
+    )
+    assert out["status"] == "pending_approval"
+    # Default +20% on $10 with kit lookup failed-open.
+    assert seen == [Decimal("12.00")]

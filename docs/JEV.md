@@ -1187,3 +1187,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Do not probe when `audio_mode` is not `keep` | No leftover ffprobe on mute remixes |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 61. Loop — optimizer gathers campaign + metrics + kit
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `optimize_campaign` gathers campaign, metrics, and ad-kit knobs | The campaign id is already known. Every optimizer tick waited on the row before loading metrics and the kit |
+| Missing campaign still skips before `propose_budget_change` | Metrics/kit reads are cheap. A spoofed id cannot move money |
+| Kit lookup still fail-opens | A down kits table never blocks a guarded proposal. AdSpendGuard still fail-closes the execute path |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

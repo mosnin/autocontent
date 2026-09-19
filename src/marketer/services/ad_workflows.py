@@ -11,6 +11,7 @@ Two workflows live here for now:
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Awaitable, Callable
@@ -155,6 +156,20 @@ def _kit_knobs(rules: dict) -> dict:
     return knobs
 
 
+async def _ad_kit_knobs(user_id: str, target_roas: Decimal) -> dict:
+    """Ad-kit scaling knobs. Fail-open: a missing kit never blocks a proposal."""
+    knobs: dict = {"target_roas": target_roas}
+    try:
+        from ..repos import kits as kits_repo
+
+        kit = await kits_repo.resolve(user_id=user_id, kind="ad", kit_id=None)
+        if kit is not None:
+            knobs.update(_kit_knobs(kit.rules))
+    except Exception:  # noqa: BLE001 — kit lookup must never block optimization
+        pass
+    return knobs
+
+
 async def optimize_campaign(
     *,
     user_id: str,
@@ -165,26 +180,20 @@ async def optimize_campaign(
 ) -> dict:
     """Evaluate a campaign and, if warranted, PROPOSE a budget change through
     the safe-execute layer. Returns a dict describing the outcome. Never moves
-    money directly — a proposal is guarded and (if large) parked for approval."""
-    campaign = await ads_repo.get_campaign(campaign_id, user_id=user_id)
+    money directly — a proposal is guarded and (if large) parked for approval.
+
+    Campaign row, metrics, and ad-kit knobs are independent. Waiting on
+    the campaign first left two leftover RTTs on every optimizer tick.
+    """
+    cutoff = date.today() - timedelta(days=lookback_days)
+    campaign, raw_metrics, knobs = await asyncio.gather(
+        ads_repo.get_campaign(campaign_id, user_id=user_id),
+        ads_repo.campaign_metrics(campaign_id, user_id=user_id),
+        _ad_kit_knobs(user_id, target_roas),
+    )
     if campaign is None:
         return {"status": "skipped", "reason": "not found"}
-    cutoff = date.today() - timedelta(days=lookback_days)
-    metrics = [
-        m
-        for m in await ads_repo.campaign_metrics(campaign_id, user_id=user_id)
-        if m.date >= cutoff
-    ]
-    # The user's ad kit (their scaling strategy) shapes the proposal.
-    knobs: dict = {"target_roas": target_roas}
-    try:
-        from ..repos import kits as kits_repo
-
-        kit = await kits_repo.resolve(user_id=user_id, kind="ad", kit_id=None)
-        if kit is not None:
-            knobs.update(_kit_knobs(kit.rules))
-    except Exception:  # noqa: BLE001 — kit lookup must never block optimization
-        pass
+    metrics = [m for m in raw_metrics if m.date >= cutoff]
     recommended = recommend_daily_budget(campaign, metrics, **knobs)
     if recommended is None:
         return {"status": "no_change"}
