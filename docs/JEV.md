@@ -1177,3 +1177,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Guard still runs after every row is loaded | Kill-switch, caps, and inactive accounts still fail-close. Jev overlay still only tightens |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 60. Loop — composition audio probes run in one gather
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `render_composition` gathers `probe_has_audio` via `asyncio.to_thread` | Each ffprobe is independent. A 4-clip remix waited on each container before starting the next |
+| Concat still runs after every probe | `keep_audio` is still true only when every clip has an audio stream. Silent concat is unchanged |
+| Do not probe when `audio_mode` is not `keep` | No leftover ffprobe on mute remixes |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

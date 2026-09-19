@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import threading
 from pathlib import Path
 from uuid import uuid4
 
@@ -170,3 +171,37 @@ async def test_wasabi_clips_materialize_in_one_gather(env, monkeypatch):
     assert max_inflight == 2
     call = env["concat_calls"][0]
     assert [Path(p).name for p in call["paths"]] == ["in_0.mp4", "in_1.mp4"]
+
+
+async def test_audio_probes_run_in_one_gather(env, monkeypatch):
+    """keep-audio probes used to wait on each ffprobe. Concat still
+    sees keep_audio=False if any clip is silent."""
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    lock = threading.Lock()
+    release = threading.Event()
+
+    def fake_probe(path):
+        nonlocal started, max_inflight, inflight
+        with lock:
+            started += 1
+            inflight += 1
+            max_inflight = max(max_inflight, inflight)
+            n = started
+        if n < 2:
+            release.wait()
+        else:
+            release.set()
+        with lock:
+            inflight -= 1
+        return True
+
+    monkeypatch.setattr(ffmpeg, "probe_has_audio", fake_probe)
+    result = await compose.render_composition(
+        user_id=USER, composition_id=env["comp"].id
+    )
+    assert result.status == "done"
+    assert started == 2
+    assert max_inflight == 2
+    assert env["concat_calls"][0]["keep_audio"] is True

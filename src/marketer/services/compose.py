@@ -94,9 +94,18 @@ async def render_composition(*, user_id: str, composition_id: UUID) -> Compositi
             )
         )
 
-        keep_audio = comp.audio_mode == "keep" and all(
-            ffmpeg.probe_has_audio(p) for p in local_paths
-        )
+        if comp.audio_mode == "keep" and local_paths:
+            # ffprobe per clip is independent subprocess I/O. Sequential
+            # probes waited on each container before starting the next.
+            has_audio = await asyncio.gather(
+                *[
+                    asyncio.to_thread(ffmpeg.probe_has_audio, p)
+                    for p in local_paths
+                ]
+            )
+            keep_audio = all(has_audio)
+        else:
+            keep_audio = False
         out_path = workdir / "composition.mp4"
         ffmpeg.concat_clips(
             local_paths, out_path, aspect=settings.aspect, keep_audio=keep_audio
