@@ -118,7 +118,10 @@ async def get_job_metrics(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobMetric
 
 
 @router.post("/{job_id}/approve", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
-async def approve_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def approve_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     """Operator sign-off on an `awaiting_approval` job. Spawns the Modal
     `finish_scheduling` function, which uploads + schedules the already
     rendered video and marks the job done."""

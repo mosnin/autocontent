@@ -131,7 +131,11 @@ def _make_app(monkeypatch):
     async def _fake_require_user():
         return AuthCtx(user_id=_USER_ID, email="t@t.com")
 
+    from backend.rate_limit import limiter
+
+    limiter.reset()
     app = FastAPI()
+    app.state.limiter = limiter
     app.include_router(failures.router, prefix="/api/v1/failures")
     app.dependency_overrides[require_user] = _fake_require_user
     return TestClient(app, raise_server_exceptions=False)

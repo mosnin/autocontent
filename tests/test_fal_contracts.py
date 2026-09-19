@@ -185,7 +185,7 @@ async def test_animate_resizes_keyframe_for_sora(tmp_path, monkeypatch):
     assert len(resize_calls) == 1
     assert resize_calls[0][1] == (720, 1280)
     # the resized image's bytes went into the body, not the original keyframe
-    assert "RESIZEDPNG".encode().hex() not in posted["json"]["image_url"]  # base64, not hex
+    assert b"RESIZEDPNG".hex() not in posted["json"]["image_url"]  # base64, not hex
     import base64 as _b64
     assert _b64.b64encode(b"RESIZEDPNG").decode() in posted["json"]["image_url"]
 
@@ -432,3 +432,18 @@ def test_price_overrides_not_a_dict_logs_warning(monkeypatch, caplog):
         out = fal_video._price_overrides()
     assert out == {}
     assert any("expected a JSON object" in r.message for r in caplog.records)
+
+
+async def test_keep_alive_client_does_not_close_on_exit(monkeypatch):
+    """Scene fan-out must reuse TLS; exiting the CM cannot close the pool."""
+    fal_video._http = None
+    inner = httpx.AsyncClient()
+
+    async def _shared() -> httpx.AsyncClient:
+        return inner
+
+    monkeypatch.setattr(fal_video, "_shared_client", _shared)
+    async with fal_video._client() as client:
+        assert client is inner
+    assert not inner.is_closed
+    await inner.aclose()

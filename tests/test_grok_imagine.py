@@ -8,7 +8,6 @@ import pytest
 
 from marketer.services import grok_imagine
 
-
 PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
     b"\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\rIDATx\x9cc\xf8\xcf"
@@ -153,3 +152,17 @@ async def test_animate_no_spend_when_ctx_omitted(
 
     await grok_imagine.animate(keyframe, "x", out, duration_sec=5.0)
     assert out.exists()
+
+
+async def test_keep_alive_client_does_not_close_on_exit(monkeypatch):
+    grok_imagine._http = None
+    inner = httpx.AsyncClient()
+
+    async def _shared() -> httpx.AsyncClient:
+        return inner
+
+    monkeypatch.setattr(grok_imagine, "_shared_client", _shared)
+    async with grok_imagine._client() as client:
+        assert client is inner
+    assert not inner.is_closed
+    await inner.aclose()

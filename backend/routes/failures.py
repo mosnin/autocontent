@@ -24,11 +24,11 @@ view, not an admin cross-tenant one.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel
 
 from marketer.articles.models import ArticleStatus
@@ -37,8 +37,10 @@ from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import jobs as jobs_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_REPLAY_LIMIT = "10/minute"
 
 FailureKind = Literal["job", "image_post", "article"]
 
@@ -126,7 +128,7 @@ async def list_failures(
 
     # Articles can have a null created_at pre-migration/back-compat; sort
     # those last rather than letting None vs. datetime blow up the sort.
-    items.sort(key=lambda i: i.created_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    items.sort(key=lambda i: i.created_at or datetime.min.replace(tzinfo=UTC), reverse=True)
 
     from marketer.jev.loops import enrich_failure_rows
 
@@ -141,8 +143,12 @@ async def list_failures(
 
 
 @router.post("/replay/{kind}/{item_id}", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(_REPLAY_LIMIT)
 async def replay_failure(
-    kind: FailureKind, item_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request,
+    kind: FailureKind,
+    item_id: UUID,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
     """Replay a single failed item by delegating to the same repo call
     and Modal function the item's own retry endpoint uses. No new spawn

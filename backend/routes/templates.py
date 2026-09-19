@@ -30,8 +30,10 @@ from marketer.repos import admin_audit
 from marketer.repos import templates as templates_repo
 
 from ..auth import AuthCtx, CurrentUser, require_admin
+from ..rate_limit import limiter
 
 router = APIRouter()
+_REMIX_LIMIT = "10/minute"
 
 MAX_IMAGE_B64 = 8 * 1024 * 1024  # ~6MB binary
 # Whole-request ceiling: image b64 + prompt + slack. Checked from the
@@ -184,8 +186,12 @@ async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
 
 
 @router.post("/{template_id}/remix", status_code=status.HTTP_202_ACCEPTED)
+@limiter.limit(_REMIX_LIMIT)
 async def remix_template(
-    template_id: UUID, body: RemixRequest, ctx: AuthCtx = CurrentUser,
+    request: Request,
+    template_id: UUID,
+    body: RemixRequest,
+    ctx: AuthCtx = CurrentUser,
     _size_ok: None = Depends(_bounded_body),
 ) -> dict:
     template = await templates_repo.get(template_id)

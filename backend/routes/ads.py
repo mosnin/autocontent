@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.repos import ad_actions, ad_approvals
@@ -29,8 +29,10 @@ from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_bud
 from marketer.services.composio_client import AdsDisabled
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ADS_LIMIT = "20/minute"
 
 
 # --------------------------------------------------------------------------- accounts
@@ -45,7 +47,10 @@ async def list_accounts(ctx: AuthCtx = CurrentUser) -> list[ads_repo.AdAccount]:
 
 
 @router.post("/accounts/connect")
-async def connect_account(body: ConnectBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_ADS_LIMIT)
+async def connect_account(
+    request: Request, body: ConnectBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     try:
         return await ad_connections.start_connection(
             user_id=ctx.user_id, platform=body.platform
@@ -157,8 +162,12 @@ class BudgetBody(BaseModel):
 
 
 @router.post("/campaigns/{campaign_id}/budget")
+@limiter.limit(_ADS_LIMIT)
 async def change_budget(
-    campaign_id: UUID, body: BudgetBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    campaign_id: UUID,
+    body: BudgetBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
     """Change a campaign's daily budget through the safe-execute layer:
     guarded, approval-gated for large deltas, and audited. 402 on a hard deny."""
@@ -177,8 +186,12 @@ class StatusBody(BaseModel):
 
 
 @router.post("/campaigns/{campaign_id}/status")
+@limiter.limit(_ADS_LIMIT)
 async def change_status(
-    campaign_id: UUID, body: StatusBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    campaign_id: UUID,
+    body: StatusBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
     """Activate / pause / end a campaign. Pausing/ending always allowed.
     Activation is spend-affecting: it must pass BOTH the guard's non-budget
@@ -217,7 +230,7 @@ async def change_status(
             approval = await ad_approvals.create(
                 user_id=ctx.user_id, action="campaign.activate",
                 summary=f"Activate campaign with daily budget "
-                        f"${camp.daily_budget_usd or Decimal('0')}",
+                        f"${camp.daily_budget_usd or Decimal(0)}",
                 dollar_delta_usd=delta, ad_account_id=camp.ad_account_id,
                 campaign_id=camp.id, payload={}, requested_by="user",
             )
@@ -267,8 +280,12 @@ class DecideBody(BaseModel):
 
 
 @router.post("/approvals/{approval_id}/decide", response_model=ad_approvals.AdApproval)
+@limiter.limit(_ADS_LIMIT)
 async def decide_approval(
-    approval_id: UUID, body: DecideBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    approval_id: UUID,
+    body: DecideBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> ad_approvals.AdApproval:
     """Decide a pending approval. Approving does not just flip the row to
     'approved' — it also EXECUTES the underlying spend change (budget
@@ -328,8 +345,8 @@ async def overview(ctx: AuthCtx = CurrentUser) -> dict:
     today = date.today()
     month_start = today.replace(day=1)
 
-    spend_today = Decimal("0")
-    spend_30d = Decimal("0")
+    spend_today = Decimal(0)
+    spend_30d = Decimal(0)
     thirty_ago = today - timedelta(days=30)
     for acc in accounts:
         spend_today += await ads_repo.account_spend_on(

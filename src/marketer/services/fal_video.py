@@ -48,6 +48,8 @@ QUEUE_BASE = "https://queue.fal.run"
 POLL_INTERVAL_SEC = 4.0
 POLL_TIMEOUT_SEC = 600.0
 HTTP_TIMEOUT_SEC = 60.0
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
 
 # fal's queue endpoint (and the underlying providers behind it) reject
 # oversized JSON bodies with an opaque 413/400 well after we've already
@@ -89,11 +91,11 @@ class FalVideoModel(BaseModel):
     # before spending on keyframe/voiceover generation.
 
 
-def snap_duration(model: "FalVideoModel", requested_sec: float) -> int:
+def snap_duration(model: FalVideoModel, requested_sec: float) -> int:
     return min(model.allowed_durations, key=lambda d: abs(d - requested_sec))
 
 
-def format_duration(model: "FalVideoModel", duration_sec: int) -> str:
+def format_duration(model: FalVideoModel, duration_sec: int) -> str:
     """Render a snapped duration the way this model's endpoint expects
     it on the wire: bare ("5") for most models, suffixed ("8s") for the
     handful (Veo 3, Luma Ray 2) whose schema enum includes the unit."""
@@ -285,11 +287,40 @@ def video_cost(model: FalVideoModel, seconds: float) -> Decimal:
     return (model.usd_per_second * Decimal(str(seconds))).quantize(Decimal("0.0001"))
 
 
-def _client() -> httpx.AsyncClient:
+def _make_client() -> httpx.AsyncClient:
     return httpx.AsyncClient(
         timeout=HTTP_TIMEOUT_SEC,
         headers={"Authorization": f"Key {settings.fal_api_key}"},
     )
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    """Reuse one keep-alive client across submit / poll / download."""
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = _make_client()
+        return _http
+
+
+class _KeepAliveCM:
+    """`async with _client()` without closing the shared pool on exit.
+
+    Tests that replace `_client` with a fake still work — this wrapper
+    is only the production seam.
+    """
+
+    async def __aenter__(self) -> httpx.AsyncClient:
+        return await _shared_client()
+
+    async def __aexit__(self, *exc: object) -> bool:
+        return False
+
+
+def _client() -> _KeepAliveCM:
+    return _KeepAliveCM()
 
 
 def _check_data_uri_size(uri: str, *, kind: str) -> None:

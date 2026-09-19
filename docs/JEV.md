@@ -735,3 +735,17 @@ Jev still judges video when the key is live. Social copy is now an extract — w
 | Pixabay / Resend / x402 / outbound webhook keep-alive | Music search, mail, facilitator verify, and signed fan-out skip a TLS handshake per call |
 
 Jev still picks among templates when the key is live. Ads overlay is unchanged: deny / force-approve only; `AdSpendGuard` never relaxes.
+
+---
+
+## 20. Loop — video TLS reuse, spawn + money POSTs bounded
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Fal + Grok Imagine keep-alive (`_client` does not close the pool) | Every scene used to open TLS, poll, download, then tear down. A 4-scene video paid that 4 times; now it is one handshake |
+| Failures replay 10/min | The inbox is a second door onto the same Modal spawn as retry |
+| Template remix 10/min | gpt-image-1 + Modal cannot be melted from `/templates/{id}/remix` |
+| Job / image-post approve 10/min | Approve spawns `finish_scheduling` (Ayrshare upload). Same bound as enqueue |
+| Ads connect / budget / status / decide 20/min | Money mutations already fail-closed; a stolen token still cannot spray the guard |
+
+Ads overlay is unchanged. Jev still does not generate video or move money.

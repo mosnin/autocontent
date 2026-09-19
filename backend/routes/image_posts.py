@@ -87,7 +87,10 @@ async def retry_image_post(
 
 
 @router.post("/{image_post_id}/approve", status_code=status.HTTP_202_ACCEPTED)
-async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_ENQUEUE_LIMIT)
+async def approve_image_post(
+    request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     """Operator sign-off: atomically claim and resume at scheduling."""
     if not await image_posts_repo.claim_for_scheduling(
         image_post_id, user_id=ctx.user_id
