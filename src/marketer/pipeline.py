@@ -277,23 +277,30 @@ async def _generate_scene_assets(
 ) -> Clip:
     keyframe = root / "keyframes" / f"scene_{scene.index}.png"
     clip = root / "clips" / f"scene_{scene.index}.mp4"
-    async with provider_limits.slot("openai_images"):
-        await openai_images.generate_keyframe(
-            scene.visual_prompt,
-            keyframe,
-            quality=niche.image_quality,
-            reference_image_path=reference_image,
-            spend=spend,
-        )
+
+    async def _keyframe() -> None:
+        async with provider_limits.slot("openai_images"):
+            await openai_images.generate_keyframe(
+                scene.visual_prompt,
+                keyframe,
+                quality=niche.image_quality,
+                reference_image_path=reference_image,
+                spend=spend,
+            )
+
     if avatar_model_id:
-        # Lip-synced UGC: this scene's narration is synthesized first and
-        # DRIVES the render — the avatar model returns a clip of the cast
-        # actually speaking it, audio embedded. Clip length follows the
-        # audio, so scene_max_duration_sec doesn't apply here. A failed
-        # avatar render falls back to another avatar model (never to a
-        # plain i2v model — see services.provider_fallback).
+        # Lip-synced UGC: narration still DRIVES the avatar render (clip
+        # audio is embedded; duration follows the WAV). The keyframe and
+        # per-scene VO are independent — waiting on gpt-image-1 before
+        # TTS left a leftover RTT on every avatar scene. Render still
+        # waits for both. A failed avatar render falls back to another
+        # avatar model (never to a plain i2v model — see
+        # services.provider_fallback).
         scene_vo = root / "audio" / f"scene_{scene.index}.wav"
-        await _synthesize_vo(scene.narration, scene_vo, niche=niche, spend=spend)
+        await asyncio.gather(
+            _keyframe(),
+            _synthesize_vo(scene.narration, scene_vo, niche=niche, spend=spend),
+        )
         await provider_fallback.render_avatar_scene(
             keyframe, scene_vo, clip,
             niche=niche,
@@ -306,6 +313,7 @@ async def _generate_scene_assets(
             video_path=str(clip),
             duration_sec=ffmpeg.probe_duration(clip),
         )
+    await _keyframe()
     clip_duration = min(scene.duration_sec, niche.scene_max_duration_sec)
     # A persistent (non-transient) failure on the niche's chosen i2v
     # provider falls back to a different provider — see

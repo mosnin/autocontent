@@ -1158,3 +1158,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Do not gather `get_assets_bulk` with the claim | Clip ids come from the claimed row. Concat stays sequential — it depends on every path |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 58. Loop — avatar keyframe and scene VO start together
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Avatar `_generate_scene_assets` gathers gpt-image-1 + per-scene TTS | The keyframe does not depend on the WAV. Every lip-sync scene waited on the image before starting voice |
+| Avatar render still waits for both files | Narration still drives the clip. Duration still follows the WAV. Fallback is still avatar-only, never i2v |
+| i2v path still generates the keyframe first | Motion render needs the PNG. VO+music overlap on the non-avatar path is unchanged |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
