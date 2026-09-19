@@ -1168,3 +1168,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | i2v path still generates the keyframe first | Motion render needs the PNG. VO+music overlap on the non-avatar path is unchanged |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 59. Loop — ads guard gathers account + ledger reads
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `_gather_and_guard` gathers account, committed budgets, today spend, month spend | Four independent reads. Every budget change / activation / approved replay waited on the account before asking the ledger |
+| Guard still runs after every row is loaded | Kill-switch, caps, and inactive accounts still fail-close. Jev overlay still only tightens |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

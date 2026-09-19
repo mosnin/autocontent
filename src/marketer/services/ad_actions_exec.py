@@ -15,6 +15,7 @@ directly. Reads and drafts are unrestricted; money is not.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import date
 from decimal import Decimal
 from typing import Awaitable, Callable
@@ -84,8 +85,26 @@ async def _gather_and_guard(
     budget (a budget change on an already-spending campaign), but callers
     guarding an ACTIVATION pass 0 here: the campaign wasn't spending before,
     so its whole stored budget is the delta coming online."""
-    account = await ads_repo.get_account(
-        campaign.ad_account_id, user_id=campaign.user_id
+    # Account row, committed budgets, and ledger totals are independent
+    # reads. Sequential loads left three leftover RTTs in front of every
+    # fail-closed guard (budget change, activation, approved replay).
+    today = date.today()
+    account, committed, today_spend, month_spend = await asyncio.gather(
+        ads_repo.get_account(
+            campaign.ad_account_id, user_id=campaign.user_id
+        ),
+        ads_repo.active_daily_budget_total(
+            user_id=campaign.user_id,
+            ad_account_id=campaign.ad_account_id,
+            exclude_campaign_id=campaign.id,
+        ),
+        ads_repo.account_spend_on(
+            campaign.ad_account_id, user_id=campaign.user_id, day=today
+        ),
+        ads_repo.account_spend_between(
+            campaign.ad_account_id, user_id=campaign.user_id,
+            start=today.replace(day=1), end=today,
+        ),
     )
     gov = (
         AccountGovernance(
@@ -96,19 +115,6 @@ async def _gather_and_guard(
         )
         if account is not None
         else None
-    )
-    committed = await ads_repo.active_daily_budget_total(
-        user_id=campaign.user_id,
-        ad_account_id=campaign.ad_account_id,
-        exclude_campaign_id=campaign.id,
-    )
-    today = date.today()
-    today_spend = await ads_repo.account_spend_on(
-        campaign.ad_account_id, user_id=campaign.user_id, day=today
-    )
-    month_spend = await ads_repo.account_spend_between(
-        campaign.ad_account_id, user_id=campaign.user_id,
-        start=today.replace(day=1), end=today,
     )
     prev = (
         campaign.daily_budget_usd or Decimal("0")
