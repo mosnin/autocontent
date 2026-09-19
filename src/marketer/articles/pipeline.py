@@ -310,11 +310,20 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             article.niche_id, user_id=article.user_id
         )
 
-    brand, block, writing_kit, recent = await asyncio.gather(
+    async def _early_serp():
+        # Topic-known enqueues can hide Exa behind kit/brand reads.
+        # Empty topic still researches after pick_topic (keyword unknown).
+        kw = (article.focus_keyword or article.topic or "").strip()
+        if not kw:
+            return None
+        return await exa.serp_pages(kw)
+
+    brand, block, writing_kit, recent, early_pages = await asyncio.gather(
         brand_kit_repo.get(article.user_id),
         _knowledge_block(),
         _writing_kit(),
         _recent_titles(),
+        _early_serp(),
     )
     tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
     if block:
@@ -351,7 +360,7 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             )
 
         return await _run_after_topic(
-            article, niche, spend, audience, tone, hero_task
+            article, niche, spend, audience, tone, hero_task, early_pages
         )
     finally:
         if hero_task is not None and not hero_task.done():
@@ -369,6 +378,7 @@ async def _run_after_topic(
     audience: str,
     tone: str,
     hero_task: asyncio.Task | None,
+    early_pages=None,
 ) -> Article:
     # 1. Research — Exa + Jev rank, then deterministic SERP extract.
     with _stage(ArticleStatus.researching.value):
@@ -382,8 +392,13 @@ async def _run_after_topic(
             except Exception:  # noqa: BLE001 — prefetch never blocks research
                 return
 
+        async def _pages():
+            if early_pages is not None:
+                return early_pages
+            return await exa.serp_pages(article.focus_keyword)
+
         pages, _ = await asyncio.gather(
-            exa.serp_pages(article.focus_keyword),
+            _pages(),
             _warm_jev(),
         )
         from ..jev.loops import filter_research_pages

@@ -24,6 +24,7 @@ view, not an admin cross-tenant one.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Literal
 from uuid import UUID
@@ -41,6 +42,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _REPLAY_LIMIT = "10/minute"
+_INBOX_LIMIT = "30/minute"
 
 FailureKind = Literal["job", "image_post", "article"]
 
@@ -66,7 +68,9 @@ class FailuresInboxResponse(BaseModel):
 
 
 @router.get("", response_model=FailuresInboxResponse)
+@limiter.limit(_INBOX_LIMIT)
 async def list_failures(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     limit: int = Query(default=100, ge=1, le=500),
 ) -> FailuresInboxResponse:
@@ -77,12 +81,14 @@ async def list_failures(
     keeping every source's most-recent window cheap and independent
     rather than paginating a UNION.
     """
-    job_rows = await jobs_repo.failures_for_user(ctx.user_id, limit=limit)
-    image_post_rows = await image_posts_repo.list_for_user(
-        ctx.user_id, status="failed", limit=limit
-    )
-    article_rows = await articles_repo.list_for_user(
-        ctx.user_id, status=ArticleStatus.failed, limit=limit
+    job_rows, image_post_rows, article_rows = await asyncio.gather(
+        jobs_repo.failures_for_user(ctx.user_id, limit=limit),
+        image_posts_repo.list_for_user(
+            ctx.user_id, status="failed", limit=limit
+        ),
+        articles_repo.list_for_user(
+            ctx.user_id, status=ArticleStatus.failed, limit=limit
+        ),
     )
 
     items: list[FailureItem] = []

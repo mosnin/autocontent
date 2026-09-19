@@ -603,8 +603,8 @@ director → Whisper now does ideation → script → images. Caption burn
 is free. QA is already Jev-first. Foreman, the outbound screen, and
 the repurpose hint share one wall-clock beat. Article research /
 schema / interlink / topic / outline / metadata / hero / FAQ /
-checklist / definition no longer enqueue extra chat completions
-before (or instead of) the writer.
+checklist / definition / how-to / mistakes no longer enqueue extra
+chat completions before (or instead of) the writer.
 
 ---
 
@@ -908,5 +908,16 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Planner overlaps ideation setup reads | `plan_video_run` does not feed ideation. Four independent DB reads hid the planner RTT. Resume still awaits the plan for harness |
 | How-to + mistakes H2s stitch SERP highlights | Playbook steps/failure-modes that are already lists skip the writer. Thin SERP still buys prose. "Why it matters" stays a writer |
 | Template reference + Jev knowledge GET 30/min | Last file-serve door on remix previews, plus the knowledge dump of verbatim brand spans |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 34. Loop — VO during Visual Director, overlap approval archive, bound failures inbox
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Fact-lock then start VO + music before Visual Director | VD does not change narration. On jobs that still need VD, TTS / Pixabay hide behind that hop as well as images. Stage markers stay after the fan-out. Failed VD cancels leftover audio |
+| Video approval parks persist + archive + notify in one gather | Wasabi/volume I/O no longer sits in front of `awaiting_approval`. Archive still completes before return |
+| Failures inbox GET 30/min + gathered source reads | Unbounded poll could hit 1500 rows and a Jev triage hop every refresh. Replay stays 10/min |
+| Topic-known articles start Exa during kit/brand gather | Keyword is already known. Research no longer waits on four sequential setup reads |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

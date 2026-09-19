@@ -192,6 +192,39 @@ async def _resolve_music(
     return music_path
 
 
+def _spawn_audio_tasks(
+    script: Script,
+    *,
+    root: Path,
+    niche: Niche,
+    resumed: bool,
+    spend: SpendContext,
+    avatar_model: str | None,
+    vo_path: Path,
+) -> tuple[asyncio.Task, asyncio.Task | None]:
+    """Start music (always) and standalone VO (non-avatar) from a locked script."""
+    narration = " ".join(s.narration for s in script.scenes)
+    music_task = asyncio.create_task(
+        _resolve_music(
+            niche=niche,
+            script=script,
+            root=root,
+            resumed=resumed,
+            spend=spend,
+        )
+    )
+    if avatar_model:
+        return music_task, None
+
+    async def _vo_work() -> None:
+        if resumed and vo_path.exists():
+            log.info("resume: reusing voiceover from prior attempt")
+            return
+        await _synthesize_vo(narration, vo_path, niche=niche, spend=spend)
+
+    return music_task, asyncio.create_task(_vo_work())
+
+
 async def _signal_terminal(job: Job, *, kind: str, event: str) -> None:
     """Email + outbound webhook in one beat. Both are fail-open."""
     await asyncio.gather(
@@ -640,6 +673,10 @@ async def _run_job_after_sheet(
     design_kit_content = ""
     brand_voice = ""
     banned_words: list[str] = []
+    avatar_model = _avatar_model_id(niche)
+    vo_path = root / "audio" / "voiceover.wav"
+    music_task: asyncio.Task | None = None
+    vo_task: asyncio.Task | None = None
 
     if resumed:
         plan = await plan_task
@@ -713,6 +750,11 @@ async def _run_job_after_sheet(
                 script_model=niche.script_model,
                 spend=spend,
             )
+            # Lock narration before VO and before Visual Director.
+            # VD rewrites visuals only; TTS must match the published lines.
+            script = _lock_script_facts(script, niche)
+            job.script = script
+            (root / "script.json").write_text(script.model_dump_json(indent=2))
             # cast_mode 'none' means NO characters — a lingering
             # character_description must not resurrect the cast.
             cast = (
@@ -723,52 +765,57 @@ async def _run_job_after_sheet(
             # Scriptwriter already emits visual_prompt + motion_prompt.
             # A second Visual Director LLM pass is the single biggest
             # avoidable latency on a fresh job — skip it when every
-            # scene is already usable.
+            # scene is already usable. When VD does run, VO + music
+            # start first so TTS / Pixabay hide behind that hop too.
+            if not await _ensure_cap(job, niche):
+                return job
+            music_task, vo_task = _spawn_audio_tasks(
+                script,
+                root=root,
+                niche=niche,
+                resumed=False,
+                spend=spend,
+                avatar_model=avatar_model,
+                vo_path=vo_path,
+            )
             if script_has_usable_visuals(script):
                 log.info("skip visual director: script already has visual + motion prompts")
                 job.harness = {**(job.harness or {}), "skipped_visual_director": True}
             else:
-                script = await run_visual_director(
-                    script,
-                    visual_style=niche.visual_style,
-                    character_description=cast,
-                    brief=niche.creative_brief,
-                    design_kit=design_kit_content,
-                    spend=spend,
-                )
-            script = _lock_script_facts(script, niche)
-            job.script = script
-            (root / "script.json").write_text(script.model_dump_json(indent=2))
+                try:
+                    script = await run_visual_director(
+                        script,
+                        visual_style=niche.visual_style,
+                        character_description=cast,
+                        brief=niche.creative_brief,
+                        design_kit=design_kit_content,
+                        spend=spend,
+                    )
+                except Exception:
+                    await _cancel_task(vo_task)
+                    await _cancel_task(music_task)
+                    raise
+                job.script = script
+                (root / "script.json").write_text(script.model_dump_json(indent=2))
 
     # 3. Images + animation (fan-out per scene).
-    # VO and music only need the script — start them during the image
-    # fan-out so TTS / Pixabay hide behind gpt-image-1 + i2v. Avatar
-    # mode still synthesizes per-scene VO inside the fan-out (it drives
-    # the lipsync render); the standalone mix WAV is extracted later.
+    # VO and music only need the locked script. Fresh jobs already
+    # started them before Visual Director; resume starts them here.
+    # Avatar mode still synthesizes per-scene VO inside the fan-out.
     if not await _ensure_cap(job, niche):
+        await _cancel_task(vo_task)
+        await _cancel_task(music_task)
         return job
-    avatar_model = _avatar_model_id(niche)
-    vo_path = root / "audio" / "voiceover.wav"
-    narration = " ".join(s.narration for s in script.scenes)
-    music_task = asyncio.create_task(
-        _resolve_music(
-            niche=niche,
-            script=script,
+    if music_task is None:
+        music_task, vo_task = _spawn_audio_tasks(
+            script,
             root=root,
+            niche=niche,
             resumed=resumed,
             spend=spend,
+            avatar_model=avatar_model,
+            vo_path=vo_path,
         )
-    )
-    vo_task: asyncio.Task | None = None
-    if not avatar_model:
-
-        async def _vo_work() -> None:
-            if resumed and vo_path.exists():
-                log.info("resume: reusing voiceover from prior attempt")
-                return
-            await _synthesize_vo(narration, vo_path, niche=niche, spend=spend)
-
-        vo_task = asyncio.create_task(_vo_work())
 
     try:
         with _stage(JobStatus.generating_images.value):
@@ -1102,11 +1149,13 @@ async def _run_job_after_sheet(
     # stage through `schedule_approved_job`.
     if niche.approve_before_post:
         with _stage("archiving"):
-            await media_archive.archive_job_media(job, niche)
-        job.status = JobStatus.awaiting_approval
-        await _persist(job)
+            job.status = JobStatus.awaiting_approval
+            await asyncio.gather(
+                _persist(job),
+                media_archive.archive_job_media(job, niche),
+                _signal_terminal(job, kind="review", event="job.awaiting_approval"),
+            )
         log.info("awaiting approval", extra={"job_id": str(job.id)})
-        await _signal_terminal(job, kind="review", event="job.awaiting_approval")
         return job
 
     # 11. Schedule via Ayrshare (per-user profile). Archive overlaps
