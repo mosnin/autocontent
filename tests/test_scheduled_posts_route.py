@@ -510,6 +510,49 @@ def test_import_creates_every_row(monkeypatch, store):
     assert second.scheduled_at == datetime(2026, 6, 2, 13, 0, tzinfo=timezone.utc)
 
 
+def test_import_reports_partial_create_when_db_faults_mid_file(monkeypatch, store):
+    """Validation passed, then the datastore died — report how far we got.
+
+    Re-uploading the whole file would duplicate the rows that already
+    landed, so the contract must name the failing spreadsheet row.
+    """
+    _reset_limiter()
+    created = 0
+
+    async def _create(body, *, user_id, source="manual", recurring_slot_id=None):
+        nonlocal created
+        created += 1
+        if created == 2:
+            raise RuntimeError("connection reset")
+        post = ScheduledPost(
+            id=uuid4(), user_id=user_id, content=body.content,
+            media_urls=body.media_urls, scheduled_at=body.scheduled_at,
+            timezone=body.timezone, source=source,
+            variants=[PlatformVariant(id=uuid4(), platform=p) for p in body.platforms],
+        )
+        store.posts[post.id] = post
+        store.created_sources.append(source)
+        return post
+
+    monkeypatch.setattr(posts_repo, "create", _create)
+    data = _csv(
+        "one,tiktok,2026-06-01T09:00:00Z,UTC\n"
+        "two,instagram,2026-06-02T09:00:00Z,UTC\n"
+    )
+    resp = _client(monkeypatch).post(
+        "/api/v1/scheduled-posts/import",
+        files={"file": ("posts.csv", data, "text/csv")},
+        headers=AUTH,
+    )
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["created"] == 1
+    assert body["errors"][0]["row"] == 3
+    assert "could not save row" in body["errors"][0]["message"]
+    assert "connection reset" in body["errors"][0]["message"]
+    assert len(store.posts) == 1
+
+
 def test_import_is_all_or_nothing(monkeypatch, store):
     """One bad row creates nothing, so fixing the file and re-uploading
     cannot duplicate the rows that would otherwise have landed."""

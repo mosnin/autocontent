@@ -290,6 +290,124 @@ def test_decide_approval_conflict_when_already_decided(monkeypatch):
     assert resp.status_code == 409
 
 
+def test_disconnect_foreign_account_404s_without_composio_revoke(monkeypatch):
+    """A guessed account id must 404 and must not revoke anyone's OAuth."""
+    _reset_limiter()
+    import marketer.services.ad_connections as conn
+    import marketer.services.composio_client as composio
+    import marketer.repos.ads as ads_repo
+
+    revoked: list[str] = []
+
+    async def _get(account_id, *, user_id):
+        assert user_id == "user_ads"
+        return None
+
+    def _disconnect(*, connection_id):
+        revoked.append(connection_id)
+
+    monkeypatch.setattr(ads_repo, "get_account", _get)
+    monkeypatch.setattr(composio, "disconnect", _disconnect)
+    # Route calls the service; keep the real one so the 404 is the service's None.
+    monkeypatch.setattr(conn, "composio_client", composio)
+
+    client = _client(monkeypatch)
+    resp = client.delete(
+        f"/api/v1/ads/accounts/{uuid4()}",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert revoked == []
+
+
+async def test_disconnect_revokes_owned_connection_then_marks_disconnected(monkeypatch):
+    import marketer.services.ad_connections as conn
+    import marketer.services.composio_client as composio
+    import marketer.repos.ads as ads_repo
+
+    acc = _mk_account(composio_connection_id="conn_abc", status="active")
+    seen: dict = {}
+
+    async def _get(account_id, *, user_id):
+        assert user_id == "user_ads"
+        assert account_id == acc.id
+        return acc
+
+    def _revoke(*, connection_id):
+        seen["revoked"] = connection_id
+
+    async def _set(account_id, *, user_id, status, last_error=""):
+        seen["status"] = status
+        seen["set_user"] = user_id
+        return _mk_account(id=account_id, status=status, composio_connection_id="conn_abc")
+
+    monkeypatch.setattr(ads_repo, "get_account", _get)
+    monkeypatch.setattr(ads_repo, "set_account_status", _set)
+    monkeypatch.setattr(composio, "disconnect", _revoke)
+
+    out = await conn.disconnect(user_id="user_ads", account_id=acc.id)
+    assert out is not None
+    assert out.status == "disconnected"
+    assert seen == {"revoked": "conn_abc", "status": "disconnected", "set_user": "user_ads"}
+
+
+async def test_disconnect_still_flips_local_status_when_composio_disabled(monkeypatch):
+    import marketer.services.ad_connections as conn
+    import marketer.services.composio_client as composio
+    import marketer.repos.ads as ads_repo
+
+    acc = _mk_account(composio_connection_id="conn_abc")
+
+    async def _get(account_id, *, user_id):
+        return acc
+
+    def _revoke(*, connection_id):
+        raise composio.AdsDisabled("ads off")
+
+    async def _set(account_id, *, user_id, status, last_error=""):
+        return _mk_account(id=account_id, status=status)
+
+    monkeypatch.setattr(ads_repo, "get_account", _get)
+    monkeypatch.setattr(ads_repo, "set_account_status", _set)
+    monkeypatch.setattr(composio, "disconnect", _revoke)
+
+    out = await conn.disconnect(user_id="user_ads", account_id=acc.id)
+    assert out is not None
+    assert out.status == "disconnected"
+
+
+def test_refresh_and_governance_404_on_foreign_account(monkeypatch):
+    _reset_limiter()
+    import marketer.services.ad_connections as conn
+    import marketer.repos.ads as ads_repo
+    import marketer.repos.ad_actions as ad_actions
+
+    audited: list[str] = []
+
+    async def _refresh(*, user_id, account_id):
+        return None
+
+    async def _set_gov(account_id, *, user_id, **kwargs):
+        return None
+
+    async def _record(**kwargs):
+        audited.append(kwargs["action"])
+
+    monkeypatch.setattr(conn, "refresh_status", _refresh)
+    monkeypatch.setattr(ads_repo, "set_account_governance", _set_gov)
+    monkeypatch.setattr(ad_actions, "record", _record)
+    client = _client(monkeypatch)
+    aid = uuid4()
+    headers = {"Authorization": "Bearer mkt_x"}
+    assert client.post(f"/api/v1/ads/accounts/{aid}/refresh", headers=headers).status_code == 404
+    assert client.patch(
+        f"/api/v1/ads/accounts/{aid}/governance",
+        json={"killswitch": True},
+        headers=headers,
+    ).status_code == 404
+    assert audited == []
+
+
 def test_overview_reports_enabled_false_when_ads_off(monkeypatch):
     """UI must not imply ads are live when the feature flag is off."""
     _reset_limiter()

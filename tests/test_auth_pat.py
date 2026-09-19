@@ -160,3 +160,95 @@ def test_expected_issuer_none_when_undeterminable(monkeypatch):
     monkeypatch.setattr(settings, "clerk_jwks_url", "https://proxy.example/keys")
     # Non-standard JWKS path → can't derive; issuer verification is skipped.
     assert auth._expected_issuer() is None
+
+
+async def test_pat_suspended_user_403(monkeypatch):
+    """A valid PAT on a suspended account is 403, not a working session."""
+    from backend import auth
+    from marketer.repos import tokens as tokens_repo
+    from marketer.repos import users as users_repo
+
+    pat = PersonalAccessToken(
+        id=uuid4(),
+        user_id="user_banned",
+        name="ci",
+        prefix="mkt_test",
+        created_at=datetime.now(timezone.utc),
+    )
+
+    async def _get(_plain: str):
+        return pat
+
+    async def _get_user(uid: str):
+        return User(
+            id=uid,
+            email="banned@x.z",
+            suspended_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(tokens_repo, "get_by_token", _get)
+    monkeypatch.setattr(users_repo, "get", _get_user)
+
+    with pytest.raises(HTTPException) as ei:
+        await auth.require_user(_FakeRequest("Bearer mkt_validtoken123"))
+    assert ei.value.status_code == 403
+    assert "account suspended" in str(ei.value.detail)
+
+
+async def test_jwt_suspended_user_403(monkeypatch):
+    """Clerk upsert still runs, but a suspended row is refused before AuthCtx."""
+    from backend import auth
+    from marketer.repos import users as users_repo
+    import jwt as pyjwt
+
+    async def _upsert(uid: str, email: str):
+        return User(
+            id=uid,
+            email=email,
+            suspended_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(users_repo, "upsert", _upsert)
+
+    class _FakeJWKS:
+        def get_signing_key_from_jwt(self, token):
+            return type("K", (), {"key": "fake"})()
+
+    monkeypatch.setattr(auth, "_jwks", lambda: _FakeJWKS())
+    monkeypatch.setattr(pyjwt, "decode", lambda *a, **kw: {"sub": "user_jwt", "email": "e@x"})
+
+    with pytest.raises(HTTPException) as ei:
+        await auth.require_user(_FakeRequest("Bearer eyJsomejwt"))
+    assert ei.value.status_code == 403
+    assert "account suspended" in str(ei.value.detail)
+
+
+async def test_browser_session_hides_suspended_pat(monkeypatch):
+    """Consent / cookie paths must not proceed as a signed-in suspended user."""
+    from backend import auth
+    from marketer.repos import tokens as tokens_repo
+    from marketer.repos import users as users_repo
+
+    pat = PersonalAccessToken(
+        id=uuid4(),
+        user_id="user_banned",
+        name="ci",
+        prefix="mkt_test",
+        created_at=datetime.now(timezone.utc),
+    )
+
+    async def _get(_plain: str):
+        return pat
+
+    async def _get_user(uid: str):
+        return User(
+            id=uid,
+            email="banned@x.z",
+            suspended_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(tokens_repo, "get_by_token", _get)
+    monkeypatch.setattr(users_repo, "get", _get_user)
+
+    ctx = await auth.resolve_browser_session(_FakeRequest("Bearer mkt_validtoken123"))
+    assert ctx is None
