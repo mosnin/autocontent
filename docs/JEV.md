@@ -864,3 +864,15 @@ Jev still does not write hooks unless the operator set a lens. Ads overlay never
 | Campaign item PATCH/DELETE, webhook PATCH/DELETE, kit DELETE, token revoke, admin template PUT/DELETE at 10/min | Last unbounded mutation doors (lane flips, webhook kill, kit wipe, token revoke, global template edits) |
 
 Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.
+
+## 30. Loop — overlap VO with images, gather dashboards
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Voiceover + music start during image fan-out | TTS and Pixabay/ElevenLabs only need the script. They hide behind gpt-image-1 + i2v (the long pole). Avatar mode still synthesizes per-scene VO inside the fan-out. Failed fan-out cancels leftover audio tasks |
+| Ads overview + campaign detail gather | Dashboard wall-clock is max(reads), not the sum. Spend-on/between per account fan-out |
+| Job metrics gather job + latest + history | Three independent reads on every analytics drawer |
+| Niche performance gathers spend + latest metrics | N sequential `latest_for_job` calls became one beat after the ownership check |
+| GDPR export 5/min | A full-account dump was the last unbounded read of private data |
+
+Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.

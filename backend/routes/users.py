@@ -23,7 +23,8 @@ async def me(ctx: AuthCtx = CurrentUser) -> User:
 
 
 @router.get("/me/export")
-async def export_my_data(ctx: AuthCtx = CurrentUser) -> JSONResponse:
+@limiter.limit(_ERASE_LIMIT)
+async def export_my_data(request: Request, ctx: AuthCtx = CurrentUser) -> JSONResponse:
     """GDPR data portability: download everything we hold about you as JSON.
     Personal access tokens are exported by prefix only (never the secret)."""
     from marketer.repos import privacy

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 from typing import Literal
 from uuid import UUID
@@ -112,8 +113,10 @@ async def get_job_metrics(job_id: UUID, ctx: AuthCtx = CurrentUser) -> JobMetric
     job = await jobs_repo.get(job_id, user_id=ctx.user_id)
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    latest = await post_metrics_repo.latest_for_job(job_id, user_id=ctx.user_id)
-    history = await post_metrics_repo.list_for_job(job_id, user_id=ctx.user_id)
+    latest, history = await asyncio.gather(
+        post_metrics_repo.latest_for_job(job_id, user_id=ctx.user_id),
+        post_metrics_repo.list_for_job(job_id, user_id=ctx.user_id),
+    )
     return JobMetricsResponse(latest=latest, history=history)
 
 

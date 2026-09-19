@@ -8,6 +8,7 @@ surface as 409 (feature off / not configured), never a 500.
 """
 from __future__ import annotations
 
+import asyncio
 from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID
@@ -260,10 +261,12 @@ async def change_status(
 
 @router.get("/campaigns/{campaign_id}")
 async def get_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
-    camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
+    camp, metrics = await asyncio.gather(
+        ads_repo.get_campaign(campaign_id, user_id=ctx.user_id),
+        ads_repo.campaign_metrics(campaign_id, user_id=ctx.user_id),
+    )
     if camp is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "campaign not found")
-    metrics = await ads_repo.campaign_metrics(campaign_id, user_id=ctx.user_id)
     return {
         "campaign": camp.model_dump(mode="json"),
         "metrics": [m.model_dump(mode="json") for m in metrics],
@@ -344,23 +347,35 @@ async def list_actions(
 async def overview(ctx: AuthCtx = CurrentUser) -> dict:
     """Ads dashboard summary: spend today / 30d, active campaigns, pending
     approvals. Cheap read-only aggregation across the user's accounts."""
-    accounts = await ads_repo.list_accounts(ctx.user_id)
-    campaigns = await ads_repo.list_campaigns(ctx.user_id, limit=500)
     today = date.today()
     month_start = today.replace(day=1)
-
+    thirty_ago = today - timedelta(days=30)
+    accounts, campaigns, pending = await asyncio.gather(
+        ads_repo.list_accounts(ctx.user_id),
+        ads_repo.list_campaigns(ctx.user_id, limit=500),
+        ad_approvals.list_(user_id=ctx.user_id, status="pending"),
+    )
     spend_today = Decimal(0)
     spend_30d = Decimal(0)
-    thirty_ago = today - timedelta(days=30)
-    for acc in accounts:
-        spend_today += await ads_repo.account_spend_on(
-            acc.id, user_id=ctx.user_id, day=today
+    if accounts:
+        todays, months = await asyncio.gather(
+            asyncio.gather(
+                *[
+                    ads_repo.account_spend_on(acc.id, user_id=ctx.user_id, day=today)
+                    for acc in accounts
+                ]
+            ),
+            asyncio.gather(
+                *[
+                    ads_repo.account_spend_between(
+                        acc.id, user_id=ctx.user_id, start=thirty_ago, end=today
+                    )
+                    for acc in accounts
+                ]
+            ),
         )
-        spend_30d += await ads_repo.account_spend_between(
-            acc.id, user_id=ctx.user_id, start=thirty_ago, end=today
-        )
-
-    pending = await ad_approvals.list_(user_id=ctx.user_id, status="pending")
+        spend_today = sum(todays, Decimal(0))
+        spend_30d = sum(months, Decimal(0))
     active = [c for c in campaigns if c.status == "active"]
     return {
         "accounts": len(accounts),

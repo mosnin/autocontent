@@ -200,6 +200,16 @@ async def _signal_terminal(job: Job, *, kind: str, event: str) -> None:
     )
 
 
+async def _cancel_task(task: asyncio.Task | None) -> None:
+    if task is None or task.done():
+        return
+    task.cancel()
+    try:
+        await task
+    except (asyncio.CancelledError, Exception):  # noqa: BLE001 — teardown
+        pass
+
+
 def _avatar_model_id(niche: Niche) -> str | None:
     """The fal avatar model id when this niche renders lip-synced UGC,
     else None (normal keyframe-animation path)."""
@@ -733,110 +743,16 @@ async def _run_job_after_sheet(
             job.script = script
             (root / "script.json").write_text(script.model_dump_json(indent=2))
 
-    # 3. Images + animation (fan-out per scene)
+    # 3. Images + animation (fan-out per scene).
+    # VO and music only need the script — start them during the image
+    # fan-out so TTS / Pixabay hide behind gpt-image-1 + i2v. Avatar
+    # mode still synthesizes per-scene VO inside the fan-out (it drives
+    # the lipsync render); the standalone mix WAV is extracted later.
     if not await _ensure_cap(job, niche):
         return job
-    with _stage(JobStatus.generating_images.value):
-        job.status = JobStatus.generating_images
-        await _persist(job)
-        if sheet_task is not None:
-            reference = await sheet_task
-        else:
-            # Subject-mode video (an object/environment carries the video,
-            # not a cast): no character sheet, no reference image — style
-            # cohesion is enforced by the visual director's prompts alone.
-            reference = None
-        # Per-scene resume: clips from the failed attempt whose files are
-        # still on the volume are reused; only the missing scenes re-spend.
-        # Mode-aware: avatar_model is derived from the CURRENT niche config,
-        # which may have changed between attempts (operator switched the
-        # fal model from an i2v model to the OmniHuman avatar, or back).
-        # Avatar clips carry embedded lip-synced audio; i2v/motion clips
-        # never do. In AVATAR mode specifically, reusing a clip with no
-        # embedded audio (a stale i2v-mode clip from before the switch)
-        # would crash concat(keep_audio=True) on a silent "avatar" clip —
-        # so avatar mode verifies audio presence and regenerates on a
-        # mismatch (an unprobeable/corrupt clip is treated the same way:
-        # regenerate rather than gamble on a broken render). The reverse
-        # direction — an avatar-audio clip reused in plain i2v mode — is
-        # harmless (concat without keep_audio simply drops the audio
-        # track), so plain mode skips the probe and keeps the legacy
-        # file-exists-only resume check.
-        avatar_model = _avatar_model_id(niche)
-        prior_clips: dict[int, Clip] = {}
-        if resumed:
-            for c in job.clips:
-                video_path = Path(c.video_path)
-                if not (video_path.exists() and Path(c.keyframe_path).exists()):
-                    continue
-                if avatar_model:
-                    try:
-                        has_audio = ffmpeg.probe_has_audio(video_path)
-                    except Exception as e:  # noqa: BLE001 — unprobeable = unreusable
-                        log.info(
-                            "resume: scene %d clip unprobeable (%s) — regenerating",
-                            c.scene_index, e,
-                        )
-                        continue
-                    if not has_audio:
-                        log.info(
-                            "resume: scene %d clip has no embedded audio in "
-                            "avatar mode (stale i2v-mode clip?) — "
-                            "regenerating instead of reusing",
-                            c.scene_index,
-                        )
-                        continue
-                prior_clips[c.scene_index] = c
-            if prior_clips:
-                log.info(
-                    "resume: reusing %d/%d scene clips", len(prior_clips), len(script.scenes)
-                )
-        sem = asyncio.Semaphore(settings.scene_fanout_limit)
-
-        async def _bounded(s: Scene) -> Clip:
-            cached = prior_clips.get(s.index)
-            if cached is not None:
-                return cached
-            async with sem:
-                return await _generate_scene_assets(
-                    s, root, niche=niche, reference_image=reference, spend=spend,
-                    avatar_model_id=avatar_model,
-                )
-
-        # return_exceptions so completed clips are persisted even when a
-        # sibling scene fails — a retry then resumes per-scene instead of
-        # re-buying every image/animation that already succeeded.
-        results = await asyncio.gather(
-            *[_bounded(s) for s in script.scenes], return_exceptions=True
-        )
-        completed = {r.scene_index: r for r in results if isinstance(r, Clip)}
-        job.clips = [completed[s.index] for s in script.scenes if s.index in completed]
-        errors = [r for r in results if isinstance(r, BaseException)]
-        if errors:
-            await _persist(job)  # keep the paid clips for per-scene resume
-            exc = next(
-                (e for e in errors if isinstance(e, spend_repo.SpendCapExceeded)),
-                errors[0],
-            )
-            try:
-                import sentry_sdk
-                sentry_sdk.capture_exception(exc)
-            except Exception:
-                pass
-            if isinstance(exc, spend_repo.SpendCapExceeded):
-                return await _fail_with(job, "spend_cap_exceeded during fan-out")
-            raise exc  # terminal backstop persists the failure
-    with _stage(JobStatus.animating.value):
-        job.status = JobStatus.animating
-        await _persist(job)
-
-    # 4+5. Voiceover and music are independent after the script exists.
-    # Start music during voicing so TTS and Pixabay/ElevenLabs score
-    # overlap. Cancel music if VO hits the spend cap so we do not buy
-    # a soundtrack for a dying job.
-    if not await _ensure_cap(job, niche):
-        return job
+    avatar_model = _avatar_model_id(niche)
     vo_path = root / "audio" / "voiceover.wav"
+    narration = " ".join(s.narration for s in script.scenes)
     music_task = asyncio.create_task(
         _resolve_music(
             niche=niche,
@@ -846,49 +762,152 @@ async def _run_job_after_sheet(
             spend=spend,
         )
     )
-    with _stage(JobStatus.voicing.value):
-        job.status = JobStatus.voicing
-        await _persist(job)
-        narration = " ".join(s.narration for s in script.scenes)
-        if avatar_model:
-            # Lip-synced UGC: the voiceover already lives inside each
-            # avatar clip (it drove the render). The standalone WAV that
-            # captions/QA need is extracted from the assembled video in
-            # the edit stage.
-            log.info("lip-sync mode: voiceover embedded in avatar clips")
-        else:
-            reuse_vo = resumed and vo_path.exists()
-            if reuse_vo:
+    vo_task: asyncio.Task | None = None
+    if not avatar_model:
+
+        async def _vo_work() -> None:
+            if resumed and vo_path.exists():
                 log.info("resume: reusing voiceover from prior attempt")
-            try:
-                if not reuse_vo:
-                    await _synthesize_vo(narration, vo_path, niche=niche, spend=spend)
-            except spend_repo.SpendCapExceeded as e:
-                music_task.cancel()
-                try:
-                    await music_task
-                except (asyncio.CancelledError, Exception):
-                    pass
+                return
+            await _synthesize_vo(narration, vo_path, niche=niche, spend=spend)
+
+        vo_task = asyncio.create_task(_vo_work())
+
+    try:
+        with _stage(JobStatus.generating_images.value):
+            job.status = JobStatus.generating_images
+            await _persist(job)
+            if sheet_task is not None:
+                reference = await sheet_task
+            else:
+                # Subject-mode video (an object/environment carries the video,
+                # not a cast): no character sheet, no reference image — style
+                # cohesion is enforced by the visual director's prompts alone.
+                reference = None
+            # Per-scene resume: clips from the failed attempt whose files are
+            # still on the volume are reused; only the missing scenes re-spend.
+            # Mode-aware: avatar_model is derived from the CURRENT niche config,
+            # which may have changed between attempts (operator switched the
+            # fal model from an i2v model to the OmniHuman avatar, or back).
+            # Avatar clips carry embedded lip-synced audio; i2v/motion clips
+            # never do. In AVATAR mode specifically, reusing a clip with no
+            # embedded audio (a stale i2v-mode clip from before the switch)
+            # would crash concat(keep_audio=True) on a silent "avatar" clip —
+            # so avatar mode verifies audio presence and regenerates on a
+            # mismatch (an unprobeable/corrupt clip is treated the same way:
+            # regenerate rather than gamble on a broken render). The reverse
+            # direction — an avatar-audio clip reused in plain i2v mode — is
+            # harmless (concat without keep_audio simply drops the audio
+            # track), so plain mode skips the probe and keeps the legacy
+            # file-exists-only resume check.
+            prior_clips: dict[int, Clip] = {}
+            if resumed:
+                for c in job.clips:
+                    video_path = Path(c.video_path)
+                    if not (video_path.exists() and Path(c.keyframe_path).exists()):
+                        continue
+                    if avatar_model:
+                        try:
+                            has_audio = ffmpeg.probe_has_audio(video_path)
+                        except Exception as e:  # noqa: BLE001 — unprobeable = unreusable
+                            log.info(
+                                "resume: scene %d clip unprobeable (%s) — regenerating",
+                                c.scene_index, e,
+                            )
+                            continue
+                        if not has_audio:
+                            log.info(
+                                "resume: scene %d clip has no embedded audio in "
+                                "avatar mode (stale i2v-mode clip?) — "
+                                "regenerating instead of reusing",
+                                c.scene_index,
+                            )
+                            continue
+                    prior_clips[c.scene_index] = c
+                if prior_clips:
+                    log.info(
+                        "resume: reusing %d/%d scene clips",
+                        len(prior_clips),
+                        len(script.scenes),
+                    )
+            sem = asyncio.Semaphore(settings.scene_fanout_limit)
+
+            async def _bounded(s: Scene) -> Clip:
+                cached = prior_clips.get(s.index)
+                if cached is not None:
+                    return cached
+                async with sem:
+                    return await _generate_scene_assets(
+                        s, root, niche=niche, reference_image=reference, spend=spend,
+                        avatar_model_id=avatar_model,
+                    )
+
+            # return_exceptions so completed clips are persisted even when a
+            # sibling scene fails — a retry then resumes per-scene instead of
+            # re-buying every image/animation that already succeeded.
+            results = await asyncio.gather(
+                *[_bounded(s) for s in script.scenes], return_exceptions=True
+            )
+            completed = {r.scene_index: r for r in results if isinstance(r, Clip)}
+            job.clips = [completed[s.index] for s in script.scenes if s.index in completed]
+            errors = [r for r in results if isinstance(r, BaseException)]
+            if errors:
+                await _persist(job)  # keep the paid clips for per-scene resume
+                exc = next(
+                    (e for e in errors if isinstance(e, spend_repo.SpendCapExceeded)),
+                    errors[0],
+                )
                 try:
                     import sentry_sdk
-                    sentry_sdk.capture_exception(e)
+                    sentry_sdk.capture_exception(exc)
                 except Exception:
                     pass
-                return await _fail_with(job, str(e))
+                if isinstance(exc, spend_repo.SpendCapExceeded):
+                    return await _fail_with(job, "spend_cap_exceeded during fan-out")
+                raise exc  # terminal backstop persists the failure
+        with _stage(JobStatus.animating.value):
+            job.status = JobStatus.animating
+            await _persist(job)
 
-    with _stage("music"):
-        try:
-            music_path = await music_task
-        except spend_repo.SpendCapExceeded as e:
-            # Post-spend breach from compose — money already moved.
-            return await _fail_with(job, str(e))
-        except Exception as e:  # noqa: BLE001 — soundtrack never fails a video
-            log.warning("music task failed, continuing without: %s", e)
-            music_path = None
-    job.audio = AudioTrack(
-        voiceover_path=str(vo_path),
-        music_path=str(music_path) if music_path is not None else None,
-    )
+        # 4+5. Await the audio tasks started before images. Stage
+        # markers stay after the fan-out so resume/UI order is unchanged.
+        with _stage(JobStatus.voicing.value):
+            job.status = JobStatus.voicing
+            await _persist(job)
+            if avatar_model:
+                # Lip-synced UGC: the voiceover already lives inside each
+                # avatar clip (it drove the render). The standalone WAV that
+                # captions/QA need is extracted from the assembled video in
+                # the edit stage.
+                log.info("lip-sync mode: voiceover embedded in avatar clips")
+            elif vo_task is not None:
+                try:
+                    await vo_task
+                except spend_repo.SpendCapExceeded as e:
+                    await _cancel_task(music_task)
+                    try:
+                        import sentry_sdk
+                        sentry_sdk.capture_exception(e)
+                    except Exception:
+                        pass
+                    return await _fail_with(job, str(e))
+
+        with _stage("music"):
+            try:
+                music_path = await music_task
+            except spend_repo.SpendCapExceeded as e:
+                # Post-spend breach from compose — money already moved.
+                return await _fail_with(job, str(e))
+            except Exception as e:  # noqa: BLE001 — soundtrack never fails a video
+                log.warning("music task failed, continuing without: %s", e)
+                music_path = None
+        job.audio = AudioTrack(
+            voiceover_path=str(vo_path),
+            music_path=str(music_path) if music_path is not None else None,
+        )
+    finally:
+        await _cancel_task(vo_task)
+        await _cancel_task(music_task)
 
     # 6. Edit (concat + mix)
     with _stage(JobStatus.editing.value):
