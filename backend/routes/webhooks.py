@@ -131,7 +131,7 @@ async def ayrshare_webhook(request: Request) -> dict:
         # Return 200 so Ayrshare doesn't retry a malformed payload forever.
         return _OK
 
-    post_id = payload.id
+    post_id = (payload.id or "").strip()
     event_status = payload.status.lower()
 
     log.info(
@@ -140,6 +140,12 @@ async def ayrshare_webhook(request: Request) -> dict:
     )
 
     # --- 4. Look up the job ------------------------------------------------
+    # Empty id would otherwise match any row whose payload stores "" — refuse
+    # it before the lookup. Ayrshare always sends a post id on real events.
+    if not post_id:
+        log.warning("ayrshare_webhook.missing_post_id")
+        return _OK
+
     job = await jobs_repo.get_by_provider_post_id(post_id)
     if job is None:
         log.warning(
@@ -149,13 +155,26 @@ async def ayrshare_webhook(request: Request) -> dict:
         return _OK  # idempotent — may be a deleted job
 
     # --- 5. Apply state transition -----------------------------------------
+    # `provider_post_id` is persisted in the same write that marks the job
+    # `done`, so production lookups almost always hit an already-published
+    # row. A later Ayrshare "errored" (platform takedown / delayed reject)
+    # must not flip that row back to `failed` — the queue would invite a
+    # Retry that re-renders (~$2) and posts a duplicate to the same socials.
     if event_status == "success":
+        if job.status == JobStatus.done:
+            return _OK
         job.status = JobStatus.done
         job.error = None
         await jobs_repo.save_snapshot(job)
         log.info("ayrshare_webhook.job_done", extra={"provider": "ayrshare"})
 
     elif event_status == "errored":
+        if job.status == JobStatus.done:
+            log.info(
+                "ayrshare_webhook.ignore_late_error_on_published_job",
+                extra={"provider": "ayrshare", "sku": post_id},
+            )
+            return _OK
         summary = _error_summary(payload.errors)
         job.status = JobStatus.failed
         job.error = f"ayrshare: {summary}"

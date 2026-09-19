@@ -84,6 +84,10 @@ async def reset_for_retry(job_id: UUID, *, user_id: str) -> Job | None:
         wipe_pipeline_state(job)
     job.status = JobStatus.queued
     job.error = None
+    # Drop the previous Ayrshare post id so a delayed lifecycle webhook
+    # for the old post cannot clobber this new attempt (mark it done/failed
+    # mid-render, or invite another retry that double-posts).
+    job.provider_post_id = None
     # Winner-only second write: reconciles the payload jsonb (and denormalized
     # columns) with the claimed status. The loser already returned None above,
     # so this never races a second reset.
