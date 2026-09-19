@@ -526,3 +526,148 @@ async def judge_ad_action(
         confidence=picked.confidence,
         backend=result.backend,
     )
+
+
+# ---------------------------------------------------------------------------
+# SEO metadata (pagegrade / jev-seo) + repurpose + source audit
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SeoMetaVerdict:
+    title_fit: float
+    meta_fit: float
+    ctr: float
+    notes: list[str]
+    backend: str
+
+
+async def grade_seo_metadata(
+    *,
+    title: str,
+    meta_description: str,
+    focus_keyword: str,
+    article_excerpt: str,
+    spend: SpendContext | None = None,
+) -> SeoMetaVerdict:
+    """pagegrade-style atomic SEO scores — Jev judges, Qwen already wrote."""
+    result = await jev_ask(
+        {
+            "title": title,
+            "meta_description": meta_description,
+            "focus_keyword": focus_keyword,
+            "excerpt": article_excerpt[:2000],
+        },
+        {
+            "title_fit": score(
+                "Does the title honestly match the article and include the keyword?",
+                ["Off-intent or stuffed", "Weak", "Solid", "Best-on-SERP"],
+            ),
+            "meta_fit": score(
+                "Would this meta description earn a click without bait-and-switch?",
+                ["Generic or misleading", "Okay", "Specific", "High-CTR and honest"],
+            ),
+            "keyword_honest": noul(
+                "The focus keyword appears naturally in the title or meta "
+                "(not stuffed, not missing)."
+            ),
+        },
+        spend=spend,
+    )
+    title_fit = result.score("title_fit").normalized()
+    meta_fit = result.score("meta_fit").normalized()
+    notes: list[str] = []
+    if title_fit < 0.5:
+        notes.append("SEO title is weak or off-intent")
+    if meta_fit < 0.5:
+        notes.append("meta description is generic or misleading")
+    if result.noul("keyword_honest").noul < 0.45:
+        notes.append("focus keyword missing or stuffed in metadata")
+    return SeoMetaVerdict(
+        title_fit=title_fit,
+        meta_fit=meta_fit,
+        ctr=0.55 * title_fit + 0.45 * meta_fit,
+        notes=notes,
+        backend=result.backend,
+    )
+
+
+RepurposeTarget = Literal["none", "article", "social", "image"]
+
+
+@dataclass(frozen=True)
+class RepurposeVerdict:
+    target: RepurposeTarget
+    confidence: float
+    backend: str
+
+
+async def suggest_repurpose(
+    state: State,
+    *,
+    spend: SpendContext | None = None,
+) -> RepurposeVerdict:
+    """Decide whether a finished artifact should become another format.
+
+    Does not generate the remix — only picks the target (or none).
+    """
+    result = await jev_ask(
+        state,
+        {
+            "target": choice(
+                "Should this finished piece be remixed into another format now?",
+                {
+                    "none": "Leave it; remixing would be redundant or off-brand",
+                    "article": "Turn the argument into a long-form SEO article",
+                    "social": "Cut captions / a thread / a newsletter blurb",
+                    "image": "A still / carousel would travel further than more video",
+                },
+            )
+        },
+        spend=spend,
+    )
+    picked = result.choice("target")
+    target: RepurposeTarget = (
+        picked.choice if picked.choice in {"none", "article", "social", "image"}
+        else "none"  # type: ignore[assignment]
+    )
+    if picked.confidence < 0.55:
+        target = "none"
+    return RepurposeVerdict(
+        target=target, confidence=picked.confidence, backend=result.backend
+    )
+
+
+async def audit_sources(
+    article_excerpt: str,
+    passages: Sequence[dict[str, str]],
+    *,
+    spend: SpendContext | None = None,
+) -> list[str]:
+    """One fan-out citation check (citation-verifier cookbook)."""
+    if not passages:
+        return []
+    questions: dict[str, Any] = {}
+    trimmed = passages[:4]
+    for i, _p in enumerate(trimmed):
+        questions[f"s{i}"] = choice(
+            f"Does source {i} support claims in the article excerpt?",
+            {
+                "supports": "The source states or entails a claim in the excerpt",
+                "partial": "Related, but the excerpt overreaches",
+                "contradicts": "The source conflicts with the excerpt",
+                "absent": "The source does not address the excerpt",
+            },
+        )
+    result = await jev_ask(
+        {"excerpt": article_excerpt[:2500], "sources": list(trimmed)},
+        questions,
+        spend=spend,
+    )
+    notes: list[str] = []
+    for i, passage in enumerate(trimmed):
+        ans = result.choice(f"s{i}")
+        label = passage.get("domain") or passage.get("url") or f"source {i}"
+        if ans.choice in {"partial", "contradicts", "absent"} or ans.confidence < 0.55:
+            notes.append(f"citation review ({label}): {ans.choice}")
+    return notes

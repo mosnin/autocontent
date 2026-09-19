@@ -181,6 +181,9 @@ class Job(BaseModel):
     scheduled_for: datetime | None = None
     provider_post_id: str | None = None
     error: str | None = None
+    # Jev harness overlay (Foreman / Auto Mode / repurpose). Optional so
+    # older payload snapshots still validate.
+    harness: dict[str, object] | None = None
 
 
 class SpendEntry(BaseModel):

@@ -822,6 +822,48 @@ async def _run_job_inner(
                 job, "content QA failed: " + "; ".join(report.issues)
             )
 
+        from .jev.loops import after_content_qa, repurpose_hint
+
+        overlay = await after_content_qa(
+            {
+                "job_id": str(job.id),
+                "niche": niche.title,
+                "platform": platform,
+                "hook": script.idea.hook,
+                "qa": report.model_dump(),
+                "transcript": transcript[:4000],
+            },
+            spend=spend,
+        )
+        job.harness = {**(job.harness or {}), **overlay.payload}
+        if overlay.fail:
+            return await _fail_with(job, overlay.reason)
+        if overlay.retry and allow_regenerate:
+            log.info("foreman requested regenerate", extra={"reason": overlay.reason})
+            _wipe_pipeline_state(job)
+            job.status = JobStatus.queued
+            await _persist(job)
+            return await _run_job_inner(
+                job, niche, platform, root, spend, allow_regenerate=False
+            )
+        if overlay.park:
+            job.status = JobStatus.awaiting_approval
+            await _persist(job)
+            await _notify(job, kind="review")
+            await _emit_webhook(job, "job.awaiting_approval")
+            return job
+        hint = await repurpose_hint(
+            {
+                "hook": script.idea.hook,
+                "topic": script.idea.topic,
+                "niche": niche.title,
+                "platform": platform,
+            },
+            spend=spend,
+        )
+        if hint:
+            job.harness = {**(job.harness or {}), "repurpose": hint}
+
     # 9. Archive — mirror clips/keyframes/VO/final into the media library
     # (Wasabi when configured, volume-indexed otherwise). Fail-open: a
     # storage hiccup never fails a QA-passed video.
@@ -844,12 +886,35 @@ async def _run_job_inner(
     return await _schedule_stage(job, niche)
 
 
-async def _schedule_stage(job: Job, niche: Niche) -> Job:
+async def _schedule_stage(job: Job, niche: Niche, *, human_approved: bool = False) -> Job:
     """Upload + schedule the rendered video, then mark the job done.
 
     Shared by the autonomous path (straight after QA) and the approval
     path (resumed via `schedule_approved_job`)."""
     assert job.rendered is not None and job.script is not None
+    from .jev.loops import publish_gate
+
+    gate = await publish_gate(
+        {
+            "job_id": str(job.id),
+            "niche": niche.title,
+            "platform": job.platform,
+            "hook": job.script.idea.hook,
+            "caption": job.script.idea.hook,
+            "hashtags": niche.hashtags,
+        },
+        tool="schedule_post",
+        human_approved=human_approved,
+    )
+    job.harness = {**(job.harness or {}), **gate.payload}
+    if gate.fail:
+        return await _fail_with(job, gate.reason or "jev auto-mode blocked publish")
+    if gate.park:
+        job.status = JobStatus.awaiting_approval
+        await _persist(job)
+        await _notify(job, kind="review")
+        await _emit_webhook(job, "job.awaiting_approval")
+        return job
     with _stage(JobStatus.scheduling.value):
         job.status = JobStatus.scheduling
         await _persist(job)
@@ -893,7 +958,7 @@ async def schedule_approved_job(*, user_id: str, job_id: UUID) -> Job:
 
     with job_context(job_id=job.id, user_id=user_id, niche_id=job.niche_id):
         try:
-            return await _schedule_stage(job, niche)
+            return await _schedule_stage(job, niche, human_approved=True)
         except Exception as e:
             return await _fail_with(job, f"scheduling failed after approval: {e}")
 

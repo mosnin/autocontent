@@ -366,6 +366,98 @@ def test_voice_session_409_without_openai(monkeypatch):
     assert resp.status_code == 409
 
 
+async def test_after_content_qa_foreman_stop(monkeypatch):
+    from marketer.jev import loops
+    from marketer.symbolic.foreman import ForemanDecision
+
+    monkeypatch.setattr(loops.settings, "jev_enabled", True)
+    monkeypatch.setattr(loops, "available", lambda: True)
+
+    async def fake_assess(state, *, spend=None):
+        return ForemanDecision(
+            action="stop",
+            implementation_complete=0.1,
+            tests_sufficient=0.1,
+            requirements_satisfied=0.1,
+            worker_stuck=0.9,
+            needs_verification=0.1,
+            work_off_track=0.8,
+            meaningful_progress=0.1,
+            ready_to_finish=0.1,
+            backend="jev",
+        )
+
+    monkeypatch.setattr("marketer.symbolic.foreman.assess", fake_assess)
+    verdict = await loops.after_content_qa({"log": "looping"})
+    assert verdict.fail is True
+    assert "foreman" in verdict.payload
+
+
+async def test_publish_gate_parks_on_block(monkeypatch):
+    from marketer.jev import loops
+    from marketer.jev.harness import AutoModeDecision
+    from marketer.jev.primitives import SystemOneResult
+
+    monkeypatch.setattr(loops.settings, "jev_enabled", True)
+    monkeypatch.setattr(loops, "available", lambda: True)
+
+    async def fake_auto(state, *, tool, spend=None):
+        return AutoModeDecision(
+            verdict="block",
+            risk=0.9,
+            jailbreak=0.1,
+            destructive=0.1,
+            confidence=0.8,
+            backend="jev",
+            raw=SystemOneResult(model="jev-latest", answers={}, backend="jev"),
+        )
+
+    monkeypatch.setattr(loops, "auto_mode", fake_auto)
+    parked = await loops.publish_gate({"caption": "x"}, human_approved=False)
+    assert parked.park is True and parked.fail is False
+    blocked = await loops.publish_gate({"caption": "x"}, human_approved=True)
+    assert blocked.fail is True
+
+
+async def test_campaign_tick_gate_holds(monkeypatch):
+    from marketer.jev import loops
+    from marketer.jev.harness import UltrafastAction
+    from marketer.jev.primitives import SystemOneResult
+
+    monkeypatch.setattr(loops.settings, "jev_enabled", True)
+    monkeypatch.setattr(loops, "available", lambda: True)
+
+    async def fake_next(state, *, targets, spend=None):
+        return UltrafastAction(
+            operation="HOLD",
+            target=None,
+            needs_generation=False,
+            confidence=0.8,
+            backend="jev",
+            raw=SystemOneResult(model="jev-latest", answers={}, backend="jev"),
+        )
+
+    monkeypatch.setattr(loops, "next_action", fake_next)
+    verdict = await loops.campaign_tick_gate(
+        {"campaign": "x"}, targets={"video:1": "due video"}
+    )
+    assert verdict.hold is True
+
+
+async def test_loops_noop_when_jev_dark(monkeypatch):
+    from marketer.jev import loops
+
+    monkeypatch.setattr(loops.settings, "jev_enabled", True)
+    monkeypatch.setattr(loops, "available", lambda: False)
+    v = await loops.after_content_qa({"x": 1})
+    assert v.fail is False and v.park is False and v.retry is False
+    assert await loops.filter_research_pages("q", [{"url": "a"}, {"url": "b"}]) == [
+        {"url": "a"},
+        {"url": "b"},
+    ]
+    assert await loops.should_index_asset({"kind": "final"}) is True
+
+
 def test_qwen_models_are_in_openrouter_registry():
     from marketer.services import openrouter
 

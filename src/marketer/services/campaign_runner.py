@@ -134,6 +134,34 @@ async def run_campaign_tick(
     projected = spent + est * pending
 
     spawned: list[str] = []
+    due_targets: dict[str, str] = {}
+    for item in items:
+        due_targets[f"{item.kind}:{item.ref_id}"] = (
+            f"{item.kind} lane for niche {item.ref_id} at cadence {item.cadence_per_week}/wk"
+        )
+    from ..jev.loops import campaign_tick_gate
+
+    gate = await campaign_tick_gate(
+        {
+            "campaign": campaign.name,
+            "spent_usd": str(spent),
+            "budget_usd": str(campaign.budget_usd),
+            "pending": pending,
+            "lane_count": len(items),
+        },
+        targets=due_targets,
+    )
+    if gate.hold:
+        return {
+            "campaign_id": str(campaign.id),
+            "action": "held",
+            "reason": gate.reason,
+            "spent_usd": str(spent),
+            "budget_usd": str(campaign.budget_usd),
+            "spawned": [],
+            "harness": gate.payload,
+        }
+
     for item in items:
         if projected + est > campaign.budget_usd:
             break  # no headroom for another piece

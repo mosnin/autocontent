@@ -52,6 +52,9 @@ class FailureItem(BaseModel):
     error: str | None
     category: str
     created_at: datetime | None
+    jev_class: str | None = None
+    jev_actionable: float | None = None
+    jev_severity: float | None = None
 
 
 class FailuresInboxResponse(BaseModel):
@@ -124,6 +127,11 @@ async def list_failures(
     # Articles can have a null created_at pre-migration/back-compat; sort
     # those last rather than letting None vs. datetime blow up the sort.
     items.sort(key=lambda i: i.created_at or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+
+    from marketer.jev.loops import enrich_failure_rows
+
+    enriched = await enrich_failure_rows([i.model_dump() for i in items])
+    items = [FailureItem.model_validate(row) for row in enriched]
 
     counts: dict[str, int] = {c: 0 for c in jobs_repo.FAILURE_CATEGORIES}
     for i in items:

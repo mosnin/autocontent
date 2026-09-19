@@ -257,6 +257,11 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
     with _stage(ArticleStatus.researching.value):
         await _set_status(article, ArticleStatus.researching)
         pages = await exa.serp_pages(article.focus_keyword)
+        from ..jev.loops import filter_research_pages
+
+        pages = await filter_research_pages(
+            article.focus_keyword, pages, spend=spend
+        )
         if pages:
             serp = await llm.summarize_serp(article.focus_keyword, pages, spend=spend)
         else:
@@ -306,6 +311,11 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             quality = await llm.score_article(
                 markdown, article.focus_keyword, spend=spend
             )
+        from ..jev.loops import source_audit_notes
+
+        quality.notes.extend(
+            await source_audit_notes(markdown, pages if pages else [], spend=spend)
+        )
         article.quality = quality
         article.word_count = len(markdown.split())
 
@@ -318,6 +328,17 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         article.title = meta.title
         article.slug = meta.slug
         article.meta_description = meta.metaDescription
+        from ..jev.loops import seo_metadata_notes
+
+        seo_notes = await seo_metadata_notes(
+            title=meta.title,
+            meta_description=meta.metaDescription,
+            focus_keyword=article.focus_keyword,
+            article_excerpt=markdown,
+            spend=spend,
+        )
+        if seo_notes and article.quality is not None:
+            article.quality.notes.extend(seo_notes)
         article.keywords = meta.keywords
         article.schema_jsonld = await llm.generate_schema_json(
             title=meta.title,

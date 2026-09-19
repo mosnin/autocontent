@@ -24,7 +24,7 @@ from marketer.jev.decisions import (
     screen_content,
     verify_citation,
 )
-from marketer.jev.harness import auto_mode, default_generation_model, route_model
+from marketer.jev.harness import auto_mode, default_generation_model, next_action, route_model
 from marketer.jev.router import route_intent
 from marketer.services import openrouter
 from marketer.symbolic import assess as foreman_assess
@@ -159,6 +159,24 @@ async def jev_route(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
         },
         "model": model.as_dict(),
         "company": company.as_dict(),
+    }
+
+
+class NextActionBody(BaseModel):
+    state: Any
+    targets: dict[str, str]
+
+
+@router.post("/next-action")
+async def jev_next_action(body: NextActionBody, ctx: AuthCtx = CurrentUser) -> dict:
+    _require_available()
+    action = await _run_decision(next_action(body.state, targets=body.targets))
+    return {
+        "operation": action.operation,
+        "target": action.target,
+        "needs_generation": action.needs_generation,
+        "confidence": action.confidence,
+        "backend": action.backend,
     }
 
 

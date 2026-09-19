@@ -194,17 +194,34 @@ async def archive_job_media(job: Job, niche: Niche) -> int:
                 archived += asset is not None
 
         if job.rendered is not None:
-            asset = await _archive_one(
-                Path(job.rendered.path),
-                user_id=job.user_id,
-                job_id=job.id,
-                niche_id=job.niche_id,
-                kind="final",
-                relative_key="output/" + Path(job.rendered.path).name,
-                duration_sec=job.rendered.duration_sec,
-                title=hook or f"video {job.id}",
+            from ..jev.loops import should_index_asset
+
+            keep_final = await should_index_asset(
+                {
+                    "kind": "final",
+                    "title": hook or f"video {job.id}",
+                    "niche": niche.title,
+                    "hook": hook,
+                    "platform": job.platform,
+                }
             )
-            archived += asset is not None
+            if not keep_final:
+                log.info(
+                    "archive: jev-curate discarded final",
+                    extra={"job_id": str(job.id)},
+                )
+            else:
+                asset = await _archive_one(
+                    Path(job.rendered.path),
+                    user_id=job.user_id,
+                    job_id=job.id,
+                    niche_id=job.niche_id,
+                    kind="final",
+                    relative_key="output/" + Path(job.rendered.path).name,
+                    duration_sec=job.rendered.duration_sec,
+                    title=hook or f"video {job.id}",
+                )
+                archived += asset is not None
     except Exception as e:  # noqa: BLE001 — storage never breaks a rendered job
         log.warning(
             "archive: media archiving failed (job continues)",

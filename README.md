@@ -33,8 +33,12 @@ The harness follows the LangChain pattern
 - **Auto Mode** — classify risky tool / ad actions before they execute.
 - **Speculative fan-out** — many atomic questions in one call; code composes.
 - **Confidence gates** — uncertain answers escalate instead of guessing.
-- **Foreman** (`symbolic/`) — watches pipeline evidence and steers/stops/finishes.
-- **jev-code** (`symbolic/`) — find / check / triage bounded workflows.
+- **Foreman** (`symbolic/`) — watches pipeline evidence after content QA and steers/stops/finishes.
+- **Publish Auto Mode** — classifies `schedule_post` before Ayrshare; parks or (after human approve) refuses.
+- **Campaign next_action** — HOLD / BLOCKED / ROUTE_HUMAN / DONE skips a tick instead of burning credits.
+- **Research rank + citation audit** — Exa pages are judged before the outline; sources are checked after write.
+- **jev-curate** — can skip indexing a discard-worthy final in the media library.
+- **Failures overlay** — jev-code triage attaches class / actionable / severity to the inbox.
 - **Company OS** (`company_os/`) — route work onto Studio / Press / Ads / Suite.
 
 Surfaces: `/decisions`, `/voice`, `GET /api/v1/jev/status`,
