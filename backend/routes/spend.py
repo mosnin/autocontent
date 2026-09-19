@@ -27,7 +27,9 @@ async def today_spend(request: Request, ctx: AuthCtx = CurrentUser) -> TodaySpen
 
 
 @router.get("/history", response_model=SpendHistory)
+@limiter.limit(_READ_LIMIT)
 async def spend_history(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     days: Annotated[int, Query(ge=1, le=90)] = 30,
     niche_id: UUID | None = None,

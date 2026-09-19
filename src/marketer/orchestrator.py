@@ -112,7 +112,27 @@ async def run_visual_director(
         vd_brief = brief.visual_director_brief()
         if vd_brief:
             payload["creative_brief"] = vd_brief
-    result = await run_metered(agent, json.dumps(payload), spend=spend)
+
+    # Same Qwen-first hop as scriptwriter when the operator actually
+    # bought Visual Director (design kit / visual brief). Templates
+    # already skipped this function.
+    metered_kwargs: dict = {}
+    from .services import openrouter
+    from .jev.harness import default_generation_model
+
+    chosen = default_generation_model()
+    or_model = openrouter.get_model(chosen)
+    if or_model is not None and openrouter.enabled() and chosen != settings.agent_model:
+        agent.model = openrouter.agents_model(chosen)
+        metered_kwargs = {
+            "provider": openrouter.PROVIDER,
+            "sku": f"llm:{chosen}",
+            "cost_fn": lambda i, o: openrouter.llm_cost(or_model, i, o),
+        }
+
+    result = await run_metered(
+        agent, json.dumps(payload), spend=spend, **metered_kwargs
+    )
     return result.final_output_as(Script)
 
 

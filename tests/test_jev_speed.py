@@ -670,6 +670,35 @@ async def test_run_visual_director_templates_without_brief(monkeypatch):
     assert out.scenes[0].narration == "Stop wasting shots."
 
 
+async def test_run_visual_director_uses_qwen_when_openrouter_on(monkeypatch):
+    from marketer.config import settings
+    from marketer.models.creative_brief import CreativeBrief, VisualBrief
+    from marketer.orchestrator import run_visual_director
+    from marketer.services import openrouter
+
+    captured: dict = {}
+
+    class _Result:
+        def final_output_as(self, cls):
+            return _script()
+
+    async def fake_metered(agent, prompt, spend=None, **kwargs):
+        captured["sku"] = kwargs.get("sku")
+        captured["provider"] = kwargs.get("provider")
+        return _Result()
+
+    monkeypatch.setattr(settings, "openrouter_api_key", "sk-or-test")
+    monkeypatch.setattr(settings, "qwen_default_model", "qwen/qwen3-32b")
+    monkeypatch.setattr(settings, "agent_model", "gpt-5.4-mini")
+    monkeypatch.setattr("marketer.orchestrator.run_metered", fake_metered)
+    brief = CreativeBrief(visual=VisualBrief(cast_mode="none"))
+    await run_visual_director(
+        _script(), visual_style="clay", brief=brief
+    )
+    assert captured["provider"] == openrouter.PROVIDER
+    assert captured["sku"] == "llm:qwen/qwen3-32b"
+
+
 def test_scriptwriter_forbids_invented_stats():
     from marketer.agents.scriptwriter import SCRIPTWRITER_INSTRUCTIONS
 

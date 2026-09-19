@@ -200,5 +200,7 @@ async def patch_item(
 async def delete_item(
     request: Request, campaign_id: UUID, item_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> None:
-    if not await campaigns_repo.remove_item(item_id, user_id=ctx.user_id):
+    if not await campaigns_repo.remove_item(
+        item_id, user_id=ctx.user_id, campaign_id=campaign_id
+    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND)

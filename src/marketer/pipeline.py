@@ -373,23 +373,25 @@ async def _load_design_kit(user_id: str, niche: Niche) -> str:
 
 async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
     """Account brand kit → (voice, banned words). Fail-open: brand kit is
-    seasoning, never a reason a video can't be made."""
+    seasoning, never a reason a video can't be made.
+
+    Brand kit and company knowledge are independent reads; one gather.
+    """
     try:
+        from .company_os.knowledge import prompt_block
         from .repos import brand_kit as brand_kit_repo
 
-        brand = await brand_kit_repo.get(user_id)
-        if brand is None:
-            voice, banned = "", []
-        else:
-            voice, banned = brand.tone_of_voice or "", list(brand.banned_words or [])
-        try:
-            from .company_os.knowledge import prompt_block
-
-            block = await prompt_block(user_id)
-            if block:
-                voice = f"{voice}\n{block}" if voice else block
-        except Exception:  # noqa: BLE001 — knowledge seasons, never blocks
-            pass
+        brand, block = await asyncio.gather(
+            brand_kit_repo.get(user_id),
+            prompt_block(user_id),
+            return_exceptions=True,
+        )
+        voice, banned = "", []
+        if not isinstance(brand, BaseException) and brand is not None:
+            voice = brand.tone_of_voice or ""
+            banned = list(brand.banned_words or [])
+        if not isinstance(block, BaseException) and block:
+            voice = f"{voice}\n{block}" if voice else block
         return voice, banned
     except Exception:  # noqa: BLE001
         return "", []

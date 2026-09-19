@@ -110,8 +110,8 @@ async def pick_topic(
 ) -> TopicPick:
     """Jev chooses among templates. Dark harness / one leftover → first unused.
 
-    LLM ``pick_topic`` is the last resort when every template collides
-    with recent titles *and* Jev cannot answer.
+    ``unused_topic_candidates`` always returns at least the stock set, so
+    this never buys ``llm.pick_topic`` (classification, not prose).
     """
     unused = unused_topic_candidates(
         niche_title, niche_description, recent_titles, audience=audience
@@ -153,13 +153,7 @@ async def pick_topic(
             get_logger(__name__).warning(
                 "jev.fastpath.topic_pick_failed", extra={"error": str(exc)}
             )
-    if unused:
-        return unused[0]
-    from . import llm
-
-    return await llm.pick_topic(
-        niche_title, niche_description, recent_titles, spend=spend
-    )
+    return unused[0]
 
 
 def serp_from_pages(keyword: str, pages: list[dict[str, Any]]) -> SerpAnalysis:

@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -296,7 +297,7 @@ async def list_approvals(
 
 
 class DecideBody(BaseModel):
-    decision: str  # 'approved' | 'rejected'
+    decision: Literal["approved", "rejected"]
 
 
 @router.post("/approvals/{approval_id}/decide", response_model=ad_approvals.AdApproval)
@@ -315,8 +316,6 @@ async def decide_approval(
     moved since the approval was granted), the approval row stays 'approved'
     for a later retry and we surface a 402 with the reason — we never crash
     or silently drop the approved-but-unexecuted change."""
-    if body.decision not in {"approved", "rejected"}:
-        raise HTTPException(422, "decision must be 'approved' or 'rejected'")
     decided = await ad_approvals.decide(
         approval_id, user_id=ctx.user_id, status=body.decision,
         decided_by=ctx.email or ctx.user_id,

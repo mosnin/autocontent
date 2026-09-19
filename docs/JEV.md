@@ -988,3 +988,16 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | `_validate_kit_refs` gathers both kit lookups | Niche create/update waited two sequential kit gets. One RTT when both ids are set |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 41. Wrap-up — production-ready last hop
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Campaign item DELETE scoped to URL `campaign_id` | PATCH already scoped in SQL. `DELETE /campaigns/{A}/items/{id}` could remove an item that belonged to campaign B |
+| `GET /spend/history` 30/min | Last unbounded authenticated ledger dump. `/today` was already bounded |
+| `_load_brand_voice` gathers brand kit + knowledge | Independent reads on every video job were sequential |
+| Visual Director LLM path is Qwen-first when OpenRouter is on | Templates still skip the writer. A filled design kit / visual brief bought stock `agent_model` instead of the same Qwen hop as scriptwriter |
+| `pick_topic` never falls through to `llm.pick_topic` | `unused_topic_candidates` always returns the stock set. Classification LLM hop cannot regress in |
+| Ads `DecideBody.decision` is `Literal["approved", "rejected"]` | Invalid decisions 422 at the validator, not a hand-rolled string check |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

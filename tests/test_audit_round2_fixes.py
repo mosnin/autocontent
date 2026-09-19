@@ -230,6 +230,23 @@ def test_patch_item_wrong_campaign_is_scoped_in_sql(monkeypatch):
     assert seen["campaign_id"] == cid  # scope reached the WHERE clause
 
 
+def test_delete_item_wrong_campaign_is_scoped_in_sql(monkeypatch):
+    import marketer.repos.campaigns as campaigns_repo
+
+    seen = {}
+
+    async def fake_remove(item_id, *, user_id, campaign_id=None):
+        seen["campaign_id"] = campaign_id
+        return False  # SQL-scoped miss
+
+    monkeypatch.setattr(campaigns_repo, "remove_item", fake_remove)
+    client = _make_authed_client(monkeypatch)
+    cid, iid = uuid4(), uuid4()
+    r = client.delete(f"/api/v1/campaigns/{cid}/items/{iid}")
+    assert r.status_code == 404
+    assert seen["campaign_id"] == cid
+
+
 # --------------------------------------------------------------------------- templates routes
 
 
