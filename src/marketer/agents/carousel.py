@@ -73,7 +73,7 @@ def template_carousel_plan(
         (f"Why {subject} fails", "One concrete cause"),
         (f"The {subject} fix", "Do this next"),
         (f"{subject} in 3 moves", "Screenshot this"),
-        (f"Do this today", f"{subject}, shipped"),
+        ("Do this today", f"{subject}, shipped"),
     ]
     slides: list[CarouselSlide] = []
     for i in range(count):
