@@ -1020,5 +1020,6 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | JEV.md no longer claims a dark-path writer tournament | Install/theory matched the deleted 3-way hop. Operators reading §14/§19 would re-introduce it |
 | n≥2 ideation never calls `run_metered` (regression test) | Tournament cannot regress in behind templates + Jev |
 | Pin ruff `select` to `E4,E7,E9,F`; drop leftover `settings` imports | Ruff 0.16 treats omitted select as every rule. CI died on 560 style nits and never reached pytest |
+| Pin `mcp[cli]>=1.2,<2` | mcp 2.x removed `FastMCP`. Collection of `test_mcp_server.py` aborted the whole CI pytest run |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
