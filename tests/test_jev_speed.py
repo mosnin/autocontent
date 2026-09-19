@@ -227,6 +227,21 @@ def test_topic_candidates_skip_recent_and_need_no_llm():
     assert all(p.topic != "How home espresso actually works" for p in unused)
 
 
+async def test_llm_pick_topic_never_calls_openai(monkeypatch):
+    from marketer.articles import llm as article_llm
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "jev_enabled", False)
+
+    def boom(*_a, **_k):
+        raise AssertionError("llm.pick_topic must not buy a classification writer")
+
+    monkeypatch.setattr(article_llm, "_oai", boom)
+    pick = await article_llm.pick_topic("espresso", "home espresso", [])
+    assert pick.topic
+    assert pick.focusKeyword
+
+
 async def test_pick_topic_uses_template_when_jev_dark(monkeypatch):
     from marketer.config import settings
 
@@ -383,6 +398,10 @@ def test_lock_script_facts_strips_invented_stats():
     locked = _lock_script_facts(script, niche)
     assert "87%" not in locked.scenes[0].narration
     assert "Dial the grind first" in locked.scenes[0].narration
+    kept = _lock_script_facts(
+        script, niche, extra="Research shows 87% of shots fail."
+    )
+    assert "87%" in kept.scenes[0].narration
 
 
 def test_outline_and_metadata_are_deterministic():
@@ -1015,7 +1034,7 @@ async def test_score_article_skips_llm_when_jev_dark(monkeypatch):
     async def boom(**kwargs):
         raise AssertionError("dark-path QA must not call the editorial LLM")
 
-    monkeypatch.setattr(article_llm, "_json_call", boom)
+    monkeypatch.setattr(article_llm, "_oai", boom)
     score = await article_llm.score_article(
         "Espresso is a short coffee drink. " * 90 + "Keep espresso sweet.",
         "espresso",

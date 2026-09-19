@@ -106,18 +106,28 @@ async def _synthesize_vo(
     )
 
 
-def _lock_script_facts(script: Script, niche: Niche) -> Script:
+def _lock_script_facts(script: Script, niche: Niche, extra: str = "") -> Script:
     """Drop invented % / $ / study-year sentences from narration.
 
-    Allowed tokens come from the niche brief — videos have no Exa SERP.
-    A one-line scene that would empty is left alone (fail-open).
+    Allowed tokens come from the niche brief plus already-loaded brand /
+    knowledge text — videos have no Exa SERP. A one-line scene that
+    would empty is left alone (fail-open).
     """
+    if extra is None:
+        extra = ""
+    if not isinstance(extra, str):
+        raise TypeError("extra must be a string")
     from .jev.grounding import fact_tokens, strip_ungrounded_claims
 
     allowed = fact_tokens(
         " ".join(
             part
-            for part in (niche.title, niche.description, niche.target_audience)
+            for part in (
+                niche.title,
+                niche.description,
+                niche.target_audience,
+                extra,
+            )
             if part
         )
     )
@@ -692,9 +702,17 @@ async def _run_job_after_sheet(
     vo_task: asyncio.Task | None = None
 
     if resumed:
-        plan = await plan_task
+        # Brand/knowledge is independent of the planner result. Resume
+        # used to re-lock against the niche brief only and strip numbers
+        # the writer was already allowed to keep.
+        plan, (brand_voice, banned_words) = await asyncio.gather(
+            plan_task,
+            _load_brand_voice(job.user_id),
+        )
         job.harness = {**(job.harness or {}), "plan": plan.as_dict()}
-        script: Script = _lock_script_facts(job.script, niche)
+        script: Script = _lock_script_facts(
+            job.script, niche, extra=brand_voice
+        )
         job.script = script
         log.info("resume: reusing script from prior attempt")
         (root / "script.json").write_text(script.model_dump_json(indent=2))
@@ -765,7 +783,7 @@ async def _run_job_after_sheet(
             )
             # Lock narration before VO and before Visual Director.
             # VD rewrites visuals only; TTS must match the published lines.
-            script = _lock_script_facts(script, niche)
+            script = _lock_script_facts(script, niche, extra=brand_voice)
             job.script = script
             (root / "script.json").write_text(script.model_dump_json(indent=2))
             # cast_mode 'none' means NO characters — a lingering

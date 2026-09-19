@@ -7,7 +7,6 @@ raises SpendCapExceeded from ``spend.log`` after recording.
 """
 from __future__ import annotations
 
-import json
 import re
 from decimal import Decimal
 
@@ -103,51 +102,6 @@ async def _log_usage(resp: object, model: str, spend: SpendContext | None) -> No
     )
 
 
-async def _parse_call(
-    *, model: str, system: str, user: str, response_format, temperature: float,
-    spend: SpendContext | None,
-):
-    if spend is not None:
-        await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-    resp = await _oai().beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        response_format=response_format,
-        temperature=temperature,
-    )
-    await _log_usage(resp, model, spend)
-    parsed = resp.choices[0].message.parsed
-    if parsed is None:
-        raise RuntimeError(f"{response_format.__name__}: model returned no parsed payload")
-    return parsed
-
-
-async def _json_call(
-    *, model: str, system: str, user: str, temperature: float,
-    spend: SpendContext | None,
-) -> dict:
-    if spend is not None:
-        await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-    resp = await _oai().chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        response_format={"type": "json_object"},
-        temperature=temperature,
-    )
-    await _log_usage(resp, model, spend)
-    raw = resp.choices[0].message.content or "{}"
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        return {}
-
-
 # ---------------------------------------------------------------------------
 # Topic selection
 # ---------------------------------------------------------------------------
@@ -160,24 +114,11 @@ async def pick_topic(
     *,
     spend: SpendContext | None = None,
 ) -> TopicPick:
-    """Choose the next article topic + focus keyword for a niche."""
-    system = (
-        "You are an SEO content strategist. Given a content niche, propose "
-        "ONE article topic with a specific, winnable focus keyword. Prefer "
-        "specific long-tail angles over generic overviews. Avoid topics that "
-        "duplicate the recent titles provided. Never use em-dashes or "
-        "en-dashes."
-    )
-    user = (
-        f"Niche: {niche_title}\n"
-        f"Description: {niche_description}\n\n"
-        f"Recent article titles (avoid duplicating):\n"
-        + "\n".join(f"- {t}" for t in recent_titles[:25])
-        + "\n\nReturn a TopicPick."
-    )
-    return await _parse_call(
-        model=settings.agent_model, system=system, user=user,
-        response_format=TopicPick, temperature=0.8, spend=spend,
+    """Topic pick is classification. Fastpath + Jev own it."""
+    from .fastpath import pick_topic as _fast
+
+    return await _fast(
+        niche_title, niche_description, recent_titles, spend=spend
     )
 
 

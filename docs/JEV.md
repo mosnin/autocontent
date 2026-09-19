@@ -1024,3 +1024,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Ads PG route tests pass a dummy `Request` | `@limiter.limit` requires Starlette Request. Direct handler calls 500'd after the ads mutation bound |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 44. Loop — fact lock keeps loaded knowledge, leftover topic pick is templates
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `_lock_script_facts(..., extra=)` includes already-loaded brand / knowledge | Writer was given those spans. Re-locking against niche brief only stripped grounded numbers on resume and fresh path |
+| Resume gathers planner + brand voice | Independent reads. Resume no longer re-locks blind |
+| `llm.pick_topic` delegates to fastpath | Last classification OpenAI `_parse_call` in article writer module. Leftover caller cannot buy a topic LLM |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
