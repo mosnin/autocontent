@@ -493,9 +493,13 @@ persistence, and voice session minting.
 
 **Residual (accepted)**
 
-- REST `/jev/ask` is not niche-metered (auth + size caps + TypeSafe
-  429s). Pipeline calls *do* take a `SpendContext`.
+- REST `/jev/ask` is not niche-metered (auth + size caps + **40/min**
+  per IP + TypeSafe 429s). Pipeline calls *do* take a `SpendContext`.
+- `/ads/judge` is **20/min**; `/voice/session` is **8/min** so a stolen
+  token cannot mint unbounded Realtime sessions.
 - Nightly HOLD fail-opens so a dark harness cannot freeze publishing.
+- Knowledge insert is idempotent on `(user_id, lower(span))` in code
+  (no unique index yet; a later migration can harden that).
 
 ---
 
@@ -655,3 +659,23 @@ images. Everything that used to be "ask a chat model to classify /
 outline / title / caption / FAQ / fact-check" is either Jev (one
 fan-out) or Python (zero RTT). Hallucinated numbers do not survive
 the fact lock even when Jev is dark.
+
+---
+
+## 15. Loop — remaining sequential hops and abuse bounds
+
+A later pass removed leftover sequential Jev RTTs and closed the
+obvious abuse windows on the HTTP judges:
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `POST /jev/route` uses `intent.model` | The second `route_model()` call was a duplicate 70–500ms hop |
+| Intent + company OS `asyncio.gather` | Independent questions, one wall-clock beat |
+| Video `warm()` before `plan_video_run` | First ask of a job skips TLS |
+| API lifespan `warm()` | First `/decisions` click is not a cold TLS handshake |
+| Voice Realtime keep-alive client | Session mint no longer pays a new TLS client |
+| Knowledge span dedup | Same rule cannot bloat writer prompts forever |
+| `rank_passages` one noul per page (cap 8) | Half the questions, same retrieve-then-judge |
+| Qwen-only ideation uses templates + `ask()` | OpenRouter-only installs skip the 3-way writer tournament |
+| HTTP limits: 40/min judges, 20/min ads, 8/min voice | Stolen token / noisy UI cannot melt TypeSafe or OpenAI |
+| `apply_jev_ads_overlay` tests | Deny / force-approve / fail-open cannot relax AdSpendGuard |

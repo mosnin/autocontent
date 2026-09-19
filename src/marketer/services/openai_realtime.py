@@ -9,6 +9,7 @@ cost, not niche spend — same contract as voice previews.
 """
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import httpx
@@ -17,6 +18,21 @@ from ..config import settings
 
 PROVIDER = "openai"
 REALTIME_SESSIONS_URL = "https://api.openai.com/v1/realtime/sessions"
+_http: httpx.AsyncClient | None = None
+_http_lock = asyncio.Lock()
+
+
+async def _shared_client() -> httpx.AsyncClient:
+    global _http
+    if _http is not None and not _http.is_closed:
+        return _http
+    async with _http_lock:
+        if _http is None or _http.is_closed:
+            _http = httpx.AsyncClient(
+                timeout=20.0,
+                limits=httpx.Limits(max_keepalive_connections=4, max_connections=8),
+            )
+        return _http
 
 
 class VoiceModeError(RuntimeError):
@@ -60,13 +76,13 @@ async def create_session(
         "content-type": "application/json",
         "openai-beta": "realtime=v1",
     }
-    async with httpx.AsyncClient(timeout=20.0) as client:
-        resp = await client.post(REALTIME_SESSIONS_URL, json=body, headers=headers)
-        if resp.status_code >= 400:
-            raise VoiceModeError(
-                f"OpenAI Realtime session failed ({resp.status_code})"
-            )
-        data = resp.json()
+    client = await _shared_client()
+    resp = await client.post(REALTIME_SESSIONS_URL, json=body, headers=headers)
+    if resp.status_code >= 400:
+        raise VoiceModeError(
+            f"OpenAI Realtime session failed ({resp.status_code})"
+        )
+    data = resp.json()
     if not isinstance(data, dict):
         raise VoiceModeError("OpenAI Realtime session returned a non-object")
     return data

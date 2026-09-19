@@ -3,15 +3,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel
 
 from marketer.config import settings
 from marketer.services import openai_realtime
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_VOICE_LIMIT = "8/minute"
 
 
 class VoiceStatus(BaseModel):
@@ -38,7 +40,8 @@ async def voice_status(ctx: AuthCtx = CurrentUser) -> VoiceStatus:
 
 
 @router.post("/session", response_model=VoiceSession)
-async def voice_session(ctx: AuthCtx = CurrentUser) -> VoiceSession:
+@limiter.limit(_VOICE_LIMIT)
+async def voice_session(request: Request, ctx: AuthCtx = CurrentUser) -> VoiceSession:
     if not openai_realtime.enabled():
         raise HTTPException(
             status.HTTP_409_CONFLICT,

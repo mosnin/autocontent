@@ -448,7 +448,13 @@ async def _run_job_inner(
     if not await _ensure_cap(job, niche):
         return job
 
+    from .jev.client import warm as jev_warm
     from .jev.planner import plan_video_run, script_has_caption_source, script_has_usable_visuals
+
+    try:
+        await jev_warm()
+    except Exception:  # noqa: BLE001 — prefetch never blocks a job
+        pass
 
     plan = await plan_video_run(
         {

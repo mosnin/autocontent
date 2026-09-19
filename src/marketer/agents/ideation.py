@@ -271,12 +271,13 @@ async def run_ideation(
     if len(templates) >= 2:
         try:
             from ..config import settings as _settings
-            from ..jev.client import enabled as jev_http_enabled
+            from ..jev import available as jev_available
             from ..jev.decisions import judge_ideas
 
-            # Real TypeSafe Jev only — Qwen fallback would still be an LLM
-            # RTT, and existing ideation tests mock Runner.run.
-            if _settings.jev_enabled and jev_http_enabled():
+            # Templates + one System One fan-out (Jev or Qwen wrapper).
+            # Dark harness keeps the LLM tournament so tests without keys
+            # still exercise Runner.run.
+            if _settings.jev_enabled and jev_available():
                 judge_prompt = build_ideation_prompt(
                     niche_title,
                     niche_description=niche_description,

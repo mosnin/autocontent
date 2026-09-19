@@ -678,3 +678,125 @@ def test_qwen_models_are_in_openrouter_registry():
     assert "qwen/qwen3-32b" in ids
     assert "qwen/qwen3-8b" in ids
     assert "qwen/qwen3-235b-a22b" in ids
+
+
+def test_jev_route_reuses_intent_model(monkeypatch):
+    from backend.routes import jev as jev_routes
+    from marketer.company_os.opencompany import CompanyRoute
+    from marketer.jev.harness import ModelRoute
+    from marketer.jev.primitives import SystemOneResult
+    from marketer.jev.router import IntentRoute
+
+    calls = {"model": 0}
+    model = ModelRoute(
+        tier="fast",
+        model_id="qwen/qwen3-8b",
+        confidence=0.8,
+        probabilities={"fast": 0.8},
+        backend="jev",
+        raw=SystemOneResult(model="jev-latest", answers={}),
+    )
+
+    async def fake_intent(state, **_k):
+        return IntentRoute(
+            kind="video",
+            skill="write_script",
+            urgency=0.7,
+            confidence=0.9,
+            gate="act",
+            model=model,
+            backend="jev",
+        )
+
+    async def fake_company(state, **_k):
+        return CompanyRoute(
+            surface="studio",
+            task="ready",
+            knowledge_write=False,
+            confidence=0.8,
+            gate="act",
+            backend="jev",
+        )
+
+    async def boom_model(state, **_k):
+        calls["model"] += 1
+        raise AssertionError("route_model must not run when intent.model is set")
+
+    monkeypatch.setattr(jev_routes, "route_intent", fake_intent)
+    monkeypatch.setattr(jev_routes, "route_workspace", fake_company)
+    monkeypatch.setattr(jev_routes, "route_model", boom_model)
+    monkeypatch.setattr(jev_routes, "available", lambda: True)
+
+    client = _jev_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jev/route",
+        headers={"Authorization": "Bearer mkt_x"},
+        json={"state": {"request": "write a reel"}},
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["model"]["model_id"] == "qwen/qwen3-8b"
+    assert calls["model"] == 0
+
+
+async def test_ads_overlay_never_relaxes_guard(monkeypatch):
+    from marketer.config import settings
+    from marketer.jev.decisions import AdsVerdict
+    from marketer.services.ad_actions_exec import AdSpendDenied, apply_jev_ads_overlay
+
+    monkeypatch.setattr(settings, "jev_enabled", True)
+
+    async def deny(_state, **_k):
+        return AdsVerdict(action="deny", reason="too big", confidence=0.9, backend="jev")
+
+    async def approve(_state, **_k):
+        return AdsVerdict(action="approve", reason="look", confidence=0.8, backend="jev")
+
+    async def allow(_state, **_k):
+        return AdsVerdict(action="allow", reason="ok", confidence=0.9, backend="jev")
+
+    async def boom(_state, **_k):
+        raise RuntimeError("jev down")
+
+    monkeypatch.setattr("marketer.jev.available", lambda: True)
+    import marketer.jev.decisions as decisions
+
+    monkeypatch.setattr(decisions, "judge_ad_action", deny)
+    with pytest.raises(AdSpendDenied):
+        await apply_jev_ads_overlay({"delta": "100"}, requires_approval=False)
+
+    monkeypatch.setattr(decisions, "judge_ad_action", approve)
+    assert await apply_jev_ads_overlay({"delta": "2"}, requires_approval=False) is True
+
+    monkeypatch.setattr(decisions, "judge_ad_action", allow)
+    assert await apply_jev_ads_overlay({"delta": "1"}, requires_approval=False) is False
+    assert await apply_jev_ads_overlay({"delta": "1"}, requires_approval=True) is True
+
+    monkeypatch.setattr(decisions, "judge_ad_action", boom)
+    assert await apply_jev_ads_overlay({"delta": "1"}, requires_approval=False) is False
+
+
+async def test_rank_passages_asks_one_noul_each(monkeypatch):
+    from marketer.jev import decisions
+    from marketer.jev.primitives import NoulAnswer, SystemOneResult
+
+    seen = {}
+
+    async def fake_ask(state, questions, *, spend=None):
+        seen["questions"] = questions
+        return SystemOneResult(
+            model="jev-latest",
+            answers={
+                "p0": NoulAnswer(noul=0.9),
+                "p1": NoulAnswer(noul=0.2),
+            },
+            backend="jev",
+        )
+
+    monkeypatch.setattr(decisions, "jev_ask", fake_ask)
+    ranked = await decisions.rank_passages(
+        "espresso",
+        [{"title": "a", "url": "https://a"}, {"title": "b", "url": "https://b"}],
+    )
+    assert set(seen["questions"]) == {"p0", "p1"}
+    assert len(ranked) == 1
+    assert ranked[0]["title"] == "a"

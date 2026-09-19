@@ -54,6 +54,16 @@ async def insert(
         from ..db import get_pool
 
         pool = await get_pool()
+        existing = await pool.fetchrow(
+            f"""
+            select {_COLS} from company_knowledge
+             where user_id = $1 and lower(span) = lower($2)
+             limit 1
+            """,
+            user_id, text,
+        )
+        if existing:
+            return _row(existing)
         row = await pool.fetchrow(
             f"""
             insert into company_knowledge

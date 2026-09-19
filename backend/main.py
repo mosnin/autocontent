@@ -100,6 +100,12 @@ def _run_boot_preflight() -> None:
 @asynccontextmanager
 async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     _run_boot_preflight()
+    try:
+        from marketer.jev.client import warm
+
+        await warm()
+    except Exception:  # noqa: BLE001 — first-ask TLS is optional
+        logger.warning("jev.warm_failed", exc_info=True)
     yield
 
 

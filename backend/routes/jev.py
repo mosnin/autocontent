@@ -6,11 +6,12 @@ fail-closed money path — this router only *judges*.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 from collections.abc import Awaitable
 from typing import Any, TypeVar
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
 
 from marketer.company_os import capture_from_state, route_workspace
@@ -40,8 +41,11 @@ from marketer.symbolic.jev_code import (
 )
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_JEV_LIMIT = "40/minute"
+_ADS_LIMIT = "20/minute"
 log = get_logger(__name__)
 
 T = TypeVar("T")
@@ -164,7 +168,10 @@ def _coerce_questions(raw: dict[str, dict[str, Any]]) -> dict:
 
 
 @router.post("/ask")
-async def jev_ask_endpoint(body: AskBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_ask_endpoint(
+    request: Request, body: AskBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     result = await _run_decision(jev_ask(body.state, _coerce_questions(body.questions)))
     return result.as_serializable()
@@ -180,11 +187,20 @@ class StateBody(BaseModel):
 
 
 @router.post("/route")
-async def jev_route(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_route(
+    request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
+) -> dict:
+    """Intent + company OS in parallel. Model tier rides on the intent fan-out."""
     _require_available()
-    intent = await _run_decision(route_intent(body.state))
-    model = await _run_decision(route_model(body.state))
-    company = await _run_decision(route_workspace(body.state))
+    intent, company = await asyncio.gather(
+        _run_decision(route_intent(body.state)),
+        _run_decision(route_workspace(body.state)),
+    )
+    if intent.model is not None:
+        model = intent.model
+    else:
+        model = await _run_decision(route_model(body.state))
     knowledge: list[dict] = []
     if company.knowledge_write:
         try:
@@ -229,7 +245,10 @@ class NextActionBody(BaseModel):
 
 
 @router.post("/next-action")
-async def jev_next_action(body: NextActionBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_next_action(
+    request: Request, body: NextActionBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     action = await _run_decision(next_action(body.state, targets=body.targets))
     return {
@@ -252,14 +271,20 @@ class AutoModeBody(BaseModel):
 
 
 @router.post("/auto-mode")
-async def jev_auto_mode(body: AutoModeBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_auto_mode(
+    request: Request, body: AutoModeBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     decision = await _run_decision(auto_mode(body.state or {}, tool=body.tool))
     return decision.as_dict()
 
 
 @router.post("/screen")
-async def jev_screen(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_screen(
+    request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     v = await _run_decision(screen_content(body.state))
     return {
@@ -272,7 +297,10 @@ async def jev_screen(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
 
 
 @router.post("/curate")
-async def jev_curate(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_curate(
+    request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     v = await _run_decision(curate_asset(body.state))
     return {
@@ -284,7 +312,10 @@ async def jev_curate(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
 
 
 @router.post("/ads/judge")
-async def jev_ads_judge(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_ADS_LIMIT)
+async def jev_ads_judge(
+    request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     v = await _run_decision(judge_ad_action(body.state))
     return {
@@ -301,13 +332,19 @@ class CitationBody(BaseModel):
 
 
 @router.post("/citations/verify")
-async def jev_citation(body: CitationBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_citation(
+    request: Request, body: CitationBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     return await _run_decision(verify_citation(body.claim, body.source))
 
 
 @router.post("/symbolic/foreman")
-async def jev_foreman(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_foreman(
+    request: Request, body: StateBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     return (await _run_decision(foreman_assess(body.state))).as_dict()
 
@@ -325,7 +362,10 @@ class SymbolicBody(BaseModel):
 
 
 @router.post("/symbolic/code")
-async def jev_code(body: SymbolicBody, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_JEV_LIMIT)
+async def jev_code(
+    request: Request, body: SymbolicBody, ctx: AuthCtx = CurrentUser
+) -> dict:
     _require_available()
     workflow = body.workflow
     if not workflow and body.request:
