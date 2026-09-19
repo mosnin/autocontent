@@ -1021,5 +1021,6 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | n≥2 ideation never calls `run_metered` (regression test) | Tournament cannot regress in behind templates + Jev |
 | Pin ruff `select` to `E4,E7,E9,F`; drop leftover `settings` imports | Ruff 0.16 treats omitted select as every rule. CI died on 560 style nits and never reached pytest |
 | Pin `mcp[cli]>=1.2,<2` | mcp 2.x removed `FastMCP`. Collection of `test_mcp_server.py` aborted the whole CI pytest run |
+| Ads PG route tests pass a dummy `Request` | `@limiter.limit` requires Starlette Request. Direct handler calls 500'd after the ads mutation bound |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

@@ -196,6 +196,32 @@ def _ctx(uid: str):
     return AuthCtx(user_id=uid, email="a@t.com")
 
 
+def _request():
+    """Limiter needs a real Request. Keep the route coroutine on this
+    loop so the pool fixture's asyncpg connection stays valid."""
+    from fastapi import FastAPI
+    from starlette.requests import Request
+
+    from backend.rate_limit import limiter
+
+    app = FastAPI()
+    app.state.limiter = limiter
+    return Request({
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "POST",
+        "scheme": "http",
+        "path": "/",
+        "raw_path": b"/",
+        "query_string": b"",
+        "headers": [],
+        "client": ("127.0.0.1", 123),
+        "server": ("test", 80),
+        "app": app,
+    })
+
+
 async def test_decide_approved_budget_change_executes_through_route(pool, monkeypatch):
     import backend.routes.ads as ads_route
     from marketer.repos import ad_approvals
@@ -212,7 +238,8 @@ async def test_decide_approved_budget_change_executes_through_route(pool, monkey
     )
 
     result = await ads_route.decide_approval(
-        approval.id, ads_route.DecideBody(decision="approved"), ctx=_ctx(uid),
+        _request(), approval.id, ads_route.DecideBody(decision="approved"),
+        ctx=_ctx(uid),
     )
     assert result.status == "executed"
     assert len(calls) == 1  # the budget change actually ran
@@ -238,7 +265,8 @@ async def test_decide_rejected_does_not_execute(pool, monkeypatch):
     )
 
     result = await ads_route.decide_approval(
-        approval.id, ads_route.DecideBody(decision="rejected"), ctx=_ctx(uid),
+        _request(), approval.id, ads_route.DecideBody(decision="rejected"),
+        ctx=_ctx(uid),
     )
     assert result.status == "rejected"
     assert calls == []  # nothing executed
@@ -264,7 +292,8 @@ async def test_decide_approved_activation_executes_through_route(pool, monkeypat
     )
 
     result = await ads_route.decide_approval(
-        approval.id, ads_route.DecideBody(decision="approved"), ctx=_ctx(uid),
+        _request(), approval.id, ads_route.DecideBody(decision="approved"),
+        ctx=_ctx(uid),
     )
     assert result.status == "executed"
     assert len(calls) == 1
@@ -293,7 +322,8 @@ async def test_decide_approved_activation_402_when_reguard_denies(pool):
 
     with pytest.raises(HTTPException) as excinfo:
         await ads_route.decide_approval(
-            approval.id, ads_route.DecideBody(decision="approved"), ctx=_ctx(uid),
+            _request(), approval.id, ads_route.DecideBody(decision="approved"),
+            ctx=_ctx(uid),
         )
     assert excinfo.value.status_code == 402
 
@@ -315,7 +345,8 @@ async def test_route_activation_over_cap_denied_402(pool):
 
     with pytest.raises(HTTPException) as excinfo:
         await ads_route.change_status(
-            camp.id, ads_route.StatusBody(status="active"), ctx=_ctx(uid),
+            _request(), camp.id, ads_route.StatusBody(status="active"),
+            ctx=_ctx(uid),
         )
     assert excinfo.value.status_code == 402
     assert "cap" in str(excinfo.value.detail)
@@ -331,7 +362,8 @@ async def test_route_activation_over_threshold_parks_approval(pool):
     uid, acc, camp = await _setup(pool, campaign_budget=90)  # >= $50 threshold
 
     result = await ads_route.change_status(
-        camp.id, ads_route.StatusBody(status="active"), ctx=_ctx(uid),
+        _request(), camp.id, ads_route.StatusBody(status="active"),
+        ctx=_ctx(uid),
     )
     assert result["status"] == "pending_approval"
     assert "approval_id" in result
@@ -352,7 +384,8 @@ async def test_route_activation_within_limits_activates_immediately(pool):
     uid, acc, camp = await _setup(pool, daily_cap=1000, campaign_budget=20)
 
     result = await ads_route.change_status(
-        camp.id, ads_route.StatusBody(status="active"), ctx=_ctx(uid),
+        _request(), camp.id, ads_route.StatusBody(status="active"),
+        ctx=_ctx(uid),
     )
     assert result["status"] == "active"
 
@@ -374,7 +407,8 @@ async def test_pause_and_end_never_blocked_by_budget_guard(pool):
 
     for target_status in ("paused", "ended"):
         result = await ads_route.change_status(
-            camp.id, ads_route.StatusBody(status=target_status), ctx=_ctx(uid),
+            _request(), camp.id, ads_route.StatusBody(status=target_status),
+            ctx=_ctx(uid),
         )
         assert result["status"] == target_status
         camp = await ads.get_campaign(camp.id, user_id=uid)
