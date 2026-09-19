@@ -21,6 +21,7 @@ from .models import (
     QualityScore,
     SerpAnalysis,
     SerpResult,
+    SocialSnippet,
     TopicPick,
 )
 
@@ -500,6 +501,53 @@ def heuristic_quality(
         readability=max(0.0, min(1.0, readability)),
         notes=notes,
     )
+
+
+_SOCIAL_PLATFORMS = (
+    "twitter",
+    "linkedin",
+    "instagram",
+    "facebook",
+    "newsletter",
+)
+
+
+def template_social_snippets(
+    title: str,
+    article_md: str,
+    platforms: list[str] | None = None,
+) -> list[SocialSnippet]:
+    """Extract platform posts from the article. No invented facts, no LLM."""
+    from .llm import strip_ai_dashes
+
+    wanted = [p for p in (platforms or []) if p in _SOCIAL_PLATFORMS] or list(
+        _SOCIAL_PLATFORMS
+    )
+    heading = strip_ai_dashes((title or "").strip()) or "New article"
+    paras = [
+        p.strip()
+        for p in re.split(r"\n\s*\n", article_md or "")
+        if p.strip() and not p.lstrip().startswith("#")
+    ]
+    excerpt = strip_ai_dashes(
+        re.sub(r"\s+", " ", paras[0] if paras else heading)
+    )
+    tags = [t for t in sorted(tokens(heading)) if len(t) > 3][:5]
+    bodies = {
+        "twitter": (f"{heading}: {excerpt}")[:277],
+        "linkedin": f"{heading}\n\n{excerpt[:420]}\n\nRead the full piece.",
+        "instagram": f"{heading}\n\n{excerpt[:320]}\n\nSave this for later.",
+        "facebook": f"{heading}. {excerpt[:280]} What would you add?",
+        "newsletter": f"{heading}\n\n{excerpt[:320]}\n\nRead more in the article.",
+    }
+    return [
+        SocialSnippet(
+            platform=p,
+            body=bodies[p],
+            hashtags=[f"#{t}" for t in tags[:3]] if p != "newsletter" else [],
+        )
+        for p in wanted
+    ]
 
 
 def hero_prompt(title: str, keyword: str) -> ImagePrompt:

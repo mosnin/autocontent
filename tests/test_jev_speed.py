@@ -501,6 +501,112 @@ def test_heuristic_quality_is_deterministic():
     assert any("Em/en-dash" in n for n in short.notes)
 
 
+def test_heuristic_video_qa_flags_generic_hook():
+    from marketer.agents.qa import heuristic_qa_report
+
+    bad = heuristic_qa_report(
+        {
+            "hook": "Hey guys welcome back to today's video",
+            "narration": "Hey guys welcome back to today's video we talk.",
+            "transcript": "hey guys",
+            "duration_sec": 30,
+            "target_duration_sec": 30,
+            "niche": "home espresso",
+        }
+    )
+    assert bad.passed is False
+    assert bad.suggested_action == "regenerate_script"
+    assert any("hook" in i for i in bad.issues)
+    good = heuristic_qa_report(
+        {
+            "hook": "Stop wasting shots.",
+            "narration": "Stop wasting shots. Dial the grind first for sweeter espresso.",
+            "transcript": "Stop wasting shots. Dial the grind first for sweeter espresso.",
+            "duration_sec": 28,
+            "target_duration_sec": 30,
+            "niche": "espresso",
+        }
+    )
+    assert good.passed is True
+    assert good.suggested_action == "publish"
+    drift = heuristic_qa_report(
+        {
+            "hook": "Stop wasting shots.",
+            "narration": " ".join(["unrelated filler words about weather"] * 4),
+            "transcript": " ".join(["unrelated filler words about weather"] * 4),
+            "duration_sec": 30,
+            "target_duration_sec": 30,
+            "niche": "home espresso",
+        }
+    )
+    assert drift.passed is False
+    assert any("niche" in i for i in drift.issues)
+
+
+def test_template_social_snippets_stay_in_the_article():
+    md = (
+        "# Dial in espresso\n\n"
+        "Start at 18 grams and a 1:2 ratio for sweeter shots.\n\n"
+        "Then change one variable at a time."
+    )
+    out = fastpath.template_social_snippets(
+        "Dial in espresso", md, ["twitter", "newsletter"]
+    )
+    assert [s.platform for s in out] == ["twitter", "newsletter"]
+    assert "18 grams" in out[0].body
+    assert "1:2" in out[0].body
+    assert out[1].hashtags == []
+
+
+async def test_run_qa_skips_llm_when_jev_dark(monkeypatch):
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from marketer.agents.qa import QAReport
+    from marketer.config import settings
+    from marketer.models import Idea, Niche, PostingWindow, Scene, Script
+    from marketer.orchestrator import run_qa
+
+    monkeypatch.setattr(settings, "jev_enabled", False)
+
+    async def boom(*args, **kwargs):
+        raise AssertionError("dark-path video QA must not call the editorial LLM")
+
+    monkeypatch.setattr("marketer.orchestrator.run_metered", boom)
+    script = Script(
+        idea=Idea(
+            topic="t", angle="a", hook="h", target_audience="x", why_it_works="y"
+        ),
+        scenes=[
+            Scene(
+                index=0,
+                narration="Stop wasting shots.",
+                visual_prompt="vp",
+                motion_prompt="mp",
+                duration_sec=4.0,
+            )
+        ],
+        total_duration_sec=4.0,
+    )
+    niche = Niche(
+        id=uuid4(),
+        user_id="u",
+        title="espresso",
+        description="home espresso",
+        target_audience="baristas",
+        visual_style="warm",
+        voice="onyx",
+        target_duration_sec=4,
+        scene_count=1,
+        posting_windows=[PostingWindow(hour=9, minute=0, tz="UTC")],
+        platforms=["reels"],
+        daily_spend_cap_usd=Decimal("5"),
+    )
+    report = await run_qa(script, "Stop wasting shots. Dial espresso.", 4.0, niche=niche)
+    assert isinstance(report, QAReport)
+    assert report.passed is True
+
+
 async def test_score_article_skips_llm_when_jev_dark(monkeypatch):
     from marketer.articles import llm as article_llm
     from marketer.config import settings

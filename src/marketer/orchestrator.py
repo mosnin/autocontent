@@ -108,7 +108,6 @@ async def run_qa(
     niche: Niche,
     spend: SpendContext | None = None,
 ) -> QAReport:
-    agent = build_qa_agent()
     scenes = getattr(script, "scenes", None) or []
     payload = {
         "hook": (scenes[0].narration if scenes else ""),
@@ -134,8 +133,9 @@ async def run_qa(
 
             if isinstance(exc, SpendCapExceeded):
                 raise
-    result = await run_metered(agent, json.dumps(payload), spend=spend)
-    return result.final_output_as(QAReport)
+    from .agents.qa import heuristic_qa_report
+
+    return heuristic_qa_report(payload)
 
 
 def all_agents() -> list[Agent]:

@@ -10,7 +10,7 @@ from uuid import UUID
 
 import os
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
@@ -18,8 +18,10 @@ from marketer.articles.models import Article, ArticleStatus
 from marketer.repos import articles as articles_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_SOCIAL_LIMIT = "20/minute"
 
 
 class ArticleEnqueue(BaseModel):
@@ -92,11 +94,15 @@ class SocialRepurposeBody(BaseModel):
 
 
 @router.post("/{article_id}/social")
+@limiter.limit(_SOCIAL_LIMIT)
 async def repurpose_to_social(
-    article_id: UUID, body: SocialRepurposeBody, ctx: AuthCtx = CurrentUser
+    request: Request,
+    article_id: UUID,
+    body: SocialRepurposeBody,
+    ctx: AuthCtx = CurrentUser,
 ) -> dict:
-    """Repurpose a finished article into platform-native social posts. One
-    metered LLM call (charged to the article's niche daily cap). The article
+    """Repurpose a finished article into platform posts extracted from the
+    article. No writer call — snippets cannot invent facts. The article
     must be done and have content."""
     from marketer.articles import llm
     from marketer.articles.models import ArticleStatus

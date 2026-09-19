@@ -173,7 +173,18 @@ async def jev_ask_endpoint(
     request: Request, body: AskBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
     _require_available()
-    result = await _run_decision(jev_ask(body.state, _coerce_questions(body.questions)))
+    spend = None
+    try:
+        from marketer.services.spend_context import default_context
+
+        spend = await default_context(
+            user_id=ctx.user_id, niche_id=None, job_id=None
+        )
+    except Exception as exc:  # noqa: BLE001 — ledger must never block a judge
+        log.warning("jev.ask.spend_context_failed", extra={"error": str(exc)})
+    result = await _run_decision(
+        jev_ask(body.state, _coerce_questions(body.questions), spend=spend)
+    )
     return result.as_serializable()
 
 

@@ -707,3 +707,17 @@ obvious abuse windows on the HTTP judges:
 | `heuristic_quality` when Jev is dark | Article QA is classification. A dark harness no longer spends 2–8s on an editorial LLM that invents scores |
 
 Dark-path article QA uses word count, keyword density, sentence length, and dash counts — the same numbers the old LLM was given. Jev still scores when the key is live. Citation-verifier and the fact lock stay in front of publish either way.
+
+---
+
+## 18. Loop — dark-path video QA, extracted social, metered `/ask`
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `heuristic_qa_report` when Jev is dark | Video QA hard floors (generic hook, duration drift, empty captions, niche tokens) are classification. A dark harness no longer spends a chat completion inventing rubric numbers |
+| Social snippets extracted from the article | Jev cannot write captions. An LLM here invented hooks. Templates cannot hallucinate a stat the article does not have |
+| Dead article helpers (`summarize_serp`, outline/metadata/schema/interlink/hero) delegate to fastpath | A leftover caller cannot re-introduce a 2–8s classification LLM |
+| `POST /jev/ask` logs spend (fail-open, `niche_id` null) | Stolen token / noisy UI pays the ledger and prepaid credits, not just the 40/min cap |
+| Article `/social` 20/min | Extracted snippets are cheap; the bound still stops a tight loop |
+
+Jev still judges video when the key is live. Social copy is now an extract — worse poetry, zero invented facts, zero writer spend.
