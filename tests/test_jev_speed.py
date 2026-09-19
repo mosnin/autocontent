@@ -699,6 +699,54 @@ async def test_run_visual_director_uses_qwen_when_openrouter_on(monkeypatch):
     assert captured["sku"] == "llm:qwen/qwen3-32b"
 
 
+async def test_run_ideation_uses_qwen_when_openrouter_on(monkeypatch):
+    from marketer.agents import ideation as ideation_mod
+    from marketer.config import settings
+    from marketer.models import Idea
+    from marketer.models.creative_brief import CreativeBrief, HookBrief
+    from marketer.services import openrouter
+
+    captured: dict = {}
+
+    class _Result:
+        def final_output_as(self, cls):
+            return Idea(
+                topic="t", angle="a", hook="h",
+                target_audience="x", why_it_works="y",
+            )
+
+    async def fake_metered(agent, prompt, spend=None, **kwargs):
+        captured["sku"] = kwargs.get("sku")
+        captured["provider"] = kwargs.get("provider")
+        return _Result()
+
+    monkeypatch.setattr(settings, "ideation_candidates", 1)
+    monkeypatch.setattr(settings, "openrouter_api_key", "sk-or-test")
+    monkeypatch.setattr(settings, "qwen_default_model", "qwen/qwen3-32b")
+    monkeypatch.setattr(settings, "agent_model", "gpt-5.4-mini")
+    monkeypatch.setattr(ideation_mod, "run_metered", fake_metered)
+    brief = CreativeBrief(
+        hooks=HookBrief(preferred_mechanisms=["curiosity_gap"])
+    )
+    idea = await ideation_mod.run_ideation("espresso", brief=brief)
+    assert idea.topic == "t"
+    assert captured["provider"] == openrouter.PROVIDER
+    assert captured["sku"] == "llm:qwen/qwen3-32b"
+
+
+def test_generation_metered_empty_when_openrouter_off(monkeypatch):
+    from marketer.config import settings
+    from marketer.services import openrouter
+
+    class _Agent:
+        model = "gpt-5.4-mini"
+
+    monkeypatch.setattr(settings, "openrouter_api_key", "")
+    agent = _Agent()
+    assert openrouter.generation_metered(agent, "qwen/qwen3-32b") == {}
+    assert agent.model == "gpt-5.4-mini"
+
+
 def test_scriptwriter_forbids_invented_stats():
     from marketer.agents.scriptwriter import SCRIPTWRITER_INSTRUCTIONS
 

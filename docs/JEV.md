@@ -1001,3 +1001,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Ads `DecideBody.decision` is `Literal["approved", "rejected"]` | Invalid decisions 422 at the validator, not a hand-rolled string check |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 42. Loop — one OpenRouter hop for every leftover writer
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `openrouter.generation_metered` shared by scriptwriter, Visual Director, and ideation | Three copies of Qwen-first routing could drift. One helper, same fail-open (off / unknown / stock model → no change) |
+| n==1 ideation writer (operator hook lens) is Qwen-first | Last stock-`agent_model` writer on the operator-lens path. Templates still win n≥2 and n==1 without a lens |
+| Dead 3-way LLM tournament deleted | Unreachable on the stock template set (`limit=max(n,4)`). A future empty-candidate change cannot buy N chat completions + a judge |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

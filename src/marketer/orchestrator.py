@@ -27,7 +27,6 @@ from .agents.ideation import run_ideation as run_ideation  # re-exported for pip
 from .agents.metered import run_metered
 from .agents.scriptwriter import should_template_script, template_script
 from .agents.visual_director import should_template_visuals, template_visual_director
-from .config import settings
 from .models import Idea, Niche, Script
 from .models.creative_brief import CreativeBrief
 from .agents.qa import QAReport
@@ -63,25 +62,16 @@ async def run_scriptwriter(
         for line in brief.scriptwriter_lines():
             prompt += f"\n{line}"
 
-    # Per-niche writer model via OpenRouter. Unknown ids or a missing key
-    # fall back to the stock agent (never fail a job over a dropdown).
-    # When the niche left the dropdown empty, the Jev harness still
-    # prefers Qwen (standard tier) so generation is Qwen-first.
-    metered_kwargs: dict = {}
+    # Per-niche writer via OpenRouter. Unknown ids or a missing key
+    # keep the stock agent. Empty dropdown still prefers Qwen.
     from .services import openrouter
-    from .jev.harness import default_generation_model
 
-    chosen = script_model or default_generation_model()
-    or_model = openrouter.get_model(chosen)
-    if or_model is not None and openrouter.enabled() and chosen != settings.agent_model:
-        agent.model = openrouter.agents_model(chosen)
-        metered_kwargs = {
-            "provider": openrouter.PROVIDER,
-            "sku": f"llm:{chosen}",
-            "cost_fn": lambda i, o: openrouter.llm_cost(or_model, i, o),
-        }
-
-    result = await run_metered(agent, prompt, spend=spend, **metered_kwargs)
+    result = await run_metered(
+        agent,
+        prompt,
+        spend=spend,
+        **openrouter.generation_metered(agent, script_model),
+    )
     return result.final_output_as(Script)
 
 
@@ -116,22 +106,13 @@ async def run_visual_director(
     # Same Qwen-first hop as scriptwriter when the operator actually
     # bought Visual Director (design kit / visual brief). Templates
     # already skipped this function.
-    metered_kwargs: dict = {}
     from .services import openrouter
-    from .jev.harness import default_generation_model
-
-    chosen = default_generation_model()
-    or_model = openrouter.get_model(chosen)
-    if or_model is not None and openrouter.enabled() and chosen != settings.agent_model:
-        agent.model = openrouter.agents_model(chosen)
-        metered_kwargs = {
-            "provider": openrouter.PROVIDER,
-            "sku": f"llm:{chosen}",
-            "cost_fn": lambda i, o: openrouter.llm_cost(or_model, i, o),
-        }
 
     result = await run_metered(
-        agent, json.dumps(payload), spend=spend, **metered_kwargs
+        agent,
+        json.dumps(payload),
+        spend=spend,
+        **openrouter.generation_metered(agent),
     )
     return result.final_output_as(Script)
 

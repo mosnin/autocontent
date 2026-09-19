@@ -102,7 +102,35 @@ def enabled() -> bool:
 
 
 def get_model(model_id: str) -> ScriptModel | None:
+    if not isinstance(model_id, str):
+        raise TypeError("model_id must be a string")
     return _BY_ID.get(model_id)
+
+
+def generation_metered(agent, model_id: str = "") -> dict:
+    """Route an Agents-SDK writer through OpenRouter/Qwen when live.
+
+    Mutates ``agent.model`` and returns kwargs for ``run_metered``.
+    Off / unknown id / stock ``agent_model`` → empty dict (no change).
+    Scriptwriter, Visual Director, and the leftover ideation writer
+    share this so a missing key cannot silently split fleets.
+    """
+    if agent is None:
+        raise TypeError("agent is required")
+    if not isinstance(model_id, str):
+        raise TypeError("model_id must be a string")
+    from ..jev.harness import default_generation_model
+
+    chosen = model_id.strip() or default_generation_model()
+    or_model = get_model(chosen)
+    if or_model is None or not enabled() or chosen == settings.agent_model:
+        return {}
+    agent.model = agents_model(chosen)
+    return {
+        "provider": PROVIDER,
+        "sku": f"llm:{chosen}",
+        "cost_fn": lambda i, o, m=or_model: llm_cost(m, i, o),
+    }
 
 
 def llm_cost(model: ScriptModel, input_tokens: int, output_tokens: int) -> Decimal:
