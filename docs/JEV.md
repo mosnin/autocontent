@@ -977,3 +977,14 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | users/me + x402 config + connect status GET 30/min | Remaining unbounded identity / payment-discovery dumps. Mutations stay 5–10/min |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 40. Loop — grounded leftover article H2s, skip auth upsert on every request
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `question_section_from_research` for SERP `questionsAnswered` H2s (outline strips `?`) | Leftover writer hop on searcher questions. Stitches overlapping highlights, else the first two. Playbook headings stay on their templates |
+| `grounded_section_from_research` last-resort leftover H2 | Common headings without 2-token overlap still hit the writer. ≥2 highlights stitch verbatim; thin SERP still buys prose. No invented facts |
+| `users.ensure` get-first; Clerk JWT + `GET /me` stop writing every request | Returning users were an `INSERT … ON CONFLICT` on every authenticated call. First login and email rotation still upsert. PAT path was already a SELECT |
+| `_validate_kit_refs` gathers both kit lookups | Niche create/update waited two sequential kit gets. One RTT when both ids are set |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

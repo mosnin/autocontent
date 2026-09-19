@@ -559,6 +559,40 @@ def test_faq_section_and_publishable_metadata():
     assert fastpath.serp_heading_section_from_research(
         "espresso in practice 1", rich
     ) is None
+    # Outline strips trailing ?; questionsAnswered still matches the H2.
+    question = fastpath.question_section_from_research(
+        "What grind size should I use", grind
+    )
+    assert question and question.startswith("## What grind size should I use")
+    assert "grind" in question.casefold()
+    assert fastpath.question_section_from_research(
+        "What grind size should I use?", grind
+    )
+    assert fastpath.question_section_from_research("FAQ", grind) is None
+    leftover = SerpAnalysis(
+        commonHeadings=["Distribution technique"],
+        topResults=[
+            SerpResult(
+                title="WDT",
+                url="https://c.example",
+                domain="c.example",
+                highlights=[
+                    "WDT unclumps grounds before tamping.",
+                    "Even beds extract more evenly.",
+                    "A needle tool is enough.",
+                ],
+            )
+        ],
+    )
+    grounded = fastpath.grounded_section_from_research(
+        "Distribution technique", leftover
+    )
+    assert grounded and grounded.startswith("## Distribution technique")
+    assert "WDT" in grounded or "extract" in grounded.casefold()
+    assert fastpath.grounded_section_from_research("FAQ", leftover) is None
+    assert fastpath.grounded_section_from_research(
+        "Distribution technique", serp
+    ) is None
     assert fastpath.metadata_is_publishable(
         "Dial in espresso at home: a practical guide",
         "A practical guide to espresso for home baristas who want sweeter, more consistent shots every morning.",

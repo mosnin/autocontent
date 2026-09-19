@@ -104,10 +104,14 @@ async def test_non_pat_token_falls_through_to_clerk(monkeypatch):
 
     called: dict = {}
 
+    async def _get(_uid: str):
+        return None
+
     async def _upsert(uid: str, email: str):
         called["upsert"] = (uid, email)
         return User(id=uid, email=email)
 
+    monkeypatch.setattr(users_repo, "get", _get)
     monkeypatch.setattr(users_repo, "upsert", _upsert)
 
     def _signing_key(_token):

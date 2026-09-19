@@ -161,7 +161,7 @@ async def _resolve_clerk_jwt(token: str, request: Request) -> AuthCtx:
         _consume_failure_token(request)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing sub claim")
 
-    user = await users_repo.upsert(user_id, email)
+    user = await users_repo.ensure(user_id, email)
     _reject_if_suspended(user)
     return AuthCtx(user_id=user_id, email=email, role=user.role)
 

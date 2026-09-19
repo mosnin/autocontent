@@ -21,7 +21,13 @@ _READ_LIMIT = "30/minute"
 @limiter.limit(_READ_LIMIT)
 async def me(request: Request, ctx: AuthCtx = CurrentUser) -> User:
     from marketer.repos import users as users_repo
-    return await users_repo.upsert(ctx.user_id, ctx.email)
+
+    # Auth already ensured the row. A write here is only a race fallback
+    # (erased mid-request); the hot path is a SELECT.
+    user = await users_repo.get(ctx.user_id)
+    if user is None:
+        return await users_repo.upsert(ctx.user_id, ctx.email)
+    return user
 
 
 @router.get("/me/export")

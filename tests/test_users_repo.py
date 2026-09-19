@@ -155,3 +155,67 @@ async def test_update_settings_no_args_returns_current(monkeypatch):
     user = await users_repo.update_settings("user_test")
 
     assert user.global_daily_cap_usd == Decimal("3.00")
+
+
+# ---------------------------------------------------------------------------
+# ensure() tests
+# ---------------------------------------------------------------------------
+
+async def test_ensure_skips_write_when_email_unchanged(fake_pool):
+    """Returning users are a SELECT. No insert on the hot path."""
+    import marketer.repos.users as users_repo
+
+    pool = fake_pool(_make_user_row(email="t@t.com"))
+    user = await users_repo.ensure("user_test", "t@t.com")
+    assert user is not None
+    assert user.email == "t@t.com"
+    assert "insert into users" not in pool.last_query.lower()
+    assert "select" in pool.last_query.lower()
+
+
+async def test_ensure_writes_when_missing(monkeypatch):
+    import marketer.repos.users as users_repo
+
+    called: dict = {}
+
+    async def _get(_uid: str):
+        return None
+
+    async def _upsert(uid: str, email: str):
+        called["upsert"] = (uid, email)
+        return User(id=uid, email=email)
+
+    monkeypatch.setattr(users_repo, "get", _get)
+    monkeypatch.setattr(users_repo, "upsert", _upsert)
+    user = await users_repo.ensure("user_new", "n@n.com")
+    assert called["upsert"] == ("user_new", "n@n.com")
+    assert user.email == "n@n.com"
+
+
+async def test_ensure_writes_when_email_changed(monkeypatch):
+    import marketer.repos.users as users_repo
+
+    existing = User(id="user_test", email="old@t.com")
+    called: dict = {}
+
+    async def _get(_uid: str):
+        return existing
+
+    async def _upsert(uid: str, email: str):
+        called["upsert"] = (uid, email)
+        return User(id=uid, email=email)
+
+    monkeypatch.setattr(users_repo, "get", _get)
+    monkeypatch.setattr(users_repo, "upsert", _upsert)
+    user = await users_repo.ensure("user_test", "new@t.com")
+    assert called["upsert"] == ("user_test", "new@t.com")
+    assert user.email == "new@t.com"
+
+
+async def test_ensure_rejects_empty_user_id():
+    import marketer.repos.users as users_repo
+
+    with pytest.raises(ValueError, match="user_id"):
+        await users_repo.ensure("", "a@b.c")
+    with pytest.raises(TypeError, match="email"):
+        await users_repo.ensure("user_test", None)  # type: ignore[arg-type]

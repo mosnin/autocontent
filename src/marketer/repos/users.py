@@ -18,6 +18,10 @@ _COLS = (
 async def upsert(user_id: str, email: str) -> User:
     """Idempotent insert keyed on Clerk user_id. Called from auth middleware
     on first request so the FK from niches/jobs always resolves."""
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
+    if not isinstance(email, str):
+        raise TypeError("email must be a string")
     pool = await get_pool()
     row = await pool.fetchrow(
         f"""
@@ -36,12 +40,33 @@ async def upsert(user_id: str, email: str) -> User:
 
 
 async def get(user_id: str) -> User | None:
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
     pool = await get_pool()
     row = await pool.fetchrow(
         f"select {_COLS} from users where id = $1",
         user_id,
     )
     return User(**dict(row)) if row else None
+
+
+async def ensure(user_id: str, email: str) -> User:
+    """Get-first. Write only when the row is missing or the email changed.
+
+    Clerk JWT auth used to upsert on every request. Returning users are a
+    SELECT; first login and email rotation still write.
+    """
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
+    if not isinstance(email, str):
+        raise TypeError("email must be a string")
+    existing = await get(user_id)
+    if existing is None:
+        return await upsert(user_id, email)
+    incoming = email.strip()
+    if incoming and incoming != existing.email:
+        return await upsert(user_id, incoming)
+    return existing
 
 
 async def set_ayrshare_profile_key(user_id: str, key: str) -> None:

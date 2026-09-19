@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import re
 from decimal import Decimal
 from typing import Literal
@@ -182,13 +183,25 @@ async def _validate_kit_refs(
     user_id: str, design_kit_id, writing_kit_id
 ) -> None:
     """Reject wrong-kind or foreign kit ids loudly — resolve() would
-    otherwise silently substitute the default kit."""
+    otherwise silently substitute the default kit.
+
+    Both kit lookups fan out; create/update wait one RTT, not two.
+    """
     from marketer.repos import kits as kits_repo
 
-    for kit_id, kind in ((design_kit_id, "design"), (writing_kit_id, "writing")):
-        if kit_id is None:
-            continue
-        kit = await kits_repo.get(kit_id, user_id=user_id)
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
+    pairs = [
+        (kit_id, kind)
+        for kit_id, kind in ((design_kit_id, "design"), (writing_kit_id, "writing"))
+        if kit_id is not None
+    ]
+    if not pairs:
+        return
+    kits = await asyncio.gather(
+        *(kits_repo.get(kit_id, user_id=user_id) for kit_id, _ in pairs)
+    )
+    for kit, (_, kind) in zip(kits, pairs, strict=True):
         if kit is None or kit.kind != kind:
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,

@@ -3,7 +3,8 @@
 SERP distillation, JSON-LD, internal links, topic candidates, and hero
 prompts used to each be a chat completion. Those are classification /
 extraction / schema jobs. Jev picks among topic templates; everything
-else is Python. Section prose still goes through the writer.
+else is Python. Playbook and leftover SERP H2s stitch highlights; the
+writer only runs when research is too thin to ground a section.
 """
 from __future__ import annotations
 
@@ -526,6 +527,16 @@ def _playbook_heading(key: str) -> bool:
     return "mistake" in key
 
 
+def _is_searcher_question(heading: str, research: SerpAnalysis | None) -> bool:
+    key = (heading or "").strip().casefold().rstrip("?")
+    if not key or _playbook_heading(key):
+        return False
+    if (heading or "").strip().endswith("?"):
+        return True
+    questions = (research.questionsAnswered if research is not None else []) or []
+    return any(q.strip().rstrip("?").casefold() == key for q in questions)
+
+
 def serp_heading_section_from_research(
     heading: str, research: SerpAnalysis | None
 ) -> str | None:
@@ -564,6 +575,47 @@ def practice_section_from_research(
         return None
     title = (heading or "In practice").strip()
     body = "\n\n".join(h[:280] for h in highlights[:4])
+    return f"## {title}\n\n{body}\n"
+
+
+def question_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """A single SERP question H2 from overlapping highlights. No invented answer."""
+    if not _is_searcher_question(heading, research):
+        return None
+    highlights = _research_highlights(research)
+    if not highlights:
+        return None
+    h_tokens = tokens(heading)
+    matched = [h for h in highlights if h_tokens and tokens(h) & h_tokens]
+    answers = matched[:3] if matched else highlights[:2]
+    if not answers:
+        return None
+    title = (heading or "").strip()
+    body = "\n\n".join(h[:280] for h in answers)
+    return f"## {title}\n\n{body}\n"
+
+
+def grounded_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """Last-resort leftover H2 from SERP highlights. No invented prose.
+
+    Playbook templates and token-overlapping SERP stitch win first.
+    Thin SERP (fewer than 2 highlights) still buys the writer.
+    """
+    key = (heading or "").strip().casefold()
+    if not key or _playbook_heading(key):
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 2:
+        return None
+    h_tokens = tokens(heading)
+    matched = [h for h in highlights if h_tokens and tokens(h) & h_tokens]
+    body_src = matched[:4] if len(matched) >= 2 else highlights[:3]
+    title = (heading or "").strip()
+    body = "\n\n".join(h[:280] for h in body_src)
     return f"## {title}\n\n{body}\n"
 
 
