@@ -64,7 +64,7 @@ async def create_session(
         resp = await client.post(REALTIME_SESSIONS_URL, json=body, headers=headers)
         if resp.status_code >= 400:
             raise VoiceModeError(
-                f"OpenAI Realtime session failed ({resp.status_code}): {resp.text}"
+                f"OpenAI Realtime session failed ({resp.status_code})"
             )
         data = resp.json()
     if not isinstance(data, dict):

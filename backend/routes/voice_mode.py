@@ -48,7 +48,8 @@ async def voice_session(ctx: AuthCtx = CurrentUser) -> VoiceSession:
         data = await openai_realtime.create_session()
     except Exception as exc:
         raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+            status.HTTP_502_BAD_GATEWAY,
+            detail="voice session failed",
         ) from exc
     secret = ""
     expires_at = None

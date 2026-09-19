@@ -374,3 +374,163 @@ mock `pending_work_count` so they do not need live Postgres.
    (`MARKETER_JEV_ENABLED=false`) — `AdSpendGuard` is independent.
 6. Optional: `marketer jev knowledge` after a route that produced a
    durable rule; the next video/article run should see the prompt block.
+
+OpenAI keys: pydantic settings use the `MARKETER_` prefix, so voice and
+the Agents SDK read `MARKETER_OPENAI_API_KEY`. The `.env.example` line
+`OPENAI_API_KEY=` is for the official SDK default; set **both** if you
+want voice + DALL-E/TTS/Whisper through marketer settings. TypeSafe
+accepts either `MARKETER_TYPESAFE_API_KEY` or `TYPESAFE_API_KEY`.
+
+---
+
+## 10. Debug sweep (install correctness)
+
+Re-run on this tree (no TypeSafe/OpenRouter keys in the cloud agent):
+
+```
+python3 -c "from marketer.jev import ask, available, route_model, auto_mode, next_action, publish_gate, should_spawn_repurpose; from marketer.company_os import route_workspace, extract_constraints, capture_from_state, prompt_block; from marketer.symbolic import assess; from marketer.symbolic.jev_code import classify_request; from marketer.repos import company_knowledge; from backend.routes import jev, voice_mode; print('ok', available())"
+```
+
+Expected without keys: `ok False`. That is correct — the harness is
+installed and dark.
+
+Registered HTTP paths (from `create_app().openapi()`):
+`/api/v1/jev/status`, `/ask`, `/route`, `/knowledge`, `/next-action`,
+`/auto-mode`, `/screen`, `/curate`, `/ads/judge`, `/citations/verify`,
+`/symbolic/foreman`, `/symbolic/code`, plus `/api/v1/voice/status` and
+`/session`.
+
+Wiring checklist (each pack has a production caller):
+
+| Pack | Caller exists |
+| --- | --- |
+| `judge_ideas` | `agents/ideation.py` |
+| `judge_video` | `orchestrator.py` |
+| `judge_article` | `articles/llm.py` |
+| `default_generation_model` | `orchestrator.py` |
+| `after_content_qa` + `repurpose_hint` | `pipeline.py` |
+| `publish_gate` | `pipeline._schedule_stage`, `image_posts.schedule_image_post` |
+| `campaign_tick_gate` | `campaign_runner.py`, `modal_app.nightly_batch` |
+| `filter_research_pages` / `source_audit_notes` / `seo_metadata_notes` | `articles/pipeline.py` |
+| `should_index_asset` | `media_archive.py` |
+| `enrich_failure_rows` | `backend/routes/failures.py` |
+| `judge_ad_action` | `ad_actions_exec.py` (after AdSpendGuard) |
+| `prompt_block` | `_load_brand_voice`, article `_run_inner` |
+| `capture_from_state` | `POST /jev/route` |
+| `should_spawn_repurpose` | `pipeline.py` after QA |
+| FastAPI router | `backend/main.py` prefix `/api/v1/jev` |
+| Voice router | `/api/v1/voice` |
+| Migration 0026 | `db/migrations/0026_company_knowledge.sql` |
+
+Focused tests (fresh run on this revision):
+
+- `tests/test_jev.py` — primitives, gates, packs, loops, knowledge, HTTP
+- `tests/test_security_web_hardening.py` — 401s including Jev/voice
+- `tests/test_mcp_server.py` — `jev_status` / `jev_route` / `jev_knowledge`
+- `tests/test_preflight.py` — key reporting
+- `tests/test_campaign_runner.py` — HOLD path
+
+---
+
+## 11. Security sweep
+
+Reviewed every Jev/voice HTTP handler, the ads overlay, knowledge
+persistence, and voice session minting.
+
+**Tenant isolation**
+
+- Knowledge list/insert always uses `ctx.user_id` / pipeline `user_id`.
+- No cross-user query exists on `company_knowledge`.
+- Repurpose spawn uses `job.user_id` + `niche.id` already loaded for
+  that job.
+
+**Auth**
+
+- Every `/api/v1/jev/*` and `/api/v1/voice/*` handler takes
+  `CurrentUser`. Unauthenticated → 401 (covered in
+  `test_security_web_hardening`).
+
+**Money**
+
+- `POST /jev/ads/judge` only returns a verdict. It does not call Meta /
+  Google / Composio.
+- `judge_ad_action` runs *after* `AdSpendGuard`. `deny` raises
+  `AdSpendDenied`. `approve` forces human review. `allow` cannot undo a
+  deterministic deny. Overlay exceptions other than `AdSpendDenied`
+  are swallowed so a Jev outage cannot open the money path.
+
+**Abuse bounds (HTTP)**
+
+- State JSON ≤ 24k characters on ask / route / next-action / screen /
+  curate / ads / foreman / auto-mode.
+- Ask fan-out ≤ 32 questions; next-action targets ≤ 32.
+- Auto-mode `tool` ≤ 64 chars (was an unbounded raw `dict`).
+- Citation claim/source length-capped.
+- Symbolic `diff` / `log_text` ≤ 24k; comments ≤ 32; candidates ≤ 16.
+- Knowledge span ≤ 800 chars; kind allow-list.
+
+**Error leakage**
+
+- Decision 502s return `"decision backend failed"` and log the real
+  error. They no longer echo TypeSafe/OpenRouter exception text.
+- Voice 502s return `"voice session failed"`. The OpenAI error body is
+  not forwarded to the browser.
+
+**Voice**
+
+- Session mint requires auth + OpenAI key.
+- Response `raw` is `{id, object}` only. The ephemeral
+  `client_secret` is the intended WebRTC credential.
+
+**Prompt injection**
+
+- Knowledge spans are the operator's own text, later injected into
+  *their* writer prompts. Another tenant cannot write those rows.
+- Jev never generates the span.
+
+**Residual (accepted)**
+
+- REST `/jev/ask` is not niche-metered (auth + size caps + TypeSafe
+  429s). Pipeline calls *do* take a `SpendContext`.
+- Nightly HOLD fail-opens so a dark harness cannot freeze publishing.
+
+---
+
+## 12. File inventory (everything this work added)
+
+| Path | Role |
+| --- | --- |
+| `src/marketer/jev/primitives.py` | Noul / Choice / Score types |
+| `src/marketer/jev/client.py` | TypeSafe HTTP client |
+| `src/marketer/jev/fallback.py` | Qwen System One wrapper |
+| `src/marketer/jev/ask.py` | Jev-then-Qwen `ask()` |
+| `src/marketer/jev/policy.py` | confidence gates, composite |
+| `src/marketer/jev/harness.py` | model router, Auto Mode, next_action |
+| `src/marketer/jev/router.py` | intent kind / skill / urgency |
+| `src/marketer/jev/decisions.py` | domain packs |
+| `src/marketer/jev/loops.py` | pipeline adapters |
+| `src/marketer/symbolic/foreman.py` | supervision policy |
+| `src/marketer/symbolic/jev_code.py` | code triage workflows |
+| `src/marketer/company_os/opencompany.py` | company surface routing |
+| `src/marketer/company_os/knowledge.py` | extract / persist / inject |
+| `src/marketer/repos/company_knowledge.py` | Postgres brain |
+| `src/marketer/services/openai_realtime.py` | voice session mint |
+| `backend/routes/jev.py` | HTTP judges |
+| `backend/routes/voice_mode.py` | voice session |
+| `web/app/(app)/decisions/*` | Decision harness UI |
+| `web/app/(app)/voice/*` | Voice UI |
+| `web/lib/jev-types.ts` | shared types |
+| `db/migrations/0026_company_knowledge.sql` | brain table |
+| `docs/JEV.md` | this document |
+| `tests/test_jev.py` | harness unit + HTTP tests |
+
+Call-site patches (existing files): `pipeline.py`, `articles/pipeline.py`,
+`articles/llm.py`, `orchestrator.py`, `agents/ideation.py`,
+`ad_actions_exec.py`, `campaign_runner.py`, `image_posts.py`,
+`media_archive.py`, `modal_app.py`, `failures.py`, `sdk.py`, `cli.py`,
+`mcp_server.py`, `preflight.py`, `config.py`, `.env.example`, `README.md`.
+
+Nothing from `typesafe-sdk`, `thruwire/foreman`, `devagrawal09/jev-code`,
+or `useopencompany/opencompany` is copied. Those repos supplied the
+*contracts* (typed questions, Foreman evidence loop, company-OS
+surfaces). Marketer owns the policy and the product wiring.

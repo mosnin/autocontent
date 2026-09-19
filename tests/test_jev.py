@@ -324,6 +324,44 @@ def test_jev_status_and_voice_status_routes(monkeypatch):
     assert "ready" in voice.json()
 
 
+def test_jev_auto_mode_rejects_oversized_state(monkeypatch):
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "typesafe_api_key", "sk-test")
+    client = _jev_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jev/auto-mode",
+        headers={"Authorization": "Bearer mkt_x"},
+        json={"tool": "bash", "state": {"blob": "x" * 30_000}},
+    )
+    assert resp.status_code == 413
+
+
+def test_jev_502_does_not_echo_backend(monkeypatch):
+    from backend.routes import jev as jev_routes
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "typesafe_api_key", "sk-test")
+    monkeypatch.setattr(settings, "openrouter_api_key", "or-test")
+
+    async def boom(state, questions, *, spend=None, prefer="jev"):
+        raise RuntimeError("secret upstream token abc123")
+
+    monkeypatch.setattr(jev_routes, "jev_ask", boom)
+    client = _jev_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jev/ask",
+        headers={"Authorization": "Bearer mkt_x"},
+        json={
+            "state": "hello",
+            "questions": {"urgent": {"type": "noul", "instructions": "urgent?"}},
+        },
+    )
+    assert resp.status_code == 502
+    assert "abc123" not in resp.text
+    assert resp.json()["detail"] == "decision backend failed"
+
+
 def test_jev_ask_rejects_oversized_state(monkeypatch):
     from marketer.config import settings
 

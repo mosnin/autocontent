@@ -80,7 +80,11 @@ async def _run_decision(coro: Awaitable[T]) -> T:
     except DecisionUnavailable as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except Exception as exc:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+        log.warning("jev.route.backend_error", extra={"error": str(exc)})
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            detail="decision backend failed",
+        ) from exc
 
 
 class JevStatus(BaseModel):
@@ -237,14 +241,20 @@ async def jev_next_action(body: NextActionBody, ctx: AuthCtx = CurrentUser) -> d
     }
 
 
+class AutoModeBody(BaseModel):
+    tool: str = Field(default="unknown", max_length=64)
+    state: Any = None
+
+    @field_validator("state")
+    @classmethod
+    def _state_bound(cls, value: Any) -> Any:
+        return _bounded_state(value if value is not None else {})
+
+
 @router.post("/auto-mode")
-async def jev_auto_mode(
-    body: dict[str, Any], ctx: AuthCtx = CurrentUser
-) -> dict:
+async def jev_auto_mode(body: AutoModeBody, ctx: AuthCtx = CurrentUser) -> dict:
     _require_available()
-    tool = str(body.get("tool") or "unknown")
-    state = body.get("state") or {}
-    decision = await _run_decision(auto_mode(state, tool=tool))
+    decision = await _run_decision(auto_mode(body.state or {}, tool=body.tool))
     return decision.as_dict()
 
 
@@ -286,8 +296,8 @@ async def jev_ads_judge(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
 
 
 class CitationBody(BaseModel):
-    claim: str
-    source: str
+    claim: str = Field(max_length=4_000)
+    source: str = Field(max_length=8_000)
 
 
 @router.post("/citations/verify")
@@ -303,15 +313,15 @@ async def jev_foreman(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
 
 
 class SymbolicBody(BaseModel):
-    workflow: str | None = None
-    request: str = ""
-    task: str = ""
-    diff: str = ""
-    rules: str = ""
-    acceptance: str = ""
-    log_text: str = ""
-    comments: list[str] = Field(default_factory=list)
-    candidates: list[dict[str, str]] = Field(default_factory=list)
+    workflow: str | None = Field(default=None, max_length=40)
+    request: str = Field(default="", max_length=8_000)
+    task: str = Field(default="", max_length=8_000)
+    diff: str = Field(default="", max_length=_MAX_STATE_CHARS)
+    rules: str = Field(default="", max_length=8_000)
+    acceptance: str = Field(default="", max_length=4_000)
+    log_text: str = Field(default="", max_length=_MAX_STATE_CHARS)
+    comments: list[str] = Field(default_factory=list, max_length=32)
+    candidates: list[dict[str, str]] = Field(default_factory=list, max_length=16)
 
 
 @router.post("/symbolic/code")
