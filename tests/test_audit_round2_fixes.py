@@ -404,10 +404,16 @@ async def test_schedule_image_post_failure_marks_failed(monkeypatch):
         state["failed"] = error
         return {"status": "failed", "error": error}
 
+    from marketer.models import User
+
+    async def fake_user_get(user_id):
+        return User(id=user_id, email="x@y.z", ayrshare_profile_key="pk-audit")
+
     monkeypatch.setattr(repo, "get", fake_get)
     monkeypatch.setattr(repo, "set_status", fake_set_status)
     monkeypatch.setattr(repo, "fail", fake_fail)
     monkeypatch.setattr(niches_repo, "get", fake_niche)
+    monkeypatch.setattr(svc.users_repo, "get", fake_user_get)
 
     async def exploding_poster(**kwargs):
         raise RuntimeError("ayrshare 500")

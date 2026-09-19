@@ -40,6 +40,7 @@ from .orchestrator import (
 from .repos import jobs as jobs_repo
 from .repos import niches as niches_repo
 from .repos import spend as spend_repo
+from .repos import users as users_repo
 from .services import email as email_svc
 from .services import media_archive
 from .services import (
@@ -1257,7 +1258,9 @@ async def _schedule_stage(
         return job
     with _stage(JobStatus.scheduling.value):
         job.status = JobStatus.scheduling
-        await _persist(job)
+        # Persist and the Ayrshare key are independent. Passing the key
+        # skips the leftover users.get inside schedule_post.
+        _, user = await asyncio.gather(_persist(job), users_repo.get(job.user_id))
         when = _next_posting_slot(niche)
         post_id = await scheduler.schedule_post(
             video_path=Path(job.rendered.path),
@@ -1265,7 +1268,7 @@ async def _schedule_stage(
             hashtags=niche.hashtags,
             platform=job.platform,
             scheduled_for=when,
-            profile_key=None,  # resolved inside scheduler from user_id
+            profile_key=user.ayrshare_profile_key if user else None,
             user_id=job.user_id,
         )
         job.scheduled_for = when

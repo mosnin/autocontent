@@ -28,6 +28,7 @@ from ..logging import get_logger
 from ..models import Niche
 from ..repos import image_posts as image_posts_repo
 from ..repos import niches as niches_repo
+from ..repos import users as users_repo
 from ..services import media_archive, openai_images, scheduler
 from ..services.spend_context import SpendContext, default_context
 from ..storage.volume import ensure_layout
@@ -392,7 +393,12 @@ async def schedule_image_post(
                 image_post_id, user_id=user_id, status="awaiting_approval"
             )
 
-        await image_posts_repo.set_status(image_post_id, user_id=user_id, status="scheduling")
+        _, user = await asyncio.gather(
+            image_posts_repo.set_status(
+                image_post_id, user_id=user_id, status="scheduling"
+            ),
+            users_repo.get(user_id),
+        )
         when = datetime.now(UTC)
 
         poster = apply_schedule or scheduler.schedule_image_post
@@ -403,6 +409,7 @@ async def schedule_image_post(
             platform=platform,
             scheduled_for=when,
             user_id=user_id,
+            profile_key=user.ayrshare_profile_key if user else None,
         )
         return await image_posts_repo.complete(
             image_post_id, user_id=user_id, provider_post_id=provider_post_id

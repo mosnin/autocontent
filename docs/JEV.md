@@ -1207,3 +1207,14 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Decision order is unchanged | Niche still wins when both would trip. Missing reader / `cap_usd=None` still skips that check. Abort-event still short-circuits before any read |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 63. Loop — schedule persist gathers the Ayrshare key
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Video `_schedule_stage` gathers `_persist` + `users.get` | Marking scheduling and loading the profile key are independent. `schedule_post(profile_key=None)` used to wait on persist then pay a leftover user read |
+| Image-post schedule gathers `set_status(scheduling)` + `users.get` | Same leftover on the carousel publish path |
+| Missing user still passes `profile_key=None` | Scheduler fail-closes with the existing "complete connect flow" error. Status still lands first conceptually; Ayrshare upload stays after the gather |
+| Fake posters already accept `profile_key` | Existing e2e / lipsync / image-post stubs keep working |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

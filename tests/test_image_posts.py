@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 import pytest
 
 from marketer.agents.carousel import CarouselPlan, CarouselSlide
-from marketer.models import Niche, PostingWindow, Template
+from marketer.models import Niche, PostingWindow, Template, User
 from marketer.services import image_posts as svc
 
 USER = "user_img"
@@ -99,6 +99,11 @@ def env(tmp_path, monkeypatch):
 
     monkeypatch.setattr(svc, "default_context", fake_default_context)
     monkeypatch.setattr(svc, "ensure_layout", lambda p: tmp_path / p)
+
+    async def fake_user_get(user_id):
+        return User(id=user_id, email="x@y.z", ayrshare_profile_key="pk-img")
+
+    monkeypatch.setattr(svc.users_repo, "get", fake_user_get)
 
     async def fake_plan(**kwargs):
         return _plan(3)
@@ -219,6 +224,72 @@ async def test_schedule_reuses_loaded_post_and_niche(env, monkeypatch):
     )
     assert result["status"] == "done"
     assert env["posted"] is not None
+    assert env["posted"]["profile_key"] == "pk-img"
+
+
+async def test_schedule_gathers_status_and_user(env, monkeypatch):
+    """set_status(scheduling) and users.get used to be sequential."""
+    import asyncio
+
+    env["post"] = {
+        **env["post"],
+        "payload": {
+            "caption": "Hook line",
+            "hashtags": ["claude"],
+            "slides": [{"index": 0, "heading": "h0", "path": "/tmp/s0.png"}],
+        },
+    }
+
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    from marketer.repos import image_posts as repo
+
+    async def slow_set_status(*a, **k):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        env["statuses"].append(k["status"])
+        env["post"] = {**env["post"], "status": k["status"]}
+        return env["post"]
+
+    async def slow_user_get(user_id):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return User(id=user_id, email="x@y.z", ayrshare_profile_key="pk-sched")
+
+    monkeypatch.setattr(svc.image_posts_repo, "set_status", slow_set_status)
+    monkeypatch.setattr(repo, "set_status", slow_set_status)
+    monkeypatch.setattr(svc.users_repo, "get", slow_user_get)
+
+    result = await svc.schedule_image_post(
+        user_id=USER,
+        image_post_id=POST_ID,
+        apply_schedule=env["poster"],
+        post=env["post"],
+        niche=env["niche"],
+    )
+    assert result["status"] == "done"
+    assert started == 2
+    assert max_inflight == 2
+    assert env["posted"]["profile_key"] == "pk-sched"
 
 
 async def test_approval_gate_parks_image_post(env):
