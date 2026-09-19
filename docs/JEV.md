@@ -1249,3 +1249,14 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Passed `user` skips the notify read | `_user_or_none` fail-opens so a down users table never fails the row. Opt-out still silences mail |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 67. Wrap-up — ads metrics sync gathers lists and skips leftover gets
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `sync_all_accounts_metrics` gathers every `list_accounts` | The cron waited on one user before asking the next |
+| Active accounts sync in one gather | Independent Composio pulls. Inactive rows still skip |
+| Passed `account=` skips `get_account` | The list already has the row. A mismatch fail-closes |
+| Daily upserts gather after fetch | Campaign+date writes are independent. Idempotent. AdSpendGuard is unchanged |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

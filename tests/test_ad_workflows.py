@@ -8,6 +8,8 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import uuid4
 
+import pytest
+
 from marketer.repos.ads import AdCampaign, AdMetricsDaily
 from marketer.services import ad_workflows
 
@@ -172,3 +174,108 @@ async def test_optimize_kit_failure_still_evaluates(monkeypatch):
     assert out["status"] == "pending_approval"
     # Default +20% on $10 with kit lookup failed-open.
     assert seen == [Decimal("12.00")]
+
+
+def _account(user_id: str = "u1", status: str = "active"):
+    from marketer.repos.ads import AdAccount
+
+    now = datetime.now(timezone.utc)
+    return AdAccount(
+        id=uuid4(),
+        user_id=user_id,
+        platform="meta",
+        status=status,
+        created_at=now,
+        updated_at=now,
+    )
+
+
+async def test_sync_all_gathers_lists_and_skips_get(monkeypatch):
+    """Per-user list then leftover get_account used to be sequential."""
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    a1 = _account("u1")
+    a2 = _account("u2")
+    inactive = _account("u1", status="paused")
+    gets = []
+
+    async def _mark():
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def fake_list(user_id):
+        await _mark()
+        if user_id == "u1":
+            return [a1, inactive]
+        return [a2]
+
+    async def boom_get(account_id, *, user_id):
+        gets.append(account_id)
+        raise AssertionError("listed account must not reload")
+
+    async def fake_fetch(account):
+        return []
+
+    monkeypatch.setattr(ad_workflows.ads_repo, "list_accounts", fake_list)
+    monkeypatch.setattr(ad_workflows.ads_repo, "get_account", boom_get)
+
+    n = await ad_workflows.sync_all_accounts_metrics(
+        user_ids=["u1", "u2"], fetch_fn=fake_fetch
+    )
+    assert n == 0
+    assert started == 2
+    assert max_inflight == 2
+    assert gets == []
+
+
+async def test_sync_account_mismatch_fail_closes():
+    acc = _account("u1")
+    with pytest.raises(ValueError, match="account mismatch"):
+        await ad_workflows.sync_account_metrics(
+            user_id="u1", account_id=uuid4(), account=acc, fetch_fn=lambda a: []
+        )
+
+
+async def test_sync_account_upserts_in_one_gather(monkeypatch):
+    acc = _account("u1")
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    c1, c2 = uuid4(), uuid4()
+
+    async def fake_fetch(account):
+        return [
+            {"campaign_id": str(c1), "date": date.today(), "impressions": 1},
+            {"campaign_id": str(c2), "date": date.today(), "impressions": 2},
+        ]
+
+    async def slow_upsert(**kwargs):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    monkeypatch.setattr(ad_workflows.ads_repo, "upsert_metrics", slow_upsert)
+    n = await ad_workflows.sync_account_metrics(
+        user_id="u1", account_id=acc.id, account=acc, fetch_fn=fake_fetch
+    )
+    assert n == 2
+    assert started == 2
+    assert max_inflight == 2

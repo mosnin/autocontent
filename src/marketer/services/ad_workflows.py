@@ -43,42 +43,77 @@ async def sync_account_metrics(
     user_id: str,
     account_id: UUID,
     fetch_fn: MetricsFetcher | None = None,
+    account: AdAccount | None = None,
 ) -> int:
     """Pull and upsert daily metrics for one account. Returns rows written.
-    Idempotent (upsert on campaign+date)."""
-    account = await ads_repo.get_account(account_id, user_id=user_id)
+    Idempotent (upsert on campaign+date).
+
+    The fleet cron already listed the row — pass it so we do not pay a
+    leftover get. A mismatch fail-closes.
+    """
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
+    if not isinstance(account_id, UUID):
+        raise TypeError("account_id must be a UUID")
+    if account is not None and not isinstance(account, AdAccount):
+        raise TypeError("account must be an AdAccount")
+    if account is None:
+        account = await ads_repo.get_account(account_id, user_id=user_id)
+    elif account.id != account_id or account.user_id != user_id:
+        raise ValueError("account mismatch")
     if account is None or account.status != "active":
         return 0
     fetch = fetch_fn or _composio_metrics
     rows = await fetch(account)
-    written = 0
-    for r in rows:
-        await ads_repo.upsert_metrics(
-            user_id=user_id,
-            ad_account_id=account_id,
-            campaign_id=UUID(str(r["campaign_id"])),
-            day=r["date"] if isinstance(r["date"], date) else date.fromisoformat(str(r["date"])),
-            impressions=int(r.get("impressions", 0)),
-            clicks=int(r.get("clicks", 0)),
-            spend_usd=Decimal(str(r.get("spend_usd", 0))),
-            conversions=Decimal(str(r.get("conversions", 0))),
-            revenue_usd=Decimal(str(r.get("revenue_usd", 0))),
-        )
-        written += 1
-    return written
+    if not rows:
+        return 0
+    await asyncio.gather(
+        *[
+            ads_repo.upsert_metrics(
+                user_id=user_id,
+                ad_account_id=account_id,
+                campaign_id=UUID(str(r["campaign_id"])),
+                day=r["date"]
+                if isinstance(r["date"], date)
+                else date.fromisoformat(str(r["date"])),
+                impressions=int(r.get("impressions", 0)),
+                clicks=int(r.get("clicks", 0)),
+                spend_usd=Decimal(str(r.get("spend_usd", 0))),
+                conversions=Decimal(str(r.get("conversions", 0))),
+                revenue_usd=Decimal(str(r.get("revenue_usd", 0))),
+            )
+            for r in rows
+        ]
+    )
+    return len(rows)
 
 
 async def sync_all_accounts_metrics(
     *, user_ids: list[str], fetch_fn: MetricsFetcher | None = None
 ) -> int:
-    total = 0
+    if not isinstance(user_ids, list):
+        raise TypeError("user_ids must be a list")
     for uid in user_ids:
-        for account in await ads_repo.list_accounts(uid):
-            if account.status == "active":
-                total += await sync_account_metrics(
-                    user_id=uid, account_id=account.id, fetch_fn=fetch_fn
-                )
-    return total
+        if not isinstance(uid, str) or not uid.strip():
+            raise ValueError("user_id is required")
+    if not user_ids:
+        return 0
+    listed = await asyncio.gather(*(ads_repo.list_accounts(uid) for uid in user_ids))
+    jobs = [
+        sync_account_metrics(
+            user_id=uid,
+            account_id=account.id,
+            fetch_fn=fetch_fn,
+            account=account,
+        )
+        for uid, accounts in zip(user_ids, listed)
+        for account in accounts
+        if account.status == "active"
+    ]
+    if not jobs:
+        return 0
+    written = await asyncio.gather(*jobs)
+    return sum(written)
 
 
 def _roas(campaign_metrics: list) -> Decimal | None:
