@@ -448,6 +448,21 @@ async def _run_job_inner(
     if not await _ensure_cap(job, niche):
         return job
 
+    from .jev.planner import plan_video_run, script_has_caption_source, script_has_usable_visuals
+
+    plan = await plan_video_run(
+        {
+            "niche": niche.title,
+            "platform": platform,
+            "description": niche.description,
+            "audience": niche.target_audience,
+            "script_model": niche.script_model or "",
+        },
+        script_model=niche.script_model or "",
+        spend=spend,
+    )
+    job.harness = {**(job.harness or {}), "plan": plan.as_dict()}
+
     # Fail fast on a misconfigured/rotated ElevenLabs key — BEFORE any
     # ideation/image/render spend. Without this, a niche whose
     # voice_provider is 'elevenlabs' but whose key is missing/rotated only
@@ -522,7 +537,7 @@ async def _run_job_inner(
                 target_duration_sec=niche.target_duration_sec,
                 audience_context=audience_ctx,
                 brief=niche.creative_brief,
-                script_model=niche.script_model,
+                script_model=niche.script_model or plan.model_id,
                 spend=spend,
             )
             # cast_mode 'none' means NO characters — a lingering
@@ -532,14 +547,22 @@ async def _run_job_inner(
                 if niche.creative_brief.visual.cast_mode == "none"
                 else (niche.character_description or "")
             )
-            script = await run_visual_director(
-                script,
-                visual_style=niche.visual_style,
-                character_description=cast,
-                brief=niche.creative_brief,
-                design_kit=design_kit_content,
-                spend=spend,
-            )
+            # Scriptwriter already emits visual_prompt + motion_prompt.
+            # A second Visual Director LLM pass is the single biggest
+            # avoidable latency on a fresh job — skip it when every
+            # scene is already usable.
+            if script_has_usable_visuals(script):
+                log.info("skip visual director: script already has visual + motion prompts")
+                job.harness = {**(job.harness or {}), "skipped_visual_director": True}
+            else:
+                script = await run_visual_director(
+                    script,
+                    visual_style=niche.visual_style,
+                    character_description=cast,
+                    brief=niche.creative_brief,
+                    design_kit=design_kit_content,
+                    spend=spend,
+                )
             job.script = script
             (root / "script.json").write_text(script.model_dump_json(indent=2))
 
@@ -780,19 +803,32 @@ async def _run_job_inner(
                 music_gain_db=job.audio.music_gain_db if job.audio else -18.0,
             )
 
-    # 7. Captions
+    # 7. Captions — script timings first (free). Whisper only when the
+    # script has no narration to burn. Avatar / lip-sync stretches the
+    # words onto the probed mix duration.
     with _stage(JobStatus.captioning.value):
         job.status = JobStatus.captioning
         await _persist(job)
+        probed: float | None = None
         try:
-            words = await openai_whisper.transcribe_word_level(vo_path, spend=spend)
-        except spend_repo.SpendCapExceeded as e:
+            probed = ffmpeg.probe_duration(mixed)
+        except Exception:  # noqa: BLE001 — stub files / missing ffprobe
+            probed = script.total_duration_sec
+        words: list = []
+        if script_has_caption_source(script):
+            words = subtitle.script_to_words(script.scenes, total_duration_sec=probed)
+            job.harness = {**(job.harness or {}), "captions": "script"}
+        if not words:
             try:
-                import sentry_sdk
-                sentry_sdk.capture_exception(e)
-            except Exception:
-                pass
-            return await _fail_with(job, str(e))
+                words = await openai_whisper.transcribe_word_level(vo_path, spend=spend)
+                job.harness = {**(job.harness or {}), "captions": "whisper"}
+            except spend_repo.SpendCapExceeded as e:
+                try:
+                    import sentry_sdk
+                    sentry_sdk.capture_exception(e)
+                except Exception:
+                    pass
+                return await _fail_with(job, str(e))
         ass_path = root / "captions" / "subs.ass"
         subtitle.words_to_ass(
             words, ass_path, caption_style=niche.creative_brief.audio.caption_style
@@ -864,16 +900,27 @@ async def _run_job_inner(
 
         from .jev.loops import after_content_qa, repurpose_hint, should_spawn_repurpose
 
-        overlay = await after_content_qa(
-            {
-                "job_id": str(job.id),
-                "niche": niche.title,
-                "platform": platform,
-                "hook": script.idea.hook,
-                "qa": report.model_dump(),
-                "transcript": transcript[:4000],
-            },
-            spend=spend,
+        overlay, hint = await asyncio.gather(
+            after_content_qa(
+                {
+                    "job_id": str(job.id),
+                    "niche": niche.title,
+                    "platform": platform,
+                    "hook": script.idea.hook,
+                    "qa": report.model_dump(),
+                    "transcript": transcript[:4000],
+                },
+                spend=spend,
+            ),
+            repurpose_hint(
+                {
+                    "hook": script.idea.hook,
+                    "topic": script.idea.topic,
+                    "niche": niche.title,
+                    "platform": platform,
+                },
+                spend=spend,
+            ),
         )
         job.harness = {**(job.harness or {}), **overlay.payload}
         if overlay.fail:
@@ -892,15 +939,6 @@ async def _run_job_inner(
             await _notify(job, kind="review")
             await _emit_webhook(job, "job.awaiting_approval")
             return job
-        hint = await repurpose_hint(
-            {
-                "hook": script.idea.hook,
-                "topic": script.idea.topic,
-                "niche": niche.title,
-                "platform": platform,
-            },
-            spend=spend,
-        )
         if hint:
             job.harness = {**(job.harness or {}), "repurpose": hint}
             if should_spawn_repurpose(hint):

@@ -190,8 +190,8 @@ async def test_happy_path_reaches_done(stub_all):
     assert art.hero_image_path and art.hero_image_path.endswith("hero.png")
     assert art.word_count and art.word_count > 0
     assert art.link_suggestions and art.link_suggestions[0].targetUrl == "/old-espresso-post"
-    # topic was auto-picked
-    assert art.topic == "dialing in espresso"
+    # topic is auto-picked from templates (no LLM)
+    assert art.topic
     # stage progression persisted in order
     s = stub_all["statuses"]
     for a, b in [("researching", "outlining"), ("outlining", "writing"),

@@ -134,13 +134,16 @@ async def system_one(
     questions: Questions,
     *,
     model: str | None = None,
-    timeout: float = 15.0,
-    max_attempts: int = 3,
+    timeout: float = 8.0,
+    max_attempts: int = 2,
 ) -> SystemOneResult:
     """Evaluate ``questions`` against ``state`` in one parallel Jev call.
 
     Raises ``JevDisabled`` when no key is configured. Callers that want
     the Qwen fallback should use ``jev.ask`` instead.
+
+    Timeout is 8s with 2 attempts so a hung TypeSafe hop fails over to
+    Qwen (or fail-open) in ~16s instead of waiting 15s × 3.
     """
     if not questions:
         raise JevValidationError("system_one requires at least one question")

@@ -14,6 +14,7 @@ from decimal import Decimal
 
 from ..logging import get_logger
 from ..services.spend_context import SpendContext
+from . import cache as ask_cache
 from . import client as jev_client
 from . import fallback as qwen_fallback
 from .primitives import Questions, State, SystemOneResult
@@ -72,12 +73,21 @@ async def ask(
     *,
     spend: SpendContext | None = None,
     prefer: str = "jev",
+    use_cache: bool = True,
 ) -> SystemOneResult:
     """Answer typed questions about ``state``.
 
     ``prefer`` is ``"jev"`` (default) or ``"qwen"``. The other backend is
     always the fallback. Spend is logged for whichever backend answered.
+    Identical ``state`` + ``questions`` reuse a 5-minute LRU so retries
+    and resume paths do not pay another 70–500ms (or a Qwen fallback).
+    Cache hits do not re-log spend.
     """
+    key = ask_cache.cache_key(state, questions, prefer) if use_cache else ""
+    if use_cache:
+        hit = ask_cache.get(key)
+        if hit is not None:
+            return hit
     errors: list[Exception] = []
     order = ("jev", "qwen") if prefer != "qwen" else ("qwen", "jev")
     for backend in order:
@@ -91,6 +101,8 @@ async def ask(
                     continue
                 result = await qwen_fallback.system_one_qwen(state, questions)
             await _log_spend(result, spend)
+            if use_cache:
+                ask_cache.put(key, result)
             return result
         except Exception as exc:  # noqa: BLE001 — try the other backend
             errors.append(exc)

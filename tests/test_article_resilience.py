@@ -363,10 +363,10 @@ async def test_hero_image_failure_degrades_article_completes(stub_all, monkeypat
 
 
 async def test_hero_prompt_failure_degrades_article_completes(stub_all, monkeypatch):
-    async def boom_prompt(title, kw, md, *, spend=None):
+    def boom_prompt(title, keyword):
         raise RuntimeError("hero prompt generation exploded")
 
-    monkeypatch.setattr(apipe.llm, "generate_hero_prompt", boom_prompt)
+    monkeypatch.setattr(apipe.fastpath, "hero_prompt", boom_prompt)
 
     art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID, topic="espresso")
     assert art.status == ArticleStatus.done

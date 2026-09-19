@@ -58,39 +58,44 @@ async def after_content_qa(
     out = LoopVerdict()
     if not _live():
         return out
-    try:
+    import asyncio
+
+    async def _foreman():
         from ..symbolic.foreman import assess
 
-        foreman = await assess(state, spend=spend)
-        out.payload["foreman"] = foreman.as_dict()
-        if foreman.action == "stop":
+        return await assess(state, spend=spend)
+
+    foreman_res, screen_res = await asyncio.gather(
+        _foreman(),
+        screen_content(state, spend=spend),
+        return_exceptions=True,
+    )
+    if isinstance(foreman_res, Exception):
+        log.warning("jev.loops.foreman_failed", extra={"error": str(foreman_res)})
+    else:
+        out.payload["foreman"] = foreman_res.as_dict()
+        if foreman_res.action == "stop":
             out.fail = True
             out.reason = "foreman stop: worker stuck or off-brief"
-            return out
-        if foreman.action in {"retry", "steer"}:
+        elif foreman_res.action in {"retry", "steer"}:
             out.retry = True
-            out.reason = f"foreman {foreman.action}"
-            return out
-        if foreman.action == "verify":
+            out.reason = f"foreman {foreman_res.action}"
+        elif foreman_res.action == "verify":
             out.park = True
             out.reason = "foreman verify: needs a human look"
-            return out
-    except Exception as exc:  # noqa: BLE001 — Foreman is an upgrade
-        log.warning("jev.loops.foreman_failed", extra={"error": str(exc)})
-    try:
-        safety = await screen_content(state, spend=spend)
+    if isinstance(screen_res, Exception):
+        log.warning("jev.loops.screen_failed", extra={"error": str(screen_res)})
+    else:
         out.payload["screen"] = {
-            "malicious": safety.malicious,
-            "jailbreak": safety.jailbreak,
-            "brand_safe": safety.brand_safe,
-            "block": safety.block,
-            "backend": safety.backend,
+            "malicious": screen_res.malicious,
+            "jailbreak": screen_res.jailbreak,
+            "brand_safe": screen_res.brand_safe,
+            "block": screen_res.block,
+            "backend": screen_res.backend,
         }
-        if safety.block:
+        if screen_res.block and not out.fail and not out.retry:
             out.park = True
-            out.reason = "content screen blocked publish"
-    except Exception as exc:  # noqa: BLE001
-        log.warning("jev.loops.screen_failed", extra={"error": str(exc)})
+            out.reason = out.reason or "content screen blocked publish"
     return out
 
 

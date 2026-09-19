@@ -407,6 +407,9 @@ Wiring checklist (each pack has a production caller):
 | `judge_ideas` | `agents/ideation.py` |
 | `judge_video` | `orchestrator.py` |
 | `judge_article` | `articles/llm.py` |
+| `plan_video_run` | `pipeline.py` (one fan-out; scriptwriter model + skip hints) |
+| `script_to_words` | `pipeline.py` caption stage (Whisper is fallback only) |
+| `articles.fastpath` | topic / SERP / schema / interlink / hero |
 | `default_generation_model` | `orchestrator.py` |
 | `after_content_qa` + `repurpose_hint` | `pipeline.py` |
 | `publish_gate` | `pipeline._schedule_stage`, `image_posts.schedule_image_post` |
@@ -509,6 +512,9 @@ persistence, and voice session minting.
 | `src/marketer/jev/router.py` | intent kind / skill / urgency |
 | `src/marketer/jev/decisions.py` | domain packs |
 | `src/marketer/jev/loops.py` | pipeline adapters |
+| `src/marketer/jev/cache.py` | 5-minute LRU for identical `ask()` fan-outs |
+| `src/marketer/jev/planner.py` | one-shot video plan (tier + skip hints) |
+| `src/marketer/articles/fastpath.py` | deterministic SERP / schema / interlink / topic / hero |
 | `src/marketer/symbolic/foreman.py` | supervision policy |
 | `src/marketer/symbolic/jev_code.py` | code triage workflows |
 | `src/marketer/company_os/opencompany.py` | company surface routing |
@@ -534,3 +540,62 @@ Nothing from `typesafe-sdk`, `thruwire/foreman`, `devagrawal09/jev-code`,
 or `useopencompany/opencompany` is copied. Those repos supplied the
 *contracts* (typed questions, Foreman evidence loop, company-OS
 surfaces). Marketer owns the policy and the product wiring.
+
+---
+
+## 13. Speed — why Jev makes the product feel ~10× faster
+
+People on X showing Jev agents jumping an order of magnitude are not
+replacing the writer with Jev. **Jev cannot write.** They stopped
+asking a chat model to *classify*, then they batched every remaining
+decision into one speculative fan-out (70–500ms, TypeSafe's published
+range) instead of N sequential LLM calls (2–8s each).
+
+TypeSafe's own published workflow numbers are **193.6× faster** and
+**444.6× cheaper** versus LLM classification on the same tasks. Treat
+that as a ceiling, not a promise. marketer's ICP metric is
+**time-to-first-publish**. The remaining waste after the decision
+harness landed was still LLM/Whisper latency on stages Jev or code
+could already finish.
+
+### What we no longer wait for
+
+| Old cost | New path | Why it's safe |
+| --- | --- | --- |
+| Visual Director LLM after scriptwriter | Skip when every scene has `visual_prompt ≥ 20` and `motion_prompt ≥ 12` | Scriptwriter already emits both; tests still hit VD via stub `vp0`/`mp0` |
+| Whisper word-level transcript | `subtitle.script_to_words` from narration + scene durations; stretch to probed mix length | Script has the words and the timing math (~2.6 wps). Whisper is fallback only |
+| `summarize_serp` LLM | `fastpath.serp_from_pages` | Exa already returned titles, domains, excerpts, word counts |
+| `generate_schema_json` LLM | Deterministic Article + FAQPage `@graph` | Schema is structure, not prose |
+| `interlink_suggest` LLM | Token-overlap ranking | Internal links are lexical relevance |
+| `pick_topic` LLM | Template set + one Jev Choice | Jev picks; it does not invent the title |
+| `generate_hero_prompt` LLM | Template from title + keyword | Hero is a still, not an argument |
+| Sequential Foreman → screen → repurpose | `asyncio.gather` | Same policy, one wall-clock RTT |
+| Intent route then a second `route_model` | Both heads in the same fan-out | Speculative questions are free |
+| Jev HTTP 15s × 3 attempts | 8s × 2 | Fail over to Qwen / fail-open fast |
+| Repeated identical `ask()` | 5-minute LRU (`jev/cache.py`) | Retries and resume must not re-pay |
+
+Outline, section prose, SEO title/meta, and ideation candidates still
+use a writer (Qwen). Those are generation. Everything else on the
+critical path is now a decision or a deterministic extract.
+
+### The planner
+
+`plan_video_run` is one Jev call at the start of a video job:
+
+- generation tier → `qwen3-8b` / `32b` / `235b-a22b`
+- skip-visual-director hint
+- caption source (`script` vs `whisper`)
+
+An operator-pinned `niche.script_model` wins. A dark harness returns
+Qwen-standard + script captions + skip-VD preferred; **code still
+checks the script** before skipping Visual Director, so a shy noul
+cannot drop a job that has empty prompts.
+
+### What the operator should feel
+
+A fresh short-form job that used to do ideation → script → visual
+director → Whisper now does ideation → script → images. Caption burn
+is free. QA is already Jev-first. Foreman, the outbound screen, and
+the repurpose hint share one wall-clock beat. Article research /
+schema / interlink / topic / hero no longer enqueue four extra chat
+completions before the writer even starts.

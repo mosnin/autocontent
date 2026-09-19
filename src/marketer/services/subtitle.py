@@ -14,7 +14,9 @@ these to the video size.
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from ..models.creative_brief import CaptionStyle
 
@@ -77,6 +79,45 @@ def _header(style: CaptionStyle) -> str:
 
 def _escape(word: str) -> str:
     return word.replace("{", "(").replace("}", ")").replace("\n", " ").strip()
+
+
+def script_to_words(
+    scenes: Sequence[Any],
+    *,
+    total_duration_sec: float | None = None,
+) -> list[dict[str, float | str]]:
+    """Word-level timings from the script — no Whisper round trip.
+
+    Scriptwriter already emits narration + ``duration_sec`` per scene
+    (~2.6 words/sec). Burning those timings is free and usually closer
+    to the VO than a second speech-to-text pass. When the rendered
+    voiceover length differs (avatar / lip-sync), pass the probed
+    duration so the words stretch to fit.
+    """
+    words: list[dict[str, float | str]] = []
+    cursor = 0.0
+    script_total = 0.0
+    for scene in scenes:
+        script_total += float(getattr(scene, "duration_sec", 0) or 0)
+    scale = 1.0
+    if total_duration_sec and script_total > 0:
+        scale = float(total_duration_sec) / script_total
+    for scene in scenes:
+        narration = str(getattr(scene, "narration", "") or "")
+        duration = float(getattr(scene, "duration_sec", 0) or 0) * scale
+        tokens = narration.split()
+        if not tokens:
+            cursor += duration
+            continue
+        usable = max(duration * 0.92, 0.05)
+        step = usable / len(tokens)
+        start = cursor
+        for token in tokens:
+            end = start + step
+            words.append({"word": token, "start": round(start, 3), "end": round(end, 3)})
+            start = end
+        cursor += duration
+    return words
 
 
 def words_to_ass(

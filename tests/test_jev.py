@@ -112,8 +112,11 @@ async def test_ask_raises_when_neither_backend_configured(monkeypatch):
 
 
 async def test_ask_uses_jev_then_logs_spend(monkeypatch, fake_spend):
+    from marketer.jev import cache as ask_cache
     from marketer.jev.ask import ask
     from marketer.jev.primitives import SystemOneResult, Usage
+
+    ask_cache.clear()
 
     async def fake_system_one(state, questions, **kw):
         return SystemOneResult(

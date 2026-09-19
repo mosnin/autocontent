@@ -32,7 +32,7 @@ from ..repos import niches as niches_repo
 from ..repos import spend as spend_repo
 from ..services import openai_images, otel
 from ..services.spend_context import SpendContext, default_context
-from . import exa, llm
+from . import exa, fastpath, llm
 from .models import Article, ArticleStatus, Outline, SectionContext, SerpAnalysis
 
 log = get_logger(__name__)
@@ -248,20 +248,24 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         pass
     audience = niche.target_audience
 
-    # 0. Topic — pick one when the caller didn't supply it.
+    # 0. Topic — templates + Jev, not a chat completion.
     if not article.topic:
         recent = await articles_repo.recent_titles_for_niche(
             article.niche_id, user_id=article.user_id
         )
-        pick = await llm.pick_topic(
-            niche.title, niche.description, recent, spend=spend
+        pick = await fastpath.pick_topic(
+            niche.title,
+            niche.description,
+            recent,
+            audience=audience,
+            spend=spend,
         )
         article.topic = pick.topic
         article.focus_keyword = pick.focusKeyword
     if not article.focus_keyword:
         article.focus_keyword = article.topic
 
-    # 1. Research
+    # 1. Research — Exa + Jev rank, then deterministic SERP extract.
     with _stage(ArticleStatus.researching.value):
         await _set_status(article, ArticleStatus.researching)
         pages = await exa.serp_pages(article.focus_keyword)
@@ -271,7 +275,7 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             article.focus_keyword, pages, spend=spend
         )
         if pages:
-            serp = await llm.summarize_serp(article.focus_keyword, pages, spend=spend)
+            serp = fastpath.serp_from_pages(article.focus_keyword, pages)
         else:
             # Degraded mode: no SERP provider configured/reachable. The
             # outline prompt still works from model knowledge.
@@ -348,20 +352,17 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         if seo_notes and article.quality is not None:
             article.quality.notes.extend(seo_notes)
         article.keywords = meta.keywords
-        article.schema_jsonld = await llm.generate_schema_json(
+        article.schema_jsonld = fastpath.schema_json(
             title=meta.title,
             slug=meta.slug,
             meta_description=meta.metaDescription,
             focus_keyword=meta.focusKeyword,
             keywords=meta.keywords,
             article_md=markdown,
-            spend=spend,
         )
         candidates = await articles_repo.interlink_candidates(article.user_id)
         candidates = [c for c in candidates if c["slug"] != meta.slug]
-        article.link_suggestions = await llm.interlink_suggest(
-            markdown, candidates, spend=spend
-        )
+        article.link_suggestions = fastpath.interlink_lexical(markdown, candidates)
         article.article_markdown = markdown
 
     # 6. Hero image (optional, non-essential) — reuses the video pipeline's
@@ -376,11 +377,9 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         with _stage(ArticleStatus.imaging.value):
             await _set_status(article, ArticleStatus.imaging)
             try:
-                prompt = await llm.generate_hero_prompt(
+                prompt = fastpath.hero_prompt(
                     article.title or article.topic,
                     article.focus_keyword,
-                    markdown,
-                    spend=spend,
                 )
                 if prompt is not None:
                     hero = (

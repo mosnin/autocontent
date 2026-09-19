@@ -9,6 +9,7 @@ See:
 - https://www.langchain.com/blog/building-a-harness-with-jev
 """
 from .ask import DecisionUnavailable, ask, available
+from .cache import clear as clear_ask_cache
 from .client import (
     JevAuthError,
     JevDisabled,
@@ -45,6 +46,12 @@ from .loops import (
     should_spawn_repurpose,
     source_audit_notes,
 )
+from .planner import (
+    VideoPlan,
+    plan_video_run,
+    script_has_caption_source,
+    script_has_usable_visuals,
+)
 from .policy import gate_choice, gate_noul, gate_score, weighted_composite
 from .primitives import (
     Choice,
@@ -77,12 +84,14 @@ __all__ = [
     "ScoreAnswer",
     "SystemOneResult",
     "UltrafastAction",
+    "VideoPlan",
     "after_content_qa",
     "ask",
     "auto_mode",
     "available",
     "campaign_tick_gate",
     "choice",
+    "clear_ask_cache",
     "default_generation_model",
     "enabled",
     "enrich_failure_rows",
@@ -93,11 +102,14 @@ __all__ = [
     "jev_cost",
     "next_action",
     "noul",
+    "plan_video_run",
     "publish_gate",
     "repurpose_hint",
     "route_intent",
     "route_model",
     "score",
+    "script_has_caption_source",
+    "script_has_usable_visuals",
     "seo_metadata_notes",
     "should_index_asset",
     "should_spawn_repurpose",

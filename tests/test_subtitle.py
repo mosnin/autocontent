@@ -7,6 +7,17 @@ import pytest
 from marketer.services import subtitle
 
 
+def test_script_to_words_splits_narration_across_scenes():
+    scenes = [
+        type("S", (), {"narration": "hello world", "duration_sec": 2.0})(),
+        type("S", (), {"narration": "again", "duration_sec": 2.0})(),
+    ]
+    words = subtitle.script_to_words(scenes)
+    assert [w["word"] for w in words] == ["hello", "world", "again"]
+    assert words[0]["start"] == 0.0
+    assert float(words[-1]["end"]) <= 4.0
+
+
 def test_ass_time_formats_correctly():
     assert subtitle._to_ass_time(0.0) == "0:00:00.00"
     assert subtitle._to_ass_time(1.5) == "0:00:01.50"
