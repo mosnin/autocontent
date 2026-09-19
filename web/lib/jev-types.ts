@@ -46,4 +46,12 @@ export interface RouteResult {
     gate: string;
     backend: string;
   };
+  knowledge?: Array<{
+    id: string;
+    kind: string;
+    span: string;
+    source: string;
+    confidence: number;
+    backend: string;
+  }>;
 }

@@ -12,8 +12,10 @@ from typing import Any, TypeVar
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
-from marketer.company_os import route_workspace
+from marketer.company_os import capture_from_state, route_workspace
 from marketer.config import settings
+from marketer.logging import get_logger
+from marketer.repos import company_knowledge as knowledge_repo
 from marketer.jev import available, enabled
 from marketer.jev.ask import DecisionUnavailable
 from marketer.jev.ask import ask as jev_ask
@@ -39,6 +41,7 @@ from marketer.symbolic.jev_code import (
 from ..auth import AuthCtx, CurrentUser
 
 router = APIRouter()
+log = get_logger(__name__)
 
 T = TypeVar("T")
 
@@ -148,6 +151,15 @@ async def jev_route(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
     intent = await _run_decision(route_intent(body.state))
     model = await _run_decision(route_model(body.state))
     company = await _run_decision(route_workspace(body.state))
+    knowledge: list[dict] = []
+    if company.knowledge_write:
+        try:
+            knowledge = await capture_from_state(
+                ctx.user_id, body.state, source="route"
+            )
+        except Exception as exc:  # noqa: BLE001 — brain never blocks routing
+            log.warning("jev.route.knowledge_failed", extra={"error": str(exc)})
+            knowledge = []
     return {
         "intent": {
             "kind": intent.kind,
@@ -159,6 +171,16 @@ async def jev_route(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
         },
         "model": model.as_dict(),
         "company": company.as_dict(),
+        "knowledge": knowledge,
+    }
+
+
+@router.get("/knowledge")
+async def jev_knowledge(ctx: AuthCtx = CurrentUser) -> dict:
+    rows = await knowledge_repo.list_for_user(ctx.user_id, limit=40)
+    return {
+        "items": [r.model_dump(mode="json") for r in rows],
+        "prompt_block": knowledge_repo.as_prompt_block(rows),
     }
 
 

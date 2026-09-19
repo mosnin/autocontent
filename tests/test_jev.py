@@ -458,6 +458,162 @@ async def test_loops_noop_when_jev_dark(monkeypatch):
     assert await loops.should_index_asset({"kind": "final"}) is True
 
 
+def test_candidate_spans_are_verbatim():
+    from marketer.company_os.knowledge import candidate_spans, state_text
+
+    text = (
+        "Never use the word hack in headlines. "
+        "Our audience is first-time founders.\n"
+        "Hi."
+    )
+    spans = candidate_spans(text)
+    assert "Never use the word hack in headlines." in spans
+    assert "Our audience is first-time founders." in spans
+    assert all("hack" in s or "founders" in s for s in spans)
+    assert state_text({"request": "Never use slang."}) == "Never use slang."
+
+
+def test_should_spawn_repurpose_is_strict():
+    from marketer.jev.loops import should_spawn_repurpose
+
+    assert should_spawn_repurpose(None) is False
+    assert should_spawn_repurpose({"target": "social", "confidence": 0.99}) is False
+    assert should_spawn_repurpose({"target": "article", "confidence": 0.69}) is False
+    assert should_spawn_repurpose({"target": "article", "confidence": 0.7}) is True
+
+
+def test_knowledge_prompt_block_is_verbatim():
+    from marketer.repos.company_knowledge import KnowledgeRow, as_prompt_block
+
+    block = as_prompt_block(
+        [
+            KnowledgeRow(kind="brand_rule", span="Never use hack"),
+            KnowledgeRow(kind="noise", span="ignore me"),
+        ]
+    )
+    assert "Never use hack" in block
+    assert "ignore me" not in block
+    assert as_prompt_block([]) == ""
+
+
+async def test_classify_knowledge_spans_drops_noise(monkeypatch):
+    from marketer.jev import decisions
+    from marketer.jev.primitives import SystemOneResult
+
+    async def fake_ask(state, questions, *, spend=None, prefer="jev"):
+        return SystemOneResult(
+            model="jev-latest",
+            answers={
+                "k0": ChoiceAnswer(
+                    choice="brand_rule",
+                    probabilities={"brand_rule": 0.9, "noise": 0.1},
+                    confidence=0.8,
+                ),
+                "k1": ChoiceAnswer(
+                    choice="noise",
+                    probabilities={"noise": 0.8, "brand_rule": 0.2},
+                    confidence=0.9,
+                ),
+            },
+            backend="jev",
+        )
+
+    monkeypatch.setattr(decisions, "jev_ask", fake_ask)
+    out = await decisions.classify_knowledge_spans(
+        ["Never use hack in headlines", "lol whatever"]
+    )
+    assert len(out) == 1
+    assert out[0].kind == "brand_rule"
+    assert out[0].text == "Never use hack in headlines"
+
+
+async def test_image_post_publish_gate_parks(monkeypatch):
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from marketer.jev.loops import LoopVerdict
+    from marketer.models import Niche, PostingWindow
+    from marketer.repos import image_posts as repo
+    from marketer.repos import niches as niches_repo
+    from marketer.services import image_posts as svc
+
+    pid = uuid4()
+    state: dict = {}
+
+    async def fake_get(p, *, user_id):
+        return {
+            "id": pid,
+            "user_id": "user_jev",
+            "niche_id": uuid4(),
+            "kind": "single",
+            "topic": "t",
+            "status": "generating",
+            "payload": {
+                "slides": [{"index": 0, "path": "/tmp/s.png"}],
+                "caption": "c",
+                "hashtags": [],
+            },
+        }
+
+    async def fake_niche(nid, *, user_id):
+        return Niche(
+            id=nid,
+            user_id="user_jev",
+            title="t",
+            description="d",
+            target_audience="a",
+            visual_style="v",
+            voice="onyx",
+            target_duration_sec=30,
+            scene_count=2,
+            posting_windows=[PostingWindow(hour=9, minute=0, tz="UTC")],
+            platforms=["reels"],
+            daily_spend_cap_usd=Decimal("5"),
+        )
+
+    async def fake_save(p, *, user_id, payload):
+        state["payload"] = payload
+        return {"payload": payload}
+
+    async def fake_set_status(p, *, user_id, status):
+        state["status"] = status
+        return {"status": status}
+
+    async def fake_gate(st, *, tool="schedule_post", human_approved=False, spend=None):
+        return LoopVerdict(
+            park=True, reason="auto-mode block", payload={"auto_mode": {"verdict": "block"}}
+        )
+
+    monkeypatch.setattr(repo, "get", fake_get)
+    monkeypatch.setattr(repo, "save_payload", fake_save)
+    monkeypatch.setattr(repo, "set_status", fake_set_status)
+    monkeypatch.setattr(niches_repo, "get", fake_niche)
+    monkeypatch.setattr("marketer.jev.loops.publish_gate", fake_gate)
+
+    result = await svc.schedule_image_post(user_id="user_jev", image_post_id=pid)
+    assert result["status"] == "awaiting_approval"
+    assert state["status"] == "awaiting_approval"
+
+
+def test_jev_knowledge_route_ok(monkeypatch):
+    from marketer.repos import company_knowledge as knowledge_repo
+
+    async def fake_list(user_id, *, limit=40):
+        from marketer.repos.company_knowledge import KnowledgeRow
+
+        return [KnowledgeRow(kind="constraint", span="Daily cap is $5")]
+
+    monkeypatch.setattr(knowledge_repo, "list_for_user", fake_list)
+    client = _jev_client(monkeypatch)
+    resp = client.get(
+        "/api/v1/jev/knowledge", headers={"Authorization": "Bearer mkt_x"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["items"][0]["span"] == "Daily cap is $5"
+    assert "Daily cap is $5" in body["prompt_block"]
+
+
 def test_qwen_models_are_in_openrouter_registry():
     from marketer.services import openrouter
 

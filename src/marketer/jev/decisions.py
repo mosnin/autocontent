@@ -671,3 +671,64 @@ async def audit_sources(
         if ans.choice in {"partial", "contradicts", "absent"} or ans.confidence < 0.55:
             notes.append(f"citation review ({label}): {ans.choice}")
     return notes
+
+
+# ---------------------------------------------------------------------------
+# Company knowledge — classify verbatim spans (Jev never writes the text)
+# ---------------------------------------------------------------------------
+
+
+KnowledgeKind = Literal["brand_rule", "constraint", "decision", "audience", "noise"]
+
+
+@dataclass(frozen=True)
+class KnowledgeSpan:
+    text: str
+    kind: KnowledgeKind
+    confidence: float
+    backend: str
+
+
+async def classify_knowledge_spans(
+    spans: Sequence[str],
+    *,
+    spend: SpendContext | None = None,
+) -> list[KnowledgeSpan]:
+    """Cluster already-extracted spans. Empty list if nothing durable."""
+    trimmed = [s.strip() for s in spans if isinstance(s, str) and s.strip()][:8]
+    if not trimmed:
+        return []
+    questions: dict[str, Any] = {}
+    for i, _span in enumerate(trimmed):
+        questions[f"k{i}"] = choice(
+            f"What kind of durable company knowledge is verbatim span {i}?",
+            {
+                "brand_rule": "A voice, style, or banned-word rule",
+                "constraint": "A hard limit or never-do the org must keep",
+                "decision": "A learned policy or operating decision",
+                "audience": "Who the work is for",
+                "noise": "Not durable knowledge — skip it",
+            },
+        )
+    result = await jev_ask({"spans": list(trimmed)}, questions, spend=spend)
+    out: list[KnowledgeSpan] = []
+    for i, text in enumerate(trimmed):
+        ans = result.choice(f"k{i}")
+        kind: KnowledgeKind = (
+            ans.choice
+            if ans.choice in {
+                "brand_rule", "constraint", "decision", "audience", "noise",
+            }
+            else "noise"  # type: ignore[assignment]
+        )
+        if kind == "noise" or ans.confidence < 0.55:
+            continue
+        out.append(
+            KnowledgeSpan(
+                text=text,
+                kind=kind,
+                confidence=ans.confidence,
+                backend=result.backend,
+            )
+        )
+    return out

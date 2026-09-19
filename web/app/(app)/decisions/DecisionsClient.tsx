@@ -127,8 +127,25 @@ export function DecisionsClient({ initial }: { initial: JevStatus | null }) {
                 <Row k="Model" v={result.model.model_id} />
                 <Row k="Company surface" v={result.company.surface} />
                 <Row k="Task" v={result.company.task} />
+                <Row
+                  k="Knowledge write"
+                  v={result.company.knowledge_write ? "yes" : "no"}
+                />
                 <Row k="Backend" v={result.intent.backend} />
               </dl>
+            ) : null}
+            {result?.knowledge && result.knowledge.length > 0 ? (
+              <ul className="space-y-2 text-sm">
+                {result.knowledge.map((row) => (
+                  <li
+                    key={row.id || row.span}
+                    className="rounded-md bg-muted/40 px-3 py-2"
+                  >
+                    <span className="text-muted-foreground">[{row.kind}]</span>{" "}
+                    {row.span}
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </CardContent>
         </Card>

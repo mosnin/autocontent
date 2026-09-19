@@ -303,6 +303,10 @@ async def h_jev_route(c: MarketerClient, a: argparse.Namespace) -> None:
     _print_one(await c.jev_route(a.state))
 
 
+async def h_jev_knowledge(c: MarketerClient, a: argparse.Namespace) -> None:
+    _print_one(await c.jev_knowledge())
+
+
 # ---------------------------------------------------------------- parser
 
 
@@ -441,6 +445,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = jev.add_parser("route")
     p.add_argument("state", help="brief or JSON state to classify")
     p.set_defaults(handler=h_jev_route)
+    p = jev.add_parser("knowledge")
+    p.set_defaults(handler=h_jev_knowledge)
 
     return parser
 

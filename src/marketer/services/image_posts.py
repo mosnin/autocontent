@@ -182,7 +182,11 @@ async def run_image_post(
 
 
 async def schedule_image_post(
-    *, user_id: str, image_post_id: UUID, apply_schedule=None
+    *,
+    user_id: str,
+    image_post_id: UUID,
+    apply_schedule=None,
+    human_approved: bool = False,
 ) -> dict:
     """Post the generated slides. Shared by the autonomous path and the
     approval resume."""
@@ -197,10 +201,40 @@ async def schedule_image_post(
         )
 
     try:
-        await image_posts_repo.set_status(image_post_id, user_id=user_id, status="scheduling")
+        from ..jev.loops import publish_gate
+
         caption = post["payload"].get("caption", "")
         hashtags = post["payload"].get("hashtags", [])
         platform = image_platform(niche, post["payload"].get("platform")) or "reels"
+        gate = await publish_gate(
+            {
+                "image_post_id": str(image_post_id),
+                "caption": caption,
+                "hashtags": hashtags,
+                "platform": platform,
+                "topic": post.get("topic") or "",
+            },
+            tool="schedule_image_post",
+            human_approved=human_approved,
+        )
+        if gate.payload:
+            payload = dict(post.get("payload") or {})
+            payload["harness"] = gate.payload
+            post = await image_posts_repo.save_payload(
+                image_post_id, user_id=user_id, payload=payload
+            )
+        if gate.fail:
+            return await image_posts_repo.fail(
+                image_post_id,
+                user_id=user_id,
+                error=gate.reason or "jev auto-mode blocked publish",
+            )
+        if gate.park:
+            return await image_posts_repo.set_status(
+                image_post_id, user_id=user_id, status="awaiting_approval"
+            )
+
+        await image_posts_repo.set_status(image_post_id, user_id=user_id, status="scheduling")
         when = datetime.now(timezone.utc)
 
         poster = apply_schedule or scheduler.schedule_image_post

@@ -42,6 +42,7 @@ from .loops import (
     repurpose_hint,
     seo_metadata_notes,
     should_index_asset,
+    should_spawn_repurpose,
     source_audit_notes,
 )
 from .policy import gate_choice, gate_noul, gate_score, weighted_composite
@@ -99,6 +100,7 @@ __all__ = [
     "score",
     "seo_metadata_notes",
     "should_index_asset",
+    "should_spawn_repurpose",
     "source_audit_notes",
     "system_one",
     "weighted_composite",

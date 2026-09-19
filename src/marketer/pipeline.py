@@ -228,10 +228,50 @@ async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
 
         brand = await brand_kit_repo.get(user_id)
         if brand is None:
-            return "", []
-        return brand.tone_of_voice or "", list(brand.banned_words or [])
+            voice, banned = "", []
+        else:
+            voice, banned = brand.tone_of_voice or "", list(brand.banned_words or [])
+        try:
+            from .company_os.knowledge import prompt_block
+
+            block = await prompt_block(user_id)
+            if block:
+                voice = f"{voice}\n{block}" if voice else block
+        except Exception:  # noqa: BLE001 — knowledge seasons, never blocks
+            pass
+        return voice, banned
     except Exception:  # noqa: BLE001
         return "", []
+
+
+async def _spawn_repurpose_article(job: Job, niche: Niche) -> str | None:
+    """Create + spawn a Press article from a finished video. Fail-open.
+
+    A missing DB or Modal lookup must never fail the video that already
+    passed QA — the hint stays on the job either way.
+    """
+    topic = ""
+    if job.script is not None:
+        topic = job.script.idea.topic or job.script.idea.hook
+    try:
+        from .repos import articles as articles_repo
+
+        article = await articles_repo.create(
+            user_id=job.user_id,
+            niche_id=niche.id,
+            topic=topic,
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.warning("jev.repurpose.create_failed", extra={"error": str(exc)})
+        return None
+    try:
+        import modal
+
+        fn = modal.Function.from_name("marketer-sh", "run_article_pipeline")
+        fn.spawn(job.user_id, str(niche.id), str(article.id), topic)
+    except Exception as exc:  # noqa: BLE001 — row exists; operator can run it
+        log.warning("jev.repurpose.spawn_failed", extra={"error": str(exc)})
+    return str(article.id)
 
 
 async def _notify(job: Job, *, kind: str) -> None:
@@ -822,7 +862,7 @@ async def _run_job_inner(
                 job, "content QA failed: " + "; ".join(report.issues)
             )
 
-        from .jev.loops import after_content_qa, repurpose_hint
+        from .jev.loops import after_content_qa, repurpose_hint, should_spawn_repurpose
 
         overlay = await after_content_qa(
             {
@@ -863,6 +903,14 @@ async def _run_job_inner(
         )
         if hint:
             job.harness = {**(job.harness or {}), "repurpose": hint}
+            if should_spawn_repurpose(hint):
+                spawned_id = await _spawn_repurpose_article(job, niche)
+                if spawned_id:
+                    job.harness["repurpose"] = {
+                        **hint,
+                        "spawned_article_id": spawned_id,
+                    }
+            await _persist(job)
 
     # 9. Archive — mirror clips/keyframes/VO/final into the media library
     # (Wasabi when configured, volume-indexed otherwise). Fail-open: a

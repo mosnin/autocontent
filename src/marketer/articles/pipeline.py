@@ -222,6 +222,14 @@ async def run_article(
 async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
     brand = await brand_kit_repo.get(article.user_id)
     tone = _compose_tone(getattr(niche, "tts_style_directions", "") or "", brand)
+    try:
+        from ..company_os.knowledge import prompt_block
+
+        block = await prompt_block(article.user_id)
+        if block:
+            tone = f"{tone}\n{block}"
+    except Exception:  # noqa: BLE001 — knowledge seasons, never blocks
+        pass
     # Writing kit: the user's reusable voice/style skill. Pinned on the
     # niche, else their default writing kit. Fail-open.
     try:

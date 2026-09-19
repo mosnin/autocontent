@@ -267,6 +267,19 @@ async def repurpose_hint(
         return None
 
 
+def should_spawn_repurpose(
+    hint: dict[str, Any] | None, *, min_confidence: float = 0.7
+) -> bool:
+    """High-confidence article remix only — other targets stay as hints."""
+    if not hint:
+        return False
+    try:
+        confidence = float(hint.get("confidence") or 0)
+    except (TypeError, ValueError):
+        return False
+    return hint.get("target") == "article" and confidence >= min_confidence
+
+
 async def enrich_failure_rows(
     rows: list[dict[str, Any]],
     *,

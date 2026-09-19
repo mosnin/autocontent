@@ -40,9 +40,15 @@ The harness follows the LangChain pattern
 - **jev-curate** — can skip indexing a discard-worthy final in the media library.
 - **Failures overlay** — jev-code triage attaches class / actionable / severity to the inbox.
 - **Company OS** (`company_os/`) — route work onto Studio / Press / Ads / Suite.
+- **Knowledge brain** — Jev flags a durable write; code extracts verbatim spans
+  (Jev cannot invent brand rules) and injects them into video voice + article tone.
+- **Nightly window gate** — `next_action` can HOLD a due niche instead of burning a render.
+- **Image-post Auto Mode** — same park / fail-closed publish gate as video.
+- **Repurpose spawn** — a high-confidence (`≥ 0.7`) article hint creates a Press job.
 
 Surfaces: `/decisions`, `/voice`, `GET /api/v1/jev/status`,
-`POST /api/v1/jev/route`, `POST /api/v1/voice/session`, `marketer jev status`.
+`POST /api/v1/jev/route`, `GET /api/v1/jev/knowledge`,
+`POST /api/v1/voice/session`, `marketer jev status|route|knowledge`.
 
 ## Video pipeline
 
@@ -159,6 +165,9 @@ src/marketer/
   orchestrator.py      # OpenAI Agents SDK wiring
   agents/              # one agent per LLM stage (video)
   articles/            # article pipeline (research, outline, write, QA, SEO)
+  jev/                 # System One harness (ask, decisions, loops, Auto Mode)
+  company_os/          # workspace routing + verbatim knowledge brain
+  symbolic/            # Foreman supervision + jev-code triage
   services/            # provider clients (DALL-E, Grok, ffmpeg, ...)
   models/              # pydantic schemas (User, Niche, Job, SpendEntry, ...)
   repos/               # asyncpg repositories (users, niches, jobs, articles, spend)
@@ -212,7 +221,7 @@ falls back) and the rest of the platform is unaffected. Set them as
 | `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
 
 Deploy checklist when bumping to this version: `marketer-migrate up`
-(migrations through 0023), `modal deploy modal_app.py`, then set any new
+(migrations through 0026), `modal deploy modal_app.py`, then set any new
 keys above.
 
 ## Platform surfaces

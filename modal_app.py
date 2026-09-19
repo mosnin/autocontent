@@ -178,7 +178,9 @@ async def finish_image_post(user_id: str, image_post_id: str) -> dict:
     from uuid import UUID
     from marketer.services.image_posts import schedule_image_post as _schedule
 
-    result = await _schedule(user_id=user_id, image_post_id=UUID(image_post_id))
+    result = await _schedule(
+        user_id=user_id, image_post_id=UUID(image_post_id), human_approved=True
+    )
     return {"status": result.get("status")}
 
 
@@ -304,6 +306,9 @@ async def nightly_batch() -> dict:
 
     spawned = 0
     skipped = 0
+    held = 0
+    from marketer.jev.loops import campaign_tick_gate
+
     for r in rows:
         user_id = r["id"]
         for niche in await niches_repo.list_for_user(user_id):
@@ -322,11 +327,23 @@ async def nightly_batch() -> dict:
             if await jobs_repo.has_active_for_niche(niche.id, within_minutes=45):
                 skipped += 1
                 continue
+            gate = await campaign_tick_gate(
+                {
+                    "niche": niche.title,
+                    "user_id": user_id,
+                    "window_bucket": window_bucket,
+                    "platforms": list(niche.platforms),
+                },
+                targets={"video": f"nightly window for {niche.title}"},
+            )
+            if gate.hold:
+                held += 1
+                continue
             run_niche_window.spawn(
                 user_id, str(niche.id), list(niche.platforms), window_bucket
             )
             spawned += 1
-    return {"spawned": spawned, "skipped_active": skipped}
+    return {"spawned": spawned, "skipped_active": skipped, "held": held}
 
 
 @app.function(

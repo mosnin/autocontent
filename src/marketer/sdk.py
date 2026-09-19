@@ -372,6 +372,11 @@ class MarketerClient:
         resp = await self._request("POST", "/api/v1/jev/route", json={"state": state})
         return resp.json()
 
+    async def jev_knowledge(self) -> dict:
+        """List verbatim company-knowledge spans for this account."""
+        resp = await self._request("GET", "/api/v1/jev/knowledge")
+        return resp.json()
+
     async def jev_ask(self, state: Any, questions: dict[str, Any]) -> dict:
         resp = await self._request(
             "POST", "/api/v1/jev/ask", json={"state": state, "questions": questions}
