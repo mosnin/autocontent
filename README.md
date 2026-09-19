@@ -51,6 +51,7 @@ The harness follows the LangChain pattern
 Surfaces: `/decisions`, `/voice`, `GET /api/v1/jev/status`,
 `POST /api/v1/jev/route`, `GET /api/v1/jev/knowledge`,
 `POST /api/v1/voice/session`, `marketer jev status|route|knowledge`.
+Judges are rate-limited (40/min, ads 20/min, voice sessions 8/min).
 
 Full theory, install, wiring map, and security model: [`docs/JEV.md`](docs/JEV.md).
 
