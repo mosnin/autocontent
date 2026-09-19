@@ -55,14 +55,22 @@ async def _materialize_clip(asset, workdir: Path, index: int) -> Path:
 
 
 async def render_composition(*, user_id: str, composition_id: UUID) -> Composition:
-    comp = await media_repo.get_composition(composition_id, user_id=user_id)
-    if comp is None:
-        raise ComposeError(f"composition {composition_id} not found for {user_id}")
-    if not await media_repo.claim_composition_for_render(
+    """Claim first. The UPDATE already has the row; a leftover get sat
+    in front of every render. A lost claim still loads once to return
+    the existing state (or 404)."""
+    claimed = await media_repo.claim_composition_for_render(
         composition_id, user_id=user_id
-    ):
-        # Already rendering/done/failed — idempotent no-op for double spawns.
-        return comp
+    )
+    if not claimed:
+        existing = await media_repo.get_composition(
+            composition_id, user_id=user_id
+        )
+        if existing is None:
+            raise ComposeError(
+                f"composition {composition_id} not found for {user_id}"
+            )
+        return existing
+    comp = claimed
 
     try:
         assets = await media_repo.get_assets_bulk(comp.clip_asset_ids, user_id=user_id)

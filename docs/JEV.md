@@ -1139,3 +1139,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Unpublished / missing template still fail-closes before gpt-image-1 | The spend snapshot is a read. No ledger write happens until a render |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 56. Loop — compose claim returns the row
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `claim_composition_for_render` returns `RETURNING *` | Render loaded the row, then claimed it. The UPDATE already had the row |
+| Lost claim still loads once | Double-spawn / done / failed stay an idempotent no-op. Missing id still fail-closes |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

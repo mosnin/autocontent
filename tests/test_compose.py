@@ -38,7 +38,7 @@ def env(tmp_path: Path, monkeypatch):
         return state["comp"]
 
     async def fake_claim(cid, *, user_id):
-        return state["claimed"]
+        return state["comp"] if state["claimed"] else None
 
     async def fake_bulk(ids, *, user_id):
         return [c for c in state["clips"] if c.id in ids]
