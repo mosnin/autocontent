@@ -105,6 +105,100 @@ async def _synthesize_vo(
     )
 
 
+def _lock_script_facts(script: Script, niche: Niche) -> Script:
+    """Drop invented % / $ / study-year sentences from narration.
+
+    Allowed tokens come from the niche brief — videos have no Exa SERP.
+    A one-line scene that would empty is left alone (fail-open).
+    """
+    from .jev.grounding import fact_tokens, strip_ungrounded_claims
+
+    allowed = fact_tokens(
+        " ".join(
+            part
+            for part in (niche.title, niche.description, niche.target_audience)
+            if part
+        )
+    )
+    notes: list[str] = []
+    scenes: list[Scene] = []
+    for scene in script.scenes:
+        cleaned, stripped = strip_ungrounded_claims(scene.narration or "", allowed)
+        notes.extend(stripped)
+        if stripped and cleaned.strip():
+            scenes.append(scene.model_copy(update={"narration": cleaned}))
+        else:
+            scenes.append(scene)
+    idea = script.idea
+    cleaned_hook, hook_notes = strip_ungrounded_claims(idea.hook or "", allowed)
+    notes.extend(hook_notes)
+    if hook_notes and cleaned_hook.strip():
+        idea = idea.model_copy(update={"hook": cleaned_hook})
+    if not notes:
+        return script
+    log.info("script fact lock", extra={"stripped": len(notes)})
+    return script.model_copy(update={"scenes": scenes, "idea": idea})
+
+
+async def _resolve_music(
+    *,
+    niche: Niche,
+    script: Script,
+    root: Path,
+    resumed: bool,
+    spend: SpendContext,
+) -> Path | None:
+    """Background track. Fail-open except a post-spend cap breach."""
+    audio_brief = niche.creative_brief.audio
+    if not audio_brief.music_enabled:
+        log.info("music disabled by creative brief")
+        return None
+    music_path: Path | None = None
+    want_generated = niche.music_provider == "generated" or (
+        niche.music_provider == "auto" and music_gen.enabled()
+    )
+    if want_generated and music_gen.enabled():
+        generated_path = root / "audio" / "music_generated.mp3"
+        reuse_music = resumed and generated_path.exists()
+        if reuse_music:
+            log.info("resume: reusing generated music from prior attempt")
+            return generated_path
+        try:
+            music_path = await music_gen.compose(
+                mood=audio_brief.music_mood,
+                duration_sec=int(script.total_duration_sec),
+                out_path=generated_path,
+                niche_title=niche.title,
+                spend=spend,
+            )
+        except spend_repo.SpendCapExceeded as e:
+            if getattr(e, "after_spend", False):
+                raise
+            log.warning(
+                "generated music pre-flight spend cap exceeded, "
+                "falling back to library: %s",
+                e,
+            )
+        except music_gen.MusicGenError as e:
+            log.warning("generated music failed, falling back: %s", e)
+    if music_path is None:
+        music_path = await music.pick_track(
+            query=audio_brief.music_mood or niche.title,
+            target_duration_sec=int(script.total_duration_sec),
+            library_dir=Path(settings.assets_dir) / "music",
+            cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
+        )
+    return music_path
+
+
+async def _signal_terminal(job: Job, *, kind: str, event: str) -> None:
+    """Email + outbound webhook in one beat. Both are fail-open."""
+    await asyncio.gather(
+        _notify(job, kind=kind),
+        _emit_webhook(job, event),
+    )
+
+
 def _avatar_model_id(niche: Niche) -> str | None:
     """The fal avatar model id when this niche renders lip-synced UGC,
     else None (normal keyframe-animation path)."""
@@ -330,8 +424,7 @@ async def _fail_with(job: Job, error: str, exc: BaseException | None = None) -> 
     job.status = JobStatus.failed
     job.error = error
     await _persist(job)
-    await _notify(job, kind="failed")
-    await _emit_webhook(job, "job.failed")
+    await _signal_terminal(job, kind="failed", event="job.failed")
     try:
         import sentry_sdk
         if exc is not None:
@@ -500,7 +593,8 @@ async def _run_job_inner(
     resumed = job.script is not None
 
     if resumed:
-        script: Script = job.script
+        script: Script = _lock_script_facts(job.script, niche)
+        job.script = script
         log.info("resume: reusing script from prior attempt")
         (root / "script.json").write_text(script.model_dump_json(indent=2))
     else:
@@ -578,6 +672,7 @@ async def _run_job_inner(
                     design_kit=design_kit_content,
                     spend=spend,
                 )
+            script = _lock_script_facts(script, niche)
             job.script = script
             (root / "script.json").write_text(script.model_dump_json(indent=2))
 
@@ -680,13 +775,25 @@ async def _run_job_inner(
         job.status = JobStatus.animating
         await _persist(job)
 
-    # 4. Voiceover
+    # 4+5. Voiceover and music are independent after the script exists.
+    # Start music during voicing so TTS and Pixabay/ElevenLabs score
+    # overlap. Cancel music if VO hits the spend cap so we do not buy
+    # a soundtrack for a dying job.
     if not await _ensure_cap(job, niche):
         return job
+    vo_path = root / "audio" / "voiceover.wav"
+    music_task = asyncio.create_task(
+        _resolve_music(
+            niche=niche,
+            script=script,
+            root=root,
+            resumed=resumed,
+            spend=spend,
+        )
+    )
     with _stage(JobStatus.voicing.value):
         job.status = JobStatus.voicing
         await _persist(job)
-        vo_path = root / "audio" / "voiceover.wav"
         narration = " ".join(s.narration for s in script.scenes)
         if avatar_model:
             # Lip-synced UGC: the voiceover already lives inside each
@@ -695,8 +802,6 @@ async def _run_job_inner(
             # the edit stage.
             log.info("lip-sync mode: voiceover embedded in avatar clips")
         else:
-            # Same script as the failed attempt means the VO on the volume
-            # is still the right narration — skip the re-synth.
             reuse_vo = resumed and vo_path.exists()
             if reuse_vo:
                 log.info("resume: reusing voiceover from prior attempt")
@@ -704,6 +809,11 @@ async def _run_job_inner(
                 if not reuse_vo:
                     await _synthesize_vo(narration, vo_path, niche=niche, spend=spend)
             except spend_repo.SpendCapExceeded as e:
+                music_task.cancel()
+                try:
+                    await music_task
+                except (asyncio.CancelledError, Exception):
+                    pass
                 try:
                     import sentry_sdk
                     sentry_sdk.capture_exception(e)
@@ -711,73 +821,15 @@ async def _run_job_inner(
                     pass
                 return await _fail_with(job, str(e))
 
-    # 5. Music
-    # Derive a search query from existing Niche fields — no schema change needed.
-    # `niche.title` (e.g. "claymation econ explainers") + `niche.visual_style`
-    # (e.g. "claymation, warm palette") give Pixabay enough signal to find
-    # thematically appropriate background music. We take just the title to keep
-    # the query short and searchable; visual_style tends to be image-specific.
-    audio_brief = niche.creative_brief.audio
     with _stage("music"):
-        if not audio_brief.music_enabled:
-            log.info("music disabled by creative brief")
+        try:
+            music_path = await music_task
+        except spend_repo.SpendCapExceeded as e:
+            # Post-spend breach from compose — money already moved.
+            return await _fail_with(job, str(e))
+        except Exception as e:  # noqa: BLE001 — soundtrack never fails a video
+            log.warning("music task failed, continuing without: %s", e)
             music_path = None
-        else:
-            music_path = None
-            # Generated score first when the niche wants it: 'generated'
-            # is explicit, 'auto' upgrades only when the deploy has the
-            # key. Any generation failure falls back to the stock library
-            # chain — music can never fail a video, but a spend-cap breach
-            # still ends the run (money safety beats soundtrack).
-            want_generated = niche.music_provider == "generated" or (
-                niche.music_provider == "auto" and music_gen.enabled()
-            )
-            if want_generated and music_gen.enabled():
-                generated_path = root / "audio" / "music_generated.mp3"
-                # Same script as the failed attempt means the same
-                # mood/duration, so the previously composed track is still
-                # the right one — skip the re-bill, mirroring reuse_vo.
-                reuse_music = resumed and generated_path.exists()
-                if reuse_music:
-                    log.info("resume: reusing generated music from prior attempt")
-                    music_path = generated_path
-                else:
-                    try:
-                        music_path = await music_gen.compose(
-                            mood=audio_brief.music_mood,
-                            duration_sec=int(script.total_duration_sec),
-                            out_path=generated_path,
-                            niche_title=niche.title,
-                            spend=spend,
-                        )
-                    except spend_repo.SpendCapExceeded as e:
-                        # compose() can raise a cap breach from two places:
-                        # the pre-flight ensure_can_spend (nothing spent) OR
-                        # the post-call spend.log re-check (the track was
-                        # already generated AND billed). `after_spend`
-                        # distinguishes them. A pre-flight breach is not a
-                        # reason to throw away the $3-5 of clips/VO already
-                        # bought this run — fall back to the free library
-                        # chain like MusicGenError does. A post-spend breach
-                        # is a real money event: fail the job here, at the
-                        # point of breach, with the correct root cause (never
-                        # silently discard an already-billed track and mask
-                        # the breach as a warning).
-                        if getattr(e, "after_spend", False):
-                            return await _fail_with(job, str(e))
-                        log.warning(
-                            "generated music pre-flight spend cap exceeded, "
-                            "falling back to library: %s", e,
-                        )
-                    except music_gen.MusicGenError as e:
-                        log.warning("generated music failed, falling back: %s", e)
-            if music_path is None:
-                music_path = await music.pick_track(
-                    query=audio_brief.music_mood or niche.title,
-                    target_duration_sec=int(script.total_duration_sec),
-                    library_dir=Path(settings.assets_dir) / "music",
-                    cache_dir=Path(settings.assets_dir) / "music" / "pixabay",
-                )
     job.audio = AudioTrack(
         voiceover_path=str(vo_path),
         music_path=str(music_path) if music_path is not None else None,
@@ -957,8 +1009,7 @@ async def _run_job_inner(
         if overlay.park:
             job.status = JobStatus.awaiting_approval
             await _persist(job)
-            await _notify(job, kind="review")
-            await _emit_webhook(job, "job.awaiting_approval")
+            await _signal_terminal(job, kind="review", event="job.awaiting_approval")
             return job
         if hint:
             job.harness = {**(job.harness or {}), "repurpose": hint}
@@ -984,8 +1035,7 @@ async def _run_job_inner(
         job.status = JobStatus.awaiting_approval
         await _persist(job)
         log.info("awaiting approval", extra={"job_id": str(job.id)})
-        await _notify(job, kind="review")
-        await _emit_webhook(job, "job.awaiting_approval")
+        await _signal_terminal(job, kind="review", event="job.awaiting_approval")
         return job
 
     # 11. Schedule via Ayrshare (per-user profile). Archive overlaps
@@ -1033,8 +1083,7 @@ async def _schedule_stage(
     if gate.park:
         job.status = JobStatus.awaiting_approval
         await _persist(job)
-        await _notify(job, kind="review")
-        await _emit_webhook(job, "job.awaiting_approval")
+        await _signal_terminal(job, kind="review", event="job.awaiting_approval")
         return job
     with _stage(JobStatus.scheduling.value):
         job.status = JobStatus.scheduling
@@ -1053,8 +1102,7 @@ async def _schedule_stage(
         job.provider_post_id = post_id
         job.status = JobStatus.done
         await _persist(job)
-    await _notify(job, kind="scheduled")
-    await _emit_webhook(job, "job.done")
+    await _signal_terminal(job, kind="scheduled", event="job.done")
     return job
 
 

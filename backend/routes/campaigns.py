@@ -65,8 +65,9 @@ async def list_campaigns(ctx: AuthCtx = CurrentUser) -> list[Campaign]:
 
 
 @router.post("", response_model=Campaign, status_code=status.HTTP_201_CREATED)
+@limiter.limit(_START_LIMIT)
 async def create_campaign(
-    body: CampaignCreate, ctx: AuthCtx = CurrentUser
+    request: Request, body: CampaignCreate, ctx: AuthCtx = CurrentUser
 ) -> Campaign:
     # Normalize naive datetimes to UTC so mixed aware/naive input can't
     # TypeError inside the comparison (a 500) or skew the runner's gates.

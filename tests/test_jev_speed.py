@@ -340,6 +340,51 @@ def test_extract_claims_and_fact_lock():
     assert "2024" in cleaned or "$400" in cleaned or "grind" in cleaned.lower()
 
 
+def test_lock_script_facts_strips_invented_stats():
+    from decimal import Decimal
+    from uuid import uuid4
+
+    from marketer.models import Idea, Niche, PostingWindow, Scene, Script
+    from marketer.pipeline import _lock_script_facts
+
+    script = Script(
+        idea=Idea(
+            topic="t",
+            angle="a",
+            hook="Stop wasting shots.",
+            target_audience="x",
+            why_it_works="y",
+        ),
+        scenes=[
+            Scene(
+                index=0,
+                narration="Dial the grind first. Research shows 87% of shots fail.",
+                visual_prompt="vp",
+                motion_prompt="mp",
+                duration_sec=4.0,
+            )
+        ],
+        total_duration_sec=4.0,
+    )
+    niche = Niche(
+        id=uuid4(),
+        user_id="u",
+        title="home espresso",
+        description="Dial grind size for sweeter shots.",
+        target_audience="baristas",
+        visual_style="warm",
+        voice="onyx",
+        target_duration_sec=4,
+        scene_count=1,
+        posting_windows=[PostingWindow(hour=9, minute=0, tz="UTC")],
+        platforms=["reels"],
+        daily_spend_cap_usd=Decimal("5"),
+    )
+    locked = _lock_script_facts(script, niche)
+    assert "87%" not in locked.scenes[0].narration
+    assert "Dial the grind first" in locked.scenes[0].narration
+
+
 def test_outline_and_metadata_are_deterministic():
     from marketer.articles.models import SerpAnalysis
 

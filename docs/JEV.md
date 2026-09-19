@@ -803,3 +803,16 @@ Setup I/O is not Jev, but it sits on the time-to-first-publish path in front of 
 | Library `POST /compositions` 10/min | Remix spawns Modal `render_composition`. Same class of bound as enqueue |
 
 Ads overlay and delivery-fact floors are unchanged. Jev still cannot generate video or move money.
+
+---
+
+## 25. Loop — overlap VO + music, script fact lock, bound creates
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Voiceover and music start together | TTS and Pixabay/generated score do not depend on each other. A 2–8s sequential wait becomes one wall-clock beat. Music is cancelled if VO hits the spend cap |
+| `_signal_terminal` gathers email + webhook | Every fail / park / done used to wait for Resend then the fan-out. Independent, fail-open |
+| `_lock_script_facts` after scriptwriter | Same fact lock as articles: invented `%` / `$` / study-year sentences are stripped from narration using the niche brief as the allowed set. One-line scenes that would empty stay (fail-open) |
+| Campaign create 10/min; niche create 8/min | Spray-create is the front door onto the runner / writer. Same class of bound as start / draft |
+
+Jev still does not write narration. Ads overlay and delivery-fact floors are unchanged.

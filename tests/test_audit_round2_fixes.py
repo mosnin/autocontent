@@ -24,6 +24,9 @@ def _make_authed_client(monkeypatch) -> TestClient:
         return AuthCtx(user_id=_USER_ID, email="t@t.com")
 
     from backend.main import create_app
+    from backend.rate_limit import limiter
+
+    limiter.reset()
     app = create_app()
     app.dependency_overrides[require_user] = _fake_require_user
     return TestClient(app, raise_server_exceptions=False)

@@ -195,7 +195,10 @@ async def _validate_kit_refs(
 
 
 @router.post("", response_model=Niche, status_code=status.HTTP_201_CREATED)
-async def create_niche(body: NicheCreate, ctx: AuthCtx = CurrentUser) -> Niche:
+@limiter.limit(_DRAFT_LIMIT)
+async def create_niche(
+    request: Request, body: NicheCreate, ctx: AuthCtx = CurrentUser
+) -> Niche:
     await _validate_kit_refs(ctx.user_id, body.design_kit_id, body.writing_kit_id)
     _validate_voice_provider(body.voice_provider)
     return await niches_repo.create(ctx.user_id, **body.model_dump())
