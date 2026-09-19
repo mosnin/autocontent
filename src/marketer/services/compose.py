@@ -18,6 +18,7 @@ per-user scoped.
 """
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from uuid import UUID
 
@@ -84,9 +85,14 @@ async def render_composition(*, user_id: str, composition_id: UUID) -> Compositi
 
         workdir = _workdir(user_id, composition_id)
         ordered = [by_id[i] for i in comp.clip_asset_ids]
-        local_paths = []
-        for idx, asset in enumerate(ordered):
-            local_paths.append(await _materialize_clip(asset, workdir, idx))
+        local_paths = list(
+            await asyncio.gather(
+                *[
+                    _materialize_clip(asset, workdir, idx)
+                    for idx, asset in enumerate(ordered)
+                ]
+            )
+        )
 
         keep_audio = comp.audio_mode == "keep" and all(
             ffmpeg.probe_has_audio(p) for p in local_paths

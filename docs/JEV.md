@@ -1148,3 +1148,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Lost claim still loads once | Double-spawn / done / failed stay an idempotent no-op. Missing id still fail-closes |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 57. Loop — composition clips materialize in one gather
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `render_composition` gathers `_materialize_clip` for every clip | Wasabi downloads and volume Path checks are independent. A 4-clip remix waited on each download before starting the next |
+| Concat still runs after every path exists | Order is gather return order (`enumerate`). A missing volume clip still fail-closes the composition |
+| Do not gather `get_assets_bulk` with the claim | Clip ids come from the claimed row. Concat stays sequential — it depends on every path |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
