@@ -842,3 +842,15 @@ Jev still does not write captions. Ads overlay never relaxes AdSpendGuard.
 | Admin mutations 10/min; account erase 5/min; niche update 8/min; brand-kit PUT 10/min | Privilege spray and self-wipe are the remaining unbounded mutation doors |
 
 Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.
+
+## 28. Loop — hero overlap, n==1 templates, shared OpenAI
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Article hero starts during metadata | gpt-image-1 overlaps SEO notes + interlink. Imaging stage still awaits so spend-cap fails the article and degrade still publishes |
+| n==1 ideation without an operator lens uses `templates[0]` | Last leftover writer hop when the creator did not pick a hook mechanism. A brief lens still buys one shot |
+| One OpenAI client for images / TTS / Whisper / article fallback | Four TLS pools for the same key. Tests still inject per-module `_client` |
+| Stripe `api_key` set once per secret | Checkout and webhook no longer reconfigure the SDK on every call |
+| User settings PATCH 10/min; niche archive 8/min; kit update 10/min | Spend-cap edits and archive spray were the remaining unbounded doors |
+
+Jev still does not write hooks unless the operator set a lens. Ads overlay never relaxes AdSpendGuard.

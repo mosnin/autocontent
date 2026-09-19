@@ -236,7 +236,10 @@ async def update_niche(
 
 
 @router.delete("/{niche_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def archive_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit(_DRAFT_LIMIT)
+async def archive_niche(
+    request: Request, niche_id: UUID, ctx: AuthCtx = CurrentUser
+) -> None:
     await niches_repo.archive(niche_id, user_id=ctx.user_id)
 
 

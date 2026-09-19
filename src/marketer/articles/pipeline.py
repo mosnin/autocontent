@@ -150,6 +150,20 @@ async def _fail_with(article: Article, error: str, exc: BaseException | None = N
     return article
 
 
+async def _render_hero(
+    prompt: str,
+    path: Path,
+    *,
+    alt: str,
+    quality: str,
+    spend: SpendContext,
+) -> tuple[Path, str]:
+    await openai_images.generate_keyframe(
+        prompt, path, quality=quality, spend=spend
+    )
+    return path, alt
+
+
 async def _write_sections(
     outline: Outline,
     ctx: SectionContext,
@@ -373,58 +387,31 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         article.quality = quality
         article.word_count = len(markdown.split())
 
-    # 5. Metadata + JSON-LD schema + internal-link suggestions
-    with _stage(ArticleStatus.metadata.value):
-        await _set_status(article, ArticleStatus.metadata)
-        meta = fastpath.metadata_from_article(
-            article.topic, article.focus_keyword, markdown
-        )
-        article.title = meta.title
-        article.slug = meta.slug
-        article.meta_description = meta.metaDescription
-        from ..jev.loops import seo_metadata_notes
+    # 5. Metadata + JSON-LD schema + internal-link suggestions.
+    # Hero render starts here so gpt-image-1 overlaps SEO + interlink.
+    hero_task: asyncio.Task | None = None
+    try:
+        with _stage(ArticleStatus.metadata.value):
+            await _set_status(article, ArticleStatus.metadata)
+            meta = fastpath.metadata_from_article(
+                article.topic, article.focus_keyword, markdown
+            )
+            article.title = meta.title
+            article.slug = meta.slug
+            article.meta_description = meta.metaDescription
+            from ..jev.loops import seo_metadata_notes
 
-        seo_notes, candidates = await asyncio.gather(
-            seo_metadata_notes(
-                title=meta.title,
-                meta_description=meta.metaDescription,
-                focus_keyword=article.focus_keyword,
-                article_excerpt=markdown,
-                spend=spend,
-            ),
-            articles_repo.interlink_candidates(article.user_id),
-        )
-        if seo_notes and article.quality is not None:
-            article.quality.notes.extend(seo_notes)
-        article.keywords = meta.keywords
-        article.schema_jsonld = fastpath.schema_json(
-            title=meta.title,
-            slug=meta.slug,
-            meta_description=meta.metaDescription,
-            focus_keyword=meta.focusKeyword,
-            keywords=meta.keywords,
-            article_md=markdown,
-        )
-        candidates = [c for c in candidates if c["slug"] != meta.slug]
-        article.link_suggestions = fastpath.interlink_lexical(markdown, candidates)
-        article.article_markdown = markdown
-
-    # 6. Hero image (optional, non-essential) — reuses the video pipeline's
-    # gpt-image-1 provider, so pricing/caps/ledger are identical. An article
-    # is fully publishable without a hero image, so a failure here (content
-    # policy rejection, transient provider outage, malformed prompt payload)
-    # must DEGRADE — log and continue without one — rather than fail the
-    # whole article. A spend-cap breach is the one exception: that's a
-    # real-money guardrail, not a hero-image problem, so it still fails the
-    # article cleanly like every other metered stage.
-    if settings.article_hero_image:
-        with _stage(ArticleStatus.imaging.value):
-            await _set_status(article, ArticleStatus.imaging)
-            try:
-                prompt = fastpath.hero_prompt(
-                    article.title or article.topic,
-                    article.focus_keyword,
-                )
+            if settings.article_hero_image:
+                try:
+                    prompt = fastpath.hero_prompt(
+                        meta.title or article.topic, article.focus_keyword
+                    )
+                except Exception as exc:  # noqa: BLE001 — prompt is non-essential
+                    log.warning(
+                        "article hero prompt degraded",
+                        extra={"article_id": str(article.id), "error": str(exc)},
+                    )
+                    prompt = None
                 if prompt is not None:
                     hero = (
                         Path(settings.artifacts_dir)
@@ -433,18 +420,67 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
                         / str(article.id)
                         / "hero.png"
                     )
-                    await openai_images.generate_keyframe(
-                        prompt.prompt, hero, quality=niche.image_quality, spend=spend
+                    hero_task = asyncio.create_task(
+                        _render_hero(
+                            prompt.prompt,
+                            hero,
+                            alt=prompt.altText,
+                            quality=niche.image_quality,
+                            spend=spend,
+                        )
                     )
-                    article.hero_image_path = str(hero)
-                    article.hero_image_alt = prompt.altText
-            except spend_repo.SpendCapExceeded:
-                raise
-            except Exception as exc:  # noqa: BLE001 — hero image is non-essential
-                log.warning(
-                    "article hero image degraded; publishing without one",
-                    extra={"article_id": str(article.id), "error": str(exc)},
-                )
+
+            seo_notes, candidates = await asyncio.gather(
+                seo_metadata_notes(
+                    title=meta.title,
+                    meta_description=meta.metaDescription,
+                    focus_keyword=article.focus_keyword,
+                    article_excerpt=markdown,
+                    spend=spend,
+                ),
+                articles_repo.interlink_candidates(article.user_id),
+            )
+            if seo_notes and article.quality is not None:
+                article.quality.notes.extend(seo_notes)
+            article.keywords = meta.keywords
+            article.schema_jsonld = fastpath.schema_json(
+                title=meta.title,
+                slug=meta.slug,
+                meta_description=meta.metaDescription,
+                focus_keyword=meta.focusKeyword,
+                keywords=meta.keywords,
+                article_md=markdown,
+            )
+            candidates = [c for c in candidates if c["slug"] != meta.slug]
+            article.link_suggestions = fastpath.interlink_lexical(markdown, candidates)
+            article.article_markdown = markdown
+
+        # 6. Hero image (optional, non-essential) — render started during
+        # metadata so gpt-image-1 overlaps SEO + interlink. A failure here
+        # must DEGRADE rather than fail the article. A spend-cap breach is
+        # the one exception: that's a real-money guardrail.
+        if settings.article_hero_image:
+            with _stage(ArticleStatus.imaging.value):
+                await _set_status(article, ArticleStatus.imaging)
+                if hero_task is not None:
+                    try:
+                        path, alt = await hero_task
+                        article.hero_image_path = str(path)
+                        article.hero_image_alt = alt
+                    except spend_repo.SpendCapExceeded:
+                        raise
+                    except Exception as exc:  # noqa: BLE001 — hero is non-essential
+                        log.warning(
+                            "article hero image degraded; publishing without one",
+                            extra={"article_id": str(article.id), "error": str(exc)},
+                        )
+    finally:
+        if hero_task is not None and not hero_task.done():
+            hero_task.cancel()
+            try:
+                await hero_task
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
 
     article.status = ArticleStatus.done
     article.error = None

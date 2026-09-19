@@ -297,12 +297,15 @@ async def run_ideation(
         return templates[0]
 
     if n == 1:
-        # Honor the creator's preferred hook mechanism even without a
-        # tournament: single-shot uses their first lens.
+        # Operator-chosen hook lens still buys one writer shot. Without
+        # a lens, a template is the same as dark n≥2 — no invented hook.
         solo_lens = (brief.candidate_lenses() if brief else [])
-        result = await run_metered(
-            agent, _prompt(solo_lens[0] if solo_lens else ""), spend=spend
-        )
+        if solo_lens:
+            result = await run_metered(agent, _prompt(solo_lens[0]), spend=spend)
+            return result.final_output_as(Idea)
+        if templates:
+            return templates[0]
+        result = await run_metered(agent, _prompt(""), spend=spend)
         return result.final_output_as(Idea)
 
     # A brief with preferred hook mechanisms replaces the stock lens set —

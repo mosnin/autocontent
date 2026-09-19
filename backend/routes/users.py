@@ -13,6 +13,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _ERASE_LIMIT = "5/minute"
+_SETTINGS_LIMIT = "10/minute"
 
 
 @router.get("/me", response_model=User)
@@ -47,7 +48,9 @@ async def erase_my_account(request: Request, ctx: AuthCtx = CurrentUser) -> None
 
 
 @router.patch("/me", response_model=User)
+@limiter.limit(_SETTINGS_LIMIT)
 async def update_me(
+    request: Request,
     body: UserSettingsUpdate,
     ctx: AuthCtx = CurrentUser,
 ) -> User:

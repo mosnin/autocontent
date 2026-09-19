@@ -70,8 +70,9 @@ async def get_kit(kit_id: UUID, ctx: AuthCtx = CurrentUser) -> Kit:
 
 
 @router.put("/{kit_id}", response_model=Kit)
+@limiter.limit(_KIT_LIMIT)
 async def update_kit(
-    kit_id: UUID, body: KitUpdate, ctx: AuthCtx = CurrentUser
+    request: Request, kit_id: UUID, body: KitUpdate, ctx: AuthCtx = CurrentUser
 ) -> Kit:
     kit = await kits_repo.update(
         kit_id, user_id=ctx.user_id, **body.model_dump(exclude_unset=True)
