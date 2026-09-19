@@ -494,6 +494,21 @@ def definition_section_from_research(
     return f"## {title}\n\n{body}\n"
 
 
+def stakes_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """'Why X matters now' from SERP highlights. No invented stakes."""
+    key = (heading or "").strip().casefold()
+    if not key.startswith("why ") or "matters" not in key:
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 2:
+        return None
+    title = (heading or "Why it matters").strip()
+    body = "\n\n".join(h[:280] for h in highlights[:4])
+    return f"## {title}\n\n{body}\n"
+
+
 def how_to_section_from_research(
     heading: str, research: SerpAnalysis | None
 ) -> str | None:

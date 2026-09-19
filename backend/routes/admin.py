@@ -23,6 +23,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _ADMIN_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 async def _audit(
@@ -48,7 +49,10 @@ async def _audit(
 # --------------------------------------------------------------------------- overview
 
 @router.get("/overview", response_model=admin_repo.PlatformOverview)
-async def overview(ctx: AdminCtx = CurrentAdmin) -> admin_repo.PlatformOverview:
+@limiter.limit(_READ_LIMIT)
+async def overview(
+    request: Request, ctx: AdminCtx = CurrentAdmin
+) -> admin_repo.PlatformOverview:
     result = await admin_repo.overview()
     await _audit(ctx, "overview.view", target_type="system")
     return result
@@ -57,7 +61,9 @@ async def overview(ctx: AdminCtx = CurrentAdmin) -> admin_repo.PlatformOverview:
 # --------------------------------------------------------------------------- users
 
 @router.get("/users", response_model=list[admin_repo.AdminUserRow])
+@limiter.limit(_READ_LIMIT)
 async def list_users(
+    request: Request,
     ctx: AdminCtx = CurrentAdmin,
     q: str | None = None,
     limit: int = Query(default=50, ge=1, le=200),
@@ -69,7 +75,10 @@ async def list_users(
 
 
 @router.get("/users/{user_id}", response_model=admin_repo.AdminUserRow)
-async def get_user(user_id: str, ctx: AdminCtx = CurrentAdmin) -> admin_repo.AdminUserRow:
+@limiter.limit(_READ_LIMIT)
+async def get_user(
+    request: Request, user_id: str, ctx: AdminCtx = CurrentAdmin
+) -> admin_repo.AdminUserRow:
     row = await admin_repo.get_user(user_id)
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "user not found")
@@ -150,7 +159,10 @@ async def grant_credits(
 # --------------------------------------------------------------------------- feature flags
 
 @router.get("/flags", response_model=list[flags_repo.FeatureFlag])
-async def list_flags(ctx: AdminCtx = CurrentAdmin) -> list[flags_repo.FeatureFlag]:
+@limiter.limit(_READ_LIMIT)
+async def list_flags(
+    request: Request, ctx: AdminCtx = CurrentAdmin
+) -> list[flags_repo.FeatureFlag]:
     return await flags_repo.list_all()
 
 
@@ -179,7 +191,8 @@ async def upsert_flag(
 # --------------------------------------------------------------------------- system health
 
 @router.get("/health")
-async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def system_health(request: Request, ctx: AdminCtx = CurrentAdmin) -> dict:
     """Operational snapshot: DB reachability + recent failure/skew signals.
     Read-only; audited as a view."""
     from marketer.db import get_pool
@@ -214,7 +227,9 @@ async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
 # --------------------------------------------------------------------------- audit log
 
 @router.get("/audit-log", response_model=list[admin_audit.AuditEntry])
+@limiter.limit(_READ_LIMIT)
 async def audit_log(
+    request: Request,
     ctx: AdminCtx = CurrentAdmin,
     actor_id: str | None = None,
     target_type: str | None = None,

@@ -9,19 +9,23 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from marketer.services import metrics as metrics_service
 
 from ..auth import AdminCtx, CurrentAdmin
+from ..rate_limit import limiter
 
 log = logging.getLogger(__name__)
 
 router = APIRouter()
+_READ_LIMIT = "30/minute"
 
 
 @router.get("/metrics", response_model=metrics_service.OpsSnapshot)
+@limiter.limit(_READ_LIMIT)
 async def ops_metrics(
+    request: Request,
     ctx: AdminCtx = CurrentAdmin,
     error_window_minutes: int = Query(
         default=metrics_service.DEFAULT_ERROR_WINDOW_MINUTES, ge=5, le=30 * 24 * 60
@@ -43,7 +47,8 @@ async def ops_metrics(
 
 
 @router.get("/config-health")
-async def ops_config_health(ctx: AdminCtx = CurrentAdmin) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def ops_config_health(request: Request, ctx: AdminCtx = CurrentAdmin) -> dict:
     """Config-health report (Cycle-2 Team 3's preflight helper), surfaced
     here so an operator can see "misconfigured integration" alongside
     "stuck jobs" and "provider errors" in one place.

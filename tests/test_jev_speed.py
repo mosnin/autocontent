@@ -521,6 +521,12 @@ def test_faq_section_and_publishable_metadata():
     assert mistakes and mistakes.startswith("## Mistakes to avoid")
     assert mistakes.count("\n- ") >= 3
     assert fastpath.mistakes_section_from_research("How to start with espresso", rich) is None
+    stakes = fastpath.stakes_section_from_research("Why espresso matters now", rich)
+    assert stakes and stakes.startswith("## Why espresso matters now")
+    assert "18 grams" in stakes
+    assert stakes.count("\n\n") >= 2
+    assert fastpath.stakes_section_from_research("FAQ", rich) is None
+    assert fastpath.stakes_section_from_research("How to start with espresso", rich) is None
     assert fastpath.metadata_is_publishable(
         "Dial in espresso at home: a practical guide",
         "A practical guide to espresso for home baristas who want sweeter, more consistent shots every morning.",

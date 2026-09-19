@@ -3,18 +3,22 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from marketer.repos import calendar as calendar_repo
 from marketer.repos.calendar import CalendarItem
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_READ_LIMIT = "30/minute"
 
 
 @router.get("", response_model=list[CalendarItem])
+@limiter.limit(_READ_LIMIT)
 async def calendar(
+    request: Request,
     ctx: AuthCtx = CurrentUser,
     start: datetime | None = None,
     end: datetime | None = None,

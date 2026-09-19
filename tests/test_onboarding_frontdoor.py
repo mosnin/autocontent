@@ -93,7 +93,7 @@ def test_draft_spec_voice_is_constrained():
         )
 
 
-async def test_account_summary_shape(monkeypatch):
+def test_account_summary_shape(client, monkeypatch):
     """metrics_summary maps the repo aggregate into the response model."""
     from backend.routes import metrics as metrics_route
 
@@ -109,7 +109,12 @@ async def test_account_summary_shape(monkeypatch):
     monkeypatch.setattr(
         metrics_route.post_metrics_repo, "account_summary", fake_summary
     )
-    out = await metrics_route.metrics_summary(AuthCtx(user_id="user_a", email=""))
-    assert out.total_views == 1234
-    assert out.best_views == 900
-    assert out.days == 30
+    resp = client.get(
+        "/api/v1/metrics/summary",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    out = resp.json()
+    assert out["total_views"] == 1234
+    assert out["best_views"] == 900
+    assert out["days"] == 30

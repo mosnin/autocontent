@@ -5,14 +5,16 @@ makes videos, and here's what they earned. Powers the dashboard banner.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from marketer.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_READ_LIMIT = "30/minute"
 
 
 class MetricsSummary(BaseModel):
@@ -24,6 +26,7 @@ class MetricsSummary(BaseModel):
 
 
 @router.get("/summary", response_model=MetricsSummary)
-async def metrics_summary(ctx: AuthCtx = CurrentUser) -> MetricsSummary:
+@limiter.limit(_READ_LIMIT)
+async def metrics_summary(request: Request, ctx: AuthCtx = CurrentUser) -> MetricsSummary:
     data = await post_metrics_repo.account_summary(ctx.user_id, days=30)
     return MetricsSummary(**data)

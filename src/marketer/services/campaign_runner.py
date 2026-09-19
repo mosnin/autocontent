@@ -166,13 +166,31 @@ async def run_campaign_tick(
             "harness": gate.payload,
         }
 
+    due: list = []
     for item in items:
+        if item.kind == "video":
+            if _due(counts["video"].get(item.ref_id), item.cadence_per_week, now):
+                due.append(item)
+        elif item.kind == "image":
+            if _due(counts.get("image", {}).get(item.ref_id), item.cadence_per_week, now):
+                due.append(item)
+        elif item.kind == "article":
+            if _due(counts["article"].get(item.ref_id), item.cadence_per_week, now):
+                due.append(item)
+        # kind == "ad": linked for reporting; lifecycle stays in the
+        # governed ads layer.
+
+    niche_ids = list({item.ref_id for item in due})
+    fetched = await asyncio.gather(
+        *(niches_repo.get(nid, user_id=uid) for nid in niche_ids)
+    )
+    niches = {nid: row for nid, row in zip(niche_ids, fetched)}
+
+    for item in due:
         if projected + est > campaign.budget_usd:
             break  # no headroom for another piece
+        niche = niches.get(item.ref_id)
         if item.kind == "video":
-            if not _due(counts["video"].get(item.ref_id), item.cadence_per_week, now):
-                continue
-            niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None or not niche.platforms:
                 continue
             # Rotate platforms across spawns so all socials get coverage.
@@ -182,25 +200,17 @@ async def run_campaign_tick(
             projected += est
             spawned.append(f"video:{niche.id}:{platform}")
         elif item.kind == "image":
-            if not _due(counts.get("image", {}).get(item.ref_id), item.cadence_per_week, now):
-                continue
-            niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
                 continue
             await spawn_image(uid, niche.id, campaign.id)
             projected += est
             spawned.append(f"image:{niche.id}")
         elif item.kind == "article":
-            if not _due(counts["article"].get(item.ref_id), item.cadence_per_week, now):
-                continue
-            niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
                 continue
             await spawn_article(uid, niche.id, campaign.id)
             projected += est
             spawned.append(f"article:{niche.id}")
-        # kind == "ad": linked for reporting; lifecycle stays in the
-        # governed ads layer.
 
     return {
         "campaign_id": str(campaign.id),
