@@ -521,6 +521,8 @@ def _playbook_heading(key: str) -> bool:
         return True
     if key.startswith("how to start"):
         return True
+    if "in practice" in key:
+        return True
     return "mistake" in key
 
 
@@ -547,6 +549,21 @@ def serp_heading_section_from_research(
         return None
     title = (heading or "").strip()
     body = "\n\n".join(h[:280] for h in matched[:4])
+    return f"## {title}\n\n{body}\n"
+
+
+def practice_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """'{focus} in practice N' filler H2s from SERP highlights. No invented examples."""
+    key = (heading or "").strip().casefold()
+    if "in practice" not in key:
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 2:
+        return None
+    title = (heading or "In practice").strip()
+    body = "\n\n".join(h[:280] for h in highlights[:4])
     return f"## {title}\n\n{body}\n"
 
 

@@ -621,7 +621,7 @@ TypeSafe's remaining unused patterns after the first speed pass:
 | **Deterministic outline + metadata** | `outline_from_research`, `metadata_from_article` | SERP headings already *are* the outline. Title/slug/meta are extracts, not prose. |
 | **Deterministic FAQ** | `faq_section_from_research` | Searcher questions + highlights become the FAQ H2. One less writer call. |
 | **Deterministic checklist + definition** | `checklist_section_from_research`, `definition_section_from_research` | Playbook H2s that are already lists/definitions stitch SERP highlights. |
-| **Deterministic how-to + mistakes + stakes + SERP H2s** | `how_to_section_from_research`, `mistakes_section_from_research`, `stakes_section_from_research`, `serp_heading_section_from_research` | Playbook H2s plus leftover SERP headings stitch token-overlapping highlights. Writer stays on thin overlap. |
+| **Deterministic how-to + mistakes + stakes + in-practice + SERP H2s** | `how_to_section_from_research`, `mistakes_section_from_research`, `stakes_section_from_research`, `practice_section_from_research`, `serp_heading_section_from_research` | Playbook H2s plus leftover SERP headings stitch token-overlapping highlights. Writer stays on thin overlap. |
 | **Retrieve-then-judge** | `judge_article` / `audit_sources` send *claims*, not the 8k article | Jev has no world knowledge. Dumping a transcript makes it judge padding. |
 | **Citation-verifier as a QA gate** | `source_audit_penalty` *before* the rewrite threshold | Notes-only audit never forced a rewrite. Each flag now drops `overall` (0.08, cap 0.35). |
 | **Fact lock** | `allowed_facts` + `strip_ungrounded_claims` | Invented `%` / `$` / years / "research shows" sentences are stripped in milliseconds. No second LLM pass required to un-hallucinate. |
@@ -954,5 +954,16 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Image-post niche get gathers `default_context` | After the post exists, niche + user cap overlap. Cap is applied on the snapshot |
 | `_ensure_cap` reuses `spend.global_cap_usd` | Pre-stage checks ran a second users.get 2–3 times per video. The spend context already has the snapshot |
 | Library / templates / campaigns / kits lists + performance + billing balance + brand-kit GET 30/min | Last unbounded dashboard dumps. Mutations stay 10/min |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 38. Loop — template niche drafts, skip social spend, grounded in-practice H2s, bound leftover dumps
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `template_niche_drafts` + Jev Choice on the onboarding front door | Last 5–20s writer hop a new user paid before they could review a spec. Code builds 4 reviewable drafts from the one-liner + brand-kit lines. Jev picks. Dark harness / judge miss → templates[0]. No invented stats. Review screen still edits |
+| Article social skips niche + spend | Snippets are already a template extract. Two sequential DB reads (and a dead 402 path) sat in front of zero model spend |
+| `practice_section_from_research` stitches `{focus} in practice N` | Outline pads thin SERP with those filler H2s. Highlights ≥2 skip the writer. `_playbook_heading` keeps SERP stitch from stealing the shape |
+| Webhook list + Jev/voice status + providers + style-presets GET 30/min | Last unbounded catalog / status dumps. Mutations stay 10/min (webhooks) and 8/min (voice session) |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

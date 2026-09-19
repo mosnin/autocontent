@@ -18,6 +18,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _WEBHOOK_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 class WebhookCreate(BaseModel):
@@ -42,7 +43,10 @@ class WebhookCreate(BaseModel):
 
 
 @router.get("", response_model=list[WebhookEndpoint])
-async def list_endpoints(ctx: AuthCtx = CurrentUser) -> list[WebhookEndpoint]:
+@limiter.limit(_READ_LIMIT)
+async def list_endpoints(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> list[WebhookEndpoint]:
     return await webhooks_out.list_for_user(ctx.user_id)
 
 

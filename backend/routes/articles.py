@@ -113,8 +113,6 @@ async def repurpose_to_social(
     must be done and have content."""
     from marketer.articles import llm
     from marketer.articles.models import ArticleStatus
-    from marketer.repos import niches as niches_repo
-    from marketer.services.spend_context import default_context
 
     article = await articles_repo.get(article_id, user_id=ctx.user_id)
     if article is None:
@@ -123,22 +121,12 @@ async def repurpose_to_social(
         raise HTTPException(
             status.HTTP_409_CONFLICT, "article is not finished yet"
         )
-    niche = await niches_repo.get(article.niche_id, user_id=ctx.user_id)
-    cap = niche.daily_spend_cap_usd if niche else None
-    spend = await default_context(
-        user_id=ctx.user_id, niche_id=article.niche_id, job_id=None,
-        article_id=article.id, cap_usd=cap,
-    )
     try:
         snippets = await llm.generate_social_snippets(
             article.title or article.topic, article.article_markdown,
-            body.platforms, spend=spend,
+            body.platforms,
         )
     except Exception as exc:
-        # Cap tripped or provider error — surface a clean 4xx/5xx.
-        from marketer.repos.spend import SpendCapExceeded
-        if isinstance(exc, SpendCapExceeded):
-            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, str(exc)) from exc
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "generation failed") from exc
     return {"snippets": [s.model_dump() for s in snippets]}
 

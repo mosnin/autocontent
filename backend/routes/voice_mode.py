@@ -31,7 +31,8 @@ class VoiceSession(BaseModel):
 
 
 @router.get("/status", response_model=VoiceStatus)
-async def voice_status(ctx: AuthCtx = CurrentUser) -> VoiceStatus:
+@limiter.limit("30/minute")
+async def voice_status(request: Request, ctx: AuthCtx = CurrentUser) -> VoiceStatus:
     return VoiceStatus(
         ready=openai_realtime.enabled(),
         model=settings.voice_realtime_model,

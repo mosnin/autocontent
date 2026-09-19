@@ -8,15 +8,17 @@ whose keys aren't configured on this deploy.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 from marketer.config import settings
 from marketer.services import fal_video, openrouter
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_READ_LIMIT = "30/minute"
 
 
 class VideoModelOption(BaseModel):
@@ -38,7 +40,10 @@ class ScriptModelOption(BaseModel):
 
 
 @router.get("/video-models", response_model=list[VideoModelOption])
-async def list_video_models(ctx: AuthCtx = CurrentUser) -> list[VideoModelOption]:
+@limiter.limit(_READ_LIMIT)
+async def list_video_models(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> list[VideoModelOption]:
     options = [
         VideoModelOption(
             provider="grok", model_id="", name="Grok Imagine (default)",
@@ -69,7 +74,10 @@ class AudioProviders(BaseModel):
 
 
 @router.get("/audio", response_model=AudioProviders)
-async def audio_providers(ctx: AuthCtx = CurrentUser) -> AudioProviders:
+@limiter.limit(_READ_LIMIT)
+async def audio_providers(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> AudioProviders:
     from marketer.services import elevenlabs_tts, music_gen
 
     return AudioProviders(
@@ -90,7 +98,10 @@ async def audio_providers(ctx: AuthCtx = CurrentUser) -> AudioProviders:
 
 
 @router.get("/script-models", response_model=list[ScriptModelOption])
-async def list_script_models(ctx: AuthCtx = CurrentUser) -> list[ScriptModelOption]:
+@limiter.limit(_READ_LIMIT)
+async def list_script_models(
+    request: Request, ctx: AuthCtx = CurrentUser
+) -> list[ScriptModelOption]:
     options = [
         ScriptModelOption(
             model_id="", name=f"Platform default ({settings.agent_model})",

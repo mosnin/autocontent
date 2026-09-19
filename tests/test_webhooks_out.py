@@ -201,3 +201,32 @@ def test_patch_unknown_endpoint_404s(monkeypatch):
         json={"enabled": True}, headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 404
+
+
+def test_list_endpoints_returns_user_hooks(monkeypatch):
+    _reset_limiter()
+    from datetime import datetime
+
+    import marketer.repos.webhooks_out as repo
+    from marketer.repos.webhooks_out import WebhookEndpoint
+
+    async def _list(user_id):
+        return [
+            WebhookEndpoint(
+                id=uuid4(), user_id=user_id, url="https://ok.example/x",
+                events=["job.done"], enabled=True, description="",
+                created_at=datetime.now(UTC),
+            )
+        ]
+
+    monkeypatch.setattr(repo, "list_for_user", _list)
+    client = _client(monkeypatch)
+    resp = client.get(
+        "/api/v1/webhook-endpoints",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["url"] == "https://ok.example/x"
+    assert body[0]["secret"] is None

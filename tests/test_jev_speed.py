@@ -551,6 +551,14 @@ def test_faq_section_and_publishable_metadata():
         "How to start with espresso", grind
     ) is None
     assert fastpath.serp_heading_section_from_research("Best grind size", serp) is None
+    practice = fastpath.practice_section_from_research("espresso in practice 1", rich)
+    assert practice and practice.startswith("## espresso in practice 1")
+    assert "18 grams" in practice
+    assert fastpath.practice_section_from_research("FAQ", rich) is None
+    assert fastpath.practice_section_from_research("espresso in practice 1", serp) is None
+    assert fastpath.serp_heading_section_from_research(
+        "espresso in practice 1", rich
+    ) is None
     assert fastpath.metadata_is_publishable(
         "Dial in espresso at home: a practical guide",
         "A practical guide to espresso for home baristas who want sweeter, more consistent shots every morning.",

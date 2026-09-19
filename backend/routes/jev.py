@@ -118,7 +118,8 @@ class JevStatus(BaseModel):
 
 
 @router.get("/status", response_model=JevStatus)
-async def jev_status(ctx: AuthCtx = CurrentUser) -> JevStatus:
+@limiter.limit(_KNOWLEDGE_LIMIT)
+async def jev_status(request: Request, ctx: AuthCtx = CurrentUser) -> JevStatus:
     return JevStatus(
         jev_enabled=settings.jev_enabled,
         typesafe_configured=enabled(),
