@@ -876,3 +876,13 @@ Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.
 | GDPR export 5/min | A full-account dump was the last unbounded read of private data |
 
 Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.
+
+## 31. Loop — hero overlaps research, bound voice preview
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Article hero starts after topic pick | gpt-image-1 only needs topic + keyword. It hides behind Exa + write + QA. Imaging stage still awaits; spend-cap fails the article; other failures degrade |
+| Admin `/health` gathers stuck + failed-24h counts | Two independent job aggregates on every ops refresh |
+| Voice preview GET 8/min | First hit synthesizes paid TTS. Was unbounded |
+
+Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.

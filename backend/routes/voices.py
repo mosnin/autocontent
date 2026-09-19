@@ -9,15 +9,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse
 
 from marketer.config import settings
 from marketer.services import openai_tts
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_PREVIEW_LIMIT = "8/minute"
 
 # Mirrors VOICE_OPTIONS in the onboarding wizard.
 ALLOWED_VOICES = {
@@ -35,7 +37,10 @@ def preview_path(voice: str) -> Path:
 
 
 @router.get("/{voice}/preview")
-async def voice_preview(voice: str, ctx: AuthCtx = CurrentUser) -> FileResponse:
+@limiter.limit(_PREVIEW_LIMIT)
+async def voice_preview(
+    request: Request, voice: str, ctx: AuthCtx = CurrentUser
+) -> FileResponse:
     if voice not in ALLOWED_VOICES:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="unknown voice")
 

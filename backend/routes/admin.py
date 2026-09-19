@@ -8,6 +8,7 @@ SOC2 posture: least privilege (role gate), complete audit trail
 """
 from __future__ import annotations
 
+import asyncio
 from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -190,16 +191,21 @@ async def system_health(ctx: AdminCtx = CurrentAdmin) -> dict:
     except Exception:  # noqa: BLE001
         db_ok = False
 
-    stuck = await pool.fetchval(
-        """
-        select count(*) from jobs
-         where status not in ('done', 'failed', 'skipped', 'awaiting_approval')
-           and updated_at < now() - interval '2 hours'
-        """
-    ) if db_ok else None
-    failed_24h = await pool.fetchval(
-        "select count(*) from jobs where status = 'failed' and created_at >= now() - interval '24 hours'"
-    ) if db_ok else None
+    stuck = failed_24h = None
+    if db_ok:
+        stuck, failed_24h = await asyncio.gather(
+            pool.fetchval(
+                """
+                select count(*) from jobs
+                 where status not in ('done', 'failed', 'skipped', 'awaiting_approval')
+                   and updated_at < now() - interval '2 hours'
+                """
+            ),
+            pool.fetchval(
+                "select count(*) from jobs where status = 'failed' "
+                "and created_at >= now() - interval '24 hours'"
+            ),
+        )
 
     await _audit(ctx, "health.view", target_type="system")
     return {"db_ok": db_ok, "stuck_jobs": stuck, "failed_jobs_24h": failed_24h}
