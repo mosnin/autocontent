@@ -1112,3 +1112,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Missing `niche_id` still loads sequentially | Old Modal workers and direct tests keep working |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 53. Loop — pipeline unit seams no longer need Postgres
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `stub_pipeline_unit_seams` no-ops advisory locks + `recent_topics_for_niche` | Setup overlap gathered recent topics inside ideating. Stubbed `run_job` tests died on `get_pool()` unless CI had Postgres |
+| Shared helper on e2e / fanout / lipsync / no-music / traces / fallback / skip | One leftover DB read was failing 28 unit tests locally. Production lock and topic-dedupe contracts are unchanged |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
