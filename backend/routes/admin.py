@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.repos import admin as admin_repo
@@ -18,8 +18,10 @@ from marketer.repos import admin_audit
 from marketer.repos import feature_flags as flags_repo
 
 from ..auth import AdminCtx, CurrentAdmin
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ADMIN_LIMIT = "10/minute"
 
 
 async def _audit(
@@ -80,8 +82,9 @@ class SuspendBody(BaseModel):
 
 
 @router.post("/users/{user_id}/suspension", response_model=admin_repo.AdminUserRow)
+@limiter.limit(_ADMIN_LIMIT)
 async def set_suspension(
-    user_id: str, body: SuspendBody, ctx: AdminCtx = CurrentAdmin
+    request: Request, user_id: str, body: SuspendBody, ctx: AdminCtx = CurrentAdmin
 ) -> admin_repo.AdminUserRow:
     if user_id == ctx.user_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "cannot suspend yourself")
@@ -103,7 +106,10 @@ class RoleBody(BaseModel):
 
 
 @router.post("/users/{user_id}/role", response_model=admin_repo.AdminUserRow)
-async def set_role(user_id: str, body: RoleBody, ctx: AdminCtx = CurrentAdmin) -> admin_repo.AdminUserRow:
+@limiter.limit(_ADMIN_LIMIT)
+async def set_role(
+    request: Request, user_id: str, body: RoleBody, ctx: AdminCtx = CurrentAdmin
+) -> admin_repo.AdminUserRow:
     if body.role not in ("user", "admin"):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "role must be user|admin")
     if user_id == ctx.user_id and body.role != "admin":
@@ -125,7 +131,10 @@ class GrantBody(BaseModel):
 
 
 @router.post("/users/{user_id}/credits")
-async def grant_credits(user_id: str, body: GrantBody, ctx: AdminCtx = CurrentAdmin) -> dict:
+@limiter.limit(_ADMIN_LIMIT)
+async def grant_credits(
+    request: Request, user_id: str, body: GrantBody, ctx: AdminCtx = CurrentAdmin
+) -> dict:
     try:
         new_balance = await admin_repo.grant_credit(user_id, body.amount_usd)
     except ValueError:
@@ -150,7 +159,10 @@ class FlagBody(BaseModel):
 
 
 @router.put("/flags/{key}", response_model=flags_repo.FeatureFlag)
-async def upsert_flag(key: str, body: FlagBody, ctx: AdminCtx = CurrentAdmin) -> flags_repo.FeatureFlag:
+@limiter.limit(_ADMIN_LIMIT)
+async def upsert_flag(
+    request: Request, key: str, body: FlagBody, ctx: AdminCtx = CurrentAdmin
+) -> flags_repo.FeatureFlag:
     if not key or len(key) > 100:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid flag key")
     flag = await flags_repo.upsert(

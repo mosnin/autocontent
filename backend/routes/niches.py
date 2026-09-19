@@ -213,7 +213,9 @@ async def get_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> Niche:
 
 
 @router.put("/{niche_id}", response_model=Niche)
+@limiter.limit(_DRAFT_LIMIT)
 async def update_niche(
+    request: Request,
     niche_id: UUID,
     body: NicheUpdate,
     ctx: AuthCtx = CurrentUser,

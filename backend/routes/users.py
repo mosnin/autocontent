@@ -3,14 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from marketer.models import User, UserSettingsUpdate
 
 from ..auth import AuthCtx, CurrentUser
+from ..rate_limit import limiter
 
 router = APIRouter()
+_ERASE_LIMIT = "5/minute"
 
 
 @router.get("/me", response_model=User)
@@ -34,7 +36,8 @@ async def export_my_data(ctx: AuthCtx = CurrentUser) -> JSONResponse:
 
 
 @router.delete("/me", status_code=204)
-async def erase_my_account(ctx: AuthCtx = CurrentUser) -> None:
+@limiter.limit(_ERASE_LIMIT)
+async def erase_my_account(request: Request, ctx: AuthCtx = CurrentUser) -> None:
     """GDPR right to erasure: permanently delete the account and all its data
     (niches, jobs, articles, spend history, tokens) via FK cascade. This is
     irreversible; the frontend must confirm before calling."""

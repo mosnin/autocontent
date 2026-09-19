@@ -548,7 +548,7 @@ async def _run_job_inner(
         return job
 
     from .jev.client import warm as jev_warm
-    from .jev.planner import plan_video_run, script_has_caption_source, script_has_usable_visuals
+    from .jev.planner import plan_video_run
 
     try:
         await jev_warm()
@@ -587,10 +587,57 @@ async def _run_job_inner(
             "before this job can spend anything",
         )
 
+    # Character sheet depends only on the niche look — start it before
+    # ideation/script so gpt-image-1 latency hides behind the writer.
+    # cast_mode 'none' never builds a sheet (subject-mode videos).
+    sheet_task: asyncio.Task | None = None
+    if niche.creative_brief.visual.cast_mode != "none":
+        sheet_task = asyncio.create_task(
+            character_sheet.get_or_create(
+                niche, quality=niche.image_quality, spend=spend
+            )
+        )
+
+    try:
+        return await _run_job_after_sheet(
+            job,
+            niche,
+            platform,
+            root,
+            spend,
+            sheet_task=sheet_task,
+            allow_regenerate=allow_regenerate,
+            plan=plan,
+        )
+    finally:
+        if sheet_task is not None and not sheet_task.done():
+            sheet_task.cancel()
+            try:
+                await sheet_task
+            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+                pass
+
+
+async def _run_job_after_sheet(
+    job: Job,
+    niche: Niche,
+    platform: str,
+    root: Path,
+    spend: SpendContext,
+    *,
+    sheet_task: asyncio.Task | None,
+    allow_regenerate: bool,
+    plan: VideoPlan,
+) -> Job:
+    from .jev.planner import VideoPlan, script_has_caption_source, script_has_usable_visuals
+
     # Stage resume: a retried job that still carries a script from the
     # failed attempt reuses it (and any per-scene/VO artifacts below)
     # instead of re-spending. Content-rejected retries arrive wiped.
     resumed = job.script is not None
+    design_kit_content = ""
+    brand_voice = ""
+    banned_words: list[str] = []
 
     if resumed:
         script: Script = _lock_script_facts(job.script, niche)
@@ -603,16 +650,19 @@ async def _run_job_inner(
         with _stage(JobStatus.ideating.value):
             job.status = JobStatus.ideating
             await _persist(job)
-            perf_ctx, (brand_voice, banned_words), recent = await asyncio.gather(
-                build_performance_context(
-                    niche_id=niche.id,
-                    user_id=job.user_id,
-                    lookback_days=30,
-                ),
-                _load_brand_voice(job.user_id),
-                jobs_repo.recent_topics_for_niche(
-                    niche.id, user_id=job.user_id, limit=20
-                ),
+            perf_ctx, (brand_voice, banned_words), recent, design_kit_content = (
+                await asyncio.gather(
+                    build_performance_context(
+                        niche_id=niche.id,
+                        user_id=job.user_id,
+                        lookback_days=30,
+                    ),
+                    _load_brand_voice(job.user_id),
+                    jobs_repo.recent_topics_for_niche(
+                        niche.id, user_id=job.user_id, limit=20
+                    ),
+                    _load_design_kit(job.user_id, niche),
+                )
             )
             idea = await run_ideation(
                 niche.title,
@@ -634,7 +684,6 @@ async def _run_job_inner(
             audience_ctx = f"Audience: {niche.target_audience}. Platform: {platform}."
             if brand_voice:
                 audience_ctx += f" Brand voice: {brand_voice}."
-            design_kit_content = await _load_design_kit(job.user_id, niche)
             if design_kit_content:
                 audience_ctx += (
                     "\nDesign kit — the creator's direction system, follow "
@@ -682,15 +731,13 @@ async def _run_job_inner(
     with _stage(JobStatus.generating_images.value):
         job.status = JobStatus.generating_images
         await _persist(job)
-        if niche.creative_brief.visual.cast_mode == "none":
+        if sheet_task is not None:
+            reference = await sheet_task
+        else:
             # Subject-mode video (an object/environment carries the video,
             # not a cast): no character sheet, no reference image — style
             # cohesion is enforced by the visual director's prompts alone.
             reference = None
-        else:
-            reference = await character_sheet.get_or_create(
-                niche, quality=niche.image_quality, spend=spend
-            )
         # Per-scene resume: clips from the failed attempt whose files are
         # still on the volume are reused; only the missing scenes re-spend.
         # Mode-aware: avatar_model is derived from the CURRENT niche config,

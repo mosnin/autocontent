@@ -830,3 +830,15 @@ Jev still does not write narration. Ads overlay and delivery-fact floors are unc
 | Campaign items 10/min; kits create 10/min; template create 10/min; ads disconnect 20/min | Lane attach and kit spray are spawn front doors. Disconnect is the same abuse class as connect |
 
 Jev still does not write captions. Ads overlay never relaxes AdSpendGuard.
+
+## 27. Loop — overlap character sheet, gather probes, bound admin
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Character sheet starts before ideation | The sheet only needs niche look, not the script. gpt-image-1 latency hides behind ideation + scriptwriter. `cast_mode=none` still skips |
+| Design kit joins the ideation gather | Brand / perf / recent / kit were three reads then a fourth. One beat |
+| `/healthz/deep` gathers DB + JWKS + migrations | Probe wall-clock is max(latency), not the sum. Migrations run in a worker thread |
+| Billing balance + ledger gather | Two independent reads on every settings page |
+| Admin mutations 10/min; account erase 5/min; niche update 8/min; brand-kit PUT 10/min | Privilege spray and self-wipe are the remaining unbounded mutation doors |
+
+Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.

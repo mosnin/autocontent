@@ -7,6 +7,7 @@ session id makes retries no-ops).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from decimal import Decimal
 
@@ -58,16 +59,13 @@ class BalanceResponse(BaseModel):
 
 @router.get("/balance", response_model=BalanceResponse)
 async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
-    bal = (
-        await billing_repo.balance(ctx.user_id)
-        if settings.billing_enabled
-        else Decimal("0")
-    )
-    txs = (
-        await billing_repo.transactions(ctx.user_id, limit=50)
-        if settings.billing_enabled
-        else []
-    )
+    if settings.billing_enabled:
+        bal, txs = await asyncio.gather(
+            billing_repo.balance(ctx.user_id),
+            billing_repo.transactions(ctx.user_id, limit=50),
+        )
+    else:
+        bal, txs = Decimal("0"), []
     return BalanceResponse(
         balance_usd=bal,
         billing_enabled=settings.billing_enabled,
