@@ -50,6 +50,8 @@ Surfaces: `/decisions`, `/voice`, `GET /api/v1/jev/status`,
 `POST /api/v1/jev/route`, `GET /api/v1/jev/knowledge`,
 `POST /api/v1/voice/session`, `marketer jev status|route|knowledge`.
 
+Full theory, install, wiring map, and security model: [`docs/JEV.md`](docs/JEV.md).
+
 ## Video pipeline
 
 1. **Ideation** — pick a topic + write the hook

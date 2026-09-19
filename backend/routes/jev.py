@@ -6,11 +6,12 @@ fail-closed money path — this router only *judges*.
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Awaitable
 from typing import Any, TypeVar
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from marketer.company_os import capture_from_state, route_workspace
 from marketer.config import settings
@@ -44,6 +45,25 @@ router = APIRouter()
 log = get_logger(__name__)
 
 T = TypeVar("T")
+_MAX_STATE_CHARS = 24_000
+_MAX_QUESTIONS = 32
+
+
+def _bounded_state(state: Any) -> Any:
+    """Reject oversized payloads before they hit TypeSafe or the brain."""
+    try:
+        blob = json.dumps(state, default=str)
+    except TypeError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="state is not JSON-serializable",
+        ) from exc
+    if len(blob) > _MAX_STATE_CHARS:
+        raise HTTPException(
+            status.HTTP_413_CONTENT_TOO_LARGE,
+            detail=f"state exceeds {_MAX_STATE_CHARS} characters",
+        )
+    return state
 
 
 def _require_available() -> None:
@@ -92,7 +112,12 @@ async def jev_status(ctx: AuthCtx = CurrentUser) -> JevStatus:
 
 class AskBody(BaseModel):
     state: Any
-    questions: dict[str, dict[str, Any]] = Field(min_length=1)
+    questions: dict[str, dict[str, Any]] = Field(min_length=1, max_length=_MAX_QUESTIONS)
+
+    @field_validator("state")
+    @classmethod
+    def _state_bound(cls, value: Any) -> Any:
+        return _bounded_state(value)
 
 
 def _coerce_questions(raw: dict[str, dict[str, Any]]) -> dict:
@@ -144,6 +169,11 @@ async def jev_ask_endpoint(body: AskBody, ctx: AuthCtx = CurrentUser) -> dict:
 class StateBody(BaseModel):
     state: Any
 
+    @field_validator("state")
+    @classmethod
+    def _state_bound(cls, value: Any) -> Any:
+        return _bounded_state(value)
+
 
 @router.post("/route")
 async def jev_route(body: StateBody, ctx: AuthCtx = CurrentUser) -> dict:
@@ -186,7 +216,12 @@ async def jev_knowledge(ctx: AuthCtx = CurrentUser) -> dict:
 
 class NextActionBody(BaseModel):
     state: Any
-    targets: dict[str, str]
+    targets: dict[str, str] = Field(max_length=32)
+
+    @field_validator("state")
+    @classmethod
+    def _state_bound(cls, value: Any) -> Any:
+        return _bounded_state(value)
 
 
 @router.post("/next-action")

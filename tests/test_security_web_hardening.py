@@ -467,4 +467,8 @@ def test_image_posts_and_providers_routes_require_auth(monkeypatch):
     assert client.get("/api/v1/providers/script-models").status_code == 401
     assert client.get("/api/v1/providers/audio").status_code == 401
     assert client.get("/api/v1/jev/status").status_code == 401
+    assert client.get("/api/v1/jev/knowledge").status_code == 401
+    assert client.post("/api/v1/jev/route", json={"state": "x"}).status_code == 401
+    assert client.post("/api/v1/jev/ask", json={"state": "x", "questions": {"u": {"type": "noul", "instructions": "urgent?"}}}).status_code == 401
     assert client.get("/api/v1/voice/status").status_code == 401
+    assert client.post("/api/v1/voice/session").status_code == 401

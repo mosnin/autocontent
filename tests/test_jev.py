@@ -324,6 +324,22 @@ def test_jev_status_and_voice_status_routes(monkeypatch):
     assert "ready" in voice.json()
 
 
+def test_jev_ask_rejects_oversized_state(monkeypatch):
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "typesafe_api_key", "sk-test")
+    client = _jev_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jev/ask",
+        headers={"Authorization": "Bearer mkt_x"},
+        json={
+            "state": "x" * 30_000,
+            "questions": {"urgent": {"type": "noul", "instructions": "urgent?"}},
+        },
+    )
+    assert resp.status_code == 413
+
+
 def test_jev_ask_409_when_unavailable(monkeypatch):
     from marketer.config import settings
 
