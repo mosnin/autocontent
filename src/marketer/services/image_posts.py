@@ -259,6 +259,8 @@ async def run_image_post(
             image_post_id=image_post_id,
             apply_schedule=apply_schedule,
             archive_task=archive_task,
+            post={**post, "payload": payload},
+            niche=niche,
         )
     except Exception as e:  # noqa: BLE001 — terminal backstop, no zombie rows
         if archive_task is not None and not archive_task.done():
@@ -282,13 +284,25 @@ async def schedule_image_post(
     apply_schedule=None,
     human_approved: bool = False,
     archive_task: asyncio.Task | None = None,
+    post: dict[str, Any] | None = None,
+    niche: Niche | None = None,
 ) -> dict:
     """Post the generated slides. Shared by the autonomous path and the
-    approval resume. `archive_task` (when provided) overlaps Auto Mode."""
-    post = await image_posts_repo.get(image_post_id, user_id=user_id)
+    approval resume. `archive_task` (when provided) overlaps Auto Mode.
+
+    The generate path already loaded post + niche; pass them through so
+    we do not pay two leftover reads before publish_gate.
+    """
+    if post is not None and not isinstance(post, dict):
+        raise TypeError("post must be a dict")
+    if niche is not None and not isinstance(niche, Niche):
+        raise TypeError("niche must be a Niche")
+    if post is None:
+        post = await image_posts_repo.get(image_post_id, user_id=user_id)
     if post is None:
         raise ValueError(f"image post {image_post_id} not found")
-    niche = await niches_repo.get(post["niche_id"], user_id=user_id)
+    if niche is None:
+        niche = await niches_repo.get(post["niche_id"], user_id=user_id)
     slides = post["payload"].get("slides", [])
     if not slides or niche is None:
         if archive_task is not None:

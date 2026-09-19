@@ -1063,3 +1063,12 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Create-without-id still checks niche first | A missing niche must not insert an orphan article |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 48. Loop — image-post schedule reuses the loaded row
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `schedule_image_post(post=, niche=)` | Generate path already had both. Reloading them was two leftover DB reads before publish_gate |
+| Approval resume still loads | `finish_image_post` only has the id. Same fail-closed empty-slides contract |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

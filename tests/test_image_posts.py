@@ -146,6 +146,41 @@ async def test_carousel_flow_slide1_is_reference_and_posts(env):
     assert "planning" in env["statuses"] and "generating" in env["statuses"]
 
 
+async def test_schedule_reuses_loaded_post_and_niche(env, monkeypatch):
+    from marketer.repos import image_posts as repo
+    from marketer.repos import niches as niches_repo
+
+    env["post"] = {
+        **env["post"],
+        "payload": {
+            "caption": "Hook line",
+            "hashtags": ["claude"],
+            "slides": [{"index": 0, "heading": "h0", "path": "/tmp/s0.png"}],
+        },
+    }
+
+    async def boom_get(*_a, **_k):
+        raise AssertionError("schedule must not reload post when it is passed in")
+
+    async def boom_niche(*_a, **_k):
+        raise AssertionError("schedule must not reload niche when it is passed in")
+
+    monkeypatch.setattr(repo, "get", boom_get)
+    monkeypatch.setattr(svc.image_posts_repo, "get", boom_get)
+    monkeypatch.setattr(niches_repo, "get", boom_niche)
+    monkeypatch.setattr(svc.niches_repo, "get", boom_niche)
+
+    result = await svc.schedule_image_post(
+        user_id=USER,
+        image_post_id=POST_ID,
+        apply_schedule=env["poster"],
+        post=env["post"],
+        niche=env["niche"],
+    )
+    assert result["status"] == "done"
+    assert env["posted"] is not None
+
+
 async def test_approval_gate_parks_image_post(env):
     env["niche"] = _niche(approve_before_post=True)
     result = await svc.run_image_post(
