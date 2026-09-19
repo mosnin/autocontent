@@ -1239,3 +1239,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Passed `user` skips the notify read | Opt-out still silences mail. Webhook still fail-opens. Persist still lands before the emit |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 66. Loop — article persist overlaps research and the notify user
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Research persist joins the Exa + Jev-warm gather | Marking `researching` waited before SERP. Those hops are independent of the snapshot |
+| `_fail_with` and done gather save + `users.get` | Terminal email used to wait on the snapshot then reload the user |
+| Passed `user` skips the notify read | `_user_or_none` fail-opens so a down users table never fails the row. Opt-out still silences mail |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

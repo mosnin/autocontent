@@ -26,10 +26,12 @@ from opentelemetry import trace
 
 from ..config import settings
 from ..logging import get_logger
+from ..models import User
 from ..repos import articles as articles_repo
 from ..repos import brand_kit as brand_kit_repo
 from ..repos import niches as niches_repo
 from ..repos import spend as spend_repo
+from ..repos import users as users_repo
 from ..services import openai_images, otel
 from ..services.spend_context import SpendContext, default_context
 from . import exa, fastpath, llm
@@ -103,15 +105,27 @@ async def _emit_webhook(article: Article, event: str) -> None:
         log.warning("webhook emit failed", extra={"error": str(e)})
 
 
-async def _notify(article: Article, *, kind: str) -> None:
+async def _user_or_none(user_id: str) -> User | None:
+    """Fail-open user load so a down users table never blocks persist."""
+    if not isinstance(user_id, str) or not user_id.strip():
+        raise ValueError("user_id is required")
+    try:
+        return await users_repo.get(user_id)
+    except Exception:  # noqa: BLE001 — notify seasons, never fails the row
+        return None
+
+
+async def _notify(article: Article, *, kind: str, user: User | None = None) -> None:
     """Email the operator when an article reaches a terminal state. Fail-open
     and gated on the user's email-notification preference — matches the video
     pipeline so both content types notify consistently."""
+    if user is not None and not isinstance(user, User):
+        raise TypeError("user must be a User")
     try:
-        from ..repos import users as users_repo
         from ..services import email as email_svc
 
-        user = await users_repo.get(article.user_id)
+        if user is None:
+            user = await _user_or_none(article.user_id)
         if user is None or not user.email or not user.email_notifications:
             return
         title = article.title or article.topic or None
@@ -124,10 +138,14 @@ async def _notify(article: Article, *, kind: str) -> None:
         log.warning("article notification failed", extra={"error": str(e)})
 
 
-async def _signal_terminal(article: Article, *, kind: str, event: str) -> None:
+async def _signal_terminal(
+    article: Article, *, kind: str, event: str, user: User | None = None
+) -> None:
     """Email + outbound webhook in one beat. Both are fail-open."""
+    if user is not None and not isinstance(user, User):
+        raise TypeError("user must be a User")
     await asyncio.gather(
-        _notify(article, kind=kind),
+        _notify(article, kind=kind, user=user),
         _emit_webhook(article, event),
     )
 
@@ -135,8 +153,11 @@ async def _signal_terminal(article: Article, *, kind: str, event: str) -> None:
 async def _fail_with(article: Article, error: str, exc: BaseException | None = None) -> Article:
     article.status = ArticleStatus.failed
     article.error = error
-    await articles_repo.save(article)
-    await _signal_terminal(article, kind="failed", event="article.failed")
+    _, user = await asyncio.gather(
+        articles_repo.save(article),
+        _user_or_none(article.user_id),
+    )
+    await _signal_terminal(article, kind="failed", event="article.failed", user=user)
     try:
         import sentry_sdk
         if exc is not None:
@@ -406,8 +427,6 @@ async def _run_after_topic(
 ) -> Article:
     # 1. Research — Exa + Jev rank, then deterministic SERP extract.
     with _stage(ArticleStatus.researching.value):
-        await _set_status(article, ArticleStatus.researching)
-
         async def _warm_jev() -> None:
             try:
                 from ..jev.client import warm
@@ -421,9 +440,12 @@ async def _run_after_topic(
                 return early_pages
             return await exa.serp_pages(article.focus_keyword)
 
-        pages, _ = await asyncio.gather(
+        # Persist and Exa/Jev-warm are independent. Waiting on the
+        # snapshot left a leftover RTT in front of research.
+        pages, _, _ = await asyncio.gather(
             _pages(),
             _warm_jev(),
+            _set_status(article, ArticleStatus.researching),
         )
         from ..jev.loops import filter_research_pages
 
@@ -567,7 +589,10 @@ async def _run_after_topic(
 
     article.status = ArticleStatus.done
     article.error = None
-    await articles_repo.save(article)
+    _, user = await asyncio.gather(
+        articles_repo.save(article),
+        _user_or_none(article.user_id),
+    )
     log.info("article done", extra={"article_id": str(article.id)})
-    await _signal_terminal(article, kind="done", event="article.done")
+    await _signal_terminal(article, kind="done", event="article.done", user=user)
     return article

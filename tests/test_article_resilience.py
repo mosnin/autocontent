@@ -104,6 +104,16 @@ def stub_all(monkeypatch, tmp_path):
     monkeypatch.setattr(apipe.articles_repo, "recent_titles_for_niche", fake_recent_titles)
     monkeypatch.setattr(apipe.articles_repo, "interlink_candidates", fake_candidates)
 
+    from marketer.models import User
+
+    async def fake_user_get(user_id):
+        return User(
+            id=user_id, email="a@a.com", email_notifications=False,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(apipe.users_repo, "get", fake_user_get)
+
     from marketer.services.spend_context import SpendContext
 
     async def fake_default_context(**kwargs):

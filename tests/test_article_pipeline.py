@@ -92,6 +92,16 @@ def stub_all(monkeypatch, tmp_path):
     monkeypatch.setattr(apipe.articles_repo, "recent_titles_for_niche", fake_recent_titles)
     monkeypatch.setattr(apipe.articles_repo, "interlink_candidates", fake_candidates)
 
+    from marketer.models import User
+
+    async def fake_user_get(user_id):
+        return User(
+            id=user_id, email="a@a.com", email_notifications=False,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    monkeypatch.setattr(apipe.users_repo, "get", fake_user_get)
+
     # spend context: no DB
     from marketer.services.spend_context import SpendContext
 
@@ -299,3 +309,126 @@ def test_strip_ai_dashes():
     assert llm.strip_ai_dashes("2019–2024") == "2019-2024"
     assert llm.strip_ai_dashes("plain text") == "plain text"
     assert llm.strip_ai_dashes("") == ""
+
+
+async def test_research_gathers_status_and_serp(stub_all, monkeypatch):
+    """Research persist used to wait before Exa."""
+    import asyncio
+
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+
+    async def _mark():
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def slow_save(article):
+        if article.status == ArticleStatus.researching:
+            await _mark()
+        stub_all["saved"].append(article.model_copy(deep=True))
+        stub_all["statuses"].append(article.status.value)
+
+    async def slow_serp(keyword, num_results=8):
+        await _mark()
+        return []
+
+    monkeypatch.setattr(apipe.articles_repo, "save", slow_save)
+    monkeypatch.setattr(exa, "serp_pages", slow_serp)
+    monkeypatch.setattr(apipe.exa, "serp_pages", slow_serp)
+
+    art = await apipe.run_article(user_id=USER_ID, niche_id=NICHE_ID)
+    assert art.status == ArticleStatus.done
+    assert started == 2
+    assert max_inflight == 2
+
+
+async def test_fail_with_gathers_save_and_user(monkeypatch):
+    import asyncio
+
+    from marketer.models import User
+
+    article = Article(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, topic="espresso",
+        created_at=datetime.now(timezone.utc),
+    )
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    signaled: dict = {}
+
+    async def slow_save(art):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def slow_user(user_id):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return User(id=user_id, email="a@a.com", email_notifications=False)
+
+    async def fake_signal(art, *, kind, event, user=None):
+        signaled["kind"] = kind
+        signaled["user"] = user
+
+    monkeypatch.setattr(apipe.articles_repo, "save", slow_save)
+    monkeypatch.setattr(apipe.users_repo, "get", slow_user)
+    monkeypatch.setattr(apipe, "_signal_terminal", fake_signal)
+
+    out = await apipe._fail_with(article, "boom")
+    assert out.status == ArticleStatus.failed
+    assert started == 2
+    assert max_inflight == 2
+    assert signaled["kind"] == "failed"
+    assert signaled["user"] is not None
+    assert signaled["user"].email == "a@a.com"
+
+
+async def test_notify_reuses_passed_user(monkeypatch):
+    from marketer.models import User
+    from marketer.services import email as email_svc
+
+    sent: list[str] = []
+
+    async def fake_send(*, to, subject, html):
+        sent.append(to)
+        return True
+
+    async def boom(_user_id):
+        raise AssertionError("passed user must not reload")
+
+    monkeypatch.setattr(email_svc, "send_email", fake_send)
+    monkeypatch.setattr(apipe.users_repo, "get", boom)
+
+    article = Article(
+        id=uuid4(), user_id=USER_ID, niche_id=NICHE_ID, topic="espresso",
+        created_at=datetime.now(timezone.utc),
+    )
+    user = User(id=USER_ID, email="a@a.com", email_notifications=True)
+    await apipe._notify(article, kind="failed", user=user)
+    assert sent == ["a@a.com"]
