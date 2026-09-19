@@ -98,7 +98,7 @@ def test_approve_spawns_finish_scheduling(client, monkeypatch):
         headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 202
-    assert spawned == [("user_a", str(job.id))]
+    assert spawned == [("user_a", str(job.id), str(job.niche_id))]
 
 
 def test_approve_conflicts_when_not_awaiting(client, monkeypatch):
@@ -158,3 +158,26 @@ async def test_schedule_approved_job_rejects_wrong_status(monkeypatch):
 
     with pytest.raises(ValueError, match="not awaiting_approval"):
         await pipeline.schedule_approved_job(user_id="user_a", job_id=job.id)
+
+
+async def test_schedule_approved_job_mismatch_niche_fail_closes(monkeypatch):
+    from uuid import uuid4
+
+    from marketer import pipeline
+
+    job = _job(status=JobStatus.scheduling)
+    other = uuid4()
+
+    async def fake_get(job_id, *, user_id):
+        return job
+
+    async def fake_niche(niche_id, *, user_id):
+        return _niche()
+
+    monkeypatch.setattr(pipeline.jobs_repo, "get", fake_get)
+    monkeypatch.setattr(pipeline.niches_repo, "get", fake_niche)
+
+    with pytest.raises(ValueError, match="niche mismatch"):
+        await pipeline.schedule_approved_job(
+            user_id="user_a", job_id=job.id, niche_id=other
+        )

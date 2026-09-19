@@ -1268,12 +1268,26 @@ async def _schedule_stage(
     return job
 
 
-async def schedule_approved_job(*, user_id: str, job_id: UUID) -> Job:
+async def schedule_approved_job(
+    *, user_id: str, job_id: UUID, niche_id: UUID | None = None
+) -> Job:
     """Resume an `awaiting_approval` job at the scheduling stage.
 
     Invoked from the Modal `finish_scheduling` function after the
-    operator approves via `POST /api/v1/jobs/{id}/approve`."""
-    job = await jobs_repo.get(job_id, user_id=user_id)
+    operator approves via `POST /api/v1/jobs/{id}/approve`.
+    Approve already knows ``job.niche_id`` — pass it so job + niche
+    load in one gather. A mismatch fail-closes.
+    """
+    if niche_id is not None and not isinstance(niche_id, UUID):
+        raise TypeError("niche_id must be a UUID")
+    if niche_id is not None:
+        job, niche = await asyncio.gather(
+            jobs_repo.get(job_id, user_id=user_id),
+            niches_repo.get(niche_id, user_id=user_id),
+        )
+    else:
+        job = await jobs_repo.get(job_id, user_id=user_id)
+        niche = None
     if job is None:
         raise ValueError(f"job {job_id} not found for user {user_id}")
     # The approve endpoint atomically claims the row into `scheduling`
@@ -1283,7 +1297,10 @@ async def schedule_approved_job(*, user_id: str, job_id: UUID) -> Job:
         raise ValueError(f"job {job_id} is {job.status}, not awaiting_approval")
     if job.provider_post_id:
         raise ValueError(f"job {job_id} already has a scheduled post")
-    niche = await niches_repo.get(job.niche_id, user_id=user_id)
+    if niche_id is not None and job.niche_id != niche_id:
+        raise ValueError(f"job {job_id} niche mismatch")
+    if niche is None:
+        niche = await niches_repo.get(job.niche_id, user_id=user_id)
     if niche is None:
         raise ValueError(f"niche {job.niche_id} not found for user {user_id}")
 

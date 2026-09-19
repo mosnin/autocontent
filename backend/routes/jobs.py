@@ -155,7 +155,7 @@ async def approve_job(
             detail=f"job is {existing.status.value}, not awaiting_approval",
         )
     fn = modal.Function.from_name("marketer-sh", "finish_scheduling")
-    fn.spawn(ctx.user_id, str(job_id))
+    fn.spawn(ctx.user_id, str(job_id), str(job.niche_id))
     return job
 
 

@@ -1091,3 +1091,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Either cap still fail-closes the job | Niche `SpendCapExceeded` and global exceeded both persist `failed` |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 51. Loop — approve gather job + niche
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `finish_scheduling` passes claimed `job.niche_id` | Approve already had it. Resume loaded job then niche sequentially |
+| `schedule_approved_job(niche_id=)` gathers both; mismatch fail-closes | A spoofed niche id cannot schedule someone else's posting windows |
+| Missing `niche_id` still loads sequentially | Old Modal workers and direct tests keep working |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

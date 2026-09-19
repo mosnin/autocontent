@@ -123,18 +123,25 @@ async def run_pipeline(
     volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 10,
 )
-async def finish_scheduling(user_id: str, job_id: str) -> dict:
+async def finish_scheduling(user_id: str, job_id: str, niche_id: str = "") -> dict:
     """Resume an operator-approved job at the scheduling stage.
 
     Spawned by `POST /api/v1/jobs/{id}/approve` — the video is already
     rendered on the artifacts volume; only the Ayrshare upload +
-    schedule remain."""
+    schedule remain. Optional ``niche_id`` (from the claimed row) lets
+    job + niche load in one gather.
+    """
     from uuid import UUID
     from marketer.pipeline import schedule_approved_job
     from marketer.services.otel import force_flush
 
     try:
-        job = await schedule_approved_job(user_id=user_id, job_id=UUID(job_id))
+        extra: dict[str, UUID] = {}
+        if niche_id:
+            extra["niche_id"] = UUID(niche_id)
+        job = await schedule_approved_job(
+            user_id=user_id, job_id=UUID(job_id), **extra
+        )
         return job.model_dump(mode="json")
     finally:
         force_flush(timeout_ms=5000)
