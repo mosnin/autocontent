@@ -1228,3 +1228,14 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Missing / unscripted jobs still skip | Cold-start still returns `""`. A ghost id cannot crash ideation |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 65. Loop — persist overlaps setup reads and the notify user
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Ideation persist joins the setup gather | Marking `ideating` waited before brand / knowledge / recent topics / performance / planner. Those reads are independent of the snapshot |
+| `_fail_with` and park gather persist + `users.get` | Terminal email used to wait on the snapshot then reload the user |
+| Schedule reuses the Ayrshare user for `_signal_terminal` | The publish path already loaded the row. No second leftover get |
+| Passed `user` skips the notify read | Opt-out still silences mail. Webhook still fail-opens. Persist still lands before the emit |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

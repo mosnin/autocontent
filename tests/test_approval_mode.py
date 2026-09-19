@@ -276,3 +276,82 @@ async def test_schedule_stage_gathers_persist_and_user(monkeypatch, tmp_path):
     assert started == 2
     assert max_inflight == 2
     assert posted["profile_key"] == "pk-video"
+
+
+async def test_fail_with_gathers_persist_and_user(monkeypatch):
+    """Failed persist and the notify user used to be sequential."""
+    import asyncio
+
+    from marketer import pipeline
+    from marketer.models import User
+
+    job = _job(status=JobStatus.scripting)
+    started = 0
+    max_inflight = 0
+    inflight = 0
+    release = asyncio.Event()
+    signaled: dict = {}
+
+    async def slow_persist(j):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+
+    async def slow_user(user_id):
+        nonlocal started, max_inflight, inflight
+        started += 1
+        inflight += 1
+        max_inflight = max(max_inflight, inflight)
+        n = started
+        if n < 2:
+            await release.wait()
+        else:
+            release.set()
+        inflight -= 1
+        return User(id=user_id, email="a@a", email_notifications=False)
+
+    async def fake_signal(j, *, kind, event, user=None):
+        signaled["kind"] = kind
+        signaled["user"] = user
+
+    monkeypatch.setattr(pipeline, "_persist", slow_persist)
+    monkeypatch.setattr(pipeline.users_repo, "get", slow_user)
+    monkeypatch.setattr(pipeline, "_signal_terminal", fake_signal)
+
+    out = await pipeline._fail_with(job, "boom")
+    assert out.status == JobStatus.failed
+    assert started == 2
+    assert max_inflight == 2
+    assert signaled["kind"] == "failed"
+    assert signaled["user"] is not None
+    assert signaled["user"].email == "a@a"
+
+
+async def test_notify_reuses_passed_user(monkeypatch):
+    from marketer import pipeline
+    from marketer.models import User
+    from marketer.services import email as email_svc
+
+    sent: list[str] = []
+
+    async def fake_send(*, to, subject, html):
+        sent.append(to)
+        return True
+
+    async def boom(_user_id):
+        raise AssertionError("passed user must not reload")
+
+    monkeypatch.setattr(email_svc, "send_email", fake_send)
+    monkeypatch.setattr(pipeline.users_repo, "get", boom)
+
+    job = _job(status=JobStatus.failed)
+    user = User(id="user_a", email="a@a.com", email_notifications=True)
+    await pipeline._notify(job, kind="failed", user=user)
+    assert sent == ["a@a.com"]

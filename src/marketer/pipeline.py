@@ -29,7 +29,17 @@ from .agents.performance_context import build_performance_context
 from .agents.scriptwriter import should_template_script
 from .config import settings
 from .logging import get_logger, job_context
-from .models import AudioTrack, Clip, Job, JobStatus, Niche, RenderedVideo, Scene, Script
+from .models import (
+    AudioTrack,
+    Clip,
+    Job,
+    JobStatus,
+    Niche,
+    RenderedVideo,
+    Scene,
+    Script,
+    User,
+)
 from .orchestrator import (
     qa_payload,
     run_ideation,
@@ -236,10 +246,14 @@ def _spawn_audio_tasks(
     return music_task, asyncio.create_task(_vo_work())
 
 
-async def _signal_terminal(job: Job, *, kind: str, event: str) -> None:
+async def _signal_terminal(
+    job: Job, *, kind: str, event: str, user: User | None = None
+) -> None:
     """Email + outbound webhook in one beat. Both are fail-open."""
+    if user is not None and not isinstance(user, User):
+        raise TypeError("user must be a User")
     await asyncio.gather(
-        _notify(job, kind=kind),
+        _notify(job, kind=kind, user=user),
         _emit_webhook(job, event),
     )
 
@@ -457,14 +471,15 @@ async def _spawn_repurpose_article(job: Job, niche: Niche) -> str | None:
     return str(article.id)
 
 
-async def _notify(job: Job, *, kind: str) -> None:
+async def _notify(job: Job, *, kind: str, user: User | None = None) -> None:
     """Email the operator at a terminal moment. Fail-open: notification
     problems never affect job state. Skips silently when the user has opted
     out of email notifications."""
+    if user is not None and not isinstance(user, User):
+        raise TypeError("user must be a User")
     try:
-        from .repos import users as users_repo
-
-        user = await users_repo.get(job.user_id)
+        if user is None:
+            user = await users_repo.get(job.user_id)
         if user is None or not user.email or not user.email_notifications:
             return
         hook = job.script.idea.hook if job.script else None
@@ -506,8 +521,8 @@ async def _emit_webhook(job: Job, event: str) -> None:
 async def _fail_with(job: Job, error: str, exc: BaseException | None = None) -> Job:
     job.status = JobStatus.failed
     job.error = error
-    await _persist(job)
-    await _signal_terminal(job, kind="failed", event="job.failed")
+    _, user = await asyncio.gather(_persist(job), users_repo.get(job.user_id))
+    await _signal_terminal(job, kind="failed", event="job.failed", user=user)
     try:
         import sentry_sdk
         if exc is not None:
@@ -743,8 +758,10 @@ async def _run_job_after_sheet(
         # ideation (and must not substitute plan.model_id as script_model).
         with _stage(JobStatus.ideating.value):
             job.status = JobStatus.ideating
-            await _persist(job)
-            plan, perf_ctx, (brand_voice, banned_words), recent, design_kit_content = (
+            # Persist and the four setup reads are independent. Planner
+            # already started before this stage; waiting on the snapshot
+            # was a leftover RTT in front of ideation.
+            plan, perf_ctx, (brand_voice, banned_words), recent, design_kit_content, _ = (
                 await asyncio.gather(
                     plan_task,
                     build_performance_context(
@@ -757,6 +774,7 @@ async def _run_job_after_sheet(
                         niche.id, user_id=job.user_id, limit=20
                     ),
                     _load_design_kit(job.user_id, niche),
+                    _persist(job),
                 )
             )
             job.harness = {**(job.harness or {}), "plan": plan.as_dict()}
@@ -1177,8 +1195,10 @@ async def _run_job_after_sheet(
             )
         if overlay.park:
             job.status = JobStatus.awaiting_approval
-            await _persist(job)
-            await _signal_terminal(job, kind="review", event="job.awaiting_approval")
+            _, user = await asyncio.gather(_persist(job), users_repo.get(job.user_id))
+            await _signal_terminal(
+                job, kind="review", event="job.awaiting_approval", user=user
+            )
             return job
         if hint:
             job.harness = {**(job.harness or {}), "repurpose": hint}
@@ -1253,8 +1273,10 @@ async def _schedule_stage(
         return await _fail_with(job, gate.reason or "jev auto-mode blocked publish")
     if gate.park:
         job.status = JobStatus.awaiting_approval
-        await _persist(job)
-        await _signal_terminal(job, kind="review", event="job.awaiting_approval")
+        _, user = await asyncio.gather(_persist(job), users_repo.get(job.user_id))
+        await _signal_terminal(
+            job, kind="review", event="job.awaiting_approval", user=user
+        )
         return job
     with _stage(JobStatus.scheduling.value):
         job.status = JobStatus.scheduling
@@ -1275,7 +1297,7 @@ async def _schedule_stage(
         job.provider_post_id = post_id
         job.status = JobStatus.done
         await _persist(job)
-    await _signal_terminal(job, kind="scheduled", event="job.done")
+    await _signal_terminal(job, kind="scheduled", event="job.done", user=user)
     return job
 
 
