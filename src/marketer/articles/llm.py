@@ -198,7 +198,9 @@ async def write_section(
     )
     from ..jev.grounding import research_grounding_block
 
-    ground = research_grounding_block(context.research)
+    ground = research_grounding_block(
+        context.research, extra=context.tone or ""
+    )
     ground_block = f"\n{ground}\n" if ground else "\n"
     user = (
         f"Article title: {context.title}\n"

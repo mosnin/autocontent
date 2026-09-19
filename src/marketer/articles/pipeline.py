@@ -452,7 +452,19 @@ async def _run_after_topic(
         markdown = await _write_sections(outline, ctx, spend=spend)
         from ..jev.grounding import allowed_facts, strip_ungrounded_claims
 
-        markdown, lock_notes = strip_ungrounded_claims(markdown, allowed_facts(serp))
+        lock_extra = " ".join(
+            part
+            for part in (
+                tone,
+                getattr(niche, "title", "") or "",
+                getattr(niche, "description", "") or "",
+                audience,
+            )
+            if part
+        )
+        markdown, lock_notes = strip_ungrounded_claims(
+            markdown, allowed_facts(serp, extra=lock_extra)
+        )
 
     # 4. QA — fact-lock first, then score + citation-verifier in parallel.
     with _stage(ArticleStatus.qa.value):
@@ -474,7 +486,7 @@ async def _run_after_topic(
             ctx = ctx.model_copy(update={"revisionNotes": quality.notes})
             markdown = await _write_sections(outline, ctx, spend=spend)
             markdown, lock_notes = strip_ungrounded_claims(
-                markdown, allowed_facts(serp)
+                markdown, allowed_facts(serp, extra=lock_extra)
             )
             quality, (audit_notes, penalty) = await asyncio.gather(
                 llm.score_article(markdown, article.focus_keyword, spend=spend),

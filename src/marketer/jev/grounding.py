@@ -117,9 +117,17 @@ def fact_tokens(text: str) -> set[str]:
     return {m.group(0).lower() for m in _FACT_TOKEN_RE.finditer(text or "")}
 
 
-def allowed_facts(research: Any) -> set[str]:
-    """Numbers the writer is allowed to repeat. Empty → invent nothing."""
-    return fact_tokens(research_text(research))
+def allowed_facts(research: Any, extra: str = "") -> set[str]:
+    """Numbers the writer is allowed to repeat. Empty → invent nothing.
+
+    ``extra`` is already-loaded brand / knowledge / brief text the writer
+    was given. Re-locking against SERP only would strip those numbers.
+    """
+    if extra is None:
+        extra = ""
+    if not isinstance(extra, str):
+        raise TypeError("extra must be a string")
+    return fact_tokens(research_text(research)) | fact_tokens(extra)
 
 
 def is_ungrounded_claim(sentence: str, allowed: set[str]) -> bool:
@@ -147,9 +155,13 @@ def strip_ungrounded_claims(
     return out, notes
 
 
-def research_grounding_block(research: Any) -> str:
+def research_grounding_block(research: Any, extra: str = "") -> str:
     """Compact source excerpts + the fact lock the writer may use."""
-    if research is None:
+    if extra is None:
+        extra = ""
+    if not isinstance(extra, str):
+        raise TypeError("extra must be a string")
+    if research is None and not extra.strip():
         return (
             "No sourced numbers. Do not invent studies, percentages, "
             "dollar figures, quotes, or citation years."
@@ -165,7 +177,7 @@ def research_grounding_block(research: Any) -> str:
             continue
         label = domain or title or "source"
         lines.append(f"- {label}: {blob[:400]}")
-    facts = sorted(allowed_facts(research))
+    facts = sorted(allowed_facts(research, extra=extra))
     lock = (
         "Allowed facts (repeat these numbers/years only; otherwise write "
         "qualitatively): " + ", ".join(facts[:16])

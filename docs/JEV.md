@@ -1034,3 +1034,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | `llm.pick_topic` delegates to fastpath | Last classification OpenAI `_parse_call` in article writer module. Leftover caller cannot buy a topic LLM |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 45. Loop — article fact lock keeps loaded brand / knowledge
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `allowed_facts(..., extra=)` unions already-loaded brand / knowledge / brief tokens | Article lock was SERP-only. Writer received tone (brand + knowledge + kit) then lost those numbers at publish |
+| Writer grounding block uses the same extra | Prompt and lock agree. A leftover section cannot invent a number the lock would then keep |
+| `extra=None` is empty, not a TypeError | Missing tone must not fail a paid article |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

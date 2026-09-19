@@ -353,6 +353,22 @@ def test_extract_claims_and_fact_lock():
     assert "87%" not in cleaned
     assert notes
     assert "2024" in cleaned or "$400" in cleaned or "grind" in cleaned.lower()
+    kept = allowed_facts(research, extra="Research shows 87% of shots fail.")
+    assert "87%" in kept
+    kept_text, kept_notes = strip_ungrounded_claims(text, kept)
+    assert "87%" in kept_text
+    assert allowed_facts(research, extra=None) == allowed
+
+
+def test_research_grounding_block_keeps_loaded_extra():
+    from marketer.jev.grounding import research_grounding_block
+
+    block = research_grounding_block(
+        None, extra="Brand voice: 87% of shots fail without a consistent grind."
+    )
+    assert "87%" in block
+    empty = research_grounding_block(None)
+    assert "No sourced numbers" in empty
 
 
 def test_lock_script_facts_strips_invented_stats():
