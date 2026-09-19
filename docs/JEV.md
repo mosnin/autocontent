@@ -602,9 +602,9 @@ A fresh short-form job that used to do ideation → script → visual
 director → Whisper now does ideation → script → images. Caption burn
 is free. QA is already Jev-first. Foreman, the outbound screen, and
 the repurpose hint share one wall-clock beat. Article research /
-schema / interlink / topic / outline / metadata / hero / FAQ no
-longer enqueue extra chat completions before (or instead of) the
-writer.
+schema / interlink / topic / outline / metadata / hero / FAQ /
+checklist / definition no longer enqueue extra chat completions
+before (or instead of) the writer.
 
 ---
 
@@ -620,6 +620,7 @@ TypeSafe's remaining unused patterns after the first speed pass:
 | **Template ideation** | `idea_candidates` + `judge_ideas` when TypeSafe is live | Three Qwen hook drafts + a judge LLM → one 70–500ms Choice. Dark harness keeps the old tournament so tests / Qwen-only installs do not change. |
 | **Deterministic outline + metadata** | `outline_from_research`, `metadata_from_article` | SERP headings already *are* the outline. Title/slug/meta are extracts, not prose. |
 | **Deterministic FAQ** | `faq_section_from_research` | Searcher questions + highlights become the FAQ H2. One less writer call. |
+| **Deterministic checklist + definition** | `checklist_section_from_research`, `definition_section_from_research` | Playbook H2s that are already lists/definitions stitch SERP highlights. Writer stays on stakes / how-to / mistakes. |
 | **Retrieve-then-judge** | `judge_article` / `audit_sources` send *claims*, not the 8k article | Jev has no world knowledge. Dumping a transcript makes it judge padding. |
 | **Citation-verifier as a QA gate** | `source_audit_penalty` *before* the rewrite threshold | Notes-only audit never forced a rewrite. Each flag now drops `overall` (0.08, cap 0.35). |
 | **Fact lock** | `allowed_facts` + `strip_ungrounded_claims` | Invented `%` / `$` / years / "research shows" sentences are stripped in milliseconds. No second LLM pass required to un-hallucinate. |
@@ -886,3 +887,13 @@ Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.
 | Voice preview GET 8/min | First hit synthesizes paid TTS. Was unbounded |
 
 Jev still does not write scripts. Ads overlay never relaxes AdSpendGuard.
+
+## 32. Loop — carousel slide fan-out, grounded playbook sections, bound media GETs
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| Image-post slides 1..n gather after slide 0 | Later slides already share `slide_0.png` as the aesthetic reference. A 5-slide carousel was 5 sequential gpt-image-1 calls; now it is 1 + the rest in one beat |
+| Checklist + definition H2s stitch SERP highlights | Playbook headings that are already lists/definitions do not buy a writer. Empty or thin SERP still hits the writer. FAQ stays the same contract |
+| Job video, article markdown/hero, character sheet, library media 30/min | Last unbounded file-serve GETs. Bandwidth + disk + presign spray without changing the happy-path UX |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

@@ -22,6 +22,7 @@ from ..rate_limit import limiter
 router = APIRouter()
 _SOCIAL_LIMIT = "20/minute"
 _ENQUEUE_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 
 class ArticleEnqueue(BaseModel):
@@ -52,8 +53,9 @@ async def get_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
 
 
 @router.get("/{article_id}/markdown")
+@limiter.limit(_MEDIA_LIMIT)
 async def get_article_markdown(
-    article_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> PlainTextResponse:
     article = await articles_repo.get(article_id, user_id=ctx.user_id)
     if article is None:
@@ -140,7 +142,10 @@ async def repurpose_to_social(
 
 
 @router.get("/{article_id}/hero-image")
-async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_article_hero(
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
+) -> FileResponse:
     """Stream the article's editorial hero image (gpt-image-1 PNG).
 
     Ownership-scoped like every other media endpoint. 404 if the article is

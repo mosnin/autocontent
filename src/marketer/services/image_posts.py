@@ -1,14 +1,15 @@
 """Image-post pipeline: stills and carousels, end to end.
 
-queued → planning (topic + carousel plan) → generating (slides, with
-slide 1 as the aesthetic reference for the rest) → awaiting_approval
-(when the niche requires sign-off) → scheduling (Ayrshare multi-image)
-→ done.
+queued → planning (topic + carousel plan) → generating (slide 0 first,
+then slides 1..n in one gather against that reference) →
+awaiting_approval (when the niche requires sign-off) → scheduling
+(Ayrshare multi-image) → done.
 
 Cohesion trick: slide 0 renders first from the plan; every later slide
 passes slide 0 as the reference image to gpt-image-1, so the whole set
 inherits one aesthetic — the same mechanism the video pipeline uses for
-character consistency, repurposed for design cohesion.
+character consistency, repurposed for design cohesion. Later slides do
+not depend on each other, so they fan out.
 
 Spend: every LLM/image call is metered through SpendContext with
 image_post_id attribution, so caps, cost rollups, and campaign budgets
@@ -22,7 +23,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from ..agents.carousel import CarouselPlan, template_carousel_plan
+from ..agents.carousel import CarouselPlan, CarouselSlide, template_carousel_plan
 from ..logging import get_logger
 from ..models import Niche
 from ..repos import image_posts as image_posts_repo
@@ -172,22 +173,38 @@ async def run_image_post(
             spend=spend,
         )
 
-        # 2. Generate — slide 0 first, then the rest against it.
+        # 2. Generate — slide 0 first (aesthetic anchor), then fan-out
+        # the rest against it. Later slides inherit slide 0, not each
+        # other, so sequential generation was leftover wall-clock.
         await image_posts_repo.set_status(image_post_id, user_id=user_id, status="generating")
-        paths: list[Path] = []
-        reference: Path | None = None
-        for slide in sorted(plan.slides, key=lambda s: s.index):
+        slides = sorted(plan.slides, key=lambda s: s.index)
+        if not slides:
+            return await image_posts_repo.fail(
+                image_post_id, user_id=user_id, error="planner produced no slides"
+            )
+        first = slides[0]
+        first_out = root / "slides" / f"slide_{first.index}.png"
+        await openai_images.generate_keyframe(
+            first.visual_prompt,
+            first_out,
+            quality=niche.image_quality,
+            reference_image_path=None,
+            spend=spend,
+        )
+
+        async def _later(slide: CarouselSlide) -> Path:
             out = root / "slides" / f"slide_{slide.index}.png"
             await openai_images.generate_keyframe(
                 slide.visual_prompt,
                 out,
                 quality=niche.image_quality,
-                reference_image_path=reference,
+                reference_image_path=first_out,
                 spend=spend,
             )
-            paths.append(out)
-            if reference is None:
-                reference = out  # aesthetic anchor for the rest of the set
+            return out
+
+        rest = await asyncio.gather(*[_later(s) for s in slides[1:]])
+        paths: list[Path] = [first_out, *rest]
 
         payload: dict[str, Any] = {
             **post["payload"],

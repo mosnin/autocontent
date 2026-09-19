@@ -421,6 +421,24 @@ def metadata_is_publishable(title: str, meta: str, keyword: str) -> bool:
     )
 
 
+def _research_highlights(research: SerpAnalysis | None) -> list[str]:
+    if research is None:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for row in research.topResults:
+        for raw in row.highlights or []:
+            item = str(raw).strip()
+            if not item:
+                continue
+            key = item.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(item)
+    return out
+
+
 def faq_section_from_research(heading: str, research: SerpAnalysis | None) -> str | None:
     """Write the FAQ H2 from SERP questions + highlights. No chat completion."""
     key = (heading or "").strip().casefold()
@@ -428,9 +446,7 @@ def faq_section_from_research(heading: str, research: SerpAnalysis | None) -> st
         return None
     if research is None or len(research.questionsAnswered) < 2:
         return None
-    highlights: list[str] = []
-    for row in research.topResults:
-        highlights.extend(str(h) for h in (row.highlights or []) if str(h).strip())
+    highlights = _research_highlights(research)
     lines = [f"## {(heading or 'FAQ').strip()}\n"]
     fallback_topic = (research.commonTopics[0] if research.commonTopics else "the basics")
     for question in research.questionsAnswered[:5]:
@@ -445,6 +461,37 @@ def faq_section_from_research(heading: str, research: SerpAnalysis | None) -> st
             )
         lines.append(f"**{question.strip()}**\n\n{answer[:280]}\n")
     return "\n".join(lines)
+
+
+def checklist_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """Scannable checklist H2 from distinct SERP highlights. No chat completion."""
+    key = (heading or "").strip().casefold()
+    if "checklist" not in key:
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 3:
+        return None
+    lines = [f"## {(heading or 'Checklist').strip()}\n"]
+    for item in highlights[:8]:
+        lines.append(f"- {item.rstrip('.')[:180]}")
+    return "\n".join(lines) + "\n"
+
+
+def definition_section_from_research(
+    heading: str, research: SerpAnalysis | None
+) -> str | None:
+    """'What X actually is' H2 from SERP highlights. No invented definition."""
+    key = (heading or "").strip().casefold()
+    if not key.startswith("what ") or "actually is" not in key:
+        return None
+    highlights = _research_highlights(research)
+    if len(highlights) < 2:
+        return None
+    title = (heading or "Definition").strip()
+    body = "\n\n".join(h[:280] for h in highlights[:4])
+    return f"## {title}\n\n{body}\n"
 
 
 def heuristic_quality(

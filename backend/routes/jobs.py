@@ -18,6 +18,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _ENQUEUE_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 
 class JobEnqueue(BaseModel):
@@ -79,7 +80,10 @@ async def enqueue_job(
 
 
 @router.get("/{job_id}/video")
-async def get_job_video(job_id: UUID, ctx: AuthCtx = CurrentUser) -> FileResponse:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_job_video(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> FileResponse:
     """Stream the rendered mp4 for a finished job.
 
     Ownership is checked (the job must belong to ``ctx.user_id``). Any

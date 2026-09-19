@@ -484,6 +484,33 @@ def test_faq_section_and_publishable_metadata():
     assert faq and faq.startswith("## FAQ")
     assert "grind" in faq.casefold() or "ratio" in faq.casefold()
     assert fastpath.faq_section_from_research("Grind size", serp) is None
+    rich = SerpAnalysis(
+        questionsAnswered=serp.questionsAnswered,
+        commonTopics=serp.commonTopics,
+        topResults=[
+            SerpResult(
+                title="Espresso",
+                url="https://a.example",
+                domain="a.example",
+                highlights=[
+                    "Start at 18 grams and a 1:2 ratio.",
+                    "Use a 9-bar pump and a burr grinder.",
+                    "Dose 18 grams for a double.",
+                ],
+            )
+        ],
+    )
+    checklist = fastpath.checklist_section_from_research("espresso checklist", rich)
+    assert checklist and checklist.startswith("## espresso checklist")
+    assert checklist.count("\n- ") >= 3
+    assert fastpath.checklist_section_from_research("FAQ", rich) is None
+    assert fastpath.checklist_section_from_research("espresso checklist", serp) is None
+    definition = fastpath.definition_section_from_research(
+        "What espresso actually is", rich
+    )
+    assert definition and definition.startswith("## What espresso actually is")
+    assert "18 grams" in definition
+    assert fastpath.definition_section_from_research("How to start", rich) is None
     assert fastpath.metadata_is_publishable(
         "Dial in espresso at home: a practical guide",
         "A practical guide to espresso for home baristas who want sweeter, more consistent shots every morning.",

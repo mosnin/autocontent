@@ -18,6 +18,7 @@ from ..rate_limit import limiter
 
 router = APIRouter()
 _DRAFT_LIMIT = "8/minute"
+_MEDIA_LIMIT = "30/minute"
 
 # ElevenLabs voice ids are short alphanumeric tokens (e.g.
 # "21m00Tcm4TlvDq8ikWAM"). This value is interpolated directly into a
@@ -244,8 +245,9 @@ async def archive_niche(
 
 
 @router.get("/{niche_id}/character-sheet")
+@limiter.limit(_MEDIA_LIMIT)
 async def character_sheet_image(
-    niche_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, niche_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> FileResponse:
     """The niche's generated character sheet — the face of the channel.
 

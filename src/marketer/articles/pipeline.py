@@ -213,9 +213,13 @@ async def _write_sections(
 
     async def _bounded(heading: str, notes: str) -> str:
         async with sem:
-            faq = fastpath.faq_section_from_research(heading, ctx.research)
-            if faq:
-                return faq
+            templated = (
+                fastpath.faq_section_from_research(heading, ctx.research)
+                or fastpath.checklist_section_from_research(heading, ctx.research)
+                or fastpath.definition_section_from_research(heading, ctx.research)
+            )
+            if templated:
+                return templated
             return await llm.write_section(heading, notes, ctx, spend=spend)
 
     pieces = await asyncio.gather(

@@ -30,6 +30,7 @@ router = APIRouter()
 
 MAX_COMPOSITION_CLIPS = 40
 _COMPOSE_LIMIT = "10/minute"
+_MEDIA_LIMIT = "30/minute"
 
 
 @router.get("", response_model=list[MediaAsset])
@@ -126,7 +127,10 @@ async def get_composition(
 
 
 @router.get("/{asset_id}/media")
-async def get_asset_media(asset_id: UUID, ctx: AuthCtx = CurrentUser):
+@limiter.limit(_MEDIA_LIMIT)
+async def get_asset_media(
+    request: Request, asset_id: UUID, ctx: AuthCtx = CurrentUser
+):
     """Playback/download for one asset.
 
     Wasabi-stored assets redirect to a short-lived presigned URL (the
