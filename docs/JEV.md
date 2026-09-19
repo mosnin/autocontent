@@ -967,3 +967,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | Webhook list + Jev/voice status + providers + style-presets GET 30/min | Last unbounded catalog / status dumps. Mutations stay 10/min (webhooks) and 8/min (voice session) |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 39. Loop — template Visual Director, bound remaining poll GETs
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `template_visual_director` when prompts are thin and no design kit / visual brief | Last 5–20s writer hop on operator-pinned or stub scripts. Code stamps style, 9:16, no-text, and a motion line. Narration is untouched. A filled design kit or `visual_director_brief()` still buys the LLM |
+| Job / article / niche / image-post / kit / composition detail GET 30/min | UI polls these. Lists were already bounded; the single-row poll doors were not |
+| users/me + x402 config + connect status GET 30/min | Remaining unbounded identity / payment-discovery dumps. Mutations stay 5–10/min |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

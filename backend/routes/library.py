@@ -123,8 +123,9 @@ async def create_composition(
 
 
 @router.get("/compositions/{composition_id}", response_model=Composition)
+@limiter.limit(_MEDIA_LIMIT)
 async def get_composition(
-    composition_id: UUID, ctx: AuthCtx = CurrentUser
+    request: Request, composition_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> Composition:
     comp = await media_repo.get_composition(composition_id, user_id=ctx.user_id)
     if comp is None:

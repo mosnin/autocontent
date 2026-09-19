@@ -63,7 +63,10 @@ async def enqueue_image_post(
 
 
 @router.get("/{image_post_id}")
-async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit(_READ_LIMIT)
+async def get_image_post(
+    request: Request, image_post_id: UUID, ctx: AuthCtx = CurrentUser
+) -> dict:
     post = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
     if post is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

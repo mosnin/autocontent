@@ -9,6 +9,81 @@ from agents import Agent
 
 from ..config import settings
 from ..models import Script
+from ..models.creative_brief import CreativeBrief
+from ..jev.planner import MOTION_PROMPT_MIN, VISUAL_PROMPT_MIN
+
+_MOTIONS = (
+    "slow push-in on the subject",
+    "gentle parallax across the desk",
+    "subtle handheld drift to the right",
+    "slow pull-back revealing the setup",
+    "soft tilt up across the object",
+)
+
+
+def should_template_visuals(
+    *,
+    brief: CreativeBrief | None = None,
+    design_kit: str = "",
+) -> bool:
+    """True when a deterministic style stamp is enough.
+
+    A filled design kit or visual brief still buys the LLM. Empty
+    defaults must not — scriptwriter already emitted still + motion.
+    """
+    if (design_kit or "").strip():
+        return False
+    if brief is not None and brief.visual_director_brief():
+        return False
+    return True
+
+
+def template_visual_director(
+    script: Script,
+    *,
+    visual_style: str,
+    character_description: str = "",
+) -> Script:
+    """Stamp style + fill short prompts. Never rewrite narration.
+
+    Used when every scene is missing a usable still/motion pair and the
+    operator did not pin a design kit or visual brief. No invented stats.
+    """
+    style = (
+        (visual_style or "").strip()
+        or "clean editorial still, soft daylight, 9:16 vertical"
+    )
+    idea = getattr(script, "idea", None)
+    subject = (getattr(idea, "topic", "") or "").strip() or "the subject"
+    cast = (character_description or "").strip()
+    scenes = []
+    for i, scene in enumerate(script.scenes or []):
+        visual = (scene.visual_prompt or "").strip()
+        motion = (scene.motion_prompt or "").strip()
+        if len(visual) < VISUAL_PROMPT_MIN:
+            visual = (
+                f"{style}. Concrete still of {subject} as a physical object, "
+                "9:16 vertical, no text, no words, no numbers, no labels, "
+                "no captions."
+            )
+        else:
+            if style.casefold() not in visual.casefold():
+                visual = f"{style}. {visual}"
+            if "no text" not in visual.casefold():
+                visual = (
+                    f"{visual.rstrip('.')}. No text, no words, no numbers, "
+                    "no labels, no captions."
+                )
+            if "9:16" not in visual and "vertical" not in visual.casefold():
+                visual = f"{visual.rstrip('.')}. 9:16 vertical."
+        if cast and cast.casefold() not in visual.casefold():
+            visual = f"{visual.rstrip('.')}. {cast}."
+        if len(motion) < MOTION_PROMPT_MIN:
+            motion = _MOTIONS[i % len(_MOTIONS)]
+        scenes.append(
+            scene.model_copy(update={"visual_prompt": visual, "motion_prompt": motion})
+        )
+    return script.model_copy(update={"scenes": scenes})
 
 VISUAL_DIRECTOR_INSTRUCTIONS = """You are a visual director.
 Input is JSON: {"style": "<style brief>", "character": "<canonical cast or empty>",

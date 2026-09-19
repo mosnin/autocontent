@@ -207,7 +207,10 @@ async def create_niche(
 
 
 @router.get("/{niche_id}", response_model=Niche)
-async def get_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> Niche:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_niche(
+    request: Request, niche_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Niche:
     n = await niches_repo.get(niche_id, user_id=ctx.user_id)
     if n is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

@@ -26,6 +26,7 @@ from .agents import (
 from .agents.ideation import run_ideation as run_ideation  # re-exported for pipeline
 from .agents.metered import run_metered
 from .agents.scriptwriter import should_template_script, template_script
+from .agents.visual_director import should_template_visuals, template_visual_director
 from .config import settings
 from .models import Idea, Niche, Script
 from .models.creative_brief import CreativeBrief
@@ -93,6 +94,12 @@ async def run_visual_director(
     design_kit: str = "",
     spend: SpendContext | None = None,
 ) -> Script:
+    if should_template_visuals(brief=brief, design_kit=design_kit):
+        return template_visual_director(
+            script,
+            visual_style=visual_style,
+            character_description=character_description,
+        )
     agent = build_visual_director_agent()
     payload = {
         "style": visual_style,

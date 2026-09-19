@@ -41,7 +41,10 @@ async def list_jobs(
 
 
 @router.get("/{job_id}", response_model=Job)
-async def get_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_job(
+    request: Request, job_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Job:
     job = await jobs_repo.get(job_id, user_id=ctx.user_id)
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

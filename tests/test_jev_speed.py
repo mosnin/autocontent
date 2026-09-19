@@ -596,6 +596,46 @@ def test_template_carousel_plan_is_deterministic():
     assert carousel.caption
 
 
+def test_template_visual_director_fills_thin_prompts():
+    from marketer.agents.visual_director import (
+        should_template_visuals,
+        template_visual_director,
+    )
+    from marketer.jev.planner import script_has_usable_visuals
+    from marketer.models.creative_brief import CreativeBrief, VisualBrief
+
+    thin = _script(visual="vp0", motion="mp0")
+    assert not script_has_usable_visuals(thin)
+    assert should_template_visuals()
+    assert should_template_visuals(brief=CreativeBrief())
+    assert not should_template_visuals(design_kit="shot grammar")
+    assert not should_template_visuals(
+        brief=CreativeBrief(visual=VisualBrief(cast_mode="none"))
+    )
+    stamped = template_visual_director(
+        thin, visual_style="claymation, warm lighting", character_description=""
+    )
+    assert script_has_usable_visuals(stamped)
+    assert stamped.scenes[0].narration == thin.scenes[0].narration
+    assert "claymation" in stamped.scenes[0].visual_prompt.casefold()
+    assert "no text" in stamped.scenes[0].visual_prompt.casefold()
+    assert len(stamped.scenes[0].motion_prompt) >= 12
+
+
+async def test_run_visual_director_templates_without_brief(monkeypatch):
+    from marketer.orchestrator import run_visual_director
+
+    async def boom(*a, **k):
+        raise AssertionError("visual director must not buy a writer")
+
+    monkeypatch.setattr("marketer.orchestrator.run_metered", boom)
+    out = await run_visual_director(
+        _script(visual="vp0", motion="mp0"), visual_style="claymation"
+    )
+    assert "claymation" in out.scenes[0].visual_prompt.casefold()
+    assert out.scenes[0].narration == "Stop wasting shots."
+
+
 def test_scriptwriter_forbids_invented_stats():
     from marketer.agents.scriptwriter import SCRIPTWRITER_INSTRUCTIONS
 

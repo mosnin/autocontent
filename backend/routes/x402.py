@@ -45,7 +45,8 @@ def _parse_amount(amount_usd: str) -> Decimal:
 
 
 @router.get("/config")
-async def x402_config(ctx: AuthCtx = CurrentUser) -> dict:
+@limiter.limit("30/minute")
+async def x402_config(request: Request, ctx: AuthCtx = CurrentUser) -> dict:
     """Discover whether x402 top-ups are available and the accepted network/
     asset/bounds — so an agent can decide before attempting a payment."""
     from marketer.config import settings

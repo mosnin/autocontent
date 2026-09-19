@@ -47,7 +47,10 @@ async def list_articles(
 
 
 @router.get("/{article_id}", response_model=Article)
-async def get_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
+@limiter.limit(_MEDIA_LIMIT)
+async def get_article(
+    request: Request, article_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Article:
     article = await articles_repo.get(article_id, user_id=ctx.user_id)
     if article is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

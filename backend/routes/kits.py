@@ -65,7 +65,10 @@ async def create_kit(
 
 
 @router.get("/{kit_id}", response_model=Kit)
-async def get_kit(kit_id: UUID, ctx: AuthCtx = CurrentUser) -> Kit:
+@limiter.limit(_READ_LIMIT)
+async def get_kit(
+    request: Request, kit_id: UUID, ctx: AuthCtx = CurrentUser
+) -> Kit:
     kit = await kits_repo.get(kit_id, user_id=ctx.user_id)
     if kit is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

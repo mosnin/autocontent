@@ -14,10 +14,12 @@ from ..rate_limit import limiter
 router = APIRouter()
 _ERASE_LIMIT = "5/minute"
 _SETTINGS_LIMIT = "10/minute"
+_READ_LIMIT = "30/minute"
 
 
 @router.get("/me", response_model=User)
-async def me(ctx: AuthCtx = CurrentUser) -> User:
+@limiter.limit(_READ_LIMIT)
+async def me(request: Request, ctx: AuthCtx = CurrentUser) -> User:
     from marketer.repos import users as users_repo
     return await users_repo.upsert(ctx.user_id, ctx.email)
 
