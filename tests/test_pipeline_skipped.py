@@ -44,6 +44,9 @@ def _make_niche() -> Niche:
 @pytest.fixture
 def stub_db(monkeypatch):
     """Stub repos so no live DB is required."""
+    from tests.conftest import stub_pipeline_unit_seams
+
+    stub_pipeline_unit_seams(monkeypatch, locks=False)
     async def fake_get(niche_id, *, user_id):
         return _make_niche()
     monkeypatch.setattr(pipeline.niches_repo, "get", fake_get)

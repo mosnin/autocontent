@@ -9,6 +9,38 @@ from marketer.models import SpendEntry
 from marketer.services.spend_context import SpendContext
 
 
+def stub_pipeline_unit_seams(monkeypatch, *, locks: bool = True) -> None:
+    """Bypass Postgres seams that a fully stubbed ``run_job`` still reaches.
+
+    Setup overlap gathers ``recent_topics_for_niche`` next to planner Jev.
+    Advisory locks still call ``get_pool()``. Unit tests should not need
+    a live database for either.
+    """
+    from contextlib import asynccontextmanager
+
+    from marketer import pipeline
+
+    async def _fake_recent_topics(niche_id, *, user_id, limit=20):
+        return []
+
+    monkeypatch.setattr(
+        pipeline.jobs_repo, "recent_topics_for_niche", _fake_recent_topics
+    )
+    if not locks:
+        return
+
+    @asynccontextmanager
+    async def _fake_niche_lock(niche_id):
+        yield True
+
+    @asynccontextmanager
+    async def _fake_user_lock(user_id, *, max_parallel):
+        yield
+
+    monkeypatch.setattr(pipeline, "niche_lock", _fake_niche_lock)
+    monkeypatch.setattr(pipeline, "user_lock", _fake_user_lock)
+
+
 @pytest.fixture(autouse=True)
 def _reset_db_pool():
     """Drop the cached asyncpg pool before every test.

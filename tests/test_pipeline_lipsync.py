@@ -70,6 +70,9 @@ def _make_script() -> Script:
 @pytest.fixture
 def stub_lipsync(monkeypatch, tmp_path: Path, passing_render_qa):
     """Full pipeline stub for the avatar branch. Records what ran."""
+    from tests.conftest import stub_pipeline_unit_seams
+
+    stub_pipeline_unit_seams(monkeypatch)
     monkeypatch.setattr(settings, "fal_api_key", "fal-test")
     calls: dict = {"tts": [], "avatar": [], "extract": 0, "mix_music": 0,
                    "mix_audio": 0, "concat_keep_audio": None}
