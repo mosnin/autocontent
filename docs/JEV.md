@@ -1081,3 +1081,13 @@ Jev still does not write scripts or knowledge sentences. Ads overlay never relax
 | One highlight still buys the writer | Same thin-SERP contract as definition / stakes / last-resort grounded |
 
 Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.
+
+## 50. Loop — pre-stage spend caps are one gather
+
+| Change | Why it is guaranteed better |
+| --- | --- |
+| `_ensure_cap` gathers niche `assert_within_cap` + global `today_spend_total_usd` | Independent ledger reads. Every video job waited on niche spend before asking global |
+| User snapshot still comes from `SpendContext` | No second `users.get`. Missing spend still loads the user once, then gathers |
+| Either cap still fail-closes the job | Niche `SpendCapExceeded` and global exceeded both persist `failed` |
+
+Jev still does not write scripts or knowledge sentences. Ads overlay never relaxes AdSpendGuard.

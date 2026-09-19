@@ -331,18 +331,6 @@ async def _persist(job: Job) -> None:
 async def _ensure_cap(
     job: Job, niche: Niche, spend: SpendContext | None = None
 ) -> bool:
-    try:
-        await spend_repo.assert_within_cap(
-            user_id=job.user_id,
-            niche_id=niche.id,
-            cap_usd=niche.daily_spend_cap_usd,
-        )
-    except spend_repo.SpendCapExceeded as e:
-        job.status = JobStatus.failed
-        job.error = str(e)
-        await _persist(job)
-        return False
-
     # `default_context` already loaded the user. Reuse that snapshot
     # instead of a second users.get on every pre-stage check.
     global_cap = spend.global_cap_usd if spend is not None else None
@@ -352,17 +340,40 @@ async def _ensure_cap(
         user = await users_repo.get(job.user_id)
         if user is not None:
             global_cap = user.global_daily_cap_usd
-    if global_cap is not None:
-        total = await spend_repo.today_spend_total_usd(user_id=job.user_id)
-        if total >= global_cap:
-            msg = (
-                f"user global daily cap exceeded: "
-                f"${total} >= ${global_cap}"
+
+    try:
+        if global_cap is not None:
+            # Niche spend and global spend are independent ledger reads.
+            _, total = await asyncio.gather(
+                spend_repo.assert_within_cap(
+                    user_id=job.user_id,
+                    niche_id=niche.id,
+                    cap_usd=niche.daily_spend_cap_usd,
+                ),
+                spend_repo.today_spend_total_usd(user_id=job.user_id),
             )
-            job.status = JobStatus.failed
-            job.error = msg
-            await _persist(job)
-            return False
+        else:
+            await spend_repo.assert_within_cap(
+                user_id=job.user_id,
+                niche_id=niche.id,
+                cap_usd=niche.daily_spend_cap_usd,
+            )
+            return True
+    except spend_repo.SpendCapExceeded as e:
+        job.status = JobStatus.failed
+        job.error = str(e)
+        await _persist(job)
+        return False
+
+    if total >= global_cap:
+        msg = (
+            f"user global daily cap exceeded: "
+            f"${total} >= ${global_cap}"
+        )
+        job.status = JobStatus.failed
+        job.error = msg
+        await _persist(job)
+        return False
 
     return True
 
