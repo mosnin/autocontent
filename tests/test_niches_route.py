@@ -158,6 +158,52 @@ def test_create_niche_returns_201(monkeypatch):
     assert data["user_id"] == _USER_ID
 
 
+def test_create_niche_rejects_foreign_or_wrong_kind_kit(monkeypatch):
+    """A guessed or ad-kind kit id must 422 before the niche row is written.
+    resolve() would otherwise silently substitute the default kit."""
+    _reset_limiter()
+    import marketer.repos.niches as niches_repo
+    from marketer.models import Kit
+    from marketer.repos import kits as kits_repo
+    from uuid import uuid4
+
+    created: list[dict] = []
+
+    async def _create(user_id: str, **kwargs) -> Niche:
+        created.append(kwargs)
+        return _make_niche()
+
+    async def _missing(kit_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(niches_repo, "create", _create)
+    monkeypatch.setattr(kits_repo, "get", _missing)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/niches",
+        json={**_VALID_PAYLOAD, "design_kit_id": str(uuid4())},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+    assert "design_kit_id" in resp.json()["detail"]
+    assert created == []
+
+    kit_id = uuid4()
+
+    async def _ad_kit(kid, *, user_id):
+        return Kit(id=kid, user_id=user_id, kind="ad", name="ads", content="")
+
+    monkeypatch.setattr(kits_repo, "get", _ad_kit)
+    resp = client.post(
+        "/api/v1/niches",
+        json={**_VALID_PAYLOAD, "design_kit_id": str(kit_id)},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+    assert "design_kit_id" in resp.json()["detail"]
+    assert created == []
+
+
 def test_create_niche_missing_field_returns_422(monkeypatch):
     """Missing required field → 422 Unprocessable Entity."""
     _reset_limiter()

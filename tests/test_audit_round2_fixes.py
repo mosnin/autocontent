@@ -312,6 +312,17 @@ def test_remix_rejects_video_templates_and_oversized_bodies(monkeypatch):
     )
     assert r.status_code == 413
 
+    # Non-numeric Content-Length is 411 (same guard as a missing header).
+    r = client.post(
+        f"/api/v1/templates/{template.id}/remix",
+        content=b"{}",
+        headers={
+            "content-type": "application/json",
+            "content-length": "not-a-number",
+        },
+    )
+    assert r.status_code == 411
+
 
 # --------------------------------------------------------------------------- image post routes
 
