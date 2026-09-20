@@ -219,6 +219,74 @@ def test_enqueue_job_returns_202(monkeypatch):
     assert resp.json()["status"] == "queued"
 
 
+def test_enqueue_job_rejects_platform_not_on_niche(monkeypatch):
+    """A shorts enqueue against a tiktok-only channel must 422 before
+    a job row or Modal spawn — otherwise we render for an account the
+    channel never connected."""
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+    import marketer.repos.niches as niches_repo
+    from types import SimpleNamespace
+
+    created: list[dict] = []
+    spawned: list[tuple] = []
+
+    async def _create(*, user_id: str, niche_id: UUID, platform: str) -> Job:
+        created.append({"platform": platform})
+        return _make_job()
+
+    async def _niche_get(niche_id, *, user_id):
+        return SimpleNamespace(id=niche_id, platforms=["tiktok"])
+
+    class _FakeFunction:
+        @staticmethod
+        def from_name(app: str, func: str):
+            return _FakeFunction()
+
+        def spawn(self, *args, **kwargs):
+            spawned.append(args)
+
+    import sys
+    import types
+
+    monkeypatch.setattr(jobs_repo, "create", _create)
+    monkeypatch.setattr(niches_repo, "get", _niche_get)
+    fake_modal = types.ModuleType("modal")
+    fake_modal.Function = _FakeFunction  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        "/api/v1/jobs",
+        json={"niche_id": str(_NICHE_ID), "platform": "shorts"},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 422
+    assert "isn't enabled" in resp.json()["detail"]
+    assert created == []
+    assert spawned == []
+
+
+def test_reject_job_404_when_missing_or_foreign(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+
+    async def _claim(job_id, *, user_id):
+        return None
+
+    async def _get(job_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(jobs_repo, "claim_for_rejection", _claim)
+    monkeypatch.setattr(jobs_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/reject",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+
+
 def test_enqueue_job_403_when_generate_flag_off(monkeypatch):
     """Admin generate kill-switch must 403 before a job row or Modal spawn."""
     _reset_limiter()

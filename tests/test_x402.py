@@ -220,6 +220,41 @@ def test_route_credits_on_valid_payment(monkeypatch):
     assert credited["ref"] == "x402:0xtxhash"
 
 
+def test_route_credits_even_when_audit_record_fails(monkeypatch):
+    """The ledger write is the source of truth. A failing audit insert
+    must not 500 after the user has already been credited."""
+    from backend.rate_limit import limiter
+    limiter._storage.reset()
+    _enable(monkeypatch)
+
+    import backend.routes.x402 as route
+    import marketer.repos.billing as billing
+    import marketer.repos.x402 as x402_repo
+
+    async def fake_settle(*, payment_payload, requirements):
+        return SettleResult(True, "0xtxhash", "0xpayer", Decimal("10.00"))
+
+    async def fake_credit(*, user_id, amount_usd, checkout_session_id, description):
+        return Decimal("10.00")
+
+    async def fake_record(**kw):
+        raise RuntimeError("audit db down")
+
+    monkeypatch.setattr(route.x402, "verify_and_settle", fake_settle)
+    monkeypatch.setattr(billing, "credit_purchase", fake_credit)
+    monkeypatch.setattr(x402_repo, "record", fake_record)
+
+    client = _client(monkeypatch)
+    payment = base64.b64encode(json.dumps({"scheme": "exact"}).encode()).decode()
+    resp = client.post(
+        "/api/v1/x402/credits?amount_usd=10",
+        headers={"Authorization": "Bearer mkt_x", "X-PAYMENT": payment},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["credited_usd"] == "10.00"
+    assert resp.headers.get("X-PAYMENT-RESPONSE")
+
+
 def test_route_402_when_payment_fails_settlement(monkeypatch):
     from backend.rate_limit import limiter
     limiter._storage.reset()

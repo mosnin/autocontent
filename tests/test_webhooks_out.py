@@ -114,6 +114,34 @@ def test_create_rejects_non_https(monkeypatch):
     assert resp.status_code == 422
 
 
+def test_create_rejects_ssrf_url_without_storing(monkeypatch):
+    """Registration-time SSRF must 422 before the signed-delivery URL
+    is persisted. Delivery-time re-check is a different draft (#78)."""
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    stored: list[dict] = []
+
+    async def _create(**kw):
+        stored.append(kw)
+        raise AssertionError("blocked URL must not be stored")
+
+    monkeypatch.setattr(repo, "create", _create)
+    monkeypatch.setattr(
+        "marketer.services.ssrf.check_public_url",
+        lambda url: (False, "host resolves to a non-public address"),
+    )
+    client = _client(monkeypatch)
+    resp = client.post(
+        "/api/v1/webhook-endpoints",
+        json={"url": "https://169.254.169.254/latest/meta-data"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 422
+    assert "invalid url" in resp.json()["detail"]
+    assert stored == []
+
+
 def test_create_rejects_unknown_event(monkeypatch):
     _reset_limiter()
     client = _client(monkeypatch)

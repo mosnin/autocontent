@@ -179,6 +179,58 @@ def test_create_composition_validates_and_spawns(monkeypatch):
     assert spawned["args"][0] == _USER_ID
 
 
+def test_create_composition_spawn_failure_marks_failed_and_502(monkeypatch):
+    """A Modal lookup crash after the row is inserted must fail the
+    composition (not leave it queued forever) and 502 the caller.
+    The fail write is tenant-scoped — a dropped user_id would flip
+    someone else's remix."""
+    import marketer.repos.media as media_repo
+
+    clips = [_asset(), _asset()]
+    comp_id = uuid4()
+
+    async def fake_bulk(ids, *, user_id):
+        return clips
+
+    async def fake_create(**kwargs):
+        return Composition(
+            id=comp_id, user_id=_USER_ID,
+            clip_asset_ids=kwargs["clip_asset_ids"],
+            audio_mode=kwargs["audio_mode"], title=kwargs["title"],
+        )
+
+    failed: dict = {}
+
+    async def fake_fail(composition_id, *, user_id, status, error=None, output_asset_id=None):
+        failed.update({
+            "id": composition_id, "user_id": user_id,
+            "status": status, "error": error,
+        })
+        return None
+
+    monkeypatch.setattr(media_repo, "get_assets_bulk", fake_bulk)
+    monkeypatch.setattr(media_repo, "create_composition", fake_create)
+    monkeypatch.setattr(media_repo, "set_composition_status", fake_fail)
+
+    import modal
+
+    def _boom(app, name):
+        raise RuntimeError("modal down")
+
+    monkeypatch.setattr(modal.Function, "from_name", staticmethod(_boom))
+
+    client = _make_authed_client(monkeypatch)
+    r = client.post("/api/v1/library/compositions", json={
+        "clip_asset_ids": [str(c.id) for c in clips],
+        "title": "remix",
+    })
+    assert r.status_code == 502
+    assert failed["id"] == comp_id
+    assert failed["user_id"] == _USER_ID
+    assert failed["status"] == "failed"
+    assert "spawn failed" in (failed["error"] or "")
+
+
 def test_create_composition_missing_clip_404(monkeypatch):
     import marketer.repos.media as media_repo
 

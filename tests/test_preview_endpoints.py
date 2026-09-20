@@ -58,6 +58,21 @@ def test_voice_preview_synthesizes_once_then_caches(client, monkeypatch, tmp_pat
     assert calls == ["nova"]  # second hit served from cache
 
 
+def test_character_sheet_404_for_foreign_niche(client, monkeypatch):
+    from marketer.repos import niches as niches_repo
+
+    async def fake_get(niche_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(niches_repo, "get", fake_get)
+    resp = client.get(
+        f"/api/v1/niches/{uuid4()}/character-sheet",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "channel not found"
+
+
 def test_character_sheet_404_before_first_run(client, monkeypatch):
     from marketer.repos import niches as niches_repo
 
