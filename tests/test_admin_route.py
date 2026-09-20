@@ -145,6 +145,43 @@ def test_cannot_suspend_self(monkeypatch):
     assert resp.status_code == 400
 
 
+def test_cannot_demote_self(monkeypatch):
+    """An admin demoting themselves can lock the org out of the admin API.
+    The route must refuse before set_role and must not write an audit row
+    that would imply the demotion landed."""
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    import marketer.repos.admin as admin_repo
+
+    async def _set_role(uid, role):
+        raise AssertionError("self-demote must not reach the repo")
+
+    monkeypatch.setattr(admin_repo, "set_role", _set_role)
+    resp = client.post(
+        f"/api/v1/admin/users/{_ADMIN_ID}/role",
+        json={"role": "user"}, headers=_H,
+    )
+    assert resp.status_code == 400
+    assert not any(r["action"] == "user.role" for r in client._recorded)
+
+
+def test_set_role_rejects_unknown_role(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    import marketer.repos.admin as admin_repo
+
+    async def _set_role(uid, role):
+        raise AssertionError("invalid role must not reach the repo")
+
+    monkeypatch.setattr(admin_repo, "set_role", _set_role)
+    resp = client.post(
+        f"/api/v1/admin/users/{_TARGET_ID}/role",
+        json={"role": "owner"}, headers=_H,
+    )
+    assert resp.status_code == 422
+    assert not any(r["action"] == "user.role" for r in client._recorded)
+
+
 def test_non_admin_cannot_set_feature_flags(monkeypatch):
     _reset_limiter()
     client = _make_client(monkeypatch, role="user")
