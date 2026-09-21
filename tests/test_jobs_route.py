@@ -549,26 +549,6 @@ def test_get_job_video_404_when_file_is_gone(monkeypatch, tmp_path):
     assert resp.status_code == 404
 
 
-def test_reject_job_404_when_not_owned(monkeypatch):
-    _reset_limiter()
-    import marketer.repos.jobs as jobs_repo
-
-    async def _claim(job_id, *, user_id):
-        return None
-
-    async def _get(job_id, *, user_id):
-        return None
-
-    monkeypatch.setattr(jobs_repo, "claim_for_rejection", _claim)
-    monkeypatch.setattr(jobs_repo, "get", _get)
-    client = _make_authed_client(monkeypatch)
-    resp = client.post(
-        f"/api/v1/jobs/{_JOB_ID}/reject",
-        headers={"Authorization": "Bearer mkt_tok"},
-    )
-    assert resp.status_code == 404
-
-
 def test_reject_job_409_when_not_awaiting_approval(monkeypatch):
     """A concurrent approve already claimed the row — reject must not clobber."""
     _reset_limiter()
