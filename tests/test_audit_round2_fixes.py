@@ -313,6 +313,106 @@ def test_remix_rejects_video_templates_and_oversized_bodies(monkeypatch):
     assert r.status_code == 413
 
 
+def test_looks_like_image_accepts_common_stills_and_rejects_riff_avi():
+    from backend.routes.templates import _looks_like_image
+
+    assert _looks_like_image(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
+    assert _looks_like_image(b"\xff\xd8\xff\xe0" + b"\x00" * 8)
+    assert _looks_like_image(b"GIF89a" + b"\x00" * 8)
+    assert _looks_like_image(b"RIFF" + b"\x00" * 4 + b"WEBP" + b"\x00" * 4)
+    assert not _looks_like_image(b"RIFF" + b"\x00" * 4 + b"AVI " + b"\x00" * 4)
+    assert not _looks_like_image(b"#!/bin/sh\n")
+    assert not _looks_like_image(b"")
+
+
+def test_sniff_content_type_uses_magic_bytes_not_filename(tmp_path: Path):
+    from backend.routes.templates import _sniff_content_type
+
+    jpeg = tmp_path / "labelled-as.png"
+    jpeg.write_bytes(b"\xff\xd8\xff\xe0" + b"\x00" * 8)
+    assert _sniff_content_type(jpeg) == "image/jpeg"
+
+    gif = tmp_path / "labelled-as.gif.png"
+    gif.write_bytes(b"GIF87a" + b"\x00" * 8)
+    assert _sniff_content_type(gif) == "image/gif"
+
+    webp = tmp_path / "labelled-as.webp.png"
+    webp.write_bytes(b"RIFF" + b"\x00" * 4 + b"WEBP" + b"\x00" * 4)
+    assert _sniff_content_type(webp) == "image/webp"
+
+    png = tmp_path / "real.png"
+    png.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
+    assert _sniff_content_type(png) == "image/png"
+
+    script = tmp_path / "payload.png"
+    script.write_bytes(b"<?php echo 1;")
+    assert _sniff_content_type(script) == "application/octet-stream"
+
+    missing = tmp_path / "gone.png"
+    assert _sniff_content_type(missing) == "image/png"
+
+
+def test_remix_rejects_non_image_and_invalid_product_upload(monkeypatch, tmp_path: Path):
+    """Product-image remix is a second upload door — create-template already
+    pins admin reference bytes; this one is the tenant spend path."""
+    import base64
+
+    import marketer.repos.templates as templates_repo
+    from marketer.config import settings as cfg
+
+    monkeypatch.setattr(cfg, "artifacts_dir", str(tmp_path))
+    monkeypatch.setattr(cfg, "billing_enabled", False)
+
+    template = _fake_template(published=True, kind="image")
+
+    async def fake_get(tid):
+        return template
+
+    spawned: list = []
+
+    class _FakeFn:
+        @staticmethod
+        def from_name(*_a, **_k):
+            return _FakeFn()
+
+        def spawn(self, *args):
+            spawned.append(args)
+
+    import sys
+    import types
+
+    fake_modal = types.ModuleType("modal")
+    fake_modal.Function = _FakeFn  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+    monkeypatch.setattr(templates_repo, "get", fake_get)
+    client = _make_authed_client(monkeypatch)
+
+    script_b64 = base64.b64encode(b"#!/bin/sh\nrm -rf /\n").decode()
+    r = client.post(
+        f"/api/v1/templates/{template.id}/remix",
+        json={"count": 1, "product_image_b64": script_b64},
+    )
+    assert r.status_code == 422
+    assert "image" in r.json()["detail"].lower()
+    assert spawned == []
+
+    riff_avi = base64.b64encode(b"RIFF" + b"\x00" * 4 + b"AVI " + b"xxxx").decode()
+    r = client.post(
+        f"/api/v1/templates/{template.id}/remix",
+        json={"count": 1, "product_image_b64": riff_avi},
+    )
+    assert r.status_code == 422
+    assert spawned == []
+
+    r = client.post(
+        f"/api/v1/templates/{template.id}/remix",
+        json={"count": 1, "product_image_b64": "%%%not-base64%%%"},
+    )
+    assert r.status_code == 422
+    assert "base64" in r.json()["detail"].lower()
+    assert spawned == []
+
+
 # --------------------------------------------------------------------------- image post routes
 
 

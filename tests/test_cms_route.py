@@ -407,6 +407,14 @@ def test_publish_404s_when_the_article_is_not_the_callers(client, monkeypatch):
     assert resp.status_code == 404
 
 
+def test_unpublish_404s_when_the_article_is_not_the_callers(client, monkeypatch):
+    _stub_set_publication(monkeypatch, None)
+    resp = client.post(
+        f"/api/v1/cms/articles/{_ARTICLE_ID}/unpublish", headers=_AUTH
+    )
+    assert resp.status_code == 404
+
+
 def test_unpublish_returns_to_draft(client, monkeypatch):
     _stub_set_publication(
         monkeypatch,
