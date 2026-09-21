@@ -525,6 +525,72 @@ def test_get_job_video_streams_when_file_exists(monkeypatch, tmp_path):
     assert resp.headers["content-type"].startswith("video/mp4")
 
 
+def test_get_job_video_404_when_file_is_gone(monkeypatch, tmp_path):
+    """Retention GC can unlink the file after the row still points at it."""
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+    from marketer.models import RenderedVideo
+
+    missing = tmp_path / "gone.mp4"
+    job = _make_job(status=JobStatus.done)
+    job.rendered = RenderedVideo(path=str(missing), duration_sec=10.0)
+
+    async def _get(job_id: UUID, *, user_id: str) -> Job | None:
+        if job_id == _JOB_ID and user_id == _USER_ID:
+            return job
+        return None
+
+    monkeypatch.setattr(jobs_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/jobs/{_JOB_ID}/video",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+
+
+def test_reject_job_404_when_not_owned(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+
+    async def _claim(job_id, *, user_id):
+        return None
+
+    async def _get(job_id, *, user_id):
+        return None
+
+    monkeypatch.setattr(jobs_repo, "claim_for_rejection", _claim)
+    monkeypatch.setattr(jobs_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/reject",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 404
+
+
+def test_reject_job_409_when_not_awaiting_approval(monkeypatch):
+    """A concurrent approve already claimed the row — reject must not clobber."""
+    _reset_limiter()
+    import marketer.repos.jobs as jobs_repo
+
+    async def _claim(job_id, *, user_id):
+        return None
+
+    async def _get(job_id, *, user_id):
+        return _make_job(status=JobStatus.scheduling)
+
+    monkeypatch.setattr(jobs_repo, "claim_for_rejection", _claim)
+    monkeypatch.setattr(jobs_repo, "get", _get)
+    client = _make_authed_client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/jobs/{_JOB_ID}/reject",
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 409
+    assert "awaiting_approval" in resp.json()["detail"]
+
+
 # ---------------------------------------------------------------------------
 # POST / — prepaid-credit gate (hosted billing)
 # ---------------------------------------------------------------------------

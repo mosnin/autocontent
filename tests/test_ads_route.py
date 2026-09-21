@@ -318,3 +318,48 @@ def test_overview_reports_enabled_false_when_ads_off(monkeypatch):
     assert body["enabled"] is False
     assert body["accounts"] == 0
     assert body["active_campaigns"] == 0
+
+
+def test_get_campaign_foreign_is_404_and_skips_metrics(monkeypatch):
+    """A caller holding someone else's campaign id must not learn it exists
+    and must not read that campaign's spend series."""
+    _reset_limiter()
+    import marketer.repos.ads as ads_repo
+
+    metrics_calls: list = []
+
+    async def _get_campaign(campaign_id, *, user_id):
+        assert user_id == "user_ads"
+        return None
+
+    async def _metrics(campaign_id, *, user_id, limit=90):
+        metrics_calls.append((campaign_id, user_id))
+        raise AssertionError("must not read metrics for a foreign campaign")
+
+    monkeypatch.setattr(ads_repo, "get_campaign", _get_campaign)
+    monkeypatch.setattr(ads_repo, "campaign_metrics", _metrics)
+    client = _client(monkeypatch)
+    resp = client.get(
+        f"/api/v1/ads/campaigns/{uuid4()}",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert metrics_calls == []
+
+
+def test_decide_approval_rejects_unknown_decision_before_repo(monkeypatch):
+    """'maybe' is not a decision — 422 before decide/execute can spend."""
+    _reset_limiter()
+    import marketer.repos.ad_approvals as ad_approvals
+
+    async def _decide(*_a, **_k):
+        raise AssertionError("invalid decision must not reach decide()")
+
+    monkeypatch.setattr(ad_approvals, "decide", _decide)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/ads/approvals/{uuid4()}/decide",
+        json={"decision": "maybe"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 422
