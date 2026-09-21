@@ -34,9 +34,13 @@ const nextConfig = {
   // when the request is same-origin. Nothing is reimplemented here - the
   // request is forwarded verbatim, headers and all.
   async rewrites() {
-    const api = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const api = process.env.MARKETER_NATIVE_CONNECTOR_URL || process.env.NEXT_PUBLIC_API_BASE_URL;
     if (!api) return [];
     return [
+      ...(process.env.MARKETER_NATIVE_CONNECTOR_URL ? [{
+        source: "/api/mcp",
+        destination: `${api}/api/mcp`,
+      }] : []),
       { source: "/oauth/:path*", destination: `${api}/oauth/:path*` },
       {
         source: "/.well-known/oauth-authorization-server",
