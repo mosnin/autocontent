@@ -38,3 +38,5 @@ web/opsra/
 
 # Playwright scratch from verification runs
 web/.pwtmp/
+.vercel
+.env*
