@@ -68,6 +68,7 @@ async def test_budget_headroom_projection_limits_spawns(monkeypatch):
     """3 due lanes, headroom for exactly one estimated piece -> one spawn."""
     from marketer.models import Campaign, CampaignItem, Niche, PostingWindow
     from marketer.repos import campaigns as campaigns_repo
+    from marketer.repos import jobs as jobs_repo
     from marketer.repos import niches as niches_repo
     from marketer.services import campaign_runner
 
@@ -104,11 +105,15 @@ async def test_budget_headroom_projection_limits_spawns(monkeypatch):
             platforms=["tiktok"], daily_spend_cap_usd=Decimal("5"),
         )
 
+    async def fake_job_active(nid, *, within_minutes: int = 45):
+        return False
+
     monkeypatch.setattr(campaigns_repo, "spent_usd", fake_spent)
     monkeypatch.setattr(campaigns_repo, "pending_work_count", fake_pending)
     monkeypatch.setattr(campaigns_repo, "list_items", fake_items)
     monkeypatch.setattr(campaigns_repo, "work_counts", fake_counts)
     monkeypatch.setattr(niches_repo, "get", fake_niche)
+    monkeypatch.setattr(jobs_repo, "has_active_for_niche", fake_job_active)
 
     spawned = []
 
@@ -125,6 +130,7 @@ async def test_budget_headroom_projection_limits_spawns(monkeypatch):
 async def test_campaign_runner_image_lane_dispatch(monkeypatch):
     from marketer.models import Campaign, CampaignItem, Niche, PostingWindow
     from marketer.repos import campaigns as campaigns_repo
+    from marketer.repos import image_posts as image_posts_repo
     from marketer.repos import niches as niches_repo
     from marketer.services import campaign_runner
 
@@ -157,11 +163,15 @@ async def test_campaign_runner_image_lane_dispatch(monkeypatch):
             platforms=["reels"], daily_spend_cap_usd=Decimal("5"),
         )
 
+    async def fake_image_active(nid):
+        return False
+
     monkeypatch.setattr(campaigns_repo, "spent_usd", fake_spent)
     monkeypatch.setattr(campaigns_repo, "pending_work_count", fake_pending)
     monkeypatch.setattr(campaigns_repo, "list_items", fake_items)
     monkeypatch.setattr(campaigns_repo, "work_counts", fake_counts)
     monkeypatch.setattr(niches_repo, "get", fake_niche)
+    monkeypatch.setattr(image_posts_repo, "has_active_for_niche", fake_image_active)
 
     images = []
 
