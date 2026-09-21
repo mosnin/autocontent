@@ -143,6 +143,13 @@ async def run_campaign_tick(
             niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None or not niche.platforms:
                 continue
+            from ..repos import jobs as jobs_repo
+
+            # Parked (awaiting_approval) and in-flight jobs block the next
+            # cadence tick so approve_before_post niches do not re-render
+            # every window until an operator acts.
+            if await jobs_repo.has_active_for_niche(niche.id):
+                continue
             # Rotate platforms across spawns so all socials get coverage.
             total = (counts["video"].get(item.ref_id) or {"total": 0})["total"]
             platform = list(niche.platforms)[total % len(niche.platforms)]
@@ -155,6 +162,10 @@ async def run_campaign_tick(
             niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
                 continue
+            from ..repos import image_posts as image_posts_repo
+
+            if await image_posts_repo.has_active_for_niche(niche.id):
+                continue
             await spawn_image(uid, niche.id, campaign.id)
             projected += est
             spawned.append(f"image:{niche.id}")
@@ -163,6 +174,10 @@ async def run_campaign_tick(
                 continue
             niche = await niches_repo.get(item.ref_id, user_id=uid)
             if niche is None:
+                continue
+            from ..repos import articles as articles_repo
+
+            if await articles_repo.has_active_for_niche(niche.id):
                 continue
             await spawn_article(uid, niche.id, campaign.id)
             projected += est

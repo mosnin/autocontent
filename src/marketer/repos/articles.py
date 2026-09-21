@@ -93,6 +93,26 @@ async def get(article_id: UUID, *, user_id: str) -> Article | None:
     return _row_to_model(row) if row else None
 
 
+async def has_active_for_niche(niche_id: UUID) -> bool:
+    """True if the niche already has a non-terminal article.
+
+    Campaign ticks must not spawn a second article while one is still
+    researching/writing/imaging — a high cadence plus a slow or stuck
+    run would otherwise double-spend.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        select 1 from articles
+         where niche_id = $1
+           and status not in ('done', 'failed')
+         limit 1
+        """,
+        niche_id,
+    )
+    return row is not None
+
+
 async def claim_for_retry(article_id: UUID, *, user_id: str) -> Article | None:
     """Atomic failed->queued retry claim (mirrors jobs.reset_for_retry).
 
