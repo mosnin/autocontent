@@ -31,12 +31,12 @@ image = (
         copy=True,
     )
 )
-secrets = [modal.Secret.from_name("marketer-runtime")]
+native_secrets = [modal.Secret.from_name("marketer-native-oauth-runtime")]
 
 
 @app.function(
     image=image,
-    secrets=secrets,
+    secrets=native_secrets,
     max_containers=1,
     timeout=60,
     env={
@@ -52,7 +52,7 @@ def api():
     return create_app()
 
 
-@app.function(image=image, secrets=secrets, timeout=120)
+@app.function(image=image, secrets=[modal.Secret.from_name("marketer-runtime")], timeout=120)
 def migrate_oauth_only():
     import hashlib
     import os
