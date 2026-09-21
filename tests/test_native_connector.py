@@ -62,6 +62,19 @@ def identity(monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("name", [[], {}, None, 1])
+async def test_malformed_tool_name_is_rejected_without_server_error(identity, name):
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=native.create_app()), base_url="https://test"
+    ) as http:
+        response = await http.post(
+            "/api/mcp",
+            json={"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": name}},
+        )
+        assert response.json()["error"]["code"] == -32602
+
+
+@pytest.mark.asyncio
 async def test_native_rejects_wrong_resource_disabled_client_and_suspended_user(identity):
     token, grant, client, user = identity
     async with httpx.AsyncClient(

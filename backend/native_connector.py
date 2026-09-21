@@ -19,6 +19,7 @@ from marketer.repos import oauth as oauth_repo, users as users_repo
 from marketer.services import oauth as protocol
 from .rate_limit import limiter
 from .routes import oauth
+from .native_request_security import NativeRequestSecurity
 
 READ_SCOPES = ["openid", "profile", "email", "offline_access", "content:read"]
 TOOLS = {
@@ -92,7 +93,8 @@ async def native_principal(request: Request):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Marketer native connector")
+    app = FastAPI(title="Marketer native connector", docs_url=None, redoc_url=None, openapi_url=None)
+    app.add_middleware(NativeRequestSecurity)
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_exception_handler(oauth.OAuthProblem, oauth.oauth_problem_handler)
@@ -207,7 +209,7 @@ def create_app() -> FastAPI:
         if method == "tools/call":
             params = rpc.get("params") or {}
             name = params.get("name") if isinstance(params, dict) else None
-            if name not in TOOLS or params.get("arguments", {}) != {}:
+            if not isinstance(name, str) or name not in TOOLS or params.get("arguments", {}) != {}:
                 return JSONResponse(
                     {
                         "jsonrpc": "2.0",
