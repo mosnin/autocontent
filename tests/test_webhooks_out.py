@@ -198,3 +198,51 @@ def test_patch_unknown_endpoint_404s(monkeypatch):
         json={"enabled": True}, headers={"Authorization": "Bearer mkt_x"},
     )
     assert resp.status_code == 404
+
+
+def test_create_rejects_private_url_before_persist(monkeypatch):
+    """SSRF: a URL that resolves to RFC1918 must 422 and never be stored."""
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    created: list[dict] = []
+
+    async def _create(*, user_id, url, events, description=""):
+        created.append({"user_id": user_id, "url": url, "events": events})
+        raise AssertionError("must not persist a private webhook URL")
+
+    monkeypatch.setattr(repo, "create", _create)
+    monkeypatch.setattr(
+        "marketer.services.ssrf.check_public_url",
+        lambda url: (False, "host resolves to 10.0.0.5"),
+    )
+    client = _client(monkeypatch)
+    resp = client.post(
+        "/api/v1/webhook-endpoints",
+        json={"url": "https://internal.example/hook", "events": ["job.done"]},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 422
+    assert "10.0.0.5" in resp.json()["detail"]
+    assert created == []
+
+
+def test_delete_foreign_or_missing_is_404(monkeypatch):
+    _reset_limiter()
+    import marketer.repos.webhooks_out as repo
+
+    seen: list[tuple] = []
+
+    async def _delete(endpoint_id, *, user_id):
+        seen.append((endpoint_id, user_id))
+        return False
+
+    monkeypatch.setattr(repo, "delete", _delete)
+    client = _client(monkeypatch)
+    eid = uuid4()
+    resp = client.delete(
+        f"/api/v1/webhook-endpoints/{eid}",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 404
+    assert seen == [(eid, _USER)]
