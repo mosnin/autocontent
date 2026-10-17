@@ -287,6 +287,47 @@ def test_unpublished_reference_hidden(monkeypatch, tmp_path: Path):
     assert r.status_code == 404
 
 
+def test_remix_refused_402_when_credit_short(monkeypatch):
+    """Billing on + $0 balance → 402 before the remix is spawned or stored."""
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.templates as templates_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+    template = _fake_template(kind="image", published=True)
+
+    async def fake_get(tid):
+        return template
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    monkeypatch.setattr(templates_repo, "get", fake_get)
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+
+    spawned: list = []
+
+    class _FakeFn:
+        def spawn(self, *args):
+            spawned.append(args)
+
+    import sys
+    import types
+
+    fake_modal = types.ModuleType("modal")
+    fake_modal.Function = types.SimpleNamespace(from_name=lambda *a, **k: _FakeFn())
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+
+    client = _make_authed_client(monkeypatch)
+    r = client.post(f"/api/v1/templates/{template.id}/remix", json={"count": 2})
+    assert r.status_code == 402
+    detail = r.json()["detail"]
+    assert "Add credit" in detail
+    # 2 * $0.30 estimate * 1.5 margin — pins the count multiplier.
+    assert "$0.90" in detail
+    assert spawned == []
+
+
 def test_remix_rejects_video_templates_and_oversized_bodies(monkeypatch):
     import marketer.repos.templates as templates_repo
 
@@ -314,6 +355,65 @@ def test_remix_rejects_video_templates_and_oversized_bodies(monkeypatch):
 
 
 # --------------------------------------------------------------------------- image post routes
+
+
+def test_enqueue_image_post_refused_402_when_credit_short(monkeypatch):
+    """Billing on + $0 balance → 402, no image-post row."""
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.image_posts as image_posts_repo
+    import marketer.repos.niches as niches_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def fake_niche_get(nid, *, user_id):
+        return object()
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    created: list = []
+
+    async def fake_create(**kwargs):
+        created.append(kwargs)
+        return {"id": str(uuid4()), "status": "queued"}
+
+    monkeypatch.setattr(niches_repo, "get", fake_niche_get)
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+    monkeypatch.setattr(image_posts_repo, "create", fake_create)
+
+    client = _make_authed_client(monkeypatch)
+    r = client.post("/api/v1/image-posts", json={"niche_id": str(uuid4())})
+    assert r.status_code == 402
+    assert "Add credit" in r.json()["detail"]
+    assert created == []
+
+
+def test_retry_image_post_refused_402_when_credit_short(monkeypatch):
+    """Billing on + $0 balance → 402 before the failed row is claimed."""
+    import marketer.repos.billing as billing_repo
+    import marketer.repos.image_posts as image_posts_repo
+    from marketer.config import settings
+
+    monkeypatch.setattr(settings, "billing_enabled", True)
+
+    async def _balance(user_id):
+        return Decimal("0")
+
+    claims: list = []
+
+    async def fake_claim(pid, *, user_id):
+        claims.append(pid)
+        return True
+
+    monkeypatch.setattr(billing_repo, "balance", _balance)
+    monkeypatch.setattr(image_posts_repo, "claim_for_retry", fake_claim)
+
+    client = _make_authed_client(monkeypatch)
+    r = client.post(f"/api/v1/image-posts/{uuid4()}/retry")
+    assert r.status_code == 402
+    assert "Add credit" in r.json()["detail"]
+    assert claims == []
 
 
 def test_image_post_routes_scoped_and_approve_conflicts(monkeypatch):
