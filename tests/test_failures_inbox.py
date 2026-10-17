@@ -411,3 +411,24 @@ def test_replay_refuses_when_unbilled_usage_disabled(monkeypatch):
     resp = client.post(f"/api/v1/failures/replay/job/{_JOB_ID}")
     assert resp.status_code == 402
     assert called == []
+
+
+def test_replay_403_when_generate_flag_off(monkeypatch):
+    """Inbox replay must honor the same generate kill-switch as /jobs/{id}/retry."""
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key):
+        return key != "generate"
+
+    called: list[UUID] = []
+
+    async def _reset(job_id: UUID, *, user_id: str):
+        called.append(job_id)
+        return None
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(jobs_repo, "reset_for_retry", _reset)
+    client = _make_app(monkeypatch)
+    resp = client.post(f"/api/v1/failures/replay/job/{_JOB_ID}")
+    assert resp.status_code == 403
+    assert called == []

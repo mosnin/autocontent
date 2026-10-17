@@ -37,7 +37,7 @@ from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import jobs as jobs_repo
 
 from ..auth import AuthCtx, CurrentUser
-from ..hosted_safety import refuse_unbilled_generate
+from ..hosted_safety import refuse_if_flag_off, refuse_unbilled_generate
 
 router = APIRouter()
 
@@ -143,6 +143,7 @@ async def replay_failure(
     just reachable from the consolidated inbox.
     """
     refuse_unbilled_generate()
+    await refuse_if_flag_off("generate")
     import modal
 
     # Same up-front credit gate as the per-surface retry endpoints: the

@@ -119,6 +119,30 @@ def test_repurpose_refuses_when_unbilled_usage_disabled(monkeypatch):
     assert "unbilled" in resp.json()["detail"]
 
 
+def test_repurpose_403_when_generate_flag_off(monkeypatch):
+    """Social remix is a metered LLM call — honor the generate kill-switch."""
+    _reset_limiter()
+    from marketer.repos import feature_flags as flags_repo
+    import marketer.repos.articles as arepo
+
+    async def _denied(key):
+        return key != "generate"
+
+    async def explode(*a, **k):
+        raise AssertionError("must not load the article when generate is off")
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    monkeypatch.setattr(arepo, "get", explode)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/articles/{_AID}/social",
+        json={},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 403
+    assert "generate" in resp.json()["detail"]
+
+
 def test_repurpose_402_on_cap(monkeypatch):
     _reset_limiter()
     import marketer.repos.articles as arepo
