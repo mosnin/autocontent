@@ -184,6 +184,32 @@ async def test_approve_job_posts_to_approve_path():
     assert captured["url"].endswith(f"/api/v1/jobs/{jid}/approve")
 
 
+async def test_approve_job_surfaces_publish_403():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(403, json={"detail": "feature 'publish' is disabled"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.approve_job(uuid4())
+    assert ei.value.status_code == 403
+    assert "publish" in ei.value.message
+
+
+async def test_reject_job_posts_to_reject_path():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["method"] = req.method
+        return httpx.Response(200, json=_job_row())
+
+    jid = uuid4()
+    async with _client(handler) as c:
+        await c.reject_job(jid)
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith(f"/api/v1/jobs/{jid}/reject")
+
+
 async def test_billing_balance_and_checkout():
     captured: dict = {}
 
@@ -208,6 +234,18 @@ async def test_billing_balance_and_checkout():
     assert chk["url"].startswith("https://checkout.stripe.com/")
 
 
+async def test_billing_checkout_surfaces_billing_403():
+    def handler(req: httpx.Request) -> httpx.Response:
+        assert json.loads(req.content)["pack"] == "studio"
+        return httpx.Response(403, json={"detail": "feature 'billing' is disabled"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.billing_checkout("studio")
+    assert ei.value.status_code == 403
+    assert "billing" in ei.value.message
+
+
 async def test_list_campaigns_and_library_and_failures():
     def handler(req: httpx.Request) -> httpx.Response:
         if "/campaigns" in req.url.path:
@@ -220,6 +258,89 @@ async def test_list_campaigns_and_library_and_failures():
         assert await c.list_campaigns() == []
         assert await c.list_library() == []
         assert (await c.list_failures())["items"] == []
+
+
+async def test_start_campaign_posts_to_start_path():
+    captured: dict = {}
+    cid = uuid4()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["method"] = req.method
+        return httpx.Response(200, json={"id": str(cid), "status": "running"})
+
+    async with _client(handler) as c:
+        out = await c.start_campaign(cid)
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith(f"/api/v1/campaigns/{cid}/start")
+    assert out["status"] == "running"
+
+
+async def test_start_campaign_surfaces_409_completed():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(409, json={"detail": "completed campaigns cannot restart"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.start_campaign(uuid4())
+    assert ei.value.status_code == 409
+    assert "cannot restart" in ei.value.message
+
+
+async def test_replay_failure_posts_kind_and_id():
+    captured: dict = {}
+    item_id = uuid4()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["method"] = req.method
+        return httpx.Response(202, json={"kind": "job", "id": str(item_id), "status": "queued"})
+
+    async with _client(handler) as c:
+        out = await c.replay_failure("job", item_id)
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith(f"/api/v1/failures/replay/job/{item_id}")
+    assert out["status"] == "queued"
+
+
+async def test_generate_article_posts_niche_and_topic():
+    captured: dict = {}
+    nid = uuid4()
+    aid = uuid4()
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(req.content)
+        return httpx.Response(
+            202,
+            json={
+                "id": str(aid),
+                "user_id": "user_abc",
+                "niche_id": str(nid),
+                "status": "queued",
+                "topic": "how to test pipelines",
+            },
+        )
+
+    async with _client(handler) as c:
+        out = await c.generate_article(niche_id=nid, topic="how to test pipelines")
+    assert captured["body"] == {"niche_id": str(nid), "topic": "how to test pipelines"}
+    assert out.topic == "how to test pipelines"
+    assert str(out.id) == str(aid)
+
+
+async def test_decide_ad_approval_posts_decision():
+    captured: dict = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        captured["url"] = str(req.url)
+        captured["body"] = json.loads(req.content)
+        return httpx.Response(200, json={"status": "approved"})
+
+    async with _client(handler) as c:
+        out = await c.decide_ad_approval("ap1", "approved")
+    assert captured["url"].endswith("/api/v1/ads/approvals/ap1/decide")
+    assert captured["body"] == {"decision": "approved"}
+    assert out["status"] == "approved"
 
 
 async def test_retry_job_posts_to_retry_path():
