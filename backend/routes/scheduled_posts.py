@@ -46,6 +46,7 @@ from marketer.scheduling.schemas import (
 )
 
 from ..auth import AuthCtx, CurrentUser
+from ..hosted_safety import refuse_if_flag_off
 
 router = APIRouter()
 
@@ -266,6 +267,7 @@ async def publish_now(post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     the platform call landed, and auto-retrying an unknown outcome is how
     you double-post).
     """
+    await refuse_if_flag_off("publish")
     claimed = await posts_repo.claim_for_publish_now(post_id, user_id=ctx.user_id)
     if claimed is None:
         existing = await posts_repo.get(post_id, user_id=ctx.user_id)

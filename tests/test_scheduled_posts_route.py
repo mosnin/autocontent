@@ -484,6 +484,26 @@ def test_publish_now_on_an_unknown_post_is_404(monkeypatch, store, spawns):
     assert spawns == []
 
 
+def test_publish_now_403_when_publish_flag_off(monkeypatch, store, spawns):
+    """Admin publish kill-switch must 403 before the atomic claim or Modal spawn."""
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key: str) -> bool:
+        assert key == "publish"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    _reset_limiter()
+    post = store.seed()
+    resp = _client(monkeypatch).post(
+        f"/api/v1/scheduled-posts/{post.id}/publish-now", headers=AUTH
+    )
+    assert resp.status_code == 403
+    assert "publish" in resp.json()["detail"]
+    assert store.posts[post.id].status == "scheduled"
+    assert spawns == []
+
+
 # ---------------------------------------------------------------- import
 
 

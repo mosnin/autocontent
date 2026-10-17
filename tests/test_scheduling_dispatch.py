@@ -229,6 +229,26 @@ async def test_posts_not_yet_due_are_left_alone(env):
     assert env.repo.stored(post.id).status == "scheduled"
 
 
+@pytest.mark.asyncio
+async def test_cron_skips_due_posts_when_publish_flag_off(env, monkeypatch):
+    """Admin publish kill-switch must not claim due rows — they stay
+    scheduled so they go out once the flag is re-enabled."""
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key: str) -> bool:
+        assert key == "publish"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    post = env.repo.seed(platforms=["tiktok"])
+    result = await dispatch.run_due_dispatch(now=NOW)
+
+    assert result["claimed"] == 0
+    assert result["reason"] == "feature 'publish' is disabled"
+    assert env.published == []
+    assert env.repo.stored(post.id).status == "scheduled"
+
+
 # ------------------------------------------- GUARD 1: the per-post claim
 
 
@@ -505,6 +525,22 @@ def fake_http(monkeypatch):
     _FakeClient.response = _FakeResponse(200, {"status": "success", "id": "ayr-1"})
     monkeypatch.setattr(dispatch.httpx, "AsyncClient", _FakeClient)
     return _FakeClient
+
+
+@pytest.mark.asyncio
+async def test_publish_variant_refuses_when_publish_flag_off(fake_http, monkeypatch):
+    from marketer.repos import feature_flags as flags_repo
+
+    async def _denied(key: str) -> bool:
+        assert key == "publish"
+        return False
+
+    monkeypatch.setattr(flags_repo, "allowed", _denied)
+    with pytest.raises(AyrshareError, match="publish"):
+        await dispatch.publish_variant(
+            profile_key="pk", platform="tiktok", content="hi", media_urls=[]
+        )
+    assert fake_http.calls == []
 
 
 @pytest.mark.asyncio
