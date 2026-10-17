@@ -58,3 +58,26 @@ def test_erasure_calls_repo_and_204(monkeypatch):
     resp = client.delete("/api/v1/users/me", headers={"Authorization": "Bearer mkt_x"})
     assert resp.status_code == 204
     assert erased == [_USER]
+
+
+def test_erasure_purges_volume_files_before_db_cascade(monkeypatch):
+    """Headshot portraits live on the volume; deleting rows first strands them."""
+    _reset_limiter()
+    import marketer.headshots.pipeline as headshots_pipeline
+    import marketer.repos.privacy as privacy
+
+    order: list[str] = []
+
+    async def _purge(uid):
+        order.append(f"purge:{uid}")
+
+    async def _erase(uid):
+        order.append(f"erase:{uid}")
+        return True
+
+    monkeypatch.setattr(headshots_pipeline, "purge_user_files", _purge)
+    monkeypatch.setattr(privacy, "erase_user", _erase)
+    client = _client(monkeypatch)
+    resp = client.delete("/api/v1/users/me", headers={"Authorization": "Bearer mkt_x"})
+    assert resp.status_code == 204
+    assert order == [f"purge:{_USER}", f"erase:{_USER}"]

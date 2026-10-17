@@ -208,6 +208,78 @@ def test_budget_change_pending_approval_passthrough(monkeypatch):
     assert resp.json()["status"] == "pending_approval"
 
 
+def test_activate_over_threshold_parks_approval_without_going_live(monkeypatch):
+    """A large draft budget must not activate until a human approves."""
+    _reset_limiter()
+    import backend.routes.ads as ads_route
+    import marketer.repos.ad_actions as ad_actions
+    import marketer.repos.ad_approvals as ad_approvals
+    import marketer.repos.ads as ads_repo
+
+    camp = _mk_campaign(daily_budget_usd=Decimal("50.00"))
+    acc = _mk_account()
+    approval_id = uuid4()
+    created: list[dict] = []
+    executed: list = []
+
+    async def _get_campaign(cid, *, user_id):
+        return camp
+
+    async def _get_account(aid, *, user_id):
+        return acc
+
+    async def _guard(campaign):
+        return Decimal("50.00"), True
+
+    async def _create(**kwargs):
+        created.append(kwargs)
+        from marketer.repos.ad_approvals import AdApproval
+        return AdApproval(
+            id=approval_id, user_id="user_ads", action=kwargs["action"],
+            summary=kwargs["summary"], dollar_delta_usd=kwargs["dollar_delta_usd"],
+            ad_account_id=kwargs["ad_account_id"], campaign_id=kwargs["campaign_id"],
+            status="pending", requested_by=kwargs["requested_by"],
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+
+    async def _record(**kwargs):
+        from marketer.repos.ad_actions import AdActionEntry
+        return AdActionEntry(
+            id=1, user_id="user_ads", actor="user", actor_email="a@t.com",
+            action=kwargs["action"], platform="", target_type="ad_campaign",
+            target_id=str(camp.id), dollar_delta_usd=kwargs.get("dollar_delta_usd") or Decimal("0"),
+            created_at=datetime.now(timezone.utc),
+        )
+
+    async def _execute(**kwargs):
+        executed.append(kwargs["campaign_id"])
+        raise AssertionError("must not activate before approval")
+
+    async def _update(cid, *, user_id, **kw):
+        raise AssertionError("parked activation must not write campaign status")
+
+    monkeypatch.setattr(ads_repo, "get_campaign", _get_campaign)
+    monkeypatch.setattr(ads_repo, "get_account", _get_account)
+    monkeypatch.setattr(ads_repo, "update_campaign", _update)
+    monkeypatch.setattr(ads_route, "guard_activation", _guard)
+    monkeypatch.setattr(ad_approvals, "create", _create)
+    monkeypatch.setattr(ad_actions, "record", _record)
+    monkeypatch.setattr(ads_route, "execute_activation", _execute)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/ads/campaigns/{camp.id}/status",
+        json={"status": "active"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "pending_approval"
+    assert body["approval_id"] == str(approval_id)
+    assert created and created[0]["action"] == "campaign.activate"
+    assert executed == []
+
+
 def test_activate_denied_when_killswitch(monkeypatch):
     _reset_limiter()
     import marketer.repos.ads as ads_repo
@@ -271,6 +343,55 @@ def test_pause_allowed_even_when_killswitch(monkeypatch):
     )
     assert resp.status_code == 200
     assert resp.json()["status"] == "paused"
+
+
+def test_decide_approval_approved_but_re_guard_deny_is_402(monkeypatch):
+    """Approved + AdSpendDenied at execute must 402, not look like success."""
+    _reset_limiter()
+    import backend.routes.ads as ads_route
+    import marketer.repos.ad_actions as ad_actions
+    import marketer.repos.ad_approvals as ad_approvals
+    from marketer.repos.ad_approvals import AdApproval
+    from marketer.services.ad_actions_exec import AdSpendDenied
+
+    approval = AdApproval(
+        id=uuid4(), user_id="user_ads", action="campaign.budget",
+        summary="raise daily budget", dollar_delta_usd=Decimal("40.00"),
+        status="approved", decided_by="a@t.com",
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    executed: list = []
+
+    async def _decide(approval_id, *, user_id, status, decided_by):
+        assert status == "approved"
+        return approval
+
+    async def _record(**kwargs):
+        from marketer.repos.ad_actions import AdActionEntry
+        return AdActionEntry(
+            id=1, user_id="user_ads", actor="user", actor_email="a@t.com",
+            action=kwargs["action"], platform="", target_type="ad_approval",
+            target_id=str(approval.id), dollar_delta_usd=approval.dollar_delta_usd,
+            created_at=datetime.now(timezone.utc),
+        )
+
+    async def _execute(*, user_id, approval_id, actor_email):
+        executed.append(approval_id)
+        raise AdSpendDenied("account kill-switch is engaged")
+
+    monkeypatch.setattr(ad_approvals, "decide", _decide)
+    monkeypatch.setattr(ad_actions, "record", _record)
+    monkeypatch.setattr(ads_route, "execute_approved_budget_change", _execute)
+    client = _client(monkeypatch)
+    resp = client.post(
+        f"/api/v1/ads/approvals/{approval.id}/decide",
+        json={"decision": "approved"},
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert resp.status_code == 402
+    assert "kill-switch" in resp.text
+    assert executed == [approval.id]
 
 
 def test_decide_approval_conflict_when_already_decided(monkeypatch):

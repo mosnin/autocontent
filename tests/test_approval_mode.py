@@ -147,6 +147,57 @@ def test_reject_marks_failed_without_posting(client, monkeypatch):
     assert resp.json().get("error") is None
 
 
+def test_approve_image_post_spawns_finish_once(client, monkeypatch):
+    """Double-click approve must not spawn two Ayrshare publishes."""
+    import sys
+    import types
+
+    from marketer.repos import image_posts as image_posts_repo
+
+    post_id = uuid4()
+    claims = 0
+
+    async def fake_claim(image_post_id, *, user_id):
+        nonlocal claims
+        assert user_id == "user_a"
+        claims += 1
+        return claims == 1
+
+    async def fake_get(image_post_id, *, user_id):
+        return {
+            "id": image_post_id,
+            "status": "scheduling" if claims else "awaiting_approval",
+            "user_id": user_id,
+        }
+
+    monkeypatch.setattr(image_posts_repo, "claim_for_scheduling", fake_claim)
+    monkeypatch.setattr(image_posts_repo, "get", fake_get)
+
+    spawned: list[tuple] = []
+
+    class _FakeFn:
+        def spawn(self, *a):
+            spawned.append(a)
+
+    fake_modal = types.SimpleNamespace(
+        Function=types.SimpleNamespace(from_name=lambda app, name: _FakeFn())
+    )
+    monkeypatch.setitem(sys.modules, "modal", fake_modal)
+
+    first = client.post(
+        f"/api/v1/image-posts/{post_id}/approve",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    second = client.post(
+        f"/api/v1/image-posts/{post_id}/approve",
+        headers={"Authorization": "Bearer mkt_x"},
+    )
+    assert first.status_code == 202
+    assert first.json() == {"status": "scheduling"}
+    assert second.status_code == 409
+    assert spawned == [("user_a", str(post_id))]
+
+
 async def test_schedule_approved_job_rejects_wrong_status(monkeypatch):
     from marketer import pipeline
 

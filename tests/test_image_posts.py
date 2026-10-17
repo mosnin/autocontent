@@ -237,6 +237,52 @@ async def test_template_remix_uses_both_references(tmp_path, monkeypatch):
     assert recorded[0]["title"].startswith("Remix: UGC desk shot")
 
 
+async def test_schedule_skips_poster_when_provider_post_id_already_set(env):
+    """A retry/approve after a partial Ayrshare success must not re-post."""
+    env["post"]["status"] = "scheduling"
+    env["post"]["provider_post_id"] = "ayr-already-1"
+    env["post"]["payload"] = {
+        "slides": [{"index": 0, "path": "/tmp/s.png"}],
+        "caption": "c",
+        "hashtags": [],
+    }
+    poster_calls: list[dict] = []
+
+    async def exploding_poster(**kwargs):
+        poster_calls.append(kwargs)
+        raise AssertionError("must not call Ayrshare again")
+
+    result = await svc.schedule_image_post(
+        user_id=USER, image_post_id=POST_ID, apply_schedule=exploding_poster,
+    )
+    assert result["status"] == "done"
+    assert result["provider_post_id"] == "ayr-already-1"
+    assert poster_calls == []
+    assert env["posted"] is None
+
+
+async def test_schedule_returns_done_row_without_rewriting(env, monkeypatch):
+    """An already-done post with a provider id is a no-op, not a second complete."""
+    from marketer.repos import image_posts as repo
+
+    env["post"]["status"] = "done"
+    env["post"]["provider_post_id"] = "ayr-done-1"
+    completes: list[str] = []
+
+    async def unexpected_complete(pid, *, user_id, provider_post_id):
+        completes.append(provider_post_id)
+        raise AssertionError("done posts must not be completed again")
+
+    monkeypatch.setattr(repo, "complete", unexpected_complete)
+    result = await svc.schedule_image_post(
+        user_id=USER, image_post_id=POST_ID, apply_schedule=env["poster"],
+    )
+    assert result["status"] == "done"
+    assert result["provider_post_id"] == "ayr-done-1"
+    assert completes == []
+    assert env["posted"] is None
+
+
 async def test_remix_refuses_unpublished_template(monkeypatch):
     from marketer.repos import templates as templates_repo
     from marketer.services import template_remix
