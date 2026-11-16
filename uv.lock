@@ -1196,7 +1196,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.115" },
     { name = "ffmpeg-python", specifier = ">=0.2" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "mcp", extras = ["cli"], specifier = ">=1.2" },
+    { name = "mcp", extras = ["cli"], specifier = ">=1.2,<2" },
     { name = "modal", specifier = ">=0.64" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
     { name = "openai", specifier = ">=1.50" },
