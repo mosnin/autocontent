@@ -7,7 +7,7 @@ import { useState } from "react";
 import { adsErrorMessage, connectAccount, disconnectAccount, refreshAccount, setGovernance, type AdAccount, type AdPlatform } from "@/lib/ads-client";
 import { formatRelative } from "@/lib/format";
 import { Crumbs, PageBody, PageHeader, PageIntro, Panel } from "../page";
-import { Button, ErrorText, Switch } from "../ui";
+import { Badge, Button, ErrorText, Switch } from "../ui";
 import { ConfirmModal, MoneyInput, SaveNote } from "../settings/primitives";
 import { AccountStatusBadge, accountName, GuardLine, PlatformTile } from "./shared";
 
@@ -65,7 +65,7 @@ export function AdAccountsView({ accounts, loadFailed }: { accounts: AdAccount[]
                     </Button>
                   ) : undefined
                 }
-                bodyClassName="p-0"
+                bodyClassName="!p-0"
               >
                 {conns.length === 0 ? (
                   <div className="flex flex-wrap items-center gap-3 px-5 py-4">
@@ -131,6 +131,7 @@ function AccountRow({ account: a }: { account: AdAccount }) {
           <div className="flex min-w-0 items-center gap-2">
             <span className="truncate text-[14px] font-medium">{accountName(a)}</span>
             <AccountStatusBadge status={a.status} />
+            {a.killswitch && <Badge tone="danger">Kill switch on</Badge>}
           </div>
           <div className="truncate text-[13px] text-muted-foreground">
             <span className="font-mono text-[12px]">{a.external_account_id || "—"}</span> · {a.currency} · updated {formatRelative(a.updated_at)}
