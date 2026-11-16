@@ -93,9 +93,9 @@ export function UserDetailClient({
           <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
             User
           </p>
-          <h1 className="mt-1 break-all text-2xl font-semibold tracking-tight">
+          <h2 className="mt-1 break-all text-[26px] font-medium leading-[1.15] tracking-[-0.022em]">
             {user.email}
-          </h1>
+          </h2>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <RoleBadge role={user.role} />
             <AccountStatusBadge user={user} />

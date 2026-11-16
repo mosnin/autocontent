@@ -121,7 +121,7 @@ export function AuditClient({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
+        <h2 className="text-[26px] font-medium leading-[1.15] tracking-[-0.022em]">Audit log</h2>
         <p className="text-sm text-muted-foreground">
           Append-only record of every privileged action. Newest first.
         </p>

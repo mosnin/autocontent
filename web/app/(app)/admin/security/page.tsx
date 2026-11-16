@@ -61,7 +61,7 @@ export default function AdminSecurityPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Security</h1>
+        <h2 className="text-[26px] font-medium leading-[1.15] tracking-[-0.022em]">Security</h2>
         <p className="text-sm text-muted-foreground">
           SOC 2-aligned controls implemented in the platform today.
         </p>

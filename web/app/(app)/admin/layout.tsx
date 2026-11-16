@@ -1,67 +1,50 @@
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Shield } from "lucide-react";
+import { AdminNav } from "@/components/mk/admin/admin-nav";
+import { PageBody, PageHeader } from "@/components/mk/page";
+import { Empty } from "@/components/mk/ui";
 import { fetchAdminOverview, isForbidden } from "@/lib/admin-server";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Admin · Marketer" };
 
 /**
- * Thin server-side guard for the whole /admin surface. We probe the
- * admin overview: a 403 means the caller is not an admin, so we render a
- * clean "not authorized" state and nothing else — no admin chrome, no hint
- * of what lives behind the wall. On success we wrap the page in a subtle
- * "Admin" band so the surface reads as visually distinct from the normal
- * dashboard while sharing the same shell.
+ * Thin server-side guard for the whole /admin surface. We probe the admin
+ * overview: a 403 means the caller is not an admin, so we render a clean
+ * "not authorized" state and nothing else (no admin chrome, no hint of what
+ * lives behind the wall). Other failures surface to the error boundary
+ * rather than masquerading as an auth failure.
  */
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   let authorized = true;
   try {
     await fetchAdminOverview();
   } catch (err) {
-    if (isForbidden(err)) {
-      authorized = false;
-    } else {
-      // Anything else (network, 5xx) surfaces to the nearest error
-      // boundary rather than masquerading as an auth failure.
-      throw err;
-    }
+    if (isForbidden(err)) authorized = false;
+    else throw err;
   }
 
   if (!authorized) {
-    return <NotAuthorized />;
+    return (
+      <>
+        <PageHeader icon={<Shield />} title="Admin" />
+        <PageBody width="3xl">
+          <Empty art="people" title="Not authorized">
+            You don't have access to this area. If you believe this is a mistake, contact your workspace administrator.
+          </Empty>
+        </PageBody>
+      </>
+    );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-          Admin
-        </span>
-        <span className="text-xs text-muted-foreground">
-          Platform administration · every action here is audited
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function NotAuthorized() {
-  // Rendered inside the app shell's <main>, so this is a plain section —
-  // a nested <main> would be invalid and confuse assistive tech.
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center p-6">
-      <Card className="w-full max-w-md">
-        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <h1 className="text-lg font-semibold">Not authorized</h1>
-          <p className="max-w-xs text-sm text-muted-foreground">
-            You don&apos;t have access to this area. If you believe this is a
-            mistake, contact your workspace administrator.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <PageHeader icon={<Shield />} title="Admin">
+        <span className="hidden text-[13px] text-muted-foreground sm:inline">Every action here is audited</span>
+      </PageHeader>
+      <PageBody width="6xl">
+        <AdminNav />
+        <div className="space-y-6">{children}</div>
+      </PageBody>
+    </>
   );
 }

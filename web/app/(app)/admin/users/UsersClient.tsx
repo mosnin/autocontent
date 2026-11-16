@@ -267,7 +267,7 @@ export function UsersClient({ initial }: { initial: AdminUserRow[] }) {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
+        <h2 className="text-[26px] font-medium leading-[1.15] tracking-[-0.022em]">Users</h2>
         <p className="text-sm text-muted-foreground">
           Search, inspect, and administer every account.
         </p>
