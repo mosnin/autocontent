@@ -8,7 +8,7 @@ import { formatCompact, formatUsd } from "@/lib/format";
 import type { Job, JobStatus, Niche } from "@/lib/types";
 import { StartSession } from "../agent/start-session";
 import { Crumbs, PageBody, PageHeader, PageIntro, Panel, Stat } from "../page";
-import { Badge, Dot, Empty } from "../ui";
+import { Badge, CheckCircle, Dot, Empty } from "../ui";
 import { LineSpark, Meta, StatusWord, StepList, Time, useLiveRefresh } from "./bits";
 import { jobDot, jobStatusLabel, jobTitle, jobTone, JOB_IN_PROGRESS, platformLabel, VIDEO_STEPS } from "./status";
 import type { FullScript, JobMetrics } from "./types";
@@ -19,6 +19,7 @@ const secs = (s: string | null) => {
   if (s == null) return "—";
   const n = Number(s);
   if (Number.isNaN(n)) return "—";
+  if (n >= 3600) return `${formatCompact(Math.round(n / 3600))}h`;
   return n >= 60 ? `${(n / 60).toFixed(1)}m` : `${n.toFixed(0)}s`;
 };
 
@@ -32,6 +33,36 @@ function stepsFor(job: Job, niche: Niche | null) {
     return { steps, current, complete: false, failed: true };
   }
   return { steps, current: Math.max(0, steps.findIndex((s) => s.id === job.status)), complete: false, failed: false };
+}
+
+/** The pipeline checklist; collapsed to one line once every step is done. */
+export function PipelinePanel({ steps, current, complete, failed, live }: { steps: { id: string; label: string; detail?: string }[]; current: number; complete: boolean; failed: boolean; live: boolean }) {
+  const [open, setOpen] = useState(!complete);
+  return (
+    <Panel
+      label="Pipeline"
+      action={
+        live ? (
+          <span className="text-[12px] text-muted-foreground">Updates live</span>
+        ) : complete ? (
+          <button type="button" onClick={() => setOpen((v) => !v)} className="text-[12px] text-muted-foreground hover:text-foreground" aria-expanded={open}>
+            {open ? "Hide steps" : "Show steps"}
+          </button>
+        ) : undefined
+      }
+    >
+      {open ? (
+        <StepList steps={steps} current={current} complete={complete} failed={failed} />
+      ) : (
+        <div className="flex items-center gap-3">
+          <CheckCircle />
+          <span className="text-[14px]">
+            All {steps.length} steps done<span className="text-muted-foreground">, from idea to {steps[steps.length - 1].label.toLowerCase()}</span>
+          </span>
+        </div>
+      )}
+    </Panel>
+  );
 }
 
 function Player({ job }: { job: Job }) {
@@ -152,9 +183,7 @@ export function VideoDetailView({ job, niche, metrics, costUsd, estimate, previe
               </div>
             )}
 
-            <Panel label="Pipeline" action={JOB_IN_PROGRESS.has(job.status) ? <span className="text-[12px] text-muted-foreground">Updates live</span> : undefined}>
-              <StepList steps={steps} current={current} complete={complete} failed={failed} />
-            </Panel>
+            <PipelinePanel steps={steps} current={current} complete={complete} failed={failed} live={JOB_IN_PROGRESS.has(job.status)} />
 
             <Panel label="Script">
               {script ? (

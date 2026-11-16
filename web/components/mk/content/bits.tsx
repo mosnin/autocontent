@@ -92,7 +92,7 @@ export function StepList({ steps, current, complete, failed }: { steps: { id: st
 export function LineSpark({ points, height = 120, format = (n: number) => String(n) }: { points: { label: string; value: number }[]; height?: number; format?: (n: number) => string }) {
   if (points.length < 2) return null;
   const w = 600;
-  const pad = { t: 8, r: 8, b: 20, l: 8 };
+  const pad = { t: 8, r: 8, b: 4, l: 8 };
   const max = Math.max(1, ...points.map((p) => p.value));
   const x = (i: number) => pad.l + (i / (points.length - 1)) * (w - pad.l - pad.r);
   const y = (v: number) => pad.t + (1 - v / max) * (height - pad.t - pad.b);
@@ -100,16 +100,20 @@ export function LineSpark({ points, height = 120, format = (n: number) => String
   const area = `${d} L${x(points.length - 1).toFixed(1)},${height - pad.b} L${x(0).toFixed(1)},${height - pad.b} Z`;
   const last = points[points.length - 1];
   return (
-    <svg viewBox={`0 0 ${w} ${height}`} className="h-auto w-full" role="img" aria-label={`Latest ${format(last.value)}`}>
+    <div>
+    <svg viewBox={`0 0 ${w} ${height}`} preserveAspectRatio="none" className="w-full" style={{ height }} role="img" aria-label={`Latest ${format(last.value)}`}>
       {[0, 0.5, 1].map((g) => (
         <line key={g} x1={pad.l} x2={w - pad.r} y1={pad.t + g * (height - pad.t - pad.b)} y2={pad.t + g * (height - pad.t - pad.b)} stroke="hsl(var(--border))" strokeWidth={1} />
       ))}
       <path d={area} fill="hsl(var(--accent) / 0.08)" />
       <path d={d} fill="none" stroke="hsl(var(--accent))" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={x(points.length - 1)} cy={y(last.value)} r={3.5} fill="hsl(var(--accent))" />
-      <text x={pad.l} y={height - 4} className="fill-faint text-[11px] tabular">{points[0].label}</text>
-      <text x={w - pad.r} y={height - 4} textAnchor="end" className="fill-faint text-[11px] tabular">{last.label}</text>
     </svg>
+    <div className="mt-1 flex justify-between text-[11px] text-faint tabular">
+      <span>{points[0].label}</span>
+      <span>{last.label}</span>
+    </div>
+    </div>
   );
 }
 
