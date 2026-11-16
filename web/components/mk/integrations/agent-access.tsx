@@ -138,7 +138,7 @@ function Tokens({ tokens }: { tokens: PersonalAccessToken[] | null }) {
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="truncate text-[14px] font-medium">{t.name}</span>
-                  <code className="font-mono text-[12px] text-muted-foreground">{t.prefix}…</code>
+                  <code className="hidden font-mono text-[12px] text-muted-foreground sm:inline">{t.prefix}…</code>
                 </div>
                 <div className="truncate text-[13px] text-muted-foreground">
                   {t.last_used_at ? `Used ${formatRelative(t.last_used_at)}` : "Never used"} · created {formatRelative(t.created_at)}
