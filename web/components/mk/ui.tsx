@@ -135,7 +135,7 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
       onClick={() => onChange(!checked)}
       className={cx("press relative h-[22px] w-[38px] shrink-0 rounded-full transition-colors duration-150", checked ? "bg-accent" : "bg-border-strong")}
     >
-      <span className={cx("absolute top-[2px] size-[18px] rounded-full bg-white shadow-pill transition-transform duration-200 ease-[var(--ease-out)]", checked ? "translate-x-[18px]" : "translate-x-[2px]")} />
+      <span className={cx("absolute left-0 top-[2px] size-[18px] rounded-full bg-white shadow-pill transition-transform duration-200 ease-[var(--ease-out)]", checked ? "translate-x-[18px]" : "translate-x-[2px]")} />
     </button>
   );
 }

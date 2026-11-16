@@ -104,8 +104,8 @@ async def create_checkout(
             "user_id": ctx.user_id,
             "credit_usd": str(pack["credit_usd"]),
         },
-        success_url=f"{base}/settings/billing?purchase=success",
-        cancel_url=f"{base}/settings/billing?purchase=cancelled",
+        success_url=f"{base}/settings?purchase=success",
+        cancel_url=f"{base}/settings?purchase=cancelled",
     )
     return CheckoutResponse(url=session.url)
 
