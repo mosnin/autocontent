@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+.flue-vite/
+.flue-vite.wrangler.jsonc
+.promptfoo/
+coverage/
+# voice-agent secrets (cp env.example env.voice); never commit them
+env.voice
+voice-agent/env.voice
+.eslintcache

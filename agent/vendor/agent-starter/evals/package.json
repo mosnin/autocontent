@@ -1,0 +1,15 @@
+{
+  "name": "@agent-starter/evals",
+  "version": "0.1.0",
+  "description": "Assertion-based evals for Agent Starter: promptfoo harness route, adversarial datasets, shadow-deploy runner with trajectory diffing, R2 gold datasets.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@agent-starter/core": "file:../core",
+    "zod": "^4.6.7"
+  }
+}

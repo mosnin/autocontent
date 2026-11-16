@@ -77,7 +77,7 @@ export function SiteNav() {
           </DropdownMenu>
           <SignedIn>
             <Button asChild size="sm">
-              <Link href="/dashboard">Dashboard</Link>
+              <Link href="/home">Open Marketer</Link>
             </Button>
           </SignedIn>
           <SignedOut>
