@@ -1,6 +1,6 @@
 "use client";
 
-import { Megaphone, Pause, Play, Square } from "lucide-react";
+import { Megaphone, Pause, Play } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -97,7 +97,7 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
           {campaign.last_error && <p className="rounded-[14px] bg-destructive/[0.06] px-4 py-3 text-[13px] text-destructive">{campaign.last_error}</p>}
 
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Stat label="Spend" value={formatUsd(totals.spend)} spark={<Sparkbars values={[...metrics].sort((a, b) => a.date.localeCompare(b.date)).map((m) => Number(m.spend_usd))} />} />
+            <Stat label="Spend" value={formatUsd(totals.spend)} spark={<Sparkbars values={[...metrics].sort((a, b) => a.date.localeCompare(b.date)).map((m) => Number(m.spend_usd)).slice(-7)} />} />
             <Stat label="ROAS" value={roas === null ? "—" : `${roas.toFixed(2)}×`} />
             <Stat label="Clicks" value={formatCompact(totals.clicks)} />
             <Stat label="Impressions" value={formatCompact(totals.impressions)} />
@@ -157,7 +157,7 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
                 <div className="text-[13px] text-muted-foreground">Stops it for good. Pause instead if you might bring it back.</div>
               </div>
               <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setConfirm("ended")} disabled={busy !== null}>
-                <Square /> End campaign
+                End campaign
               </Button>
             </section>
           )}

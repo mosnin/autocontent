@@ -2,7 +2,7 @@
 
 import { Compass, Pencil } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { departmentById } from "@/lib/departments";
 import { formatCompact, formatUsd } from "@/lib/format";
 import type { Niche, NichePerformance, Platform, TodaySpend } from "@/lib/types";
@@ -34,7 +34,7 @@ export function CapMeter({ spent, cap }: { spent: number; cap: number }) {
   );
 }
 
-function Fact({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
+function Fact({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
     <div className={cx("min-w-0", className)}>
       <div className="text-[12px] text-faint">{label}</div>

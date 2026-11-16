@@ -475,7 +475,7 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
         </FieldGroup>
         <Grid>
           <Field label="Time zone" hint="IANA name, e.g. America/New_York.">
-            <Input name="tz" defaultValue={tz} required className="font-mono text-[13px]" />
+            <Input name="tz" defaultValue={tz} required className="font-mono text-[13px]" suppressHydrationWarning />
           </Field>
           <Field label="Daily spend cap (USD)" hint="Videos wait for tomorrow once today's cap is reached.">
             <Input name="daily_spend_cap_usd" type="number" step="0.01" min={0.5} defaultValue={niche.daily_spend_cap_usd} required className="tabular" />
