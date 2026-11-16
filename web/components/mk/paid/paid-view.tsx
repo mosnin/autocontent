@@ -76,7 +76,7 @@ export function PaidView({ overview, workspace, accounts, campaigns, approvals, 
               <section>
                 <SectionTitle>Last 30 days</SectionTitle>
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                  <Stat label={<>Spend<span className="text-faint tabular"> · {formatUsd(spendToday)} today</span></>} value={formatUsd(spend30, { cents: false })} spark={<Sparkbars values={series.map((r) => Number(r.ad_spend_usd))} />} />
+                  <Stat label={<>Spend<span className="hidden text-faint tabular sm:inline"> · {formatUsd(spendToday)} today</span></>} value={formatUsd(spend30, { cents: false })} spark={<Sparkbars values={series.map((r) => Number(r.ad_spend_usd))} />} />
                   <Stat label="Clicks" value={formatCompact(k?.ad_clicks ?? 0)} delta={<Delta now={k?.ad_clicks ?? 0} before={pk?.ad_clicks ?? 0} />} />
                   <Stat label="Conversions" value={formatCompact(conv)} delta={<Delta now={conv} before={pk?.ad_conversions ?? 0} />} />
                   <Stat label="Cost per conversion" value={cpa == null ? "—" : formatUsd(cpa)} delta={cpa != null && prevCpa != null ? <Delta now={cpa} before={prevCpa} invert /> : undefined} />

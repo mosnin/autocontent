@@ -426,7 +426,7 @@ export async function createTokenAction(
   } catch (e) {
     return { ok: false, error: errorMessage(e) };
   }
-  revalidatePath("/settings/tokens");
+  revalidatePath("/integrations");
   // The plaintext is returned in the action state and rendered
   // client-side exactly once — it must never enter the URL, logs, or
   // browser history.
@@ -444,7 +444,7 @@ export async function revokeTokenAction(
   } catch (e) {
     return { ok: false, error: errorMessage(e) };
   }
-  revalidatePath("/settings/tokens");
+  revalidatePath("/integrations");
   return { ok: true };
 }
 
@@ -471,7 +471,8 @@ export async function connectAyrshareAction(): Promise<void> {
   const res = await api<AyrshareConnectResponse>("/api/v1/connect/ayrshare", {
     method: "POST",
   });
-  revalidatePath("/connect");
+  revalidatePath("/distribution");
+  revalidatePath("/integrations");
   redirect(res.login_url);
 }
 
