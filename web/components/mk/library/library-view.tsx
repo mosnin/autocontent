@@ -164,7 +164,7 @@ export function LibraryView({ initialFinals, initialClips, initialImages, initia
             ))}
           </div>
           {niches.length > 0 && (
-            <Select aria-label="Filter by playbook" value={niche} onChange={(e) => setNiche(e.target.value)} className="h-8 w-full rounded-full py-0 text-[13px] sm:w-48">
+            <Select aria-label="Filter by playbook" value={niche} onChange={(e) => setNiche(e.target.value)} className="!h-8 w-full !rounded-full !py-0 text-[13px] sm:w-48">
               <option value="all">All playbooks</option>
               {niches.map((n) => (
                 <option key={n.id} value={n.id}>
@@ -214,7 +214,7 @@ export function LibraryView({ initialFinals, initialClips, initialImages, initia
           <div className="pointer-events-none sticky bottom-4 z-20 mt-8 flex justify-center">
             <div className="t-pop pointer-events-auto flex w-full max-w-xl flex-wrap items-center gap-2 rounded-[20px] border border-border bg-card p-2 pl-4 shadow-float sm:flex-nowrap sm:rounded-full dark:bg-muted" style={{ ["--origin" as string]: "bottom center" }}>
               <span className="shrink-0 text-[13px] font-medium tabular">{selected.length} selected</span>
-              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Remix title (optional)" aria-label="Remix title" className="h-8 min-w-0 flex-1 basis-40 rounded-full py-0 text-[13px]" />
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Remix title (optional)" aria-label="Remix title" className="!h-8 min-w-0 flex-1 basis-40 !rounded-full !py-0 text-[13px]" />
               <div className="ml-auto flex shrink-0 items-center gap-1">
                 <Button size="sm" variant="ghost" onClick={() => setSelected([])} disabled={creating || selected.length === 0}>
                   Clear

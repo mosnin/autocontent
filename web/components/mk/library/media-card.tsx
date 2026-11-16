@@ -28,6 +28,7 @@ function Poster({ asset }: { asset: MediaAsset }) {
   const media = useRef<HTMLVideoElement & HTMLImageElement>(null);
   const [near, setNear] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   const image = isImage(asset);
 
   useEffect(() => {
@@ -44,20 +45,22 @@ function Poster({ asset }: { asset: MediaAsset }) {
     const el = media.current;
     if (!el) return;
     if (image ? el.complete && el.naturalWidth === 0 : el.error) setFailed(true);
+    else if (image ? el.complete && el.naturalWidth > 0 : el.readyState >= 2) setLoaded(true);
   }, [near, image]);
 
   return (
     <div ref={box} className="absolute inset-0">
-      {failed || !near ? (
-        <div className="flex size-full items-center justify-center" style={{ background: failed ? fieldGradient(paletteFor(asset.title || asset.id)) : undefined }}>
-          <span className={cx("flex [&_svg]:size-6", failed ? "text-black/35" : "text-faint")}>{image ? <ImageIcon /> : <Clapperboard />}</span>
-        </div>
-      ) : image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img ref={media} src={mediaUrl(asset.id)} alt="" className="size-full object-cover" onError={() => setFailed(true)} />
-      ) : (
-        <video ref={media} src={`${mediaUrl(asset.id)}#t=0.5`} preload="metadata" muted playsInline className="size-full object-cover" onError={() => setFailed(true)} />
-      )}
+      <div className="flex size-full items-center justify-center" style={{ background: failed ? fieldGradient(paletteFor(asset.title || asset.id)) : undefined }}>
+        <span className={cx("flex [&_svg]:size-6", failed ? "text-black/35" : "text-faint")}>{image ? <ImageIcon /> : <Clapperboard />}</span>
+      </div>
+      {near &&
+        !failed &&
+        (image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img ref={media} src={mediaUrl(asset.id)} alt="" className={cx("absolute inset-0 size-full object-cover transition-opacity duration-250", loaded ? "opacity-100" : "opacity-0")} onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
+        ) : (
+          <video ref={media} src={`${mediaUrl(asset.id)}#t=0.5`} preload="metadata" muted playsInline className={cx("absolute inset-0 size-full object-cover transition-opacity duration-250", loaded ? "opacity-100" : "opacity-0")} onLoadedData={() => setLoaded(true)} onError={() => setFailed(true)} />
+        ))}
     </div>
   );
 }
