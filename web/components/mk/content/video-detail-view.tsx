@@ -70,13 +70,13 @@ function Player({ job }: { job: Job }) {
   const working = JOB_IN_PROGRESS.has(job.status);
   if (job.rendered?.path && !broken) {
     return (
-      <div className="mx-auto aspect-[9/16] w-full max-w-[360px] overflow-hidden rounded-[20px] bg-black">
+      <div className="mx-auto aspect-[9/16] w-full max-w-[260px] sm:max-w-[360px] overflow-hidden rounded-[20px] bg-black">
         <video controls preload="metadata" playsInline className="size-full object-contain" src={`/api/proxy/api/v1/jobs/${job.id}/video`} onError={() => setBroken(true)} />
       </div>
     );
   }
   return (
-    <div className="mx-auto flex aspect-[9/16] w-full max-w-[360px] flex-col items-center justify-center gap-2 rounded-[20px] border border-border bg-subtle px-8 text-center">
+    <div className="mx-auto flex aspect-[9/16] w-full max-w-[260px] sm:max-w-[360px] flex-col items-center justify-center gap-2 rounded-[20px] border border-border bg-subtle px-8 text-center">
       {working ? <Dot tone="live" /> : <Clapperboard className="size-6 stroke-[1.4] text-faint" />}
       <p className={working ? "t-shimmer text-[14px] font-medium" : "text-[14px] font-medium"}>{working ? "Rendering" : job.status === "failed" ? "No render" : broken ? "Video unavailable" : "Not rendered yet"}</p>
       <p className="text-[13px] text-muted-foreground">

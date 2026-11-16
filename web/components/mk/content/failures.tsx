@@ -72,8 +72,9 @@ export function FailuresPanel({ failures }: { failures: Failures | null }) {
           {failures.total} failed
         </span>
       }
-      action={
-        <div className="flex flex-wrap justify-end gap-1">
+    >
+      {Object.keys(failures.counts).length > 1 && (
+        <div className="-mt-1 mb-3 flex flex-wrap gap-1">
           <Chip selected={cat === "all"} onClick={() => setCat("all")} className="h-7 px-2.5">
             All
           </Chip>
@@ -83,8 +84,7 @@ export function FailuresPanel({ failures }: { failures: Failures | null }) {
             </Chip>
           ))}
         </div>
-      }
-    >
+      )}
       <ul className="divide-y divide-border">
         {shown.map((f) => (
           <FailureRow key={`${f.kind}:${f.id}`} f={f} />
