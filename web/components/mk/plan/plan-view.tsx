@@ -102,6 +102,8 @@ function WeekView({ days, byDay, today, local }: { days: string[]; byDay: Map<st
               "flex min-w-0 flex-col rounded-[14px] border p-1.5 lg:min-h-[280px]",
               k === today ? "border-accent/30 bg-accent/[0.03]" : "border-border bg-card",
               past && k !== today && "bg-subtle",
+              // Phones: empty days are a quiet line, not a card.
+              items.length === 0 && k !== today && "max-lg:border-transparent max-lg:bg-transparent max-lg:py-0",
             )}
           >
             <div className="flex items-center justify-between px-1.5 pb-1 pt-0.5">
@@ -283,10 +285,11 @@ export function PlanView({
           {sentence}
         </PageIntro>
 
-        <div className="t-stagger space-y-8">
+        <div className="t-stagger flex flex-col gap-8">
           {mode === "week" ? <WeekView days={days} byDay={byDay} today={today} local={local} /> : <MonthView days={days} anchor={anchor} byDay={byDay} today={today} local={local} />}
 
-          <section>
+          {/* An empty stretch puts the ask first: filling it is the next step. */}
+          <section className={cx(visible.length === 0 && "order-first")}>
             <SectionTitle>Ask the {dist.agentName}</SectionTitle>
             <StartSession scope="distribution" lockScope suggestions={suggestions.slice(0, 4)} />
           </section>
