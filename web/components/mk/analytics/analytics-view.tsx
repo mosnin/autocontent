@@ -9,6 +9,7 @@ import { hrefFor, type Overview, type SeriesRow } from "@/lib/workspace";
 import { PageBody, PageHeader, PageIntro, Stat, TitledCard } from "../page";
 import { cx } from "../cx";
 import { AgentAvatar, Badge, ButtonLink, Delta, Empty, Sparkbars } from "../ui";
+import { platformLabel } from "../plan/plan-data";
 import { askHref, AskWhy } from "./ask";
 import { type Period, PeriodSelect } from "./period-select";
 import { TrendChart, TrendLegend } from "./trend-chart";
@@ -282,7 +283,7 @@ function TopContent({ overview: o, days }: { overview: Overview; days: number })
                 </span>
                 <span className="w-24 shrink-0 text-right text-[12px] text-muted-foreground">
                   <span className="block tabular text-[13px] text-foreground">{c.views != null ? formatCompact(c.views) : "—"}</span>
-                  <span className="capitalize">{c.kind}{c.platform ? ` · ${c.platform}` : ""}</span>
+                  <span className="capitalize">{c.kind}{c.platform ? ` · ${platformLabel(c.platform)}` : ""}</span>
                 </span>
               </Link>
             </li>
