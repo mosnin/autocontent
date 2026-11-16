@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Inter } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -14,14 +14,21 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+// Inter is the app face (Podium DNA, see web/DESIGN.md); Geist stays for the
+// marketing site and Geist Mono for numbers everywhere.
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "marketer.sh",
-  description: "Autonomous short-form content creation",
+  title: "Marketer",
+  description: "An AI marketing department for people and agents",
 };
 
 export default function RootLayout({
@@ -33,7 +40,7 @@ export default function RootLayout({
       <html
         lang="en"
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable}`}
+        className={`${geistSans.variable} ${geistMono.variable} ${inter.variable}`}
       >
         <body className="min-h-screen bg-background font-sans text-foreground antialiased">
           <ThemeProvider

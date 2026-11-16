@@ -33,6 +33,12 @@ from ..auth import AuthCtx, CurrentUser
 router = APIRouter()
 
 
+def _actor(ctx: AuthCtx) -> str:
+    """Audit attribution: a call the agent harness makes on a user's behalf
+    (service-token delegation) is recorded as the agent, not the person."""
+    return "agent" if getattr(ctx, "delegated", False) else "user"
+
+
 # --------------------------------------------------------------------------- accounts
 
 class ConnectBody(BaseModel):
@@ -98,7 +104,7 @@ async def set_governance(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "account not found")
     # Governance changes are audited (kill-switch especially).
     await ad_actions.record(
-        user_id=ctx.user_id, actor="user", actor_email=ctx.email,
+        user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
         action="account.governance", platform=acc.platform,
         target_type="ad_account", target_id=str(acc.id),
         after={
@@ -144,7 +150,7 @@ async def create_campaign(
         daily_budget_usd=body.daily_budget_usd, niche_id=body.niche_id,
     )
     await ad_actions.record(
-        user_id=ctx.user_id, actor="user", actor_email=ctx.email,
+        user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
         action="campaign.create", platform=account.platform,
         target_type="ad_campaign", target_id=str(camp.id),
         after={"name": camp.name, "objective": camp.objective},
@@ -166,7 +172,7 @@ async def change_budget(
         return await propose_budget_change(
             user_id=ctx.user_id, campaign_id=campaign_id,
             new_daily_budget_usd=body.daily_budget_usd,
-            actor="user", actor_email=ctx.email,
+            actor=_actor(ctx), actor_email=ctx.email,
         )
     except AdSpendDenied as e:
         raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
@@ -222,7 +228,7 @@ async def change_status(
                 campaign_id=camp.id, payload={}, requested_by="user",
             )
             await ad_actions.record(
-                user_id=ctx.user_id, actor="user", actor_email=ctx.email,
+                user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
                 action="campaign.activate.approval_requested",
                 target_type="ad_campaign", target_id=str(campaign_id),
                 dollar_delta_usd=delta, after={"approval_id": str(approval.id)},
@@ -233,7 +239,7 @@ async def change_status(
         campaign_id, user_id=ctx.user_id, status=body.status
     )
     await ad_actions.record(
-        user_id=ctx.user_id, actor="user", actor_email=ctx.email,
+        user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
         action=action, platform=account.platform if account else "",
         target_type="ad_campaign", target_id=str(campaign_id),
         after={"status": body.status},
@@ -270,6 +276,14 @@ class DecideBody(BaseModel):
 async def decide_approval(
     approval_id: UUID, body: DecideBody, ctx: AuthCtx = CurrentUser
 ) -> ad_approvals.AdApproval:
+    """Decide a pending approval (see ``decide_ad_approval``). Shared with the
+    workspace inbox so audit + execution stay identical."""
+    return await decide_ad_approval(approval_id, body.decision, ctx)
+
+
+async def decide_ad_approval(
+    approval_id: UUID, decision: str, ctx: AuthCtx
+) -> ad_approvals.AdApproval:
     """Decide a pending approval. Approving does not just flip the row to
     'approved' — it also EXECUTES the underlying spend change (budget
     change or campaign activation) through the safe-execute layer, so a
@@ -278,10 +292,10 @@ async def decide_approval(
     moved since the approval was granted), the approval row stays 'approved'
     for a later retry and we surface a 402 with the reason — we never crash
     or silently drop the approved-but-unexecuted change."""
-    if body.decision not in {"approved", "rejected"}:
+    if decision not in {"approved", "rejected"}:
         raise HTTPException(422, "decision must be 'approved' or 'rejected'")
     decided = await ad_approvals.decide(
-        approval_id, user_id=ctx.user_id, status=body.decision,
+        approval_id, user_id=ctx.user_id, status=decision,
         decided_by=ctx.email or ctx.user_id,
     )
     if decided is None:
@@ -289,11 +303,11 @@ async def decide_approval(
             status.HTTP_409_CONFLICT, "approval not found or already decided"
         )
     await ad_actions.record(
-        user_id=ctx.user_id, actor="user", actor_email=ctx.email,
-        action=f"approval.{body.decision}", target_type="ad_approval",
+        user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
+        action=f"approval.{decision}", target_type="ad_approval",
         target_id=str(decided.id), dollar_delta_usd=decided.dollar_delta_usd,
     )
-    if body.decision == "approved":
+    if decision == "approved":
         execute = (
             execute_approved_activation
             if decided.action == "campaign.activate"

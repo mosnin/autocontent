@@ -180,6 +180,7 @@ falls back) and the rest of the platform is unaffected. Set them as
 | `MARKETER_PIXABAY_API_KEY` | Stock music fallback chain |
 | `MARKETER_WASABI_*` (`wasabi_enabled=true`, endpoint, region, bucket, keys) | Durable object storage for every produced artifact + template reference mirroring |
 | `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
+| `MARKETER_AGENT_SERVICE_TOKEN` | Agent harness delegation: a bearer equal to this token plus an `x-tenant-id: <user_id>` header acts as that user (role forced to `user`, never admin). Empty disables it |
 
 Deploy checklist when bumping to this version: `marketer-migrate up`
 (migrations through 0023), `modal deploy modal_app.py`, then set any new

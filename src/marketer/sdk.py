@@ -290,6 +290,43 @@ class MarketerClient:
         )
         return resp.json()
 
+    # ------------------------------------------------------------------ workspace
+
+    async def workspace_overview(self, *, days: int = 30) -> dict:
+        """Cross-department KPIs (spend, posts, articles, views, ad clicks),
+        the previous window for comparison, a daily series, pipeline counts
+        and top content. Money values are strings."""
+        resp = await self._request(
+            "GET", "/api/v1/workspace/overview", params={"days": days}
+        )
+        return resp.json()
+
+    async def workspace_inbox(self) -> dict:
+        """Everything awaiting a decision: videos, carousels, ad changes.
+        Returns {items: [...], counts: {...}}."""
+        resp = await self._request("GET", "/api/v1/workspace/inbox")
+        return resp.json()
+
+    async def decide_inbox_item(self, kind: str, ref_id: str, decision: str) -> dict:
+        """Approve or reject one inbox item (kind = 'video'|'carousel'|
+        'ad_change', decision = 'approve'|'reject')."""
+        resp = await self._request(
+            "POST", f"/api/v1/workspace/inbox/{kind}/{ref_id}/decide",
+            json={"decision": decision},
+        )
+        return resp.json()
+
+    async def workspace_activity(
+        self, *, limit: int = 50, before: str | None = None
+    ) -> dict:
+        """Recent events across departments, newest first. Pass the previous
+        page's ``next_before`` as ``before`` to page back."""
+        params: dict[str, Any] = {"limit": limit}
+        if before:
+            params["before"] = before
+        resp = await self._request("GET", "/api/v1/workspace/activity", params=params)
+        return resp.json()
+
     # ------------------------------------------------------------------ x402
 
     async def x402_config(self) -> dict:

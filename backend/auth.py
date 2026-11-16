@@ -8,6 +8,13 @@ Two acceptable bearer formats:
     Clerk's JWKS. On first sight we upsert the user row so FK references
     hold.
 
+Agent delegation: when ``MARKETER_AGENT_SERVICE_TOKEN`` is set, a bearer equal
+to it (constant-time compare) plus an ``x-tenant-id: <user_id>`` header lets
+the agent harness act as that existing user. Delegated contexts are always
+``role="user"`` with ``delegated=True`` and are refused by every admin
+dependency. A non-matching bearer falls through to the normal PAT/JWT paths,
+so a wrong service token still counts against the auth-failure bucket.
+
 Rate limiting on auth failures
 -------------------------------
 When either the PAT or JWT branch rejects a bearer token we consume one token
@@ -19,6 +26,7 @@ bypassed by rotating bearer strings.
 """
 from __future__ import annotations
 
+import hmac
 from dataclasses import dataclass
 
 import jwt
@@ -72,6 +80,9 @@ class AuthCtx:
     user_id: str
     email: str
     role: str = "user"
+    # True when the agent harness is acting on the user's behalf via the
+    # service token. Delegated contexts never carry admin privileges.
+    delegated: bool = False
 
 
 @dataclass
@@ -166,6 +177,36 @@ async def _resolve_clerk_jwt(token: str, request: Request) -> AuthCtx:
     return AuthCtx(user_id=user_id, email=email, role=user.role)
 
 
+def _is_agent_service_token(token: str) -> bool:
+    """Constant-time match against the configured agent service token.
+
+    Disabled (always False) when the setting is empty, so an empty bearer
+    can never match an unset token."""
+    expected = settings.agent_service_token
+    if not expected or not token:
+        return False
+    return hmac.compare_digest(token.encode("utf-8"), expected.encode("utf-8"))
+
+
+async def _resolve_agent_delegation(request: Request) -> AuthCtx:
+    """The agent harness acts as the tenant named in ``x-tenant-id``.
+
+    The service token is already verified by the caller. The tenant must be
+    an existing user (no upsert: delegation must not mint accounts), and the
+    suspended-account rejection applies exactly as for PATs. Role is forced
+    to ``user`` regardless of the stored role."""
+    tenant_id = (request.headers.get("x-tenant-id") or "").strip()
+    if not tenant_id:
+        _consume_failure_token(request)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing x-tenant-id header")
+    user = await users_repo.get(tenant_id)
+    if user is None:
+        _consume_failure_token(request)
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "unknown tenant")
+    _reject_if_suspended(user)
+    return AuthCtx(user_id=user.id, email=user.email, role="user", delegated=True)
+
+
 def _reject_if_suspended(user) -> None:
     """A suspended account is refused every request (defense in depth: the
     check lives in the auth path, not just the UI)."""
@@ -182,6 +223,8 @@ async def require_user(request: Request) -> AuthCtx:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "missing bearer token")
     token = auth.split(" ", 1)[1]
 
+    if _is_agent_service_token(token):
+        return await _resolve_agent_delegation(request)
     if token.startswith(tokens_repo.TOKEN_PREFIX):
         return await _resolve_pat(token, request)
     return await _resolve_clerk_jwt(token, request)
@@ -195,7 +238,9 @@ async def require_admin(request: Request) -> AdminCtx:
     obfuscation buys nothing while complicating support. The role is read
     from the DB on every call (no role claim is trusted from the token)."""
     ctx = await require_user(request)
-    if ctx.role != "admin":
+    # Delegated (agent service-token) calls never reach admin surfaces, even
+    # if the tenant's stored role is admin.
+    if ctx.delegated or ctx.role != "admin":
         raise HTTPException(status.HTTP_403_FORBIDDEN, "admin access required")
 
     from .rate_limit import client_ip

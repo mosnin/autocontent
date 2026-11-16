@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # instance are rejected.
     clerk_audience: str = ""
 
+    # Agent harness service token. When set, a request bearing exactly this
+    # token plus an ``x-tenant-id: <user_id>`` header acts as that user
+    # (never as an admin). Empty (the default) disables delegation entirely.
+    agent_service_token: str = ""
+
     aspect: str = "9:16"
 
     # Model used by every Agents-SDK stage (ideation, scriptwriter,

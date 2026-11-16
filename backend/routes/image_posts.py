@@ -4,6 +4,7 @@
 - POST /api/v1/image-posts               — enqueue (spawns the Modal run)
 - GET  /api/v1/image-posts/{id}          — detail
 - POST /api/v1/image-posts/{id}/approve  — resume an awaiting_approval post
+- POST /api/v1/image-posts/{id}/reject   — veto an awaiting_approval post
 """
 from __future__ import annotations
 
@@ -98,3 +99,19 @@ async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) ->
     fn = modal.Function.from_name("marketer-sh", "finish_image_post")
     fn.spawn(ctx.user_id, str(image_post_id))
     return {"status": "scheduling"}
+
+
+@router.post("/{image_post_id}/reject")
+async def reject_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
+    """Operator veto on an `awaiting_approval` post (parity with job reject):
+    atomically marked failed so it never posts. Slides are kept."""
+    post = await image_posts_repo.claim_for_rejection(image_post_id, user_id=ctx.user_id)
+    if post is None:
+        existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
+        if existing is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail=f"post is {existing['status']}, not awaiting_approval",
+        )
+    return post

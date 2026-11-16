@@ -343,3 +343,40 @@ async def test_x402_buy_credits_credited_with_payment():
     assert out["status"] == "credited"
     assert out["credited_usd"] == "10.00"
     assert out["payment_response"] == "resp64"
+
+
+async def test_workspace_methods_hit_contract_paths():
+    seen: list[tuple] = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        body = json.loads(req.content) if req.content else None
+        seen.append((req.method, req.url.path, dict(req.url.params), body))
+        return httpx.Response(200, json={"ok": True})
+
+    rid = str(uuid4())
+    async with _client(handler) as c:
+        await c.workspace_overview(days=7)
+        await c.workspace_inbox()
+        await c.decide_inbox_item("ad_change", rid, "reject")
+        await c.workspace_activity(limit=10, before="2026-11-16T10:00:00+00:00")
+        await c.workspace_activity()
+    assert seen[0] == ("GET", "/api/v1/workspace/overview", {"days": "7"}, None)
+    assert seen[1] == ("GET", "/api/v1/workspace/inbox", {}, None)
+    assert seen[2] == (
+        "POST", f"/api/v1/workspace/inbox/ad_change/{rid}/decide", {}, {"decision": "reject"}
+    )
+    assert seen[3] == (
+        "GET", "/api/v1/workspace/activity",
+        {"limit": "10", "before": "2026-11-16T10:00:00+00:00"}, None,
+    )
+    assert seen[4][2] == {"limit": "50"}
+
+
+async def test_decide_inbox_item_raises_on_404():
+    def handler(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(404, json={"detail": "item not found"})
+
+    async with _client(handler) as c:
+        with pytest.raises(MarketerError) as ei:
+            await c.decide_inbox_item("video", str(uuid4()), "approve")
+    assert ei.value.status_code == 404
