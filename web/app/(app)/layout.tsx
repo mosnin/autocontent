@@ -1,7 +1,6 @@
 import { ClerkProvider, UserButton } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/mk/shell/app-shell";
-import { RunConfirmProvider } from "@/components/run-confirm-dialog";
 import type { SetupStep } from "@/components/mk/shell/getting-started";
 import type { BrandKit } from "@/lib/brand-kit-client";
 import type { AyrshareConnectStatus, Job, Niche, User } from "@/lib/types";
@@ -42,7 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
       <AppShell data={{ brandName: brand?.brand_name || "Marketer", inbox, steps, isAdmin: user?.role === "admin" }} account={<UserButton appearance={{ elements: { avatarBox: "size-7" } }} />}>
-        <RunConfirmProvider>{children}</RunConfirmProvider>
+        {children}
       </AppShell>
     </ClerkProvider>
   );
