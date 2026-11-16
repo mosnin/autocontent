@@ -173,18 +173,18 @@ export function BillingSection({ billing }: { billing: BillingBalance | null }) 
           {low ? "Running low: the pipeline pauses at zero. " : ""}Work draws down prepaid credit at provider cost plus a {Math.round((billing.margin - 1) * 100)}% margin. The spend guard refuses anything your balance can't cover, so you can never owe us.
         </p>
       </div>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2">
         {PACKS.map((p) => (
           <button
             key={p.key}
             type="button"
             disabled={buying !== null}
             onClick={() => void buy(p.key)}
-            className="press flex flex-col items-start rounded-[14px] border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/50 disabled:opacity-60"
+            className="press flex min-w-0 flex-col items-start rounded-[14px] border border-border bg-card px-3 py-3 text-left sm:px-4 transition-colors hover:bg-muted/50 disabled:opacity-60"
           >
             <span className="text-[13px] text-muted-foreground">{p.label}</span>
             <span className="text-[22px] font-medium tracking-[-0.02em] tabular">${p.amount}</span>
-            <span className="text-[12.5px] text-faint">{buying === p.key ? "Opening checkout…" : p.blurb}</span>
+            <span className="truncate text-[12.5px] text-faint max-w-full">{buying === p.key ? "Opening checkout…" : p.blurb}</span>
           </button>
         ))}
       </div>
