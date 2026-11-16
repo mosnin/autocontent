@@ -67,10 +67,12 @@ export function AnalyticsView(data: AnalyticsData) {
     <>
       <PageHeader icon={<BarChart3 />} title="Analytics">
         <PeriodSelect value={days} />
-        <ButtonLink href={askHref()} size="sm" className="hidden pl-1.5 sm:inline-flex">
-          <AgentAvatar name={analyst.agentName} palette={analyst.palette} size={20} />
-          Ask the Analyst
-        </ButtonLink>
+        <span className="hidden sm:flex">
+          <ButtonLink href={askHref()} size="sm" className="pl-1.5">
+            <AgentAvatar name={analyst.agentName} palette={analyst.palette} size={20} />
+            Ask the Analyst
+          </ButtonLink>
+        </span>
       </PageHeader>
       <PageBody width="6xl" className="pb-6">
         {!o ? (

@@ -61,7 +61,7 @@ function AppList({ apps }: { apps: AppEntry[] }) {
     <div className="divide-y divide-border overflow-hidden rounded-[14px] border border-border bg-card">
       {apps.map((a) => (
         <div key={a.id} className="flex min-h-[60px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-          <IconTile size={36} tone={a.connected ? "live" : "muted"}>
+          <IconTile size={36}>
             {GLYPHS[a.glyph] ?? <span className="text-[14px] font-medium">{a.glyph}</span>}
           </IconTile>
           <div className="min-w-0 flex-1 basis-[200px]">

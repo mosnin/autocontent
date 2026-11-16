@@ -100,7 +100,7 @@ export function BrandEditor({ initial }: { initial: BrandKit }) {
             <FieldGroup label="Colour" hint={hexValid ? "A 6-digit hex like #4f46e5, or empty for none." : "Enter a 6-digit hex like #4f46e5, or clear it."}>
               <div className="flex flex-wrap items-center gap-2">
                 <input type="color" aria-label="Pick brand colour" value={swatch ?? "#8a8a8a"} onChange={(e) => setColor(e.target.value)} className="h-9 w-11 shrink-0 cursor-pointer rounded-lg border border-border bg-background p-1" />
-                <Input value={color} onChange={(e) => onHexText(e.target.value)} placeholder="#4f46e5" spellCheck={false} autoCapitalize="off" aria-label="Brand colour hex" aria-invalid={!hexValid} className="w-36 font-mono uppercase" />
+                <div className="w-36"><Input value={color} onChange={(e) => onHexText(e.target.value)} placeholder="#4f46e5" spellCheck={false} autoCapitalize="off" aria-label="Brand colour hex" aria-invalid={!hexValid} className="font-mono uppercase" /></div>
                 {color !== "" && (
                   <Button size="sm" variant="ghost" onClick={() => setColor("")}>
                     Clear

@@ -14,9 +14,11 @@ export function BrandView({ kit, kits, loadFailed }: { kit: BrandKit | null; kit
         <div className="t-stagger space-y-10">
           {loadFailed && <p className="rounded-[14px] bg-subtle px-4 py-3 text-[13px] text-muted-foreground">We couldn't load your saved brand, so this starts blank. Saving will overwrite it.</p>}
           <BrandEditor initial={kit ?? EMPTY_BRAND_KIT} />
-          <section id="kits" className="max-w-3xl">
-            <SectionTitle>Kits · reusable skills the agents carry</SectionTitle>
-            <Kits kits={kits} />
+          <section id="kits" className="grid scroll-mt-4 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="min-w-0">
+              <SectionTitle>Kits · reusable skills the agents carry</SectionTitle>
+              <Kits kits={kits} />
+            </div>
           </section>
         </div>
       </PageBody>

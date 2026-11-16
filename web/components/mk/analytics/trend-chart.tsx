@@ -128,10 +128,15 @@ export function TrendChart({
       </div>
       {/* x axis */}
       <div aria-hidden className="absolute bottom-0 left-10 right-1 h-5">
-        {xLabels.map(({ i, day }) => (
+        {xLabels.map(({ i, day }, k) => (
           <span
             key={day}
-            className={cx("absolute top-1 whitespace-nowrap text-[11px] text-faint tabular", i === 0 ? "" : i === n - 1 ? "-translate-x-full" : "-translate-x-1/2")}
+            className={cx(
+              "absolute top-1 whitespace-nowrap text-[11px] text-faint tabular",
+              i === 0 ? "" : i === n - 1 ? "-translate-x-full" : "-translate-x-1/2",
+              // Phones: first, middle and last only.
+              k !== 0 && k !== xLabels.length - 1 && k !== Math.floor((xLabels.length - 1) / 2) && "max-sm:hidden",
+            )}
             style={{ left: `${x(i)}%` }}
           >
             {dayFmt(day, { month: "short", day: "numeric" })}
