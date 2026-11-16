@@ -321,7 +321,7 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
       <Section id="sound" label="Sound & captions">
         <SwitchRow name="brief_music_enabled" label="Background music" detail="Ducked under the narration automatically." checked={music} onChange={setMusic} />
         <Field label="Music mood" hint="A search phrase for the track.">
-          <Input name="brief_music_mood" defaultValue={b.audio.music_mood} placeholder="warm acoustic, mandolin" disabled={!music} />
+          <Input name="brief_music_mood" defaultValue={b.audio.music_mood} placeholder="warm acoustic, mandolin"/>
         </Field>
         <Grid cols={4}>
           <Field label="Caption font">
@@ -384,7 +384,7 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
             </Select>
           </Field>
           <Field label="ElevenLabs voice ID" hint="Only used with ElevenLabs. Empty uses the default voice.">
-            <Input name="elevenlabs_voice_id" defaultValue={niche.elevenlabs_voice_id ?? ""} placeholder="21m00Tcm4TlvDq8ikWAM" className="font-mono" disabled={voiceProvider !== "elevenlabs"} />
+            <Input name="elevenlabs_voice_id" defaultValue={niche.elevenlabs_voice_id ?? ""} placeholder="21m00Tcm4TlvDq8ikWAM"className="font-mono" />
           </Field>
           <Field label="Music source" hint="Generated composes an original score per video.">
             <Select name="music_provider" defaultValue={niche.music_provider ?? "auto"}>

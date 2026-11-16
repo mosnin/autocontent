@@ -131,11 +131,11 @@ function Tokens({ tokens }: { tokens: PersonalAccessToken[] | null }) {
       ) : (
         <div className="divide-y divide-border overflow-hidden rounded-[14px] border border-border bg-card">
           {tokens.map((t) => (
-            <div key={t.id} className="flex min-h-[52px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+            <div key={t.id} className="flex min-h-[52px] items-center gap-3 px-4 py-2.5">
               <IconTile>
                 <KeyRound />
               </IconTile>
-              <div className="min-w-0 flex-1 basis-[160px]">
+              <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="truncate text-[14px] font-medium">{t.name}</span>
                   <code className="font-mono text-[12px] text-muted-foreground">{t.prefix}…</code>
@@ -145,7 +145,7 @@ function Tokens({ tokens }: { tokens: PersonalAccessToken[] | null }) {
                   {t.expires_at ? ` · expires ${formatRelative(t.expires_at)}` : ""}
                 </div>
               </div>
-              <Button size="sm" variant="ghost" className="ml-auto hover:text-destructive" onClick={() => setRevoking(t)}>
+              <Button size="sm" variant="ghost" className="shrink-0 hover:text-destructive" onClick={() => setRevoking(t)}>
                 Revoke
               </Button>
             </div>

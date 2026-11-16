@@ -60,17 +60,17 @@ function AppList({ apps }: { apps: AppEntry[] }) {
   return (
     <div className="divide-y divide-border overflow-hidden rounded-[14px] border border-border bg-card">
       {apps.map((a) => (
-        <div key={a.id} className="flex min-h-[60px] flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+        <div key={a.id} className="flex min-h-[60px] items-center gap-3 px-4 py-3">
           <IconTile size={36}>
             {GLYPHS[a.glyph] ?? <span className="text-[14px] font-medium">{a.glyph}</span>}
           </IconTile>
-          <div className="min-w-0 flex-1 basis-[200px]">
+          <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
               <span className="truncate text-[14px] font-medium">{a.name}</span>
               <span className="text-[12px] text-faint">{a.provider}</span>
               {a.forAgents && <Badge tone="accent">For agents</Badge>}
             </div>
-            <div className="text-[13px] text-muted-foreground">{a.status ?? a.blurb}</div>
+            <div className="line-clamp-2 text-[13px] text-muted-foreground">{a.status ?? a.blurb}</div>
           </div>
           {a.action.kind === "ayrshare" ? (
             <form action={connectAyrshareAction} className="ml-auto shrink-0">
