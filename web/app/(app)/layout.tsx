@@ -1,4 +1,5 @@
 import { ClerkProvider, UserButton } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/mk/shell/app-shell";
 import { RunConfirmProvider } from "@/components/run-confirm-dialog";
 import type { SetupStep } from "@/components/mk/shell/getting-started";
@@ -25,6 +26,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     safe<BrandKit>("/api/v1/brand-kit"),
     safe<unknown[]>("/api/v1/ads/accounts"),
   ]);
+
+  // A brand-new workspace starts in onboarding. Only when the API positively
+  // reports nothing (empty arrays, no brand), never when it's unreachable.
+  if (niches && jobs && brand && niches.length === 0 && jobs.length === 0 && !brand.brand_name) redirect("/onboarding");
 
   const steps: SetupStep[] = [
     { id: "brand", label: "Tell Marketer about your brand", detail: "Name, voice and audience steer everything it makes.", href: "/brand", done: Boolean(brand?.brand_name) },

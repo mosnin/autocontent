@@ -1,0 +1,9 @@
+{
+  "name": "@intent-onboarding/react",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "React bindings for the intent-onboarding engine: provider, selector hooks, keyboard navigation.",
+  "main": "src/index.tsx",
+  "exports": { ".": "./src/index.tsx" },
+  "peerDependencies": { "react": ">=18" }
+}
