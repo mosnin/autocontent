@@ -58,10 +58,10 @@ function PerformanceTable({ perf }: { perf: NichePerformance }) {
   );
   return (
     <div className="-mx-5 -my-4 overflow-x-auto">
-      <table className="w-full min-w-[440px] text-[14px]">
+      <table className="w-full min-w-[440px] table-fixed text-[14px]">
         <thead className="border-b border-border text-[12px] text-muted-foreground">
           <tr>
-            <th className="px-5 py-2 text-left font-normal">Hook</th>
+            <th className="w-1/2 px-5 py-2 text-left font-normal">Hook</th>
             <Th k="views">Views</Th>
             <Th k="cost">Cost</Th>
             <Th k="cpp">Per 1k</Th>
@@ -198,13 +198,15 @@ export function PlaybookDetailView({
                 ]}
               />
             </Panel>
-            <Panel label="Spend · last 30 days" className="min-w-0 lg:col-span-2">
-              {days.some((d) => d > 0) ? <Bars values={days} labels={["30 days ago", "Today"]} format={(n) => formatUsd(n)} height={132} /> : <p className="text-[13px] text-muted-foreground">Nothing spent in the last 30 days.</p>}
-            </Panel>
+            <div className="min-w-0 space-y-4 lg:col-span-2">
+              <Panel label="Spend · last 30 days">
+                {days.some((d) => d > 0) ? <Bars values={days} labels={["30 days ago", "Today"]} format={(n) => formatUsd(n)} height={132} /> : <p className="text-[13px] text-muted-foreground">Nothing spent in the last 30 days.</p>}
+              </Panel>
+              <CharacterSheet nicheId={niche.id} preview={preview} />
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-5">
-            <Panel label="Performance · 30 days" className="min-w-0 lg:col-span-3">
+          <Panel label="Performance · 30 days">
               {performance && performance.jobs.length > 0 ? (
                 <>
                   <PerformanceTable perf={performance} />
@@ -213,11 +215,7 @@ export function PlaybookDetailView({
               ) : (
                 <p className="text-[13px] text-muted-foreground">Make a video to start collecting performance.</p>
               )}
-            </Panel>
-            <div className="min-w-0 lg:col-span-2">
-              <CharacterSheet nicheId={niche.id} preview={preview} />
-            </div>
-          </div>
+          </Panel>
 
           <section>
             <div className="mb-2.5 flex items-center justify-between gap-3">
