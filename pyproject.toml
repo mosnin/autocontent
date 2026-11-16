@@ -40,7 +40,9 @@ marketer-migrate = "scripts.migrate:main"
 dev = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
-    "ruff>=0.5",
+    # Capped to the version uv.lock pins: CI installs with pip, and newer ruff
+    # releases add rules that fail the whole tree.
+    "ruff>=0.5,<0.16",
     "mypy>=1.10",
 ]
 
