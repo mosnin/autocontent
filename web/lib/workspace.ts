@@ -1,8 +1,7 @@
 // Typed access to the workspace aggregate endpoints (/api/v1/workspace/*),
 // which join every department into one inbox, one activity feed and one
-// analytics view. Mirrors backend/routes/workspace.py.
-
-import { api } from "./api";
+// analytics view. Mirrors backend/routes/workspace.py. Client-safe: server
+// fetches live in ./workspace-server.
 
 export interface Kpis {
   total_spend_usd: string;
@@ -72,20 +71,6 @@ export interface Activity {
 }
 
 export const EMPTY_INBOX: Inbox = { items: [], counts: { total: 0, video: 0, carousel: 0, ad_change: 0 } };
-
-/** Server-side fetch that never throws: pages render their empty state instead of a 500. */
-export async function safe<T>(path: string): Promise<T | null> {
-  try {
-    return await api<T>(path);
-  } catch {
-    return null;
-  }
-}
-
-export const getOverview = (days = 30) => safe<Overview>(`/api/v1/workspace/overview?days=${days}`);
-export const getInbox = () => safe<Inbox>("/api/v1/workspace/inbox");
-export const getActivity = (limit = 50, before?: string) =>
-  safe<Activity>(`/api/v1/workspace/activity?limit=${limit}${before ? `&before=${encodeURIComponent(before)}` : ""}`);
 
 /** Where an inbox item or activity event opens. */
 export function hrefFor(kind: string, refId: string): string {

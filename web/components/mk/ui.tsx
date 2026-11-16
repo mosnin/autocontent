@@ -18,12 +18,11 @@ import {
   useEffect,
   useRef,
 } from "react";
+import { cx } from "./cx";
 import { EmptyArt, type EmptyArtKind } from "./empty-art";
 import { fieldGradient, paletteFor, type Palette } from "./shader";
 
-export function cx(...xs: (string | false | null | undefined | 0)[]) {
-  return xs.filter(Boolean).join(" ");
-}
+export { cx };
 
 /* ------------------------------------------------------------------ buttons */
 

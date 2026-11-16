@@ -14,7 +14,7 @@ const COLLAPSE_KEY = "marketer.sidebar.collapsed";
  * Two floating panels on a canvas, 6px apart (Podium DNA): the quiet sidebar
  * and the page. Edge to edge on phones, where the sidebar becomes a drawer.
  */
-export function AppShell({ data, children }: { data: SidebarData; children: ReactNode }) {
+export function AppShell({ data, children, account }: { data: Omit<SidebarData, "account">; children: ReactNode; account?: ReactNode }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawer, setDrawer] = useState(false);
@@ -55,14 +55,14 @@ export function AppShell({ data, children }: { data: SidebarData; children: Reac
       <div className="mk-app flex h-dvh gap-1.5 overflow-hidden md:p-1.5">
         {/* Desktop sidebar panel */}
         <aside className={cx("hidden shrink-0 overflow-hidden rounded-[14px] border border-border bg-background shadow-panel transition-[width] duration-[250ms] ease-[var(--ease-out)] md:block", collapsed ? "w-[60px]" : "w-[256px]")}>
-          <Sidebar data={data} collapsed={collapsed} onToggleCollapse={toggle} onSearch={() => setSearch(true)} />
+          <Sidebar data={{ ...data, account }} collapsed={collapsed} onToggleCollapse={toggle} onSearch={() => setSearch(true)} />
         </aside>
 
         {/* Mobile drawer */}
         <div className={cx("fixed inset-0 z-40 md:hidden", drawer ? "pointer-events-auto" : "pointer-events-none")} aria-hidden={!drawer}>
           <div className={cx("absolute inset-0 bg-black/30 transition-opacity duration-[250ms]", drawer ? "opacity-100" : "opacity-0")} onClick={() => setDrawer(false)} />
           <aside className={cx("absolute inset-y-0 left-0 w-[284px] max-w-[85vw] bg-background shadow-modal transition-transform duration-[350ms] ease-[var(--ease-drawer)]", drawer ? "translate-x-0" : "-translate-x-full")}>
-            <Sidebar data={data} collapsed={false} onToggleCollapse={() => setDrawer(false)} onNavigate={() => setDrawer(false)} onSearch={() => (setDrawer(false), setSearch(true))} />
+            <Sidebar data={{ ...data, account }} collapsed={false} onToggleCollapse={() => setDrawer(false)} onNavigate={() => setDrawer(false)} onSearch={() => (setDrawer(false), setSearch(true))} />
           </aside>
         </div>
 

@@ -1,10 +1,9 @@
-import { HomeHub } from "@/components/hub/home-hub";
+import { HomeView } from "@/components/mk/home/home-view";
+import { getInbox, getOverview } from "@/lib/workspace-server";
 
-export const dynamic = "force-dynamic";
+export const metadata = { title: "Home · Marketer" };
 
-// The suite launcher — the reference-style hub that presents each product
-// dashboard as its own animated card (Campaigns, Content, SEO, Ads, Suite).
-// From here you enter a product and get its focused dashboard + sidebar.
-export default function HomePage() {
-  return <HomeHub />;
+export default async function HomePage() {
+  const [week, month, inbox] = await Promise.all([getOverview(7), getOverview(30), getInbox()]);
+  return <HomeView week={week} month={month} inbox={inbox} />;
 }

@@ -5,7 +5,7 @@
  */
 import type { ReactNode } from "react";
 import { EmptyArt, type EmptyArtKind } from "./empty-art";
-import { cx } from "./ui";
+import { cx } from "./cx";
 
 export function PageHeader({ icon, title, children, className }: { icon?: ReactNode; title: ReactNode; children?: ReactNode; className?: string }) {
   return (
@@ -82,7 +82,7 @@ export function Card({ className, children, inset }: { className?: string; child
 /** A card with an icon + quiet title header, like the reference's "Recent sessions". */
 export function TitledCard({ icon, title, action, children, className, footer }: { icon?: ReactNode; title: ReactNode; action?: ReactNode; children: ReactNode; className?: string; footer?: ReactNode }) {
   return (
-    <section className={cx("flex flex-col rounded-[20px] border border-border bg-card", className)}>
+    <section className={cx("flex min-w-0 flex-col rounded-[20px] border border-border bg-card", className)}>
       <div className="flex min-h-11 items-center gap-2 px-4 pt-1">
         {icon && <span className="flex text-muted-foreground [&_svg]:size-[15px] [&_svg]:stroke-[1.7]">{icon}</span>}
         <h2 className="text-[13px] font-normal text-muted-foreground">{title}</h2>

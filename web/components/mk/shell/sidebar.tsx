@@ -1,6 +1,5 @@
 "use client";
 
-import { UserButton } from "@clerk/nextjs";
 import {
   BarChart3,
   CalendarDays,
@@ -38,6 +37,8 @@ export interface SidebarData {
   inbox: Inbox | null;
   steps: SetupStep[];
   isAdmin: boolean;
+  /** The account control (Clerk UserButton in the app, a stub in previews). */
+  account?: ReactNode;
 }
 
 const DEPT_ICONS: Record<DepartmentId, ReactNode> = {
@@ -218,7 +219,7 @@ export function Sidebar({ data, collapsed, onToggleCollapse, onNavigate, onSearc
           </GettingStarted>
         )}
         <div className={cx("mt-2 flex items-center gap-1", collapsed ? "flex-col" : "justify-between px-1")}>
-          <UserButton appearance={{ elements: { avatarBox: "size-7" } }} />
+          {data.account}
           <button
             type="button"
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
@@ -226,7 +227,8 @@ export function Sidebar({ data, collapsed, onToggleCollapse, onNavigate, onSearc
             aria-label="Toggle light and dark"
             title="Toggle light and dark"
           >
-            {resolvedTheme === "dark" ? <Sun className="size-[15px]" /> : <Moon className="size-[15px]" />}
+            <Moon className="size-[15px] dark:hidden" />
+            <Sun className="hidden size-[15px] dark:block" />
           </button>
         </div>
       </div>
