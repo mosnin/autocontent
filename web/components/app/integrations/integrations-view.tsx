@@ -83,7 +83,7 @@ export function IntegrationsView(data: IntegrationsData) {
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[960px] px-5 pb-20 pt-12 sm:px-6">
           <h2 className="text-center text-[22px] font-medium leading-tight">Connect where you publish</h2>
-          <div className="relative mx-auto mt-5 max-w-[720px]">
+          <div className="relative mt-5">
             <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search integrations…" aria-label="Search integrations" className="h-9 rounded-full pl-8" />
           </div>
