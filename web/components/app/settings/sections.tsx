@@ -1,8 +1,8 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Wallet } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState, useTransition } from "react";
-import { Button, Callout, ConfirmModal, EmptyLine, Input, KpiCard, List, ListRow, MoneyInput, Notice, PlanOption, Section, Segmented, Switch, Table, cx, type Palette } from "@/design-system";
+import { AskPill, Button, Callout, ConfirmModal, EmptyLine, Input, KpiCard, List, ListRow, MoneyInput, Notice, PlanOption, Section, Segmented, Switch, Table, cx, type Palette } from "@/design-system";
 import { setThemeCookie, type AppTheme } from "@/components/shell/theme";
 import { createCheckoutAction, updateEmailNotificationsAction, updateUserSettingsAction } from "@/lib/actions";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
@@ -171,9 +171,9 @@ export function SpendCapSection({ initialCap }: { initialCap: string | null }) {
 /* ----------------------------------------------------------------- billing */
 
 const PACKS: { key: string; label: string; amount: number; blurb: string; palette: Palette }[] = [
-  { key: "starter", label: "Starter", amount: 5, blurb: "Try it on one playbook.", palette: "lagoon" },
-  { key: "creator", label: "Creator", amount: 20, blurb: "Keep a daily channel running.", palette: "sunrise" },
-  { key: "studio", label: "Studio", amount: 50, blurb: "Run several playbooks at once.", palette: "bloom" },
+  { key: "starter", label: "Starter", amount: 5, blurb: "One playbook.", palette: "lagoon" },
+  { key: "creator", label: "Creator", amount: 20, blurb: "A daily channel.", palette: "sunrise" },
+  { key: "studio", label: "Studio", amount: 50, blurb: "Several playbooks.", palette: "bloom" },
 ];
 
 type Tx = BillingBalance["transactions"][number];
@@ -217,7 +217,7 @@ export function BillingSection({ billing }: { billing: BillingBalance | null }) 
     <>
       <Section title="Credit">
         <div className="space-y-3">
-          <KpiCard label="Available credit" value={formatUsd(billing.balance_usd)} />
+          <KpiCard icon={<Wallet />} label="Available credit" value={formatUsd(billing.balance_usd)} />
           {low && <Callout tone="attention">Running low. The pipeline pauses at zero.</Callout>}
         </div>
       </Section>
@@ -277,6 +277,7 @@ export function BillingSection({ billing }: { billing: BillingBalance | null }) 
           />
         </Section>
       )}
+      <AskPill label="Ask where your credit goes" href={`/sessions/new?dept=analytics&q=${encodeURIComponent("Where did my credit go this month, and what should I cut?")}`} />
     </>
   );
 }
