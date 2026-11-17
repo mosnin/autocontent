@@ -179,3 +179,9 @@ def test_router_is_registered_in_the_app():
 
     paths = set(create_app().openapi()["paths"])
     assert {"/api/v1/decisions", "/api/v1/decisions/log"} <= paths
+
+
+def test_people_cannot_author_decision_logs(user_client):
+    # Only the agent (service token + x-tenant-id) writes the log.
+    r = user_client.post("/api/v1/decisions/log", json=BODY)
+    assert r.status_code == 403

@@ -35,7 +35,6 @@ from uuid import UUID
 
 import httpx
 
-from ..config import settings
 from ..decisions import questions as q
 from ..logging import get_logger
 
@@ -56,9 +55,10 @@ _FLAG_TTL_S = 60.0
 
 
 def api_key() -> str:
-    """OPENROUTER_API_KEY (the plan's name), else the backend's existing
-    MARKETER_OPENROUTER_API_KEY. Empty means every point is off."""
-    return os.environ.get("OPENROUTER_API_KEY", "") or settings.openrouter_api_key
+    """OPENROUTER_API_KEY only. Decisions are opt-in: an existing generation
+    key must not start paid decision calls by itself. Empty means every point
+    is off."""
+    return os.environ.get("OPENROUTER_API_KEY", "")
 
 
 def decisions_url() -> str:

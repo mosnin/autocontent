@@ -100,7 +100,7 @@ async def test_no_key_is_off_and_touches_nothing(monkeypatch, fake_spend, logged
     assert await svc.resolve_mode(q.Point.HOOK_SCORE) == "off"
 
 
-async def test_backend_openrouter_setting_counts_as_a_key(monkeypatch):
+async def test_backend_generation_key_does_not_turn_decisions_on(monkeypatch):
     from marketer.config import settings
 
     async def no_flags():
@@ -108,8 +108,9 @@ async def test_backend_openrouter_setting_counts_as_a_key(monkeypatch):
 
     monkeypatch.setattr(flags_repo, "list_all", no_flags)
     monkeypatch.setattr(settings, "openrouter_api_key", "or-backend")
-    assert svc.api_key() == "or-backend"
-    assert await svc.resolve_mode(q.Point.HOOK_SCORE) == "shadow"
+    # Decisions are opt-in: only OPENROUTER_API_KEY turns them on.
+    assert svc.api_key() == ""
+    assert await svc.resolve_mode(q.Point.HOOK_SCORE) == "off"
 
 
 # ---------------------------------------------------------------------------

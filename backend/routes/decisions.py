@@ -68,6 +68,10 @@ class DecisionLogPage(BaseModel):
 
 @router.post("/log", response_model=DecisionLogCreated, status_code=status.HTTP_201_CREATED)
 async def log_decision(body: DecisionLogIn, ctx: AuthCtx = CurrentUser) -> DecisionLogCreated:
+    # Only the agent harness (service token + x-tenant-id) writes here; people
+    # and personal tokens read their log but don't author it.
+    if not getattr(ctx, "delegated", False):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "decision logs are written by the agent")
     new_id = await decision_log_repo.insert(user_id=ctx.user_id, **body.model_dump())
     return DecisionLogCreated(id=new_id)
 
