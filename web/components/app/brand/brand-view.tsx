@@ -136,7 +136,9 @@ function BrandForm({ initial }: { initial: BrandKit }) {
           <FieldGroup label="Brand colour" hint={hexValid ? "A 6-digit hex, or empty for none." : "Enter a 6-digit hex like #4f46e5, or clear it."}>
             <div className="flex flex-wrap items-center gap-2">
               <input type="color" aria-label="Pick brand colour" value={swatch ?? PICKER_DEFAULT} onChange={(e) => setColor(e.target.value)} className="h-8 w-10 shrink-0 cursor-pointer rounded-ds-md border border-hairline bg-surface-2 p-1" />
-              <Input value={color} onChange={(e) => onHexText(e.target.value)} placeholder="4F46E5" spellCheck={false} autoCapitalize="off" aria-label="Brand colour hex" aria-invalid={!hexValid} className="w-32 font-mono uppercase" />
+              <div className="w-32">
+                <Input value={color} onChange={(e) => onHexText(e.target.value)} placeholder="4F46E5" spellCheck={false} autoCapitalize="off" aria-label="Brand colour hex" aria-invalid={!hexValid} className="font-mono uppercase" />
+              </div>
               {color !== "" && (
                 <Button size="sm" variant="ghost" onClick={() => setColor("")}>
                   Clear
