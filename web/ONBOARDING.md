@@ -10,7 +10,7 @@ Marketer's first run follows the intent-driven framework from
 - **Personas**: `/onboarding/personas.ts`, replayed with
   `npx tsx .intent-onboarding/packages/testing/src/cli.ts onboarding/personas.ts`;
   every persona must pass with zero doctrine violations.
-- **UI**: `components/mk/onboarding/flow.tsx`, route
+- **UI**: `components/app/onboarding/flow.tsx` (built from `@/design-system`), route
   `app/(onboarding)/onboarding` (full screen, no sidebar), preview at
   `/preview/onboarding`.
 
