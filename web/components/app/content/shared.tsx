@@ -57,7 +57,7 @@ export function StepList({ steps, current, complete, failed }: { steps: { id: st
         const now = !complete && i === current;
         return (
           <li key={s.id} className="flex items-start gap-2.5 text-[13px]">
-            <span className="mt-[2px]">
+            <span className="mt-[2px] flex">
               <StepMark state={done ? "done" : now ? (failed ? "failed" : "active") : "todo"} />
             </span>
             <span className="min-w-0">

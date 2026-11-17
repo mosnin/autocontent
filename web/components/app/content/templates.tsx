@@ -69,8 +69,8 @@ function TemplateCard({ t, preview }: { t: Template; preview?: boolean }) {
           {t.kind !== "video" ? (
             <>
               <input ref={input} type="file" accept="image/*" className="sr-only" onChange={(e) => setFile(e.target.files?.[0] ?? null)} aria-label={`Product photo for ${t.name}`} />
-              <div className="flex items-center gap-1.5">
-                <Button variant="ghost" className="min-w-0" onClick={() => input.current?.click()}>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button variant="ghost" className="min-w-0 max-w-full shrink" onClick={() => input.current?.click()}>
                   <Upload />
                   <span className="truncate">{file ? file.name : "Product photo"}</span>
                 </Button>

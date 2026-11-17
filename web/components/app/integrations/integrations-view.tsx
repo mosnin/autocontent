@@ -62,7 +62,7 @@ const ask = (dept: string, q: string) => `/sessions/new?dept=${dept}&q=${encodeU
 
 const PROMPTS = [
   { app: "TikTok", text: "Post tomorrow's video at 6pm", href: ask("distribution", "Post tomorrow's video on TikTok at 6pm") },
-  { app: "Meta Ads", text: "Pause ad sets with CPA over $40", href: ask("paid", "Pause any Meta ad set with CPA over $40") },
+  { app: "Meta", text: "Pause ad sets with CPA over $40", href: ask("paid", "Pause any Meta ad set with CPA over $40") },
   { app: "MCP", text: "Let Claude read this week's inbox", href: ask("distribution", "How do I connect Claude to Marketer over MCP?") },
 ];
 

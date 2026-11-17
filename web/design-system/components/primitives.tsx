@@ -207,7 +207,7 @@ export function StepMark({ state }: { state: "todo" | "active" | "done" | "faile
         <X className="size-[9px]" strokeWidth={3.5} />
       </span>
     );
-  return <span aria-hidden className={cx("size-[14px] shrink-0 rounded-full border-[1.5px]", state === "active" ? "ds-spin border-fg-muted border-t-transparent" : "border-hairline-strong")} />;
+  return <span aria-hidden className={cx("block size-[14px] shrink-0 rounded-full border-[1.5px]", state === "active" ? "ds-spin border-fg-muted border-t-transparent" : "border-hairline-strong")} />;
 }
 
 /** Small round bullet for list items (ref 05 "Awaiting action", ref 01 "Recent sessions"). Static, never animated. */

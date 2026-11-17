@@ -34,7 +34,7 @@ const num = (v: number | null | undefined) => (v == null || !Number.isFinite(v) 
 
 function Hero({ article, preview }: { article: Article; preview?: boolean }) {
   const [broken, setBroken] = useState(false);
-  if (!article.hero_image_path && !preview) return null;
+  if (!article.hero_image_path) return null;
   return (
     <figure className="space-y-1.5">
       <Thumb ratio="16/9">

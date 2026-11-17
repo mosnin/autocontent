@@ -241,6 +241,7 @@ export function PlanCard({
   approving,
   decided,
   approveLabel = "Approve & Run",
+  className,
 }: {
   title: string;
   icon?: ReactNode;
@@ -252,10 +253,11 @@ export function PlanCard({
   approving?: boolean;
   decided?: ReactNode;
   approveLabel?: string;
+  className?: string;
 }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="ds-enter rounded-ds-lg border border-hairline bg-surface">
+    <div className={cx("ds-enter rounded-ds-lg border border-hairline bg-surface", className)}>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <span className="flex size-7 items-center justify-center rounded-ds-sm text-[13px]" style={{ background: "var(--ds-tool-e)" }}>
           {icon}
