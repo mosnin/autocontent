@@ -39,10 +39,12 @@ import {
   type WebSearchProvider,
   webSearchProvidersFromEnv,
 } from "@agent-starter/integrations";
-import { env as workerEnv } from "cloudflare:workers";
+import { waitUntil, env as workerEnv } from "cloudflare:workers";
 import type { Context } from "hono";
 import appConfig from "../../agent-starter.config.ts";
 import type { Env } from "../env.ts";
+import { createDecisionLogger } from "../marketer/decisions/log.ts";
+import type { DecisionRuntime } from "../marketer/decisions/run.ts";
 import { alertingNotifier, type OpsAlert, publishOpsAlert } from "./alerts.ts";
 import { createArtifactRoutes, signArtifactUrl } from "./artifacts.ts";
 import { createIntegrationRoutes, gatewayCacheTtlSeconds, isHarnessIdentity, mcpServersFromConfig } from "./integrations.ts";
@@ -377,6 +379,20 @@ export function telemetrySinks(): TelemetrySink[] {
   const pusher = pusherConfig(b);
   if (pusher) sinks.push(new PusherPublisher(pusher));
   return sinks;
+}
+
+/**
+ * Decision models (src/marketer/decisions): the runtime every decision point uses. Env is read at use time; the log
+ * goes to the telemetry sinks and, best-effort, to the backend decision_log. No OPENROUTER_API_KEY = every point off.
+ */
+export function decisionRuntime(agent: string, runId?: string): DecisionRuntime {
+  const b = bindings();
+  return {
+    env: b as unknown as DecisionRuntime["env"],
+    agent,
+    ...(runId ? { runId } : {}),
+    logger: createDecisionLogger({ telemetry: () => telemetrySinks(), backend: { apiUrl: b.PRIMARY_SAAS_API_URL, token: b.SAAS_SERVICE_TOKEN }, waitUntil }),
+  };
 }
 
 /** POST /api/pusher/auth for dashboards (mounted in src/app.ts; 404 until Pusher is configured): src/lib/pusher-auth.ts. */

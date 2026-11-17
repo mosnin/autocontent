@@ -1,6 +1,8 @@
 # Copy to .dev.vars for local development (never commit .dev.vars).
 # Generate strong secrets with: openssl rand -base64 48
 OPENAI_API_KEY=""
+# Decision models (src/marketer/decisions) through OpenRouter. Empty = every decision point off (today's behaviour).
+OPENROUTER_API_KEY=""
 # Shared with the Next.js web app (../web SESSION_SIGNING_SECRET): it mints session tokens for the signed-in Clerk
 # user (sub = tid = Clerk user id).
 SESSION_SIGNING_SECRET=""

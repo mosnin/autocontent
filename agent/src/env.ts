@@ -72,6 +72,12 @@ export interface Env {
   SHADOW_SAMPLE_RATE?: string;
   /** Background module: model the shadow twin runs on (empty = the production model). */
   SHADOW_MODEL?: string;
+  /** Decision endpoint (empty = https://openrouter.ai/api/alpha/decisions). */
+  OPENROUTER_DECISIONS_URL?: string;
+  /** Pinned, dated decision model slug (empty = DEFAULT_DECISION_MODEL in src/marketer/decisions/questions.ts). Never a "-latest" alias. */
+  DECISION_MODEL?: string;
+  /** Per-point modes, e.g. "routing=shadow,approval_risk=enforce" (off | shadow | enforce). Unset = each point's default (shadow). */
+  DECISION_MODES?: string;
 
   // --- Secrets (wrangler secret put / .dev.vars) ------------------------------
   OPENAI_API_KEY: string;
@@ -112,6 +118,11 @@ export interface Env {
   FIRECRAWL_API_KEY?: string;
   /** Coding module: GitHub import / push / pull requests. */
   GITHUB_TOKEN?: string;
+  /**
+   * Decision models (src/marketer/decisions): OpenRouter key, server-side only. Unset = every decision point is off and
+   * the agents behave exactly as without decision models.
+   */
+  OPENROUTER_API_KEY?: string;
 
   /** Voice module (LiveKit). */
   LIVEKIT_API_KEY?: string;

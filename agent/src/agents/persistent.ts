@@ -4,9 +4,11 @@ import { WorkersAIProvider } from "@agent-starter/cloudflare";
 import { useAgentStarter } from "@agent-starter/flue";
 import { type AgentProps, useInitialData, useSkill } from "@flue/runtime";
 import { useCustomSkills } from "../lib/custom-skills.ts";
-import { approvals, bindings, modelOptions, platform, sendToSaas } from "../lib/platform.ts";
+import { approvals, bindings, decisionRuntime, modelOptions, platform, sendToSaas } from "../lib/platform.ts";
+import { MarketerReviewer } from "../marketer/decisions/hooks.ts";
 import { workersAiModel } from "../lib/policy.ts";
-import { MARKETER_HEARTBEAT } from "../marketer/heartbeat.ts";
+import { autopilotDecision, MARKETER_HEARTBEAT, readAutopilotState } from "../marketer/heartbeat.ts";
+import { type MarketerCallContext, SAAS_CREDENTIAL } from "../marketer/api.ts";
 import { persistentReadTools } from "../marketer/tools/index.ts";
 import { createProposeNextMovesTool } from "../marketer/tools/proposals.ts";
 import { credentialBroker, managedEgress } from "../persistent/credentials.ts";
@@ -54,6 +56,22 @@ export function PersistentAgent({ id }: AgentProps) {
   const loadConfig = async (): Promise<PersistentAgentConfig> => (await control()?.getConfig()) ?? { ...fallbackConfig, enabled: false };
   const reviewModelId = (config: PersistentAgentConfig) => workersAiModel(config.autoReview.model || env.PERSISTENT_REVIEW_MODEL || modelOptions().firstLine);
 
+  // Platform-side reads for decision point 12: the `saas` credential is injected by the broker for the API host only.
+  const brokeredSaas = (config: PersistentAgentConfig): MarketerCallContext => {
+    const broker = credentialBroker(env, config.credentials);
+    return {
+      tenant: { tenantId },
+      services: {
+        env: { PRIMARY_SAAS_API_URL: env.PRIMARY_SAAS_API_URL },
+        fetch: async (url: string, init: RequestInit & { credential?: string } = {}) => {
+          const { credential: _credential, ...rest } = init;
+          const headers = { ...(rest.headers as Record<string, string> | undefined), ...(await broker.resolve(SAAS_CREDENTIAL, url)) };
+          return fetch(url, { ...rest, headers, signal: rest.signal ?? AbortSignal.timeout(5000) });
+        },
+      },
+    };
+  };
+
   const base = platform("persistent-agent", id);
   const ctx = useAgentStarter({
     ...base,
@@ -68,10 +86,18 @@ export function PersistentAgent({ id }: AgentProps) {
       killSwitch: async () => (await control()?.isKilled()) ?? false,
       egress: (config: PersistentAgentConfig) => createEgressGuard({ ...managedEgress(env), agentAllow: config.egress.allow, agentDeny: config.egress.deny }),
       broker: (config: PersistentAgentConfig) => credentialBroker(env, config.credentials),
+      // Decision points 6 (approval risk, tighten only) and 12 (anything worth proposing?) wrap the model reviewer.
+      // Shadow by default (log only); off without OPENROUTER_API_KEY, where the inner reviewer alone decides.
       reviewer: (config: PersistentAgentConfig) =>
-        new AutoReviewer({
-          model: () => new WorkersAIProvider(env.AI, reviewModelId(config) ? { model: reviewModelId(config) as string } : {}),
-          onDecision: (call, decision) => control()?.recordReview({ tool: call.tool, decision: decision.decision, reason: decision.reason, by: decision.by }),
+        new MarketerReviewer({
+          inner: new AutoReviewer({
+            model: () => new WorkersAIProvider(env.AI, reviewModelId(config) ? { model: reviewModelId(config) as string } : {}),
+            onDecision: (call, decision) => control()?.recordReview({ tool: call.tool, decision: decision.decision, reason: decision.reason, by: decision.by }),
+          }),
+          runtime: () => decisionRuntime("persistent-agent", id),
+          tenantId,
+          autopilot: (_call, context) => autopilotDecision(decisionRuntime("persistent-agent", id), tenantId, () => readAutopilotState(brokeredSaas(config)), context.objective),
+          onTightened: (call, decision) => control()?.recordReview({ tool: call.tool, decision: decision.decision, reason: decision.reason, by: "decision-model" }),
         }),
       onTurnSummary: async (summary) => {
         await control()?.recordTurn(summary);

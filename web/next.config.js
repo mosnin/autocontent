@@ -32,8 +32,17 @@ const LEGACY = [
   ["/settings/privacy", "/settings"],
 ];
 
+const path = require("node:path");
+
 const nextConfig = {
   reactStrictMode: true,
+  // The onboarding decisions route imports the vendored framework from ../.intent-onboarding (TypeScript source).
+  experimental: { externalDir: true },
+  webpack(config) {
+    // Files under ../.intent-onboarding resolve this SDK from web/node_modules (server-only: the decisions route).
+    config.resolve.alias = { ...config.resolve.alias, "@typesafe-ai/sdk": path.join(__dirname, "node_modules/@typesafe-ai/sdk") };
+    return config;
+  },
   env: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
   },

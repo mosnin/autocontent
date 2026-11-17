@@ -72,7 +72,10 @@
     "AGENT_BUS_DLQ_NAME": "marketer-agents-bus-dlq",
     "PERSISTENT_EGRESS_ALLOW": "",
     "PERSISTENT_EGRESS_DENY": "",
-    "PERSISTENT_REVIEW_MODEL": ""
+    "PERSISTENT_REVIEW_MODEL": "",
+    "OPENROUTER_DECISIONS_URL": "",
+    "DECISION_MODEL": "",
+    "DECISION_MODES": ""
   },
   "queues": {
     "producers": [

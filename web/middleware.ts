@@ -3,7 +3,7 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 // Every app route. Keep in sync with the matcher below.
 const APP = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|integrations|settings|onboarding|admin";
 
-const isProtected = createRouteMatcher([new RegExp(`^/(${APP})(/.*)?$`), "/api/agent(.*)"]);
+const isProtected = createRouteMatcher([new RegExp(`^/(${APP})(/.*)?$`), "/api/agent(.*)", "/api/onboarding(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (isProtected(req)) await auth.protect();
@@ -19,6 +19,8 @@ export const config = {
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
     "/api/agent(.*)",
+    // Onboarding decisions (server-side model key; signed-in users only).
+    "/api/onboarding(.*)",
     // Media manager: GET stays public, POST/DELETE check auth() in-route.
     "/api/media",
   ],

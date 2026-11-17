@@ -1,7 +1,8 @@
 "use agent";
 import { createDelegationTools, createRoomTools, type SubagentToolsContext, useAgentStarter, useDelegation, useSubagentTools } from "@agent-starter/flue";
 import { type AgentProps, useSubagent, useSkill } from "@flue/runtime";
-import { platform } from "../lib/platform.ts";
+import { decisionRuntime, platform, retriever } from "../lib/platform.ts";
+import { observeTurns, turnHooks } from "../marketer/decisions/hooks.ts";
 import { useCustomSkills } from "../lib/custom-skills.ts";
 import { busTools } from "../multi-agent/bus.ts";
 import { delegationDispatch } from "../multi-agent/delegation.ts";
@@ -45,6 +46,8 @@ export function Orchestrator({ id }: AgentProps) {
   const delegation = createDelegationTools({ self: "orchestrator", roster: DELEGATION_ROSTER, dispatch: delegationDispatch, grant: () => [...own.map((tool) => tool.name), ...DEPARTMENT_GRANT] });
   const ctx = useAgentStarter({
     ...platform("orchestrator", id),
+    // Decision point 1: a routing hint for delegation (shadow by default: log only; off without a key).
+    retriever: observeTurns(retriever, turnHooks(() => decisionRuntime("orchestrator", id), { routing: true })),
     tools: [...own, ...delegation],
     planning: true,
     memory: true,

@@ -27,6 +27,7 @@
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.6",
     "@tanstack/react-table": "^8.21.3",
+    "@typesafe-ai/sdk": "0.7.0",
     "@visx/curve": "^4.0.1-alpha.0",
     "@visx/event": "^4.0.1-alpha.0",
     "@visx/grid": "^4.0.1-alpha.0",

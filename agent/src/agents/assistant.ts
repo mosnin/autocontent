@@ -6,7 +6,8 @@ import { createWebSearchTool, createWebTools } from "@agent-starter/integrations
 import { type AgentProps, useSkill } from "@flue/runtime";
 import { useCustomSkills } from "../lib/custom-skills.ts";
 import { delegationDispatch } from "../lib/delegation.ts";
-import { bindings, platform, vectorMemory, webReaders, webSearchProviders } from "../lib/platform.ts";
+import { bindings, decisionRuntime, platform, retriever, vectorMemory, webReaders, webSearchProviders } from "../lib/platform.ts";
+import { observeTurns, turnHooks } from "../marketer/decisions/hooks.ts";
 import { marketerReadTools } from "../marketer/tools/index.ts";
 import { DELEGATION_ROSTER, DEPARTMENT_GRANT, SPECIALISTS } from "../multi-agent/roster.ts";
 import generativeUI from "../skills/generative-ui/SKILL.md";
@@ -30,6 +31,8 @@ export function Assistant({ id }: AgentProps) {
   const delegation = createDelegationTools({ self: "assistant", roster: DELEGATION_ROSTER, dispatch: delegationDispatch, grant: () => [...own.map((tool) => tool.name), ...DEPARTMENT_GRANT] });
   const ctx = useAgentStarter({
     ...platform("assistant", id),
+    // Decision points 1 (routing hint) and 11 (memory write gate) read each turn's text; shadow by default, off without a key.
+    retriever: observeTurns(retriever, turnHooks(() => decisionRuntime("assistant", id), { routing: true, memoryGate: true })),
     tools: [...own, ...delegation],
     planning: true,
     memory: true,

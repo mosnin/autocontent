@@ -13,6 +13,8 @@ import { ArrowRight, Check, Clapperboard, FileText, Globe, Megaphone, Sparkles }
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AgentGlyph, Button, Callout, Chip, cx, Field, GlassCard, IconTile, Input, Kbd, NumberKey, Shader, StatusBadge, StepMark, Textarea, WorkspaceLogo } from "@/design-system";
+import { decideWithin, type DecisionQuestion } from "../../../../.intent-onboarding/packages/core/src/decisions.ts";
+import { httpDecisions } from "../../../../.intent-onboarding/packages/decisions-jev/src/http.ts";
 
 export interface OnboardingProps {
   email: string;
@@ -68,6 +70,30 @@ const STEPS: Record<string, string> = {
 };
 const ORDER = ["queued", "ideating", "scripting", "generating_images", "animating", "voicing", "editing", "captioning", "qa", "awaiting_approval"];
 
+// ---------------------------------------------------------------- decisions
+// Decision point 7 (onboarding pre-selection). The browser never holds a model key: it asks our own route, which
+// calls the decision model server-side (app/api/onboarding/decisions/route.ts). Same questions, threshold and
+// timeout as the engine's scorePreselection (.intent-onboarding/packages/core/src/engine.ts). On a timeout, an
+// error, shadow mode or no key, the spec's preselectWhen rule stands (short video, the ICP majority).
+const decisions = httpDecisions("/api/onboarding/decisions");
+const ATTENTION_PROMPT = "How do you get attention today?";
+/** Engine CONFIRM_THRESHOLD: a model pick needs this probability to replace the rule's default. */
+const PRESELECT_THRESHOLD = 0.8;
+const DECISION_TIMEOUT_MS = 1500;
+
+async function preselectIntent(state: { brand: string; website: string; emailDomain: string | null }): Promise<Intent | null> {
+  const options = INTENTS.filter((o) => o.id !== "nothing_yet"); // never pre-select "I don't do much yet"
+  const questions: Record<string, DecisionQuestion> = Object.fromEntries(
+    options.map((o) => [`attention__${o.id}`, { type: "yesno", instructions: `${ATTENTION_PROMPT} Based on what we know about this business, is "${o.label}" part of the answer?` } satisfies DecisionQuestion]),
+  );
+  // What the model sees: the business and the email domain, never the person's name or full email.
+  const businessState = { business: { brandName: state.brand, website: state.website || null }, website_summary: null, detected_on_website: [], email_domain: state.emailDomain, signed_in_with: [] };
+  const r = await decideWithin(decisions, businessState, questions, DECISION_TIMEOUT_MS);
+  if (!r.answers) return null;
+  const scored = options.map((o) => ({ id: o.id, p: (r.answers?.[`attention__${o.id}`] as { probability?: number } | undefined)?.probability ?? 0 })).sort((a, b) => b.p - a.p);
+  return scored[0] && scored[0].p >= PRESELECT_THRESHOLD ? scored[0].id : null;
+}
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api/proxy${path}`, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
   if (!res.ok) {
@@ -93,7 +119,14 @@ export function OnboardingFlow(props: OnboardingProps) {
   const [brand, setBrand] = useState(props.savedBrand ?? props.inferredBrand ?? "");
   const [website, setWebsite] = useState(props.inferredWebsite ?? "");
   const [editing, setEditing] = useState(!(props.savedBrand ?? props.inferredBrand));
-  const [intent, setIntent] = useState<Intent>("short_video");
+  // Rule default (spec preselectWhen: ICP majority posts short video); the decision model may refine it once.
+  const [intent, setIntentState] = useState<Intent>("short_video");
+  const intentTouched = useRef(false);
+  const preselectStarted = useRef(false);
+  const setIntent = useCallback((v: Intent) => {
+    intentTouched.current = true;
+    setIntentState(v);
+  }, []);
   const [offer, setOffer] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
   const [drafting, setDrafting] = useState(false);
@@ -207,6 +240,15 @@ export function OnboardingFlow(props: OnboardingProps) {
     if (screen === "confirm") {
       if (!brand.trim()) return setEditing(true);
       void call("/api/v1/brand-kit", { method: "PUT", body: JSON.stringify(await brandKitPayload(brand.trim())) }).catch(() => undefined);
+      if (!preselectStarted.current) {
+        preselectStarted.current = true;
+        void preselectIntent({ brand: brand.trim(), website: domain, emailDomain: props.email.split("@")[1]?.toLowerCase() ?? null })
+          .then((picked) => {
+            // A person's own pick always wins over the model.
+            if (picked && !intentTouched.current) setIntentState(picked);
+          })
+          .catch(() => undefined);
+      }
       setScreen("intent");
     } else if (screen === "intent") {
       if (offer.trim().length < 8) return;
