@@ -24,7 +24,8 @@ cd agent && printf 'spend' | npx wrangler secret put MARKETER_RAILS_KILL_SWITCH
 ```
 
 One ad account: `PATCH /api/v1/ads/accounts/{id}/governance` with `{"killswitch": true}` (audited as
-`account.governance`). Note that this changes the account's governance hash and expires its pending approvals.
+`account.governance`). This changes the account's governance hash, so its pending ad approvals are refused (and
+expired) if someone later tries to execute them.
 
 **What still works:** pausing and ending campaigns, rejecting content and ad changes, reads, drafts, MEDIUM makers
 (content credits are bounded by the playbook spend caps, not the rails).

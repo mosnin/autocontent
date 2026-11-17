@@ -39,7 +39,7 @@ Before changing anything, load the skills in `.agents/skills/` (Claude Code also
 - One tools module per department in `src/marketer/tools/` (`workspace`, `strategy`, `content`, `seo`, `distribution`, `ads`, `analytics`, `proposals`), built with `readTool` / `writeTool` (`define.ts`). `DEPARTMENT_TOOLS` (index.ts) is the single map of who holds what; `DELEGATION_ROSTER` / `DEPARTMENT_GRANT` (src/multi-agent/roster.ts) derive from it.
 - Risk table: reads LOW · credit-spending makers and drafts MEDIUM · publish / approve / reject / start campaigns / pause ads / spend caps / brand kit HIGH · ad budget, activation, ad-approval decisions CRITICAL (`requiresApproval`). The reviewed list is `EXPECTED_RISK` in `test/marketer-tools.test.ts`: changing a tier means changing that test on purpose.
 - The backend does not dedupe on `idempotency-key`: mark a write `idempotent: true` only when a replay is harmless by the endpoint's own semantics (full-replace PUT, atomic claim that 409s).
-- Adding a tool: add it to its department module, to `EXPECTED_RISK`, and an input-validation case in `test/marketer-tools.test.ts`.
+- Adding a tool: add it to its department module, to `EXPECTED_RISK`, and an input-validation case in `test/marketer-tools.test.ts`. A HIGH/CRITICAL tool must also be in `RAILS_TOOLS` (`src/marketer/rails/registry.ts`; `writeTool` throws otherwise): read `../docs/rails/README.md` and `../docs/GLOSSARY.md` first.
 - Session tokens come from the Next.js web app (`../web/lib/agent/session.ts`) with the shared `SESSION_SIGNING_SECRET`; `sub` = `tid` = Clerk user id. Department approvals are bound to that user (`approverId: tenant => tenant.tenantId`).
 
 ## Local development
