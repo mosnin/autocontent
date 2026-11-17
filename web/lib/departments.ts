@@ -4,7 +4,7 @@
 //
 // Pure + client-safe: plain data only.
 
-import type { Palette } from "@/components/mk/shader";
+import type { Palette } from "@/design-system";
 
 export type DepartmentId = "strategy" | "content" | "seo" | "paid" | "distribution" | "analytics";
 
