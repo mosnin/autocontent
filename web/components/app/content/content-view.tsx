@@ -2,7 +2,7 @@
 
 import { Plug } from "lucide-react";
 import { useState } from "react";
-import { Button, ButtonLink, Callout, Column, EmptyLine, PageHeader, Section, Segmented } from "@/design-system";
+import { Button, ButtonLink, Callout, Column, EmptyLine, PageHeader, Segmented } from "@/design-system";
 import { StartSession } from "@/components/chat/start-session";
 import { formatCompact, formatUsd } from "@/lib/format";
 import type { ImagePost, Job, Niche, TodaySpend } from "@/lib/types";
@@ -104,7 +104,7 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
         )}
 
         {tab === "videos" ? (
-          <Section title="Videos">
+          <div>
             {jobs === null ? (
               <EmptyLine>Couldn&apos;t load videos. Try again in a moment.</EmptyLine>
             ) : empty ? (
@@ -120,15 +120,15 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
             ) : (
               <VideosList jobs={jobs} niches={niches} initialFilter={filter} />
             )}
-          </Section>
+          </div>
         ) : tab === "carousels" ? (
-          <Section title="Carousels">
+          <div>
             <CarouselsList posts={imagePosts} niches={niches} onMake={() => setMake({ kind: "carousel" })} />
-          </Section>
+          </div>
         ) : (
-          <Section title="Templates">
+          <div>
             <TemplatesGrid templates={data.templates} preview={preview} />
-          </Section>
+          </div>
         )}
 
         <FailuresPanel failures={data.failures} />
