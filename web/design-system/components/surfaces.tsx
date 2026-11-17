@@ -47,7 +47,7 @@ export function HeroBanner({ palette = "dusk", prompts, className }: { palette?:
         {prompts.map((p, i) => {
           const pill = (
             <span className="flex max-w-full items-center gap-2 rounded-full bg-white/90 py-1.5 pl-1.5 pr-4 text-[13px] text-neutral-900 shadow-sm backdrop-blur" style={{ marginRight: `${i * 18}px` }}>
-              <span className="flex items-center gap-1.5 rounded-full bg-on-fill px-2 py-0.5 text-[12.5px] font-medium text-on-fill-ink">
+              <span className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-on-fill px-2 py-0.5 text-[12.5px] font-medium text-on-fill-ink">
                 {p.icon}
                 {p.app}
               </span>

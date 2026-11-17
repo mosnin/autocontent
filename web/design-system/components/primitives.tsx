@@ -93,7 +93,7 @@ export function StatusBadge({ tone = "neutral", children }: { tone?: StatusTone;
   return (
     <span
       className={cx(
-        "inline-flex h-5 shrink-0 items-center rounded-ds-xs px-1.5 text-[11.5px] font-medium",
+        "inline-flex h-5 shrink-0 items-center whitespace-nowrap rounded-ds-xs px-1.5 text-[11.5px] font-medium",
         tone === "neutral" && "bg-surface-3 text-fg-muted",
         tone === "positive" && "bg-positive/15 text-positive",
         tone === "negative" && "bg-negative/15 text-negative",
