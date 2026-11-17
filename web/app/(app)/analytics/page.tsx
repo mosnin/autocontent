@@ -1,5 +1,5 @@
-import { type AnalyticsData, AnalyticsView, type MetricsSummary } from "@/components/mk/analytics/analytics-view";
-import { parsePeriod } from "@/components/mk/analytics/period-select";
+import { type AnalyticsData, AnalyticsView, type MetricsSummary } from "@/components/app/analytics/analytics-view";
+import { parsePeriod } from "@/components/app/analytics/period";
 import type { AdsOverview } from "@/lib/ads-client";
 import type { Niche, NichePerformance, SpendHistory } from "@/lib/types";
 import { getOverview, safe } from "@/lib/workspace-server";
@@ -8,8 +8,9 @@ export const metadata = { title: "Analytics · Marketer" };
 
 const MAX_PLAYBOOKS = 8;
 
-export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
-  const days = parsePeriod((await searchParams).days);
+export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<{ days?: string; compare?: string }> }) {
+  const sp = await searchParams;
+  const days = parsePeriod(sp.days);
   const [overview, doubled, spend, ads, metrics, niches] = await Promise.all([
     getOverview(days),
     getOverview(days * 2),
@@ -23,6 +24,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
 
   const data: AnalyticsData = {
     days,
+    compare: sp.compare !== "off",
     overview,
     previousSeries: doubled && doubled.series.length === days * 2 ? doubled.series.slice(0, days) : null,
     spend,

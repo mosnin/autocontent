@@ -77,6 +77,11 @@ jobs:
       - name: Type-check
         run: npx tsc --noEmit
 
+      - name: Design-system guard
+        # Fails on hard colours, dark: variants, off-system corners, pulsing
+        # decoration, old-kit imports. Spec: web/design-system/README.md.
+        run: npm run ds:guard
+
       - name: Next build (compile-only gate)
         # Clerk's static prerender hard-requires a valid publishable key,
         # which we deliberately don't ship in CI. We DO want to catch real

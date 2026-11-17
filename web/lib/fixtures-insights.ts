@@ -1,8 +1,8 @@
 // Fixture data for the insights pages (analytics, activity, plan, library)
 // in /preview/*. Never imported by real pages.
 
-import type { AnalyticsData } from "@/components/mk/analytics/analytics-view";
-import type { PlanItem } from "@/components/mk/plan/plan-data";
+import type { AnalyticsData } from "@/components/app/analytics/analytics-view";
+import type { PlanItem } from "@/components/app/plan/plan-data";
 import { FIXTURE_ACTIVITY, FIXTURE_MONTH } from "./fixtures";
 import type { Composition, ImagePost, MediaAsset, Niche, SpendHistory } from "./types";
 import type { Activity, SeriesRow } from "./workspace";
