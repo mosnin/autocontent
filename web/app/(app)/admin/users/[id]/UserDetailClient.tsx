@@ -99,9 +99,9 @@ export function UserDetailClient({ initialUser, initialAudit }: { initialUser: A
             rowKey={(e) => String(e.id)}
             empty={<EmptyLine>No admin actions recorded for this user.</EmptyLine>}
             columns={[
-              { key: "action", label: "Action", render: (e) => <StatusBadge tone={actionTone(e.action)}>{humanizeAction(e.action)}</StatusBadge> },
+              { key: "action", label: "Action", render: (e) => <span className="whitespace-nowrap"><StatusBadge tone={actionTone(e.action)}>{humanizeAction(e.action)}</StatusBadge></span> },
               { key: "actor", label: "By", hideOnPhone: true, render: (e) => <span className="block max-w-[200px] truncate text-fg-muted">{e.actor_email}</span> },
-              { key: "when", label: "When", align: "right", render: (e) => <span className="text-fg-muted" title={formatDateTime(e.created_at)}>{relativeTime(e.created_at)}</span> },
+              { key: "when", label: "When", align: "right", render: (e) => <span className="whitespace-nowrap text-fg-muted" title={formatDateTime(e.created_at)}>{relativeTime(e.created_at)}</span> },
             ]}
           />
         </Section>

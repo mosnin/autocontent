@@ -103,7 +103,7 @@ export function AuditClient({ initial, initialFilters }: { initial: AuditEntry[]
         rowKey={(e) => String(e.id)}
         empty={<EmptyLine>{loading ? "Loading…" : "No audit entries match these filters."}</EmptyLine>}
         columns={[
-          { key: "action", label: "Action", render: (e) => <StatusBadge tone={actionTone(e.action)}>{humanizeAction(e.action)}</StatusBadge> },
+          { key: "action", label: "Action", render: (e) => <span className="whitespace-nowrap"><StatusBadge tone={actionTone(e.action)}>{humanizeAction(e.action)}</StatusBadge></span> },
           { key: "actor", label: "Actor", render: (e) => <span className="block max-w-[220px] truncate">{e.actor_email}</span> },
           {
             key: "target",
@@ -117,7 +117,7 @@ export function AuditClient({ initial, initialFilters }: { initial: AuditEntry[]
             ),
           },
           { key: "ip", label: "IP", hideOnPhone: true, render: (e) => <span className="font-mono text-[12px] text-fg-muted">{e.ip ?? "—"}</span> },
-          { key: "when", label: "When", align: "right", render: (e) => <span className="text-fg-muted" title={formatDateTime(e.created_at)}>{relativeTime(e.created_at)}</span> },
+          { key: "when", label: "When", align: "right", render: (e) => <span className="whitespace-nowrap text-fg-muted" title={formatDateTime(e.created_at)}>{relativeTime(e.created_at)}</span> },
           {
             key: "more",
             label: <span className="sr-only">Details</span>,
