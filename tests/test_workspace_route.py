@@ -226,7 +226,10 @@ def test_inbox_contract(monkeypatch):
     resp = client.get("/api/v1/workspace/inbox", headers=H)
     assert resp.status_code == 200, resp.text
     body = resp.json()
-    assert body["counts"] == {"total": 3, "video": 1, "carousel": 1, "ad_change": 1}
+    # The original keys are unchanged; the rails added `required_action` and
+    # `required_actions` alongside them (additive, backward compatible).
+    assert body["counts"] == {"total": 3, "video": 1, "carousel": 1, "ad_change": 1, "required_action": 0}
+    assert body["required_actions"] == []
     items = body["items"]
     assert [i["kind"] for i in items] == ["ad_change", "carousel", "video"]  # newest first
     ad, car, vid = items
@@ -268,7 +271,11 @@ def test_inbox_empty(monkeypatch):
     monkeypatch.setattr(ws, "inbox_items", _items)
     client = _app(monkeypatch)
     body = client.get("/api/v1/workspace/inbox", headers=H).json()
-    assert body == {"items": [], "counts": {"total": 0, "video": 0, "carousel": 0, "ad_change": 0}}
+    assert body == {
+        "items": [],
+        "counts": {"total": 0, "video": 0, "carousel": 0, "ad_change": 0, "required_action": 0},
+        "required_actions": [],
+    }
 
 
 # --------------------------------------------------------------------------- decide

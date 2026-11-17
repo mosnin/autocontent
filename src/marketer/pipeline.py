@@ -26,6 +26,9 @@ from uuid import UUID
 from opentelemetry import trace
 
 from .agents.performance_context import build_performance_context
+from .agents.qa import verify_report
+from .agents.scriptwriter import rewrite_hook
+from .decisions import points as decision_points
 from .config import settings
 from .logging import get_logger, job_context
 from .models import AudioTrack, Clip, Job, JobStatus, Niche, RenderedVideo, Scene, Script
@@ -232,6 +235,15 @@ async def _load_brand_voice(user_id: str) -> tuple[str, list[str]]:
         return brand.tone_of_voice or "", list(brand.banned_words or [])
     except Exception:  # noqa: BLE001
         return "", []
+
+
+def _brand_rules(niche: Niche) -> list[str]:
+    """Topics the creator's brief forbids, phrased as rules for the decision
+    model. Banned words are matched in code, not asked of the model."""
+    try:
+        return [f"Never touch: {t}" for t in niche.creative_brief.narrative.must_avoid if t]
+    except Exception:  # noqa: BLE001
+        return []
 
 
 async def _notify(job: Job, *, kind: str) -> None:
@@ -485,6 +497,24 @@ async def _run_job_inner(
                 script_model=niche.script_model,
                 spend=spend,
             )
+            # Decision point 4: judge the hook before any visual or TTS spend.
+            # Off without a key, shadow by default; only enforce can hold the
+            # draft or rewrite the hook (once).
+            script, hook_action = await decision_points.gate_hook(
+                script,
+                niche_title=niche.title,
+                target_audience=niche.target_audience,
+                brand_rules=_brand_rules(niche),
+                banned_words=banned_words,
+                rewrite=lambda s: rewrite_hook(s, spend=spend),
+                spend=spend,
+            )
+            if hook_action == "hold":
+                return await _fail_with(
+                    job,
+                    "hook held for review: the hook or opening scene may make a "
+                    "claim the brand rules forbid",
+                )
             # cast_mode 'none' means NO characters — a lingering
             # character_description must not resurrect the cast.
             cast = (
@@ -800,6 +830,15 @@ async def _run_job_inner(
             niche=niche,
             spend=spend,
         )
+        # Decision point 9 (verify): can only turn a pass into a bounce.
+        report = await verify_report(
+            report,
+            script=script,
+            transcript=transcript,
+            niche_title=niche.title,
+            brand_rules=_brand_rules(niche),
+            spend=spend,
+        )
         if not report.passed:
             # One bounded in-run regenerate when QA says the *script* is
             # the problem — a fresh script usually passes, and failing the
@@ -854,14 +893,27 @@ async def _schedule_stage(job: Job, niche: Niche) -> Job:
         job.status = JobStatus.scheduling
         await _persist(job)
         when = _next_posting_slot(niche)
-        post_id = await scheduler.schedule_post(
-            video_path=Path(job.rendered.path),
-            caption=job.script.idea.hook,
-            hashtags=niche.hashtags,
-            platform=job.platform,
-            scheduled_for=when,
-            profile_key=None,  # resolved inside scheduler from user_id
-            user_id=job.user_id,
+        # Execution rails (docs/rails/failure-semantics.md): kill switch and
+        # unknown earlier posts checked now; a timeout after sending is
+        # recorded indeterminate, shown in the inbox, and never retried.
+        from . import rails
+
+        dispatch = await rails.enforce_dispatch(
+            "content.post.send", user_id=job.user_id, principal="system",
+            args={"job_id": job.id, "platform": job.platform, "scheduled_for": when},
+            target_type="video_post", target_id=str(job.id), idempotency_key="",
+        )
+        post_id = await dispatch.run(
+            lambda: scheduler.schedule_post(
+                video_path=Path(job.rendered.path),
+                caption=job.script.idea.hook,
+                hashtags=niche.hashtags,
+                platform=job.platform,
+                scheduled_for=when,
+                profile_key=None,  # resolved inside scheduler from user_id
+                user_id=job.user_id,
+            ),
+            definite=(scheduler.AyrshareError,),
         )
         job.scheduled_for = when
         job.provider_post_id = post_id

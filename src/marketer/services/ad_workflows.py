@@ -188,6 +188,18 @@ async def optimize_campaign(
     recommended = recommend_daily_budget(campaign, metrics, **knobs)
     if recommended is None:
         return {"status": "no_change"}
+    # Decision point 5: judgment only, the number above stays the rule's.
+    # Off without a key, shadow by default; a failed call keeps today's rule.
+    # In enforce it can only withhold the proposal, never create or size one.
+    from ..decisions import points as decision_points
+
+    judgment = await decision_points.judge_budget_change(
+        user_id=user_id, campaign=campaign, metrics=metrics
+    )
+    if judgment == "hold_alert":
+        return {"status": "held", "reason": "tracking looks broken", "alert": True}
+    if judgment == "creative_refresh":
+        return {"status": "creative_refresh", "reason": "creative fatigue"}
     try:
         return await propose_budget_change(
             user_id=user_id, campaign_id=campaign_id,

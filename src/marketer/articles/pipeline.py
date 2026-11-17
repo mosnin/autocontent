@@ -25,6 +25,7 @@ from uuid import UUID
 from opentelemetry import trace
 
 from ..config import settings
+from ..decisions import points as decision_points
 from ..logging import get_logger
 from ..repos import articles as articles_repo
 from ..repos import brand_kit as brand_kit_repo
@@ -296,12 +297,43 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         quality = await llm.score_article(
             markdown, article.focus_keyword, spend=spend
         )
+        rewritten = False
         if quality.overall < QA_THRESHOLD:
             log.info(
                 "article qa below threshold; one corrective rewrite",
                 extra={"overall": quality.overall},
             )
             ctx = ctx.model_copy(update={"revisionNotes": quality.notes})
+            markdown = await _write_sections(outline, ctx, spend=spend)
+            quality = await llm.score_article(
+                markdown, article.focus_keyword, spend=spend
+            )
+            rewritten = True
+        # Decision point 9 (verify). Off without a key, shadow by default. In
+        # enforce one failed check bounces: the corrective rewrite if it is
+        # still unused, otherwise the article fails for a person to review.
+        brand_rules = [
+            f"Never touch: {t}"
+            for t in getattr(getattr(getattr(niche, "creative_brief", None), "narrative", None),
+                             "must_avoid", None) or []
+            if t
+        ]
+        failures = await decision_points.verify_article(
+            markdown=markdown,
+            focus_keyword=article.focus_keyword,
+            research=serp,
+            brand_rules=brand_rules,
+            rule_passed=quality.overall >= QA_THRESHOLD,
+            spend=spend,
+        )
+        if failures and rewritten:
+            return await _fail_with(
+                article, "content QA failed: verify failed: " + ", ".join(failures)
+            )
+        if failures:
+            ctx = ctx.model_copy(
+                update={"revisionNotes": [*quality.notes, *(f"verify: {f}" for f in failures)]}
+            )
             markdown = await _write_sections(outline, ctx, spend=spend)
             quality = await llm.score_article(
                 markdown, article.focus_keyword, spend=spend

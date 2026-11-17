@@ -3,6 +3,8 @@
 - GET  /api/v1/workspace/overview?days=30            — KPIs, series, pipeline, top content
 - GET  /api/v1/workspace/inbox                       — everything awaiting the user
 - POST /api/v1/workspace/inbox/{kind}/{ref_id}/decide — approve / reject one item
+- POST /api/v1/workspace/required-actions/{id}/resolve — a person says what
+                                                       happened to an unknown outcome
 - GET  /api/v1/workspace/activity?limit=&before=     — merged recent events
 
 Reads go through ``marketer.repos.workspace`` (SQL lives there). Decisions
@@ -20,9 +22,13 @@ from decimal import ROUND_HALF_UP, Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
+from marketer.rails.http import rails_request_context
+from marketer.rails.store import get_store as rails_store
 from marketer.repos import ad_approvals
 from marketer.repos import workspace as workspace_repo
 
@@ -31,7 +37,8 @@ from . import ads as ads_routes
 from . import image_posts as image_posts_routes
 from . import jobs as jobs_routes
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(rails_request_context)])
+log = logging.getLogger(__name__)
 
 _CENT = Decimal("0.01")
 
@@ -122,11 +129,35 @@ class InboxCounts(BaseModel):
     video: int
     carousel: int
     ad_change: int
+    # Added with the rails (0027). `total` still counts `items` only, so
+    # existing clients see exactly what they saw before.
+    required_action: int = 0
+
+
+class RequiredAction(BaseModel):
+    """Something only a person can settle (docs/rails/required-actions.md).
+
+    Today one kind: ``indeterminate_outcome``, a publish or spend whose result
+    is unknown (sent, then a timeout). The agent can read these and pass the
+    link on; it cannot resolve them."""
+
+    id: str
+    kind: Literal["indeterminate_outcome"] = "indeterminate_outcome"
+    action: str
+    title: str
+    detail: str
+    target_type: str
+    target_id: str
+    principal: str
+    created_at: datetime
+    resolve_path: str
+    resolutions: list[str] = ["confirmed_succeeded", "confirmed_failed"]
 
 
 class WorkspaceInbox(BaseModel):
     items: list[InboxItem]
     counts: InboxCounts
+    required_actions: list[RequiredAction] = []
 
 
 class DecideBody(BaseModel):
@@ -288,13 +319,41 @@ def _inbox_item(row: dict) -> InboxItem:
     )
 
 
+_REQUIRED_ACTION_TITLES = {
+    "content.post.send": "We can't confirm the post went out",
+    "content.video.approve": "We can't confirm the video was sent for posting",
+    "content.carousel.approve": "We can't confirm the carousel was sent for posting",
+    "ads.budget.change": "We can't confirm the budget change reached the ad platform",
+    "ads.campaign.activate": "We can't confirm the campaign was activated",
+    "ads.approval.execute": "We can't confirm the approved ad change was applied",
+    "campaigns.start": "We can't confirm the campaign started",
+}
+
+
+def _required_action(row) -> RequiredAction:
+    title = _REQUIRED_ACTION_TITLES.get(row.action, "We can't confirm an action went through")
+    where = f"{row.target_type} {row.target_id}".strip()
+    return RequiredAction(
+        id=str(row.id), action=row.action, title=title,
+        detail=f"Check {where or 'the platform'} before trying again. Nothing will retry on its own.",
+        target_type=row.target_type, target_id=row.target_id, principal=row.principal,
+        created_at=row.created_at,
+        resolve_path=f"/api/v1/workspace/required-actions/{row.id}/resolve",
+    )
+
+
 @router.get("/inbox", response_model=WorkspaceInbox)
 async def inbox(ctx: AuthCtx = CurrentUser) -> WorkspaceInbox:
     """Videos and carousels awaiting approval plus pending ad spend changes,
-    newest first."""
+    newest first, and the rails' Required Actions (unknown outcomes)."""
     rows = await workspace_repo.inbox_items(ctx.user_id)
     items = [_inbox_item(r) for r in rows]
     items.sort(key=lambda i: i.created_at, reverse=True)
+    try:
+        required = [_required_action(r) for r in await rails_store().open_required_actions(ctx.user_id)]
+    except Exception:  # noqa: BLE001 - a read; the inbox must still load
+        log.warning("rails: could not read required actions", exc_info=True)
+        required = []
     return WorkspaceInbox(
         items=items,
         counts=InboxCounts(
@@ -302,8 +361,48 @@ async def inbox(ctx: AuthCtx = CurrentUser) -> WorkspaceInbox:
             video=sum(1 for i in items if i.kind == "video"),
             carousel=sum(1 for i in items if i.kind == "carousel"),
             ad_change=sum(1 for i in items if i.kind == "ad_change"),
+            required_action=len(required),
         ),
+        required_actions=required,
     )
+
+
+class ResolveBody(BaseModel):
+    resolution: Literal["confirmed_succeeded", "confirmed_failed"]
+
+
+class ResolveResult(BaseModel):
+    ok: bool
+    id: str
+    resolution: str
+
+
+@router.post("/required-actions/{action_id}/resolve", response_model=ResolveResult)
+async def resolve_required_action(
+    action_id: str, body: ResolveBody, ctx: AuthCtx = CurrentUser
+) -> ResolveResult:
+    """A person records what actually happened to an unknown outcome.
+
+    Only a person: the agent (delegated auth) gets 403, because "did the post
+    go out?" is exactly the question an agent must not answer for itself.
+    Resolving unblocks new dispatches on the same target. 404 when not found
+    or already resolved."""
+    if ctx.delegated:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "only a person can resolve a required action; share the inbox link",
+        )
+    try:
+        execution_id = UUID(action_id)
+    except ValueError:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "required action not found") from None
+    row = await rails_store().resolve(
+        ctx.user_id, execution_id, resolution=body.resolution,
+        resolved_by=ctx.email or ctx.user_id,
+    )
+    if row is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "required action not found or already resolved")
+    return ResolveResult(ok=True, id=action_id, resolution=body.resolution)
 
 
 @router.post("/inbox/{kind}/{ref_id}/decide", response_model=DecideResult)

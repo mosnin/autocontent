@@ -12,25 +12,31 @@ from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+from marketer import rails
+from marketer.rails.http import rails_request_context, to_http
 from marketer.repos import ad_actions, ad_approvals
 from marketer.repos import ads as ads_repo
 from marketer.services import ad_connections
 from marketer.services.ad_actions_exec import (
     AdSpendDenied,
+    activation_args,
     execute_approved_activation,
     execute_approved_budget_change,
     guard_activation,
     propose_budget_change,
+    rails_binding,
 )
 from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_budget_action
 from marketer.services.composio_client import AdsDisabled
 
 from ..auth import AuthCtx, CurrentUser
 
-router = APIRouter()
+# Every HIGH/CRITICAL route here calls marketer.rails.enforce_dispatch; the
+# dependency hands it the request's idempotency-key (docs/rails/enforcement-point.md).
+router = APIRouter(dependencies=[Depends(rails_request_context)])
 
 
 def _actor(ctx: AuthCtx) -> str:
@@ -97,11 +103,22 @@ async def set_governance(
         kwargs["monthly_cap_usd"] = body.monthly_cap_usd
     if "killswitch" in body.model_fields_set:
         kwargs["killswitch"] = body.killswitch
+    try:
+        dispatch = await rails.enforce_dispatch(
+            "ads.account.governance", user_id=ctx.user_id,
+            principal=rails.principal_of(ctx), actor_email=ctx.email,
+            args={"account_id": account_id, **kwargs},
+            target_type="ad_account", target_id=str(account_id),
+        )
+    except rails.RailsDenied as e:
+        raise to_http(e) from e
     acc = await ads_repo.set_account_governance(
         account_id, user_id=ctx.user_id, **kwargs
     )
     if acc is None:
+        await dispatch.failed("account not found")
         raise HTTPException(status.HTTP_404_NOT_FOUND, "account not found")
+    await dispatch.succeeded()
     # Governance changes are audited (kill-switch especially).
     await ad_actions.record(
         user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
@@ -175,7 +192,9 @@ async def change_budget(
             actor=_actor(ctx), actor_email=ctx.email,
         )
     except AdSpendDenied as e:
-        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+        raise HTTPException(e.status_code, e.reason) from e
+    except rails.OutcomeUnknown as e:
+        raise to_http(e) from e
 
 
 class StatusBody(BaseModel):
@@ -210,34 +229,62 @@ async def change_status(
         if account
         else None
     )
-    decision = evaluate_non_budget_action(account=gov, action=action)
-    if not decision.allowed:
-        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, decision.reason)
+    guarded: dict = {"delta": Decimal("0"), "requires_approval": False}
 
-    if body.status == "active":
-        try:
-            delta, requires_approval = await guard_activation(camp)
-        except AdSpendDenied as e:
-            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
-        if requires_approval:
-            approval = await ad_approvals.create(
-                user_id=ctx.user_id, action="campaign.activate",
-                summary=f"Activate campaign with daily budget "
-                        f"${camp.daily_budget_usd or Decimal('0')}",
-                dollar_delta_usd=delta, ad_account_id=camp.ad_account_id,
-                campaign_id=camp.id, payload={}, requested_by="user",
-            )
-            await ad_actions.record(
-                user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
-                action="campaign.activate.approval_requested",
-                target_type="ad_campaign", target_id=str(campaign_id),
-                dollar_delta_usd=delta, after={"approval_id": str(approval.id)},
-            )
-            return {"status": "pending_approval", "approval_id": str(approval.id)}
+    async def _caps() -> rails.CapsVerdict:
+        decision = evaluate_non_budget_action(account=gov, action=action)
+        if not decision.allowed:
+            return rails.CapsVerdict(False, decision.reason)
+        if body.status == "active":
+            # Raises AdSpendDenied on a hard deny (mapped to 402 below).
+            guarded["delta"], guarded["requires_approval"] = await guard_activation(camp)
+        return rails.CapsVerdict(True)
 
-    updated = await ads_repo.update_campaign(
-        campaign_id, user_id=ctx.user_id, status=body.status
-    )
+    rails_action = {
+        "active": "ads.campaign.activate", "paused": "ads.campaign.pause", "ended": "ads.campaign.end",
+    }[body.status]
+    try:
+        dispatch = await rails.enforce_dispatch(
+            rails_action, user_id=ctx.user_id, principal=rails.principal_of(ctx),
+            actor_email=ctx.email,
+            args={"campaign_id": campaign_id, "status": body.status,
+                  "daily_budget_usd": camp.daily_budget_usd or Decimal("0")},
+            target_type="ad_campaign", target_id=str(campaign_id), caps=_caps,
+        )
+    except AdSpendDenied as e:
+        raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+    except rails.RailsDenied as e:
+        raise to_http(e) from e
+
+    if body.status == "active" and guarded["requires_approval"]:
+        delta = guarded["delta"]
+        approval = await ad_approvals.create(
+            user_id=ctx.user_id, action="campaign.activate",
+            summary=f"Activate campaign with daily budget "
+                    f"${camp.daily_budget_usd or Decimal('0')}",
+            dollar_delta_usd=delta, ad_account_id=camp.ad_account_id,
+            campaign_id=camp.id,
+            # Bound to this budget and these caps (docs/rails/approvals.md).
+            payload={"rails": rails_binding("ads.campaign.activate", activation_args(camp), gov)},
+            requested_by="user",
+        )
+        await ad_actions.record(
+            user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
+            action="campaign.activate.approval_requested",
+            target_type="ad_campaign", target_id=str(campaign_id),
+            dollar_delta_usd=delta, after={"approval_id": str(approval.id)},
+        )
+        await dispatch.succeeded({"result": "pending_approval", "approval_id": str(approval.id)})
+        return {"status": "pending_approval", "approval_id": str(approval.id)}
+
+    try:
+        updated = await ads_repo.update_campaign(
+            campaign_id, user_id=ctx.user_id, status=body.status
+        )
+    except Exception as e:
+        await dispatch.failed(f"{type(e).__name__}: {e}")
+        raise
+    await dispatch.succeeded({"status": body.status})
     await ad_actions.record(
         user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
         action=action, platform=account.platform if account else "",
@@ -294,14 +341,31 @@ async def decide_ad_approval(
     or silently drop the approved-but-unexecuted change."""
     if decision not in {"approved", "rejected"}:
         raise HTTPException(422, "decision must be 'approved' or 'rejected'")
+    reject_dispatch = None
+    if decision == "rejected":
+        # Approving is enforced where the money moves (execute_approved_*);
+        # a rejection only reduces exposure, but it is still recorded.
+        try:
+            reject_dispatch = await rails.enforce_dispatch(
+                "ads.approval.reject", user_id=ctx.user_id,
+                principal=rails.principal_of(ctx), actor_email=ctx.email,
+                args={"approval_id": approval_id},
+                target_type="ad_approval", target_id=str(approval_id),
+            )
+        except rails.RailsDenied as e:
+            raise to_http(e) from e
     decided = await ad_approvals.decide(
         approval_id, user_id=ctx.user_id, status=decision,
         decided_by=ctx.email or ctx.user_id,
     )
     if decided is None:
+        if reject_dispatch is not None:
+            await reject_dispatch.failed("approval not found or already decided")
         raise HTTPException(
             status.HTTP_409_CONFLICT, "approval not found or already decided"
         )
+    if reject_dispatch is not None:
+        await reject_dispatch.succeeded()
     await ad_actions.record(
         user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
         action=f"approval.{decision}", target_type="ad_approval",
@@ -319,7 +383,17 @@ async def decide_ad_approval(
                 actor_email=ctx.email or ctx.user_id,
             )
         except AdSpendDenied as e:
-            raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, e.reason) from e
+            if e.status_code == status.HTTP_409_CONFLICT:
+                # The approval no longer matches the campaign or its caps; the
+                # rails expired it. Audit the invalidation next to the decision.
+                await ad_actions.record(
+                    user_id=ctx.user_id, actor=_actor(ctx), actor_email=ctx.email,
+                    action="approval.invalidated", target_type="ad_approval",
+                    target_id=str(decided.id), after={"reason": e.reason},
+                )
+            raise HTTPException(e.status_code, e.reason) from e
+        except rails.OutcomeUnknown as e:
+            raise to_http(e) from e
         decided = decided.model_copy(update={"status": "executed"})
     return decided
 

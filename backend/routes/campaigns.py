@@ -19,8 +19,11 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+
+from marketer import rails
+from marketer.rails.http import rails_request_context, to_http
 
 from marketer.models import Campaign, CampaignItem
 from marketer.repos import campaigns as campaigns_repo
@@ -28,7 +31,7 @@ from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(rails_request_context)])
 
 
 class CampaignCreate(BaseModel):
@@ -109,9 +112,26 @@ async def start_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> Campa
         raise HTTPException(
             status.HTTP_409_CONFLICT, detail="completed campaigns cannot restart"
         )
-    return await campaigns_repo.set_status(
-        campaign_id, user_id=ctx.user_id, status="running"
-    )
+    # Starting spends the campaign budget and publishes on cadence: HIGH,
+    # through the enforcement point (kill switch publish/spend, idempotency).
+    try:
+        dispatch = await rails.enforce_dispatch(
+            "campaigns.start", user_id=ctx.user_id,
+            principal=rails.principal_of(ctx), actor_email=ctx.email,
+            args={"campaign_id": campaign_id, "budget_usd": campaign.budget_usd},
+            target_type="campaign", target_id=str(campaign_id),
+        )
+    except rails.RailsDenied as e:
+        raise to_http(e) from e
+    try:
+        started = await campaigns_repo.set_status(
+            campaign_id, user_id=ctx.user_id, status="running"
+        )
+    except Exception as e:
+        await dispatch.failed(f"{type(e).__name__}: {e}")
+        raise
+    await dispatch.succeeded()
+    return started
 
 
 @router.post("/{campaign_id}/pause", response_model=Campaign)

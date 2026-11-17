@@ -27,6 +27,23 @@ def _reset_db_pool():
     db._pool = None
 
 
+@pytest.fixture(autouse=True)
+def rails_store():
+    """Give every test an in-memory rails store (marketer.rails.store).
+
+    Route and service tests stub the database; without this, the enforcement
+    point would fail closed (503) on every HIGH/CRITICAL path. Tests that
+    exercise the rails take this fixture to engage kill switches, inspect
+    outcomes or simulate an unreachable store. Integration tests against a
+    real Postgres reinstall ``PostgresRailsStore`` themselves."""
+    from marketer.rails.store import InMemoryRailsStore, set_store
+
+    store = InMemoryRailsStore()
+    previous = set_store(store)
+    yield store
+    set_store(previous)
+
+
 @dataclass
 class FakeRecorder:
     entries: list[SpendEntry] = field(default_factory=list)
@@ -46,6 +63,23 @@ def fake_spend() -> tuple[SpendContext, FakeRecorder]:
         cap_usd=None,
     )
     return ctx, rec
+
+
+@pytest.fixture(autouse=True)
+def _no_decision_key(monkeypatch):
+    """Decision points stay off in tests unless a test opts in: a developer's
+    shell OPENROUTER_API_KEY must never send test state to the network."""
+    import os
+
+    from marketer.services import decisions
+
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    for name in list(os.environ):
+        if name.startswith("MARKETER_DECISION"):
+            monkeypatch.delenv(name, raising=False)
+    decisions.reset_flag_cache()
+    yield
+    decisions.reset_flag_cache()
 
 
 @pytest.fixture(autouse=True)

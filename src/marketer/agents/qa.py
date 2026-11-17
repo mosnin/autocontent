@@ -59,3 +59,40 @@ def build_qa_agent() -> Agent:
         instructions=QA_INSTRUCTIONS,
         output_type=QAReport,
     )
+
+
+async def verify_report(
+    report: QAReport,
+    *,
+    script,
+    transcript: str,
+    niche_title: str,
+    brand_rules: list[str],
+    spend=None,
+) -> QAReport:
+    """Decision point 9 (video): a verify pass after the LLM QA report.
+
+    Only runs when the report passed, since it can only tighten. In enforce a
+    single failed check bounces the video as a script problem; scores are
+    never averaged. Off, shadow, or a failed call: the report is unchanged."""
+    if not report.passed:
+        return report
+    from ..decisions import points as decision_points
+
+    failures = await decision_points.verify_video(
+        script=script,
+        transcript=transcript,
+        niche_title=niche_title,
+        brand_rules=brand_rules,
+        rule_passed=report.passed,
+        spend=spend,
+    )
+    if not failures:
+        return report
+    return report.model_copy(
+        update={
+            "passed": False,
+            "issues": [*report.issues, "verify failed: " + ", ".join(failures)],
+            "suggested_action": "regenerate_script",
+        }
+    )

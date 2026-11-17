@@ -11,15 +11,17 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+from marketer import rails
+from marketer.rails.http import rails_request_context, to_http
 from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(rails_request_context)])
 
 
 class ImagePostCreate(BaseModel):
@@ -66,6 +68,11 @@ async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dic
 @router.post("/{image_post_id}/retry", status_code=status.HTTP_202_ACCEPTED)
 async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Re-run a failed post from the top (fresh plan + renders)."""
+    # Never re-post over an unknown outcome a person has not resolved.
+    try:
+        await rails.assert_no_unresolved(ctx.user_id, "carousel_post", str(image_post_id))
+    except rails.RailsDenied as e:
+        raise to_http(e) from e
     if not await image_posts_repo.claim_for_retry(image_post_id, user_id=ctx.user_id):
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:
@@ -84,9 +91,19 @@ async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> d
 @router.post("/{image_post_id}/approve", status_code=status.HTTP_202_ACCEPTED)
 async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Operator sign-off: atomically claim and resume at scheduling."""
+    try:
+        dispatch = await rails.enforce_dispatch(
+            "content.carousel.approve", user_id=ctx.user_id,
+            principal=rails.principal_of(ctx), actor_email=ctx.email,
+            args={"image_post_id": image_post_id},
+            target_type="image_post", target_id=str(image_post_id),
+        )
+    except rails.RailsDenied as e:
+        raise to_http(e) from e
     if not await image_posts_repo.claim_for_scheduling(
         image_post_id, user_id=ctx.user_id
     ):
+        await dispatch.failed("post not awaiting_approval")
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -97,7 +114,14 @@ async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) ->
     import modal
 
     fn = modal.Function.from_name("marketer-sh", "finish_image_post")
-    fn.spawn(ctx.user_id, str(image_post_id))
+
+    async def _spawn() -> None:
+        fn.spawn(ctx.user_id, str(image_post_id))
+
+    try:
+        await dispatch.run(_spawn)
+    except rails.OutcomeUnknown as e:
+        raise to_http(e) from e
     return {"status": "scheduling"}
 
 
@@ -105,8 +129,18 @@ async def approve_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) ->
 async def reject_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Operator veto on an `awaiting_approval` post (parity with job reject):
     atomically marked failed so it never posts. Slides are kept."""
+    try:
+        dispatch = await rails.enforce_dispatch(
+            "content.carousel.reject", user_id=ctx.user_id,
+            principal=rails.principal_of(ctx), actor_email=ctx.email,
+            args={"image_post_id": image_post_id},
+            target_type="image_post", target_id=str(image_post_id),
+        )
+    except rails.RailsDenied as e:
+        raise to_http(e) from e
     post = await image_posts_repo.claim_for_rejection(image_post_id, user_id=ctx.user_id)
     if post is None:
+        await dispatch.failed("post not awaiting_approval")
         existing = await image_posts_repo.get(image_post_id, user_id=ctx.user_id)
         if existing is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -114,4 +148,5 @@ async def reject_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> 
             status.HTTP_409_CONFLICT,
             detail=f"post is {existing['status']}, not awaiting_approval",
         )
+    await dispatch.succeeded()
     return post
