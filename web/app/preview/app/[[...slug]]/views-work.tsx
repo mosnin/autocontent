@@ -1,13 +1,13 @@
 // Preview views for the work pages (Content, SEO, Playbooks). key = path after /preview/app/.
 import type { ReactNode } from "react";
-import { ContentView } from "@/components/mk/content/content-view";
-import { VideoDetailView } from "@/components/mk/content/video-detail-view";
-import { PlaybookDetailView } from "@/components/mk/playbooks/playbook-detail-view";
-import { PlaybookEditView } from "@/components/mk/playbooks/playbook-edit-view";
-import { PlaybookNewView } from "@/components/mk/playbooks/playbook-new-view";
-import { PlaybooksView } from "@/components/mk/playbooks/playbooks-view";
-import { ArticleDetailView } from "@/components/mk/seo/article-detail-view";
-import { SeoView } from "@/components/mk/seo/seo-view";
+import { ContentView } from "@/components/app/content/content-view";
+import { VideoDetailView } from "@/components/app/content/video-detail-view";
+import { PlaybookDetailView } from "@/components/app/playbooks/playbook-detail-view";
+import { PlaybookEditView } from "@/components/app/playbooks/playbook-edit-view";
+import { PlaybookNewView } from "@/components/app/playbooks/playbook-new-view";
+import { PlaybooksView } from "@/components/app/playbooks/playbooks-view";
+import { ArticleDetailView } from "@/components/app/seo/article-detail-view";
+import { SeoView } from "@/components/app/seo/seo-view";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import {
   FX_ARTICLES,

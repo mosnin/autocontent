@@ -1,7 +1,6 @@
 import { FileText } from "lucide-react";
-import { ArticleDetailView } from "@/components/mk/seo/article-detail-view";
-import { PageBody, PageHeader } from "@/components/mk/page";
-import { ButtonLink, Empty } from "@/components/mk/ui";
+import { ArticleDetailView } from "@/components/app/seo/article-detail-view";
+import { ButtonLink, Column, EmptyLine, PageHeader } from "@/design-system";
 import type { Article, Niche } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 
@@ -14,11 +13,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
     return (
       <>
         <PageHeader icon={<FileText />} title="Article" />
-        <PageBody width="3xl">
-          <Empty art="search" title="Couldn't find that article" action={<ButtonLink href="/seo" variant="primary">Back to SEO</ButtonLink>}>
-            It may have been removed, or the API didn't answer.
-          </Empty>
-        </PageBody>
+        <Column width="sm">
+          <EmptyLine action={<ButtonLink href="/seo" variant="primary">Back to SEO</ButtonLink>}>Couldn&apos;t find that article. It may have been removed.</EmptyLine>
+        </Column>
       </>
     );
   }

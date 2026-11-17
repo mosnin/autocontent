@@ -1,8 +1,7 @@
 import { Clapperboard } from "lucide-react";
-import { VideoDetailView } from "@/components/mk/content/video-detail-view";
-import type { JobMetrics } from "@/components/mk/content/types";
-import { PageBody, PageHeader } from "@/components/mk/page";
-import { ButtonLink, Empty } from "@/components/mk/ui";
+import { VideoDetailView } from "@/components/app/content/video-detail-view";
+import type { JobMetrics } from "@/components/app/content/types";
+import { ButtonLink, Column, EmptyLine, PageHeader } from "@/design-system";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import type { Job, Niche, NichePerformance } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
@@ -16,11 +15,9 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
     return (
       <>
         <PageHeader icon={<Clapperboard />} title="Video" />
-        <PageBody width="3xl">
-          <Empty art="search" title="Couldn't find that video" action={<ButtonLink href="/content" variant="primary">Back to Content</ButtonLink>}>
-            It may have been removed, or the API didn't answer.
-          </Empty>
-        </PageBody>
+        <Column width="sm">
+          <EmptyLine action={<ButtonLink href="/content" variant="primary">Back to Content</ButtonLink>}>Couldn&apos;t find that video. It may have been removed.</EmptyLine>
+        </Column>
       </>
     );
   }

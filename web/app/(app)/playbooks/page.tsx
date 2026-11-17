@@ -1,4 +1,4 @@
-import { PlaybooksView } from "@/components/mk/playbooks/playbooks-view";
+import { PlaybooksView } from "@/components/app/playbooks/playbooks-view";
 import type { Niche, NichePerformance, TodaySpend } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 

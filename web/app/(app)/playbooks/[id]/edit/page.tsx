@@ -1,7 +1,6 @@
 import { Compass } from "lucide-react";
-import { PlaybookEditView } from "@/components/mk/playbooks/playbook-edit-view";
-import { PageBody, PageHeader } from "@/components/mk/page";
-import { ButtonLink, Empty } from "@/components/mk/ui";
+import { PlaybookEditView } from "@/components/app/playbooks/playbook-edit-view";
+import { ButtonLink, Column, EmptyLine, PageHeader } from "@/design-system";
 import { getEditorCatalog } from "@/lib/playbook-catalog";
 import type { Niche } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
@@ -15,11 +14,9 @@ export default async function EditPlaybookPage({ params }: { params: Promise<{ i
     return (
       <>
         <PageHeader icon={<Compass />} title="Edit playbook" />
-        <PageBody width="3xl">
-          <Empty art="search" title="Couldn't find that playbook" action={<ButtonLink href="/playbooks" variant="primary">All playbooks</ButtonLink>}>
-            It may have been archived, or the API didn't answer.
-          </Empty>
-        </PageBody>
+        <Column width="sm">
+          <EmptyLine action={<ButtonLink href="/playbooks" variant="primary">All playbooks</ButtonLink>}>Couldn&apos;t find that playbook. It may have been archived.</EmptyLine>
+        </Column>
       </>
     );
   }

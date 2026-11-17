@@ -1,4 +1,4 @@
-import { SeoView } from "@/components/mk/seo/seo-view";
+import { SeoView } from "@/components/app/seo/seo-view";
 import type { Article, Niche } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 

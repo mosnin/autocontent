@@ -1,6 +1,6 @@
-import { ContentView, type ContentTab } from "@/components/mk/content/content-view";
-import type { VideoFilter } from "@/components/mk/content/status";
-import type { Failures, MetricsSummary, Template } from "@/components/mk/content/types";
+import { ContentView, type ContentTab } from "@/components/app/content/content-view";
+import type { VideoFilter } from "@/components/app/content/status";
+import type { Failures, MetricsSummary, Template } from "@/components/app/content/types";
 import type { AyrshareConnectStatus, ImagePost, Job, Niche, TodaySpend, User } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 
