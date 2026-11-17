@@ -519,8 +519,8 @@ function Bars({ widths }: { widths: number[] }) {
     <div className="space-y-2.5">
       {widths.map((w, i) => (
         <div key={i} className="flex items-center gap-2.5">
-          <span className="size-2.5 rounded-full bg-surface-3" />
-          <span className="h-2 rounded-full bg-surface-3" style={{ width: `${w}%` }} />
+          <span className="size-2.5 rounded-full bg-hairline-strong" />
+          <span className="h-2 rounded-full bg-hairline-strong" style={{ width: `${w}%` }} />
         </div>
       ))}
     </div>

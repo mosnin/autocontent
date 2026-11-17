@@ -1,5 +1,14 @@
 // Preview views for the business pages. key = path after /preview/app/.
 import type { ReactNode } from "react";
+import { AuditClient } from "@/app/(app)/admin/audit/AuditClient";
+import { FlagsClient } from "@/app/(app)/admin/flags/FlagsClient";
+import { HealthClient } from "@/app/(app)/admin/health/HealthClient";
+import { MediaClient } from "@/app/(app)/admin/media/MediaClient";
+import AdminSecurityPage from "@/app/(app)/admin/security/page";
+import { AdminTemplatesClient } from "@/app/(app)/admin/templates/AdminTemplatesClient";
+import { UserDetailClient } from "@/app/(app)/admin/users/[id]/UserDetailClient";
+import { UsersClient } from "@/app/(app)/admin/users/UsersClient";
+import { AdminOverviewView } from "@/components/app/admin/overview-view";
 import { BrandView } from "@/components/app/brand/brand-view";
 import { DistributionCampaignView } from "@/components/app/distribution/campaign-detail-view";
 import { DistributionView } from "@/components/app/distribution/distribution-view";
@@ -10,6 +19,7 @@ import { NewCampaignView } from "@/components/app/paid/new-campaign-view";
 import { PaidView } from "@/components/app/paid/paid-view";
 import { SettingsView } from "@/components/app/settings/settings-view";
 import { FIXTURE_INBOX, FIXTURE_MONTH } from "@/lib/fixtures";
+import { FX_ADMIN_AUDIT, FX_ADMIN_CONFIG, FX_ADMIN_FLAGS, FX_ADMIN_HEALTH, FX_ADMIN_OPS, FX_ADMIN_OVERVIEW, FX_ADMIN_TEMPLATES, FX_ADMIN_USERS } from "@/lib/fixtures-admin";
 import {
   FX_AD_ACCOUNTS,
   FX_AD_ACTIONS,
@@ -44,4 +54,14 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   brand: () => <BrandView kit={FX_BRAND_KIT} kits={FX_KITS} />,
   integrations: () => <IntegrationsView ayrshare={FX_AYRSHARE} adAccounts={FX_AD_ACCOUNTS} tokens={FX_TOKENS} webhooks={FX_WEBHOOKS} x402={FX_X402} apiBase="https://api.marketer.sh" />,
   settings: () => <SettingsView user={FX_USER} billing={FX_BILLING} />,
+  "settings/billing": () => <SettingsView user={FX_USER} billing={FX_BILLING} initialTab="billing" />,
+  admin: () => <AdminOverviewView overview={FX_ADMIN_OVERVIEW} />,
+  "admin/users": () => <UsersClient initial={FX_ADMIN_USERS} />,
+  "admin/users/u3": () => <UserDetailClient initialUser={FX_ADMIN_USERS[2]!} initialAudit={FX_ADMIN_AUDIT.filter((e) => e.target_id === "u3")} />,
+  "admin/audit": () => <AuditClient initial={FX_ADMIN_AUDIT} initialFilters={{}} />,
+  "admin/health": () => <HealthClient initial={FX_ADMIN_HEALTH} initialOps={FX_ADMIN_OPS} initialConfigHealth={FX_ADMIN_CONFIG} />,
+  "admin/flags": () => <FlagsClient initial={FX_ADMIN_FLAGS} />,
+  "admin/security": () => <AdminSecurityPage />,
+  "admin/media": () => <MediaClient />,
+  "admin/templates": () => <AdminTemplatesClient initial={FX_ADMIN_TEMPLATES} />,
 };
