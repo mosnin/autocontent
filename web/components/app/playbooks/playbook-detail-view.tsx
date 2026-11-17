@@ -196,9 +196,9 @@ export function PlaybookDetailView({
 
         <div className="grid grid-cols-2 gap-3">
           <KpiCard label="Today" value={<span className={cap > 0 && today / cap >= 0.8 ? "text-attention" : undefined}>{formatUsd(today)}</span>} />
-          <KpiCard label="Spend · 30 days" value={formatUsd(total30)} bars={days} />
+          <KpiCard label="Spend · 30 days" value={formatUsd(total30)} bars={days.slice(-7)} />
           <KpiCard label="Per video" value={doneInWindow > 0 ? `${truncated ? "~" : ""}${formatUsd(total30 / doneInWindow)}` : "—"} />
-          <KpiCard label="Views · 30 days" value={hasViews && s ? formatCompact(s.total_views) : "—"} bars={hasViews ? viewBars : undefined} />
+          <KpiCard label="Views · 30 days" value={hasViews && s ? formatCompact(s.total_views) : "—"} bars={hasViews ? viewBars.slice(-7) : undefined} />
         </div>
 
         <Section title="How it runs">
