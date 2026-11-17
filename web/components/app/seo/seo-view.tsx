@@ -188,7 +188,7 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
                       </span>
                     ),
                   },
-                  { key: "created", label: "Created", align: "right", width: "96px", hideOnPhone: true, render: (a) => <Time iso={a.created_at} className="text-fg-muted" /> },
+                  { key: "created", label: "Created", align: "right", width: "124px", hideOnPhone: true, render: (a) => <Time iso={a.created_at} className="whitespace-nowrap text-fg-muted" /> },
                 ]}
               />
             </div>

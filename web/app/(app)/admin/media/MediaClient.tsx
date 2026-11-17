@@ -1,33 +1,28 @@
 "use client";
 
-import * as React from "react";
 import { Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import * as React from "react";
+import { AdminFrame } from "@/components/app/admin/admin-frame";
+import { useMediaManifest } from "@/components/media-slot";
+import { buttonClass, Card, cx, IconButton, Notice, Section, Thumb } from "@/design-system";
+import { MEDIA_SLOTS, mediaFileUrl } from "@/lib/media-slots";
 
-import { MediaSlot, useMediaManifest } from "@/components/media-slot";
-import {
-  DashHeading,
-  DashPanel,
-} from "@/components/hub/dashboard-kit";
-import { Button } from "@/components/square/ui/button";
-import { MEDIA_SLOTS } from "@/lib/media-slots";
-import { cn } from "@/lib/utils";
+const GROUPS = ["Marketing site", "Dashboards"] as const;
 
 /**
- * The Media manager: upload, replace, or clear the image behind every
- * managed slot on the marketing site and the dashboards. Slots without an
- * upload fall back to their duotone placeholder everywhere they appear.
+ * The media manager: upload, replace or clear the image behind every managed
+ * slot on the marketing site and the dashboards. Empty slots fall back to a
+ * flat placeholder wherever they appear.
  */
 export function MediaClient() {
   const { data, mutate } = useMediaManifest();
   const [busy, setBusy] = React.useState<string | null>(null);
+  const [note, setNote] = React.useState<{ ok?: string; error?: string } | null>(null);
 
   const upload = async (id: string, file: File) => {
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Keep uploads under 8 MB");
-      return;
-    }
+    if (file.size > 8 * 1024 * 1024) return setNote({ error: "Keep uploads under 8 MB." });
     setBusy(id);
+    setNote(null);
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const r = new FileReader();
@@ -35,16 +30,12 @@ export function MediaClient() {
         r.onerror = () => reject(new Error("read failed"));
         r.readAsDataURL(file);
       });
-      const res = await fetch("/api/media", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id, dataUrl }),
-      });
+      const res = await fetch("/api/media", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, dataUrl }) });
       if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      toast.success("Image updated everywhere it appears");
+      setNote({ ok: "Image updated everywhere it appears." });
       await mutate();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      setNote({ error: e instanceof Error ? e.message : String(e) });
     } finally {
       setBusy(null);
     }
@@ -52,97 +43,63 @@ export function MediaClient() {
 
   const clear = async (id: string) => {
     setBusy(id);
+    setNote(null);
     try {
-      const res = await fetch(`/api/media?id=${encodeURIComponent(id)}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/media?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
-      toast.success("Reverted to the placeholder");
+      setNote({ ok: "Reverted to the placeholder." });
       await mutate();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      setNote({ error: e instanceof Error ? e.message : String(e) });
     } finally {
       setBusy(null);
     }
   };
 
-  const groups = ["Marketing site", "Dashboards"] as const;
-
   return (
-    <div className="space-y-10">
-      <DashHeading
-        as="h1"
-        sub="Swap the image behind any managed surface. Uploads go live immediately on the landing page and the dashboards; cleared slots fall back to their placeholder art."
-      >
-        Media
-      </DashHeading>
-
-      {groups.map((group, gi) => (
-        <DashPanel delay={0.06 * (gi + 1)} key={group} title={group}>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <AdminFrame crumbs={[{ label: "Media" }]}>
+      {note && <Notice ok={note.ok} error={note.error} />}
+      {GROUPS.map((group) => (
+        <Section key={group} title={group}>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {MEDIA_SLOTS.filter((s) => s.group === group).map((slot) => {
-              const filled = Boolean(data?.slots?.[slot.id]);
+              const entry = data?.slots?.[slot.id];
               return (
-                <div
-                  className="flex flex-col overflow-hidden rounded-3xl border border-border/70 bg-card shadow-[0_1px_2px_rgb(0_0_0/0.03),0_10px_32px_-22px_rgb(0_0_0/0.2)]"
-                  key={slot.id}
-                >
-                  <div className="group aspect-[16/10] overflow-hidden border-b border-border/60">
-                    <MediaSlot id={slot.id} showChip={false} />
+                <Card key={slot.id} className="flex flex-col p-2.5">
+                  <Thumb ratio="16/9" src={entry ? mediaFileUrl(slot.id, entry.updatedAt) : null} alt={slot.label}>
+                    {!entry && <span className="absolute inset-0 flex items-center justify-center text-[12px] text-fg-faint">Empty</span>}
+                  </Thumb>
+                  <div className="mt-2.5 min-w-0 flex-1 px-1">
+                    <div className="truncate text-[13px] font-medium">{slot.label}</div>
+                    <div className="line-clamp-2 text-[12px] text-fg-muted">{slot.hint}</div>
                   </div>
-                  <div className="flex flex-1 flex-col gap-3 p-4">
-                    <div>
-                      <p className="text-sm font-semibold leading-snug">
-                        {slot.label}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {slot.hint}
-                      </p>
-                    </div>
-                    <div className="mt-auto flex items-center gap-2">
-                      <label
-                        className={cn(
-                          "inline-flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-zinc-900 px-3 text-[13px] font-semibold text-white transition-colors hover:bg-zinc-800",
-                          busy === slot.id && "pointer-events-none opacity-60",
-                        )}
-                      >
-                        {filled ? "Replace" : "Upload"}
-                        <input
-                          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
-                          className="sr-only"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) void upload(slot.id, f);
-                            e.target.value = "";
-                          }}
-                          type="file"
-                        />
-                      </label>
-                      {filled && (
-                        <Button
-                          aria-label={`Clear ${slot.label}`}
-                          disabled={busy === slot.id}
-                          onClick={() => void clear(slot.id)}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Trash2 aria-hidden className="size-3.5" />
-                        </Button>
-                      )}
-                    </div>
+                  <div className="mt-2.5 flex items-center gap-1.5 px-1 pb-1">
+                    <label className={cx(buttonClass("secondary", "sm", "flex-1 cursor-pointer"), busy === slot.id && "pointer-events-none opacity-45")}>
+                      {entry ? "Replace" : "Upload"}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                        className="sr-only"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void upload(slot.id, f);
+                          e.target.value = "";
+                        }}
+                      />
+                    </label>
+                    {entry && (
+                      <IconButton label={`Clear ${slot.label}`} disabled={busy === slot.id} onClick={() => void clear(slot.id)}>
+                        <Trash2 />
+                      </IconButton>
+                    )}
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
-        </DashPanel>
+        </Section>
       ))}
-
-      <p className="text-xs text-muted-foreground">
-        Images are stored on the web server&apos;s disk. On ephemeral hosting
-        they survive until the instance recycles — re-upload or move storage
-        to a bucket before relying on them in production.
-      </p>
-    </div>
+      <p className="text-[12px] text-fg-faint">Images are stored on the web server's disk. On ephemeral hosting they last until the instance recycles.</p>
+    </AdminFrame>
   );
 }

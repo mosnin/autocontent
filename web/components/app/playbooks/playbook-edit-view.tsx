@@ -1,3 +1,5 @@
+"use client";
+
 import { Column, PageHeader } from "@/design-system";
 import type { Niche } from "@/lib/types";
 import { toolGlyph } from "../content/shared";
