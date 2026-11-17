@@ -4,11 +4,11 @@ import { AuditClient } from "@/app/(app)/admin/audit/AuditClient";
 import { FlagsClient } from "@/app/(app)/admin/flags/FlagsClient";
 import { HealthClient } from "@/app/(app)/admin/health/HealthClient";
 import { MediaClient } from "@/app/(app)/admin/media/MediaClient";
-import AdminSecurityPage from "@/app/(app)/admin/security/page";
 import { AdminTemplatesClient } from "@/app/(app)/admin/templates/AdminTemplatesClient";
 import { UserDetailClient } from "@/app/(app)/admin/users/[id]/UserDetailClient";
 import { UsersClient } from "@/app/(app)/admin/users/UsersClient";
 import { AdminOverviewView } from "@/components/app/admin/overview-view";
+import { SecurityView } from "@/components/app/admin/security-view";
 import { BrandView } from "@/components/app/brand/brand-view";
 import { DistributionCampaignView } from "@/components/app/distribution/campaign-detail-view";
 import { DistributionView } from "@/components/app/distribution/distribution-view";
@@ -61,7 +61,7 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   "admin/audit": () => <AuditClient initial={FX_ADMIN_AUDIT} initialFilters={{}} />,
   "admin/health": () => <HealthClient initial={FX_ADMIN_HEALTH} initialOps={FX_ADMIN_OPS} initialConfigHealth={FX_ADMIN_CONFIG} />,
   "admin/flags": () => <FlagsClient initial={FX_ADMIN_FLAGS} />,
-  "admin/security": () => <AdminSecurityPage />,
+  "admin/security": () => <SecurityView />,
   "admin/media": () => <MediaClient />,
   "admin/templates": () => <AdminTemplatesClient initial={FX_ADMIN_TEMPLATES} />,
 };
