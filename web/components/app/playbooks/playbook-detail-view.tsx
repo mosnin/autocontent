@@ -194,7 +194,7 @@ export function PlaybookDetailView({
       >
         {error && <Notice error={error} />}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3">
           <KpiCard label="Today" value={<span className={cap > 0 && today / cap >= 0.8 ? "text-attention" : undefined}>{formatUsd(today)}</span>} />
           <KpiCard label="Spend · 30 days" value={formatUsd(total30)} bars={days} />
           <KpiCard label="Per video" value={doneInWindow > 0 ? `${truncated ? "~" : ""}${formatUsd(total30 / doneInWindow)}` : "—"} />

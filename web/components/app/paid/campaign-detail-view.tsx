@@ -106,7 +106,7 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <KpiCard label="Spend" value={formatUsd(totals.spend, { cents: false })} bars={sorted.map((m) => Number(m.spend_usd))} />
+            <KpiCard label="Spend" value={formatUsd(totals.spend, { cents: false })} />
             <KpiCard label="ROAS" value={roas === null ? "—" : `${roas.toFixed(2)}×`} />
             <KpiCard label="Clicks" value={formatCompact(totals.clicks)} />
             <KpiCard label="Impressions" value={formatCompact(totals.impressions)} />

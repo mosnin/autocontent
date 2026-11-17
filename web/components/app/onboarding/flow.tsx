@@ -548,7 +548,7 @@ function Preview(p: {
       <div aria-hidden className="absolute inset-0 opacity-60">
         <Shader palette="mono" speed={0.4} />
       </div>
-      <div aria-hidden className="absolute inset-0" style={{ background: "var(--ds-scrim)" }} />
+      <div aria-hidden className="absolute inset-0 bg-ds-bg/55" />
       <div className="relative flex h-full flex-col gap-2.5 p-4 sm:p-6">
         <GlassCard className="ds-enter">
           <div className="flex items-center gap-3">
