@@ -4,7 +4,7 @@
  * hash matches the backend's vectors, and through the real ToolExecutor: an approved call runs once, the kill switch
  * stops spend but never a pause, approvals stay bound to their arguments, and an unknown outcome is never retried.
  */
-import { type AnyAgentTool, ApprovalStore, CORE_MIGRATIONS, MigrationRunner, SECURE_DEFAULT_TENANT_CONFIG, SqlIdempotencyStore, ToolExecutor } from "@agent-starter/core";
+import { AgentError, type AnyAgentTool, ApprovalStore, CORE_MIGRATIONS, HttpError, MigrationRunner, SECURE_DEFAULT_TENANT_CONFIG, SqlIdempotencyStore, ToolExecutor } from "@agent-starter/core";
 import { NodeSqlStore } from "@agent-starter/core/testing";
 import * as v from "valibot";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,7 +12,6 @@ import { canonicalHash, canonicalJson, evaluateAgentDispatch, isDefiniteRejectio
 import { adsTools, MAX_DAILY_BUDGET_USD } from "../src/marketer/tools/ads.ts";
 import { writeTool } from "../src/marketer/tools/define.ts";
 import { DEPARTMENT_TOOLS } from "../src/marketer/tools/index.ts";
-import { AgentError, HttpError } from "@agent-starter/core";
 
 const UUID = "3f2b8c1e-7a4d-4e5f-9b6a-0c1d2e3f4a5b";
 const BASE_ENV = { PRIMARY_SAAS_API_URL: "https://api.marketer.test", SAAS_SERVICE_TOKEN: "svc-token-0123456789" };
@@ -150,7 +149,7 @@ describe("through the executor", () => {
       approvals.decide(parked.approval.approvalId, "approve", "user_2abcTenant");
       return executor.execute({ id, name, arguments: JSON.stringify(args) }, context);
     }
-    return { executor, context, approveAndRun, logs };
+    return { executor, approvals, context, approveAndRun, logs };
   }
   const budget = { campaignId: UUID, dailyBudgetUsd: 40, currentDailyBudgetUsd: 35, reason: "CPA under target" };
 
@@ -168,7 +167,7 @@ describe("through the executor", () => {
     const h = harness();
     const parked = await h.executor.execute({ id: "call_bound", name: "set_ad_budget", arguments: JSON.stringify(budget) }, h.context);
     if (parked.status !== "approval_required") throw new Error("expected approval");
-    (h.executor as unknown as { options: { approvals: ApprovalStore } }).options.approvals.decide(parked.approval.approvalId, "approve", "user_2abcTenant");
+    h.approvals.decide(parked.approval.approvalId, "approve", "user_2abcTenant");
     const changed = await h.executor.execute({ id: "call_bound", name: "set_ad_budget", arguments: JSON.stringify({ ...budget, dailyBudgetUsd: 400 }) }, h.context);
     expect(changed.status).toBe("approval_required");
     expect(fetchCalls).toHaveLength(0);
