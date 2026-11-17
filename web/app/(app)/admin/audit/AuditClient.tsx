@@ -77,7 +77,9 @@ export function AuditClient({ initial, initialFilters }: { initial: AuditEntry[]
           }}
         >
           {FIELDS.map((f) => (
-            <Input key={f.key} aria-label={f.label} placeholder={f.placeholder} value={draft[f.key]} onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))} className="h-7 w-[calc(50%-3px)] font-mono text-[12px] sm:w-36" />
+            <div key={f.key} className="w-[calc(50%-3px)] sm:w-36">
+              <Input aria-label={f.label} placeholder={f.placeholder} value={draft[f.key]} onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))} className="h-7 font-mono text-[12px]" />
+            </div>
           ))}
           <Button type="submit" size="md" variant={dirty ? "primary" : "secondary"}>
             Apply
@@ -104,7 +106,7 @@ export function AuditClient({ initial, initialFilters }: { initial: AuditEntry[]
         empty={<EmptyLine>{loading ? "Loading…" : "No audit entries match these filters."}</EmptyLine>}
         columns={[
           { key: "action", label: "Action", render: (e) => <span className="whitespace-nowrap"><StatusBadge tone={actionTone(e.action)}>{humanizeAction(e.action)}</StatusBadge></span> },
-          { key: "actor", label: "Actor", render: (e) => <span className="block max-w-[220px] truncate">{e.actor_email}</span> },
+          { key: "actor", label: "Actor", hideOnPhone: true, render: (e) => <span className="block max-w-[220px] truncate">{e.actor_email}</span> },
           {
             key: "target",
             label: "Target",

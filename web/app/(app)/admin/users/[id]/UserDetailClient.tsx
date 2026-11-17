@@ -51,9 +51,6 @@ export function UserDetailClient({ initialUser, initialAudit }: { initialUser: A
               Suspend
             </Button>
           )}
-          <Button size="sm" variant="ghost" onClick={() => setDialog("role")} className="hidden sm:inline-flex">
-            Change role
-          </Button>
           <Button size="sm" variant="primary" onClick={() => setDialog("credits")}>
             Grant credits
           </Button>
@@ -77,7 +74,17 @@ export function UserDetailClient({ initialUser, initialAudit }: { initialUser: A
         <Section title="Account">
           <Facts
             items={[
-              { label: "Role", value: <RoleBadge role={user.role} /> },
+              {
+                label: "Role",
+                value: (
+                  <span className="inline-flex items-center gap-1.5">
+                    <RoleBadge role={user.role} />
+                    <Button size="sm" variant="ghost" onClick={() => setDialog("role")}>
+                      Change
+                    </Button>
+                  </span>
+                ),
+              },
               { label: "Status", value: <AccountStatusBadge user={user} /> },
               { label: "Niches", value: data.niche_count },
               { label: "Daily cap", value: user.global_daily_cap_usd ? formatUsd(user.global_daily_cap_usd) : "None" },
