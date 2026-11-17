@@ -1,110 +1,56 @@
-import * as React from "react";
-import Link from "next/link";
-
-import { Badge } from "@/components/square/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/square/ui/card";
+import { AdminFrame } from "@/components/app/admin/admin-frame";
+import { ButtonLink, StatusBadge, Table } from "@/design-system";
 
 export const dynamic = "force-dynamic";
 
-type Category = "green" | "orange" | "blue" | "purple" | "navy";
-
 interface Control {
-  color: Category;
   title: string;
   body: string;
   link?: { href: string; label: string };
 }
 
 const CONTROLS: Control[] = [
-  {
-    color: "navy",
-    title: "Role-based access control",
-    body: "Administrative routes are gated on an explicit admin role and follow least-privilege — a non-admin caller receives HTTP 403 from every /admin endpoint, and the admin UI reveals nothing behind a clean 'not authorized' state.",
-  },
-  {
-    color: "blue",
-    title: "Append-only audit trail",
-    body: "Every privileged action — suspensions, role changes, credit adjustments — is written to an append-only log capturing the actor, their IP and user agent, the target, and structured metadata. Entries are never mutated or deleted.",
-    link: { href: "/admin/audit", label: "Open audit log" },
-  },
-  {
-    color: "orange",
-    title: "Access revocation",
-    body: "Suspending an account immediately blocks access and halts new pipeline runs; demoting an admin revokes privileged access on the next request. Both actions take effect without a deploy and are fully audited.",
-    link: { href: "/admin/users", label: "Manage users" },
-  },
-  {
-    color: "green",
-    title: "Encryption at rest",
-    body: "Application data lives in a managed Postgres database with encryption at rest. Provider secrets and API keys are supplied through environment configuration and a managed secret store — never committed to source.",
-  },
-  {
-    color: "purple",
-    title: "Authentication & session controls",
-    body: "Authentication and session lifecycle are handled by Clerk. Every backend request carries a short-lived JWT that is verified server-side before any data is returned; the Next.js proxy attaches it so browser code never handles long-lived credentials.",
-  },
-  {
-    color: "navy",
-    title: "Data export & erasure",
-    body: "Per-account data export and right-to-erasure requests are actioned by administrators against a specific user record, with the resulting action captured in the audit trail for evidence.",
-    link: { href: "/admin/users", label: "Find a user" },
-  },
+  { title: "Role-based access", body: "Admin routes require an explicit admin role. Everyone else gets HTTP 403 from every /admin endpoint and a plain not-authorized page." },
+  { title: "Append-only audit trail", body: "Suspensions, role changes and credit adjustments are logged with actor, IP, user agent, target and metadata. Entries are never edited or deleted.", link: { href: "/admin/audit", label: "Audit log" } },
+  { title: "Access revocation", body: "Suspending blocks access and halts new runs at once; demoting an admin revokes access on the next request. Both are audited.", link: { href: "/admin/users", label: "Users" } },
+  { title: "Encryption at rest", body: "Data lives in managed Postgres with encryption at rest. Provider secrets come from environment config and a managed secret store, never source." },
+  { title: "Authentication and sessions", body: "Clerk handles sign-in and sessions. Every backend request carries a short-lived JWT verified server-side; the proxy attaches it so browser code never holds long-lived credentials." },
+  { title: "Data export and erasure", body: "Admins action per-account export and erasure requests against a user record; each action lands in the audit trail.", link: { href: "/admin/users", label: "Find a user" } },
 ];
 
 export default function AdminSecurityPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-[26px] font-medium leading-[1.15] tracking-[-0.022em]">Security</h2>
-        <p className="text-sm text-muted-foreground">
-          SOC 2-aligned controls implemented in the platform today.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {CONTROLS.map((c) => (
-          <Card key={c.title} className="flex flex-col">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-base">{c.title}</CardTitle>
-                <Badge
-                  variant="outline"
-                  className="shrink-0 font-mono lowercase bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900"
-                >
-                  implemented
-                </Badge>
+    <AdminFrame crumbs={[{ label: "Security" }]}>
+      <Table<Control>
+        rows={CONTROLS}
+        rowKey={(c) => c.title}
+        columns={[
+          {
+            key: "control",
+            label: "Control",
+            render: (c) => (
+              <div className="py-2">
+                <div className="font-medium">{c.title}</div>
+                <div className="mt-0.5 max-w-[640px] text-[12.5px] leading-relaxed text-fg-muted">{c.body}</div>
               </div>
-            </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-3">
-              <CardDescription className="leading-relaxed">
-                {c.body}
-              </CardDescription>
-              {c.link && (
-                <Link
-                  href={c.link.href}
-                  className="mt-auto text-sm font-medium text-brand hover:underline"
-                >
-                  {c.link.label} →
-                </Link>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      <Card className="border-border/60 bg-muted/30">
-        <CardContent className="py-4 text-xs text-muted-foreground">
-          This page summarizes controls as implemented in the product. It is an
-          engineering reference, not a compliance attestation or a substitute
-          for a completed SOC 2 report.
-        </CardContent>
-      </Card>
-    </div>
+            ),
+          },
+          { key: "status", label: "Status", hideOnPhone: true, width: "120px", render: () => <StatusBadge tone="positive">Implemented</StatusBadge> },
+          {
+            key: "link",
+            label: <span className="sr-only">Open</span>,
+            align: "right",
+            width: "120px",
+            render: (c) =>
+              c.link ? (
+                <ButtonLink href={c.link.href} size="sm" variant="ghost">
+                  {c.link.label}
+                </ButtonLink>
+              ) : null,
+          },
+        ]}
+      />
+      <p className="text-[12px] text-fg-faint">An engineering reference for controls in the product today, not a compliance attestation.</p>
+    </AdminFrame>
   );
 }

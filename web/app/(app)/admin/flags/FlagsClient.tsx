@@ -1,429 +1,174 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import * as React from "react";
 import useSWR from "swr";
-import { toast } from "sonner";
-
-import { formatDateTime, relativeTime } from "@/components/admin/format";
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
-// Dialogs (and everything inside them) stay on the app's own primitives —
-// dialog/label/textarea/switch have no square/ui counterpart the template
-// prescribes for this context (established precedent, see
-// articles/ArticlesClient.tsx's NewArticleDialog) — including the app
-// Button (its `isLoading` prop is used on the dialog's submit button).
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button as DialogButton } from "@/components/ui/button";
-import { Skeleton } from "@/components/square/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/square/ui/table";
+import { AdminFrame } from "@/components/app/admin/admin-frame";
+import { formatDateTime, relativeTime } from "@/components/app/admin/format";
+import { Button, EmptyLine, Field, Input, ListRow, List, Modal, Notice, StatusBadge, Switch, Table, Textarea } from "@/design-system";
 import { adminKeys, adminUpsertFlag } from "@/lib/admin-api";
-import { clientFetch } from "@/lib/client-fetcher";
-import { cn } from "@/lib/utils";
 import type { FeatureFlag } from "@/lib/admin-types";
+import { clientFetch } from "@/lib/client-fetcher";
 
 const POLL_MS = 30_000;
 
-const AUDIT_NOTE =
-  "Every flag change is written to the append-only audit log with your identity.";
-
 export function FlagsClient({ initial }: { initial: FeatureFlag[] }) {
-  const key = adminKeys.flags();
-  const { data, error, isLoading, mutate } = useSWR<FeatureFlag[]>(
-    key,
-    clientFetch,
-    { refreshInterval: POLL_MS, fallbackData: initial },
-  );
-
+  const { data, error, mutate } = useSWR<FeatureFlag[]>(adminKeys.flags(), clientFetch, { refreshInterval: POLL_MS, fallbackData: initial });
   const [addOpen, setAddOpen] = React.useState(false);
   // Keys currently mid-flight, so we can disable just that row's switch.
   const [pending, setPending] = React.useState<Set<string>>(new Set());
-
-  const errorToastedRef = React.useRef(false);
-  React.useEffect(() => {
-    if (error && !errorToastedRef.current) {
-      errorToastedRef.current = true;
-      toast.error(`Live updates paused: ${error.message ?? "fetch failed"}`);
-    }
-    if (!error) errorToastedRef.current = false;
-  }, [error]);
+  const [note, setNote] = React.useState<{ ok?: string; error?: string } | null>(null);
 
   const flags = data ?? [];
-  const sorted = React.useMemo(
-    () => [...flags].sort((a, b) => a.key.localeCompare(b.key)),
-    [flags],
-  );
-  const showInitialSkeleton = isLoading && !data;
+  const sorted = React.useMemo(() => [...flags].sort((a, b) => a.key.localeCompare(b.key)), [flags]);
 
-  const setPendingFor = React.useCallback((k: string, on: boolean) => {
+  const setPendingFor = (k: string, on: boolean) =>
     setPending((prev) => {
       const next = new Set(prev);
       if (on) next.add(k);
       else next.delete(k);
       return next;
     });
-  }, []);
 
-  const onToggle = React.useCallback(
-    async (flag: FeatureFlag, nextEnabled: boolean) => {
-      setPendingFor(flag.key, true);
-      // Optimistically flip the row; revalidate on settle.
-      const optimistic = (list: FeatureFlag[] | undefined) =>
-        (list ?? []).map((f) =>
-          f.key === flag.key ? { ...f, enabled: nextEnabled } : f,
-        );
-      try {
-        await mutate(
-          async () => {
-            const updated = await adminUpsertFlag(flag.key, {
-              enabled: nextEnabled,
-              description: flag.description,
-            });
-            return (data ?? []).map((f) =>
-              f.key === flag.key ? updated : f,
-            );
-          },
-          {
-            optimisticData: optimistic,
-            rollbackOnError: true,
-            revalidate: false,
-            populateCache: true,
-          },
-        );
-        toast.success(
-          `“${flag.key}” ${nextEnabled ? "enabled" : "disabled"} — change audited`,
-        );
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Update failed");
-      } finally {
-        setPendingFor(flag.key, false);
-      }
-    },
-    [data, mutate, setPendingFor],
-  );
+  const onToggle = async (flag: FeatureFlag, nextEnabled: boolean) => {
+    setPendingFor(flag.key, true);
+    setNote(null);
+    const optimistic = (list: FeatureFlag[] | undefined) => (list ?? []).map((f) => (f.key === flag.key ? { ...f, enabled: nextEnabled } : f));
+    try {
+      await mutate(
+        async () => {
+          const updated = await adminUpsertFlag(flag.key, { enabled: nextEnabled, description: flag.description });
+          return (data ?? []).map((f) => (f.key === flag.key ? updated : f));
+        },
+        { optimisticData: optimistic, rollbackOnError: true, revalidate: false, populateCache: true },
+      );
+      setNote({ ok: `${flag.key} ${nextEnabled ? "enabled" : "disabled"}. Change audited.` });
+    } catch (err) {
+      setNote({ error: err instanceof Error ? err.message : "Update failed" });
+    } finally {
+      setPendingFor(flag.key, false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[26px] font-medium leading-[1.15] tracking-[-0.022em]">
-            Feature flags
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Toggle platform capabilities in real time. {AUDIT_NOTE}
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          Add flag
+    <AdminFrame
+      crumbs={[{ label: "Flags" }]}
+      actions={
+        <Button size="sm" variant="primary" onClick={() => setAddOpen(true)}>
+          <Plus /> Add flag
         </Button>
-      </div>
-
-      {error && (
-        <p className="text-sm text-muted-foreground">
-          Live updates paused — {error.message ?? "fetch failed"}
-        </p>
-      )}
-
-      {showInitialSkeleton ? (
-        <LoadingTable />
-      ) : sorted.length === 0 ? (
-        <EmptyState onAdd={() => setAddOpen(true)} />
-      ) : (
-        <div className="overflow-x-auto">
-          <Card className="min-w-[720px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[220px]">Flag</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead className="w-[190px]">Last updated</TableHead>
-                  <TableHead className="w-[90px] text-right">Enabled</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sorted.map((flag) => (
-                  <FlagRow
-                    key={flag.key}
-                    flag={flag}
-                    pending={pending.has(flag.key)}
-                    onToggle={onToggle}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-      )}
-
-      <AddFlagDialog
+      }
+    >
+      {error && <Notice error={`Live updates paused: ${error.message ?? "fetch failed"}`} />}
+      {note && <Notice ok={note.ok} error={note.error} />}
+      <Table<FeatureFlag>
+        rows={sorted}
+        rowKey={(f) => f.key}
+        empty={<EmptyLine action={<Button size="sm" onClick={() => setAddOpen(true)}>Add flag</Button>}>No feature flags yet.</EmptyLine>}
+        columns={[
+          {
+            key: "key",
+            label: "Flag",
+            render: (f) => (
+              <span className="flex items-center gap-2">
+                <code className="font-mono text-[12.5px] font-medium">{f.key}</code>
+                <StatusBadge tone={f.enabled ? "positive" : "neutral"}>{f.enabled ? "On" : "Off"}</StatusBadge>
+              </span>
+            ),
+          },
+          { key: "desc", label: "Description", hideOnPhone: true, render: (f) => <span className="block max-w-[420px] truncate text-fg-muted">{f.description || "No description"}</span> },
+          {
+            key: "updated",
+            label: "Updated",
+            hideOnPhone: true,
+            render: (f) => (
+              <span className="text-fg-muted" title={formatDateTime(f.updated_at)}>
+                {relativeTime(f.updated_at)}
+                {f.updated_by ? ` · ${f.updated_by}` : ""}
+              </span>
+            ),
+          },
+          { key: "enabled", label: "Enabled", align: "right", width: "84px", render: (f) => <Switch checked={f.enabled} disabled={pending.has(f.key)} onChange={(v) => void onToggle(f, v)} label={`${f.enabled ? "Disable" : "Enable"} ${f.key}`} /> },
+        ]}
+      />
+      <AddFlagModal
         open={addOpen}
-        onOpenChange={setAddOpen}
+        onClose={() => setAddOpen(false)}
         existingKeys={flags.map((f) => f.key)}
         onCreated={(created) => {
-          void mutate(
-            (list) => {
-              const rest = (list ?? []).filter((f) => f.key !== created.key);
-              return [...rest, created];
-            },
-            { revalidate: false },
-          );
+          setAddOpen(false);
+          setNote({ ok: `Flag ${created.key} created. Change audited.` });
+          void mutate((list) => [...(list ?? []).filter((f) => f.key !== created.key), created], { revalidate: false });
         }}
       />
-    </div>
+    </AdminFrame>
   );
 }
 
-function FlagRow({
-  flag,
-  pending,
-  onToggle,
-}: {
-  flag: FeatureFlag;
-  pending: boolean;
-  onToggle: (flag: FeatureFlag, next: boolean) => void;
-}) {
-  return (
-    <TableRow>
-      <TableCell className="align-top">
-        <div className="flex items-center gap-2">
-          <code className="font-mono text-sm font-medium">{flag.key}</code>
-          <Badge
-            variant={flag.enabled ? "outline" : "secondary"}
-            className={cn(
-              "font-mono lowercase",
-              flag.enabled &&
-                "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900",
-            )}
-          >
-            {flag.enabled ? "on" : "off"}
-          </Badge>
-        </div>
-      </TableCell>
-      <TableCell className="align-top text-sm text-muted-foreground">
-        {flag.description || (
-          <span className="italic text-muted-foreground/70">
-            No description
-          </span>
-        )}
-      </TableCell>
-      <TableCell className="align-top text-xs text-muted-foreground">
-        <div className="tabular-nums" title={formatDateTime(flag.updated_at)}>
-          {relativeTime(flag.updated_at)}
-        </div>
-        <div className="truncate">
-          {flag.updated_by ? (
-            <>by {flag.updated_by}</>
-          ) : (
-            <span className="text-muted-foreground/70">never edited</span>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="align-top text-right">
-        <div className="flex justify-end">
-          <Switch
-            checked={flag.enabled}
-            disabled={pending}
-            onCheckedChange={(v) => onToggle(flag, v)}
-            aria-label={`${flag.enabled ? "Disable" : "Enable"} ${flag.key}`}
-          />
-        </div>
-      </TableCell>
-    </TableRow>
-  );
-}
-
-function AddFlagDialog({
-  open,
-  onOpenChange,
-  existingKeys,
-  onCreated,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  existingKeys: string[];
-  onCreated: (flag: FeatureFlag) => void;
-}) {
+function AddFlagModal({ open, onClose, existingKeys, onCreated }: { open: boolean; onClose: () => void; existingKeys: string[]; onCreated: (flag: FeatureFlag) => void }) {
   const [key, setKey] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [enabled, setEnabled] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (open) {
-      setKey("");
-      setDescription("");
-      setEnabled(false);
-    }
+    if (open) (setKey(""), setDescription(""), setEnabled(false), setError(null));
   }, [open]);
 
-  const trimmedKey = key.trim();
-  const duplicate = existingKeys.includes(trimmedKey);
-  const validKey = /^[a-z0-9][a-z0-9._-]*$/.test(trimmedKey);
-  const canSubmit = trimmedKey !== "" && validKey && !duplicate && !submitting;
+  const trimmed = key.trim();
+  const duplicate = existingKeys.includes(trimmed);
+  const validKey = /^[a-z0-9][a-z0-9._-]*$/.test(trimmed);
+  const canSubmit = trimmed !== "" && validKey && !duplicate && !busy;
 
-  async function onSubmit(e: React.FormEvent) {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!trimmedKey) {
-      toast.error("A flag key is required");
-      return;
-    }
-    if (!validKey) {
-      toast.error("Use lowercase letters, numbers, dots, dashes or underscores");
-      return;
-    }
-    if (duplicate) {
-      toast.error("A flag with that key already exists");
-      return;
-    }
-    setSubmitting(true);
+    if (!trimmed) return setError("A flag key is required.");
+    if (!validKey) return setError("Use lowercase letters, numbers, dots, dashes or underscores.");
+    if (duplicate) return setError("A flag with that key already exists.");
+    setBusy(true);
+    setError(null);
     try {
-      const created = await adminUpsertFlag(trimmedKey, {
-        enabled,
-        description: description.trim(),
-      });
-      toast.success(`Flag “${created.key}” created — change audited`);
-      onCreated(created);
-      onOpenChange(false);
+      onCreated(await adminUpsertFlag(trimmed, { enabled, description: description.trim() }));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Create failed");
+      setError(err instanceof Error ? err.message : "Create failed");
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={onSubmit} className="space-y-5">
-          <DialogHeader>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-              New feature flag
-            </p>
-            <DialogTitle>Add a flag</DialogTitle>
-            <DialogDescription>
-              Create a new flag by key. It takes effect as soon as you save.{" "}
-              {AUDIT_NOTE}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="flag-key">Key</Label>
-              <Input
-                id="flag-key"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                placeholder="e.g. new_editor"
-                className="font-mono"
-                autoFocus
-                aria-invalid={
-                  trimmedKey !== "" && (!validKey || duplicate)
-                    ? true
-                    : undefined
-                }
-              />
-              {trimmedKey !== "" && !validKey && (
-                <p className="text-xs text-destructive">
-                  Lowercase letters, numbers, dots, dashes or underscores only.
-                </p>
-              )}
-              {duplicate && (
-                <p className="text-xs text-destructive">
-                  A flag with this key already exists.
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="flag-description">Description</Label>
-              <Textarea
-                id="flag-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="What does this flag gate?"
-                maxLength={500}
-              />
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
-              <div>
-                <Label htmlFor="flag-enabled" className="text-sm font-medium">
-                  Enabled
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  Start this flag switched {enabled ? "on" : "off"}.
-                </p>
-              </div>
-              <Switch
-                id="flag-enabled"
-                checked={enabled}
-                onCheckedChange={setEnabled}
-                aria-label="Initial enabled state"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogButton
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </DialogButton>
-            <DialogButton type="submit" disabled={!canSubmit} isLoading={submitting}>
-              Create flag
-            </DialogButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function LoadingTable() {
-  return (
-    <Card className="min-w-[720px]">
-      <CardContent className="space-y-3 py-5">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-4 w-64" />
-            <Skeleton className="ml-auto h-6 w-11 rounded-full" />
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmptyState({ onAdd }: { onAdd: () => void }) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <h3 className="text-lg font-semibold">No feature flags yet</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          Create your first flag to gate a capability behind an admin toggle.
-        </p>
-        <Button size="sm" variant="outline" onClick={onAdd}>
-          Add flag
-        </Button>
-        <p className="pt-1 text-xs text-muted-foreground">{AUDIT_NOTE}</p>
-      </CardContent>
-    </Card>
+    <Modal
+      open={open}
+      onClose={() => !busy && onClose()}
+      title="Add a flag"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" form="flag-form" variant="primary" loading={busy} disabled={!canSubmit}>
+            Create flag
+          </Button>
+        </>
+      }
+    >
+      <form id="flag-form" onSubmit={submit} className="space-y-4">
+        <p className="text-[13px] text-fg-muted">Takes effect as soon as you save. Every change is audited.</p>
+        <Field label="Key" hint={trimmed !== "" && !validKey ? "Lowercase letters, numbers, dots, dashes or underscores only." : duplicate ? "A flag with this key already exists." : undefined}>
+          <Input value={key} onChange={(e) => setKey(e.target.value)} placeholder="new_editor" className="font-mono" autoFocus aria-invalid={trimmed !== "" && (!validKey || duplicate) ? true : undefined} />
+        </Field>
+        <Field label="Description">
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What does this flag gate?" maxLength={500} rows={3} />
+        </Field>
+        <List>
+          <ListRow>
+            <span className="min-w-0 flex-1 text-[13px]">Start enabled</span>
+            <Switch checked={enabled} onChange={setEnabled} label="Initial enabled state" />
+          </ListRow>
+        </List>
+        <Notice error={error} />
+      </form>
+    </Modal>
   );
 }
