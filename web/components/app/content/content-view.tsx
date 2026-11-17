@@ -103,8 +103,6 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
           </Callout>
         )}
 
-        <FailuresPanel failures={data.failures} />
-
         {tab === "videos" ? (
           <Section title="Videos">
             {jobs === null ? (
@@ -132,6 +130,8 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
             <TemplatesGrid templates={data.templates} preview={preview} />
           </Section>
         )}
+
+        <FailuresPanel failures={data.failures} />
       </Column>
       <MakeDialog open={make !== null} onClose={() => setMake(null)} niches={niches} spend={spend} initial={make ?? undefined} />
     </>
