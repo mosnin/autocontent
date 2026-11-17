@@ -148,7 +148,7 @@ export function SpendCapSection({ initialCap }: { initialCap: string | null }) {
             A ceiling on generation spend across every playbook, checked before each run. Ad spend has its own caps on Paid media.
           </Row>
           {enabled ? (
-            <Row title="Per day" control={<MoneyInput value={cap} onChange={(e) => setCap(e.target.value)} aria-label="Global daily spend cap in US dollars" className="w-28" />}>
+            <Row title="Per day" control={<div className="w-28"><MoneyInput value={cap} onChange={(e) => setCap(e.target.value)} aria-label="Global daily spend cap in US dollars" /></div>}>
               <span className="tabular">
                 About {perDay} video{perDay === 1 ? "" : "s"} a day at ≈{formatUsd(PER_VIDEO_USD)} each.
               </span>
