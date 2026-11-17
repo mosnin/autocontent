@@ -1,4 +1,4 @@
-import { SettingsView } from "@/components/mk/settings/settings-view";
+import { SettingsView } from "@/components/app/settings/settings-view";
 import type { BillingBalance, User } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 

@@ -8,7 +8,7 @@ import { AdAccountsView } from "@/components/app/paid/ad-accounts-view";
 import { CampaignDetailView } from "@/components/app/paid/campaign-detail-view";
 import { NewCampaignView } from "@/components/app/paid/new-campaign-view";
 import { PaidView } from "@/components/app/paid/paid-view";
-import { SettingsView } from "@/components/mk/settings/settings-view";
+import { SettingsView } from "@/components/app/settings/settings-view";
 import { FIXTURE_INBOX, FIXTURE_MONTH } from "@/lib/fixtures";
 import {
   FX_AD_ACCOUNTS,

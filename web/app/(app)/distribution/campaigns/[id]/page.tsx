@@ -1,8 +1,6 @@
-import { Send } from "lucide-react";
 import { notFound } from "next/navigation";
-import { DistributionCampaignView } from "@/components/mk/distribution/campaign-detail-view";
-import { PageBody, PageHeader } from "@/components/mk/page";
-import { ButtonLink, Empty } from "@/components/mk/ui";
+import { DistributionCampaignView } from "@/components/app/distribution/campaign-detail-view";
+import { ButtonLink, Column, EmptyLine, PageHeader } from "@/design-system";
 import { api } from "@/lib/api";
 import type { AdCampaign } from "@/lib/ads-client";
 import type { CampaignOverview, Niche } from "@/lib/types";
@@ -21,12 +19,10 @@ export default async function DistributionCampaignPage({ params }: { params: Pro
   if (!overview) {
     return (
       <>
-        <PageHeader icon={<Send />} title="Distribution" />
-        <PageBody width="4xl">
-          <Empty art="meetings" title="This campaign is out of reach" action={<ButtonLink href="/distribution">Back to distribution</ButtonLink>}>
-            We couldn't load it right now. Refresh in a moment.
-          </Empty>
-        </PageBody>
+        <PageHeader crumbs={[{ label: "Distribution", href: "/distribution" }, { label: "Campaign" }]} />
+        <Column width="md">
+          <EmptyLine action={<ButtonLink href="/distribution">Back to distribution</ButtonLink>}>This campaign is out of reach right now. Refresh in a moment.</EmptyLine>
+        </Column>
       </>
     );
   }

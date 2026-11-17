@@ -1,6 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
-import { OnboardingFlow } from "@/components/mk/onboarding/flow";
-import { inferFromEmail } from "@/components/mk/onboarding/infer";
+import { OnboardingFlow } from "@/components/app/onboarding/flow";
+import { inferFromEmail } from "@/components/app/onboarding/infer";
 import type { BrandKit } from "@/lib/brand-kit-client";
 import type { AyrshareConnectStatus } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
