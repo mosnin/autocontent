@@ -14,8 +14,8 @@ type Note = { ok?: string; error?: string } | null;
 /** One setting: title and one line on the left, its control on the right. */
 function Row({ title, children, control, tone }: { title: ReactNode; children?: ReactNode; control?: ReactNode; tone?: "negative" }) {
   return (
-    <ListRow className="flex-wrap sm:flex-nowrap">
-      <div className="min-w-0 flex-1 basis-[240px]">
+    <ListRow>
+      <div className="min-w-0 flex-1">
         <div className={cx("text-[13px] font-medium", tone === "negative" ? "text-negative" : "text-fg")}>{title}</div>
         {children && <div className="mt-0.5 text-[12.5px] text-fg-muted">{children}</div>}
       </div>
