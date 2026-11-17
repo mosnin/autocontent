@@ -1,0 +1,9 @@
+// Marketer design system. Import everything from "@/design-system".
+// Spec: ./README.md. Tokens: ./tokens.css. References: ./references/.
+export { cx } from "./cx";
+export * from "./components/primitives";
+export * from "./components/layout";
+export * from "./components/data";
+export * from "./components/agent";
+export * from "./components/surfaces";
+export { Shader, PALETTES, paletteFor, fieldGradient, cssFallback, type Palette } from "./components/shader";

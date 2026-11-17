@@ -1,7 +1,9 @@
 import { ClerkProvider, UserButton } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { AppShell } from "@/components/mk/shell/app-shell";
-import type { SetupStep } from "@/components/mk/shell/getting-started";
+import { cookies } from "next/headers";
+import { AppShell } from "@/components/shell/app-shell";
+import { THEME_COOKIE, type AppTheme } from "@/components/shell/theme";
+import type { SetupStep } from "@/components/shell/getting-started";
 import type { BrandKit } from "@/lib/brand-kit-client";
 import type { AyrshareConnectStatus, Job, Niche, User } from "@/lib/types";
 import { getInbox, safe } from "@/lib/workspace-server";
@@ -16,6 +18,7 @@ export const dynamic = "force-dynamic";
  * shell renders even when the API is down.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const theme = ((await cookies()).get(THEME_COOKIE)?.value === "light" ? "light" : "dark") as AppTheme;
   const [user, inbox, niches, ayrshare, jobs, brand, adAccounts] = await Promise.all([
     safe<User & { role?: string }>("/api/v1/users/me"),
     getInbox(),
@@ -40,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
-      <AppShell data={{ brandName: brand?.brand_name || "Marketer", inbox, steps, isAdmin: user?.role === "admin" }} account={<UserButton appearance={{ elements: { avatarBox: "size-7" } }} />}>
+      <AppShell data={{ brandName: brand?.brand_name || "Marketer", inbox, steps, isAdmin: user?.role === "admin" }} theme={theme} account={<UserButton appearance={{ elements: { avatarBox: "size-6" } }} />}>
         {children}
       </AppShell>
     </ClerkProvider>

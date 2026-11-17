@@ -67,6 +67,7 @@ function overview(days: number): Overview {
 
 export const FIXTURE_WEEK = overview(7);
 export const FIXTURE_MONTH = overview(30);
+export const FIXTURE_HISTORY = overview(182);
 
 export const FIXTURE_INBOX: Inbox = {
   items: [

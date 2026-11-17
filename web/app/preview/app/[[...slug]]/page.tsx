@@ -5,10 +5,10 @@
 
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
-import { HomeView } from "@/components/mk/home/home-view";
-import { AppShell } from "@/components/mk/shell/app-shell";
-import { PersonAvatar } from "@/components/mk/ui";
-import { FIXTURE_INBOX, FIXTURE_MONTH, FIXTURE_WEEK } from "@/lib/fixtures";
+import { HomeView } from "@/components/home/home-view";
+import { AppShell } from "@/components/shell/app-shell";
+import { PersonAvatar } from "@/design-system";
+import { FIXTURE_ACTIVITY, FIXTURE_HISTORY, FIXTURE_INBOX, FIXTURE_MONTH } from "@/lib/fixtures";
 import { PREVIEW_VIEWS } from "./views";
 
 export const dynamic = "force-dynamic";
@@ -21,13 +21,14 @@ const steps = [
   { id: "ads", label: "Connect an ad account", detail: "Optional.", href: "/paid/connect", done: false },
 ];
 
-export default async function PreviewApp({ params }: { params: Promise<{ slug?: string[] }> }) {
+export default async function PreviewApp({ params, searchParams }: { params: Promise<{ slug?: string[] }>; searchParams: Promise<{ theme?: string }> }) {
   const { slug = [] } = await params;
+  const { theme } = await searchParams;
   const key = slug.join("/") || "home";
-  const view: ReactNode | undefined = key === "home" ? <HomeView week={FIXTURE_WEEK} month={FIXTURE_MONTH} inbox={FIXTURE_INBOX} /> : await PREVIEW_VIEWS[key]?.();
+  const view: ReactNode | undefined = key === "home" ? <HomeView brandName="Pasta Club" month={FIXTURE_MONTH} history={FIXTURE_HISTORY} inbox={FIXTURE_INBOX} activity={FIXTURE_ACTIVITY} /> : await PREVIEW_VIEWS[key]?.();
   if (!view) notFound();
   return (
-    <AppShell data={{ brandName: "Pasta Club", inbox: FIXTURE_INBOX, steps, isAdmin: false }} account={<PersonAvatar name="Sam" size={28} />}>
+    <AppShell data={{ brandName: "Pasta Club", inbox: FIXTURE_INBOX, steps, isAdmin: false }} theme={theme === "light" ? "light" : "dark"} account={<PersonAvatar name="Sam" size={22} />}>
       {view}
     </AppShell>
   );
