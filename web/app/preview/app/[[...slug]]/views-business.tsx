@@ -1,13 +1,13 @@
 // Preview views for the business pages. key = path after /preview/app/.
 import type { ReactNode } from "react";
-import { BrandView } from "@/components/mk/brand/brand-view";
-import { DistributionCampaignView } from "@/components/mk/distribution/campaign-detail-view";
-import { DistributionView } from "@/components/mk/distribution/distribution-view";
-import { IntegrationsView } from "@/components/mk/integrations/integrations-view";
-import { AdAccountsView } from "@/components/mk/paid/ad-accounts-view";
-import { CampaignDetailView } from "@/components/mk/paid/campaign-detail-view";
-import { NewCampaignView } from "@/components/mk/paid/new-campaign-view";
-import { PaidView } from "@/components/mk/paid/paid-view";
+import { BrandView } from "@/components/app/brand/brand-view";
+import { DistributionCampaignView } from "@/components/app/distribution/campaign-detail-view";
+import { DistributionView } from "@/components/app/distribution/distribution-view";
+import { IntegrationsView } from "@/components/app/integrations/integrations-view";
+import { AdAccountsView } from "@/components/app/paid/ad-accounts-view";
+import { CampaignDetailView } from "@/components/app/paid/campaign-detail-view";
+import { NewCampaignView } from "@/components/app/paid/new-campaign-view";
+import { PaidView } from "@/components/app/paid/paid-view";
 import { SettingsView } from "@/components/mk/settings/settings-view";
 import { FIXTURE_INBOX, FIXTURE_MONTH } from "@/lib/fixtures";
 import {

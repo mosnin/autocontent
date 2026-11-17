@@ -1,10 +1,9 @@
-// Status vocabulary for the work departments (Content, SEO, Playbooks).
+// Status vocabulary for the work tools (Content, SEO, Playbooks).
 // Pure + client-safe. One place maps raw pipeline states to human words and
-// to the DESIGN.md tones (live green, needs-you orange, failed red, muted).
+// to StatusBadge tones (positive done, attention needs you, negative failed).
 
+import type { StatusTone } from "@/design-system";
 import type { ArticleStatus, ImagePost, Job, JobStatus, Platform } from "@/lib/types";
-
-export type StatusTone = "muted" | "live" | "warn" | "accent" | "danger";
 
 export const PLATFORM_LABEL: Record<string, string> = { tiktok: "TikTok", reels: "Reels", shorts: "Shorts" };
 export const platformLabel = (p: Platform | string) => PLATFORM_LABEL[p] ?? p;
@@ -49,19 +48,13 @@ export const jobStatusLabel = (s: JobStatus) => JOB_LABEL[s] ?? s;
 export const JOB_IN_PROGRESS = new Set<JobStatus>(["queued", "ideating", "scripting", "generating_images", "animating", "voicing", "editing", "captioning", "qa", "scheduling"]);
 
 export function jobTone(s: JobStatus): StatusTone {
-  if (s === "done") return "live";
-  if (s === "failed") return "danger";
-  if (s === "awaiting_approval") return "warn";
-  if (s === "skipped") return "muted";
-  return "muted";
+  if (s === "done") return "positive";
+  if (s === "failed") return "negative";
+  if (s === "awaiting_approval") return "attention";
+  if (s === "skipped") return "neutral";
+  return "neutral";
 }
 
-/** Row dot: pulsing green while working, orange when it needs you, red when it failed. */
-export function jobDot(s: JobStatus): "live" | "warn" | "danger" | null {
-  if (s === "failed") return "danger";
-  if (s === "awaiting_approval") return "warn";
-  return JOB_IN_PROGRESS.has(s) ? "live" : null;
-}
 
 export type VideoFilter = "all" | "awaiting" | "in_progress" | "done" | "failed";
 export const VIDEO_FILTERS: { value: VideoFilter; label: string }[] = [
@@ -100,17 +93,12 @@ const POST_LABEL: Record<string, string> = {
 };
 export const postStatusLabel = (s: string) => POST_LABEL[s] ?? s.replaceAll("_", " ");
 export function postTone(s: string): StatusTone {
-  if (s === "done") return "live";
-  if (s === "failed") return "danger";
-  if (s === "awaiting_approval") return "warn";
-  return "muted";
+  if (s === "done") return "positive";
+  if (s === "failed") return "negative";
+  if (s === "awaiting_approval") return "attention";
+  return "neutral";
 }
 export const POST_IN_PROGRESS = new Set(["queued", "planning", "generating", "scheduling"]);
-export function postDot(s: string): "live" | "warn" | "danger" | null {
-  if (s === "failed") return "danger";
-  if (s === "awaiting_approval") return "warn";
-  return POST_IN_PROGRESS.has(s) ? "live" : null;
-}
 
 export function postTitle(p: ImagePost): string {
   const caption = typeof p.payload?.caption === "string" ? (p.payload.caption as string).split("\n")[0] : "";
@@ -144,11 +132,7 @@ const ARTICLE_LABEL: Record<ArticleStatus, string> = {
 export const articleStatusLabel = (s: ArticleStatus) => ARTICLE_LABEL[s] ?? s;
 export const ARTICLE_IN_PROGRESS = new Set<ArticleStatus>(["queued", "researching", "outlining", "writing", "qa", "metadata", "imaging"]);
 export function articleTone(s: ArticleStatus): StatusTone {
-  if (s === "done") return "live";
-  if (s === "failed") return "danger";
-  return "muted";
-}
-export function articleDot(s: ArticleStatus): "live" | "danger" | null {
-  if (s === "failed") return "danger";
-  return ARTICLE_IN_PROGRESS.has(s) ? "live" : null;
+  if (s === "done") return "positive";
+  if (s === "failed") return "negative";
+  return "neutral";
 }

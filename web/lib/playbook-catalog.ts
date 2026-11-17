@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { EditorCatalog } from "@/components/mk/playbooks/playbook-editor";
+import type { EditorCatalog } from "@/components/app/playbooks/playbook-editor";
 import type { AudioProviders, Kit, ScriptModelOption, StylePreset, VideoModelOption } from "./types";
 import { safe } from "./workspace-server";
 

@@ -1,4 +1,4 @@
-import { DistributionView } from "@/components/mk/distribution/distribution-view";
+import { DistributionView } from "@/components/app/distribution/distribution-view";
 import type { CalendarItem } from "@/lib/business";
 import type { AyrshareConnectStatus, Campaign, Niche } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";

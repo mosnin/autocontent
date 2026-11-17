@@ -1,4 +1,4 @@
-import { IntegrationsView } from "@/components/mk/integrations/integrations-view";
+import { IntegrationsView } from "@/components/app/integrations/integrations-view";
 import type { AdAccount } from "@/lib/ads-client";
 import type { X402Config } from "@/lib/business";
 import type { AyrshareConnectStatus, PersonalAccessToken } from "@/lib/types";

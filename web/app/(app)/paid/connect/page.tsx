@@ -1,4 +1,4 @@
-import { AdAccountsView } from "@/components/mk/paid/ad-accounts-view";
+import { AdAccountsView } from "@/components/app/paid/ad-accounts-view";
 import type { AdAccount } from "@/lib/ads-client";
 import { safe } from "@/lib/workspace-server";
 

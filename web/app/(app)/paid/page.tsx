@@ -1,4 +1,4 @@
-import { PaidView } from "@/components/mk/paid/paid-view";
+import { PaidView } from "@/components/app/paid/paid-view";
 import type { AdAccount, AdActionEntry, AdApproval, AdCampaign, AdsOverview } from "@/lib/ads-client";
 import { formatUsd } from "@/lib/format";
 import type { InboxItem } from "@/lib/workspace";

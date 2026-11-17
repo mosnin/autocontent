@@ -1,4 +1,4 @@
-import { NewCampaignView } from "@/components/mk/paid/new-campaign-view";
+import { NewCampaignView } from "@/components/app/paid/new-campaign-view";
 import type { AdAccount } from "@/lib/ads-client";
 import { safe } from "@/lib/workspace-server";
 

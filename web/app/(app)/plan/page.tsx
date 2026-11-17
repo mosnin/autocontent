@@ -1,5 +1,5 @@
-import { type CalendarRow, type PlanItem, parseMode, parseOffset, planWindow } from "@/components/mk/plan/plan-data";
-import { PlanView } from "@/components/mk/plan/plan-view";
+import { type CalendarRow, type PlanItem, parseMode, parseOffset, planWindow } from "@/components/app/plan/plan-data";
+import { PlanView } from "@/components/app/plan/plan-view";
 import type { Campaign, ImagePost, Niche } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 

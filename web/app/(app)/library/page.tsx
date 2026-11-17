@@ -1,8 +1,8 @@
-import { LibraryView } from "@/components/mk/library/library-view";
+import { LibraryView } from "@/components/app/library/library-view";
 import type { Composition, ImagePost, MediaAsset, Niche } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 
-export const metadata = { title: "Library · Marketer" };
+export const metadata = { title: "Deliverables · Marketer" };
 
 export default async function LibraryPage() {
   const [finals, clips, images, compositions, imagePosts, niches] = await Promise.all([

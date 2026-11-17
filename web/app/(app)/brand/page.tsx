@@ -1,4 +1,4 @@
-import { BrandView } from "@/components/mk/brand/brand-view";
+import { BrandView } from "@/components/app/brand/brand-view";
 import type { BrandKit } from "@/lib/brand-kit-client";
 import type { Kit } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";

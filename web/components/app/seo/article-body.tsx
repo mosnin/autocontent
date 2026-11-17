@@ -1,5 +1,5 @@
-// Tiny dependency-free markdown renderer for article bodies (restyled in the
-// app DNA; moved from components/article-markdown.tsx).
+// Tiny dependency-free markdown renderer for article bodies, styled with
+// design-system tokens as a clean reading column (Detail template, /seo/[id]).
 //
 // The written-content pipeline emits plain CommonMark-ish markdown
 // (headings, paragraphs, lists, links, emphasis, code). Rather than pull
@@ -29,7 +29,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       nodes.push(
         <code
           key={key}
-          className="rounded-[6px] bg-muted px-1 py-0.5 font-mono text-[0.85em]"
+          className="rounded-ds-xs bg-surface-3 px-1 py-0.5 font-mono text-[0.85em]"
         >
           {token.slice(1, -1)}
         </code>,
@@ -43,7 +43,7 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
           key={key}
           alt={alt}
           src={src}
-          className="my-2 h-auto max-w-full rounded-[14px] border border-border"
+          className="my-2 h-auto max-w-full rounded-ds-md border border-hairline"
         />,
       );
     } else if (token.startsWith("[")) {
@@ -55,14 +55,14 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
           href={href}
           target="_blank"
           rel="noreferrer"
-          className="text-accent underline decoration-accent/30 underline-offset-2 hover:decoration-accent"
+          className="text-ds-accent underline decoration-ds-accent/30 underline-offset-2 hover:decoration-ds-accent"
         >
           {renderInline(label, key)}
         </a>,
       );
     } else if (token.startsWith("**")) {
       nodes.push(
-        <strong key={key} className="font-medium text-foreground">
+        <strong key={key} className="font-medium text-fg">
           {renderInline(token.slice(2, -2), key)}
         </strong>,
       );
@@ -79,12 +79,12 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
 // --- Block parsing -------------------------------------------------------
 
 const HEADING_CLASSES: Record<number, string> = {
-  1: "mt-2 text-[24px] font-medium leading-tight tracking-[-0.02em] text-foreground",
-  2: "mt-8 text-[20px] font-medium leading-snug tracking-[-0.015em] text-foreground",
-  3: "mt-6 text-[17px] font-medium text-foreground",
-  4: "mt-4 text-[15px] font-medium text-foreground",
-  5: "mt-4 text-[14px] font-medium text-foreground",
-  6: "mt-4 text-[14px] font-medium text-muted-foreground",
+  1: "!mt-2 text-[22px] font-medium leading-tight tracking-[-0.01em] text-fg",
+  2: "!mt-9 text-[18px] font-medium leading-snug text-fg",
+  3: "!mt-7 text-[15.5px] font-medium text-fg",
+  4: "!mt-5 text-[14.5px] font-medium text-fg",
+  5: "!mt-5 text-[14px] font-medium text-fg",
+  6: "!mt-5 text-[14px] font-medium text-fg-muted",
 };
 
 export function ArticleBody({ markdown }: { markdown: string }) {
@@ -114,7 +114,7 @@ export function ArticleBody({ markdown }: { markdown: string }) {
       blocks.push(
         <pre
           key={key++}
-          className="overflow-x-auto rounded-[14px] bg-subtle p-3 font-mono text-[12px] leading-relaxed shadow-[inset_0_0_0_1px_hsl(var(--border))]"
+          className="overflow-x-auto rounded-ds-md border border-hairline bg-surface-2 p-3 font-mono text-[12px] leading-relaxed"
         >
           <code>{buf.join("\n")}</code>
         </pre>,
@@ -138,7 +138,7 @@ export function ArticleBody({ markdown }: { markdown: string }) {
 
     // Horizontal rule.
     if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
-      blocks.push(<hr key={key++} className="my-8 border-border" />);
+      blocks.push(<hr key={key++} className="!my-8 border-hairline" />);
       i++;
       continue;
     }
@@ -153,7 +153,7 @@ export function ArticleBody({ markdown }: { markdown: string }) {
       blocks.push(
         <blockquote
           key={key++}
-          className="border-l-2 border-accent/40 pl-4 text-muted-foreground"
+          className="border-l-2 border-hairline-strong pl-4 text-fg-muted"
         >
           {renderInline(buf.join(" "), `bq${key}`)}
         </blockquote>,
@@ -169,7 +169,7 @@ export function ArticleBody({ markdown }: { markdown: string }) {
         i++;
       }
       blocks.push(
-        <ul key={key++} className="list-disc space-y-1.5 pl-6">
+        <ul key={key++} className="list-disc space-y-1.5 pl-5 marker:text-fg-faint">
           {items.map((item, n) => (
             <li key={n}>{renderInline(item, `ul${key}-${n}`)}</li>
           ))}
@@ -186,7 +186,7 @@ export function ArticleBody({ markdown }: { markdown: string }) {
         i++;
       }
       blocks.push(
-        <ol key={key++} className="list-decimal space-y-1.5 pl-6">
+        <ol key={key++} className="list-decimal space-y-1.5 pl-5 marker:text-fg-faint">
           {items.map((item, n) => (
             <li key={n}>{renderInline(item, `ol${key}-${n}`)}</li>
           ))}
@@ -209,14 +209,14 @@ export function ArticleBody({ markdown }: { markdown: string }) {
       i++;
     }
     blocks.push(
-      <p key={key++} className="leading-[1.75]">
+      <p key={key++}>
         {renderInline(buf.join(" "), `p${key}`)}
       </p>,
     );
   }
 
   return (
-    <div className="max-w-[68ch] space-y-4 text-[15px] text-foreground/85 [overflow-wrap:anywhere]">
+    <div className="space-y-4 text-[15px] leading-[1.7] text-fg [overflow-wrap:anywhere]">
       {blocks}
     </div>
   );

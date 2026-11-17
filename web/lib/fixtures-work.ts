@@ -1,7 +1,7 @@
 // Fixture data for the work departments' preview views (Content, SEO,
 // Playbooks). Never imported by real pages.
 
-import type { Failures, JobMetrics, MetricsSummary, Template } from "@/components/mk/content/types";
+import type { Failures, JobMetrics, MetricsSummary, Template } from "@/components/app/content/types";
 import type {
   Article,
   AudioProviders,
