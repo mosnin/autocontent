@@ -4,7 +4,7 @@ import { Menu as MenuIcon, Moon, PanelLeft, Sun } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { cx, IconButton } from "@/design-system";
-import { AgentProvider } from "../mk/agent/agent-provider";
+import { AgentProvider } from "@/components/chat/agent-provider";
 import { CommandMenu } from "./command-menu";
 import { Sidebar, type SidebarData } from "./sidebar";
 import { setThemeCookie, themeClass, type AppTheme } from "./theme";

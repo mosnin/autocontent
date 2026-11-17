@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Composer } from "@/design-system";
 import { departmentById, type DepartmentId } from "@/lib/departments";
-import { useAgent } from "../mk/agent/agent-provider";
+import { useAgent } from "@/components/chat/agent-provider";
 import { queueFirstMessage } from "./session-queue";
 import { AgentPicker } from "./agent-picker";
 

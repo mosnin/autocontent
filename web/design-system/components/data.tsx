@@ -29,7 +29,7 @@ export function MiniBars({ values, className }: { values: number[]; className?: 
   return (
     <span aria-hidden className={cx("flex h-[22px] items-end gap-[2px]", className)}>
       {shown.map((v, i) => (
-        <span key={i} className="w-[5px] rounded-[1px] bg-fg-faint/40" style={{ height: `${Math.max(14, (v / max) * 100)}%` }} />
+        <span key={i} className="w-[5px] rounded-ds-2xs bg-fg-faint/40" style={{ height: `${Math.max(14, (v / max) * 100)}%` }} />
       ))}
     </span>
   );
@@ -252,7 +252,7 @@ export function Heatmap({ days, caption, range }: { days: { date: string; value:
           <div key={wi} className="flex flex-col gap-[3px]">
             {w.map((d) => {
               const t = d.value / max;
-              return <span key={d.date} title={`${d.date}: ${d.value}`} className="size-[13px] rounded-[3px]" style={{ background: d.value === 0 ? "hsl(var(--ds-surface-3))" : `hsl(var(--ds-accent) / ${0.18 + t * 0.62})` }} />;
+              return <span key={d.date} title={`${d.date}: ${d.value}`} className="size-[13px] rounded-ds-2xs" style={{ background: d.value === 0 ? "hsl(var(--ds-surface-3))" : `hsl(var(--ds-accent) / ${0.18 + t * 0.62})` }} />;
             })}
           </div>
         ))}

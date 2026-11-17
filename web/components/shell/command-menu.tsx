@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cx, Kbd } from "@/design-system";
 import { DEPARTMENTS } from "@/lib/departments";
-import { useAgent } from "../mk/agent/agent-provider";
+import { useAgent } from "@/components/chat/agent-provider";
 import { themeClass, type AppTheme } from "./theme";
 
 const PLACES = [

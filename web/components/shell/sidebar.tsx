@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { CountBadge, IconButton, Segmented, SidebarAttention, SidebarRow, SidebarSection, SidebarTextRow, ToolIcon, WorkspaceRow, type ToolTone } from "@/design-system";
 import { DEPARTMENTS, type DepartmentId } from "@/lib/departments";
 import type { Inbox } from "@/lib/workspace";
-import { useAgent } from "../mk/agent/agent-provider";
+import { useAgent } from "@/components/chat/agent-provider";
 import { GettingStarted, type SetupStep } from "./getting-started";
 
 export interface SidebarData {

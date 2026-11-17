@@ -7,3 +7,5 @@ export * from "./components/data";
 export * from "./components/agent";
 export * from "./components/surfaces";
 export { Shader, PALETTES, paletteFor, fieldGradient, cssFallback, type Palette } from "./components/shader";
+export * from "./components/kit";
+export { Markdown } from "./components/markdown";

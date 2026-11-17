@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Bullet } from "@/design-system";
 import { formatRelative } from "@/lib/format";
-import { useAgent } from "../mk/agent/agent-provider";
+import { useAgent } from "@/components/chat/agent-provider";
 
 /** Ref 01 "Recent sessions": bullet, title, relative time; "N more". */
 export function RecentSessions() {

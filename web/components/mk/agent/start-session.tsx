@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { departmentById, type DepartmentId } from "@/lib/departments";
-import { useAgent } from "./agent-provider";
+import { useAgent } from "@/components/chat/agent-provider";
 import { Composer } from "./composer";
 import { queueFirstMessage } from "./conversation";
 import { cx } from "../ui";

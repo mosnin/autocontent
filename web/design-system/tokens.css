@@ -113,11 +113,15 @@
   --color-negative: hsl(var(--ds-negative));
   --color-attention: hsl(var(--ds-attention));
   --color-count: hsl(var(--ds-count));
+  --color-on-fill: #ffffff;     /* text/icons on a gradient or photo fill */
+  --color-on-fill-ink: #141414; /* dark text on a light fill (logo tiles, banner pills) */
+  --radius-ds-2xs: 2px;  /* micro marks: mini bars, heatmap cells, source favicons */
   --radius-ds-xs: 4px;   /* tool icon tiles, kbd, number badges */
   --radius-ds-sm: 6px;   /* buttons, filter pills, sidebar rows, chips */
   --radius-ds-md: 8px;   /* inputs, menus, inner cards */
   --radius-ds-lg: 12px;  /* cards, panels */
   --radius-ds-xl: 16px;  /* composer, dialogs, hero banners */
+  --radius-ds-bubble: 18px; /* user chat bubble (ref 02) */
   --shadow-ds-float: var(--ds-shadow-float);
   --shadow-ds-modal: var(--ds-shadow-modal);
 }

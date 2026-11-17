@@ -119,7 +119,7 @@ export function UserBubble({ children, to }: { children: ReactNode; to?: ReactNo
   return (
     <div className="ds-enter flex flex-col items-end gap-1">
       {to && <span className="text-[11.5px] text-fg-faint">{to}</span>}
-      <div className="max-w-[80%] whitespace-pre-wrap rounded-[18px] bg-surface-3 px-3.5 py-2 text-[13.5px]">{children}</div>
+      <div className="max-w-[80%] whitespace-pre-wrap rounded-ds-bubble bg-surface-3 px-3.5 py-2 text-[13.5px]">{children}</div>
     </div>
   );
 }
@@ -215,7 +215,7 @@ export function SourceChips({ sources, more }: { sources: string[]; more?: numbe
     <div className="flex flex-wrap gap-1.5">
       {sources.map((s) => (
         <span key={s} className="inline-flex h-6 items-center gap-1.5 rounded-ds-sm bg-surface-3 px-2 text-[11.5px] text-fg-muted">
-          <span className="flex size-3.5 items-center justify-center rounded-[3px] bg-surface-2 text-[9px] font-semibold text-fg">{s.slice(0, 1).toUpperCase()}</span>
+          <span className="flex size-3.5 items-center justify-center rounded-ds-2xs bg-surface-2 text-[9px] font-semibold text-fg">{s.slice(0, 1).toUpperCase()}</span>
           {s}
         </span>
       ))}

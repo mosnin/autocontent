@@ -11,7 +11,7 @@ import type { ApprovalRequest } from "@/lib/agent/types";
 import { readHumanQuestion, useApprovals, type UseApprovalsResult } from "@/lib/agent/use-approvals";
 import { useAgentChat } from "@/lib/agent/use-agent-chat";
 import { formatRelative } from "@/lib/format";
-import { useAgent } from "./agent-provider";
+import { useAgent } from "@/components/chat/agent-provider";
 import { Composer } from "./composer";
 import { Markdown } from "./markdown";
 import { Shader } from "../shader";

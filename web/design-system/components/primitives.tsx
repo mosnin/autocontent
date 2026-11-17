@@ -132,7 +132,7 @@ export function ToolIcon({ tone, children, size = 16 }: { tone: ToolTone; childr
   return (
     <span
       aria-hidden
-      className="inline-flex shrink-0 items-center justify-center rounded-ds-xs text-white [&_svg]:stroke-[2.25]"
+      className="inline-flex shrink-0 items-center justify-center rounded-ds-xs text-on-fill [&_svg]:stroke-[2.25]"
       style={{ width: size, height: size, background: `var(--ds-tool-${tone})` }}
     >
       <span className="flex [&_svg]:size-[65%]" style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
@@ -175,7 +175,7 @@ export function PersonAvatar({ name, size = 24 }: { name: string; size?: number 
 /** Workspace logo square (ref 05 "Ace Studio", ref 07 "Granola"). */
 export function WorkspaceLogo({ name, size = 18 }: { name: string; size?: number }) {
   return (
-    <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-ds-xs font-semibold text-black" style={{ width: size, height: size, fontSize: size * 0.55, background: "var(--ds-tool-e)" }}>
+    <span aria-hidden className="inline-flex shrink-0 items-center justify-center rounded-ds-xs font-semibold text-on-fill-ink" style={{ width: size, height: size, fontSize: size * 0.55, background: "var(--ds-tool-e)" }}>
       {name.slice(0, 1).toUpperCase()}
     </span>
   );
@@ -382,7 +382,7 @@ export function Modal({ open, onClose, title, children, footer, width = "md" }: 
       aria-label={title}
       onClose={(e) => e.target === e.currentTarget && onClose()}
       onClick={(e) => e.target === ref.current && onClose()}
-      className={cx("ds ds-modal m-auto max-h-[88vh] w-[calc(100%-2rem)] overflow-hidden rounded-ds-xl border border-hairline bg-overlay p-0 text-fg shadow-ds-modal", width === "sm" && "max-w-sm", width === "md" && "max-w-lg", width === "lg" && "max-w-2xl")}
+      className={cx("ds-modal m-auto max-h-[88vh] w-[calc(100%-2rem)] overflow-hidden rounded-ds-xl border border-hairline bg-overlay p-0 text-fg shadow-ds-modal", width === "sm" && "max-w-sm", width === "md" && "max-w-lg", width === "lg" && "max-w-2xl")}
     >
       {open && (
         <div className="flex max-h-[88vh] flex-col">
