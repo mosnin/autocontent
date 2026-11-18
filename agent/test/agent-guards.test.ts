@@ -5,7 +5,7 @@
  */
 import { type AnyAgentTool, ApprovalStore, AutonomyGateway, CORE_MIGRATIONS, MigrationRunner, SECURE_DEFAULT_TENANT_CONFIG, SqlIdempotencyStore, type TenantConfig, ToolExecutor, ToolFirewall } from "@agent-starter/core";
 import { NodeSqlStore } from "@agent-starter/core/testing";
-import { delegationConversationId } from "@agent-starter/flue";
+import { workerConversationId } from "@agent-starter/flue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appApiTools } from "../src/in-app/app-api.ts";
 import { guardMcpTool, MCP_WRITE_RATE, type McpWriteLimiter, mcpExposedTools } from "../src/in-app/mcp-guard.ts";
@@ -46,7 +46,10 @@ const context = (tenantId = TENANT) => ({
 const video = (n = 0) => ({ id: `call_${n}`, name: "create_video", arguments: JSON.stringify({ playbookId: UUID, platform: "tiktok" }) });
 
 describe("a department acts on its own only inside a delegated task", () => {
-  const delegated = delegationConversationId("content-producer", TENANT, "assistant--t--u.s", "task-1");
+  let delegated = "";
+  beforeEach(async () => {
+    delegated = await workerConversationId("content-producer", TENANT, `assistant--${TENANT}--${TENANT}.s1`, "task-1");
+  });
   const bus = busConversationId("content-producer", TENANT, "bus");
   const room = roomConversationId("content-producer", { roomId: `room--${TENANT}--launch`, tenantId: TENANT });
 

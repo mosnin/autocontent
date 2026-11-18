@@ -159,18 +159,21 @@ function formatEntry(key: string, raw: unknown, opts: FormatOptions, depth: numb
   const n = num(raw);
   const period = words.map((w) => PERIODS[w]).find(Boolean);
 
-  // Money: "_usd", "_cents", "_micros", or a key that is plainly about money.
   const unit = words.find((w) => w in MONEY_UNITS);
-  const moneyWord = words.some((w) => w === "budget" || w === "spend" || w === "cost" || w === "price" || w === "cap");
-  if (n !== null && (unit || (moneyWord && !words.some((w) => PERCENT_UNITS.has(w))))) {
+  const money = (): ArgRow => {
     const rest = words.filter((w) => !(w in MONEY_UNITS) && !(w in PERIODS));
-    const label = rest.length === 0 ? "Amount" : sentence(rest);
-    return { label, value: `${formatMoney(n / (unit ? MONEY_UNITS[unit]! : 1))}${period ? ` ${period}` : ""}` };
-  }
+    return { label: rest.length === 0 ? "Amount" : sentence(rest), value: `${formatMoney(n! / (unit ? MONEY_UNITS[unit]! : 1))}${period ? ` ${period}` : ""}` };
+  };
+
+  // Money with an explicit unit: "_usd", "_cents", "_micros".
+  if (n !== null && unit) return money();
 
   // Percentages: "_pct" / "_percent" are already in percent; rates and shares between 0 and 1 are fractions.
   if (n !== null && words.some((w) => PERCENT_UNITS.has(w))) return { label: sentence(words.filter((w) => !PERCENT_UNITS.has(w))), value: formatPercent(n) };
   if (n !== null && FRACTION_WORDS.has(last) && n >= 0 && n <= 1) return { label: sentence(words), value: formatPercent(n * 100) };
+
+  // Money without a unit: a number under a key that is plainly about money ("budget", "spend", "cost", "price", "cap").
+  if (n !== null && words.some((w) => w === "budget" || w === "spend" || w === "cost" || w === "price" || w === "cap")) return money();
 
   // Durations: "_sec", "_ms", "_days".
   if (n !== null && last in DURATIONS && words.length > 1) {
