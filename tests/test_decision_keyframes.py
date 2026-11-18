@@ -151,8 +151,16 @@ def model(monkeypatch):
 
 
 async def _verify(**kw):
+    from uuid import uuid4
+
+    from marketer.services.spend_context import SpendContext
+
+    async def record(entry):
+        return None
+
+    spend = SpendContext(user_id="u1", niche_id=None, job_id=uuid4(), record=record)
     return await points.verify_video(script=_script(), transcript="n", niche_title="niche",
-                                     brand_rules=[], rule_passed=True, **kw)
+                                     brand_rules=[], rule_passed=True, spend=spend, **kw)
 
 
 async def test_frames_travel_as_image_parts_and_add_one_question(model):

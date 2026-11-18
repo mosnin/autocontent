@@ -292,9 +292,9 @@ export function Thumb({ src, alt = "", ratio = "9/16", children, className }: { 
   );
 }
 
-/** Loading placeholder: a flat block that shimmers once per second. */
+/** Loading placeholder: a flat block with one soft band passing over it. A block-level span, so it can stand in for text inside a heading or paragraph. */
 export function Skeleton({ className }: { className?: string }) {
-  return <div aria-hidden className={cx("ds-shimmer rounded-ds-sm bg-surface-2", className)} />;
+  return <span aria-hidden className={cx("ds-skeleton block rounded-ds-sm", className)} />;
 }
 
 /** Key/value rows (detail pages: "Status · Live", "Budget · $40/day"). */

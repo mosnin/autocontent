@@ -493,6 +493,105 @@ async def test_point5_enforce_fatigue_refreshes_creative(model, logged, ad_repos
                                             metrics=_metrics()) == "creative_refresh"
 
 
+# Point 5 is metered into the spend ledger on a niche-less row (an ad
+# campaign has no niche). The ledger must accept a null niche_id for that
+# row to land; until it does, the call is logged and the decision stands.
+
+
+def _ledger(monkeypatch, record):
+    """A niche-less SpendContext wired to `record`, as `ledger_context`
+    builds it against the real database."""
+    from marketer.services.spend_context import SpendContext
+
+    ctx = SpendContext(user_id="u1", niche_id=None, job_id=None, record=record)
+
+    async def build(user_id):
+        assert user_id == "u1"
+        return ctx
+
+    monkeypatch.setattr(svc, "ledger_context", build)
+    return ctx
+
+
+async def test_point5_meters_the_call_on_a_niche_less_ledger_row(model, logged, ad_repos,
+                                                                 monkeypatch):
+    entries = []
+
+    async def record(entry):
+        entries.append(entry)
+
+    _ledger(monkeypatch, record)
+    model.set_mode(q.Point.BUDGET_SHIFT, "enforce")
+    model.answer = _budget_answer(fatigue=0.8)
+    assert await points.judge_budget_change(user_id="u1", campaign=_campaign(),
+                                            metrics=_metrics()) == "creative_refresh"
+    assert len(entries) == 1
+    e = entries[0]
+    assert (e.user_id, e.niche_id, e.job_id) == ("u1", None, None)
+    assert (e.provider, e.sku) == ("openrouter", f"decision:{q.D1_MODEL}")
+    assert e.cost_usd == Decimal("0.00002") and e.units == Decimal(100)
+    assert logged[0]["cost_usd"] == Decimal("0.00002")
+
+
+async def test_point5_ledger_that_still_requires_a_niche_logs_and_continues(
+    model, logged, ad_repos, monkeypatch, caplog
+):
+    class NotNullViolationError(Exception):
+        sqlstate = "23502"
+
+    async def record(entry):
+        assert entry.niche_id is None
+        raise NotNullViolationError('null value in column "niche_id" of relation "spend_ledger"')
+
+    _ledger(monkeypatch, record)
+    model.set_mode(q.Point.BUDGET_SHIFT, "enforce")
+    model.answer = _budget_answer(tracking=0.95)
+
+    async def alert(user_id, campaign):
+        return None
+
+    monkeypatch.setattr(points, "_alert_tracking_break", alert)
+    with caplog.at_level("WARNING"):
+        # The judgment still tightens: the ledger problem changes nothing.
+        assert await points.judge_budget_change(user_id="u1", campaign=_campaign(),
+                                                metrics=_metrics()) == "hold_alert"
+    assert any("spend_ledger needs a nullable niche_id" in r.message for r in caplog.records)
+    # The cost is still on the decision_log row, so the call is accounted for.
+    assert logged[0]["cost_usd"] == Decimal("0.00002") and logged[0]["fallback_used"] is False
+
+
+async def test_point5_refused_spend_preflight_keeps_the_rule(model, logged, ad_repos,
+                                                             monkeypatch):
+    from marketer.repos.spend import SpendCapExceeded
+
+    async def record(entry):
+        raise AssertionError("nothing to meter when the call was refused")
+
+    ctx = _ledger(monkeypatch, record)
+
+    async def refuse(_estimate):
+        raise SpendCapExceeded("global cap", scope="global")
+
+    ctx.ensure_can_spend = refuse
+    model.set_mode(q.Point.BUDGET_SHIFT, "enforce")
+    model.answer = _budget_answer(tracking=0.95)
+    assert await points.judge_budget_change(user_id="u1", campaign=_campaign(),
+                                            metrics=_metrics()) == "rule"
+    assert model.calls == [] and logged[0]["fallback_used"] is True
+
+
+async def test_point5_without_a_ledger_context_still_decides(model, logged, ad_repos,
+                                                             monkeypatch):
+    async def none(user_id):
+        return None
+
+    monkeypatch.setattr(svc, "ledger_context", none)
+    model.set_mode(q.Point.BUDGET_SHIFT, "enforce")
+    model.answer = _budget_answer(fatigue=0.8)
+    assert await points.judge_budget_change(user_id="u1", campaign=_campaign(),
+                                            metrics=_metrics()) == "creative_refresh"
+
+
 @pytest.mark.parametrize("fail", ["timeout", "error"])
 async def test_point5_failure_fails_closed_to_rule(model, logged, ad_repos, fail):
     model.set_mode(q.Point.BUDGET_SHIFT, "enforce")
