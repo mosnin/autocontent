@@ -67,6 +67,7 @@ describe("ontology", () => {
   it("keys entity names stably and never empty", () => {
     expect(entityKey("  Pasta   Club! ")).toBe("pasta-club");
     expect(entityKey("パスタ")).toBe("パスタ");
+    expect(entityKey("Café Roma")).toBe("café-roma");
     expect(entityKey("!!!")).toMatch(/^x[a-z0-9]+$/);
   });
 });
@@ -362,7 +363,7 @@ describe("extraction", () => {
 describe("write path", () => {
   const MESSAGE = "Our brand voice is warm and practical.";
   const turn = { tenantId: A, message: MESSAGE, source: { kind: "message" as const, ref: "chat:1" } };
-  const gateFetch = (probability: number) => vi.fn(async () => new Response(JSON.stringify({ answers: { lasting_fact: { noul: probability } }, usage: { cost: 0.0001 }, model: "m" }), { status: 200 })) as unknown as typeof fetch;
+  const gateFetch = (probability: number) => vi.fn(async () => new Response(JSON.stringify({ answers: { lasting_fact: { type: "noul", noul: probability } }, usage: { cost: 0.0001 }, model: "m" }), { status: 200 })) as unknown as typeof fetch;
   const decisions = (env: Record<string, unknown>, fetchImpl: typeof fetch): DecisionRuntime => ({ env, fetch: fetchImpl, logger: { write: () => undefined }, agent: "test" });
 
   it("defaults to shadow, and shadow stores nothing", async () => {
@@ -513,7 +514,7 @@ describe("read path", () => {
     const hits = await memoryReadHook(() => ({ store }))(tenant(A), "what is our voice?");
     expect(hits).toMatchObject([{ id: "marketer-memory", source: "marketer-memory", score: 1 }]);
     expect(await memoryReadHook(() => ({ store }))(tenant(B), "what is our voice?")).toEqual([]);
-    const broken = { ...store, current: async () => Promise.reject(new Error("api down")) } as unknown as InMemoryMemoryStore;
+    const broken = Object.assign(Object.create(store) as InMemoryMemoryStore, { current: async () => Promise.reject(new Error("api down")) });
     expect(await memoryReadHook(() => ({ store: broken }))(tenant(A), "voice")).toEqual([]);
     expect(await memoryReadHook(() => { throw new Error("no env"); })(tenant(A), "voice")).toEqual([]);
   });

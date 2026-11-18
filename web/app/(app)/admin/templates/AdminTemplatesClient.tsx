@@ -36,7 +36,7 @@ function fileToB64(file: File): Promise<string> {
 }
 
 export function AdminTemplatesClient({ initial }: { initial?: Template[] }) {
-  const { data: templates, mutate } = useSWR<Template[]>("/api/v1/templates/admin/all", clientFetch, { fallbackData: initial });
+  const { data: templates, error: loadError, isLoading, mutate } = useSWR<Template[]>("/api/v1/templates/admin/all", clientFetch, { fallbackData: initial });
   const [creating, setCreating] = React.useState(false);
   const [deleting, setDeleting] = React.useState<Template | null>(null);
   const [busyId, setBusyId] = React.useState<string | null>(null);
@@ -95,6 +95,15 @@ export function AdminTemplatesClient({ initial }: { initial?: Template[] }) {
       }
     >
       {note && <Notice ok={note.ok} error={note.error} />}
+      {!templates && loadError ? (
+        <EmptyLine action={<Button size="sm" onClick={() => void mutate()}>Try again</Button>}>Couldn&apos;t load templates. The API didn&apos;t answer.</EmptyLine>
+      ) : !templates && isLoading ? (
+        <Card className="space-y-3 p-3.5" >
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-3.5 w-2/3" />
+          ))}
+        </Card>
+      ) : (
       <Table<Template>
         rows={rows}
         rowKey={(t) => t.id}
@@ -118,10 +127,10 @@ export function AdminTemplatesClient({ initial }: { initial?: Template[] }) {
             align: "right",
             render: (t) => (
               <span className="inline-flex gap-1">
-                <Button size="sm" variant="ghost" disabled={busyId === t.id} onClick={() => void togglePublish(t)}>
+                <Button size="sm" variant="ghost" loading={busyId === t.id} disabled={busyId !== null} onClick={() => void togglePublish(t)}>
                   {t.is_published ? "Unpublish" : "Publish"}
                 </Button>
-                <Button size="sm" variant="ghost" disabled={busyId === t.id} onClick={() => setDeleting(t)}>
+                <Button size="sm" variant="ghost" disabled={busyId !== null} onClick={() => setDeleting(t)}>
                   Delete
                 </Button>
               </span>
@@ -129,6 +138,7 @@ export function AdminTemplatesClient({ initial }: { initial?: Template[] }) {
           },
         ]}
       />
+      )}
       <NewTemplateModal open={creating} onClose={() => setCreating(false)} onCreated={() => (setCreating(false), setNote({ ok: "Template created." }), void mutate())} />
       <ConfirmModal open={deleting !== null} onClose={() => setDeleting(null)} title={`Delete ${deleting?.name ?? "template"}?`} confirmLabel="Delete" danger busy={busyId === deleting?.id} onConfirm={() => void remove()}>
         <p>This can't be undone.</p>

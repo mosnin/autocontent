@@ -1,11 +1,14 @@
 /**
  * The shared Marketer API client (src/marketer/api.ts): tenant header from the execution context only, the service
  * token as bearer, idempotency keys on writes only, the brokered path for persistent agents, and error mapping.
+ * Timeouts, retries, the breaker and the error taxonomy: test/marketer-reliability.test.ts.
  * Plain Node: no platform import, `fetch` stubbed.
  */
 import { AgentError, HttpError } from "@agent-starter/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { errorDetail, marketerApi, type MarketerCallContext, marketerUrl } from "../src/marketer/api.ts";
+import { MarketerApiError } from "../src/marketer/errors.ts";
+import { BackendHealth } from "../src/marketer/resilience.ts";
 
 const ENV = { PRIMARY_SAAS_API_URL: "https://api.marketer.test/", SAAS_SERVICE_TOKEN: "svc-token-0123456789" };
 
@@ -28,7 +31,8 @@ const ctx = (over: Partial<MarketerCallContext> = {}): MarketerCallContext => ({
   tenant: { tenantId: "user_2abcTenant", userId: "user_2abcTenant" },
   idempotencyKey: "idem-run1-call1",
   signal: new AbortController().signal,
-  services: { env: ENV },
+  // A fresh breaker and no real sleeping between read retries (reliability is covered in marketer-reliability.test.ts).
+  services: { env: ENV, marketerClient: { health: new BackendHealth(), sleep: async () => undefined } },
   ...over,
 });
 const headers = (i = 0) => (seen[i]?.init.headers ?? {}) as Record<string, string>;
@@ -74,9 +78,12 @@ describe("marketerApi", () => {
 
     reply = () => new Response("upstream down", { status: 503, headers: { "retry-after": "2" } });
     const outage = (await marketerApi(ctx(), { method: "GET", path: "/jobs" }).catch((e: unknown) => e)) as HttpError;
+    expect(outage).toBeInstanceOf(MarketerApiError);
     expect(outage.status).toBe(503);
     expect(outage.retryable).toBe(true);
     expect(outage.retryAfterMs).toBe(2000);
+    expect((outage as MarketerApiError).kind).toBe("temporarily_unavailable");
+    expect((denied as MarketerApiError).kind).toBe("denied");
 
     reply = () => new Response("", { status: 401 });
     expect(((await marketerApi(ctx(), { method: "GET", path: "/jobs" }).catch((e: unknown) => e)) as HttpError).message).toContain("MARKETER_AGENT_SERVICE_TOKEN");

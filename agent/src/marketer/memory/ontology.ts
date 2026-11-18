@@ -81,7 +81,7 @@ export function predicateSpec(type: EntityType, predicate: string): PredicateSpe
 /** Stable key of an entity name inside a tenant: lower-case, alphanumerics joined by "-"; names without any get a hash. */
 export function entityKey(name: string): string {
   const slug = name
-    .normalize("NFKD")
+    .normalize("NFKC")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, "-")
     .replace(/^-+|-+$/g, "")

@@ -139,6 +139,7 @@ describe("retries", () => {
     expect((error as Error).message).toMatch(/^TEMPORARILY_UNAVAILABLE: /);
     script(drop);
     seen = [];
+    health.reset();
     const network = await caught(marketerApi(ctx(), GET));
     expect(seen).toHaveLength(3);
     expect((network as Error).message).toMatch(/could not be reached after 3 attempts/);
