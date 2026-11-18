@@ -69,9 +69,11 @@ export interface DecisionAdapter {
 }
 
 export class DecisionError extends Error {
-  constructor(readonly failure: DecisionFailure) {
+  readonly failure: DecisionFailure;
+  constructor(failure: DecisionFailure) {
     super(`decision ${failure.kind}: ${failure.message}`);
     this.name = "DecisionError";
+    this.failure = failure;
   }
 }
 

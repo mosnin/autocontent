@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, ButtonLink, Column, cx, EmptyLine, Input, PageHeader, Section, Segmented, StatusBadge, Table, StatLine, Time, ToolTitle } from "@/design-system";
+import { Button, ButtonLink, Column, cx, EmptyLine, Input, PageHeader, Section, Segmented, StatusBadge, Table, StatLine, Time, ToolTitle, Notice } from "@/design-system";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import { StartSession } from "@/components/chat/start-session";
 import { retryArticleAction } from "@/lib/actions";
@@ -33,7 +33,7 @@ function RetryArticle({ id }: { id: string }) {
   if (msg === "ok") return <span className="text-[12.5px] text-fg-muted">Retrying</span>;
   return (
     <span className="relative z-10 flex items-center gap-2">
-      {msg && <span className="text-[12px] text-negative">{msg}</span>}
+      {msg && <Notice inline error={msg} />}
       <Button
         size="sm"
         loading={busy}

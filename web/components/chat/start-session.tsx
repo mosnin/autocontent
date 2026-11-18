@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Composer } from "@/design-system";
+import { Composer, Notice } from "@/design-system";
 import { departmentById, type DepartmentId } from "@/lib/departments";
 import { useAgent } from "@/components/chat/agent-provider";
 import { queueFirstMessage } from "./session-queue";
@@ -57,7 +57,11 @@ export function StartSession({ scope: initial = null, lockScope, autoStart, size
         agentPicker={<AgentPicker value={scope} onChange={setScope} locked={lockScope} />}
         placeholder={departmentById(scope)?.placeholder ?? "Ask Marketer to plan, make, post or scale… or @ to add context"}
       />
-      {error && <p className="mt-2 text-[12.5px] text-negative">{error}</p>}
+      {error && (
+        <div className="mt-2">
+          <Notice error={error} />
+        </div>
+      )}
     </div>
   );
 }

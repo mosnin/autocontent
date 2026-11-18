@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Chip, List, ListRow, Section, StatusBadge, Time } from "@/design-system";
+import { Button, Chip, List, ListRow, Section, StatusBadge, Time, Notice } from "@/design-system";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { FailureCategory, FailureItem, Failures } from "./types";
 
@@ -47,7 +47,7 @@ function FailureRow({ f }: { f: FailureItem }) {
           <Time iso={f.created_at} className="text-[12px] text-fg-faint" />
         </div>
         <p className="mt-0.5 line-clamp-2 text-[12.5px] text-fg-muted">{f.error ?? "No error message was recorded."}</p>
-        {error && <p className="text-[12px] text-negative">{error}</p>}
+        {error && <Notice error={error} />}
       </Link>
       {done ? (
         <span className="text-[12.5px] text-fg-muted">Retrying</span>

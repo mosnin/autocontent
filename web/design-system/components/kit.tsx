@@ -38,21 +38,25 @@ export function Chip({ selected, onClick, href, icon, children, className }: { s
 
 /* -------------------------------------------------------------- Notices */
 
-/** One line under a form after save / failure. Text only, no box. */
-export function Notice({ ok, error }: { ok?: string | null; error?: string | null }) {
+/**
+ * One line after a save or a failure. Text only, no box. `inline` renders a
+ * span, for places a paragraph can't go (beside a button, inside a row).
+ */
+export function Notice({ ok, error, inline }: { ok?: string | null; error?: string | null; inline?: boolean }) {
+  const As = inline ? "span" : "p";
   if (error)
     return (
-      <p role="alert" className="flex items-center gap-1.5 text-[12.5px] text-negative">
-        <AlertCircle className="size-3.5 shrink-0" />
+      <As role="alert" className={cx("items-center gap-1.5 text-[12.5px] text-negative", inline ? "inline-flex" : "flex")}>
+        <AlertCircle aria-hidden className="size-3.5 shrink-0" />
         {error}
-      </p>
+      </As>
     );
   if (ok)
     return (
-      <p role="status" className="ds-enter flex items-center gap-1.5 text-[12.5px] text-positive">
-        <Check className="size-3.5 shrink-0" />
+      <As role="status" className={cx("ds-enter items-center gap-1.5 text-[12.5px] text-positive", inline ? "inline-flex" : "flex")}>
+        <Check aria-hidden className="size-3.5 shrink-0" />
         {ok}
-      </p>
+      </As>
     );
   return null;
 }

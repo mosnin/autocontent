@@ -3,7 +3,7 @@
 import { ChevronDown, GalleryHorizontal, Image as ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, Chip, ConfirmModal, cx, EmptyLine, List, StatusBadge, Thumb, Time } from "@/design-system";
+import { Button, Chip, ConfirmModal, cx, EmptyLine, List, StatusBadge, Thumb, Time, Notice } from "@/design-system";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { ImagePost, Niche } from "@/lib/types";
 import { postStatusLabel, postTitle, postTone, POST_IN_PROGRESS } from "./status";
@@ -64,7 +64,7 @@ function CarouselRow({ post, playbook }: { post: ImagePost; playbook?: string })
             <Time iso={post.created_at} />
           </div>
           {post.status === "failed" && post.error && <div className="mt-0.5 line-clamp-1 text-[12px] text-negative">{post.error}</div>}
-          {error && !confirm && <div className="mt-0.5 text-[12px] text-negative">{error}</div>}
+          {error && !confirm && <Notice inline error={error} />}
         </button>
         <div className="ml-auto flex shrink-0 items-center gap-2.5">
           <StatusBadge tone={postTone(post.status)}>{postStatusLabel(post.status)}</StatusBadge>

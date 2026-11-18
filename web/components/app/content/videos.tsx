@@ -4,7 +4,7 @@ import { Clapperboard, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, Chip, ConfirmModal, EmptyLine, Input, List, ListRow, Section, Select, StatusBadge, Thumb, Time } from "@/design-system";
+import { Button, Chip, ConfirmModal, EmptyLine, Input, List, ListRow, Section, Select, StatusBadge, Thumb, Time, Notice } from "@/design-system";
 import { retryJobAction } from "@/lib/actions";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { Job, Niche } from "@/lib/types";
@@ -46,7 +46,7 @@ export function VideoActions({ job, size = "sm" }: { job: Pick<Job, "id" | "stat
   if (job.status === "failed")
     return (
       <span className="flex items-center gap-2">
-        {error && <span className="text-[12px] text-negative">{error}</span>}
+        {error && <Notice inline error={error} />}
         <Button size={size} onClick={() => void run("retry")} loading={busy === "retry"}>
           Retry
         </Button>
@@ -55,7 +55,7 @@ export function VideoActions({ job, size = "sm" }: { job: Pick<Job, "id" | "stat
   if (job.status === "awaiting_approval")
     return (
       <span className="flex items-center gap-1.5">
-        {error && !confirm && <span className="text-[12px] text-negative">{error}</span>}
+        {error && !confirm && <Notice inline error={error} />}
         <Button size={size} variant="ghost" onClick={() => setConfirm(true)} disabled={busy !== null}>
           Reject
         </Button>

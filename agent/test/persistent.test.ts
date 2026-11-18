@@ -28,7 +28,8 @@ vi.mock("../src/lib/submissions.ts", () => ({
 
 const { dispatchPersistentTurn } = await import("../src/persistent/dispatch.ts");
 const { persistentInstanceId, PERSISTENT_AGENT_NAME } = await import("../src/persistent/instance.ts");
-const { credentialBroker, managedEgress } = await import("../src/persistent/credentials.ts");
+const { credentialBroker, managedEgress, platformBrokeredFetch } = await import("../src/persistent/credentials.ts");
+const { readAutopilotState } = await import("../src/marketer/heartbeat.ts");
 const { sandboxControlPort } = await import("../src/persistent/sandbox.ts");
 const { persistentRoutes } = await import("../src/persistent/routes.ts");
 
@@ -111,6 +112,65 @@ describe("credentials and egress", () => {
     expect(guard.isAllowed("https://pastebin.com/raw/x")).toBe(false);
     expect(createEgressGuard({ ...managedEgress(vars) }).isAllowed("https://bad.example.com/")).toBe(false);
     expect(createEgressGuard({ ...managedEgress(env()) }).isAllowed("https://api.github.com/")).toBe(false);
+  });
+});
+
+describe("platform-side reads for a persistent agent (decision point 12)", () => {
+  const vars = (over: Record<string, unknown> = {}) => env({ PRIMARY_SAAS_API_URL: "https://api.saas.test", SAAS_SERVICE_TOKEN: "svc_secret", PERSISTENT_EGRESS_ALLOW: "api.saas.test", ...over });
+  const cfg = { egress: { allow: ["api.saas.test"], deny: [] }, credentials: [{ name: "saas", hosts: ["api.saas.test"] }] };
+  const recorder = (reply: (url: string) => Response) => {
+    const calls: Array<{ url: string; authorization: string | null }> = [];
+    const fetchImpl = (async (url: string, init?: RequestInit) => {
+      calls.push({ url, authorization: new Headers(init?.headers).get("authorization") });
+      return reply(url);
+    }) as unknown as typeof fetch;
+    return { calls, fetchImpl };
+  };
+
+  it("sends the service token to the API host only", async () => {
+    const { calls, fetchImpl } = recorder(() => Response.json({ ok: true }));
+    const response = await platformBrokeredFetch(vars(), cfg, { fetch: fetchImpl })("https://api.saas.test/api/v1/workspace/inbox", { credential: "saas" });
+    expect(response.status).toBe(200);
+    expect(calls).toEqual([{ url: "https://api.saas.test/api/v1/workspace/inbox", authorization: "Bearer svc_secret" }]);
+  });
+
+  it("never carries the token across a redirect, and refuses a hop the egress policy does not allow", async () => {
+    const off = recorder((url) => (url.startsWith("https://api.saas.test") ? new Response(null, { status: 302, headers: { location: "https://evil.example.com/collect" } }) : Response.json({ leaked: true })));
+    await expect(platformBrokeredFetch(vars(), cfg, { fetch: off.fetchImpl })("https://api.saas.test/api/v1/spend/today", { credential: "saas" })).rejects.toThrow();
+    expect(off.calls.map((c) => c.url)).toEqual(["https://api.saas.test/api/v1/spend/today"]);
+    // Even when the platform allows the second host, the credential is bound to the API host and is dropped.
+    const allowed = recorder((url) => (url.startsWith("https://api.saas.test") ? new Response(null, { status: 302, headers: { location: "https://cdn.saas.test/x" } }) : Response.json({ ok: true })));
+    const wide = { egress: { allow: ["api.saas.test", "cdn.saas.test"], deny: [] }, credentials: cfg.credentials };
+    await platformBrokeredFetch(vars({ PERSISTENT_EGRESS_ALLOW: "api.saas.test, cdn.saas.test" }), wide, { fetch: allowed.fetchImpl })("https://api.saas.test/api/v1/niches", { credential: "saas" });
+    expect(allowed.calls).toEqual([
+      { url: "https://api.saas.test/api/v1/niches", authorization: "Bearer svc_secret" },
+      { url: "https://cdn.saas.test/x", authorization: null },
+    ]);
+  });
+
+  it("fails closed without the platform allowlist or the agent's own binding: nothing is sent", async () => {
+    const { calls, fetchImpl } = recorder(() => Response.json({ ok: true }));
+    await expect(platformBrokeredFetch(vars({ PERSISTENT_EGRESS_ALLOW: "" }), cfg, { fetch: fetchImpl })("https://api.saas.test/api/v1/niches", { credential: "saas" })).rejects.toThrow();
+    await expect(platformBrokeredFetch(vars(), { ...cfg, credentials: [] }, { fetch: fetchImpl })("https://api.saas.test/api/v1/niches", { credential: "saas" })).rejects.toThrow();
+    await expect(platformBrokeredFetch(vars(), { ...cfg, egress: { allow: ["other.test"], deny: [] } }, { fetch: fetchImpl })("https://api.saas.test/api/v1/niches", { credential: "saas" })).rejects.toThrow();
+    expect(calls).toEqual([]);
+  });
+
+  it("times out instead of holding the tick", async () => {
+    const hang = ((_url: string, init?: RequestInit) => new Promise<Response>((_, reject) => init?.signal?.addEventListener("abort", () => reject(new DOMException("timed out", "TimeoutError"))))) as unknown as typeof fetch;
+    await expect(platformBrokeredFetch(vars(), cfg, { fetch: hang, timeoutMs: 20 })("https://api.saas.test/api/v1/niches", { credential: "saas" })).rejects.toThrow();
+  });
+
+  it("feeds the autopilot readings through the same walls, and a blocked read just leaves the reading out", async () => {
+    const { calls, fetchImpl } = recorder((url) => Response.json(url.includes("/spend/today") ? { total_usd: "4.50" } : url.includes("/niches") ? [{ daily_spend_cap_usd: 10 }] : { items: [] }));
+    const ctx = (v: never) => ({ tenant: { tenantId: "tenant_a" }, services: { env: { PRIMARY_SAAS_API_URL: "https://api.saas.test" }, fetch: platformBrokeredFetch(v, cfg, { fetch: fetchImpl }), marketerClient: { sleep: async () => undefined } } });
+    const readings = await readAutopilotState(ctx(vars()), 9);
+    expect(readings.spendToday).toEqual({ spentUsd: 4.5, dailyCapUsd: 10 });
+    expect(calls.every((c) => c.authorization === "Bearer svc_secret" && c.url.startsWith("https://api.saas.test/api/v1/"))).toBe(true);
+    calls.length = 0;
+    const blocked = await readAutopilotState(ctx(vars({ PERSISTENT_EGRESS_ALLOW: "" })), 9);
+    expect(blocked).toEqual({ overview: undefined, inbox: undefined, hour: 9 });
+    expect(calls).toEqual([]);
   });
 });
 

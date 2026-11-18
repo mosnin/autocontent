@@ -99,7 +99,7 @@ export function Webhooks({ endpoints }: { endpoints: WebhookEndpoint[] | null })
                       {ep.enabled ? "" : "Paused · "}
                       {ep.last_delivery_at ? `last delivery ${formatRelative(ep.last_delivery_at)}` : "no deliveries yet"}
                     </div>
-                    {note?.id === ep.id && <div className={cx("text-[12px]", note.ok ? "text-positive" : "text-negative")}>{note.text}</div>}
+                    {note?.id === ep.id && <Notice ok={note.ok ? note.text : null} error={note.ok ? null : note.text} />}
                   </div>
                   <div className="ml-auto flex shrink-0 items-center gap-1.5">
                     {ep.last_status != null && <StatusBadge tone={ok ? "positive" : "negative"}>HTTP {ep.last_status}</StatusBadge>}

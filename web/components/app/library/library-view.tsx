@@ -321,7 +321,11 @@ function ImagePostRuns({ posts, nicheTitle, onChanged }: { posts: ImagePost[]; n
         {waiting.map((p) => (
           <div key={p.id}>
             <PlanCard title={name(p)} icon={<GalleryHorizontal className="size-3.5 text-on-fill" />} meta="Needs you" steps={[{ label: what(p) }, { label: "Post it once approved" }]} onApprove={() => void act(p, "approve")} approving={busy === p.id} approveLabel="Approve & post" />
-            {error?.id === p.id && <p className="px-1 pt-1.5 text-[12px] text-negative">{error.text}</p>}
+            {error?.id === p.id && (
+              <div className="px-1 pt-1.5">
+                <Notice error={error.text} />
+              </div>
+            )}
           </div>
         ))}
         {rest.length > 0 && (
