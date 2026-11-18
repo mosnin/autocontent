@@ -46,6 +46,11 @@ const WAVE_SITES = [
   "app/preview/wave/wave-demo.tsx",
 ];
 const WAVE_WRAPPER = "design-system/components/wave.tsx";
+/* The goo (GOO.md): same contract, for AgentSplit. */
+const GOO_SITES = [
+  "app/preview/wave/wave-demo.tsx",
+];
+const GOO_WRAPPER = "design-system/components/goo.tsx";
 
 const problems = [];
 for (const scope of SCOPES) {
@@ -83,6 +88,27 @@ for (const scope of SCOPES) {
   }
   for (const site of sites)
     if (!seen.has(site)) problems.push({ rel: site, line: 1, rule: "wave-removed", hit: "<CommitWave>", why: "this screen is a registered wave site and must keep its wave (WAVE.md)" });
+  const gooSites = new Set(GOO_SITES);
+  const gooSeen = new Set();
+  for (const file of all) {
+    const rel = relative(root, file).split(sep).join("/");
+    const text = readFileSync(file, "utf8");
+    if (/from\s+["']liquid-gooey["']/.test(text) && rel !== GOO_WRAPPER)
+      problems.push({ rel, line: 1, rule: "goo-library", hit: "liquid-gooey", why: "use AgentSplit from @/design-system; only the wrapper imports the library (GOO.md)" });
+    if (/<AgentSplit[\s>]/.test(text) && rel !== GOO_WRAPPER) {
+      gooSeen.add(rel);
+      if (!gooSites.has(rel)) problems.push({ rel, line: 1, rule: "goo-unregistered", hit: "<AgentSplit>", why: "the goo means delegation only; register a new site in GOO.md and GOO_SITES, or remove it" });
+    }
+  }
+  for (const site of gooSites)
+    if (!gooSeen.has(site)) problems.push({ rel: site, line: 1, rule: "goo-removed", hit: "<AgentSplit>", why: "this screen is a registered goo site and must keep it (GOO.md)" });
+  try {
+    readFileSync(join(root, GOO_WRAPPER), "utf8");
+    readFileSync(join(root, "design-system", "GOO.md"), "utf8");
+    if (!/"liquid-gooey":\s*"\d/.test(readFileSync(join(root, "package.json"), "utf8"))) throw new Error("unpinned");
+  } catch {
+    problems.push({ rel: GOO_WRAPPER, line: 1, rule: "goo-removed", hit: "missing or unpinned", why: "the goo wrapper, GOO.md and an exact-pinned liquid-gooey dependency must all exist (GOO.md)" });
+  }
   try {
     readFileSync(join(root, WAVE_WRAPPER), "utf8");
     readFileSync(join(root, "design-system", "WAVE.md"), "utf8");

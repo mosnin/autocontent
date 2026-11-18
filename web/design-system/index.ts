@@ -10,3 +10,4 @@ export { Shader, PALETTES, paletteFor, fieldGradient, cssFallback, type Palette 
 export * from "./components/kit";
 export { Markdown } from "./components/markdown";
 export { CommitWave, type WaveMoment } from "./components/wave";
+export { AgentSplit, type SplitAgent } from "./components/goo";

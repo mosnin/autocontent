@@ -48,7 +48,7 @@ Open the image before you build or change a screen that uses it.
    - the six tool gradients, one per tool and the same everywhere
 4. **Small and dense.** Base text is 13px, rows are 28px, buttons are 28px rounded rectangles (6px corners), and page headers are 48px. Titles are medium weight, never bold.
 5. **Conversation first.** Every page has a way to ask the agent about what you're looking at: a scoped composer, an `AskPill`, or "Ask about this". Data pages show the data. They don't explain the feature.
-6. **Nothing decorative moves.** The one exception is the wave, which marks a person committing something real; it has its own rules in [`WAVE.md`](./WAVE.md).
+6. **Nothing decorative moves.** The one exception is the wave, which marks a person committing something real; it has its own rules in [`WAVE.md`](./WAVE.md). The other is the goo, which shows Marketer splitting into its specialists ([`GOO.md`](./GOO.md)).
    Apart from that, no pulsing dots, glowing borders, bouncing badges or gradient text. Motion is limited to press feedback (`ds-press`), enter (`ds-enter`), popovers (`ds-pop`), the chat shimmer on "Agent is working", and the home shader.
 
 ## 3. Tokens (`tokens.css`)
@@ -221,9 +221,11 @@ In `app/(app)`, `app/(onboarding)`, `components/{shell,chat,home,app}` and `desi
 If you need something the system doesn't have, add it here (component +
 README row + reference), then use it. Never fork a one-off copy in a page.
 
-## 7. The wave
+## 7. The wave and the goo
 
 `CommitWave` (`components/wave.tsx`) is the only spectacle in the app. It opens from the button a person pressed and carries what they reviewed into what now exists. It is used for three moments only: `launch`, `approve` and `arrive`. The rules, the reasons and the list of screens are in [`WAVE.md`](./WAVE.md). The guard fails if a registered screen loses its wave, if the wave shows up anywhere else, or if anything but the wrapper imports the engine.
+
+`AgentSplit` (`components/goo.tsx`) is the second deliberate effect. Specialist chips bud out of the Marketer chip when work is handed off and melt back when it ends. It means delegation and is used for nothing else. Its rules and its list of screens are in [`GOO.md`](./GOO.md), with the same guard.
 
 ## 8. Checking a screen
 

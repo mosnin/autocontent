@@ -2,7 +2,7 @@
 
 import { Megaphone, ShieldCheck } from "lucide-react";
 import { useRef, useState } from "react";
-import { Button, CommitWave, Facts, StatusBadge, StepMark, ToolIcon } from "@/design-system";
+import { AgentSplit, Button, CommitWave, Facts, StatusBadge, StepMark, ToolIcon } from "@/design-system";
 
 function Launch() {
   const [live, setLive] = useState(false);
@@ -115,6 +115,35 @@ function Approve() {
   );
 }
 
+const TEAM = [
+  { name: "Content producer", tone: "a" as const },
+  { name: "Media buyer", tone: "b" as const },
+  { name: "Analyst", tone: "e" as const },
+];
+
+function Split() {
+  const [n, setN] = useState(0);
+  const [working, setWorking] = useState(true);
+  return (
+    <div className="rounded-ds-lg border border-hairline bg-ds-bg p-5">
+      <div className="min-h-[64px]">
+        <AgentSplit agents={TEAM.slice(0, n)} working={working} activeName="Media buyer" />
+      </div>
+      <div className="mt-4 flex gap-1.5">
+        <Button size="sm" onClick={() => (setWorking(true), setN((v) => Math.min(3, v + 1)))} data-testid="split">
+          Hand off
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setWorking(false)} data-testid="merge">
+          Done
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => (setN(0), setWorking(true))}>
+          Reset
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function WaveDemo() {
   return (
     <div className="mx-auto max-w-[520px] space-y-8">
@@ -125,6 +154,10 @@ export function WaveDemo() {
       <section>
         <h1 className="mb-3 text-[13px] text-fg-muted">approve</h1>
         <Approve />
+      </section>
+      <section>
+        <h1 className="mb-3 text-[13px] text-fg-muted">agent split (goo)</h1>
+        <Split />
       </section>
     </div>
   );
