@@ -35,6 +35,29 @@ class X402PaymentError(RuntimeError):
     Surfaced as 402 so the client can correct and retry."""
 
 
+class X402FacilitatorError(RuntimeError):
+    """The facilitator could not be reached or answered with an error.
+
+    ``stage`` says what that means for the payer's money:
+
+    - ``verify``: nothing was submitted on-chain. Safe to try again.
+    - ``settle``: the settlement request was sent and we do not know whether it
+      landed (a timeout, a dropped connection, a 5xx). The payer may have been
+      charged. Never retried automatically; surfaced as an unknown outcome."""
+
+    def __init__(self, stage: str, cause: BaseException) -> None:
+        super().__init__(f"x402 facilitator {stage} failed: {type(cause).__name__}")
+        self.stage = stage
+        self.cause = cause
+
+
+# Explicit, per phase. Settlement waits for an on-chain confirmation, so its
+# read timeout is longer than verify's; neither is retried.
+_VERIFY_TIMEOUT_SEC = 15.0
+_SETTLE_TIMEOUT_SEC = 45.0
+_CONNECT_TIMEOUT_SEC = 5.0
+
+
 @dataclass(frozen=True)
 class SettleResult:
     success: bool
@@ -64,7 +87,9 @@ def to_atomic(amount_usd: Decimal) -> str:
 
 
 def from_atomic(atomic: str | int) -> Decimal:
-    return (Decimal(int(atomic)) / _ATOMIC).quantize(Decimal("0.01"))
+    # Round down, like to_atomic: never credit a fraction of a cent the payer
+    # did not send.
+    return (Decimal(int(atomic)) / _ATOMIC).quantize(Decimal("0.01"), rounding="ROUND_DOWN")
 
 
 def clamp_topup(amount_usd: Decimal) -> Decimal:
@@ -121,12 +146,16 @@ def decode_payment_header(header: str) -> dict:
 
 # --- facilitator HTTP (mocked in tests) --------------------------------------
 
-async def _facilitator_post(path: str, body: dict) -> dict:
+async def _facilitator_post(path: str, body: dict, *, timeout_sec: float = _VERIFY_TIMEOUT_SEC) -> dict:
+    """One POST to the facilitator. No retry: ``/settle`` moves money, and a
+    second attempt after a lost answer is exactly the double send the rails
+    exist to prevent."""
     _require_enabled()
     import httpx  # lazy
 
     url = settings.x402_facilitator_url.rstrip("/") + path
-    async with httpx.AsyncClient(timeout=20) as client:
+    timeout = httpx.Timeout(timeout_sec, connect=_CONNECT_TIMEOUT_SEC)
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
         resp = await client.post(url, json=body)
         resp.raise_for_status()
         return resp.json()
@@ -145,14 +174,35 @@ async def verify_and_settle(
         "paymentPayload": payment_payload,
         "paymentRequirements": accepts,
     }
-    verify = await _facilitator_post("/verify", verify_body)
+    try:
+        verify = await _facilitator_post("/verify", verify_body)
+    except (X402Disabled, X402PaymentError):
+        raise
+    except Exception as e:  # noqa: BLE001 — transport, HTTP status or a non-JSON body
+        raise X402FacilitatorError("verify", e) from e
+    if not isinstance(verify, dict):
+        raise X402FacilitatorError("verify", ValueError("non-object response"))
     if not verify.get("isValid", verify.get("valid", False)):
         return SettleResult(
             False, "", "", Decimal("0"),
             error=str(verify.get("invalidReason", "payment failed verification")),
         )
 
-    settle = await _facilitator_post("/settle", verify_body)
+    try:
+        settle = await _facilitator_post("/settle", verify_body, timeout_sec=_SETTLE_TIMEOUT_SEC)
+    except (X402Disabled, X402PaymentError):
+        raise
+    except Exception as e:  # noqa: BLE001 — sent; the answer is what we lack
+        import logging
+
+        logging.getLogger(__name__).error(
+            "x402 settle outcome unknown (%s); payer=%s amount=%s — check the "
+            "facilitator before crediting or asking for another payment",
+            type(e).__name__, verify.get("payer") or "?", accepts["maxAmountRequired"],
+        )
+        raise X402FacilitatorError("settle", e) from e
+    if not isinstance(settle, dict):
+        raise X402FacilitatorError("settle", ValueError("non-object response"))
     if not settle.get("success", False):
         return SettleResult(
             False, "", "", Decimal("0"),

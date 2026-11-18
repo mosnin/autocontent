@@ -6,5 +6,5 @@ export const metadata = { title: "New campaign · Paid media · Marketer" };
 
 export default async function NewPaidCampaignPage() {
   const accounts = await safe<AdAccount[]>("/api/v1/ads/accounts");
-  return <NewCampaignView accounts={accounts ?? []} />;
+  return <NewCampaignView accounts={accounts ?? []} loadFailed={accounts === null} />;
 }

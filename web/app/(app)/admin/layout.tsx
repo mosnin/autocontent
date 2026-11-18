@@ -8,17 +8,19 @@ export const metadata = { title: "Admin · Marketer" };
 /**
  * Thin server-side guard for the whole /admin surface. We probe the admin
  * overview: a 403 means the caller is not an admin, so we render a clean
- * "not authorized" state and nothing else. Other failures surface to the
- * error boundary rather than masquerading as an auth failure. Each page
- * renders its own header through AdminFrame.
+ * "not authorized" state and nothing else. Other failures don't masquerade
+ * as an auth failure and don't throw: each page renders its own header
+ * through AdminFrame and an EmptyLine when its fetch fails. The backend
+ * enforces admin on every route, so a failed probe never exposes data.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   let authorized = true;
   try {
     await fetchAdminOverview();
   } catch (err) {
+    // Anything else (API down, timeout) is not an auth failure: let the page
+    // render its own "couldn't load" line instead of throwing to the boundary.
     if (isForbidden(err)) authorized = false;
-    else throw err;
   }
 
   if (!authorized) {

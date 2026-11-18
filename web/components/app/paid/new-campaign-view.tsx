@@ -9,7 +9,7 @@ import { accountName, platformLabel } from "./shared";
 const OBJECTIVES = ["conversions", "traffic", "awareness", "leads", "app_installs", "sales"];
 
 /** Draft a campaign (README §5 form, Column md). Drafts never spend. */
-export function NewCampaignView({ accounts }: { accounts: AdAccount[] }) {
+export function NewCampaignView({ accounts, loadFailed }: { accounts: AdAccount[]; loadFailed?: boolean }) {
   const router = useRouter();
   const active = accounts.filter((a) => a.status === "active");
   const [accountId, setAccountId] = useState(active[0]?.id ?? "");
@@ -40,7 +40,9 @@ export function NewCampaignView({ accounts }: { accounts: AdAccount[] }) {
     <>
       <PageHeader crumbs={[{ label: "Paid media", href: "/paid" }, { label: "New campaign" }]} />
       <Column width="md" title="New campaign" description="Creates a draft. Nothing spends until you activate it, and activation passes your caps and approvals.">
-        {active.length === 0 ? (
+        {loadFailed ? (
+          <EmptyLine action={<ButtonLink href="/paid">Back to paid media</ButtonLink>}>Couldn&apos;t load your ad accounts. Nothing was created; refresh in a moment.</EmptyLine>
+        ) : active.length === 0 ? (
           <EmptyLine
             action={
               <ButtonLink href="/paid/connect" variant="primary">

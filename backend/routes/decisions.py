@@ -6,9 +6,18 @@
   tenant, never a body field.
 - ``GET  /api/v1/decisions``      the caller's own decisions, newest first,
   keyset-paginated with an opaque ``cursor``.
+- ``POST /api/v1/decisions/{id}/outcome``  record what happened afterwards
+  (``outcome``) and/or what a person changed (``correction``) on a decision the
+  caller owns. 404 for anyone else's id.
 
-The state is never sent here, only its hash. Rows are append-only; outcomes
-and corrections are filled in later by the pipelines.
+The state is never sent here, only its hash. Rows are append-only; outcome
+and correction are the only columns that change after the insert.
+
+Abuse bounds: the whole request is capped at 64 KiB by
+``backend.security.BodySizeLimitMiddleware`` (before parsing), every field is
+length-bounded below, and writes are rate limited per tenant: the agent logs
+from one egress, so a per-IP limit would either throttle every tenant together
+or bound nothing.
 """
 from __future__ import annotations
 
@@ -19,16 +28,22 @@ from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from marketer.repos import decision_log as decision_log_repo
 from marketer.repos.decision_log import DecisionLogEntry
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter()
 
 MAX_ANSWERS_BYTES = 32_000
+MAX_OUTCOME_BYTES = 8_000
+# Per tenant. A busy run makes a few decisions a second at most; anything
+# past this is a loop, not a workload.
+LOG_RATE_LIMIT = "300/minute"
+OUTCOME_RATE_LIMIT = "120/minute"
 _IDENT = r"^[a-z0-9][a-z0-9_.:\-]*$"
 
 
@@ -66,7 +81,42 @@ class DecisionLogPage(BaseModel):
     next_cursor: str | None
 
 
-@router.post("/log", response_model=DecisionLogCreated, status_code=status.HTTP_201_CREATED)
+class DecisionOutcomeIn(BaseModel):
+    """What happened after the decision. At least one of the two.
+
+    ``outcome``     the later-known truth (engagement, a QA result).
+    ``correction``  what a person changed (an override, an edit)."""
+
+    model_config = {"extra": "forbid"}
+
+    outcome: dict[str, Any] | None = None
+    correction: dict[str, Any] | None = None
+
+    @field_validator("outcome", "correction")
+    @classmethod
+    def _bounded(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
+        if v is not None and len(json.dumps(v, default=str)) > MAX_OUTCOME_BYTES:
+            raise ValueError("too large")
+        return v
+
+    @model_validator(mode="after")
+    def _one_of(self) -> DecisionOutcomeIn:
+        if self.outcome is None and self.correction is None:
+            raise ValueError("send outcome, correction, or both")
+        return self
+
+
+class DecisionOutcomeRecorded(BaseModel):
+    id: UUID
+    ok: bool = True
+
+
+@router.post(
+    "/log",
+    response_model=DecisionLogCreated,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[user_rate_limit("decisions.log", LOG_RATE_LIMIT)],
+)
 async def log_decision(body: DecisionLogIn, ctx: AuthCtx = CurrentUser) -> DecisionLogCreated:
     # Only the agent harness (service token + x-tenant-id) writes here; people
     # and personal tokens read their log but don't author it.
@@ -74,6 +124,29 @@ async def log_decision(body: DecisionLogIn, ctx: AuthCtx = CurrentUser) -> Decis
         raise HTTPException(status.HTTP_403_FORBIDDEN, "decision logs are written by the agent")
     new_id = await decision_log_repo.insert(user_id=ctx.user_id, **body.model_dump())
     return DecisionLogCreated(id=new_id)
+
+
+@router.post(
+    "/{decision_id}/outcome",
+    response_model=DecisionOutcomeRecorded,
+    dependencies=[user_rate_limit("decisions.outcome", OUTCOME_RATE_LIMIT)],
+)
+async def record_decision_outcome(
+    decision_id: UUID, body: DecisionOutcomeIn, ctx: AuthCtx = CurrentUser
+) -> DecisionOutcomeRecorded:
+    """Record an outcome and/or a correction on one of the caller's decisions.
+
+    The row is matched on id AND the authenticated user, so another tenant's
+    id answers 404 exactly like an id that does not exist. Both the agent
+    (acting for the tenant) and the person may write: the agent knows results,
+    the person knows what they overrode. A field left out is left as it was."""
+    updated = await decision_log_repo.record_outcome(
+        decision_id, user_id=ctx.user_id,
+        outcome=body.outcome, correction=body.correction,
+    )
+    if not updated:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "decision not found")
+    return DecisionOutcomeRecorded(id=decision_id)
 
 
 @router.get("", response_model=DecisionLogPage)
