@@ -17,6 +17,7 @@ import {
   FIXTURE_NICHES,
   FIXTURE_PLAN,
 } from "@/lib/fixtures-insights";
+import { PageSkeleton } from "@/design-system";
 import { FIXTURE_INBOX } from "@/lib/fixtures";
 import { EMPTY_INBOX } from "@/lib/workspace";
 
@@ -39,6 +40,13 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   // Every fetch failed: each tab says so in one line.
   "activity/error": () => <ActivityView activity={null} inbox={null} decisions={null} basePath="/preview/app/activity" initialTab="decisions" />,
   inbox: () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} decisions={FIXTURE_DECISIONS} basePath="/preview/app/activity" initialTab="needs" focus={FIXTURE_INBOX.items[1]?.id ?? null} />,
+  // What each route's loading.tsx renders, one per page template.
+  "loading/column": () => <PageSkeleton template="column" title="Activity" />,
+  "loading/tool": () => <PageSkeleton template="tool" title="Content" />,
+  "loading/dashboard": () => <PageSkeleton template="dashboard" title="Analytics" />,
+  "loading/detail": () => <PageSkeleton template="detail" title="Video" crumbs={[{ label: "Content", href: "/content" }, { label: "Video" }]} width="lg" />,
+  "loading/chat": () => <PageSkeleton template="chat" title="Session" />,
+  "loading/home": () => <PageSkeleton template="home" title="Home" />,
   plan: () => plan("week"),
   "plan/month": () => plan("month"),
   "plan/empty": () => {
