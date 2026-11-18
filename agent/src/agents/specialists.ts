@@ -8,7 +8,7 @@ import { adsFirewall, DEPARTMENT_FIREWALL, DEPARTMENT_TOOLS } from "../marketer/
 import { busTools } from "../multi-agent/bus.ts";
 import { delegationDispatch } from "../multi-agent/delegation.ts";
 import { roomStub } from "../multi-agent/room-client.ts";
-import { SPECIALISTS, type SpecialistId } from "../multi-agent/roster.ts";
+import { departmentAutonomyCap, SPECIALISTS, type SpecialistId } from "../multi-agent/roster.ts";
 import groupCollaboration from "../skills/group-collaboration/SKILL.md";
 import { useMarketingSkills } from "../skills/marketing.ts";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
@@ -32,6 +32,8 @@ interface SpecialistOptions {
  *    report_delegation;
  *  - per room (`<agent>--<tenant>---room.<key>`): summoned with a <signal type="room-turn">, it posts one message;
  *  - per bus routing key (`<agent>--<tenant>---bus.<key>`): a provenance-wrapped <signal type="agent-message">.
+ * Only a delegated task carries authority to act without a person. In a room or a bus conversation the department
+ * can read freely, but every mutating call (MEDIUM makers included) parks for the account owner's approval.
  *
  * Every department holds ONLY its own Marketer tools (src/marketer/tools/*). Anything HIGH or CRITICAL (publishing,
  * approvals, starting campaigns, brand kit, spend caps, ad money) parks on an approval bound to the account owner:
@@ -41,6 +43,7 @@ interface SpecialistOptions {
 function useSpecialist(selfId: SpecialistId, id: string, persona: string, options: SpecialistOptions = {}): string {
   const spec = SPECIALISTS.find((s) => s.id === selfId) ?? SPECIALISTS[0];
   const department = DEPARTMENT_TOOLS[selfId]();
+  const autonomyCap = departmentAutonomyCap(id, options.maxAutonomousTier);
   const own = [
     ...createRoomTools({ room: roomStub, participants: [...SPECIALISTS], tenantId: () => ctx.tenant.tenantId, selfId, selfRole: spec.role }).filter((t) => t.name === "post_to_room"),
     ...department,
@@ -56,7 +59,9 @@ function useSpecialist(selfId: SpecialistId, id: string, persona: string, option
     // Execution-time grant: inside a delegated task only the requester's granted tools run (built-ins included),
     // plus the department's own read-only tools.
     policy: delegationPolicy({ id, tools: own, alwaysAllowed: [...readOnly(own), "plan_goals", "update_goal"] }),
-    ...(options.maxAutonomousTier ? { autonomy: autonomyPolicy(options.maxAutonomousTier) } : {}),
+    // A bus message or a room turn is information, not authority: outside a delegated task every mutating call
+    // waits for the account owner (departmentAutonomyCap). Inside one, the department's own ceiling applies.
+    ...(autonomyCap ? { autonomy: autonomyPolicy(autonomyCap) } : {}),
     // Per-run call quotas for every department (a maker loop spends credits, not model budget): DEPARTMENT_FIREWALL.
     firewall: options.firewall ?? DEPARTMENT_FIREWALL,
     memory: true,

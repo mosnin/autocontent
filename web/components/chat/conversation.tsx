@@ -426,6 +426,7 @@ function ApprovalBlock({ approval, decider, names }: { approval: ApprovalRequest
         allowOwn={question.kind !== "confirm"}
         placeholder={question.placeholder ?? "Type it your own"}
         answered={answered ?? undefined}
+        busy={decider.isPending(approval.approvalId)}
         onAnswer={(value, i) => void decider.answer(approval, question.kind === "confirm" ? i === 0 : value)}
       />
     );

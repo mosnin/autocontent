@@ -67,7 +67,7 @@ export function Composer({
     setValue("");
   };
   return (
-    <div className={cx("rounded-ds-xl border border-hairline bg-surface transition-colors focus-within:border-hairline-strong", className)}>
+    <div className={cx("rounded-ds-xl border border-hairline bg-surface transition-colors focus-within:border-fg-faint", className)}>
       <div className="flex h-8 items-center gap-2 border-b border-hairline px-3 text-[12px]">
         {agentPicker ?? (
           <>
@@ -396,15 +396,18 @@ export function ApprovalCard({
  * "Type it your own" row, and "↑ ↓ to navigate". Replaces the composer while
  * the agent waits on a person.
  */
-export function QuestionCard({ title, options, onAnswer, allowOwn = true, answered, placeholder = "Type it your own" }: { title: string; options: { label: string; description?: string }[]; onAnswer: (value: string, index: number) => void; allowOwn?: boolean; answered?: string; placeholder?: string }) {
+export function QuestionCard({ title, options, onAnswer, allowOwn = true, answered, busy, placeholder = "Type it your own" }: { title: string; options: { label: string; description?: string }[]; onAnswer: (value: string, index: number) => void; allowOwn?: boolean; answered?: string; /** The answer is being sent: the options lock so it can't be sent twice. */ busy?: boolean; placeholder?: string }) {
   const [sel, setSel] = useState(0);
   const [own, setOwn] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   const count = options.length + (allowOwn ? 1 : 0);
   useEffect(() => {
-    if (answered) return;
+    if (answered || busy) return;
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
+      // Shortcuts work from the page or from inside the card, never from another control: Enter on a focused button elsewhere must stay that button's.
+      if (t && t !== document.body && !ref.current?.contains(t)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (t?.tagName === "TEXTAREA" || (t?.tagName === "INPUT" && t !== ref.current?.querySelector("input"))) return;
       const n = Number(e.key);
       if (n >= 1 && n <= options.length && t?.tagName !== "INPUT") {
@@ -413,13 +416,14 @@ export function QuestionCard({ title, options, onAnswer, allowOwn = true, answer
       }
       if (e.key === "ArrowDown") (e.preventDefault(), setSel((v) => Math.min(v + 1, count - 1)));
       if (e.key === "ArrowUp") (e.preventDefault(), setSel((v) => Math.max(v - 1, 0)));
-      if (e.key === "Enter" && t?.tagName !== "INPUT" && sel < options.length) (e.preventDefault(), onAnswer(options[sel]!.label, sel));
+      // Enter on a focused option is that button's own click; from the page it picks the highlighted one.
+      if (e.key === "Enter" && t?.tagName !== "INPUT" && t?.tagName !== "BUTTON" && sel < options.length) (e.preventDefault(), onAnswer(options[sel]!.label, sel));
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
   return (
-    <div ref={ref} className="ds-enter overflow-hidden rounded-ds-xl border border-hairline bg-surface">
+    <div ref={ref} role="group" aria-label={title} aria-busy={busy || undefined} className="ds-enter overflow-hidden rounded-ds-xl border border-hairline bg-surface">
       <div className="border-b border-hairline px-4 py-3 text-[13.5px] font-medium">{title}</div>
       {answered ? (
         <div className="px-4 py-3 text-[13px] text-fg-muted">
@@ -428,27 +432,27 @@ export function QuestionCard({ title, options, onAnswer, allowOwn = true, answer
       ) : (
         <div className="p-1.5">
           {options.map((o, i) => (
-            <button key={o.label} type="button" onMouseEnter={() => setSel(i)} onClick={() => onAnswer(o.label, i)} className={cx("flex h-10 w-full items-center gap-3 rounded-ds-md px-2.5 text-left", sel === i && "bg-surface-2")}>
+            <button key={o.label} type="button" disabled={busy} onMouseEnter={() => setSel(i)} onFocus={() => setSel(i)} onClick={() => onAnswer(o.label, i)} className={cx("flex h-10 w-full items-center gap-3 rounded-ds-md px-2.5 text-left -outline-offset-2 disabled:opacity-45", sel === i && "bg-surface-2")}>
               <NumberKey n={i + 1} />
               <span className="text-[13.5px] font-medium">{o.label}</span>
-              {o.description && <span className="truncate text-[12.5px] text-fg-faint">{o.description}</span>}
+              {o.description && <span className="truncate text-[12.5px] text-fg-muted">{o.description}</span>}
             </button>
           ))}
           {allowOwn && (
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (own.trim()) onAnswer(own.trim(), -1);
+                if (own.trim() && !busy) onAnswer(own.trim(), -1);
               }}
-              className={cx("flex h-10 items-center gap-3 rounded-ds-md px-2.5", sel === options.length && "bg-surface-2")}
+              className={cx("flex h-10 items-center gap-3 rounded-ds-md px-2.5 focus-within:ring-1 focus-within:ring-inset focus-within:ring-ds-accent", sel === options.length && "bg-surface-2")}
             >
               <NumberKey n={options.length + 1} />
-              <input value={own} onChange={(e) => setOwn(e.target.value)} onFocus={() => setSel(options.length)} placeholder={placeholder} aria-label={placeholder} className="flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-fg-faint" />
+              <input value={own} onChange={(e) => setOwn(e.target.value)} onFocus={() => setSel(options.length)} disabled={busy} placeholder={placeholder} aria-label={placeholder} className="flex-1 bg-transparent text-[13.5px] outline-none placeholder:text-fg-faint" />
             </form>
           )}
           <div className="flex items-center gap-1.5 px-2.5 pb-1.5 pt-2 text-[12px] text-fg-faint">
-            <ChevronUp className="size-3.5" />
-            <ChevronDown className="size-3.5" /> to navigate
+            <ChevronUp aria-hidden className="size-3.5" />
+            <ChevronDown aria-hidden className="size-3.5" /> to navigate
           </div>
         </div>
       )}

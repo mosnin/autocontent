@@ -1,4 +1,4 @@
-import { agentInstanceId, harnessSessionKey } from "@agent-starter/core";
+import { agentInstanceId, harnessSessionKey, parseAgentInstanceId, parseHarnessSessionKey } from "@agent-starter/core";
 import type { DelegationRosterEntry } from "@agent-starter/flue";
 import { type Department, departmentToolNames } from "../marketer/tools/index.ts";
 
@@ -60,4 +60,27 @@ export function busConversationId(agent: string, tenantId: string, routingKey: s
 export function roomConversationId(agentName: string, config: { roomId: string; tenantId: string }): string {
   const key = config.roomId.split("--").pop() ?? config.roomId;
   return agentInstanceId(agentName, config.tenantId, harnessSessionKey("room", key));
+}
+
+/** How a department conversation was opened, read from its harness instance id (server-minted, never model text). */
+export type DepartmentConversationKind = "delegated" | "bus" | "room" | "other";
+
+export function departmentConversationKind(id: string): DepartmentConversationKind {
+  const session = parseAgentInstanceId(id)?.sessionKey;
+  const kind = session ? parseHarnessSessionKey(session)?.kind : undefined;
+  return kind === "dlg" ? "delegated" : kind === "bus" ? "bus" : kind === "room" ? "room" : "other";
+}
+
+/**
+ * The highest tier a department may run WITHOUT a person in this conversation.
+ *
+ * Only a delegated task carries authority: Marketer or the orchestrator, working for the signed-in person, handed it
+ * a brief and a tool grant. A bus message or a room turn is INFORMATION from another agent (`authority:
+ * information`): its text may have started in a webhook, a page or a caption, and the sender may be an agent that
+ * holds no acting tools at all (the pipeline worker). If a department acted on it on its own, any agent that can
+ * post a message could spend content credits through a department that can. So outside a delegated task nothing
+ * above LOW runs without the account owner's approval; reads stay free. Unknown kinds fail closed to LOW.
+ */
+export function departmentAutonomyCap(id: string, departmentCap?: "LOW" | "MEDIUM"): "LOW" | "MEDIUM" | undefined {
+  return departmentConversationKind(id) === "delegated" ? departmentCap : "LOW";
 }

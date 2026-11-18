@@ -370,6 +370,19 @@ export class ApiMemoryStore implements MemoryStore {
     return { status: result.status, ...(result.reason ? { reason: result.reason } : {}), ...(result.fact ? { fact: factFromWire(tenantId, result.fact) } : {}) };
   }
 
+  /** Every live fact of the tenant, current and pending (consolidation). */
+  async all(tenantId: string): Promise<Fact[]> {
+    const page = await marketerApi<{ items: FactWire[] }>(this.ctx(tenantId), { method: "GET", path: "/memory/facts", query: { state: "active", limit: 500 } });
+    return (page?.items ?? []).map((w) => factFromWire(tenantId, w)).filter((f) => f.invalidAt === null);
+  }
+
+  /** Consolidation merge. The backend only touches rows with the same slot and content as `keep`. */
+  async merge(tenantId: string, keep: string, drop: readonly string[]): Promise<number> {
+    if (drop.length === 0) return 0;
+    const result = await marketerApi<{ merged: number }>(this.ctx(tenantId), { method: "POST", path: "/memory/facts/merge", body: { keep, drop: drop.slice(0, 50) } });
+    return result?.merged ?? 0;
+  }
+
   async learnings(tenantId: string, options: { status?: LearningStatus; limit?: number; signal?: AbortSignal } = {}): Promise<Learning[]> {
     const page = await marketerApi<{ items: LearningWire[] }>(this.ctx(tenantId, options.signal), { method: "GET", path: "/memory/learnings", query: { status: options.status, limit: Math.min(options.limit ?? 50, 200) } });
     return (page?.items ?? []).map((w) => learningFromWire(tenantId, w));
