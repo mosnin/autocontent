@@ -1,7 +1,7 @@
 # The OpenRouter Decisions contract
 
 What Marketer's decision clients send to OpenRouter and what they accept back. Every point is marked **verified**
-(with how) or **unverified**. Checked on 2026-11-18 against the public docs, the installed SDK source and 18 small
+(with how) or **unverified**. Checked on 2026-11-18 against the public docs, the installed SDK source and 19 small
 live calls with the pinned models.
 
 Three clients speak this contract:
@@ -190,7 +190,7 @@ Client failure kinds: `no_key`, `timeout`, `network` (`transport` in Python), `h
 | A provider can still answer `429` when it is at capacity; OpenRouter tries other providers of the model first | **verified** by docs | Limits |
 | Accounts with a low balance have an in-flight spending budget; over it is a `402` with `Retry-After` | **verified** by docs | Limits |
 | A key can have its own credit limit; `GET /api/v1/key` shows what is left | **verified** | Limits; live (200) |
-| The limit, if any, that Jev or Kev apply themselves | **unverified** | Not published. 18 calls in a few minutes met none |
+| The limit, if any, that Jev or Kev apply themselves | **unverified** | Not published. 19 calls in a few minutes met none |
 
 No client retries on the hot path. A `429` is a failure like any other and the caller takes its fallback. The one
 second try is the second tier for batch scoring (see decision-models.md).

@@ -256,25 +256,37 @@ def test_per_user_rate_limit_is_keyed_on_the_tenant(monkeypatch):
     assert client.post("/spawn", headers={"x-tenant-id": USER}).status_code == 200
 
 
-def test_expensive_routes_declare_a_per_user_limit(monkeypatch):
+def test_expensive_routes_declare_a_per_user_limit():
     """The routes that spawn paid work or call a provider on request."""
-    app = _app(monkeypatch)
-    limited = set()
-    for route in app.routes:
-        deps = getattr(getattr(route, "dependant", None), "dependencies", [])
-        if any(getattr(d.call, "__qualname__", "").startswith("user_rate_limit") for d in deps):
-            limited |= {f"{m} {route.path}" for m in route.methods}
-    for expected in (
-        "POST /api/v1/jobs", "POST /api/v1/jobs/{job_id}/retry",
-        "POST /api/v1/articles", "POST /api/v1/articles/{article_id}/social",
-        "POST /api/v1/image-posts", "POST /api/v1/templates/{template_id}/remix",
-        "POST /api/v1/niches/draft", "POST /api/v1/library/compositions",
-        "POST /api/v1/failures/replay/{kind}/{item_id}", "POST /api/v1/decisions/log",
-        "POST /api/v1/decisions/{decision_id}/outcome", "POST /api/v1/x402/credits",
-        "POST /api/v1/billing/checkout", "POST /api/v1/webhook-endpoints/{endpoint_id}/test",
-        "GET /api/v1/voices/{voice}/preview",
-    ):
-        assert expected in limited, expected
+    from backend.routes import (
+        articles, billing, decisions, failures, image_posts, jobs, library, niches,
+        templates, voices, webhook_endpoints, x402,
+    )
+
+    def limited(module) -> set[str]:
+        out = set()
+        for route in module.router.routes:
+            deps = route.dependant.dependencies
+            if any("user_rate_limit" in getattr(d.call, "__qualname__", "") for d in deps):
+                out |= {f"{m} {route.path}" for m in route.methods}
+        return out
+
+    expected = {
+        jobs: {"POST ", "POST /{job_id}/retry"},
+        articles: {"POST ", "POST /{article_id}/social", "POST /{article_id}/retry"},
+        image_posts: {"POST ", "POST /{image_post_id}/retry"},
+        templates: {"POST /{template_id}/remix"},
+        niches: {"POST /draft"},
+        library: {"POST /compositions"},
+        failures: {"POST /replay/{kind}/{item_id}"},
+        decisions: {"POST /log", "POST /{decision_id}/outcome"},
+        x402: {"POST /credits"},
+        billing: {"POST /checkout"},
+        webhook_endpoints: {"POST ", "POST /{endpoint_id}/test"},
+        voices: {"GET /{voice}/preview"},
+    }
+    for module, routes in expected.items():
+        assert routes <= limited(module), (module.__name__, routes - limited(module))
 
 
 def test_agent_calls_are_bucketed_per_tenant_only_with_the_real_service_token(monkeypatch):
