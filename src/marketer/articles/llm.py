@@ -37,7 +37,11 @@ PROVIDER = "openai"
 def _oai() -> openai.AsyncOpenAI:
     global _client
     if _client is None:
-        _client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+        # Explicit timeout (the SDK default is 10 minutes; a long article
+        # section can take a few) and a stated retry budget.
+        _client = openai.AsyncOpenAI(
+            api_key=settings.openai_api_key, timeout=300.0, max_retries=2
+        )
     return _client
 
 

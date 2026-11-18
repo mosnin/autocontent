@@ -38,6 +38,7 @@ from opentelemetry import trace
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
+from .retry_policy import is_transient_http_error, is_unsent_or_refused
 from .spend_context import SpendContext
 from .xai_pricing import imagine_video_cost
 

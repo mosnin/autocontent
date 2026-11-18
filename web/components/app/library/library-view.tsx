@@ -17,7 +17,7 @@ import { Clapperboard, Download, FolderOpen, GalleryHorizontal, Play, RotateCcw,
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { AskPill, Button, ButtonLink, Column, EmptyLine, FilterPill, IconTile, Input, List, ListRow, Modal, Notice, PageHeader, PlanCard, Section, Segmented, StatusBadge } from "@/design-system";
+import { AskPill, Button, ButtonLink, Column, EmptyLine, FilterPill, IconTile, Input, List, ListRow, Modal, Notice, PageHeader, PlanCard, Section, Segmented, StatusBadge, LoadMore, usePaged } from "@/design-system";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatRelative, titleCase } from "@/lib/format";
 import { proxyFetch } from "@/lib/proxy-fetch";
@@ -125,6 +125,8 @@ export function LibraryView({ initialFinals, initialClips, initialImages, initia
   const empty = total === 0 && comps.length === 0;
 
   const gridAssets = tab === "all" ? everything : tab === "videos" ? videos : tab === "clips" ? clipList : imageList;
+  // The grid is capped: 30 cards (a full row at every column count), then "Load more".
+  const grid = usePaged(gridAssets, 30, `${tab}:${niche}`);
   const gridEmpty = tab === "videos" ? "No finished videos yet." : tab === "clips" ? "No clips yet." : tab === "images" ? "No images yet." : "Nothing for this playbook yet.";
 
   return (
@@ -192,8 +194,9 @@ export function LibraryView({ initialFinals, initialClips, initialImages, initia
             {gridAssets.length === 0 ? (
               <EmptyLine>{gridEmpty}</EmptyLine>
             ) : (
+              <div className="space-y-5">
               <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {gridAssets.map((a) => (
+                {grid.shown.map((a) => (
                   <MediaCard
                     key={a.id}
                     asset={a}
@@ -204,6 +207,8 @@ export function LibraryView({ initialFinals, initialClips, initialImages, initia
                     onOpen={() => (isImage(a) ? window.open(mediaUrl(a.id), "_blank", "noopener") : setOpen(a))}
                   />
                 ))}
+              </div>
+              <LoadMore shown={grid.shown.length} total={grid.total} onMore={grid.more} noun={tab === "all" ? "deliverables" : tab} />
               </div>
             )}
           </>

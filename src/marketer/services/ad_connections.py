@@ -3,6 +3,8 @@ ad_accounts. Thin orchestration over composio_client + repos/ads; every
 Composio call can raise AdsDisabled, which callers surface as a clean 4xx."""
 from __future__ import annotations
 
+import asyncio
+
 from uuid import UUID
 
 from ..repos import ads as ads_repo
@@ -23,11 +25,31 @@ def _map_status(composio_status: str) -> str:
     return "pending"
 
 
+# The Composio SDK is synchronous and takes no timeout. Calling it straight
+# from a coroutine blocks the event loop for as long as Composio takes, so it
+# runs in a worker thread under an explicit deadline. A timeout surfaces as
+# AdsDisabled (the routes answer 409), never a hung request.
+CONNECTOR_TIMEOUT_SEC = 20.0
+
+
+async def _bounded(fn, /, **kwargs):
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(fn, **kwargs), timeout=CONNECTOR_TIMEOUT_SEC
+        )
+    except asyncio.TimeoutError as e:
+        raise composio_client.AdsDisabled(
+            "the ad platform connector did not answer in time; try again"
+        ) from e
+
+
 async def start_connection(*, user_id: str, platform: str) -> dict:
     """Begin an OAuth connection. Creates/updates a pending ad_account holding
     the Composio connection id and returns the redirect URL the user opens to
     authorize. Raises AdsDisabled if the feature/platform isn't configured."""
-    init = composio_client.initiate_connection(user_id=user_id, platform=platform)
+    init = await _bounded(
+        composio_client.initiate_connection, user_id=user_id, platform=platform
+    )
     account = await ads_repo.create_account(
         user_id=user_id,
         platform=platform,
@@ -51,8 +73,9 @@ async def refresh_status(*, user_id: str, account_id: UUID) -> AdAccount | None:
     if not account.composio_connection_id:
         return account
     try:
-        raw = composio_client.connection_status(
-            connection_id=account.composio_connection_id
+        raw = await _bounded(
+            composio_client.connection_status,
+            connection_id=account.composio_connection_id,
         )
     except composio_client.AdsDisabled:
         # Feature turned off mid-flight; leave the stored status alone.
@@ -73,8 +96,9 @@ async def disconnect(*, user_id: str, account_id: UUID) -> AdAccount | None:
         return None
     if account.composio_connection_id:
         try:
-            composio_client.disconnect(
-                connection_id=account.composio_connection_id
+            await _bounded(
+                composio_client.disconnect,
+                connection_id=account.composio_connection_id,
             )
         except composio_client.AdsDisabled:
             pass

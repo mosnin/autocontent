@@ -28,7 +28,12 @@ _client: AsyncOpenAI | None = None
 def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=settings.openai_api_key)
+        # Explicit timeout (the SDK default is 10 minutes). max_retries=0: the
+        # tenacity policy on the call is the only retry, so attempts do not
+        # multiply (3 here x 3 in the SDK).
+        _client = AsyncOpenAI(
+            api_key=settings.openai_api_key, timeout=120.0, max_retries=0
+        )
     return _client
 
 

@@ -1,15 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { AgentGlyph, Button, List, ListRow, PersonAvatar, StatusBadge } from "@/design-system";
+import { AgentGlyph, List, ListRow, PersonAvatar, StatusBadge, LoadMore, usePaged } from "@/design-system";
 import type { AdActionEntry } from "@/lib/ads-client";
 import { formatRelative, formatUsd } from "@/lib/format";
 import { describeAdAction, mediaBuyer, platformLabel } from "./shared";
 
 /** The append-only audit trail for spend: guardrail changes, proposals, approvals and applied actions. */
 export function ActionLog({ actions, initial = 6 }: { actions: AdActionEntry[]; initial?: number }) {
-  const [all, setAll] = useState(false);
-  const shown = all ? actions : actions.slice(0, initial);
+  const { shown, total, more } = usePaged(actions, initial);
   return (
     <div className="space-y-2">
       <List>
@@ -40,11 +38,7 @@ export function ActionLog({ actions, initial = 6 }: { actions: AdActionEntry[]; 
           );
         })}
       </List>
-      {actions.length > initial && (
-        <Button size="sm" variant="ghost" onClick={() => setAll((v) => !v)}>
-          {all ? "Show fewer" : `Show all ${actions.length}`}
-        </Button>
-      )}
+      <LoadMore shown={shown.length} total={total} onMore={more} noun="actions" />
     </div>
   );
 }

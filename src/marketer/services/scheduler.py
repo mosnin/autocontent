@@ -24,10 +24,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
 from ..repos import users as users_repo
+from .retry_policy import is_transient_http_error
 
 BASE_URL = "https://api.ayrshare.com/api"
 HTTP_TIMEOUT_SEC = 60.0
@@ -70,11 +71,17 @@ def _iso_utc(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+# Uploading media publishes nothing: a repeated upload only yields another
+# media URL, so it is retried on transient failures (not on a 4xx, which
+# fails the same way every time). The POST /post calls below are the publish
+# and are deliberately NOT retried: their callers run them through
+# marketer.rails (`content.post.send`), where an unanswered attempt becomes
+# an unknown outcome for a person to resolve instead of a second post.
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type(httpx.HTTPError),
+    retry=retry_if_exception(is_transient_http_error),
 )
 async def upload_media(video_path: Path, *, profile_key: str | None = None) -> str:
     size = video_path.stat().st_size

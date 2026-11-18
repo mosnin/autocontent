@@ -242,9 +242,11 @@ export interface TableColumn<T> {
   hideOnPhone?: boolean;
 }
 
-export function Table<T>({ columns, rows, rowKey, rowHref, empty }: { columns: TableColumn<T>[]; rows: T[]; rowKey: (row: T) => string; rowHref?: (row: T) => string | undefined; empty?: ReactNode }) {
+export function Table<T>({ columns, rows, rowKey, rowHref, empty, pageSize = 50, noun = "rows" }: { columns: TableColumn<T>[]; rows: T[]; rowKey: (row: T) => string; rowHref?: (row: T) => string | undefined; empty?: ReactNode; /** Rows rendered before "Load more". A table never renders an unbounded list. */ pageSize?: number; noun?: string }) {
+  const page = usePaged(rows, pageSize);
   if (rows.length === 0 && empty) return <>{empty}</>;
   return (
+    <div className="space-y-3">
     <div className="overflow-x-auto rounded-ds-lg border border-hairline bg-surface">
       <table className="w-full text-[13px]">
         <thead>
@@ -257,14 +259,14 @@ export function Table<T>({ columns, rows, rowKey, rowHref, empty }: { columns: T
           </tr>
         </thead>
         <tbody className="divide-y divide-hairline">
-          {rows.map((r) => {
+          {page.shown.map((r) => {
             const href = rowHref?.(r);
             return (
               <tr key={rowKey(r)} className={cx(href && "relative hover:bg-surface-2")}>
                 {columns.map((c, i) => (
                   <td key={c.key} className={cx("h-11 px-3.5", c.align === "right" ? "text-right tabular" : "text-left", c.hideOnPhone && "hidden md:table-cell")}>
                     {href && i === 0 ? (
-                      <Link href={href} className="after:absolute after:inset-0">
+                      <Link href={href} className="after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:outline focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ds-accent">
                         {c.render(r)}
                       </Link>
                     ) : (
@@ -277,6 +279,8 @@ export function Table<T>({ columns, rows, rowKey, rowHref, empty }: { columns: T
           })}
         </tbody>
       </table>
+    </div>
+      <LoadMore shown={page.shown.length} total={page.total} onMore={page.more} noun={noun} />
     </div>
   );
 }
@@ -398,10 +402,12 @@ export function StepList({ steps, current, complete, failed }: { steps: { id: st
 
 /**
  * Cap a long client-side list: show `pageSize` rows, then `pageSize` more per
- * "Load more". Resets when the list is replaced by a shorter one.
+ * "Load more". Resets when `resetKey` changes or the list gets much shorter.
  */
-export function usePaged<T>(items: T[], pageSize = 24): { shown: T[]; total: number; hasMore: boolean; more: () => void } {
+export function usePaged<T>(items: T[], pageSize = 24, resetKey?: unknown): { shown: T[]; total: number; hasMore: boolean; more: () => void } {
   const [limit, setLimit] = useState(pageSize);
+  // A different list (another tab or filter) starts from the first page again.
+  useEffect(() => setLimit(pageSize), [resetKey, pageSize]);
   useEffect(() => {
     setLimit((l) => (items.length < l - pageSize ? pageSize : l));
   }, [items.length, pageSize]);

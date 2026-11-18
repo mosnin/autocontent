@@ -64,9 +64,11 @@ function FailureRow({ f }: { f: FailureItem }) {
 export function FailuresPanel({ failures }: { failures: Failures | null }) {
   const [cat, setCat] = useState<FailureCategory | "all">("all");
   const [open, setOpen] = useState(false);
+  const all = failures?.failures ?? [];
+  const visible = cat === "all" ? all : all.filter((f) => f.category === cat);
+  const page = usePaged(visible, 25, cat);
   if (!failures || failures.total === 0) return null;
-  const visible = cat === "all" ? failures.failures : failures.failures.filter((f) => f.category === cat);
-  const shown = open ? visible : visible.slice(0, 3);
+  const shown = open ? page.shown : visible.slice(0, 3);
   return (
     <Section
       title={`Failed · ${failures.total}`}
@@ -95,6 +97,11 @@ export function FailuresPanel({ failures }: { failures: Failures | null }) {
           <FailureRow key={`${f.kind}:${f.id}`} f={f} />
         ))}
       </List>
+      {open && (
+        <div className="mt-3">
+          <LoadMore shown={page.shown.length} total={page.total} onMore={page.more} noun="failures" />
+        </div>
+      )}
     </Section>
   );
 }

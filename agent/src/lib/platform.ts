@@ -301,13 +301,16 @@ export function notifier(): Notifier | undefined {
  * Human-in-the-loop approvals. `bindToRecipient` (background jobs): the signed links are bound to the
  * recipient (the tenant admin / ops inbox) and are never written into the agent's own stream, so the
  * job cannot approve its own HIGH / CRITICAL calls. Chat keeps the in-app oversight card: the
- * signed-in user is the human in the loop.
+ * signed-in user is the human in the loop, and its (unbound) links are never mailed anywhere.
  */
 export function approvals(options: { bindToRecipient?: boolean; approverId?: (tenant: TenantSecurityContext) => string | undefined } = {}): NonNullable<AgentStarterOptions["approvals"]> {
   return {
     secret: () => bindings().APPROVAL_SIGNING_SECRET,
     baseUrl: () => bindings().PUBLIC_BASE_URL,
-    notifier,
+    // Out-of-band mail ONLY for recipient-bound links. An unbound link is a bearer token: whoever holds it decides.
+    // In a chat the signed-in user decides in the in-app card; mailing the same links to the ops inbox would let
+    // that mailbox approve any account's publish. Bound links only work in the approver's own session.
+    notifier: options.bindToRecipient ? notifier : () => undefined,
     // Route approvals to your tenant's admin (look it up from your SaaS) — defaults to the ops inbox.
     recipient: () => bindings().OPS_ALERT_EMAIL,
     ...(options.bindToRecipient ? { bindToRecipient: true } : {}),

@@ -43,6 +43,7 @@ _jwks_client: PyJWKClient | None = None
 # Per-IP bucket for authentication failures: 20 bad attempts per minute.
 _AUTH_FAILURE_LIMIT = parse_limit("20/minute")
 _AUTH_FAILURE_SCOPE = "auth_failure"
+JWKS_TIMEOUT_SEC = 5
 
 
 def _jwks() -> PyJWKClient:
@@ -50,7 +51,12 @@ def _jwks() -> PyJWKClient:
     if _jwks_client is None:
         if not settings.clerk_jwks_url:
             raise RuntimeError("MARKETER_CLERK_JWKS_URL not set")
-        _jwks_client = PyJWKClient(settings.clerk_jwks_url, cache_keys=True)
+        # Explicit timeout: the fetch is a blocking urllib call on the request
+        # path, and the library default is 30s. Keys are cached, so this only
+        # bites on a cold start or a key rotation.
+        _jwks_client = PyJWKClient(
+            settings.clerk_jwks_url, cache_keys=True, timeout=JWKS_TIMEOUT_SEC
+        )
     return _jwks_client
 
 

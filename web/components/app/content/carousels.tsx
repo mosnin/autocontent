@@ -3,7 +3,7 @@
 import { ChevronDown, GalleryHorizontal, Image as ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, Chip, ConfirmModal, cx, EmptyLine, List, StatusBadge, Thumb, Time, Notice } from "@/design-system";
+import { Button, Chip, ConfirmModal, cx, EmptyLine, List, StatusBadge, Thumb, Time, Notice, LoadMore, usePaged } from "@/design-system";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { ImagePost, Niche } from "@/lib/types";
 import { postStatusLabel, postTitle, postTone, POST_IN_PROGRESS } from "./status";
@@ -116,6 +116,9 @@ function CarouselRow({ post, playbook }: { post: ImagePost; playbook?: string })
 export function CarouselsList({ posts, niches, onMake }: { posts: ImagePost[] | null; niches: Niche[]; onMake: () => void }) {
   const [filter, setFilter] = useState<Filter>("all");
   const titles = useMemo(() => new Map(niches.map((n) => [n.id, n.title])), [niches]);
+  const f = FILTERS.find((x) => x.value === filter)!;
+  const visible = useMemo(() => (posts ?? []).filter(f.match), [posts, f]);
+  const page = usePaged(visible, 25, filter);
   if (posts === null) return <EmptyLine>Couldn&apos;t load carousels. Try again in a moment.</EmptyLine>;
   if (posts.length === 0)
     return (
@@ -129,8 +132,6 @@ export function CarouselsList({ posts, niches, onMake }: { posts: ImagePost[] | 
         No carousels yet.
       </EmptyLine>
     );
-  const f = FILTERS.find((x) => x.value === filter)!;
-  const visible = posts.filter(f.match);
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-1.5">
@@ -147,11 +148,14 @@ export function CarouselsList({ posts, niches, onMake }: { posts: ImagePost[] | 
       {visible.length === 0 ? (
         <EmptyLine>Nothing here. Try another filter.</EmptyLine>
       ) : (
-        <List>
-          {visible.map((p) => (
-            <CarouselRow key={p.id} post={p} playbook={titles.get(p.niche_id)} />
-          ))}
-        </List>
+        <>
+          <List>
+            {page.shown.map((p) => (
+              <CarouselRow key={p.id} post={p} playbook={titles.get(p.niche_id)} />
+            ))}
+          </List>
+          <LoadMore shown={page.shown.length} total={page.total} onMore={page.more} noun="carousels" />
+        </>
       )}
     </div>
   );
