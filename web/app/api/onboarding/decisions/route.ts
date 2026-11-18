@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
-import { APIError, type Questions, TypeSafeClient } from "@typesafe-ai/sdk";
+import { APIConnectionError, APIError, APITimeoutError, APIUserAbortError, type Questions, TypeSafeClient } from "@typesafe-ai/sdk";
 import { jevDecisions, type SystemOneClient } from "../../../../../.intent-onboarding/packages/decisions-jev/src/index.ts";
 import { handleDecisionsRequest } from "../../../../../.intent-onboarding/packages/decisions-jev/src/route.ts";
 import { BodyTooLargeError, readJsonCapped } from "@/lib/security/body";
@@ -127,7 +127,7 @@ function meteredClient(meta: CallMeta): SystemOneClient {
       try {
         result = (await sdk.systemOne(request as never, options)) as typeof result;
       } catch (e) {
-        meta.failure = e instanceof APIError ? `http_${e.status}` : e instanceof Error ? e.constructor.name : "error";
+        meta.failure = e instanceof APIError ? `http_${e.status}` : e instanceof APITimeoutError ? "timeout" : e instanceof APIUserAbortError ? "aborted" : e instanceof APIConnectionError ? "network" : "error";
         throw e;
       }
       if (typeof result?.model === "string") meta.model = result.model;
