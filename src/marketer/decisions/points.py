@@ -313,7 +313,7 @@ async def judge_budget_change(
         user_id=user_id,
         # An ad campaign has no niche: the call is metered on a niche-less
         # ledger row, under the user's global cap and credit balance.
-        spend=await svc.ledger_context(user_id),
+        spend=await svc.ledger_context(user_id, ad_campaign_id=campaign.id),
         subject_kind="ad_campaign",
         subject_id=campaign.id,
     )

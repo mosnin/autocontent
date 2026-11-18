@@ -737,11 +737,14 @@ async def correct_fact(user_id: str, fact_id: UUID, *, value: Any = None, object
         outcome = await _write(conn, user_id, valid, "person", correcting=fact_id)
         # Corrected to a value that already exists: the old row merges into it.
         if outcome.fact is not None and outcome.fact.id != fact_id:
-            await conn.execute(
+            result = await conn.execute(
                 "update memory_facts set invalid_at = now(), invalid_reason = 'merged', superseded_by = $3, "
                 "pending = false where id = $1 and user_id = $2 and invalid_at is null",
                 fact_id, user_id, outcome.fact.id,
             )
+            if result.split()[-1] == "1":
+                await _audit(conn, user_id, "person", "fact.merged", f"{_slot(valid)}: merged", fact_id=fact_id)
+                outcome = WriteOutcome(status="superseded", fact=outcome.fact)
         return outcome
 
 

@@ -23,8 +23,10 @@
 
   /* Text */
   --ds-fg: 0 0% 93%;
-  --ds-fg-muted: 0 0% 64%;
-  --ds-fg-faint: 0 0% 45%;
+  /* Both pass WCAG AA (4.5:1) for text on every surface above, surface-3 included:
+     muted 6.5:1 and faint 4.65:1 at worst. Don't lower them without re-checking. */
+  --ds-fg-muted: 0 0% 68%;
+  --ds-fg-faint: 0 0% 57%;
 
   /* Actions: primary is the white button ("Save as report", "Approve & Run") */
   --ds-primary: 0 0% 96%;
@@ -87,8 +89,8 @@
   --ds-border: 0 0% 91.5%;
   --ds-border-strong: 0 0% 85%;
   --ds-fg: 0 0% 7%;
-  --ds-fg-muted: 0 0% 40%;
-  --ds-fg-faint: 0 0% 60%;
+  --ds-fg-muted: 0 0% 35%;   /* AA on every light surface: 6.0:1 at worst (surface-3) */
+  --ds-fg-faint: 0 0% 42%;   /* AA on every light surface: 4.6:1 at worst (surface-3) */
   --ds-primary: 0 0% 9%;
   --ds-primary-fg: 0 0% 100%;
   --ds-accent: 217 85% 52%;
@@ -140,7 +142,8 @@
   .ds p { text-wrap-style: pretty; }
   .ds ::selection { background: hsl(var(--ds-accent) / 0.28); }
   .ds input, .ds textarea { caret-color: hsl(var(--ds-accent)); }
-  .ds :focus-visible { outline: 2px solid hsl(var(--ds-accent) / 0.6); outline-offset: 1px; }
+  /* Focus is always visible: a solid accent ring (4.7:1 or better against every surface, in both themes). */
+  .ds :focus-visible { outline: 2px solid hsl(var(--ds-accent)); outline-offset: 1px; }
   .ds * { scrollbar-width: thin; scrollbar-color: hsl(var(--ds-border-strong)) transparent; }
   .ds .tabular { font-variant-numeric: tabular-nums; }
   .ds .font-mono { font-family: var(--font-geist-mono), ui-monospace, monospace; }

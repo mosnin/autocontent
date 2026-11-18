@@ -443,15 +443,23 @@ def _is_not_null_violation(e: BaseException) -> bool:
     return getattr(e, "sqlstate", None) == "23502" or type(e).__name__ == "NotNullViolationError"
 
 
-async def ledger_context(user_id: str) -> Any | None:
+async def ledger_context(user_id: str, *, ad_campaign_id: UUID | None = None) -> Any | None:
     """A niche-less ``SpendContext`` for a decision made outside a job (an
     ad campaign has no niche). It carries the user's global daily cap and
-    the prepaid-credit gate, like any other call. None when it cannot be
-    built (no database): the decision then runs unmetered rather than not
-    at all, and says so in the log."""
+    the prepaid-credit gate, like any other call, and attributes the row to
+    the campaign where the ledger can. None when it cannot be built (no
+    database): the decision then runs unmetered rather than not at all, and
+    says so in the log."""
     try:
         from .spend_context import default_context
 
+        if ad_campaign_id is not None:
+            try:
+                return await default_context(
+                    user_id=user_id, niche_id=None, job_id=None, ad_campaign_id=ad_campaign_id
+                )
+            except TypeError:
+                pass  # a SpendContext without campaign attribution: meter by user only
         return await default_context(user_id=user_id, niche_id=None, job_id=None)
     except Exception as e:  # noqa: BLE001 — metering must not break a decision
         log.warning("decision ledger context unavailable", extra={"error": type(e).__name__})

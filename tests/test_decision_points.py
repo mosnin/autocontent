@@ -504,9 +504,11 @@ def _ledger(monkeypatch, record):
     from marketer.services.spend_context import SpendContext
 
     ctx = SpendContext(user_id="u1", niche_id=None, job_id=None, record=record)
+    ctx.asked_for = []
 
-    async def build(user_id):
+    async def build(user_id, *, ad_campaign_id=None):
         assert user_id == "u1"
+        ctx.asked_for.append(ad_campaign_id)
         return ctx
 
     monkeypatch.setattr(svc, "ledger_context", build)
@@ -520,11 +522,13 @@ async def test_point5_meters_the_call_on_a_niche_less_ledger_row(model, logged, 
     async def record(entry):
         entries.append(entry)
 
-    _ledger(monkeypatch, record)
+    ctx = _ledger(monkeypatch, record)
     model.set_mode(q.Point.BUDGET_SHIFT, "enforce")
     model.answer = _budget_answer(fatigue=0.8)
-    assert await points.judge_budget_change(user_id="u1", campaign=_campaign(),
+    campaign = _campaign()
+    assert await points.judge_budget_change(user_id="u1", campaign=campaign,
                                             metrics=_metrics()) == "creative_refresh"
+    assert ctx.asked_for == [campaign.id]  # the row is attributed to the campaign
     assert len(entries) == 1
     e = entries[0]
     assert (e.user_id, e.niche_id, e.job_id) == ("u1", None, None)
@@ -582,7 +586,7 @@ async def test_point5_refused_spend_preflight_keeps_the_rule(model, logged, ad_r
 
 async def test_point5_without_a_ledger_context_still_decides(model, logged, ad_repos,
                                                              monkeypatch):
-    async def none(user_id):
+    async def none(user_id, *, ad_campaign_id=None):
         return None
 
     monkeypatch.setattr(svc, "ledger_context", none)

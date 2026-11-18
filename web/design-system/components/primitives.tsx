@@ -462,7 +462,7 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={cx("relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors duration-150 disabled:opacity-45", checked ? "bg-ds-accent" : "bg-hairline-strong")}
+      className={cx("relative h-[18px] w-[30px] shrink-0 rounded-full transition-colors duration-150 disabled:opacity-45", checked ? "bg-ds-accent" : "bg-fg-faint")}
     >
       <span className={cx("absolute left-0 top-[2px] size-[14px] rounded-full bg-ds-primary-fg transition-transform duration-200 ease-[var(--ds-ease-out)]", checked ? "translate-x-[14px]" : "translate-x-[2px]")} style={{ background: "white" }} />
     </button>

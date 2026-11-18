@@ -407,20 +407,37 @@ async def test_any_other_metering_error_is_logged_and_the_decision_stands(
 
 
 async def test_ledger_context_is_niche_less_and_none_without_a_database(monkeypatch):
+    from uuid import uuid4
+
     from marketer.services import spend_context
 
+    seen: list[dict] = []
+
     async def build(**kw):
-        assert kw == {"user_id": "u1", "niche_id": None, "job_id": None}
+        seen.append(kw)
         return "ctx"
 
     monkeypatch.setattr(spend_context, "default_context", build)
     assert await svc.ledger_context("u1") == "ctx"
+    campaign = uuid4()
+    assert await svc.ledger_context("u1", ad_campaign_id=campaign) == "ctx"
+    assert seen == [
+        {"user_id": "u1", "niche_id": None, "job_id": None},
+        {"user_id": "u1", "niche_id": None, "job_id": None, "ad_campaign_id": campaign},
+    ]
+
+    # A SpendContext that cannot attribute to a campaign yet: meter by user.
+    async def older(*, user_id, niche_id, job_id):
+        return "older-ctx"
+
+    monkeypatch.setattr(spend_context, "default_context", older)
+    assert await svc.ledger_context("u1", ad_campaign_id=campaign) == "older-ctx"
 
     async def no_db(**kw):
         raise RuntimeError("no database")
 
     monkeypatch.setattr(spend_context, "default_context", no_db)
-    assert await svc.ledger_context("u1") is None
+    assert await svc.ledger_context("u1", ad_campaign_id=campaign) is None
 
 
 # ---------------------------------------------------------------------------
