@@ -195,8 +195,9 @@ See "Error taxonomy" below.
 - Read and write tool output is marked untrusted.
 
 **Prompt injection**
-- No agent turns off the security lock, the safety fallback or the injection screen. Every live agent loads the
-  `untrusted-content` skill.
+- No agent turns off the security lock, the safety fallback or the injection screen.
+- Every live agent loads the `untrusted-content` runtime skill. The pipeline worker and the orchestrator did not
+  (the hook's built-in untrusted-content policy and the job skill covered them); both load it now.
 - Web tools and Browser Rendering use the one core SSRF guard. Webhook payloads reach the model through `renderTurn`.
 - No tool input carries a tenant; `assertPayloadTenant` denies one that differs.
 

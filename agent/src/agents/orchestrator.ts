@@ -13,6 +13,7 @@ import { DELEGATION_ROSTER, DEPARTMENT_GRANT, SPECIALISTS } from "../multi-agent
 import groupCollaboration from "../skills/group-collaboration/SKILL.md";
 import { useMarketingSkills } from "../skills/marketing.ts";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
+import untrustedContent from "../skills/untrusted-content/SKILL.md";
 
 // Ephemeral subagents (not exported → not top-level agents). They run in parallel via Flue's `task` tool, see only
 // the prompt they are given, and return a final answer. Each gets guarded read-only tools (knowledge retrieval, page
@@ -56,6 +57,8 @@ export function Orchestrator({ id }: AgentProps) {
   useDelegation({ id, self: "orchestrator", dispatch: delegationDispatch, awaitingHuman: () => ctx.awaitingHuman });
   useSkill(operatingProcedures);
   useSkill(groupCollaboration);
+  // Webhook payloads, room messages and delegated reports are data: the same runtime skill every other agent loads.
+  useSkill(untrustedContent);
   useCustomSkills();
   // The marketing skills pack and its slash commands (docs/skills/README.md): procedures only, no tool or approval.
   useMarketingSkills("orchestrator");

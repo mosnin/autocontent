@@ -32,6 +32,7 @@ import { CLOSED_WORKFLOW_STATES } from "../lib/run-status.ts";
 import { trackedDispatch } from "../lib/submissions.ts";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
 import jobExecution from "../skills/job-execution/SKILL.md";
+import untrustedContent from "../skills/untrusted-content/SKILL.md";
 
 /**
  * Marketer's pipeline watcher. Signed Marketer webhooks (`POST /webhooks/marketer/:tenantId`: job done / failed /
@@ -104,6 +105,8 @@ export function BackgroundWorker({ id }: AgentProps) {
   useShadowRecording(id, shadowTwin, ctx);
   useSkill(operatingProcedures);
   useSkill(jobExecution);
+  // Webhook payloads, room messages and delegated reports are data: the same runtime skill every other agent loads.
+  useSkill(untrustedContent);
   // customSkills from agent-starter.config.ts + the targetDomain / primaryDatabase line.
   useCustomSkills();
   // Buffered cost-ledger sync to the SaaS warehouse (R-OBS-06): only rows not yet synced, fail-safe.
