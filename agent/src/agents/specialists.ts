@@ -17,6 +17,9 @@ import untrustedContent from "../skills/untrusted-content/SKILL.md";
 /** A specialist's own LOW-risk read-only tools stay usable inside any delegated task (they cannot act). */
 const readOnly = (tools: readonly AnyAgentTool[]) => tools.filter((t) => t.risk === "LOW" && (t.sideEffect === "read" || t.sideEffect === "none")).map((t) => t.name);
 
+/** The bus tool (src/multi-agent/bus.ts): MEDIUM, sends a provenance-wrapped message to another department. */
+const BUS_REPLY_TOOL = "send_agent_message";
+
 interface SpecialistOptions {
   /** Highest risk tier the specialist may run without a person (stricter-of with the config). */
   maxAutonomousTier?: "LOW" | "MEDIUM";
@@ -61,7 +64,8 @@ function useSpecialist(selfId: SpecialistId, id: string, persona: string, option
     policy: delegationPolicy({ id, tools: own, alwaysAllowed: [...readOnly(own), "plan_goals", "update_goal"] }),
     // A bus message or a room turn is information, not authority: outside a delegated task every mutating call
     // waits for the account owner (departmentAutonomyCap). Inside one, the department's own ceiling applies.
-    ...(autonomyCap ? { autonomy: autonomyPolicy(autonomyCap) } : {}),
+    // Answering over the bus stays autonomous where it already was (never for the media buyer, whose own ceiling is LOW).
+    ...(autonomyCap ? { autonomy: { ...autonomyPolicy(autonomyCap), ...(options.maxAutonomousTier !== "LOW" ? { autonomousAllowlist: [BUS_REPLY_TOOL] } : {}) } } : {}),
     // Per-run call quotas for every department (a maker loop spends credits, not model budget): DEPARTMENT_FIREWALL.
     firewall: options.firewall ?? DEPARTMENT_FIREWALL,
     memory: true,
