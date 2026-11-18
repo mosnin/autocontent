@@ -8,7 +8,7 @@ import { Plus } from "lucide-react";
 import * as React from "react";
 import useSWR from "swr";
 import { AdminFrame } from "@/components/app/admin/admin-frame";
-import { Button, ConfirmModal, EmptyLine, Field, FilterPill, Input, List, ListRow, Modal, Notice, Select, StatusBadge, Switch, Table, Textarea } from "@/design-system";
+import { Button, Card, ConfirmModal, EmptyLine, Field, FilterPill, Input, List, ListRow, Modal, Notice, Select, Skeleton, StatusBadge, Switch, Table, Textarea } from "@/design-system";
 import { clientFetch } from "@/lib/client-fetcher";
 import { proxyFetch } from "@/lib/proxy-fetch";
 
@@ -98,7 +98,7 @@ export function AdminTemplatesClient({ initial }: { initial?: Template[] }) {
       {!templates && loadError ? (
         <EmptyLine action={<Button size="sm" onClick={() => void mutate()}>Try again</Button>}>Couldn&apos;t load templates. The API didn&apos;t answer.</EmptyLine>
       ) : !templates && isLoading ? (
-        <Card className="space-y-3 p-3.5" >
+        <Card className="space-y-3 p-3.5">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-3.5 w-2/3" />
           ))}

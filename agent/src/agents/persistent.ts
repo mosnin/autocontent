@@ -1,5 +1,5 @@
 "use agent";
-import { agentIdentity, AutoReviewer, createEgressGuard, createPersistentControlTools, DEFAULT_PERSISTENT_CONFIG, type PersistentAgentConfig, type PersistentControlPort } from "@agent-starter/core";
+import { agentIdentity, AutoReviewer, createPersistentControlTools, DEFAULT_PERSISTENT_CONFIG, type PersistentAgentConfig, type PersistentControlPort } from "@agent-starter/core";
 import { WorkersAIProvider } from "@agent-starter/cloudflare";
 import { useAgentStarter } from "@agent-starter/flue";
 import { type AgentProps, useInitialData, useSkill } from "@flue/runtime";
@@ -8,10 +8,10 @@ import { approvals, bindings, decisionRuntime, modelOptions, platform, sendToSaa
 import { MarketerReviewer } from "../marketer/decisions/hooks.ts";
 import { workersAiModel } from "../lib/policy.ts";
 import { autopilotDecision, MARKETER_HEARTBEAT, readAutopilotState } from "../marketer/heartbeat.ts";
-import { type MarketerCallContext, SAAS_CREDENTIAL } from "../marketer/api.ts";
+import type { MarketerCallContext } from "../marketer/api.ts";
 import { persistentReadTools } from "../marketer/tools/index.ts";
 import { createProposeNextMovesTool } from "../marketer/tools/proposals.ts";
-import { credentialBroker, managedEgress } from "../persistent/credentials.ts";
+import { agentEgress, credentialBroker, platformBrokeredFetch } from "../persistent/credentials.ts";
 import { persistentEnv } from "../persistent/env.ts";
 import { controlStub, type PersistentInitialData } from "../persistent/instance.ts";
 import { sandboxControlPort } from "../persistent/sandbox.ts";
@@ -56,21 +56,12 @@ export function PersistentAgent({ id }: AgentProps) {
   const loadConfig = async (): Promise<PersistentAgentConfig> => (await control()?.getConfig()) ?? { ...fallbackConfig, enabled: false };
   const reviewModelId = (config: PersistentAgentConfig) => workersAiModel(config.autoReview.model || env.PERSISTENT_REVIEW_MODEL || modelOptions().firstLine);
 
-  // Platform-side reads for decision point 12: the `saas` credential is injected by the broker for the API host only.
-  const brokeredSaas = (config: PersistentAgentConfig): MarketerCallContext => {
-    const broker = credentialBroker(env, config.credentials);
-    return {
-      tenant: { tenantId },
-      services: {
-        env: { PRIMARY_SAAS_API_URL: env.PRIMARY_SAAS_API_URL },
-        fetch: async (url: string, init: RequestInit & { credential?: string } = {}) => {
-          const { credential: _credential, ...rest } = init;
-          const headers = { ...(rest.headers as Record<string, string> | undefined), ...(await broker.resolve(SAAS_CREDENTIAL, url)) };
-          return fetch(url, { ...rest, headers, signal: rest.signal ?? AbortSignal.timeout(5000) });
-        },
-      },
-    };
-  };
+  // Platform-side reads for decision point 12: the same brokered, egress-guarded fetch the agent's own tools get
+  // (the `saas` credential only for the API host, every redirect hop checked, a hard timeout).
+  const brokeredSaas = (config: PersistentAgentConfig): MarketerCallContext => ({
+    tenant: { tenantId },
+    services: { env: { PRIMARY_SAAS_API_URL: env.PRIMARY_SAAS_API_URL }, fetch: platformBrokeredFetch(env, config) },
+  });
 
   const base = platform("persistent-agent", id);
   const ctx = useAgentStarter({
@@ -84,7 +75,7 @@ export function PersistentAgent({ id }: AgentProps) {
       // The control plane's config (read each delivery); without one, the secure defaults.
       config: wired ? loadConfig : fallbackConfig,
       killSwitch: async () => (await control()?.isKilled()) ?? false,
-      egress: (config: PersistentAgentConfig) => createEgressGuard({ ...managedEgress(env), agentAllow: config.egress.allow, agentDeny: config.egress.deny }),
+      egress: (config: PersistentAgentConfig) => agentEgress(env, config),
       broker: (config: PersistentAgentConfig) => credentialBroker(env, config.credentials),
       // Decision points 6 (approval risk, tighten only) and 12 (anything worth proposing?) wrap the model reviewer.
       // Shadow by default (log only); off without OPENROUTER_API_KEY, where the inner reviewer alone decides.

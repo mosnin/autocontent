@@ -12,17 +12,24 @@ async def record(entry: SpendEntry) -> None:
     await pool.execute(
         """
         insert into spend_ledger
-            (user_id, niche_id, job_id, article_id, image_post_id, provider, sku, units, cost_usd)
-        values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            (user_id, niche_id, job_id, article_id, image_post_id, ad_campaign_id,
+             provider, sku, units, cost_usd)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         """,
         entry.user_id, entry.niche_id, entry.job_id, entry.article_id,
-        entry.image_post_id,
+        entry.image_post_id, entry.ad_campaign_id,
         entry.provider, entry.sku, entry.units, entry.cost_usd,
     )
 
 
-async def today_spend_usd(*, user_id: str, niche_id: UUID) -> Decimal:
-    """Sum today's USD spend for a (user, niche). Cap check reads this."""
+async def today_spend_usd(*, user_id: str, niche_id: UUID | None) -> Decimal:
+    """Sum today's USD spend for a (user, niche). Cap check reads this.
+
+    ``niche_id=None`` returns 0 without a query: niche-less spend has no
+    per-niche cap, and ``niche_id = NULL`` matches nothing in SQL anyway. The
+    explicit branch keeps "no niche" from ever being read as "all niches"."""
+    if niche_id is None:
+        return Decimal(0)
     pool = await get_pool()
     val = await pool.fetchval(
         """
@@ -52,8 +59,11 @@ async def today_spend_total_usd(*, user_id: str) -> Decimal:
     return Decimal(val)
 
 
-async def today_spend_by_niche(*, user_id: str) -> dict[UUID, Decimal]:
-    """One row per niche the user has spent on today. Powers the dashboard."""
+async def today_spend_by_niche(*, user_id: str) -> dict[UUID | None, Decimal]:
+    """One row per niche the user has spent on today. Powers the dashboard.
+
+    The ``None`` key is niche-less spend (template remixes, ad-campaign
+    decision costs); callers bucket it (the API calls it "other")."""
     pool = await get_pool()
     rows = await pool.fetch(
         """
@@ -91,7 +101,7 @@ async def history(
            and created_at >= now() - ($2 || ' days')::interval
            and ($3::uuid is null or niche_id = $3)
          group by 1, 2
-         order by 1 asc, 2 asc
+         order by 1 asc, 2 asc nulls last
         """,
         user_id,
         str(days),
@@ -155,7 +165,9 @@ class SpendCapExceeded(Exception):
         self.after_spend = after_spend
 
 
-async def assert_within_cap(*, user_id: str, niche_id: UUID, cap_usd: Decimal) -> None:
+async def assert_within_cap(*, user_id: str, niche_id: UUID | None, cap_usd: Decimal) -> None:
+    if niche_id is None:
+        return  # a per-niche cap cannot apply to spend that has no niche
     spent = await today_spend_usd(user_id=user_id, niche_id=niche_id)
     if spent >= cap_usd:
         raise SpendCapExceeded(

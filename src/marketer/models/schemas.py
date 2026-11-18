@@ -185,10 +185,14 @@ class Job(BaseModel):
 
 class SpendEntry(BaseModel):
     user_id: str
-    niche_id: UUID | None
-    job_id: UUID | None
+    # None = spend that belongs to no playbook (template remixes, ad-campaign
+    # decision costs). Per-niche caps do not apply to it; the user's global
+    # cap and prepaid credit do.
+    niche_id: UUID | None = None
+    job_id: UUID | None = None
     article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
     image_post_id: UUID | None = None  # set for image-post spend
+    ad_campaign_id: UUID | None = None  # set for ad-campaign spend (0028)
     provider: str  # "openai" | "xai" | "ayrshare"
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
