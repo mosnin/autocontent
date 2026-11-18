@@ -41,6 +41,12 @@ function walk(dir, out = []) {
   return out;
 }
 
+/* The wave (WAVE.md): the only sites allowed to use CommitWave, and required to keep it. */
+const WAVE_SITES = [
+  "app/preview/wave/wave-demo.tsx",
+];
+const WAVE_WRAPPER = "design-system/components/wave.tsx";
+
 const problems = [];
 for (const scope of SCOPES) {
   for (const file of walk(join(root, scope))) {
@@ -57,6 +63,32 @@ for (const scope of SCOPES) {
         while ((m = rule.re.exec(line))) problems.push({ rel, line: i + 1, rule: rule.id, hit: m[0], why: rule.why });
       }
     });
+  }
+}
+
+/* Wave rules. Scanned across the whole web app, not only the design-system scopes. */
+{
+  const all = [...walk(join(root, "app")), ...walk(join(root, "components")), ...walk(join(root, "design-system")), ...walk(join(root, "lib"))];
+  const sites = new Set(WAVE_SITES);
+  const seen = new Set();
+  for (const file of all) {
+    const rel = relative(root, file).split(sep).join("/");
+    const text = readFileSync(file, "utf8");
+    if (/from\s+["'][^"']*vendor\/distortion-waves[^"']*["']/.test(text) && rel !== WAVE_WRAPPER)
+      problems.push({ rel, line: 1, rule: "wave-engine", hit: "vendor/distortion-waves", why: "use CommitWave from @/design-system; only the wrapper imports the engine (WAVE.md)" });
+    if (/<CommitWave[\s>]/.test(text) && rel !== WAVE_WRAPPER) {
+      seen.add(rel);
+      if (!sites.has(rel)) problems.push({ rel, line: 1, rule: "wave-unregistered", hit: "<CommitWave>", why: "the wave marks three moments only; register a new site in WAVE.md and WAVE_SITES, or remove it" });
+    }
+  }
+  for (const site of sites)
+    if (!seen.has(site)) problems.push({ rel: site, line: 1, rule: "wave-removed", hit: "<CommitWave>", why: "this screen is a registered wave site and must keep its wave (WAVE.md)" });
+  try {
+    readFileSync(join(root, WAVE_WRAPPER), "utf8");
+    readFileSync(join(root, "design-system", "WAVE.md"), "utf8");
+    readFileSync(join(root, "vendor", "distortion-waves", "src", "index.ts"), "utf8");
+  } catch {
+    problems.push({ rel: WAVE_WRAPPER, line: 1, rule: "wave-removed", hit: "missing file", why: "the wave wrapper, WAVE.md and the vendored engine must all exist (WAVE.md)" });
   }
 }
 
