@@ -8,6 +8,7 @@
 // can never inject markup.
 
 import * as React from "react";
+import { safeArticleUrl } from "./article-url";
 
 // --- Inline parsing ------------------------------------------------------
 
@@ -36,30 +37,41 @@ function renderInline(text: string, keyPrefix: string): React.ReactNode[] {
       );
     } else if (token.startsWith("![")) {
       const alt = token.slice(2, token.indexOf("]"));
-      const src = token.slice(token.indexOf("](") + 2, -1);
-      // eslint-disable-next-line @next/next/no-img-element
-      nodes.push(
-        <img
-          key={key}
-          alt={alt}
-          src={src}
-          className="my-2 h-auto max-w-full rounded-ds-md border border-hairline"
-        />,
-      );
+      // Untrusted target: only http(s), same-site paths and inline raster data. Otherwise show the alt text.
+      const src = safeArticleUrl(token.slice(token.indexOf("](") + 2, -1), "image");
+      if (!src) {
+        if (alt) nodes.push(alt);
+      } else {
+        nodes.push(
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={key}
+            alt={alt}
+            src={src.href}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+            className="my-2 h-auto max-w-full rounded-ds-md border border-hairline"
+          />,
+        );
+      }
     } else if (token.startsWith("[")) {
       const label = token.slice(1, token.indexOf("]"));
-      const href = token.slice(token.indexOf("](") + 2, -1);
-      nodes.push(
-        <a
-          key={key}
-          href={href}
-          target="_blank"
-          rel="noreferrer"
-          className="text-ds-accent underline decoration-ds-accent/30 underline-offset-2 hover:decoration-ds-accent"
-        >
-          {renderInline(label, key)}
-        </a>,
-      );
+      // Untrusted target: only http(s) and same-site paths become links. Anything else keeps its words and loses the link.
+      const link = safeArticleUrl(token.slice(token.indexOf("](") + 2, -1), "link");
+      if (!link) {
+        nodes.push(<React.Fragment key={key}>{renderInline(label, key)}</React.Fragment>);
+      } else {
+        nodes.push(
+          <a
+            key={key}
+            href={link.href}
+            {...(link.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            className="text-ds-accent underline decoration-ds-accent/30 underline-offset-2 hover:decoration-ds-accent"
+          >
+            {renderInline(label, key)}
+          </a>,
+        );
+      }
     } else if (token.startsWith("**")) {
       nodes.push(
         <strong key={key} className="font-medium text-fg">

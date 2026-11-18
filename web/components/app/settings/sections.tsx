@@ -8,6 +8,7 @@ import { createCheckoutAction, updateEmailNotificationsAction, updateUserSetting
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
 import { formatDateTime, formatUsd } from "@/lib/format";
 import type { BillingBalance } from "@/lib/types";
+import { safeExternalUrl } from "@/lib/security/urls";
 
 type Note = { ok?: string; error?: string } | null;
 
@@ -201,8 +202,10 @@ export function BillingSection({ billing }: { billing: BillingBalance | null }) 
     const fd = new FormData();
     fd.set("pack", pack);
     const res = await createCheckoutAction({ ok: false }, fd);
-    if (res.ok && res.url) {
-      window.location.href = res.url;
+    // Only ever send the browser to an https checkout page.
+    const checkout = res.ok ? safeExternalUrl(res.url) : null;
+    if (checkout) {
+      window.location.href = checkout;
       return;
     }
     setBuying(null);

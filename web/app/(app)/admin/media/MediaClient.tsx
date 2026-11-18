@@ -78,7 +78,7 @@ export function MediaClient() {
                       {entry ? "Replace" : "Upload"}
                       <input
                         type="file"
-                        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
                         className="sr-only"
                         onChange={(e) => {
                           const f = e.target.files?.[0];

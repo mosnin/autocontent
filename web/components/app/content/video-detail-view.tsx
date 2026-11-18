@@ -11,6 +11,7 @@ import { LiveRefresh, toolGlyph } from "./shared";
 import { JOB_IN_PROGRESS, jobStatusLabel, jobTitle, jobTone, platformLabel, VIDEO_STEPS } from "./status";
 import type { FullScript, JobMetrics } from "./types";
 import { VideoActions } from "./videos";
+import { safeExternalUrl } from "@/lib/security/urls";
 
 const pct = (r: string | null) => (r == null || Number.isNaN(Number(r)) ? "—" : `${(Number(r) * 100).toFixed(0)}%`);
 const secs = (s: string | null) => {
@@ -76,7 +77,8 @@ export function VideoDetailView({ job, niche, metrics, costUsd, estimate, previe
   const { steps, current, complete, failed } = stepsFor(job, niche);
   const latest = metrics?.latest ?? null;
   const history = [...(metrics?.history ?? [])].sort((a, b) => a.sampled_at.localeCompare(b.sampled_at));
-  const postUrl = job.provider_post_id ? `https://app.ayrshare.com/posts/${job.provider_post_id}` : null;
+  // The id comes from the backend: encode it, and link only if the result is a plain https URL.
+  const postUrl = job.provider_post_id ? safeExternalUrl(`https://app.ayrshare.com/posts/${encodeURIComponent(job.provider_post_id)}`) : null;
   const ask = job.status === "failed" ? `Why did the video "${title.slice(0, 60)}" fail, and can you fix it?` : `How is the video "${title.slice(0, 60)}" doing compared to the rest?`;
 
   return (
@@ -88,7 +90,7 @@ export function VideoDetailView({ job, niche, metrics, costUsd, estimate, previe
         actions={
           <>
             {postUrl && (
-              <a href={postUrl} target="_blank" rel="noreferrer" className="hidden items-center gap-1.5 px-1.5 text-[12.5px] text-fg-muted hover:text-fg sm:flex">
+              <a href={postUrl} target="_blank" rel="noopener noreferrer" className="hidden items-center gap-1.5 px-1.5 text-[12.5px] text-fg-muted hover:text-fg sm:flex">
                 Open post <ExternalLink className="size-3.5" />
               </a>
             )}
@@ -131,7 +133,7 @@ export function VideoDetailView({ job, niche, metrics, costUsd, estimate, previe
               ]}
             />
             {postUrl && (
-              <a href={postUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-[12.5px] text-ds-accent hover:underline sm:hidden">
+              <a href={postUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-[12.5px] text-ds-accent hover:underline sm:hidden">
                 Open post <ExternalLink className="size-3.5" />
               </a>
             )}

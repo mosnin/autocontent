@@ -12,6 +12,7 @@ import { LiveRefresh, toolGlyph } from "../content/shared";
 import { articleStatusLabel, articleTone, ARTICLE_IN_PROGRESS, ARTICLE_STEPS } from "../content/status";
 import { ArticleBody } from "./article-body";
 import { qaTone } from "./seo-view";
+import { safeExternalUrl } from "@/lib/security/urls";
 
 const SOCIAL = [
   { key: "twitter", label: "X" },
@@ -256,9 +257,14 @@ export function ArticleDetailView({ article, niche, preview }: { article: Articl
                 <ListRow key={i}>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13px] font-medium">{s.anchor}</div>
-                    <a href={s.targetUrl} target="_blank" rel="noreferrer" className="block truncate text-[12px] text-ds-accent hover:underline">
-                      {s.targetUrl}
-                    </a>
+                    {safeExternalUrl(s.targetUrl) ? (
+                      <a href={safeExternalUrl(s.targetUrl)!} target="_blank" rel="noopener noreferrer" className="block truncate text-[12px] text-ds-accent hover:underline">
+                        {s.targetUrl}
+                      </a>
+                    ) : (
+                      // Not https: show where it points, but don't make it clickable.
+                      <span className="block truncate text-[12px] text-fg-muted">{s.targetUrl}</span>
+                    )}
                   </div>
                   <span className="shrink-0 text-[12px] text-fg-faint tabular">{s.score <= 1 ? `${Math.round(s.score * 100)}%` : s.score.toFixed(1)}</span>
                 </ListRow>

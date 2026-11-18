@@ -7,6 +7,7 @@ import { AppRow, Button, Callout, Card, Column, ConfirmModal, EmptyLine, Field, 
 import { adsErrorMessage, connectAccount, disconnectAccount, refreshAccount, setGovernance, type AdAccount, type AdPlatform } from "@/lib/ads-client";
 import { formatRelative } from "@/lib/format";
 import { AccountStatusBadge, accountName, PlatformTile } from "./shared";
+import { safeExternalUrl } from "@/lib/security/urls";
 
 const PLATFORMS: { id: AdPlatform; label: string; blurb: string }[] = [
   { id: "google_ads", label: "Google Ads", blurb: "Search, Performance Max and YouTube campaigns" },
@@ -27,7 +28,10 @@ export function AdAccountsView({ accounts, loadFailed }: { accounts: AdAccount[]
     try {
       const { redirect_url } = await connectAccount(platform);
       if (redirect_url) {
-        window.location.href = redirect_url; // the platform's OAuth consent screen
+        // The platform's OAuth consent screen. Only follow it if it is https.
+        const consent = safeExternalUrl(redirect_url);
+        if (!consent) throw new Error("The connect link we got back wasn't a secure address, so we didn't open it. Try again.");
+        window.location.href = consent;
         return;
       }
       setNotice("Connection started. Refresh the account to check its status.");
