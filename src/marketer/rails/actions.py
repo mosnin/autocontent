@@ -63,6 +63,17 @@ ACTIONS: dict[str, RailsAction] = {
         _a("content.post.send", "HIGH", ("publish",), summary="Send a post to the social scheduler"),
         # Campaigns (backend/routes/campaigns.py)
         _a("campaigns.start", "HIGH", ("publish", "spend"), summary="Start or resume a campaign"),
+        # Spending limits and the publishing gate (backend/routes/niches.py,
+        # users.py, brand_kit.py). Raising a limit and lowering it are separate
+        # actions because only the first one adds exposure: a kill switch must
+        # stop a raise and must never stop a person from tightening.
+        _a("playbook.spend_cap.raise", "HIGH", ("spend",), summary="Raise a playbook's daily content spend cap"),
+        _a("playbook.spend_cap.lower", "HIGH", reduces=True, summary="Lower a playbook's daily content spend cap"),
+        _a("playbook.approval.disable", "HIGH", ("publish",), summary="Let a playbook post without a person's approval"),
+        _a("playbook.approval.enable", "HIGH", reduces=True, summary="Require approval before a playbook posts"),
+        _a("account.spend_cap.raise", "HIGH", ("spend",), summary="Raise or remove the account's global daily spend cap"),
+        _a("account.spend_cap.lower", "HIGH", reduces=True, summary="Lower or set the account's global daily spend cap"),
+        _a("brand_kit.update", "HIGH", summary="Replace the brand kit every draft and post is written from"),
     )
 }
 

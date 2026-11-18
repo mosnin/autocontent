@@ -7,9 +7,12 @@ Contract (shared with the agent and onboarding, see
 - One POST per decision to ``OPENROUTER_DECISIONS_URL`` (default
   ``https://openrouter.ai/api/alpha/decisions``) with ``OPENROUTER_API_KEY``.
   Server-side only; the key is never logged.
+- The wire contract is written down in docs/decisions/openrouter-contract.md
+  and pinned by the golden cases in docs/decisions/conformance/, which this
+  client and the agent's TypeScript client both replay.
 - Hard timeout per point, no retries on the hot path. A timeout, HTTP error,
-  malformed body or a response without ``usage.cost`` is a *failure*, never a
-  "no": the caller takes the point's rule-based fallback.
+  refusal, malformed body or a response without ``usage.cost`` is a
+  *failure*, never a "no": the caller takes the point's rule-based fallback.
 - Mode per point is ``off | shadow | enforce``. No key: ``off``, and nothing
   here touches the network or the database. Key set: ``shadow`` unless an env
   var or a ``feature_flags`` row says otherwise. Enforce is never a default.
@@ -136,9 +139,10 @@ async def resolve_mode(point: q.Point) -> Mode:
 class DecisionError(Exception):
     """A failed decision call. Callers take the fallback; this is never a "no"."""
 
-    def __init__(self, kind: str, message: str = "") -> None:
+    def __init__(self, kind: str, message: str = "", *, status: int | None = None) -> None:
         super().__init__(f"{kind}: {message}" if message else kind)
         self.kind = kind
+        self.status = status
 
 
 @dataclass(frozen=True)
@@ -316,7 +320,8 @@ class DecisionClient:
         except httpx.HTTPError as e:
             raise DecisionError("transport", type(e).__name__) from e
         if resp.status_code >= 400:
-            raise DecisionError("http", str(resp.status_code))
+            # The status only: an error body can echo request content.
+            raise DecisionError("http", str(resp.status_code), status=resp.status_code)
         try:
             body = resp.json()
         except ValueError as e:
@@ -433,6 +438,36 @@ async def _meter(spend: Any, raw: RawDecision) -> None:
     )
 
 
+def _is_not_null_violation(e: BaseException) -> bool:
+    """Postgres 23502, without importing the driver here."""
+    return getattr(e, "sqlstate", None) == "23502" or type(e).__name__ == "NotNullViolationError"
+
+
+async def ledger_context(user_id: str) -> Any | None:
+    """A niche-less ``SpendContext`` for a decision made outside a job (an
+    ad campaign has no niche). It carries the user's global daily cap and
+    the prepaid-credit gate, like any other call. None when it cannot be
+    built (no database): the decision then runs unmetered rather than not
+    at all, and says so in the log."""
+    try:
+        from .spend_context import default_context
+
+        return await default_context(user_id=user_id, niche_id=None, job_id=None)
+    except Exception as e:  # noqa: BLE001 — metering must not break a decision
+        log.warning("decision ledger context unavailable", extra={"error": type(e).__name__})
+        return None
+
+
+def _model_down(e: DecisionError) -> bool:
+    """Worth a second try on another model: the model did not answer at all.
+    A bad request, an auth or credit problem and a malformed or refused
+    answer are not: another model would not fix them, or must not paper
+    over them."""
+    if e.kind in ("timeout", "transport"):
+        return True
+    return e.kind == "http" and e.status is not None and (e.status in (408, 429) or e.status >= 500)
+
+
 async def decide(
     point: q.Point,
     state: Any,
@@ -448,7 +483,11 @@ async def decide(
     """Run one decision for *point*. Never raises: a failure comes back as a
     ``Decision`` with ``ok == False`` and ``error`` set, and the caller takes
     the point's fallback. With mode ``off`` (no key, or switched off) nothing
-    is called, metered or logged."""
+    is called, metered or logged.
+
+    A point marked ``second_tier`` (batch scoring off the hot path only)
+    gets one more try on the D0 model when its model is down. The answer is
+    logged under the model that gave it."""
     spec = q.POINTS[point]
     decision = Decision(
         point=point,
@@ -465,15 +504,27 @@ async def decide(
         return decision
 
     decision.state_hash = state_hash(state)
-    model = model_for(tier or spec.tier)
-    decision.model = model
+    models = [model_for(tier or spec.tier)]
+    if spec.second_tier and model_for("D0") not in models:
+        models.append(model_for("D0"))
+    decision.model = models[0]
     t0 = time.monotonic()
     try:
         if spend is not None:
             await spend.ensure_can_spend(Decimal(q.CALL_ESTIMATE_USD))
-        raw = await (client or DecisionClient()).decide(
-            state, questions, model=model, timeout_s=spec.timeout_s
-        )
+        http = client or DecisionClient()
+        for i, model in enumerate(models):
+            decision.model = model
+            try:
+                raw = await http.decide(state, questions, model=model, timeout_s=spec.timeout_s)
+                break
+            except DecisionError as e:
+                if i + 1 == len(models) or not _model_down(e):
+                    raise
+                log.info(
+                    "decision second tier",
+                    extra={"point": point.value, "failed_model": model, "reason": e.kind},
+                )
     except DecisionError as e:
         decision.error = str(e)
     except Exception as e:  # noqa: BLE001 — includes a refused spend pre-flight
@@ -486,9 +537,18 @@ async def decide(
             try:
                 await _meter(spend, raw)
             except Exception as e:  # noqa: BLE001
-                # The ledger row is written before any cap re-check raises; a
-                # tripped cap sets the job's abort flag, so the next real stage
-                # stops. The decision itself stays valid.
-                log.warning("decision metering raised", extra={"error": type(e).__name__})
+                if _is_not_null_violation(e):
+                    # A niche-less row on a ledger that still requires a
+                    # niche. The call was made and is in decision_log with
+                    # its cost; only the ledger row is missing.
+                    log.warning(
+                        "decision metering skipped: spend_ledger needs a nullable niche_id",
+                        extra={"point": point.value, "cost_usd": str(raw.cost_usd)},
+                    )
+                else:
+                    # The ledger row is written before any cap re-check raises;
+                    # a tripped cap sets the job's abort flag, so the next real
+                    # stage stops. The decision itself stays valid.
+                    log.warning("decision metering raised", extra={"error": type(e).__name__})
     decision.latency_ms = int((time.monotonic() - t0) * 1000)
     return decision

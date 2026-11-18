@@ -11,7 +11,9 @@ export function Markdown({ text, className }: { text: string; className?: string
 
 function inline(src: string, keyBase = ""): ReactNode[] {
   const out: ReactNode[] = [];
-  const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*\s][^*]*\*)|(\[[^\]]+\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\))/g;
+  // Links are http(s) or a same-site path. "//host" and "/\\host" are refused:
+  // browsers read them as another site, and they would open without rel/target.
+  const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*\s][^*]*\*)|(\[[^\]]+\]\((https?:\/\/[^)\s]+|\/(?![\/\\])[^)\s]*)\))/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let i = 0;

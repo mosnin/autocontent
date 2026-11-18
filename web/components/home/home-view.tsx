@@ -2,7 +2,7 @@ import { CalendarRange, Clapperboard, FileText, GalleryHorizontal, History, Inbo
 import Link from "next/link";
 import { Backdrop, Bullet, GlassCard, Heatmap, StatBlock, WorkspaceLogo } from "@/design-system";
 import { formatCompact, formatRelative, formatUsd } from "@/lib/format";
-import { hrefFor, type Activity, type Inbox, type Overview } from "@/lib/workspace";
+import { hrefFor, waitingCount, type Activity, type Inbox, type Overview } from "@/lib/workspace";
 import { StartSession } from "../chat/start-session";
 import { RecentSessions } from "./recent-sessions";
 
@@ -40,7 +40,7 @@ export function HomeView({ brandName = "Marketer", month, history, inbox, activi
   const last = days[days.length - 1]?.date;
   const monthName = (iso?: string) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", timeZone: "UTC" }) : "");
   const shipped = (activity?.events ?? []).filter((e) => e.status === "done" || e.status === "running").slice(0, 3);
-  const waiting = inbox?.counts.total ?? 0;
+  const waiting = waitingCount(inbox);
 
   return (
     <Backdrop palette="dusk">

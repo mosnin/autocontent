@@ -80,6 +80,10 @@ considered: [docs/adr/](../adr/README.md).
 | `content.carousel.approve` / `.reject` | HIGH | `backend/routes/image_posts.py` |
 | `content.post.send` | HIGH | `src/marketer/pipeline.py::_schedule_stage`, `services/image_posts.py::schedule_image_post` |
 | `campaigns.start` | HIGH | `backend/routes/campaigns.py::start_campaign` |
+| `playbook.spend_cap.raise` / `.lower` | HIGH | `backend/routes/niches.py::update_niche` (when `daily_spend_cap_usd` changes) |
+| `playbook.approval.disable` / `.enable` | HIGH | `backend/routes/niches.py::update_niche` (when `approve_before_post` changes) |
+| `account.spend_cap.raise` / `.lower` | HIGH | `backend/routes/users.py::update_me` (when `global_daily_cap_usd` changes) |
+| `brand_kit.update` | HIGH | `backend/routes/brand_kit.py::put_brand_kit` |
 
 The workspace inbox's decide route dispatches to the department routes above, so it inherits their rails.
 

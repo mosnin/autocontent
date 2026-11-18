@@ -1,0 +1,136 @@
+{
+  "name": "ok-all-types-d0",
+  "source": "live 2026-11-18, POST /api/alpha/decisions",
+  "note": "The same request answered by the D0 model, served by another provider: same envelope.",
+  "model": "jaredpalmer/kev-4b-20260924",
+  "state": {
+    "ticket": "I was charged twice."
+  },
+  "questions": {
+    "refund": {
+      "type": "yesno",
+      "instructions": "Is the customer asking for money back?"
+    },
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "options": {
+        "billing": "Charges and refunds",
+        "technical": "Bugs and outages"
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent is this?",
+      "levels": [
+        "can wait",
+        "this week",
+        "right now"
+      ]
+    }
+  },
+  "wire_request": {
+    "model": "jaredpalmer/kev-4b-20260924",
+    "state": {
+      "ticket": "I was charged twice."
+    },
+    "questions": {
+      "refund": {
+        "type": "noul",
+        "instructions": "Is the customer asking for money back?"
+      },
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": "Charges and refunds",
+          "technical": "Bugs and outages"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "How urgent is this?",
+        "criteria": [
+          "can wait",
+          "this week",
+          "right now"
+        ]
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "model": "jaredpalmer/kev-4b-20260924",
+      "answers": {
+        "refund": {
+          "type": "noul",
+          "noul": 0.5798
+        },
+        "team": {
+          "type": "choice",
+          "choice": "billing",
+          "probabilities": {
+            "billing": 0.9451,
+            "technical": 0.0549
+          },
+          "confidence": 0.8903
+        },
+        "urgency": {
+          "type": "score",
+          "score": 1.6004,
+          "legend": {
+            "0": "can wait",
+            "1": "this week",
+            "2": "right now"
+          },
+          "probabilities": {
+            "0": 0.0652,
+            "1": 0.2692,
+            "2": 0.6656
+          },
+          "confidence": 0.4006
+        }
+      },
+      "usage": {
+        "input_tokens": 66,
+        "output_tokens": 167,
+        "cost": 2.772e-06,
+        "is_byok": false,
+        "cost_details": {
+          "upstream_inference_cost": 2.772e-06,
+          "upstream_inference_prompt_cost": 2.772e-06,
+          "upstream_inference_completions_cost": 0
+        }
+      },
+      "id": "gen-dec-0000000000-EXAMPLE",
+      "provider": "SiliconFlow"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "answers": {
+      "refund": {
+        "type": "yesno",
+        "probability": 0.5798
+      },
+      "team": {
+        "type": "choice",
+        "choice": "billing",
+        "confidence": 0.8903,
+        "probabilities": {
+          "billing": 0.9451,
+          "technical": 0.0549
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "score": 1.6004,
+        "confidence": 0.4006
+      }
+    },
+    "cost": 2.772e-06,
+    "tokens": 233,
+    "model": "jaredpalmer/kev-4b-20260924"
+  }
+}

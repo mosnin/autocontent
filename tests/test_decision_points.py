@@ -69,9 +69,9 @@ def model(monkeypatch):
         if m.fail == "error":
             return httpx.Response(502, json={"error": "upstream"})
         return httpx.Response(200, json={
-            "answers": m.answer(body["questions"]),
+            "answers": _wire(m.answer(body["questions"]), body["questions"]),
             "model": body["model"],
-            "usage": {"cost": 0.00002, "total_tokens": 100},
+            "usage": {"cost": 0.00002, "input_tokens": 90, "output_tokens": 10},
         })
 
     real_client = svc.DecisionClient
@@ -94,7 +94,26 @@ def yn(p):
 
 
 def sc(s):
+    """A score as a 0..1 position; ``_wire`` turns it into the level index
+    the API returns for the question's scale."""
     return {"score": s, "confidence": 0.9}
+
+
+def _wire(answers: dict, questions: dict) -> dict:
+    """Stamp the short answers above with what the API really sends: the
+    answer's type, and a score as a level index (0..levels-1)."""
+    out = {}
+    for name, a in answers.items():
+        a = dict(a)
+        if "noul" in a:
+            a.setdefault("type", "noul")
+        elif "choice" in a:
+            a.setdefault("type", "choice")
+        elif "score" in a:
+            a.setdefault("type", "score")
+            a["score"] = a["score"] * (len(questions[name]["criteria"]) - 1)
+        out[name] = a
+    return out
 
 
 # ---------------------------------------------------------------------------

@@ -7,7 +7,8 @@ in one file and a tuned threshold can't drift in from a call site.
 Vocabulary mirrors ``.intent-onboarding/packages/core/src/decisions.ts``:
 questions are ``yesno`` / ``choice`` / ``score``; answers are a probability
 (yesno), a choice with confidence and probabilities (choice), or a score
-with confidence (score). Scores are normalised to 0..1 by the client.
+with confidence (score). The model returns a score as a level index; the
+client also gives it on a 0..1 scale, which is what the tables read.
 
 Questions are atomic and observable ("does the hook name a number?"),
 never "should we publish?". Arithmetic, dates, caps and word counts stay in
@@ -56,14 +57,15 @@ Questions = dict[str, Question]
 # ---------------------------------------------------------------------------
 
 # The decisions path is under /alpha/ and may move: it is config, overridable
-# with OPENROUTER_DECISIONS_URL.
+# with OPENROUTER_DECISIONS_URL. Contract: docs/decisions/openrouter-contract.md.
 DEFAULT_DECISIONS_URL = "https://openrouter.ai/api/alpha/decisions"
 
 # Pinned, dated slugs. Never a "-latest" alias: a model release must not be
 # able to move a tuned threshold. Override with MARKETER_DECISIONS_MODEL /
-# MARKETER_DECISIONS_MODEL_D0.
+# MARKETER_DECISIONS_MODEL_D0. D0 reads text only and has an 8,192-token
+# context, so it never gets images and a very large batch will not fit.
 D1_MODEL = "typesafe/jev-1.13-20260917"
-D0_MODEL = "kev-4b"
+D0_MODEL = "jaredpalmer/kev-4b-20260924"
 
 # Pre-flight spend estimate for one decision call. Decision calls cost a tiny
 # fraction of a cent; the estimate only needs to stop a call when a cap or the
@@ -92,13 +94,19 @@ class PointSpec:
     # What a failed call (timeout, error, abstain) does. "open": today's rule,
     # silently. "closed": today's guarded rule, never a looser path.
     fail: FailMode
+    # One more try on the D0 model when this point's model is down. Only for
+    # batch scoring off the hot path: thresholds are tuned per model, so a
+    # point that gates money or publishing never switches model by itself.
+    second_tier: bool = False
 
 
 POINTS: dict[Point, PointSpec] = {
-    Point.WHAT_TO_POST: PointSpec(Point.WHAT_TO_POST, 3, "what_to_post.v1", 2.0, "D1", "open"),
+    Point.WHAT_TO_POST: PointSpec(
+        Point.WHAT_TO_POST, 3, "what_to_post.v1", 2.0, "D1", "open", second_tier=True
+    ),
     Point.HOOK_SCORE: PointSpec(Point.HOOK_SCORE, 4, "hook_score.v1", 1.5, "D1", "open"),
     Point.BUDGET_SHIFT: PointSpec(Point.BUDGET_SHIFT, 5, "budget_shift.v1", 2.0, "D1", "closed"),
-    Point.QA_VIDEO: PointSpec(Point.QA_VIDEO, 9, "qa_video.v1", 3.0, "D1", "closed"),
+    Point.QA_VIDEO: PointSpec(Point.QA_VIDEO, 9, "qa_video.v2", 3.0, "D1", "closed"),
     Point.QA_ARTICLE: PointSpec(Point.QA_ARTICLE, 9, "qa_article.v1", 3.0, "D1", "closed"),
 }
 
@@ -259,8 +267,21 @@ def brand_rule_checks(rules: list[str], *, subject: str) -> dict[str, Check]:
     }
 
 
-def video_checks(brand_rules: list[str]) -> dict[str, Check]:
-    return {**VIDEO_CHECKS_V1, **brand_rule_checks(brand_rules, subject="transcript")}
+# Only asked when the state carries frames from the rendered video.
+VIDEO_GARBLED_TEXT = Check(
+    YesNo(
+        "Does any image in `keyframes` show on-screen text that is garbled, "
+        "misspelled or unreadable?"
+    ),
+    "no",
+)
+
+
+def video_checks(brand_rules: list[str], *, has_keyframes: bool = False) -> dict[str, Check]:
+    checks = {**VIDEO_CHECKS_V1, **brand_rule_checks(brand_rules, subject="transcript")}
+    if has_keyframes:
+        checks["garbled_text"] = VIDEO_GARBLED_TEXT
+    return checks
 
 
 def article_checks(brand_rules: list[str]) -> dict[str, Check]:

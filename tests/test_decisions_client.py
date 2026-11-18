@@ -25,17 +25,21 @@ QS: q.Questions = {
     "cause": q.Choice("Why?", {"a": None, "b": "B"}),
     "stop": q.Score("Stop?", ("no", "maybe", "yes")),
 }
+# The wire shape, as the API returns it (docs/decisions/openrouter-contract.md):
+# every answer carries its type, and a score is the expected level (0..2 here).
 GOOD_ANSWERS = {
-    "filler": {"noul": 0.2},
-    "cause": {"choice": "b", "confidence": 0.7, "probabilities": {"a": 0.3, "b": 0.7}},
-    "stop": {"score": 0.6, "confidence": 0.8},
+    "filler": {"type": "noul", "noul": 0.2},
+    "cause": {"type": "choice", "choice": "b", "confidence": 0.7,
+              "probabilities": {"a": 0.3, "b": 0.7}},
+    "stop": {"type": "score", "score": 1.2, "confidence": 0.8,
+             "probabilities": {"0": 0.1, "1": 0.6, "2": 0.3}},
 }
 STATE = {"hook": "You are losing $40 a month to this setting", "email": "x@example.com"}
 
 
 def ok_body(**over) -> dict:
     return {"answers": GOOD_ANSWERS, "model": q.D1_MODEL,
-            "usage": {"cost": 0.000012, "total_tokens": 321}, **over}
+            "usage": {"cost": 0.000012, "input_tokens": 300, "output_tokens": 21}, **over}
 
 
 def transport(handler) -> httpx.MockTransport:
@@ -189,7 +193,7 @@ async def test_success_normalises_answers_meters_and_logs(with_key, fake_spend, 
         "filler": {"type": "yesno", "probability": 0.2},
         "cause": {"type": "choice", "choice": "b", "confidence": 0.7,
                   "probabilities": {"a": 0.3, "b": 0.7}},
-        "stop": {"type": "score", "score": 0.6, "confidence": 0.8},
+        "stop": {"type": "score", "score": 0.6, "level": 1.2, "confidence": 0.8},
     }
 
     req = seen[0]
@@ -198,13 +202,17 @@ async def test_success_normalises_answers_meters_and_logs(with_key, fake_spend, 
     sent = json.loads(req.content)
     assert sent["model"] == q.D1_MODEL
     assert sent["questions"]["filler"] == {"type": "noul", "instructions": QS["filler"].instructions}
-    assert sent["questions"]["stop"]["levels"] == ["no", "maybe", "yes"]
+    # Choice options and score levels both travel as `criteria`.
+    assert sent["questions"]["cause"] == {
+        "type": "choice", "instructions": "Why?", "criteria": {"a": None, "b": "B"}}
+    assert sent["questions"]["stop"] == {
+        "type": "score", "instructions": "Stop?", "criteria": ["no", "maybe", "yes"]}
 
     # Metered into the spend ledger at OpenRouter's returned cost.
     assert len(rec.entries) == 1
     e = rec.entries[0]
     assert (e.provider, e.sku) == ("openrouter", f"decision:{q.D1_MODEL}")
-    assert e.cost_usd == Decimal("0.000012") and e.units == Decimal(321)
+    assert e.cost_usd == Decimal("0.000012") and e.units == Decimal(321)  # input + output
 
     await d.log(action="proceed", rule_action="proceed", table_action="regenerate")
     await d.log(action="proceed", rule_action="proceed")  # logged once only
@@ -221,11 +229,15 @@ async def test_success_normalises_answers_meters_and_logs(with_key, fake_spend, 
     assert "x@example.com" not in json.dumps(row, default=str)
 
 
-async def test_level_index_scores_are_normalised(with_key):
-    body = ok_body(answers={**GOOD_ANSWERS, "stop": {"score": 2, "confidence": 0.9}})
+@pytest.mark.parametrize("level, normalised", [(0, 0.0), (0.5, 0.25), (1, 0.5), (2, 1.0)])
+async def test_a_score_is_a_level_index_and_is_always_normalised(with_key, level, normalised):
+    # A level at or below 1 is still a level: 0.5 of 0..2 is weak, not middling.
+    body = ok_body(answers={**GOOD_ANSWERS,
+                            "stop": {"type": "score", "score": level, "confidence": 0.9}})
     d = await svc.decide(q.Point.HOOK_SCORE, STATE, QS, user_id="u1",
                          client=client_with(json_handler(body)))
-    assert d.answers["stop"]["score"] == 1.0
+    assert d.answers["stop"]["score"] == normalised
+    assert d.answers["stop"]["level"] == level
 
 
 async def test_url_and_model_come_from_env(with_key, monkeypatch):
@@ -245,6 +257,170 @@ async def test_d0_tier_uses_cheap_model(with_key):
     await svc.decide(q.Point.WHAT_TO_POST, STATE, QS, user_id="u1", tier="D0",
                      client=client_with(json_handler(ok_body(), seen=seen)))
     assert json.loads(seen[0].content)["model"] == q.D0_MODEL
+
+
+# ---------------------------------------------------------------------------
+# Second tier: batch scoring only, and only when the model is down
+# ---------------------------------------------------------------------------
+
+
+def _by_model(responses: dict[str, tuple[int, dict]], seen: list[str]):
+    async def handle(request: httpx.Request) -> httpx.Response:
+        model = json.loads(request.content)["model"]
+        seen.append(model)
+        status, body = responses[model]
+        return httpx.Response(status, json=body)
+    return handle
+
+
+def test_only_batch_scoring_has_a_second_tier():
+    assert [p for p, spec in q.POINTS.items() if spec.second_tier] == [q.Point.WHAT_TO_POST]
+    # Pinned, dated slugs with an author: never a floating alias.
+    for slug in (q.D1_MODEL, q.D0_MODEL):
+        assert "/" in slug and slug[-8:].isdigit() and "latest" not in slug
+
+
+@pytest.mark.parametrize("status", [500, 502, 503, 429, 408])
+async def test_batch_scoring_tries_the_second_tier_when_the_model_is_down(
+    with_key, fake_spend, status
+):
+    seen: list[str] = []
+    spend, rec = fake_spend
+    d = await svc.decide(
+        q.Point.WHAT_TO_POST, STATE, QS, user_id="u1", spend=spend,
+        client=client_with(_by_model({
+            q.D1_MODEL: (status, {"error": {"code": status, "message": "down"}}),
+            q.D0_MODEL: (200, ok_body(model=q.D0_MODEL)),
+        }, seen)),
+    )
+    assert seen == [q.D1_MODEL, q.D0_MODEL]
+    assert d.ok and d.model == q.D0_MODEL
+    # Metered once, under the model that answered.
+    assert [e.sku for e in rec.entries] == [f"decision:{q.D0_MODEL}"]
+
+
+@pytest.mark.parametrize("status", [400, 401, 402, 403, 404, 413])
+async def test_no_second_tier_for_a_request_another_model_would_not_fix(with_key, status):
+    seen: list[str] = []
+    d = await svc.decide(
+        q.Point.WHAT_TO_POST, STATE, QS, user_id="u1",
+        client=client_with(_by_model({
+            q.D1_MODEL: (status, {"error": {"code": status, "message": "no"}}),
+            q.D0_MODEL: (200, ok_body(model=q.D0_MODEL)),
+        }, seen)),
+    )
+    assert seen == [q.D1_MODEL] and not d.ok and d.error == f"http: {status}"
+
+
+async def test_no_second_tier_for_a_refusal_or_a_malformed_answer(with_key):
+    for answers in ({**GOOD_ANSWERS, "filler": {"type": "refusal"}}, {"filler": {"nope": 1}}):
+        seen: list[str] = []
+        d = await svc.decide(
+            q.Point.WHAT_TO_POST, STATE, QS, user_id="u1",
+            client=client_with(_by_model({
+                q.D1_MODEL: (200, ok_body(answers=answers)),
+                q.D0_MODEL: (200, ok_body(model=q.D0_MODEL)),
+            }, seen)),
+        )
+        assert seen == [q.D1_MODEL] and not d.ok
+
+
+async def test_second_tier_failure_is_still_a_failure(with_key, fake_spend):
+    seen: list[str] = []
+    spend, rec = fake_spend
+    down = (503, {"error": {"code": 503, "message": "down"}})
+    d = await svc.decide(
+        q.Point.WHAT_TO_POST, STATE, QS, user_id="u1", spend=spend,
+        client=client_with(_by_model({q.D1_MODEL: down, q.D0_MODEL: down}, seen)),
+    )
+    assert seen == [q.D1_MODEL, q.D0_MODEL]
+    assert not d.ok and d.error == "http: 503" and rec.entries == []
+
+
+@pytest.mark.parametrize(
+    "point", [q.Point.HOOK_SCORE, q.Point.BUDGET_SHIFT, q.Point.QA_VIDEO, q.Point.QA_ARTICLE]
+)
+async def test_gating_points_never_switch_model(with_key, point):
+    seen: list[str] = []
+    d = await svc.decide(
+        point, STATE, QS, user_id="u1",
+        client=client_with(_by_model({
+            q.D1_MODEL: (503, {"error": {"code": 503, "message": "down"}}),
+            q.D0_MODEL: (200, ok_body(model=q.D0_MODEL)),
+        }, seen)),
+    )
+    assert seen == [q.D1_MODEL] and not d.ok
+
+
+async def test_already_on_the_second_tier_does_not_call_it_twice(with_key):
+    seen: list[str] = []
+    down = (503, {"error": {"code": 503, "message": "down"}})
+    d = await svc.decide(
+        q.Point.WHAT_TO_POST, STATE, QS, user_id="u1", tier="D0",
+        client=client_with(_by_model({q.D0_MODEL: down}, seen)),
+    )
+    assert seen == [q.D0_MODEL] and not d.ok
+
+
+# ---------------------------------------------------------------------------
+# Metering failures never change the decision
+# ---------------------------------------------------------------------------
+
+
+class _NotNull(Exception):
+    """Shaped like the driver's error for Postgres 23502."""
+
+    sqlstate = "23502"
+
+
+async def test_niche_less_ledger_row_rejected_by_the_schema_is_logged_and_skipped(
+    with_key, fake_spend, caplog
+):
+    spend, rec = fake_spend
+    spend.niche_id = None
+
+    async def reject(entry):
+        raise _NotNull('null value in column "niche_id" violates not-null constraint')
+
+    spend.record = reject
+    with caplog.at_level("WARNING"):
+        d = await svc.decide(q.Point.BUDGET_SHIFT, STATE, QS, user_id="u1", spend=spend,
+                             client=client_with(json_handler(ok_body())))
+    assert d.ok and d.cost_usd == Decimal("0.000012")
+    assert any("spend_ledger needs a nullable niche_id" in r.message for r in caplog.records)
+
+
+async def test_any_other_metering_error_is_logged_and_the_decision_stands(
+    with_key, fake_spend, caplog
+):
+    spend, _ = fake_spend
+
+    async def broken(entry):
+        raise RuntimeError("db down")
+
+    spend.record = broken
+    with caplog.at_level("WARNING"):
+        d = await svc.decide(q.Point.HOOK_SCORE, STATE, QS, user_id="u1", spend=spend,
+                             client=client_with(json_handler(ok_body())))
+    assert d.ok
+    assert any(r.message == "decision metering raised" for r in caplog.records)
+
+
+async def test_ledger_context_is_niche_less_and_none_without_a_database(monkeypatch):
+    from marketer.services import spend_context
+
+    async def build(**kw):
+        assert kw == {"user_id": "u1", "niche_id": None, "job_id": None}
+        return "ctx"
+
+    monkeypatch.setattr(spend_context, "default_context", build)
+    assert await svc.ledger_context("u1") == "ctx"
+
+    async def no_db(**kw):
+        raise RuntimeError("no database")
+
+    monkeypatch.setattr(spend_context, "default_context", no_db)
+    assert await svc.ledger_context("u1") is None
 
 
 # ---------------------------------------------------------------------------
@@ -278,10 +454,17 @@ async def test_timeout_takes_the_fallback(with_key, monkeypatch, fake_spend, log
         ({"error": "rate"}, 429, "http"),
         (ok_body(usage={}), 200, "no_cost"),               # unpriced: rejected
         (ok_body(usage={"cost": -1}), 200, "no_cost"),
-        (ok_body(answers={"filler": {"noul": 0.2}}), 200, "invalid"),  # partial
-        (ok_body(answers={**GOOD_ANSWERS, "filler": {"noul": 1.7}}), 200, "invalid"),
-        (ok_body(answers={**GOOD_ANSWERS, "cause": {"choice": "zzz", "confidence": 1}}),
+        (ok_body(answers={"filler": {"type": "noul", "noul": 0.2}}), 200, "invalid"),  # partial
+        (ok_body(answers={**GOOD_ANSWERS, "filler": {"type": "noul", "noul": 1.7}}),
          200, "invalid"),
+        (ok_body(answers={**GOOD_ANSWERS, "filler": {"noul": 0.2}}), 200, "invalid"),  # untyped
+        (ok_body(answers={**GOOD_ANSWERS,
+                          "cause": {"type": "choice", "choice": "zzz", "confidence": 1}}),
+         200, "invalid"),
+        (ok_body(answers={**GOOD_ANSWERS,
+                          "stop": {"type": "score", "score": 2.5, "confidence": 1}}),
+         200, "invalid"),
+        (ok_body(answers={**GOOD_ANSWERS, "filler": {"type": "refusal"}}), 200, "refused"),
         ([1, 2, 3], 200, "invalid"),
     ],
 )

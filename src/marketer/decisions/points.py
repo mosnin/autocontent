@@ -25,6 +25,7 @@ from uuid import UUID
 
 from ..logging import get_logger
 from ..services import decisions as svc
+from . import keyframes as kf
 from . import questions as q
 from . import tables
 
@@ -310,6 +311,9 @@ async def judge_budget_change(
         state,
         q.BUDGET_QUESTIONS_V1,
         user_id=user_id,
+        # An ad campaign has no niche: the call is metered on a niche-less
+        # ledger row, under the user's global cap and credit balance.
+        spend=await svc.ledger_context(user_id),
         subject_kind="ad_campaign",
         subject_id=campaign.id,
     )
@@ -373,9 +377,20 @@ async def verify_video(
     brand_rules: list[str],
     rule_passed: bool,
     spend: Any = None,
+    video_path: Any = None,
+    keyframes: list[bytes] | None = None,
 ) -> list[str] | None:
-    """Failed check names when enforce bounces the video, else None."""
+    """Failed check names when enforce bounces the video, else None.
+
+    With ``video_path`` (or ready ``keyframes``, PNG or JPEG bytes) the model
+    also looks at a few frames and one more check is asked: garbled,
+    misspelled or unreadable on-screen text. No frames, no extra check."""
     rules = list(brand_rules)[: q.MAX_BRAND_RULES]
+    frames: list[dict] = []
+    if kf.enabled() and (keyframes or video_path is not None):
+        # Sampling costs an ffmpeg run, so not when the point is off.
+        if await svc.resolve_mode(q.Point.QA_VIDEO) != "off":
+            frames = kf.image_parts(keyframes or await kf.sample_async(video_path))
     state = {
         "script": {
             "hook": script.idea.hook,
@@ -385,11 +400,12 @@ async def verify_video(
         "transcript": _clip(transcript, q.MAX_DRAFT_CHARS),
         "niche": niche_title,
         **({"brand_rules": rules} if rules else {}),
+        **({"keyframes": frames} if frames else {}),
     }
     return await _verify(
         q.Point.QA_VIDEO,
         state,
-        q.video_checks(rules),
+        q.video_checks(rules, has_keyframes=bool(frames)),
         grounded=None,
         rule_passed=rule_passed,
         user_id=getattr(spend, "user_id", None),

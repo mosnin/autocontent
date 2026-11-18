@@ -11,6 +11,7 @@ import { roomStub } from "../multi-agent/room-client.ts";
 import { marketerReadTools } from "../marketer/tools/index.ts";
 import { DELEGATION_ROSTER, DEPARTMENT_GRANT, SPECIALISTS } from "../multi-agent/roster.ts";
 import groupCollaboration from "../skills/group-collaboration/SKILL.md";
+import { useMarketingSkills } from "../skills/marketing.ts";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
 
 // Ephemeral subagents (not exported → not top-level agents). They run in parallel via Flue's `task` tool, see only
@@ -56,6 +57,8 @@ export function Orchestrator({ id }: AgentProps) {
   useSkill(operatingProcedures);
   useSkill(groupCollaboration);
   useCustomSkills();
+  // The marketing skills pack and its slash commands (docs/skills/README.md): procedures only, no tool or approval.
+  useMarketingSkills("orchestrator");
   // No subagents while the conversation is locked (injection lock, budget, tenant lockdown): `task` then has no target.
   if (!ctx.securityLocked && !ctx.budgetExhausted && !ctx.tenantLocked) {
     const subagentTools: SubagentToolsContext = { tenant: ctx.tenant, tenantConfig: ctx.tenantConfig, runId: ctx.runId };

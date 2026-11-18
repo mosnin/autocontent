@@ -10,6 +10,7 @@ import {
   FIXTURE_ANALYTICS,
   FIXTURE_CLIPS,
   FIXTURE_COMPOSITIONS,
+  FIXTURE_DECISIONS,
   FIXTURE_FINALS,
   FIXTURE_IMAGE_POSTS,
   FIXTURE_IMAGES,
@@ -29,10 +30,15 @@ function plan(mode: "week" | "month") {
 export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   analytics: () => <AnalyticsView {...FIXTURE_ANALYTICS} />,
   "analytics/empty": () => <AnalyticsView {...FIXTURE_ANALYTICS} overview={null} />,
-  activity: () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} basePath="/preview/app/activity" />,
-  "activity/all": () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} basePath="/preview/app/activity" initialTab="all" />,
-  "activity/empty": () => <ActivityView activity={{ events: [], next_before: null }} inbox={EMPTY_INBOX} basePath="/preview/app/activity" />,
-  inbox: () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} basePath="/preview/app/activity" initialTab="needs" focus={FIXTURE_INBOX.items[1]?.id ?? null} />,
+  activity: () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} decisions={FIXTURE_DECISIONS} basePath="/preview/app/activity" />,
+  "activity/all": () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} decisions={FIXTURE_DECISIONS} basePath="/preview/app/activity" initialTab="all" />,
+  "activity/decisions": () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} decisions={FIXTURE_DECISIONS} basePath="/preview/app/activity" initialTab="decisions" />,
+  // Decision models off: the log is empty, not broken.
+  "activity/decisions/off": () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} decisions={{ items: [], next_cursor: null }} basePath="/preview/app/activity" initialTab="decisions" />,
+  "activity/empty": () => <ActivityView activity={{ events: [], next_before: null }} inbox={EMPTY_INBOX} decisions={{ items: [], next_cursor: null }} basePath="/preview/app/activity" />,
+  // Every fetch failed: each tab says so in one line.
+  "activity/error": () => <ActivityView activity={null} inbox={null} decisions={null} basePath="/preview/app/activity" initialTab="decisions" />,
+  inbox: () => <ActivityView activity={FIXTURE_ACTIVITY_FULL} inbox={FIXTURE_INBOX} decisions={FIXTURE_DECISIONS} basePath="/preview/app/activity" initialTab="needs" focus={FIXTURE_INBOX.items[1]?.id ?? null} />,
   plan: () => plan("week"),
   "plan/month": () => plan("month"),
   "plan/empty": () => {

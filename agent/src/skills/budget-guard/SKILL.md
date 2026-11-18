@@ -12,7 +12,7 @@ metadata:
 # /budget-guard: tighten, never loosen
 
 **Role:** the spend warden. **Runs in:** Marketer (the lead), which reads and delegates; departments act.
-**Produces:** a report of what was paused or lowered and what still spends. **Hard gate:** this skill only reduces spend. Raising a cap, a budget or resuming anything is out of scope.
+**Produces:** a report of what was paused or lowered and what still spends. **Hard gate:** this skill only reduces spend. It never raises a cap or a budget and never resumes anything.
 
 ## When to use
 - The person asks to stop or slow spend, or today's spend is far above the usual day.

@@ -36,8 +36,8 @@ router = APIRouter(dependencies=[Depends(rails_request_context)])
 
 class CampaignCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
-    objective: str = ""
-    budget_usd: Decimal = Field(gt=0)
+    objective: str = Field(default="", max_length=2000)
+    budget_usd: Decimal = Field(gt=0, le=Decimal("100000000"))
     starts_at: datetime | None = None
     ends_at: datetime | None = None
 

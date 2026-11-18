@@ -15,6 +15,7 @@ from marketer.repos import jobs as jobs_repo
 from marketer.repos import post_metrics as post_metrics_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter(dependencies=[Depends(rails_request_context)])
 
@@ -44,7 +45,12 @@ async def get_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     return job
 
 
-@router.post("", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
+# Each call spawns a paid pipeline run. The spend caps bound the money; this
+# bounds how fast one account can queue work (and fill the jobs table).
+_SPAWN_LIMIT = user_rate_limit("jobs.spawn", "30/minute")
+
+
+@router.post("", response_model=Job, status_code=status.HTTP_202_ACCEPTED, dependencies=[_SPAWN_LIMIT])
 async def enqueue_job(body: JobEnqueue, ctx: AuthCtx = CurrentUser) -> Job:
     """Spawn a pipeline run on Modal. Returns the queued Job row;
     poll GET /{job_id} for status."""
@@ -190,7 +196,7 @@ async def reject_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     return job
 
 
-@router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED)
+@router.post("/{job_id}/retry", response_model=Job, status_code=status.HTTP_202_ACCEPTED, dependencies=[_SPAWN_LIMIT])
 async def retry_job(job_id: UUID, ctx: AuthCtx = CurrentUser) -> Job:
     """Re-run a previously failed job from scratch. Only works on jobs in
     `failed` state owned by the caller."""

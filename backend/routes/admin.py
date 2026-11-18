@@ -8,6 +8,7 @@ SOC2 posture: least privilege (role gate), complete audit trail
 """
 from __future__ import annotations
 
+import re
 from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -20,6 +21,8 @@ from marketer.repos import feature_flags as flags_repo
 from ..auth import AdminCtx, CurrentAdmin
 
 router = APIRouter()
+
+_FLAG_KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:\-]{0,99}$")
 
 
 async def _audit(
@@ -56,7 +59,7 @@ async def overview(ctx: AdminCtx = CurrentAdmin) -> admin_repo.PlatformOverview:
 @router.get("/users", response_model=list[admin_repo.AdminUserRow])
 async def list_users(
     ctx: AdminCtx = CurrentAdmin,
-    q: str | None = None,
+    q: str | None = Query(default=None, max_length=200),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> list[admin_repo.AdminUserRow]:
@@ -141,7 +144,11 @@ async def grant_credits(user_id: str, body: GrantBody, ctx: AdminCtx = CurrentAd
 
 @router.get("/flags", response_model=list[flags_repo.FeatureFlag])
 async def list_flags(ctx: AdminCtx = CurrentAdmin) -> list[flags_repo.FeatureFlag]:
-    return await flags_repo.list_all()
+    flags = await flags_repo.list_all()
+    # Flags hold the rails kill switches; reading them is audited like every
+    # other admin view.
+    await _audit(ctx, "flags.list", target_type="system", metadata={"count": len(flags)})
+    return flags
 
 
 class FlagBody(BaseModel):
@@ -151,7 +158,7 @@ class FlagBody(BaseModel):
 
 @router.put("/flags/{key}", response_model=flags_repo.FeatureFlag)
 async def upsert_flag(key: str, body: FlagBody, ctx: AdminCtx = CurrentAdmin) -> flags_repo.FeatureFlag:
-    if not key or len(key) > 100:
+    if not _FLAG_KEY.match(key):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid flag key")
     flag = await flags_repo.upsert(
         key, enabled=body.enabled, description=body.description, updated_by=ctx.user_id

@@ -14,9 +14,19 @@ const KEY = "test-key-not-real";
 const yes = (p: number): DecisionAnswer => ({ type: "yesno", probability: p });
 const pick = (choice: string, confidence: number, probabilities: Record<string, number> = { [choice]: confidence }): DecisionAnswer => ({ type: "choice", choice, confidence, probabilities });
 
+/** The API stamps every answer with its type; the short wire literals below leave it out. */
+function typed(wire: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(wire).map(([name, a]) => {
+      const answer = a as Record<string, unknown>;
+      const type = "type" in answer ? answer.type : "noul" in answer ? "noul" : "choice" in answer ? "choice" : "score";
+      return [name, { type, ...answer }];
+    }),
+  );
+}
 /** A decisions endpoint that answers every question it is asked. */
-function answeringFetch(wire: Record<string, unknown>, extra: Record<string, unknown> = { usage: { cost: 0.0002 }, model: "typesafe/jev-1.13-20260917" }) {
-  return vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify({ answers: wire, ...extra }), { status: 200, headers: { "content-type": "application/json" } }));
+function answeringFetch(wire: Record<string, unknown>, extra: Record<string, unknown> = { usage: { cost: 0.0002, input_tokens: 120, output_tokens: 8 }, model: "typesafe/jev-1.13-20260917" }) {
+  return vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify({ answers: typed(wire), ...extra }), { status: 200, headers: { "content-type": "application/json" } }));
 }
 /** A transport that only settles when aborted (a hung model). */
 const hangingFetch = vi.fn(
@@ -54,6 +64,7 @@ describe("decision client", () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.cost).toBe(0.0002);
+    expect(r.tokens).toBe(128);
     expect(r.answers.department).toMatchObject({ type: "choice", choice: "media-buyer", confidence: 0.9 });
     expect(r.answers.ad_money).toEqual({ type: "yesno", probability: 0.8 });
     const [url, init] = f.mock.calls[0]!;
@@ -92,6 +103,14 @@ describe("decision client", () => {
     expect(await requestDecision({ env, fetch: bad as unknown as typeof fetch }, {}, ROUTING_QUESTIONS, { timeoutMs: 100 })).toMatchObject({ ok: false, kind: "invalid" });
     const missing = answeringFetch({ lasting_fact: { noul: 3 } });
     expect(await requestDecision({ env, fetch: missing as unknown as typeof fetch }, {}, MEMORY_GATE_QUESTIONS, { timeoutMs: 100 })).toMatchObject({ ok: false, kind: "invalid" });
+  });
+
+  it("a refused question fails the call as `refused`, and an untyped answer as `invalid`", async () => {
+    const env = { OPENROUTER_API_KEY: KEY };
+    const refused = answeringFetch({ lasting_fact: { type: "refusal" } });
+    expect(await requestDecision({ env, fetch: refused as unknown as typeof fetch }, {}, MEMORY_GATE_QUESTIONS, { timeoutMs: 100 })).toMatchObject({ ok: false, kind: "refused" });
+    const untyped = vi.fn(async () => new Response(JSON.stringify({ answers: { lasting_fact: { noul: 0.9 } }, usage: { cost: 0.0001 } }), { status: 200 }));
+    expect(await requestDecision({ env, fetch: untyped as unknown as typeof fetch }, {}, MEMORY_GATE_QUESTIONS, { timeoutMs: 100 })).toMatchObject({ ok: false, kind: "invalid" });
   });
 
   it("maps every question type to the wire format", () => {

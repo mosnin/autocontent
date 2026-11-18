@@ -10,6 +10,7 @@ import { delegationDispatch } from "../multi-agent/delegation.ts";
 import { roomStub } from "../multi-agent/room-client.ts";
 import { SPECIALISTS, type SpecialistId } from "../multi-agent/roster.ts";
 import groupCollaboration from "../skills/group-collaboration/SKILL.md";
+import { useMarketingSkills } from "../skills/marketing.ts";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
 import untrustedContent from "../skills/untrusted-content/SKILL.md";
 
@@ -66,6 +67,8 @@ function useSpecialist(selfId: SpecialistId, id: string, persona: string, option
   useSkill(groupCollaboration);
   useSkill(untrustedContent);
   useCustomSkills();
+  // This department's marketing skills (docs/skills/README.md): procedures only, they grant no tool or approval.
+  useMarketingSkills(selfId);
   return `${persona}
 You are Marketer's ${spec.role} (id: ${selfId}), one department of an AI marketing team led by Marketer.
 Work only through your tools; never invent ids, numbers, statuses or results. Report money in US dollars with two decimals and counts as integers, and say which tool and date range each number came from.

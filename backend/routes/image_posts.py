@@ -11,7 +11,7 @@ from __future__ import annotations
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from marketer import rails
@@ -20,6 +20,7 @@ from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import niches as niches_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter(dependencies=[Depends(rails_request_context)])
 
@@ -27,20 +28,25 @@ router = APIRouter(dependencies=[Depends(rails_request_context)])
 class ImagePostCreate(BaseModel):
     niche_id: UUID
     kind: Literal["single", "carousel"] = "carousel"
-    topic: str = ""
+    topic: str = Field(default="", max_length=500)
     slide_count: int = Field(default=5, ge=1, le=10)
 
 
 @router.get("")
 async def list_image_posts(
-    status_filter: str | None = None, limit: int = 50, ctx: AuthCtx = CurrentUser
+    status_filter: str | None = Query(default=None, max_length=40),
+    limit: int = 50,
+    ctx: AuthCtx = CurrentUser,
 ) -> list[dict]:
     return await image_posts_repo.list_for_user(
         ctx.user_id, status=status_filter, limit=min(max(limit, 1), 200)
     )
 
 
-@router.post("", status_code=status.HTTP_202_ACCEPTED)
+_SPAWN_LIMIT = user_rate_limit("image_posts.spawn", "30/minute")
+
+
+@router.post("", status_code=status.HTTP_202_ACCEPTED, dependencies=[_SPAWN_LIMIT])
 async def enqueue_image_post(
     body: ImagePostCreate, ctx: AuthCtx = CurrentUser
 ) -> dict:
@@ -65,7 +71,7 @@ async def get_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dic
     return post
 
 
-@router.post("/{image_post_id}/retry", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/{image_post_id}/retry", status_code=status.HTTP_202_ACCEPTED, dependencies=[_SPAWN_LIMIT])
 async def retry_image_post(image_post_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Re-run a failed post from the top (fresh plan + renders)."""
     # Never re-post over an unknown outcome a person has not resolved.

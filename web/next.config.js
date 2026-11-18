@@ -94,7 +94,7 @@ const nextConfig = {
       // that is report-only, the baseline is still enforced here.
       ...(CSP_ENFORCE ? [] : [{ source: `/:first(${CLERK_ROUTES})/:rest*`, headers: [{ key: "Content-Security-Policy", value: CSP_BASELINE }] }]),
       {
-        source: `/((?!${CLERK_ROUTES}|api/|_next/).*)`,
+        source: `/((?!(?:${CLERK_ROUTES})(?:/|$)|api/|_next/).*)`,
         headers: CSP_ENFORCE
           ? [{ key: "Content-Security-Policy", value: CSP_STATIC }]
           : [

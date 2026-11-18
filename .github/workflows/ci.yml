@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
 
+# Least privilege: every job only reads the repository. A job that needs more
+# (none today) must ask for it itself.
+permissions:
+  contents: read
+
 # One run per ref: a push to a PR branch supersedes the in-flight run.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -13,6 +18,7 @@ jobs:
   python:
     name: Python (ruff + pytest)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     services:
       postgres:
@@ -34,6 +40,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The job never pushes; don't leave the token in .git/config.
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -58,18 +67,24 @@ jobs:
         run: python -m pytest tests/ -q
 
   web:
-    name: Web (tsc + next build)
+    name: Web (tsc + tests + next build)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: web
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The job never pushes; don't leave the token in .git/config.
+          persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -81,6 +96,16 @@ jobs:
         # Fails on hard colours, dark: variants, off-system corners, pulsing
         # decoration, old-kit imports. Spec: web/design-system/README.md.
         run: npm run ds:guard
+
+      - name: Unit tests (security helpers)
+        # Proxy allowlist and header policy, CSRF check, body caps, agent
+        # token mint/verify, rate limiter, preview flag, CSP directives.
+        run: npm test
+
+      - name: Dependency audit (report only)
+        # Prints high/critical advisories in production dependencies. It does
+        # not fail the build: a new advisory should not block unrelated work.
+        run: npm audit --omit=dev --audit-level=high || echo "::warning::npm audit reported high or critical advisories in web/"
 
       - name: Next build (compile-only gate)
         # Clerk's static prerender hard-requires a valid publishable key,
@@ -99,3 +124,43 @@ jobs:
             exit 0
           fi
           exit $rc
+
+  agent:
+    name: Agent (typecheck + lint + vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          # agent/package.json engines: node >= 22.19
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: agent/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test
+
+      - name: Dependency audit (report only)
+        run: pnpm audit --prod --audit-level high || echo "::warning::pnpm audit reported high or critical advisories in agent/"

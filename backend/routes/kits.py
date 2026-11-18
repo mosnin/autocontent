@@ -29,7 +29,7 @@ router = APIRouter()
 class KitCreate(BaseModel):
     kind: Literal["design", "ad", "writing"]
     name: str = Field(min_length=1, max_length=120)
-    description: str = ""
+    description: str = Field(default="", max_length=2000)
     content: str = Field(default="", max_length=kits_repo.MAX_CONTENT_CHARS)
     rules: dict = Field(default_factory=dict)
     is_default: bool = False
@@ -37,7 +37,7 @@ class KitCreate(BaseModel):
 
 class KitUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=2000)
     content: str | None = Field(default=None, max_length=kits_repo.MAX_CONTENT_CHARS)
     rules: dict | None = None
     is_default: bool | None = None

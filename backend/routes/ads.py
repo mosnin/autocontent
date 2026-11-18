@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from marketer import rails
@@ -39,6 +39,12 @@ from ..auth import AuthCtx, CurrentUser
 router = APIRouter(dependencies=[Depends(rails_request_context)])
 
 
+# Sanity ceilings: the guard decides what is allowed; these only keep a typo
+# (or a hostile body) from overflowing a numeric column into a 500.
+MAX_DAILY_BUDGET_USD = Decimal("1000000")
+MAX_CAP_USD = Decimal("100000000")
+
+
 def _actor(ctx: AuthCtx) -> str:
     """Audit attribution: a call the agent harness makes on a user's behalf
     (service-token delegation) is recorded as the agent, not the person."""
@@ -48,7 +54,7 @@ def _actor(ctx: AuthCtx) -> str:
 # --------------------------------------------------------------------------- accounts
 
 class ConnectBody(BaseModel):
-    platform: str
+    platform: str = Field(min_length=1, max_length=40)
 
 
 @router.get("/accounts", response_model=list[ads_repo.AdAccount])
@@ -87,8 +93,8 @@ async def disconnect_account(
 
 
 class GovernanceBody(BaseModel):
-    daily_cap_usd: Decimal | None = Field(default=None, ge=0)
-    monthly_cap_usd: Decimal | None = Field(default=None, ge=0)
+    daily_cap_usd: Decimal | None = Field(default=None, ge=0, le=MAX_CAP_USD)
+    monthly_cap_usd: Decimal | None = Field(default=None, ge=0, le=MAX_CAP_USD)
     killswitch: bool | None = None
 
 
@@ -148,7 +154,7 @@ class CreateCampaignBody(BaseModel):
     objective: str = Field(default="", max_length=100)
     # Intended daily budget stored on the draft. It does NOT spend until the
     # campaign is activated, which routes through the guard.
-    daily_budget_usd: Decimal | None = Field(default=None, ge=0)
+    daily_budget_usd: Decimal | None = Field(default=None, ge=0, le=MAX_DAILY_BUDGET_USD)
     niche_id: UUID | None = None
 
 
@@ -161,6 +167,13 @@ async def create_campaign(
     account = await ads_repo.get_account(body.ad_account_id, user_id=ctx.user_id)
     if account is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "ad account not found")
+    if body.niche_id is not None:
+        # The body must not be able to attach a campaign to another tenant's
+        # playbook (the workspace inbox reads niche_id back out of this row).
+        from marketer.repos import niches as niches_repo
+
+        if await niches_repo.get(body.niche_id, user_id=ctx.user_id) is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "niche not found")
     camp = await ads_repo.create_campaign(
         user_id=ctx.user_id, ad_account_id=body.ad_account_id, name=body.name,
         objective=body.objective, status="draft",
@@ -176,7 +189,7 @@ async def create_campaign(
 
 
 class BudgetBody(BaseModel):
-    daily_budget_usd: Decimal = Field(ge=0)
+    daily_budget_usd: Decimal = Field(ge=0, le=MAX_DAILY_BUDGET_USD)
 
 
 @router.post("/campaigns/{campaign_id}/budget")
@@ -198,7 +211,7 @@ async def change_budget(
 
 
 class StatusBody(BaseModel):
-    status: str  # 'active' | 'paused' | 'ended'
+    status: str = Field(max_length=20)  # 'active' | 'paused' | 'ended'
 
 
 @router.post("/campaigns/{campaign_id}/status")
@@ -310,13 +323,14 @@ async def get_campaign(campaign_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
 
 @router.get("/approvals", response_model=list[ad_approvals.AdApproval])
 async def list_approvals(
-    status_filter: str | None = None, ctx: AuthCtx = CurrentUser
+    status_filter: str | None = Query(default=None, max_length=20),
+    ctx: AuthCtx = CurrentUser,
 ) -> list[ad_approvals.AdApproval]:
     return await ad_approvals.list_(user_id=ctx.user_id, status=status_filter)
 
 
 class DecideBody(BaseModel):
-    decision: str  # 'approved' | 'rejected'
+    decision: str = Field(max_length=20)  # 'approved' | 'rejected'
 
 
 @router.post("/approvals/{approval_id}/decide", response_model=ad_approvals.AdApproval)
@@ -402,9 +416,9 @@ async def decide_ad_approval(
 
 @router.get("/actions", response_model=list[ad_actions.AdActionEntry])
 async def list_actions(
-    limit: int = 100, ctx: AuthCtx = CurrentUser
+    limit: int = Query(default=100, ge=1, le=500), ctx: AuthCtx = CurrentUser
 ) -> list[ad_actions.AdActionEntry]:
-    return await ad_actions.list_(user_id=ctx.user_id, limit=min(limit, 500))
+    return await ad_actions.list_(user_id=ctx.user_id, limit=limit)
 
 
 @router.get("/overview")

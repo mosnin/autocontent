@@ -5,7 +5,7 @@ import type { AnalyticsData } from "@/components/app/analytics/analytics-view";
 import type { PlanItem } from "@/components/app/plan/plan-data";
 import { FIXTURE_ACTIVITY, FIXTURE_MONTH } from "./fixtures";
 import type { Composition, ImagePost, MediaAsset, Niche, SpendHistory } from "./types";
-import type { Activity, SeriesRow } from "./workspace";
+import type { Activity, DecisionEntry, DecisionPage, SeriesRow } from "./workspace";
 
 const ago = (hours: number) => new Date(Date.now() - hours * 3600_000).toISOString();
 const ahead = (days: number, hour: number, minute = 0) => {
@@ -133,3 +133,77 @@ export const FIXTURE_IMAGE_POSTS: ImagePost[] = [
   { id: "ip1", user_id: "u1", niche_id: "n1", campaign_id: null, kind: "carousel", topic: "5 sauces in 15 minutes", status: "awaiting_approval", payload: { slide_count: 7 }, provider_post_id: null, error: null, created_at: ago(5), updated_at: ago(4) },
   { id: "ip2", user_id: "u1", niche_id: "n2", campaign_id: null, kind: "single", topic: "Weeknight pantry list", status: "failed", payload: {}, provider_post_id: null, error: "Image model returned an empty frame", created_at: ago(9), updated_at: ago(8) },
 ];
+
+const decision = (id: string, hours: number, d: Partial<DecisionEntry> & Pick<DecisionEntry, "point" | "mode" | "action_taken" | "fallback_used">): DecisionEntry => ({
+  id,
+  model: null,
+  questions_version: "2026-11-01",
+  answers: null,
+  reason: null,
+  latency_ms: 420,
+  cost_usd: "0.0004",
+  rule_action: null,
+  table_action: null,
+  subject_kind: null,
+  subject_id: null,
+  outcome: null,
+  correction: null,
+  outcome_at: null,
+  created_at: ago(hours),
+  ...d,
+});
+
+export const FIXTURE_DECISIONS: DecisionPage = {
+  items: [
+    decision("d1", 0.3, {
+      point: "approval_risk",
+      mode: "enforce",
+      action_taken: "require_review",
+      rule_action: "auto_approve",
+      table_action: "require_review",
+      fallback_used: false,
+      subject_kind: "ad_change",
+      subject_id: "1",
+      answers: { changes_spend: { type: "yesno", probability: 0.97 }, reversible: { type: "yesno", probability: 0.22 } },
+    }),
+    decision("d2", 1.5, {
+      point: "routing",
+      mode: "shadow",
+      action_taken: "content-producer",
+      rule_action: "content-producer",
+      table_action: "seo-editor",
+      fallback_used: true,
+      answers: { department: { type: "choice", choice: "seo-editor", confidence: 0.61 } },
+    }),
+    decision("d3", 4, {
+      point: "approval_risk",
+      mode: "enforce",
+      action_taken: "require_review",
+      rule_action: "auto_approve",
+      fallback_used: true,
+      reason: "timeout",
+      subject_kind: "video",
+      subject_id: "2",
+    }),
+    decision("d4", 9, {
+      point: "memory_gate",
+      mode: "shadow",
+      action_taken: "keep",
+      rule_action: "keep",
+      table_action: "keep",
+      fallback_used: true,
+      answers: { durable_fact: { type: "yesno", probability: 0.88 } },
+      correction: { note: "Don't keep one-off promo codes." },
+    }),
+    decision("d5", 26, {
+      point: "autopilot",
+      mode: "shadow",
+      action_taken: "no_proposal",
+      rule_action: "no_proposal",
+      table_action: "propose_video",
+      fallback_used: true,
+      answers: { worth_proposing: { type: "yesno", probability: 0.71 } },
+    }),
+  ],
+  next_cursor: null,
+};

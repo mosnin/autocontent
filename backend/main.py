@@ -14,6 +14,7 @@ from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
 from .rate_limit import limiter
+from .security import BodySizeLimitMiddleware, SecurityHeadersMiddleware
 from .routes import admin, ads, articles, billing, brand_kit, calendar, campaigns, connect, decisions, failures, healthz, image_posts, jobs, kits, library, metrics, niches, ops, performance, providers, spend, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, workspace, x402
 
 logger = logging.getLogger(__name__)
@@ -101,6 +102,11 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    # Added last so they wrap everything above: an oversized body is refused
+    # before rate limiting or CORS run, and every response (errors and
+    # preflights included) carries the security headers.
+    app.add_middleware(BodySizeLimitMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.include_router(healthz.router, prefix="", tags=["health"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["users"])

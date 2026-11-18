@@ -2,13 +2,15 @@
 // whatever the client sends; these stop at a byte cap.
 
 export class BodyTooLargeError extends Error {
-  constructor(public readonly limit: number) {
+  readonly limit: number;
+  constructor(limit: number) {
     super(`body is larger than ${limit} bytes`);
+    this.limit = limit;
   }
 }
 
 /** Read at most `limit` bytes. Throws BodyTooLargeError past the cap (checked on Content-Length first, then on the stream). */
-export async function readBodyCapped(req: { headers: { get(name: string): string | null }; body: ReadableStream<Uint8Array> | null }, limit: number): Promise<Uint8Array> {
+export async function readBodyCapped(req: { headers: { get(name: string): string | null }; body: ReadableStream<Uint8Array> | null }, limit: number): Promise<Uint8Array<ArrayBuffer>> {
   const declared = Number(req.headers.get("content-length") ?? "");
   if (Number.isFinite(declared) && declared > limit) throw new BodyTooLargeError(limit);
   if (!req.body) return new Uint8Array(0);

@@ -1,21 +1,43 @@
 from __future__ import annotations
 
+import logging
 import re
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 
+from marketer import rails
 from marketer.models import CreativeBrief, Niche, PostingWindow
+from marketer.rails.http import rails_request_context, to_http
 from marketer.repos import niches as niches_repo
 from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
-router = APIRouter()
+# update_niche dispatches through marketer.rails when it changes the spend cap
+# or the approval gate; the dependency hands it the request's idempotency-key
+# (docs/rails/enforcement-point.md).
+router = APIRouter(dependencies=[Depends(rails_request_context)])
+
+# Bounds on what a playbook may hold. The body-size middleware stops a huge
+# request; these stop a small request from configuring a huge (expensive) run
+# or overflowing a column (daily_spend_cap_usd is numeric(8,2)).
+MAX_DAILY_SPEND_CAP_USD = Decimal("100000")
+
+
+def _check_hashtags(v: list[str] | None) -> list[str] | None:
+    if v is None:
+        return v
+    if len(v) > 50:
+        raise ValueError("at most 50 hashtags")
+    if any(len(t) > 100 for t in v):
+        raise ValueError("a hashtag is at most 100 characters")
+    return v
 
 # ElevenLabs voice ids are short alphanumeric tokens (e.g.
 # "21m00Tcm4TlvDq8ikWAM"). This value is interpolated directly into a
@@ -39,10 +61,12 @@ def _check_voice_id(v: str | None) -> str | None:
 
 
 class DraftRequest(BaseModel):
-    description: str
+    description: str = Field(max_length=4000)
 
 
-@router.post("/draft")
+# An unmetered model call (no playbook exists yet to charge), so it is the
+# one LLM endpoint with no spend cap behind it: bound it per account.
+@router.post("/draft", dependencies=[user_rate_limit("niches.draft", "10/minute")])
 async def draft_niche_spec(
     body: DraftRequest, ctx: AuthCtx = CurrentUser
 ) -> dict:
@@ -64,37 +88,40 @@ async def draft_niche_spec(
     try:
         draft = await draft_niche(text, brand_context=brand_context)
     except Exception as e:  # noqa: BLE001 — surface as a clean 502
+        # The provider's message can carry request ids, model names and
+        # prompt fragments: log it, do not hand it to the client.
+        logging.getLogger(__name__).warning("niche draft failed", exc_info=True)
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY,
-            detail=f"could not draft a channel: {e}",
+            detail="could not draft a channel right now; try again",
         ) from e
     return draft.model_dump()
 
 
 class NicheCreate(BaseModel):
-    title: str
-    description: str
-    target_audience: str
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(max_length=8000)
+    target_audience: str = Field(max_length=2000)
     hashtags: list[str]
-    visual_style: str
-    voice: str
-    target_duration_sec: int
-    scene_count: int
-    posting_windows: list[PostingWindow]
-    platforms: list[Literal["tiktok", "reels", "shorts"]]
+    visual_style: str = Field(max_length=4000)
+    voice: str = Field(max_length=1000)
+    target_duration_sec: int = Field(ge=1, le=600)
+    scene_count: int = Field(ge=1, le=60)
+    posting_windows: list[PostingWindow] = Field(max_length=48)
+    platforms: list[Literal["tiktok", "reels", "shorts"]] = Field(max_length=3)
     # Strictly positive: a zero/negative cap would trip the spend guard on
     # the very first metered call, failing every run for the niche.
-    daily_spend_cap_usd: Decimal = Field(gt=0)
+    daily_spend_cap_usd: Decimal = Field(gt=0, le=MAX_DAILY_SPEND_CAP_USD)
     image_quality: Literal["low", "medium", "high"] = "medium"
     video_resolution: Literal["480p", "720p"] = "480p"
-    scene_max_duration_sec: int = 5
-    tts_style_directions: str | None = None
+    scene_max_duration_sec: int = Field(default=5, ge=1, le=15)
+    tts_style_directions: str | None = Field(default=None, max_length=2000)
     approve_before_post: bool = False
-    character_description: str | None = None
+    character_description: str | None = Field(default=None, max_length=4000)
     creative_brief: CreativeBrief | None = None
     video_provider: Literal["grok", "fal"] = "grok"
-    fal_model: str = ""
-    script_model: str = ""
+    fal_model: str = Field(default="", max_length=200)
+    script_model: str = Field(default="", max_length=200)
     voice_provider: Literal["openai", "elevenlabs"] = "openai"
     elevenlabs_voice_id: str = ""
     music_provider: Literal["auto", "library", "generated"] = "auto"
@@ -106,6 +133,11 @@ class NicheCreate(BaseModel):
     def _validate_elevenlabs_voice_id(cls, v: str) -> str:
         return _check_voice_id(v) or ""
 
+    @field_validator("hashtags")
+    @classmethod
+    def _validate_hashtags(cls, v: list[str]) -> list[str]:
+        return _check_hashtags(v) or []
+
 
 class NicheUpdate(BaseModel):
     """All fields optional — partial update.
@@ -115,27 +147,27 @@ class NicheUpdate(BaseModel):
     as "leave alone".
     """
 
-    title: str | None = None
-    description: str | None = None
-    target_audience: str | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=8000)
+    target_audience: str | None = Field(default=None, max_length=2000)
     hashtags: list[str] | None = None
-    visual_style: str | None = None
-    voice: str | None = None
-    target_duration_sec: int | None = None
-    scene_count: int | None = None
-    posting_windows: list[PostingWindow] | None = None
-    platforms: list[Literal["tiktok", "reels", "shorts"]] | None = None
-    daily_spend_cap_usd: Decimal | None = Field(default=None, gt=0)
+    visual_style: str | None = Field(default=None, max_length=4000)
+    voice: str | None = Field(default=None, max_length=1000)
+    target_duration_sec: int | None = Field(default=None, ge=1, le=600)
+    scene_count: int | None = Field(default=None, ge=1, le=60)
+    posting_windows: list[PostingWindow] | None = Field(default=None, max_length=48)
+    platforms: list[Literal["tiktok", "reels", "shorts"]] | None = Field(default=None, max_length=3)
+    daily_spend_cap_usd: Decimal | None = Field(default=None, gt=0, le=MAX_DAILY_SPEND_CAP_USD)
     image_quality: Literal["low", "medium", "high"] | None = None
     video_resolution: Literal["480p", "720p"] | None = None
-    scene_max_duration_sec: int | None = None
-    tts_style_directions: str | None = None
+    scene_max_duration_sec: int | None = Field(default=None, ge=1, le=15)
+    tts_style_directions: str | None = Field(default=None, max_length=2000)
     approve_before_post: bool | None = None
-    character_description: str | None = None
+    character_description: str | None = Field(default=None, max_length=4000)
     creative_brief: CreativeBrief | None = None
     video_provider: Literal["grok", "fal"] | None = None
-    fal_model: str | None = None
-    script_model: str | None = None
+    fal_model: str | None = Field(default=None, max_length=200)
+    script_model: str | None = Field(default=None, max_length=200)
     voice_provider: Literal["openai", "elevenlabs"] | None = None
     elevenlabs_voice_id: str | None = None
     music_provider: Literal["auto", "library", "generated"] | None = None
@@ -146,6 +178,11 @@ class NicheUpdate(BaseModel):
     @classmethod
     def _validate_elevenlabs_voice_id(cls, v: str | None) -> str | None:
         return _check_voice_id(v)
+
+    @field_validator("hashtags")
+    @classmethod
+    def _validate_hashtags(cls, v: list[str] | None) -> list[str] | None:
+        return _check_hashtags(v)
 
 
 @router.get("", response_model=list[Niche])
@@ -206,13 +243,43 @@ async def get_niche(niche_id: UUID, ctx: AuthCtx = CurrentUser) -> Niche:
     return n
 
 
+def _limit_changes(current: Niche, fields: dict) -> list[tuple[str, dict]]:
+    """The HIGH actions this update amounts to, judged against the playbook as
+    it is now (not as the caller believes it is). Empty when the update leaves
+    the spend cap and the approval gate alone."""
+    changes: list[tuple[str, dict]] = []
+    new_cap = fields.get("daily_spend_cap_usd")
+    if new_cap is not None and new_cap != current.daily_spend_cap_usd:
+        action = (
+            "playbook.spend_cap.raise"
+            if new_cap > current.daily_spend_cap_usd
+            else "playbook.spend_cap.lower"
+        )
+        changes.append((action, {
+            "niche_id": current.id,
+            "daily_spend_cap_usd": new_cap,
+            "previous_daily_spend_cap_usd": current.daily_spend_cap_usd,
+        }))
+    gate = fields.get("approve_before_post")
+    if gate is not None and gate != current.approve_before_post:
+        action = "playbook.approval.enable" if gate else "playbook.approval.disable"
+        changes.append((action, {"niche_id": current.id, "approve_before_post": gate}))
+    return changes
+
+
 @router.put("/{niche_id}", response_model=Niche)
 async def update_niche(
     niche_id: UUID,
     body: NicheUpdate,
     ctx: AuthCtx = CurrentUser,
 ) -> Niche:
-    """Partial update. Fields left unset are not touched."""
+    """Partial update. Fields left unset are not touched.
+
+    Changing the daily spend cap or the approval gate is a HIGH action and
+    goes through the enforcement point (docs/rails/enforcement-point.md): a
+    kill switch stops a raise or the removal of the gate, never a tightening;
+    the agent's idempotency key dedupes a replay; the change is recorded.
+    The agent may never remove the approval gate, whatever was approved."""
     # exclude_unset so omitted JSON keys (vs. explicit nulls) don't
     # clobber existing values.
     fields = body.model_dump(exclude_unset=True)
@@ -221,9 +288,44 @@ async def update_niche(
     )
     if "voice_provider" in fields:
         _validate_voice_provider(fields["voice_provider"])
-    n = await niches_repo.update(niche_id, user_id=ctx.user_id, **fields)
+
+    dispatches: list[rails.Dispatch] = []
+    if fields.get("daily_spend_cap_usd") is not None or fields.get("approve_before_post") is not None:
+        current = await niches_repo.get(niche_id, user_id=ctx.user_id)
+        if current is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND)
+        changes = _limit_changes(current, fields)
+        if ctx.delegated and any(a == "playbook.approval.disable" for a, _ in changes):
+            # Content made by agents waits for a person. Only that person can
+            # take the gate away (fail closed, ADR 0002: tighten, never loosen).
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                "only a person can turn off approval before posting",
+            )
+        try:
+            for action, args in changes:
+                dispatches.append(await rails.enforce_dispatch(
+                    action, user_id=ctx.user_id, principal=rails.principal_of(ctx),
+                    actor_email=ctx.email, args=args,
+                    target_type="niche", target_id=str(niche_id),
+                ))
+        except rails.RailsDenied as e:
+            for d in dispatches:
+                await d.failed(f"not applied: {e.code}")
+            raise to_http(e) from e
+
+    try:
+        n = await niches_repo.update(niche_id, user_id=ctx.user_id, **fields)
+    except Exception as e:
+        for d in dispatches:
+            await d.failed(f"{type(e).__name__}: {e}")
+        raise
     if n is None:
+        for d in dispatches:
+            await d.failed("niche not found")
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    for d in dispatches:
+        await d.succeeded()
     return n
 
 

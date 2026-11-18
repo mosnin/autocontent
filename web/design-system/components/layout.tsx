@@ -216,7 +216,7 @@ export function List({ children, className }: { children: ReactNode; className?:
 }
 
 export function ListRow({ children, href, className }: { children: ReactNode; href?: string; className?: string }) {
-  const cls = cx("flex min-h-12 items-center gap-3 px-3.5 py-2.5", href && "hover:bg-surface-2", className);
+  const cls = cx("flex min-h-12 items-center gap-3 px-3.5 py-2.5", href && "-outline-offset-2 hover:bg-surface-2", className);
   return href ? (
     <Link href={href} className={cls}>
       {children}

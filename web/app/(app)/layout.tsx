@@ -6,6 +6,7 @@ import { THEME_COOKIE, type AppTheme } from "@/components/shell/theme";
 import type { SetupStep } from "@/components/shell/getting-started";
 import type { BrandKit } from "@/lib/brand-kit-client";
 import type { AyrshareConnectStatus, Job, Niche, User } from "@/lib/types";
+import { shellInbox } from "@/lib/workspace";
 import { getInbox, safe } from "@/lib/workspace-server";
 
 // Every protected page renders Clerk's <UserButton /> in the sidebar, so
@@ -43,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
-      <AppShell data={{ brandName: brand?.brand_name || "Marketer", inbox, steps, isAdmin: user?.role === "admin" }} theme={theme} account={<UserButton appearance={{ elements: { avatarBox: "size-6" } }} />}>
+      <AppShell data={{ brandName: brand?.brand_name || "Marketer", inbox: shellInbox(inbox), steps, isAdmin: user?.role === "admin" }} theme={theme} account={<UserButton appearance={{ elements: { avatarBox: "size-6" } }} />}>
         {children}
       </AppShell>
     </ClerkProvider>

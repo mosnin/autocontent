@@ -16,6 +16,7 @@ import {
   cx,
   IconButton,
   Markdown,
+  Notice,
   PageHeader,
   PlanCard,
   QuestionCard,
@@ -36,6 +37,7 @@ import { formatRelative } from "@/lib/format";
 import { TOOL_ICON } from "../shell/sidebar";
 import { useAgent } from "./agent-provider";
 import { AgentPicker } from "./agent-picker";
+import { collectNames, formatApprovalArgs } from "./approval-format";
 import { stripScope, takeFirstMessage, withScope } from "./session-queue";
 
 const toneOf = (d: Department | undefined) => (d ? TOOL_ICON[d.id].tone : undefined);
@@ -209,6 +211,12 @@ export function ChatLayout({
   const showPanel = panel && Boolean(shownDept);
   const empty = messages.length === 0 && !thinking && !streaming;
   const scoped = departmentById(scope);
+  // Names the agent has already looked up in this conversation (campaigns, playbooks…), so approvals show them instead of ids.
+  const names = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const m of messages) for (const p of m.parts) if (p.type === "dynamic-tool" && "output" in p) collectNames(p.output, out);
+    return out;
+  }, [messages]);
 
   return (
     <div className="flex min-h-0 flex-1">
@@ -253,11 +261,11 @@ export function ChatLayout({
                     }
                   />
                 ) : (
-                  <AssistantMessage key={m.id} message={m} approvals={approvalsFor(m.id)} decider={decider} />
+                  <AssistantMessage key={m.id} message={m} approvals={approvalsFor(m.id)} decider={decider} names={names} />
                 ),
               )}
               {approvalsFor("_tail").map((a) => (
-                <ApprovalBlock key={a.approvalId} approval={a} decider={decider} />
+                <ApprovalBlock key={a.approvalId} approval={a} decider={decider} names={names} />
               ))}
               {thinking && (
                 <div className="flex items-center gap-2">
@@ -281,7 +289,11 @@ export function ChatLayout({
         </div>
         <div className="shrink-0 px-4 pb-4">
           <div className="mx-auto max-w-[720px]">
-            {error && <p className="mb-2 text-[12.5px] text-negative">{error}</p>}
+            {error && (
+              <div className="mb-2">
+                <Notice error={error} />
+              </div>
+            )}
             <Composer
               agent={{ name: scoped?.agentName ?? "Marketer", note: scoped ? scoped.label : "Routes each request", tone: toneOf(scoped) }}
               agentPicker={<AgentPicker value={scope} onChange={onScope} />}
@@ -348,7 +360,7 @@ function UserMessage({ message }: { message: FlueConversationMessage }) {
   return <UserBubble to={scope ? `to ${scope.agentName}` : undefined}>{text}</UserBubble>;
 }
 
-function AssistantMessage({ message, approvals, decider }: { message: FlueConversationMessage; approvals: ApprovalRequest[]; decider: UseApprovalsResult }) {
+function AssistantMessage({ message, approvals, decider, names }: { message: FlueConversationMessage; approvals: ApprovalRequest[]; decider: UseApprovalsResult; names: Record<string, string> }) {
   const blocks = blocksOf(message);
   return (
     <div className="ds-enter">
@@ -371,7 +383,7 @@ function AssistantMessage({ message, approvals, decider }: { message: FlueConver
           );
         })}
         {approvals.map((a) => (
-          <ApprovalBlock key={a.approvalId} approval={a} decider={decider} />
+          <ApprovalBlock key={a.approvalId} approval={a} decider={decider} names={names} />
         ))}
       </div>
     </div>
@@ -401,16 +413,8 @@ function GenerativeBlock({ source, complete }: { source: string; complete: boole
   return <PlanCard title="Plan" steps={lines.map((l, i) => ({ label: l, state: !complete && i === lines.length - 1 ? "active" : "todo" }))} />;
 }
 
-function summarizeArgs(args: unknown): [string, string][] {
-  if (!args || typeof args !== "object") return [];
-  return Object.entries(args as Record<string, unknown>)
-    .filter(([, v]) => v !== null && v !== undefined && v !== "")
-    .slice(0, 6)
-    .map(([k, v]) => [k.replace(/_/g, " "), typeof v === "object" ? JSON.stringify(v).slice(0, 80) : String(v).slice(0, 120)]);
-}
-
 /** Every approval is a plan card (ref 02): what will happen, then Dismiss / Approve & Run. */
-function ApprovalBlock({ approval, decider }: { approval: ApprovalRequest; decider: UseApprovalsResult }) {
+function ApprovalBlock({ approval, decider, names }: { approval: ApprovalRequest; decider: UseApprovalsResult; names?: Record<string, string> }) {
   const question = readHumanQuestion(approval);
   if (question) {
     const answered = decider.answers[approval.approvalId] ?? question.answer;
@@ -431,7 +435,21 @@ function ApprovalBlock({ approval, decider }: { approval: ApprovalRequest; decid
   const busy = decider.isPending(approval.approvalId);
   const err = decider.errors[approval.approvalId];
   const high = /high|critical/i.test(approval.riskTier);
-  const steps = [...(approval.reason ? [{ label: approval.reason }] : []), ...summarizeArgs(approval.args).map(([k, v]) => ({ label: <><span className="capitalize text-fg-faint">{k}</span> {v}</> }))];
+  const steps = [
+    ...(approval.reason ? [{ label: approval.reason }] : []),
+    ...formatApprovalArgs(approval.args, { names }).map((row) => ({
+      label: (
+        <>
+          <span className="text-fg-muted">{row.label}</span> <span className="text-fg">{row.value}</span>
+        </>
+      ),
+    })),
+  ];
+  // The hook de-duplicates in-flight decisions; `busy` also locks both buttons so a second click can't queue the other answer.
+  const decide = (d: "approve" | "reject") => {
+    if (!busy) void decider.decide(approval, d);
+  };
+  const inFlight = decider.pending[approval.approvalId];
   return (
     <div className="space-y-1.5">
       <PlanCard
@@ -439,12 +457,13 @@ function ApprovalBlock({ approval, decider }: { approval: ApprovalRequest; decid
         icon={<ShieldCheck className="size-4 text-on-fill" />}
         meta={<StatusBadge tone={high ? "attention" : "neutral"}>{d ? `${d.agentName} · ` : ""}{approval.riskTier.toLowerCase()} risk</StatusBadge>}
         steps={steps.length > 0 ? steps : [{ label: "Needs your go-ahead" }]}
-        onDismiss={pending ? () => void decider.decide(approval, "reject") : undefined}
-        onApprove={pending ? () => void decider.decide(approval, "approve") : undefined}
-        approving={busy}
+        onDismiss={pending ? () => decide("reject") : undefined}
+        onApprove={pending ? () => decide("approve") : undefined}
+        approving={busy && inFlight !== "reject"}
+        dismissing={busy && inFlight === "reject"}
         decided={pending ? undefined : approval.status === "APPROVED" ? "Approved" : approval.status === "REJECTED" ? "Dismissed" : "Expired"}
       />
-      {err && <p className="text-[12.5px] text-negative">{err.message}</p>}
+      {err && <Notice error={err.message} />}
     </div>
   );
 }

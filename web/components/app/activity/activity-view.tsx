@@ -24,14 +24,20 @@ import {
   type Activity,
   type ActivityEvent,
   type ActivityKind,
+  type DecisionPage,
   hrefFor,
   type Inbox,
   type InboxKind,
+  requiredActionFocusId,
+  requiredActions,
+  waitingCount,
 } from "@/lib/workspace";
-import { InboxPlanCard } from "../inbox/inbox-card";
+import { InboxCard } from "../inbox/inbox-card";
+import { RequiredActionCard } from "../inbox/required-action-card";
 import { dayKey, formatTime, relativeDayLabel, useLocalTime } from "./days";
+import { DecisionsList } from "./decisions";
 
-export type ActivityTab = "needs" | "all";
+export type ActivityTab = "needs" | "all" | "decisions";
 
 const DEPT: Record<ActivityKind, DepartmentId> = {
   video: "content",
@@ -150,25 +156,34 @@ function EventRow({
 }
 
 /**
- * Activity and Inbox, one place (ref 07): "Needs you" holds every approval as a
- * plan card; "Everything" is what the department did, grouped by day.
+ * Activity and Inbox, one place (ref 07): "Needs you" holds required actions
+ * (unknown outcomes) and then every approval as a plan card; "Everything" is
+ * what the department did, grouped by day; "Decisions" is the log of what the
+ * decision models judged.
  */
 export function ActivityView({
   activity,
   inbox = null,
+  decisions,
   before,
+  cursor = null,
   basePath = "/activity",
   initialTab,
   focus = null,
 }: {
   activity: Activity | null;
   inbox?: Inbox | null;
+  /** The caller's decision log. `null` = the fetch failed; an empty page = decision models are off. */
+  decisions?: DecisionPage | null;
   before?: string | null;
+  /** Decision log page cursor (older pages). */
+  cursor?: string | null;
   basePath?: string;
   initialTab?: ActivityTab;
   focus?: string | null;
 }) {
-  const waiting = inbox?.counts.total ?? 0;
+  const required = requiredActions(inbox);
+  const waiting = waitingCount(inbox);
   const [tab, setTab] = useState<ActivityTab>(
     initialTab ?? (focus || (waiting > 0 && !before) ? "needs" : "all"),
   );
@@ -204,9 +219,11 @@ export function ActivityView({
       ? `${waiting} waiting on you${failed ? ` · ${failed} failed` : ""}`
       : `Nothing waiting on you${failed ? ` · ${failed} failed` : ""}`;
   const ask =
-    tab === "needs" && waiting > 0
-      ? `/sessions/new?q=${encodeURIComponent("Walk me through what's waiting on my approval")}`
-      : `/sessions/new?q=${encodeURIComponent("Summarize what the department did this week")}`;
+    tab === "decisions"
+      ? `/sessions/new?q=${encodeURIComponent("Explain the decisions your models made recently, and where they disagreed with the rules")}`
+      : tab === "needs" && waiting > 0
+        ? `/sessions/new?q=${encodeURIComponent("Walk me through what's waiting on my approval")}`
+        : `/sessions/new?q=${encodeURIComponent("Summarize what the department did this week")}`;
 
   return (
     <>
@@ -241,6 +258,7 @@ export function ActivityView({
                   ),
                 },
                 { value: "all", label: "Everything" },
+                { value: "decisions", label: "Decisions" },
               ]}
             />
             {tab === "all" && filters.length > 2 && (
@@ -259,7 +277,9 @@ export function ActivityView({
           </div>
         }
       >
-        {tab === "needs" ? (
+        {tab === "decisions" ? (
+          <DecisionsList decisions={decisions} basePath={basePath} cursor={cursor} />
+        ) : tab === "needs" ? (
           !inbox ? (
             <EmptyLine>
               Couldn&apos;t load what needs you. Try again in a moment.
@@ -275,23 +295,41 @@ export function ActivityView({
               Nothing needs you right now.
             </EmptyLine>
           ) : (
-            INBOX_GROUPS.map((g) => {
-              const items = inbox.items.filter((i) => i.kind === g.kind);
-              if (items.length === 0) return null;
-              return (
-                <Section key={g.kind} title={`${g.label} · ${items.length}`}>
+            <>
+              {required.length > 0 && (
+                <Section
+                  title={`Check what happened · ${required.length}`}
+                  action={<span className="text-[12px] text-fg-muted">Nothing retries until you say</span>}
+                >
                   <div className="space-y-3">
-                    {items.map((it) => (
-                      <InboxPlanCard
-                        key={it.id}
-                        item={it}
-                        focused={focus === it.id}
+                    {required.map((r) => (
+                      <RequiredActionCard
+                        key={r.id}
+                        action={r}
+                        focused={focus === requiredActionFocusId(r.id)}
                       />
                     ))}
                   </div>
                 </Section>
-              );
-            })
+              )}
+              {INBOX_GROUPS.map((g) => {
+                const items = inbox.items.filter((i) => i.kind === g.kind);
+                if (items.length === 0) return null;
+                return (
+                  <Section key={g.kind} title={`${g.label} · ${items.length}`}>
+                    <div className="space-y-3">
+                      {items.map((it) => (
+                        <InboxCard
+                          key={it.id}
+                          item={it}
+                          focused={focus === it.id}
+                        />
+                      ))}
+                    </div>
+                  </Section>
+                );
+              })}
+            </>
           )
         ) : !activity ? (
           <EmptyLine>
@@ -354,9 +392,11 @@ export function ActivityView({
         )}
         <AskPill
           label={
-            tab === "needs" && waiting > 0
-              ? "Ask about what's waiting"
-              : "Ask about this activity"
+            tab === "decisions"
+              ? "Ask about these decisions"
+              : tab === "needs" && waiting > 0
+                ? "Ask about what's waiting"
+                : "Ask about this activity"
           }
           href={ask}
         />

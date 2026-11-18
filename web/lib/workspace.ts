@@ -196,22 +196,22 @@ export function hrefFor(kind: string, refId: string): string {
 }
 
 
-const TARGET: Record<string, { label: string; href: (id: string) => string }> = {
-  video_post: { label: "Video post", href: () => "/content" },
-  job: { label: "Video", href: (id) => `/content/videos/${id}` },
-  video: { label: "Video", href: (id) => `/content/videos/${id}` },
-  image_post: { label: "Carousel", href: () => "/content?tab=carousels" },
-  carousel: { label: "Carousel", href: () => "/content?tab=carousels" },
-  ad_campaign: { label: "Ad campaign", href: (id) => `/paid/campaigns/${id}` },
-  ad_account: { label: "Ad account", href: () => "/paid/connect" },
-  ad_approval: { label: "Ad change", href: () => "/paid" },
-  campaign: { label: "Campaign", href: (id) => `/distribution/campaigns/${id}` },
+const TARGET: Record<string, { label: string; where: string; href: (id: string) => string }> = {
+  video_post: { label: "Video post", where: "on the channel it was going to", href: () => "/content" },
+  job: { label: "Video", where: "on the channel it was going to", href: (id) => `/content/videos/${id}` },
+  video: { label: "Video", where: "on the channel it was going to", href: (id) => `/content/videos/${id}` },
+  image_post: { label: "Carousel", where: "on the channel it was going to", href: () => "/content?tab=carousels" },
+  carousel: { label: "Carousel", where: "on the channel it was going to", href: () => "/content?tab=carousels" },
+  ad_campaign: { label: "Ad campaign", where: "in the ad platform", href: (id) => `/paid/campaigns/${id}` },
+  ad_account: { label: "Ad account", where: "in the ad platform", href: () => "/paid/connect" },
+  ad_approval: { label: "Ad change", where: "in the ad platform", href: () => "/paid" },
+  campaign: { label: "Campaign", where: "in Distribution", href: (id) => `/distribution/campaigns/${id}` },
 };
 
-/** What a required action was attempted on, in words, and where to look at it. Unknown targets fall back to their type. */
-export function requiredActionTarget(r: Pick<RequiredAction, "target_type" | "target_id">): { label: string; href: string | null } {
+/** What a required action was attempted on, in words, where to check it, and where it opens. Unknown targets fall back to their type. */
+export function requiredActionTarget(r: Pick<RequiredAction, "target_type" | "target_id">): { label: string; where: string; href: string | null; known: boolean } {
   const t = TARGET[r.target_type];
-  if (t) return { label: t.label, href: r.target_id ? t.href(encodeURIComponent(r.target_id)) : null };
+  if (t) return { label: t.label, where: t.where, href: r.target_id ? t.href(encodeURIComponent(r.target_id)) : null, known: true };
   const words = r.target_type.replace(/[_.]/g, " ").trim();
-  return { label: words ? words.replace(/^\w/, (c) => c.toUpperCase()) : "The platform", href: null };
+  return { label: words ? words.replace(/^\w/, (c) => c.toUpperCase()) : "The platform", where: "on the platform", href: null, known: false };
 }

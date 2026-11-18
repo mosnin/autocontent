@@ -9,6 +9,7 @@ import { HomeView } from "@/components/home/home-view";
 import { AppShell } from "@/components/shell/app-shell";
 import { PersonAvatar } from "@/design-system";
 import { FIXTURE_ACTIVITY, FIXTURE_HISTORY, FIXTURE_INBOX, FIXTURE_MONTH } from "@/lib/fixtures";
+import { shellInbox } from "@/lib/workspace";
 import { PREVIEW_VIEWS } from "./views";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function PreviewApp({ params, searchParams }: { params: Pro
   const view: ReactNode | undefined = key === "home" ? <HomeView brandName="Pasta Club" month={FIXTURE_MONTH} history={FIXTURE_HISTORY} inbox={FIXTURE_INBOX} activity={FIXTURE_ACTIVITY} /> : await PREVIEW_VIEWS[key]?.();
   if (!view) notFound();
   return (
-    <AppShell data={{ brandName: "Pasta Club", inbox: FIXTURE_INBOX, steps, isAdmin: false }} theme={theme === "light" ? "light" : "dark"} account={<PersonAvatar name="Sam" size={22} />}>
+    <AppShell data={{ brandName: "Pasta Club", inbox: shellInbox(FIXTURE_INBOX), steps, isAdmin: false }} theme={theme === "light" ? "light" : "dark"} account={<PersonAvatar name="Sam" size={22} />}>
       {view}
     </AppShell>
   );
