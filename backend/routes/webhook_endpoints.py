@@ -14,13 +14,19 @@ from marketer.repos.webhooks_out import VALID_EVENTS, WebhookEndpoint
 from marketer.services import ssrf
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter()
+
+# Every event fans out to every endpoint of the account, each one a signed
+# server-side POST. Without a ceiling one account turns a single job into an
+# arbitrary number of outbound requests at a host of its choosing.
+MAX_ENDPOINTS_PER_USER = 20
 
 
 class WebhookCreate(BaseModel):
     url: str = Field(max_length=2000)
-    events: list[str] = Field(default_factory=list)
+    events: list[str] = Field(default_factory=list, max_length=len(VALID_EVENTS))
     description: str = Field(default="", max_length=200)
 
     @field_validator("url")
@@ -44,7 +50,12 @@ async def list_endpoints(ctx: AuthCtx = CurrentUser) -> list[WebhookEndpoint]:
     return await webhooks_out.list_for_user(ctx.user_id)
 
 
-@router.post("", response_model=WebhookEndpoint, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=WebhookEndpoint,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[user_rate_limit("webhooks.create", "20/minute")],
+)
 async def create_endpoint(body: WebhookCreate, ctx: AuthCtx = CurrentUser) -> WebhookEndpoint:
     """Register an endpoint. The signing secret is returned exactly once in
     this response (never again) — the client must store it to verify
@@ -54,6 +65,11 @@ async def create_endpoint(body: WebhookCreate, ctx: AuthCtx = CurrentUser) -> We
     ok, reason = await asyncio.to_thread(ssrf.check_public_url, body.url)
     if not ok:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"invalid url: {reason}")
+    if len(await webhooks_out.list_for_user(ctx.user_id)) >= MAX_ENDPOINTS_PER_USER:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"at most {MAX_ENDPOINTS_PER_USER} webhook endpoints; delete one first",
+        )
     return await webhooks_out.create(
         user_id=ctx.user_id, url=body.url, events=body.events, description=body.description
     )
@@ -84,7 +100,9 @@ async def delete_endpoint(endpoint_id: UUID, ctx: AuthCtx = CurrentUser) -> None
         raise HTTPException(status.HTTP_404_NOT_FOUND, "endpoint not found")
 
 
-@router.post("/{endpoint_id}/test")
+# A test is a server-side POST to a URL the caller chose: keep it from being
+# used as a request cannon.
+@router.post("/{endpoint_id}/test", dependencies=[user_rate_limit("webhooks.test", "10/minute")])
 async def send_test(endpoint_id: UUID, ctx: AuthCtx = CurrentUser) -> dict:
     """Send a signed `test.ping` event so the client can validate their
     receiver and signature verification before real events fire."""

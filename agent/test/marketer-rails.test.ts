@@ -48,9 +48,12 @@ describe("rails table", () => {
     for (const tool of allTools().filter((t) => t.risk === "CRITICAL")) expect(tool.requiresApproval, tool.name).toBe(true);
   });
 
-  it("never retries a HIGH/CRITICAL tool automatically", () => {
+  it("never retries a write automatically, at any tier; reads leave retrying to the API client", () => {
     for (const tool of allTools().filter((t) => t.risk === "HIGH" || t.risk === "CRITICAL")) expect(tool.retry?.maxAttempts, tool.name).toBe(1);
-    for (const tool of allTools().filter((t) => t.risk === "MEDIUM")) expect(tool.retry, tool.name).toBeUndefined();
+    // MEDIUM makers spend credits and the backend does not dedupe: a retried maker would spend twice.
+    for (const tool of allTools().filter((t) => t.sideEffect !== "read" && t.sideEffect !== "none")) expect(tool.retry?.maxAttempts, tool.name).toBe(1);
+    // One retry loop only (bounded, jittered, behind the breaker, in src/marketer/api.ts), never executor x client.
+    for (const tool of allTools().filter((t) => t.sideEffect === "read")) expect(tool.retry?.maxAttempts, tool.name).toBe(1);
   });
 
   it("refuses to define an unregistered, loosened or unapproved HIGH/CRITICAL tool", () => {
@@ -210,6 +213,6 @@ describe("through the executor", () => {
     const h = harness();
     fetchImpl = async () => new Response(JSON.stringify({ detail: "kill_switch: kill switch engaged (spend)" }), { status: 402 });
     const outcome = await h.approveAndRun("call_402", "set_ad_budget", budget);
-    expect(outcome.status === "error" && outcome.message).toMatch(/HTTP 402.*kill_switch/);
+    expect(outcome.status === "error" && outcome.message).toMatch(/^DENIED: .*HTTP 402[\s\S]*kill_switch/);
   });
 });

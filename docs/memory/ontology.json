@@ -1,0 +1,263 @@
+{
+  "version": "marketing.v1",
+  "entityTypes": [
+    "brand",
+    "audience",
+    "offer",
+    "product",
+    "competitor",
+    "channel",
+    "campaign",
+    "creative",
+    "claim",
+    "rule",
+    "preference"
+  ],
+  "attributes": {
+    "brand": {
+      "name": {
+        "cardinality": "one"
+      },
+      "voice": {
+        "cardinality": "one"
+      },
+      "positioning": {
+        "cardinality": "one"
+      },
+      "tagline": {
+        "cardinality": "one"
+      },
+      "mission": {
+        "cardinality": "one"
+      },
+      "website": {
+        "cardinality": "one"
+      }
+    },
+    "audience": {
+      "description": {
+        "cardinality": "one"
+      },
+      "pain_point": {
+        "cardinality": "many"
+      },
+      "goal": {
+        "cardinality": "many"
+      },
+      "language": {
+        "cardinality": "one"
+      },
+      "location": {
+        "cardinality": "one"
+      }
+    },
+    "offer": {
+      "description": {
+        "cardinality": "one"
+      },
+      "price": {
+        "cardinality": "one"
+      },
+      "guarantee": {
+        "cardinality": "one"
+      },
+      "deadline": {
+        "cardinality": "one"
+      }
+    },
+    "product": {
+      "description": {
+        "cardinality": "one"
+      },
+      "price": {
+        "cardinality": "one"
+      },
+      "feature": {
+        "cardinality": "many"
+      },
+      "category": {
+        "cardinality": "one"
+      }
+    },
+    "competitor": {
+      "positioning": {
+        "cardinality": "one"
+      },
+      "price": {
+        "cardinality": "one"
+      },
+      "strength": {
+        "cardinality": "many"
+      },
+      "weakness": {
+        "cardinality": "many"
+      },
+      "website": {
+        "cardinality": "one"
+      }
+    },
+    "channel": {
+      "handle": {
+        "cardinality": "one"
+      },
+      "cadence": {
+        "cardinality": "one"
+      },
+      "best_time": {
+        "cardinality": "one"
+      },
+      "format": {
+        "cardinality": "many"
+      }
+    },
+    "campaign": {
+      "goal": {
+        "cardinality": "one"
+      },
+      "status": {
+        "cardinality": "one"
+      },
+      "window": {
+        "cardinality": "one"
+      },
+      "budget_note": {
+        "cardinality": "one"
+      }
+    },
+    "creative": {
+      "hook": {
+        "cardinality": "one"
+      },
+      "format": {
+        "cardinality": "one"
+      },
+      "angle": {
+        "cardinality": "one"
+      }
+    },
+    "claim": {
+      "text": {
+        "cardinality": "one"
+      },
+      "status": {
+        "cardinality": "one",
+        "values": [
+          "approved",
+          "forbidden"
+        ],
+        "ruleBearing": true
+      },
+      "proof": {
+        "cardinality": "many"
+      }
+    },
+    "rule": {
+      "text": {
+        "cardinality": "one",
+        "ruleBearing": true
+      },
+      "scope": {
+        "cardinality": "one",
+        "ruleBearing": true
+      }
+    },
+    "preference": {
+      "text": {
+        "cardinality": "one"
+      }
+    }
+  },
+  "relations": {
+    "targets": {
+      "from": [
+        "brand",
+        "offer",
+        "product",
+        "campaign",
+        "creative"
+      ],
+      "to": [
+        "audience"
+      ],
+      "cardinality": "many"
+    },
+    "competes_with": {
+      "from": [
+        "brand",
+        "offer",
+        "product"
+      ],
+      "to": [
+        "competitor"
+      ],
+      "cardinality": "many"
+    },
+    "runs_on": {
+      "from": [
+        "campaign",
+        "creative"
+      ],
+      "to": [
+        "channel"
+      ],
+      "cardinality": "many"
+    },
+    "offers": {
+      "from": [
+        "brand"
+      ],
+      "to": [
+        "offer",
+        "product"
+      ],
+      "cardinality": "many"
+    },
+    "promotes": {
+      "from": [
+        "campaign",
+        "creative"
+      ],
+      "to": [
+        "offer",
+        "product"
+      ],
+      "cardinality": "many"
+    },
+    "makes": {
+      "from": [
+        "brand",
+        "creative",
+        "competitor"
+      ],
+      "to": [
+        "claim"
+      ],
+      "cardinality": "many"
+    },
+    "forbids": {
+      "from": [
+        "brand",
+        "rule"
+      ],
+      "to": [
+        "claim",
+        "channel",
+        "creative"
+      ],
+      "cardinality": "many",
+      "ruleBearing": true
+    },
+    "prefers": {
+      "from": [
+        "brand",
+        "audience"
+      ],
+      "to": [
+        "channel",
+        "creative",
+        "preference"
+      ],
+      "cardinality": "many"
+    }
+  }
+}
