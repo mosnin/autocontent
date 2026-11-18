@@ -73,6 +73,8 @@
     "PERSISTENT_EGRESS_ALLOW": "",
     "PERSISTENT_EGRESS_DENY": "",
     "PERSISTENT_REVIEW_MODEL": "",
+    // Execution-rails kill switch (not a secret): "" = off, "publish", "spend", "publish,spend" or "all".
+    "MARKETER_RAILS_KILL_SWITCH": "",
     "OPENROUTER_DECISIONS_URL": "",
     "DECISION_MODEL": "",
     "DECISION_MODES": ""

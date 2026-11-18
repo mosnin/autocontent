@@ -4,7 +4,7 @@ import { createDelegationTools, createRoomTools, delegationPolicy, useAgentStart
 import { type AgentProps, useSkill } from "@flue/runtime";
 import { approvals, autonomyPolicy, platform } from "../lib/platform.ts";
 import { useCustomSkills } from "../lib/custom-skills.ts";
-import { adsFirewall, DEPARTMENT_TOOLS } from "../marketer/tools/index.ts";
+import { adsFirewall, DEPARTMENT_FIREWALL, DEPARTMENT_TOOLS } from "../marketer/tools/index.ts";
 import { busTools } from "../multi-agent/bus.ts";
 import { delegationDispatch } from "../multi-agent/delegation.ts";
 import { roomStub } from "../multi-agent/room-client.ts";
@@ -57,7 +57,8 @@ function useSpecialist(selfId: SpecialistId, id: string, persona: string, option
     // plus the department's own read-only tools.
     policy: delegationPolicy({ id, tools: own, alwaysAllowed: [...readOnly(own), "plan_goals", "update_goal"] }),
     ...(options.maxAutonomousTier ? { autonomy: autonomyPolicy(options.maxAutonomousTier) } : {}),
-    ...(options.firewall ? { firewall: options.firewall } : {}),
+    // Per-run call quotas for every department (a maker loop spends credits, not model budget): DEPARTMENT_FIREWALL.
+    firewall: options.firewall ?? DEPARTMENT_FIREWALL,
     memory: true,
   });
   // A turn parked on an approval or a question is not "no report" (R4).

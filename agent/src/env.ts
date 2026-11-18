@@ -72,6 +72,12 @@ export interface Env {
   SHADOW_SAMPLE_RATE?: string;
   /** Background module: model the shadow twin runs on (empty = the production model). */
   SHADOW_MODEL?: string;
+  /**
+   * Execution-rails kill switch, read at every HIGH / CRITICAL dispatch (src/marketer/rails/enforce.ts): empty / "off"
+   * = none; "publish", "spend" (comma list) or "all" stop those dispatches; anything unreadable means "all". Calls
+   * that only reduce exposure (pause, reject) are never blocked. A var, not a secret: `wrangler deploy --var` flips it.
+   */
+  MARKETER_RAILS_KILL_SWITCH?: string;
   /** Decision endpoint (empty = https://openrouter.ai/api/alpha/decisions). */
   OPENROUTER_DECISIONS_URL?: string;
   /** Pinned, dated decision model slug (empty = DEFAULT_DECISION_MODEL in src/marketer/decisions/questions.ts). Never a "-latest" alias. */
