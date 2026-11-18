@@ -141,7 +141,7 @@ async def test_service_logs_through_the_repo(pool, user, monkeypatch):
     svc.reset_flag_cache()
 
     async def handle(request):
-        return httpx.Response(200, json={"answers": {"x": {"noul": 0.7}}, "model": "m",
+        return httpx.Response(200, json={"answers": {"x": {"type": "noul", "noul": 0.7}}, "model": "m",
                                          "usage": {"cost": 0.00002}})
 
     client = svc.DecisionClient(key="k", transport=httpx.MockTransport(handle))

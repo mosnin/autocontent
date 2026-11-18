@@ -60,3 +60,13 @@ and a replay returns `UNKNOWN_OUTCOME` instead of executing.
 | Recording a denial | best effort | the refusal stands without its record |
 | Modal spawn dedupe store (`services/idempotency.py`) | open (unchanged) | spend re-checks are the backstop there |
 | Decision models on UX and ranking points | open to today's rule | see the decisions modules |
+
+## The agent's side
+
+The agent's API client (`agent/src/marketer/api.ts`) applies the same rules before a request leaves the Worker. Full audit: `docs/security/agent-audit.md`.
+
+- **Writes are sent once.** Every write tool has `maxAttempts: 1` and refuses to send without an idempotency key. Only GETs are retried: at most three attempts, with jitter, inside a 20 second deadline.
+- **A write with no clear answer is unknown, not failed.** A timeout or any 5xx on a write reaches the model as `OUTCOME_UNKNOWN`, so it does not try again.
+- **A breaker per API origin.** After five failures in a row it opens for 30 seconds. Writes are only sent while it is closed, so a write refused by the breaker was never sent.
+- **Typed errors.** Tool errors start with one of `DENIED`, `NEEDS_APPROVAL`, `OUTCOME_UNKNOWN`, `TEMPORARILY_UNAVAILABLE`, `NOT_FOUND`, `CONFLICT`, `INVALID_INPUT`, `NOT_CONFIGURED`. Backend error text is wrapped as untrusted content.
+- **Department quota.** Each department may make 10 calls per tool and 40 in total per run. Outside a delegated task (a bus message or a room turn), nothing above LOW risk runs without the owner.

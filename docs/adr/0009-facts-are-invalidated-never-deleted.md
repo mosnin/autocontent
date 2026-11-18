@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Facts are invalidated, never deleted
@@ -19,6 +19,6 @@ history stays queryable.
 ## Consequences
 
 - Planned with the memory work (plan section 3): a temporal wrapper over the entity graph with `valid_from`,
-  `invalid_at`, `invalidated_by` and a source. Nothing is built yet.
+  `invalid_at`, `invalidated_by` and a source. Built in `agent/src/marketer/memory` and `src/marketer/repos/memory.py` (see `docs/memory/lifecycle.md`). One exception: when a person forgets a fact, its text is wiped and only a tombstone with a content hash remains.
 - Privacy deletion (account deletion, data export requests) still removes data; invalidation is about truth over
   time, not retention.

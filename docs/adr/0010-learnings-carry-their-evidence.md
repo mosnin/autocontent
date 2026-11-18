@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 ---
 
 # Learnings carry their evidence
@@ -17,5 +17,5 @@ behind it: which posts, which metrics, which window, how many samples. A learnin
 ## Consequences
 
 - Planned with the memory work (plan section 3): a learnings table with evidence references to `post_metrics` rows and
-  a window; today's performance context (`agents/performance_context.py`) is the starting point. Nothing is built yet.
+  a window; today's performance context (`agents/performance_context.py`) is the starting point. Built in `agent/src/marketer/memory/learnings.ts` (see `docs/memory/README.md`).
 - A learning never changes a risk tier or a cap (ADR 0002); it can shape drafts and rankings.
