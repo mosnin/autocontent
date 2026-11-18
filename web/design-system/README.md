@@ -64,7 +64,7 @@ Use these only through Tailwind utilities.
 | `bg-surface-3` | current row, chips, segmented thumb | 16% | 94% |
 | `bg-overlay` | menus, popovers, right panel | 12.5% | white |
 | `border-hairline` / `-strong` | every border and divider | 16.5% / 22% | 91% / 85% |
-| `text-fg` / `-fg-muted` / `-fg-faint` | text | 93 / 64 / 45% | 9 / 42 / 58% |
+| `text-fg` / `-fg-muted` / `-fg-faint` | text. Muted and faint both pass WCAG AA (4.5:1) on every surface in both themes; see §9 | 93 / 68 / 57% | 7 / 35 / 42% |
 | `bg-ds-primary` + `text-ds-primary-fg` | the white (light: black) primary button | | |
 | `text-ds-accent`, `text-positive`, `text-negative`, `text-attention`, `bg-count` | meaning only | | |
 | `rounded-ds-xs/sm/md/lg/xl` | 4 / 6 / 8 / 12 / 16 px | | |
@@ -126,24 +126,39 @@ All of these live in `components/` and are exported from `index.ts`.
 | `ToolIcon` | 02, 05 | Tool gradients a–f. Use `TOOL_ICON` in `components/shell/sidebar.tsx`, the one mapping |
 | `IconTile`, `AgentGlyph`, `PersonAvatar`, `WorkspaceLogo` | | |
 | `ProgressRing`, `StepMark`, `Bullet` | | Bullets are static, never animated |
-| `Segmented` | 02, 07 | Home / Activity, tabs inside a page |
+| `Segmented` | 02, 07 | Home / Activity, tabs inside a page. One tab stop; ←/→ move and select, Home/End jump |
 | `FilterPill` | 05 | "Last 30 days ▾" |
-| `Menu`, `MenuItem`, `MenuButton` | | |
+| `Menu`, `MenuItem`, `MenuButton` | | Keyboard: ↓/↑ open from the trigger, ↑/↓ and Home/End move, a letter jumps to a match, Tab or Esc closes, and focus returns to the trigger |
 | `Input`, `Textarea`, `Select`, `Field`, `Switch` | | |
-| `Modal` | | Native `<dialog>` with a footer slot |
+| `FieldGroup` | | A labelled group for controls that aren't one input (chips, tag inputs, a time list). `Field` is a `<label>`; this is a `role="group"` |
+| `SwitchRow` | | A switch with its label and one line of detail in a bordered row. With `name`, it posts `on` when checked |
+| `Modal` | | Native `<dialog>` with a footer slot. Modal: the page behind is inert (focus stays inside), focus starts on the first field, Esc asks the owner to close, and focus returns to what opened it |
 
 ### Kit (`kit.tsx`)
 
 | Component | Notes |
 |---|---|
 | `Chip` | Selectable pill (ref 03 prompts) |
-| `Notice` | One line: ok or error |
+| `Notice` | One line: ok or error. Every server error from an approve, reject, publish or spend action shows in one. `inline` renders a span for use beside a button |
+| `usePending` | Double-submit protection for approve, reject, publish and spend buttons: a second call while the first is in flight is ignored; exposes `busy` and `error` |
 | `Callout` | One important sentence |
 | `CopyButton`, `CodeBlock`, `SecretOnce` | |
 | `MoneyInput`, `TagInput`, `Meter`, `ConfirmModal` | |
-| `Table` | Rows, with a header in 12px faint text; numbers right-aligned and tabular |
+| `Table` | Rows, with a header in 12px faint text; numbers right-aligned and tabular. Capped: `pageSize` rows (50), then "Load more" |
+| `usePaged`, `LoadMore` | Cap any long client-side list: a page of rows, then "Showing 24 of 180 · Load more" |
+| `Time` | A timestamp. `mode` (relative or datetime) renders at once; `format` renders in the viewer's time zone after mount |
+| `ToolTitle` | Tool page title: the tool's coloured icon beside the 22px title. Pass `TOOL_ICON[tool]` |
+| `StatLine` | A quiet line of numbers under a tool's composer: "$3.20 of $15 today · 2 need approval" |
+| `StepList` | A pipeline as steps: check for done, spinner on the current one, "Stopped here" when it failed |
 | `Thumb` | Media thumbnail |
-| `Skeleton`, `Facts` | Key/value rows for detail pages |
+| `Skeleton` | A flat loading block with one soft band passing over it |
+| `Facts` | Key/value rows for detail pages |
+
+### Skeletons (`skeletons.tsx`)
+
+| Component | Notes |
+|---|---|
+| `PageSkeleton` | What a route's `loading.tsx` renders: `template` is column, tool, dashboard, detail, chat or home (§5). The header keeps the page's real title |
 
 ### Data (`data.tsx`)
 
@@ -163,7 +178,8 @@ All of these live in `components/` and are exported from `index.ts`.
 | `UserBubble`, `AssistantHeader`, `WorkedFor`, `SourceChips` | 02 | |
 | `AgentChips` | 02 | "Agent is working" |
 | `Trace` | 02 | Right panel steps |
-| `PlanCard` | 02 | Steps, with Dismiss / Edit / Approve & Run. Use it for **every** approval: chat plans, inbox items, scheduled posts, ad changes |
+| `PlanCard` | 02 | Steps, with Dismiss / Edit / Approve & Run. Use it for **every** approval: chat plans, inbox items, scheduled posts, ad changes. `approving` / `dismissing` spin the pressed button and lock the others |
+| `ApprovalCard` | 02 | The one approval card for inbox items (video, carousel, ad change): a `PlanCard` wired to the workspace decide endpoint, with double-submit protection and the server's error underneath. Don't write another |
 | `QuestionCard` | 06 | |
 | `AskPill` | 05 | |
 | `Markdown` | | Agent text |
@@ -189,7 +205,7 @@ work. They are not separate apps.
 | `/home` | **Home** (01) | Brand, hero composer, bento: activity heatmap, recent sessions, waiting count, what shipped, this month |
 | `/sessions/new`, `/sessions/[id]` | **Chat** (02, 06) | Breadcrumb header. A 720px chat column with the composer pinned to the bottom. Right agent panel, 320px and toggleable: agents, trace, sources. Approvals render as `PlanCard`, questions as `QuestionCard` |
 | `/analytics` | **Dashboard** (05) | Toolbar of `FilterPill`s (range, channel, compare). A KPI row. A line `ChartCard`. A breakdown and a bar list. "Ask about this data" `AskPill` |
-| `/activity`, `/inbox` | **Column** (07) | Segmented control: "Needs you n" / "Everything". "Needs you" shows `PlanCard`s (approve, edit, dismiss). "Everything" is a day-grouped list of what agents did |
+| `/activity`, `/inbox` | **Column** (07) | Segmented control: "Needs you n" / "Everything" / "Decisions". "Needs you" starts with required actions (an outcome we can't confirm: what was attempted, on what, when, and "It happened" / "It didn't happen"), then `ApprovalCard`s (approve, edit, dismiss). "Everything" is a day-grouped list of what agents did. "Decisions" is the decision log: the point, the action taken, whether the fallback was used, the mode and the time |
 | `/plan` | **Dashboard** (05) | Toolbar: Week / Month segmented control, channel `FilterPill`. A calendar grid of scheduled items in a `Card`. "Ask to fill the gaps" `AskPill` |
 | `/library` (Deliverables) | **Column lg** (07) | Segmented control: All / Videos / Articles / Ads / Posts. A grid of `Thumb` cards |
 | `/playbooks`, `/content`, `/seo`, `/paid`, `/distribution` (Tools) | **Tool**: Column lg (07) | `ToolIcon` + 22px title + one line. A scoped `StartSession` ("Ask the Content agent…"). For Paid and Distribution, a KPI row (05). Then sections of the tool's work as `List`/`Table`/`CollectionCard` |
@@ -221,6 +237,11 @@ In `app/(app)`, `app/(onboarding)`, `components/{shell,chat,home,app}` and `desi
 If you need something the system doesn't have, add it here (component +
 README row + reference), then use it. Never fork a one-off copy in a page.
 
+Two conventions the guard doesn't check:
+
+- **Every route has a `loading.tsx`** that renders `PageSkeleton` (or `AdminLoading`), and renders an `EmptyLine` when its fetch fails. No blank screens, no thrown errors.
+- **Every approve, reject, publish and spend button** is disabled while its request is pending (`usePending`, or `loading` on `Button`) and shows the server's error in a `Notice`.
+
 ## 7. The wave and the goo
 
 `CommitWave` (`components/wave.tsx`) is the only spectacle in the app. It opens from the button a person pressed and carries what they reviewed into what now exists. It is used for three moments only: `launch`, `approve` and `arrive`. The rules, the reasons and the list of screens are in [`WAVE.md`](./WAVE.md). The guard fails if a registered screen loses its wave, if the wave shows up anywhere else, or if anything but the wrapper imports the engine.
@@ -232,3 +253,14 @@ README row + reference), then use it. Never fork a one-off copy in a page.
 1. Open the matching reference next to the screen.
 2. Check the screen in dark and light (`?theme=light` on `/preview/app/...`), at 1280px and 390px.
 3. Run `npm run ds:guard`, `npx tsc --noEmit` and `npm run build`.
+
+## 9. Accessibility
+
+These hold for every primitive. Keep them true when you add one.
+
+- **Focus is visible.** Everything focusable gets the solid accent ring from `tokens.css` (`.ds :focus-visible`). A control that draws its own focus state (inputs: accent border and ring; the composer: a brighter border) must stay at least as visible. Rows inside a clipped list use `-outline-offset-2` so the ring isn't cut off.
+- **Dialogs** are native modal `<dialog>`s: focus can't leave, Esc closes (unless the owner is busy), and focus returns to the opener.
+- **Menus and tabs are keyboard-operable** (see `Menu`, `Segmented`).
+- **Icon-only buttons are labelled.** Use `IconButton` (its `label` is required), never a bare `<button>` around an icon.
+- **Text contrast is AA.** `fg-muted` and `fg-faint` are at least 4.5:1 on every surface token in both themes (worst case, on `surface-3`: dark 6.5 and 4.65, light 6.0 and 4.6). If you change a text or surface token, re-run the numbers.
+- **Not yet AA as text:** in light, `positive` (3.4 to 3.9:1) and `attention` (2.6 to 3.0:1); in dark, `negative` on `surface-3` (4.1:1). Use them for a word of status next to plain text, never as the only carrier of meaning.
