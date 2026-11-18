@@ -98,8 +98,8 @@ export function createMarketerMemoryTools(storeFor: StoreFor = apiStoreFor): Any
     timeoutMs: 15_000,
     outputTrust: "untrusted",
     tags: ["memory"],
-    simulate: (args) => ({ simulated: true, wouldRecord: { claim: args.claim, status: args.status, evidence: args.evidence.length } }),
-    execute: async (args, ctx) => {
+    simulate: (args): Record<string, unknown> => ({ simulated: true, wouldRecord: { claim: args.claim, status: args.status, evidence: args.evidence.length } }),
+    execute: async (args, ctx): Promise<Record<string, unknown>> => {
       const result = await storeFor(ctx).recordLearning(ctx.tenant.tenantId, { claim: args.claim, status: args.status, evidence: args.evidence, ...(args.confidence !== undefined ? { confidence: args.confidence } : {}), source: "analyst" }, { signal: ctx.signal, idempotencyKey: ctx.idempotencyKey });
       return { status: result.status, ...(result.detail ? { detail: result.detail } : {}), ...(result.learning ? { id: result.learning.id } : {}) };
     },

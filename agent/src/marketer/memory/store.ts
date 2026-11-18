@@ -129,7 +129,7 @@ export class InMemoryMemoryStore implements MemoryStore {
       .map(copy);
   }
 
-  async write(tenantId: string, input: FactInput, options: { actor?: Actor } = {}): Promise<WriteResult> {
+  async write(tenantId: string, input: FactInput, options: { actor?: Actor; signal?: AbortSignal; idempotencyKey?: string } = {}): Promise<WriteResult> {
     const actor = options.actor ?? "agent";
     const now = this.clock();
     // Only the app (a signed-in person) may write as `person`: the agent can never mint a trusted fact.
@@ -193,7 +193,7 @@ export class InMemoryMemoryStore implements MemoryStore {
       .map((l) => ({ ...l, evidence: l.evidence.map((e) => ({ ...e })) }));
   }
 
-  async recordLearning(tenantId: string, input: LearningInput, options: { actor?: Actor } = {}): Promise<{ status: "recorded" | "rejected" | "refused"; detail?: string; learning?: Learning }> {
+  async recordLearning(tenantId: string, input: LearningInput, options: { actor?: Actor; signal?: AbortSignal; idempotencyKey?: string } = {}): Promise<{ status: "recorded" | "rejected" | "refused"; detail?: string; learning?: Learning }> {
     const valid = validateLearning(input);
     if (!valid.ok) return { status: "rejected", detail: valid.detail };
     const rows = this.learned.get(assertTenant(tenantId)) ?? [];
