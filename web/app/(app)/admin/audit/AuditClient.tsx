@@ -9,6 +9,8 @@ import type { AuditEntry, AuditQuery } from "@/lib/admin-types";
 import { clientFetch } from "@/lib/client-fetcher";
 
 export const AUDIT_PAGE_SIZE = 50;
+// Page cap: past this many rows in the DOM, narrow with the filters instead of loading more.
+const AUDIT_MAX_ROWS = 500;
 
 type Filters = { action: string; target_type: string; target_id: string; actor_id: string };
 const EMPTY: Filters = { action: "", target_type: "", target_id: "", actor_id: "" };
@@ -102,6 +104,8 @@ export function AuditClient({ initial, initialFilters }: { initial: AuditEntry[]
       <Notice error={error} />
       <Table<AuditEntry>
         rows={entries}
+        // Paging is server-side here ("Load more" below), so the table shows every loaded row.
+        pageSize={AUDIT_MAX_ROWS + AUDIT_PAGE_SIZE}
         rowKey={(e) => String(e.id)}
         empty={<EmptyLine>{loading ? "Loading…" : "No audit entries match these filters."}</EmptyLine>}
         columns={[
@@ -136,9 +140,11 @@ export function AuditClient({ initial, initialFilters }: { initial: AuditEntry[]
       {entries.length > 0 && (
         <div className="flex justify-center">
           {done ? (
-            <p className="text-[12px] text-fg-faint">
+            <p className="text-[12px] text-fg-muted">
               End of log · {entries.length} entr{entries.length === 1 ? "y" : "ies"}
             </p>
+          ) : entries.length >= AUDIT_MAX_ROWS ? (
+            <p className="text-[12px] text-fg-muted">Showing the latest {entries.length} entries. Narrow the filters to see older ones.</p>
           ) : (
             <Button variant="secondary" loading={loading} onClick={() => void load(false, applied, entries[entries.length - 1]?.id)}>
               Load more

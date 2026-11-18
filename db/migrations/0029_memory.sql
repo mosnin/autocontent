@@ -62,8 +62,8 @@ create table if not exists memory_facts (
     created_at     timestamptz not null default now(),
     -- An invalid fact always says why; a live one never does.
     check ((invalid_at is null) = (invalid_reason is null)),
-    -- Only the person's own facts are trusted.
-    check (trust <> 'trusted' or source_kind = 'person' or pending = false)
+    -- A fact the person confirmed is never left waiting for the person.
+    check (not (trust = 'trusted' and pending))
 );
 
 -- The slot (subject + predicate): history, supersede and duplicate checks.

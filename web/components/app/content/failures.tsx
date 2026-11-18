@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Chip, List, ListRow, Section, StatusBadge, Time, Notice } from "@/design-system";
+import { Button, Chip, List, ListRow, LoadMore, Notice, Section, StatusBadge, Time, usePaged } from "@/design-system";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { FailureCategory, FailureItem, Failures } from "./types";
 
