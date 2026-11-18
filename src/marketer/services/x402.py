@@ -146,7 +146,7 @@ def decode_payment_header(header: str) -> dict:
 
 # --- facilitator HTTP (mocked in tests) --------------------------------------
 
-async def _facilitator_post(path: str, body: dict, *, timeout_sec: float = _VERIFY_TIMEOUT_SEC) -> dict:
+async def _facilitator_post(path: str, body: dict) -> dict:
     """One POST to the facilitator. No retry: ``/settle`` moves money, and a
     second attempt after a lost answer is exactly the double send the rails
     exist to prevent."""
@@ -154,6 +154,7 @@ async def _facilitator_post(path: str, body: dict, *, timeout_sec: float = _VERI
     import httpx  # lazy
 
     url = settings.x402_facilitator_url.rstrip("/") + path
+    timeout_sec = _SETTLE_TIMEOUT_SEC if path == "/settle" else _VERIFY_TIMEOUT_SEC
     timeout = httpx.Timeout(timeout_sec, connect=_CONNECT_TIMEOUT_SEC)
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
         resp = await client.post(url, json=body)
@@ -189,7 +190,7 @@ async def verify_and_settle(
         )
 
     try:
-        settle = await _facilitator_post("/settle", verify_body, timeout_sec=_SETTLE_TIMEOUT_SEC)
+        settle = await _facilitator_post("/settle", verify_body)
     except (X402Disabled, X402PaymentError):
         raise
     except Exception as e:  # noqa: BLE001 — sent; the answer is what we lack

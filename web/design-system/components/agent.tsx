@@ -204,7 +204,7 @@ export function Trace({ nodes, limit = 6 }: { nodes: TraceNode[]; limit?: number
         ))}
       </ol>
       {nodes.length > limit && (
-        <button type="button" onClick={() => setAll((v) => !v)} className="mt-2 pl-6 text-[12px] text-fg-faint hover:text-fg">
+        <button type="button" aria-expanded={all} onClick={() => setAll((v) => !v)} className="mt-2 pl-6 text-[12px] text-fg-muted hover:text-fg">
           {all ? "show less" : `show ${nodes.length - limit} more`}
         </button>
       )}

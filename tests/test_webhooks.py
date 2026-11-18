@@ -50,6 +50,29 @@ def _set_secret(monkeypatch):
     monkeypatch.setattr(settings, "ayrshare_webhook_secret", WEBHOOK_SECRET)
 
 
+@pytest.fixture(autouse=True)
+def replay_claims(monkeypatch):
+    """The replay guard claims each delivery by body hash in idempotency_keys.
+    Back it with a set so these tests need no database; tests that exercise
+    the guard read (or break) it through this fixture."""
+    import marketer.repos.idempotency as idempotency_repo
+
+    claimed: set[str] = set()
+
+    async def _claim(key: str, *, ttl_seconds: int = 0) -> bool:
+        if key in claimed:
+            return False
+        claimed.add(key)
+        return True
+
+    async def _release(key: str) -> None:
+        claimed.discard(key)
+
+    monkeypatch.setattr(idempotency_repo, "claim", _claim)
+    monkeypatch.setattr(idempotency_repo, "release", _release)
+    return claimed
+
+
 @pytest.fixture()
 def make_job() -> Job:
     """Return a minimal Job snapshot with a known provider_post_id."""

@@ -84,7 +84,7 @@ export function SidebarAttention({ title, items, max = 3, onNavigate }: { title:
         </Link>
       ))}
       {items.length > max && (
-        <button type="button" onClick={() => setAll((v) => !v)} className="flex h-7 w-full items-center gap-2.5 rounded-ds-sm px-2 text-[13px] text-fg-muted hover:bg-surface-2 hover:text-fg">
+        <button type="button" aria-expanded={all} onClick={() => setAll((v) => !v)} className="flex h-7 w-full items-center gap-2.5 rounded-ds-sm px-2 text-[13px] text-fg-muted hover:bg-surface-2 hover:text-fg">
           <ChevronsDown className={cx("size-3.5 transition-transform duration-200", all && "rotate-180")} />
           {all ? "Show less" : "Show more"}
         </button>

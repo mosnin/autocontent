@@ -31,16 +31,19 @@ async def test_deliver_one_signs_and_posts(monkeypatch):
         def __init__(self, *a, **k): ...
         async def __aenter__(self): return self
         async def __aexit__(self, *a): return False
-        async def post(self, url, *, content, headers):
+        async def post(self, url, *, content, headers, extensions=None):
             captured["url"] = url
             captured["content"] = content
             captured["headers"] = headers
+            captured["extensions"] = extensions
             return _Resp()
 
     monkeypatch.setattr(webhook_delivery.httpx, "AsyncClient", _Client)
     # This test exercises signing, not the SSRF guard; the .example host
     # doesn't resolve, so stub the guard to allow it.
-    monkeypatch.setattr("marketer.services.ssrf.check_public_url", lambda url: (True, ""))
+    monkeypatch.setattr(
+        "marketer.services.ssrf.resolve_public_url", lambda url: (True, "", "93.184.216.34")
+    )
     code = await webhook_delivery.deliver_one(
         "https://hook.example/x", "whsec_abc",
         event="job.done", payload={"job_id": "j1"}, timestamp=111,
@@ -51,6 +54,11 @@ async def test_deliver_one_signs_and_posts(monkeypatch):
     v1 = sig.split("v1=")[1]
     assert v1 == webhook_delivery.sign("whsec_abc", 111, captured["content"])
     assert captured["headers"]["x-marketer-event"] == "job.done"
+    # Sent to the vetted address, still naming the endpoint's host for TLS
+    # and routing (see tests/test_backend_security.py for the guard itself).
+    assert captured["url"] == "https://93.184.216.34/x"
+    assert captured["headers"]["host"] == "hook.example"
+    assert captured["extensions"] == {"sni_hostname": "hook.example"}
 
 
 async def test_emit_is_fail_open_when_deliver_raises(monkeypatch):
@@ -139,7 +147,11 @@ def test_create_returns_secret_once(monkeypatch):
         ep.secret = "whsec_reveal"
         return ep
 
+    async def _none(user_id):
+        return []
+
     monkeypatch.setattr(repo, "create", _create)
+    monkeypatch.setattr(repo, "list_for_user", _none)
     # SSRF guard is covered in test_phase4_fixes; stub it here (.example host
     # doesn't resolve) so this test can exercise the secret-once behavior.
     monkeypatch.setattr("marketer.services.ssrf.check_public_url", lambda url: (True, ""))
