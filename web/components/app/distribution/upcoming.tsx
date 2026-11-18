@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { EmptyLine, List, ListRow, StatusBadge } from "@/design-system";
+import { EmptyLine, List, ListRow, StatusBadge, Time } from "@/design-system";
 import type { CalendarItem, PlaybookRef } from "@/lib/business";
-import { LocalTime } from "../paid/shared";
 
 export const PLATFORM: Record<string, string> = { tiktok: "TikTok", reels: "Reels", shorts: "Shorts" };
 const KIND: Record<string, string> = { video: "Video", article: "Article", ad: "Ad" };
@@ -36,7 +35,7 @@ export function Upcoming({ items, playbooks, max = 8 }: { items: CalendarItem[] 
       {list.map((it) => (
         <ListRow key={`${it.kind}-${it.id}`} href={itemHref(it)} className="min-h-11 py-2">
           <span className="w-[92px] shrink-0 whitespace-nowrap text-[12px] text-fg-muted tabular">
-            <LocalTime iso={it.at} format={WHEN} />
+            <Time iso={it.at} format={WHEN} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-[13px]">{it.title}</span>

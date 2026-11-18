@@ -11,9 +11,11 @@ import {
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
+  type Ref,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
   useEffect,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -41,9 +43,9 @@ export function buttonClass(variant: ButtonVariant = "secondary", size: ButtonSi
   );
 }
 
-export function Button({ variant, size, loading, className, children, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; loading?: boolean }) {
+export function Button({ variant, size, loading, className, children, ref, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; loading?: boolean; ref?: Ref<HTMLButtonElement> }) {
   return (
-    <button type="button" {...rest} disabled={rest.disabled || loading} aria-busy={loading || undefined} className={buttonClass(variant, size, className)}>
+    <button ref={ref} type="button" {...rest} disabled={rest.disabled || loading} aria-busy={loading || undefined} className={buttonClass(variant, size, className)}>
       {loading && <Loader2 className="ds-spin" />}
       {children}
     </button>
@@ -219,14 +221,25 @@ export function Bullet({ tone = "neutral" }: { tone?: "neutral" | "attention" | 
 /* Ref 02/07: Home | Activity, Installed | Discover. Track surface-2, pill surface-3. */
 
 export function Segmented<T extends string>({ value, onChange, options, label, size = "md", className }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; label: string; size?: "sm" | "md"; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  // Tabs pattern: one tab stop, arrows move and select, Home/End jump.
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const i = options.findIndex((o) => o.value === value);
+    const next = e.key === "ArrowRight" || e.key === "ArrowDown" ? (i + 1) % options.length : e.key === "ArrowLeft" || e.key === "ArrowUp" ? (i - 1 + options.length) % options.length : e.key === "Home" ? 0 : e.key === "End" ? options.length - 1 : -1;
+    if (next < 0 || next === i) return;
+    e.preventDefault();
+    onChange(options[next]!.value);
+    ref.current?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
+  };
   return (
-    <div role="tablist" aria-label={label} className={cx("inline-flex rounded-ds-md bg-surface-2 p-[3px]", className)}>
+    <div ref={ref} role="tablist" aria-label={label} onKeyDown={onKeyDown} className={cx("inline-flex rounded-ds-md bg-surface-2 p-[3px]", className)}>
       {options.map((o) => (
         <button
           key={o.value}
           type="button"
           role="tab"
           aria-selected={o.value === value}
+          tabIndex={o.value === value ? 0 : -1}
           onClick={() => onChange(o.value)}
           className={cx(
             "ds-press flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-ds-sm px-3 font-medium",
@@ -247,16 +260,25 @@ export function Segmented<T extends string>({ value, onChange, options, label, s
 export function FilterPill<T extends string>({ icon, value, options, onChange, label }: { icon?: ReactNode; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; label: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useOutside(ref, open, () => setOpen(false));
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = (refocus = true) => {
+    setOpen(false);
+    if (refocus) trigger.current?.focus();
+  };
+  useOutside(ref, open, () => close(ref.current?.contains(document.activeElement) ?? false));
   const current = options.find((o) => o.value === value);
   return (
     <div ref={ref} className="relative">
       <button
+        ref={trigger}
         type="button"
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label={label}
+        aria-label={current ? `${label}: ${current.label}` : label}
         onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) (e.preventDefault(), setOpen(true));
+        }}
         className="ds-press flex h-7 items-center gap-1.5 rounded-ds-sm border border-hairline bg-surface px-2.5 text-[12.5px] text-fg hover:border-hairline-strong [&_svg]:size-3.5 [&_svg]:text-fg-muted"
       >
         {icon}
@@ -264,9 +286,9 @@ export function FilterPill<T extends string>({ icon, value, options, onChange, l
         <ChevronsUpDown className="!size-3 !text-fg-faint" />
       </button>
       {open && (
-        <Menu className="left-0 top-full mt-1 min-w-[180px]">
+        <Menu label={label} onClose={() => close(false)} className="left-0 top-full mt-1 min-w-[180px]">
           {options.map((o) => (
-            <MenuItem key={o.value} selected={o.value === value} onClick={() => (onChange(o.value), setOpen(false))}>
+            <MenuItem key={o.value} selected={o.value === value} onClick={() => (onChange(o.value), close())}>
               {o.label}
             </MenuItem>
           ))}
@@ -278,34 +300,104 @@ export function FilterPill<T extends string>({ icon, value, options, onChange, l
 
 /* ------------------------------------------------------------ Menu */
 
-export function Menu({ children, className }: { children: ReactNode; className?: string }) {
+const MENU_ITEM = '[role="option"]:not(:disabled)';
+
+/**
+ * A popover list. Keyboard: focus lands on the selected (or first) item when
+ * it opens, ↑/↓ move, Home/End jump, a letter jumps to the next match, Tab
+ * closes it. Escape is handled by the trigger (`useOutside`), which also
+ * takes focus back.
+ */
+export function Menu({ children, className, label, onClose }: { children: ReactNode; className?: string; label?: string; onClose?: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    (el.querySelector<HTMLElement>('[role="option"][aria-selected="true"]') ?? el.querySelector<HTMLElement>(MENU_ITEM))?.focus({ preventScroll: true });
+  }, []);
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    const items = Array.from(ref.current?.querySelectorAll<HTMLElement>(MENU_ITEM) ?? []);
+    if (items.length === 0) return;
+    const i = items.indexOf(document.activeElement as HTMLElement);
+    let next = -1;
+    if (e.key === "ArrowDown") next = (i + 1) % items.length;
+    else if (e.key === "ArrowUp") next = (i - 1 + items.length) % items.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = items.length - 1;
+    else if (e.key === "Tab") return onClose?.();
+    else if (e.key.length === 1 && /\S/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const k = e.key.toLowerCase();
+      const from = i + 1;
+      for (let n = 0; n < items.length; n++) {
+        const j = (from + n) % items.length;
+        if ((items[j]!.textContent ?? "").trim().toLowerCase().startsWith(k)) {
+          next = j;
+          break;
+        }
+      }
+      if (next < 0) return;
+    }
+    if (next < 0) return;
+    e.preventDefault();
+    items[next]!.focus();
+  };
   return (
-    <div role="listbox" className={cx("ds-pop absolute z-50 rounded-ds-md border border-hairline bg-overlay p-1 shadow-ds-float", className)}>
+    <div ref={ref} role="listbox" aria-label={label} onKeyDown={onKeyDown} className={cx("ds-pop absolute z-50 rounded-ds-md border border-hairline bg-overlay p-1 shadow-ds-float", className)}>
       {children}
     </div>
   );
 }
 
-export function MenuItem({ children, selected, onClick, icon, hint }: { children: ReactNode; selected?: boolean; onClick?: () => void; icon?: ReactNode; hint?: ReactNode }) {
+export function MenuItem({ children, selected, onClick, icon, hint, disabled }: { children: ReactNode; selected?: boolean; onClick?: () => void; icon?: ReactNode; hint?: ReactNode; disabled?: boolean }) {
   return (
-    <button type="button" role="option" aria-selected={selected} onClick={onClick} className="flex h-8 w-full items-center gap-2 rounded-ds-sm px-2 text-left text-[13px] text-fg hover:bg-surface-2 [&_svg]:size-[15px] [&_svg]:text-fg-muted">
+    <button
+      type="button"
+      role="option"
+      aria-selected={selected ?? false}
+      tabIndex={-1}
+      disabled={disabled}
+      onClick={onClick}
+      className="flex h-8 w-full items-center gap-2 rounded-ds-sm px-2 text-left text-[13px] text-fg hover:bg-surface-2 focus-visible:bg-surface-2 disabled:pointer-events-none disabled:opacity-45 [&_svg]:size-[15px] [&_svg]:text-fg-muted"
+    >
       {icon}
       <span className="min-w-0 flex-1 truncate">{children}</span>
-      {hint && <span className="text-[12px] text-fg-faint">{hint}</span>}
+      {hint && <span className="text-[12px] text-fg-muted">{hint}</span>}
       {selected && <Check className="!text-ds-accent" />}
     </button>
   );
 }
 
 /** A select-style trigger that opens a Menu (model picker "Sonnet 5 ⌄", workspace switcher). */
-export function MenuButton({ trigger, children, align = "left", up }: { trigger: (open: boolean) => ReactNode; children: (close: () => void) => ReactNode; align?: "left" | "right"; up?: boolean }) {
+export function MenuButton({ trigger, children, align = "left", up, label }: { trigger: (open: boolean) => ReactNode; children: (close: () => void) => ReactNode; align?: "left" | "right"; up?: boolean; label?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  useOutside(ref, open, () => setOpen(false));
+  const slot = useRef<HTMLDivElement>(null);
+  const refocus = () => slot.current?.querySelector<HTMLElement>("button, [href], [tabindex]")?.focus();
+  const close = () => {
+    setOpen(false);
+    refocus();
+  };
+  useOutside(ref, open, () => {
+    const inside = ref.current?.contains(document.activeElement) ?? false;
+    setOpen(false);
+    if (inside) refocus();
+  });
   return (
     <div ref={ref} className="relative">
-      <div onClick={() => setOpen((v) => !v)}>{trigger(open)}</div>
-      {open && <Menu className={cx("min-w-[220px]", align === "left" ? "left-0" : "right-0", up ? "bottom-full mb-1" : "top-full mt-1")}>{children(() => setOpen(false))}</Menu>}
+      <div
+        ref={slot}
+        onClick={() => setOpen((v) => !v)}
+        onKeyDown={(e) => {
+          if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) (e.preventDefault(), setOpen(true));
+        }}
+      >
+        {trigger(open)}
+      </div>
+      {open && (
+        <Menu label={label} onClose={() => setOpen(false)} className={cx("min-w-[220px]", align === "left" ? "left-0" : "right-0", up ? "bottom-full mb-1" : "top-full mt-1")}>
+          {children(close)}
+        </Menu>
+      )}
     </div>
   );
 }
@@ -350,6 +442,17 @@ export function Field({ label, hint, children }: { label: string; hint?: ReactNo
   );
 }
 
+/** A labelled group for controls that aren't one input (chips, tag inputs, a time list). `Field` is a <label>, so groups need their own wrapper. */
+export function FieldGroup({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <div role="group" aria-label={label} className="space-y-1.5">
+      <span className="block text-[12.5px] font-medium text-fg">{label}</span>
+      {children}
+      {hint && <span className="block text-[12px] text-fg-muted">{hint}</span>}
+    </div>
+  );
+}
+
 export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: string; disabled?: boolean }) {
   return (
     <button
@@ -366,33 +469,78 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
   );
 }
 
+/** A switch with its label and one line of detail in a bordered row. With `name`, it posts "on" when checked. */
+export function SwitchRow({ name, label, detail, checked, onChange, disabled }: { name?: string; label: string; detail?: ReactNode; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-ds-md border border-hairline bg-surface-2 px-3 py-2.5">
+      <div className="min-w-0">
+        <div className="text-[13px] font-medium">{label}</div>
+        {detail && <div className="text-[12px] text-fg-muted">{detail}</div>}
+      </div>
+      <Switch checked={checked} onChange={onChange} label={label} disabled={disabled} />
+      {name && checked && <input type="hidden" name={name} value="on" />}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------ Modal */
+/* Native <dialog>.showModal(): the page behind is inert, so Tab stays inside
+   (the focus trap), and Escape asks to close. We put focus on the first
+   control when it opens and hand it back to whatever had it when it closes. */
 
 export function Modal({ open, onClose, title, children, footer, width = "md" }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; width?: "sm" | "md" | "lg" }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const isOpen = useRef(open);
+  isOpen.current = open;
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) {
+      opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      d.showModal();
+      // Prefer the first field or action in the body over the Close button.
+      (d.querySelector<HTMLElement>("[autofocus]") ?? d.querySelector<HTMLElement>("[data-modal-body] :is(input, textarea, select, button, a[href]):not(:disabled)") ?? d.querySelector<HTMLElement>("button:not(:disabled)"))?.focus();
+    }
     if (!open && d.open) d.close();
+    if (!open && opener.current) {
+      const el = opener.current;
+      opener.current = null;
+      if (el.isConnected) el.focus();
+    }
   }, [open]);
+  // Closed by unmounting (a parent that renders the modal conditionally): still hand focus back.
+  useEffect(
+    () => () => {
+      const el = opener.current;
+      if (el?.isConnected) el.focus();
+    },
+    [],
+  );
   return (
     <dialog
       ref={ref}
-      aria-label={title}
-      onClose={(e) => e.target === e.currentTarget && onClose()}
+      aria-labelledby={titleId}
+      // Escape: the owner decides (a busy confirm stays open), so the element and `open` never disagree.
+      onCancel={(e) => (e.preventDefault(), onClose())}
+      onClose={(e) => e.target === e.currentTarget && isOpen.current && onClose()}
       onClick={(e) => e.target === ref.current && onClose()}
       className={cx("ds-modal m-auto max-h-[88vh] w-[calc(100%-2rem)] overflow-hidden rounded-ds-xl border border-hairline bg-overlay p-0 text-fg shadow-ds-modal", width === "sm" && "max-w-sm", width === "md" && "max-w-lg", width === "lg" && "max-w-2xl")}
     >
       {open && (
         <div className="flex max-h-[88vh] flex-col">
           <div className="flex h-12 shrink-0 items-center justify-between border-b border-hairline px-4">
-            <h2 className="text-[14px] font-medium">{title}</h2>
+            <h2 id={titleId} className="text-[14px] font-medium">
+              {title}
+            </h2>
             <IconButton label="Close" onClick={onClose}>
               <X />
             </IconButton>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
+          <div data-modal-body className="min-h-0 flex-1 overflow-y-auto p-4">
+            {children}
+          </div>
           {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-hairline px-4 py-3">{footer}</div>}
         </div>
       )}

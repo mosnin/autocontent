@@ -4,6 +4,8 @@
 
 import { auth } from "@clerk/nextjs/server";
 
+import { publicApiError } from "./security/urls";
+
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -18,6 +20,9 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     },
     cache: "no-store",
   });
-  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+  // The message reaches the browser through server-action results, so it is
+  // "<status> <bounded detail>", never the raw upstream body. Callers match on
+  // the status prefix ("403", "404").
+  if (!res.ok) throw new Error(publicApiError(res.status, await res.text().catch(() => "")));
   return res.json() as Promise<T>;
 }

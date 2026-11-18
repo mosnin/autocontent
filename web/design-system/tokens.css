@@ -45,6 +45,14 @@
   --ds-tool-e: linear-gradient(140deg, #ffd27a, #f59f3b);   /* amber */
   --ds-tool-f: linear-gradient(140deg, #7fdcff, #3b8cff);   /* sky */
 
+  /* Wave colour per tool (CommitWave "launch"): the wave carries the hue of the tool that committed. See WAVE.md. */
+  --ds-wave-a: #ff8a66;
+  --ds-wave-b: #8c9aff;
+  --ds-wave-c: #55cf9f;
+  --ds-wave-d: #b07bff;
+  --ds-wave-e: #fab85a;
+  --ds-wave-f: #5db4ff;
+
   --ds-shadow-float: 0 0 0 1px hsl(0 0% 100% / 0.06), 0 16px 40px -12px rgb(0 0 0 / 0.65);
   --ds-shadow-modal: 0 0 0 1px hsl(0 0% 100% / 0.07), 0 32px 80px -16px rgb(0 0 0 / 0.75);
   --ds-scrim: rgb(0 0 0 / 0.55);

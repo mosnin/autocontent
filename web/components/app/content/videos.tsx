@@ -4,11 +4,10 @@ import { Clapperboard, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, Chip, ConfirmModal, EmptyLine, Input, List, ListRow, Section, Select, StatusBadge, Thumb } from "@/design-system";
+import { Button, Chip, ConfirmModal, EmptyLine, Input, List, ListRow, Section, Select, StatusBadge, Thumb, Time } from "@/design-system";
 import { retryJobAction } from "@/lib/actions";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { Job, Niche } from "@/lib/types";
-import { Time } from "./shared";
 import { JOB_IN_PROGRESS, jobStatusLabel, jobTitle, jobTone, matchesVideo, platformLabel, VIDEO_FILTERS, type VideoFilter } from "./status";
 
 const PAGE = 20;

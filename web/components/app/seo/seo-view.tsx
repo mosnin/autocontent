@@ -3,11 +3,12 @@
 import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, ButtonLink, Column, cx, EmptyLine, Input, PageHeader, Section, Segmented, StatusBadge, Table } from "@/design-system";
+import { Button, ButtonLink, Column, cx, EmptyLine, Input, PageHeader, Section, Segmented, StatusBadge, Table, StatLine, Time, ToolTitle } from "@/design-system";
+import { TOOL_ICON } from "@/components/shell/sidebar";
 import { StartSession } from "@/components/chat/start-session";
 import { retryArticleAction } from "@/lib/actions";
 import type { Article, Niche } from "@/lib/types";
-import { LiveRefresh, StatLine, Time, toolGlyph, ToolTitle } from "../content/shared";
+import { LiveRefresh, toolGlyph } from "../content/shared";
 import { articleStatusLabel, articleTone, ARTICLE_IN_PROGRESS } from "../content/status";
 import { WriteDialog } from "./write-dialog";
 
@@ -86,7 +87,7 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
       />
       <Column
         width="lg"
-        title={<ToolTitle tool="seo">SEO</ToolTitle>}
+        title={<ToolTitle icon={TOOL_ICON.seo.icon} tone={TOOL_ICON.seo.tone}>SEO</ToolTitle>}
         description="Long-form articles researched against what ranks."
         control={
           list.length > 0 ? (

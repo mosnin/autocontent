@@ -7,9 +7,10 @@
  */
 import { AlertCircle, Check, Copy, X } from "lucide-react";
 import Link from "next/link";
-import { type InputHTMLAttributes, type ReactNode, useState } from "react";
+import { type InputHTMLAttributes, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { formatDateTime, formatRelative } from "@/lib/format";
 import { cx } from "../cx";
-import { Button, inputClass, Modal } from "./primitives";
+import { Button, inputClass, Modal, StepMark, ToolIcon, type ToolTone } from "./primitives";
 
 /* -------------------------------------------------------------- Chip */
 
@@ -308,4 +309,144 @@ export function Facts({ items }: { items: { label: ReactNode; value: ReactNode }
       ))}
     </dl>
   );
+}
+
+/* -------------------------------------------------------------- Time */
+
+/**
+ * A timestamp. Server and browser can disagree about it (time zone, "now"), so:
+ * - `mode` ("relative" | "datetime") renders at once and lets hydration differ;
+ * - `format` renders in the viewer's time zone after mount, when the exact
+ *   local clock time matters ("Tue 9:00 AM").
+ */
+export function Time({ iso, mode = "relative", format, className }: { iso: string | null | undefined; mode?: "relative" | "datetime"; format?: Intl.DateTimeFormatOptions; className?: string }) {
+  const [local, setLocal] = useState<string | null>(null);
+  useEffect(() => {
+    if (iso && format) setLocal(new Date(iso).toLocaleString("en-US", format));
+  }, [iso, format]);
+  if (!iso) return null;
+  if (format)
+    return (
+      <time dateTime={iso} suppressHydrationWarning className={className}>
+        {local ?? " "}
+      </time>
+    );
+  return (
+    <time dateTime={iso} suppressHydrationWarning className={className} title={formatDateTime(iso)}>
+      {mode === "relative" ? formatRelative(iso) : formatDateTime(iso)}
+    </time>
+  );
+}
+
+/* -------------------------------------------------------------- Tool pages */
+
+/** Tool page title (README §5 Tool): the tool's coloured icon beside the 22px title. Icon and tone come from `TOOL_ICON`. */
+export function ToolTitle({ icon, tone, children }: { icon: ReactNode; tone: ToolTone; children: ReactNode }) {
+  return (
+    <span className="flex items-center gap-2.5">
+      <ToolIcon tone={tone} size={22}>
+        {icon}
+      </ToolIcon>
+      {children}
+    </span>
+  );
+}
+
+/** A quiet line of numbers under the composer: "$3.20 of $15 today · 2 need approval". */
+export function StatLine({ items }: { items: { label: string; value: ReactNode; tone?: "attention" }[] }) {
+  return (
+    <dl className="flex flex-wrap gap-x-5 gap-y-1.5 text-[12.5px]">
+      {items.map((it) => (
+        <div key={it.label} className="flex items-baseline gap-1.5">
+          <dd className={cx("font-medium tabular", it.tone === "attention" ? "text-attention" : "text-fg")}>{it.value}</dd>
+          <dt className="text-fg-muted">{it.label}</dt>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** A pipeline as plan-card steps (ref 02): filled check for done, spinner on the current step. */
+export function StepList({ steps, current, complete, failed }: { steps: { id: string; label: string; detail?: string }[]; current: number; complete?: boolean; failed?: boolean }) {
+  return (
+    <ol className="space-y-2.5">
+      {steps.map((s, i) => {
+        const done = complete || i < current;
+        const now = !complete && i === current;
+        return (
+          <li key={s.id} className="flex items-start gap-2.5 text-[13px]" aria-current={now ? "step" : undefined}>
+            <span className="mt-[2px] flex">
+              <StepMark state={done ? "done" : now ? (failed ? "failed" : "active") : "todo"} />
+            </span>
+            <span className="min-w-0">
+              <span className={cx(done || now ? "text-fg" : "text-fg-muted")}>{s.label}</span>
+              {now && <span className={cx("ml-2 text-[12px]", failed ? "text-negative" : "text-fg-muted")}>{failed ? "Stopped here" : "Working"}</span>}
+              {s.detail && <span className="block text-[12px] text-fg-muted">{s.detail}</span>}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/* -------------------------------------------------------------- Long lists */
+
+/**
+ * Cap a long client-side list: show `pageSize` rows, then `pageSize` more per
+ * "Load more". Resets when the list is replaced by a shorter one.
+ */
+export function usePaged<T>(items: T[], pageSize = 24): { shown: T[]; total: number; hasMore: boolean; more: () => void } {
+  const [limit, setLimit] = useState(pageSize);
+  useEffect(() => {
+    setLimit((l) => (items.length < l - pageSize ? pageSize : l));
+  }, [items.length, pageSize]);
+  return { shown: items.length > limit ? items.slice(0, limit) : items, total: items.length, hasMore: items.length > limit, more: () => setLimit((l) => l + pageSize) };
+}
+
+/** The foot of a capped list: "Showing 24 of 180" and a Load more button. Renders nothing when everything is shown. */
+export function LoadMore({ shown, total, onMore, noun = "items" }: { shown: number; total: number; onMore: () => void; noun?: string }) {
+  if (shown >= total) return null;
+  return (
+    <div className="flex items-center justify-center gap-3 pt-1">
+      <span className="text-[12px] text-fg-muted tabular" aria-live="polite">
+        Showing {shown} of {total} {noun}
+      </span>
+      <Button size="sm" onClick={onMore}>
+        Load more
+      </Button>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------- Pending actions */
+
+/**
+ * Double-submit protection for anything that approves, rejects, publishes or
+ * spends. `run(key, fn)` ignores a second call while the first is in flight
+ * (a ref, so two clicks in one frame can't both pass), exposes which action is
+ * `busy` for the button's `loading`/`disabled`, and keeps the server's message
+ * in `error` for a `Notice`.
+ */
+export function usePending<K extends string = string>() {
+  const lock = useRef(false);
+  const [busy, setBusy] = useState<K | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const run = useCallback(async (key: K, fn: () => Promise<unknown>): Promise<boolean> => {
+    if (lock.current) return false;
+    lock.current = true;
+    setBusy(key);
+    setError(null);
+    try {
+      await fn();
+      return true;
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "Something went wrong. Try again.");
+      return false;
+    } finally {
+      lock.current = false;
+      setBusy(null);
+    }
+  }, []);
+  return { busy, error, run, setError };
 }

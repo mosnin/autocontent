@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import type { ActionState } from "./action-state";
 import { api } from "./api";
 import { playbookPayload } from "./playbook-form";
+import { idSegment } from "./security/urls";
 import type { Niche } from "./types";
 
 const msg = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -24,11 +25,12 @@ export async function createPlaybookAction(_prev: ActionState, fd: FormData): Pr
   }
   revalidatePath("/playbooks");
   revalidatePath("/", "layout");
-  redirect(`/playbooks/${niche.id}`);
+  const created = idSegment(niche.id);
+  redirect(created ? `/playbooks/${created}` : "/playbooks");
 }
 
 export async function updatePlaybookAction(_prev: ActionState, fd: FormData): Promise<ActionState> {
-  const id = String(fd.get("niche_id") || "").trim();
+  const id = idSegment(fd.get("niche_id"));
   if (!id) return { ok: false, error: "Missing playbook id." };
   const built = playbookPayload(fd);
   if (!built.ok) return built;
@@ -42,7 +44,9 @@ export async function updatePlaybookAction(_prev: ActionState, fd: FormData): Pr
   redirect(`/playbooks/${id}`);
 }
 
-export async function archivePlaybookAction(id: string): Promise<ActionState> {
+export async function archivePlaybookAction(rawId: string): Promise<ActionState> {
+  const id = idSegment(rawId);
+  if (!id) return { ok: false, error: "Missing playbook id." };
   try {
     await api(`/api/v1/niches/${id}`, { method: "DELETE" });
   } catch (e) {

@@ -3,7 +3,7 @@
 import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { AskPill, Button, Callout, Card, Column, Field, Input, Notice, PageHeader, Section, TagInput, Textarea } from "@/design-system";
+import { AskPill, Button, Callout, Card, Column, Field, FieldGroup, Input, Notice, PageHeader, Section, TagInput, Textarea } from "@/design-system";
 import { EMPTY_BRAND_KIT, HEX_COLOR_RE, saveBrandKit, type BrandKit } from "@/lib/brand-kit-client";
 import { formatDateTime } from "@/lib/format";
 import type { Kit } from "@/lib/types";
@@ -12,17 +12,6 @@ import { Kits } from "./kits";
 function errorMessage(e: unknown): string {
   if (e instanceof Error) return e.message.replace(/^\d+\s*/, "") || "Couldn't save";
   return "Something went wrong";
-}
-
-/** A labelled group for controls that aren't a single input (tag inputs, colour). */
-function FieldGroup({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <span className="block text-[12.5px] font-medium text-fg">{label}</span>
-      {children}
-      {hint && <span className="block text-[12px] text-fg-muted">{hint}</span>}
-    </div>
-  );
 }
 
 // The native colour input only accepts a hex value.

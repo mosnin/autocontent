@@ -6,8 +6,11 @@
  * Marketer. Every agent UI uses them.
  */
 import { ArrowUp, ChevronDown, ChevronRight, ChevronUp, Plus, Square } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
+import { decideInboxItem, type InboxKind } from "@/lib/workspace";
 import { cx } from "../cx";
+import { Notice, usePending } from "./kit";
 import { AgentGlyph, Button, NumberKey, StepMark, type ToolTone } from "./primitives";
 
 /* ------------------------------------------------------------ Composer */
@@ -239,6 +242,7 @@ export function PlanCard({
   onDismiss,
   onEdit,
   approving,
+  dismissing,
   decided,
   approveLabel = "Approve & Run",
   className,
@@ -250,7 +254,10 @@ export function PlanCard({
   onApprove?: () => void;
   onDismiss?: () => void;
   onEdit?: () => void;
+  /** The approve request is in flight: its button spins, the others are disabled. */
   approving?: boolean;
+  /** The dismiss request is in flight: its button spins, the others are disabled. */
+  dismissing?: boolean;
   decided?: ReactNode;
   approveLabel?: string;
   className?: string;
@@ -288,23 +295,96 @@ export function PlanCard({
         ) : (
           <>
             {onDismiss && (
-              <Button variant="ghost" size="sm" onClick={onDismiss} disabled={approving}>
+              <Button variant="ghost" size="sm" onClick={onDismiss} loading={dismissing} disabled={approving}>
                 Dismiss
               </Button>
             )}
             {onEdit && (
-              <Button variant="secondary" size="sm" onClick={onEdit} disabled={approving}>
+              <Button variant="secondary" size="sm" onClick={onEdit} disabled={approving || dismissing}>
                 Edit
               </Button>
             )}
             {onApprove && (
-              <Button variant="primary" size="sm" onClick={onApprove} loading={approving}>
+              <Button variant="primary" size="sm" onClick={onApprove} loading={approving} disabled={dismissing}>
                 {approveLabel}
               </Button>
             )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ Approval card */
+
+/**
+ * The one approval card: an inbox item (video, carousel, ad change) as a
+ * PlanCard wired to the workspace decide endpoint. Dismiss rejects, Approve &
+ * Run approves. While a request is in flight both buttons are locked, so a
+ * double click can't decide twice; the server's refusal shows underneath.
+ */
+export function ApprovalCard({
+  item,
+  title,
+  icon,
+  steps,
+  meta,
+  onEdit,
+  onDecided,
+  focused,
+  id,
+  approveLabel,
+}: {
+  item: { kind: InboxKind; ref_id: string };
+  title: string;
+  icon?: ReactNode;
+  steps: { label: ReactNode }[];
+  meta?: ReactNode;
+  onEdit?: () => void;
+  onDecided?: (decision: "approve" | "reject") => void;
+  /** Scroll to it and ring it (the inbox's `?focus=`). */
+  focused?: boolean;
+  id?: string;
+  approveLabel?: string;
+}) {
+  const router = useRouter();
+  const ref = useRef<HTMLDivElement>(null);
+  const { busy, error, run } = usePending<"approve" | "reject">();
+  const [done, setDone] = useState<"approve" | "reject" | null>(null);
+
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView({ block: "center" });
+  }, [focused]);
+
+  const decide = (d: "approve" | "reject") =>
+    void run(d, async () => {
+      await decideInboxItem(item, d);
+      setDone(d);
+      onDecided?.(d);
+      router.refresh();
+    });
+
+  return (
+    <div ref={ref} id={id} className={cx("rounded-ds-lg", focused && "ring-1 ring-ds-accent")}>
+      <PlanCard
+        title={title}
+        icon={icon}
+        meta={meta}
+        steps={steps}
+        approveLabel={approveLabel}
+        onDismiss={() => decide("reject")}
+        onEdit={onEdit}
+        onApprove={() => decide("approve")}
+        approving={busy === "approve"}
+        dismissing={busy === "reject"}
+        decided={done ? (done === "approve" ? "Approved" : "Dismissed") : undefined}
+      />
+      {error && (
+        <div className="px-1 pt-1.5">
+          <Notice error={error} />
+        </div>
+      )}
     </div>
   );
 }

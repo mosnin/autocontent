@@ -3,7 +3,7 @@
 import { Plus, X } from "lucide-react";
 import { useActionState, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
-import { Button, ButtonLink, Card, Chip, cx, Field, IconButton, Input, Notice, Section as DsSection, Select, Switch, Textarea } from "@/design-system";
+import { Button, ButtonLink, Card, Chip, cx, Field, FieldGroup, IconButton, Input, Notice, Section as DsSection, Select, Switch, SwitchRow, Textarea } from "@/design-system";
 import { EMPTY_STATE, type ActionState } from "@/lib/action-state";
 import { createPlaybookAction, updatePlaybookAction } from "@/lib/actions-work";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
@@ -72,36 +72,11 @@ function Section({ id, label, hint, children }: { id: string; label: string; hin
   );
 }
 
-/** A labelled group of non-input controls (chips, time list). Field is a <label>, so groups need their own wrapper. */
-function Group({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
-  return (
-    <div role="group" aria-label={label} className="space-y-1.5">
-      <span className="block text-[12.5px] font-medium text-fg">{label}</span>
-      {children}
-      {hint && <span className="block text-[12px] text-fg-muted">{hint}</span>}
-    </div>
-  );
-}
-
-/** A switch with its label and one line of detail, posting "on" when checked. */
-function SwitchRow({ name, label, detail, checked, onChange }: { name: string; label: string; detail?: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-start justify-between gap-4 rounded-ds-md border border-hairline bg-surface-2 px-3 py-2.5">
-      <div className="min-w-0">
-        <div className="text-[13px] font-medium">{label}</div>
-        {detail && <div className="text-[12px] text-fg-muted">{detail}</div>}
-      </div>
-      <Switch checked={checked} onChange={onChange} label={label} />
-      {checked && <input type="hidden" name={name} value="on" />}
-    </div>
-  );
-}
-
 function PresetPicker({ presets, onApply }: { presets: StylePreset[]; onApply: (p: StylePreset) => void }) {
   const [applied, setApplied] = useState<string | null>(null);
   if (!presets.length) return null;
   return (
-    <Group label="Or start from a preset">
+    <FieldGroup label="Or start from a preset">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {presets.map((p) => (
           <button
@@ -123,7 +98,7 @@ function PresetPicker({ presets, onApply }: { presets: StylePreset[]; onApply: (
           </button>
         ))}
       </div>
-    </Group>
+    </FieldGroup>
   );
 }
 
@@ -268,7 +243,7 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
       </Section>
 
       <Section id="hooks" label="Hooks & story" hint="The creative brief: how every script opens, speaks and ends. Empty fields use sensible defaults.">
-        <Group label="Hook styles to favour">
+        <FieldGroup label="Hook styles to favour">
           <div className="flex flex-wrap gap-1.5">
             {HOOK_MECHANISMS.map((m) => (
               <Chip key={m} selected={mechs.includes(m)} onClick={() => setMechs((x) => toggle(x, m))}>
@@ -279,7 +254,7 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
           {mechs.map((m) => (
             <input key={m} type="hidden" name="brief_mechanisms" value={m} />
           ))}
-        </Group>
+        </FieldGroup>
         <Field label="Hooks you love" hint="One per line, up to 10. Matched for voice, never copied.">
           <Textarea name="brief_example_hooks" rows={3} defaultValue={b.hooks.example_hooks.join("\n")} placeholder={"You're salting your pasta water wrong\nStop rinsing your pasta"} />
         </Field>
@@ -453,7 +428,7 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
       </Section>
 
       <Section id="schedule" label="Schedule & approvals" hint="Where it posts, when, and how much it may spend in a day.">
-        <Group label="Platforms">
+        <FieldGroup label="Platforms">
           <div className="flex flex-wrap gap-1.5">
             {PLATFORMS.map((p) => (
               <Chip key={p} selected={platforms.includes(p)} onClick={() => setPlatforms((x) => toggle(x, p))}>
@@ -464,8 +439,8 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
           {platforms.map((p) => (
             <input key={p} type="hidden" name="platforms" value={p} />
           ))}
-        </Group>
-        <Group label="Posting windows" hint="One video per window per platform, inside the daily cap.">
+        </FieldGroup>
+        <FieldGroup label="Posting windows" hint="One video per window per platform, inside the daily cap.">
           <div className="flex flex-wrap items-center gap-2">
             {windows.map((w, i) => (
               <span key={i} className="flex items-center gap-1">
@@ -484,7 +459,7 @@ export function PlaybookEditor({ mode, niche, catalog, cancelHref }: { mode: "cr
               </Button>
             )}
           </div>
-        </Group>
+        </FieldGroup>
         <Grid>
           <Field label="Time zone" hint="IANA name, e.g. America/New_York.">
             <Input name="tz" defaultValue={tz} required className="font-mono" suppressHydrationWarning />

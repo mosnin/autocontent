@@ -3,10 +3,9 @@
 import { ChevronDown, GalleryHorizontal, Image as ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, Chip, ConfirmModal, cx, EmptyLine, List, StatusBadge, Thumb } from "@/design-system";
+import { Button, Chip, ConfirmModal, cx, EmptyLine, List, StatusBadge, Thumb, Time } from "@/design-system";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { ImagePost, Niche } from "@/lib/types";
-import { Time } from "./shared";
 import { postStatusLabel, postTitle, postTone, POST_IN_PROGRESS } from "./status";
 
 type Filter = "all" | "awaiting" | "in_progress" | "done" | "failed";

@@ -1,7 +1,7 @@
 "use client";
 
 import { Megaphone, Plus } from "lucide-react";
-import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section, StatusBadge, Table } from "@/design-system";
+import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section, StatusBadge, Table, ApprovalCard, ToolTitle } from "@/design-system";
 import { StartSession } from "@/components/chat/start-session";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { AdAccount, AdActionEntry, AdCampaign, AdsOverview } from "@/lib/ads-client";
@@ -10,7 +10,7 @@ import { formatCompact, formatRelative, formatUsd } from "@/lib/format";
 import type { InboxItem, Overview } from "@/lib/workspace";
 import { ActionLog } from "./action-log";
 import { CampaignTable } from "./campaign-table";
-import { accountName, ApprovalCard, capLabel, platformLabel, PlatformTile, ToolTitle } from "./shared";
+import { accountName, capLabel, platformLabel, PlatformTile } from "./shared";
 
 export interface PaidData {
   overview: AdsOverview | null;

@@ -34,8 +34,49 @@ const LEGACY = [
 
 const path = require("node:path");
 
+const PROD = process.env.NODE_ENV === "production";
+
+// Routes the Clerk middleware handles (web/middleware.ts). They get a
+// nonce-based CSP there; everything else gets the static policy below.
+const CLERK_ROUTES = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|integrations|settings|onboarding|admin|sign-in|sign-up";
+
+// Always enforced, on every response: clickjacking, <base> hijack, plugins.
+const CSP_BASELINE = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'";
+
+// Static pages (marketing, legal, the fixture preview) are prerendered, so
+// their inline bootstrap scripts cannot carry a per-request nonce:
+// script-src needs 'unsafe-inline' here. These pages render no user content.
+// img/font data: and blob: are required by the page-transition shader
+// (web/vendor/distortion-waves). No 'unsafe-eval' outside development.
+const CSP_STATIC = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${PROD ? "" : " 'unsafe-eval'"}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https:",
+  "font-src 'self' data:",
+  "media-src 'self' blob: https:",
+  `connect-src 'self'${PROD ? "" : " ws: wss:"}`,
+  "worker-src 'self' blob:",
+  "form-action 'self'",
+  CSP_BASELINE,
+].join("; ");
+
+// Report-only until CSP_MODE=enforce (see docs/security/web-audit.md).
+const CSP_ENFORCE = (process.env.CSP_MODE || "").trim() === "enforce";
+
+const SECURITY_HEADERS = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), usb=(), serial=(), bluetooth=(), payment=(), browsing-topics=()" },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+  // HTTPS only matters in production; sending it from localhost dev would pin the browser.
+  ...(PROD ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }] : []),
+];
+
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   // The onboarding decisions route imports the vendored framework from ../.intent-onboarding (TypeScript source).
   experimental: { externalDir: true },
   webpack(config) {
@@ -45,6 +86,23 @@ const nextConfig = {
   },
   env: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  },
+  async headers() {
+    return [
+      { source: "/:path*", headers: SECURITY_HEADERS },
+      // Clerk-routed pages: the middleware sends the nonce-based policy. While
+      // that is report-only, the baseline is still enforced here.
+      ...(CSP_ENFORCE ? [] : [{ source: `/:first(${CLERK_ROUTES})/:rest*`, headers: [{ key: "Content-Security-Policy", value: CSP_BASELINE }] }]),
+      {
+        source: `/((?!${CLERK_ROUTES}|api/|_next/).*)`,
+        headers: CSP_ENFORCE
+          ? [{ key: "Content-Security-Policy", value: CSP_STATIC }]
+          : [
+              { key: "Content-Security-Policy", value: CSP_BASELINE },
+              { key: "Content-Security-Policy-Report-Only", value: CSP_STATIC },
+            ],
+      },
+    ];
   },
   async redirects() {
     return LEGACY.map(([source, destination]) => ({ source, destination, permanent: true }));

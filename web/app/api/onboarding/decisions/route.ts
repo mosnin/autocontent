@@ -3,6 +3,9 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { jevDecisions } from "../../../../../.intent-onboarding/packages/decisions-jev/src/index.ts";
 import { handleDecisionsRequest } from "../../../../../.intent-onboarding/packages/decisions-jev/src/route.ts";
+import { BodyTooLargeError, readJsonCapped } from "@/lib/security/body";
+import { isSameOriginRequest } from "@/lib/security/proxy-policy";
+import { createRateLimiter } from "@/lib/security/rate-limit";
 
 /**
  * POST /api/onboarding/decisions: decision point 7 (onboarding pre-selection, docs/research/EVALUATION.md 2.3).
@@ -16,6 +19,9 @@ import { handleDecisionsRequest } from "../../../../../.intent-onboarding/packag
  *  - with a key: enforce by default (the only point allowed to default to enforce): answers go to the flow.
  *  - shadow: the model is called and logged, and the flow is told to keep its rule (202, no answers).
  * A model failure is a 502 error, never a "no": the flow's own timeout and rule take over.
+ *
+ * Abuse bounds: same-origin only, a per-user rate limit (each call spends model money), and a byte cap on the
+ * body before it is parsed. Upstream error text is logged, not returned.
  */
 
 export const runtime = "nodejs";
@@ -36,19 +42,28 @@ function mode(): Mode {
 }
 
 const NO_STORE = { "cache-control": "no-store" };
+/** handleDecisionsRequest allows 32 kB of state plus 64 questions; this is the ceiling for the whole body. */
+const MAX_BODY_BYTES = 128 * 1024;
+/** Onboarding asks a handful of times per screen. Per user, per server instance. */
+const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 export async function POST(req: Request) {
+  if (!isSameOriginRequest(req.method, req.headers)) return NextResponse.json({ error: "cross-origin request refused" }, { status: 403, headers: NO_STORE });
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
   const m = mode();
   if (m === "off") return NextResponse.json({ error: "decisions are not configured" }, { status: 503, headers: NO_STORE });
+  const hit = limiter.hit(userId);
+  if (!hit.ok) return NextResponse.json({ error: "too many requests" }, { status: 429, headers: { ...NO_STORE, "retry-after": String(hit.retryAfterSeconds) } });
 
   let body: unknown;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "body must be JSON" }, { status: 400, headers: NO_STORE });
+    body = await readJsonCapped(req, MAX_BODY_BYTES);
+  } catch (e) {
+    if (e instanceof BodyTooLargeError) return NextResponse.json({ error: "body is too large" }, { status: 413, headers: NO_STORE });
+    body = undefined;
   }
+  if (body === undefined) return NextResponse.json({ error: "body must be JSON" }, { status: 400, headers: NO_STORE });
 
   const t0 = Date.now();
   const adapter = jevDecisions({ via: "openrouter", model: process.env.DECISION_MODEL?.trim() || DEFAULT_DECISION_MODEL, timeoutMs: TIMEOUT_MS });
@@ -56,6 +71,8 @@ export async function POST(req: Request) {
   log({ mode: m, status: result.status, latencyMs: Date.now() - t0, body, answers: result.status === 200 ? (result.body as { answers?: unknown }).answers : null });
 
   if (m === "shadow" && result.status === 200) return NextResponse.json({ error: "shadow mode: logged, not applied" }, { status: 202, headers: NO_STORE });
+  // A 502 body carries the provider's error text; the flow only needs to know it failed.
+  if (result.status >= 500) return NextResponse.json({ error: "decision failed" }, { status: result.status, headers: NO_STORE });
   return NextResponse.json(result.body, { status: result.status, headers: NO_STORE });
 }
 

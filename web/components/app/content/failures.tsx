@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, Chip, List, ListRow, Section, StatusBadge } from "@/design-system";
+import { Button, Chip, List, ListRow, Section, StatusBadge, Time } from "@/design-system";
 import { proxyFetch } from "@/lib/proxy-fetch";
-import { Time } from "./shared";
 import type { FailureCategory, FailureItem, Failures } from "./types";
 
 const CATEGORY: Record<FailureCategory, string> = {

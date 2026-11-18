@@ -3,11 +3,11 @@
 import { Clapperboard, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { AskPill, Callout, Card, ChartCard, Column, EmptyLine, Facts, KpiCard, LineChart, PageHeader, Section, StatusBadge, Thumb, Button } from "@/design-system";
+import { AskPill, Callout, Card, ChartCard, Column, EmptyLine, Facts, KpiCard, LineChart, PageHeader, Section, StatusBadge, Thumb, Button, StatLine, StepList, Time } from "@/design-system";
 import type { CostBreakdown } from "@/lib/cost-estimator";
 import { formatCompact, formatUsd } from "@/lib/format";
 import type { Job, JobStatus, Niche } from "@/lib/types";
-import { LiveRefresh, StatLine, StepList, Time, toolGlyph } from "./shared";
+import { LiveRefresh, toolGlyph } from "./shared";
 import { JOB_IN_PROGRESS, jobStatusLabel, jobTitle, jobTone, platformLabel, VIDEO_STEPS } from "./status";
 import type { FullScript, JobMetrics } from "./types";
 import { VideoActions } from "./videos";

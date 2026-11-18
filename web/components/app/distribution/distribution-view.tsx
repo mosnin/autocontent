@@ -1,13 +1,12 @@
 "use client";
 
 import { CalendarDays, Send } from "lucide-react";
-import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section } from "@/design-system";
+import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section, ApprovalCard, Time, ToolTitle } from "@/design-system";
 import { StartSession } from "@/components/chat/start-session";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { CalendarItem, PlaybookRef } from "@/lib/business";
 import { departmentById } from "@/lib/departments";
 import type { AyrshareConnectStatus, Campaign } from "@/lib/types";
-import { ApprovalCard, LocalTime, ToolTitle } from "../paid/shared";
 import { CampaignsTable, NewCampaignButton } from "./campaigns";
 import { Channels } from "./channels";
 import { channelLabel, Upcoming } from "./upcoming";
@@ -59,7 +58,7 @@ export function DistributionView({ ayrshare, campaigns, calendar, playbooks }: {
                   meta={channelLabel(it)}
                   steps={[
                     { label: `Post to ${channelLabel(it)}${pb[it.niche_id] ? ` · ${pb[it.niche_id]}` : ""}` },
-                    { label: <>Scheduled for <LocalTime iso={it.at} format={WHEN} /></> },
+                    { label: <>Scheduled for <Time iso={it.at} format={WHEN} /></> },
                     { label: "Goes out on schedule once approved" },
                   ]}
                 />

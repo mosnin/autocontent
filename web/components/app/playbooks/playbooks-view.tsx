@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Button, ButtonLink, Column, EmptyLine, Meter, PageHeader, Section, Segmented, Table } from "@/design-system";
+import { Button, ButtonLink, Column, EmptyLine, Meter, PageHeader, Section, Segmented, Table, StatLine, ToolTitle } from "@/design-system";
+import { TOOL_ICON } from "@/components/shell/sidebar";
 import { StartSession } from "@/components/chat/start-session";
 import { formatCompact, formatUsd } from "@/lib/format";
 import type { Niche, NichePerformance, Platform, TodaySpend } from "@/lib/types";
 import { MakeDialog } from "../content/make-dialog";
-import { StatLine, toolGlyph, ToolTitle } from "../content/shared";
+import { toolGlyph } from "../content/shared";
 import { platformLabel } from "../content/status";
 import { cadence } from "./format";
 
@@ -58,7 +59,7 @@ export function PlaybooksView({ niches, performance, spend }: { niches: Niche[] 
       />
       <Column
         width="lg"
-        title={<ToolTitle tool="strategy">Playbooks</ToolTitle>}
+        title={<ToolTitle icon={TOOL_ICON.strategy.icon} tone={TOOL_ICON.strategy.tone}>Playbooks</ToolTitle>}
         description="Who to talk to, how to sound and where to post."
         control={
           archived.length > 0 ? (

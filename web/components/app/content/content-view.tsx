@@ -2,14 +2,15 @@
 
 import { Plug } from "lucide-react";
 import { useState } from "react";
-import { Button, ButtonLink, Callout, Column, EmptyLine, PageHeader, Segmented } from "@/design-system";
+import { Button, ButtonLink, Callout, Column, EmptyLine, PageHeader, Segmented, StatLine, ToolTitle } from "@/design-system";
+import { TOOL_ICON } from "@/components/shell/sidebar";
 import { StartSession } from "@/components/chat/start-session";
 import { formatCompact, formatUsd } from "@/lib/format";
 import type { ImagePost, Job, Niche, TodaySpend } from "@/lib/types";
 import { CarouselsList } from "./carousels";
 import { FailuresPanel } from "./failures";
 import { MakeDialog, type MakeKind } from "./make-dialog";
-import { LiveRefresh, StatLine, toolGlyph, ToolTitle, useUrlTab } from "./shared";
+import { LiveRefresh, toolGlyph, useUrlTab } from "./shared";
 import { JOB_IN_PROGRESS, POST_IN_PROGRESS, type VideoFilter } from "./status";
 import { TemplatesGrid } from "./templates";
 import type { Failures, MetricsSummary, Template } from "./types";
@@ -58,7 +59,7 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
       />
       <Column
         width="lg"
-        title={<ToolTitle tool="content">Content</ToolTitle>}
+        title={<ToolTitle icon={TOOL_ICON.content.icon} tone={TOOL_ICON.content.tone}>Content</ToolTitle>}
         description="Short-form video and carousels, made from your playbooks."
         control={
           <Segmented

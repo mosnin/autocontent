@@ -1,12 +1,18 @@
 import { DEFAULT_DECISION_MODEL, DEFAULT_DECISIONS_URL, type DecisionAnswer, type DecisionAnswers, type DecisionQuestion } from "./questions.ts";
 
 /**
- * The decision client: one `fetch` to OpenRouter's decisions endpoint per judgment.
+ * The decision client: one `fetch` to OpenRouter's Decisions API per judgment.
+ *
+ * The wire contract is written down, with sources, in docs/decisions/openrouter-contract.md, and pinned by the golden
+ * cases in docs/decisions/conformance/ that this client and the Python client (src/marketer/services/decisions.py)
+ * both replay. Change the mapping here only together with those.
  *
  *  - Endpoint `OPENROUTER_DECISIONS_URL` (default https://openrouter.ai/api/alpha/decisions), key `OPENROUTER_API_KEY`,
  *    model `DECISION_MODEL` (a pinned, dated slug). Server-side only; the key is never logged or returned.
  *  - A hard `AbortSignal` timeout and no retries: a decision sits on a hot path and always has a rule-based fallback.
  *  - The response must carry `usage.cost`. A response without a cost is a failure (we meter every call).
+ *  - Every answer must carry the `type` its question asked for. A refusal, a missing answer, another type or a number
+ *    out of range fails the whole call: an unrecognised shape is never read as an answer.
  *  - A failure is a typed value (`{ ok: false, kind }`), never an answer: a failed call is an error, never a "no".
  *
  * Env comes from the caller (the Worker env from `ctx.services.env` or `bindings()`), never from module scope, so this
@@ -21,7 +27,8 @@ export interface DecisionEnv {
   DECISION_MODES?: string;
 }
 
-export type DecisionFailureKind = "no_key" | "timeout" | "aborted" | "network" | "http" | "invalid" | "no_cost";
+/** `refused`: the provider declined a question (`type: "refusal"`). `invalid`: any other unrecognised shape. */
+export type DecisionFailureKind = "no_key" | "timeout" | "aborted" | "network" | "http" | "invalid" | "refused" | "no_cost";
 
 export interface DecisionFailure {
   ok: false;
@@ -38,6 +45,8 @@ export interface DecisionSuccess<Q extends Record<string, DecisionQuestion>> {
   model: string;
   /** USD, from OpenRouter's `usage.cost`. */
   cost: number;
+  /** `usage.input_tokens + usage.output_tokens` (0 when the response does not report them). */
+  tokens: number;
 }
 
 export type DecisionResult<Q extends Record<string, DecisionQuestion>> = DecisionSuccess<Q> | DecisionFailure;
@@ -91,25 +100,54 @@ export function toWireQuestions(questions: Record<string, DecisionQuestion>): Re
 
 const unit = (x: unknown): number | undefined => (typeof x === "number" && Number.isFinite(x) && x >= 0 && x <= 1 ? x : undefined);
 
-/** Wire answers → the contract. Throws on a missing or malformed answer (the whole decision then fails). */
+/** The provider declined to answer a question. Not an answer, and never a "no". */
+export class DecisionRefusal extends Error {
+  constructor(name: string) {
+    super(`the provider refused "${name}"`);
+    this.name = "DecisionRefusal";
+  }
+}
+
+const WIRE_TYPE = { yesno: "noul", choice: "choice", score: "score" } as const;
+
+/**
+ * Wire answers → the contract. Throws on a refused, missing or malformed answer (the whole decision then fails).
+ *
+ *  - noul   `{ type: "noul", noul }`                                  → `{ type: "yesno", probability }`
+ *  - choice `{ type: "choice", choice, confidence, probabilities? }`  → the same; an option the response gives no
+ *    probability for reads as 0, and with no map at all the chosen option carries `confidence`
+ *  - score  `{ type: "score", score, confidence }`                    → the same; `score` is the expected level, from 0
+ *    to `levels.length - 1`, and may fall between levels
+ */
 export function fromWireAnswers(questions: Record<string, DecisionQuestion>, answers: unknown): Record<string, DecisionAnswer> {
-  if (!answers || typeof answers !== "object") throw new Error("response has no answers");
+  if (!answers || typeof answers !== "object" || Array.isArray(answers)) throw new Error("response has no answers");
   const raw = answers as Record<string, Record<string, unknown> | undefined>;
   const out: Record<string, DecisionAnswer> = {};
   for (const [name, q] of Object.entries(questions)) {
     const a = raw[name];
-    if (!a || typeof a !== "object") throw new Error(`no answer for "${name}"`);
+    if (!a || typeof a !== "object" || Array.isArray(a)) throw new Error(`no answer for "${name}"`);
+    if (a.type === "refusal") throw new DecisionRefusal(name);
+    if (a.type !== WIRE_TYPE[q.type]) throw new Error(`answer "${name}" is not a ${WIRE_TYPE[q.type]} answer`);
     if (q.type === "yesno") {
-      const p = unit(a.noul ?? a.probability);
+      const p = unit(a.noul);
       if (p === undefined) throw new Error(`answer "${name}" has no probability`);
       out[name] = { type: "yesno", probability: p };
     } else if (q.type === "choice") {
       const choice = typeof a.choice === "string" ? a.choice : "";
       const confidence = unit(a.confidence);
-      if (!(choice in q.options) || confidence === undefined) throw new Error(`answer "${name}" is not a valid choice`);
+      if (!Object.hasOwn(q.options, choice) || confidence === undefined) throw new Error(`answer "${name}" is not a valid choice`);
+      const given = a.probabilities;
+      if (given !== undefined && (given === null || typeof given !== "object" || Array.isArray(given))) throw new Error(`answer "${name}" has malformed probabilities`);
+      const rawP = (given ?? {}) as Record<string, unknown>;
+      const hasMap = given !== undefined;
       const probabilities: Record<string, number> = {};
-      const rawP = a.probabilities && typeof a.probabilities === "object" ? (a.probabilities as Record<string, unknown>) : {};
-      for (const option of Object.keys(q.options)) probabilities[option] = unit(rawP[option]) ?? (option === choice ? confidence : 0);
+      for (const option of Object.keys(q.options)) {
+        if (Object.hasOwn(rawP, option)) {
+          const p = unit(rawP[option]);
+          if (p === undefined) throw new Error(`answer "${name}" has a malformed probability`);
+          probabilities[option] = p;
+        } else probabilities[option] = !hasMap && option === choice ? confidence : 0;
+      }
       out[name] = { type: "choice", choice, confidence, probabilities };
     } else {
       const score = a.score;
@@ -120,6 +158,8 @@ export function fromWireAnswers(questions: Record<string, DecisionQuestion>, ans
   }
   return out;
 }
+
+const count = (x: unknown): number => (typeof x === "number" && Number.isFinite(x) && x > 0 ? Math.floor(x) : 0);
 
 /** One decision round trip. Never throws: every failure comes back as `{ ok: false }`. */
 export async function requestDecision<Q extends Record<string, DecisionQuestion>>(client: DecisionClientOptions, state: unknown, questions: Q, opts: DecideOptions): Promise<DecisionResult<Q>> {
@@ -162,21 +202,23 @@ export async function requestDecision<Q extends Record<string, DecisionQuestion>
     call.catch(() => undefined);
     const { response, text } = await Promise.race([call, deadline]);
     if (!response.ok) return fail("http", `decisions endpoint returned HTTP ${response.status}`, response.status);
-    let json: { answers?: unknown; model?: unknown; usage?: { cost?: unknown } };
+    let json: { answers?: unknown; model?: unknown; usage?: { cost?: unknown; input_tokens?: unknown; output_tokens?: unknown } };
     try {
       json = JSON.parse(text) as typeof json;
     } catch {
       return fail("invalid", "response is not JSON");
     }
-    const cost = json.usage?.cost;
+    if (!json || typeof json !== "object" || Array.isArray(json)) return fail("invalid", "response is not an object");
+    const usage = json.usage && typeof json.usage === "object" ? json.usage : undefined;
+    const cost = usage?.cost;
     if (typeof cost !== "number" || !Number.isFinite(cost) || cost < 0) return fail("no_cost", "response has no usage.cost");
     let answers: Record<string, DecisionAnswer>;
     try {
       answers = fromWireAnswers(questions, json.answers);
     } catch (error) {
-      return fail("invalid", error instanceof Error ? error.message : "malformed answers");
+      return fail(error instanceof DecisionRefusal ? "refused" : "invalid", error instanceof Error ? error.message : "malformed answers");
     }
-    return { ok: true, answers: answers as DecisionAnswers<Q>, ms: now() - t0, model: typeof json.model === "string" && json.model ? json.model : model, cost };
+    return { ok: true, answers: answers as DecisionAnswers<Q>, ms: now() - t0, model: typeof json.model === "string" && json.model ? json.model : model, cost, tokens: count(usage?.input_tokens) + count(usage?.output_tokens) };
   } catch (error) {
     if (timedOut) return fail("timeout", `timed out after ${opts.timeoutMs}ms`);
     if (opts.signal?.aborted) return fail("aborted", "aborted by caller");

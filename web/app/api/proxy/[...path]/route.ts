@@ -2,57 +2,68 @@
 // to the FastAPI backend, attaching the caller's Clerk JWT. We need
 // this because `web/lib/api.ts` calls `auth()` which is only valid in
 // server contexts, but our SWR hooks fetch from the browser.
+//
+// It is not an open proxy. The policy lives in lib/security/proxy-policy.ts
+// (tested in web/test/security.test.ts):
+//  - the host is the configured backend origin, and only /api/v1/** is forwarded;
+//  - signed-in callers only, and the token is attached here, never by the client;
+//  - request headers are an allowlist; cookies and Set-Cookie never cross;
+//  - mutations must be same-origin (CSRF) and bodies are size-capped.
 
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { BodyTooLargeError, readBodyCapped } from "@/lib/security/body";
+import { downstreamResponseHeaders, isSameOriginRequest, MAX_PROXY_BODY_BYTES, resolveUpstream, upstreamRequestHeaders } from "@/lib/security/proxy-policy";
 
-const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+export const dynamic = "force-dynamic";
+
+const NO_STORE = { "cache-control": "no-store" };
+const fail = (status: number, error: string) => NextResponse.json({ detail: error }, { status, headers: NO_STORE });
 
 async function forward(req: NextRequest, path: string[]): Promise<NextResponse> {
-  const { getToken } = await auth();
-  const token = await getToken();
-  const search = req.nextUrl.search;
-  const url = `${BASE}/${path.join("/")}${search}`;
+  if (!isSameOriginRequest(req.method, req.headers)) return fail(403, "cross-origin request refused");
 
-  const headers: Record<string, string> = {};
-  const ct = req.headers.get("content-type");
-  if (ct) headers["content-type"] = ct;
-  // Forward Range so FastAPI FileResponse can serve 206 partial content —
-  // Safari refuses to play <video> sources that ignore Range.
-  const range = req.headers.get("range");
-  if (range) headers["range"] = range;
-  if (token) headers["authorization"] = `Bearer ${token}`;
+  const target = resolveUpstream(process.env.NEXT_PUBLIC_API_BASE_URL, path, req.nextUrl.search, { production: process.env.NODE_ENV === "production" });
+  if (!target.ok) return fail(target.status, target.error);
+
+  const { userId, getToken } = await auth();
+  const token = userId ? await getToken() : null;
+  if (!token) return fail(401, "sign in to continue");
 
   const init: RequestInit = {
     method: req.method,
-    headers,
+    // Forwards Range so FastAPI FileResponse can serve 206 partial content:
+    // Safari refuses to play <video> sources that ignore Range.
+    headers: upstreamRequestHeaders(req.headers, token),
     cache: "no-store",
     // Pass redirects (e.g. the library's 307 to a presigned Wasabi URL)
     // back to the browser so media streams directly from object storage
-    // instead of being piped through this function.
+    // instead of being piped through this function. This also means the
+    // token is never re-sent to a host the backend redirects to.
     redirect: "manual",
   };
   if (req.method !== "GET" && req.method !== "HEAD") {
-    // Binary-safe passthrough: forward the raw stream, don't decode as text.
-    const buf = await req.arrayBuffer();
-    if (buf.byteLength > 0) init.body = buf;
+    try {
+      // Binary-safe passthrough: forward the raw bytes, don't decode as text.
+      const buf = await readBodyCapped(req, MAX_PROXY_BODY_BYTES);
+      if (buf.byteLength > 0) init.body = buf;
+    } catch (e) {
+      if (e instanceof BodyTooLargeError) return fail(413, "request body is too large");
+      return fail(400, "could not read the request body");
+    }
   }
 
-  const upstream = await fetch(url, init);
-
-  // Stream the upstream body straight through — never `.text()` because
-  // it would corrupt binary responses (mp4, png, etc).
-  const respHeaders = new Headers();
-  for (const [k, v] of upstream.headers.entries()) {
-    // Drop hop-by-hop headers Next would otherwise strip anyway.
-    const lk = k.toLowerCase();
-    if (lk === "transfer-encoding" || lk === "connection") continue;
-    respHeaders.set(k, v);
+  let upstream: Response;
+  try {
+    upstream = await fetch(target.url, init);
+  } catch {
+    // Never echo the fetch error: it names the backend host.
+    return fail(502, "the service is unreachable");
   }
-  return new NextResponse(upstream.body, {
-    status: upstream.status,
-    headers: respHeaders,
-  });
+
+  // Stream the upstream body straight through, never `.text()`: that
+  // would corrupt binary responses (mp4, png, etc).
+  return new NextResponse(upstream.body, { status: upstream.status, headers: downstreamResponseHeaders(upstream.headers.entries()) });
 }
 
 type Ctx = { params: Promise<{ path: string[] }> };

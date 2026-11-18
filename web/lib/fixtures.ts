@@ -75,7 +75,35 @@ export const FIXTURE_INBOX: Inbox = {
     { id: "video:2", kind: "video", ref_id: "2", title: "The one salt rule for pasta water", detail: "TikTok · Pasta at home", niche_id: "n1", created_at: ago(3) },
     { id: "carousel:3", kind: "carousel", ref_id: "3", title: "5 sauces in 15 minutes", detail: "Reels · Pasta at home", niche_id: "n1", created_at: ago(5) },
   ],
-  counts: { total: 3, video: 1, carousel: 1, ad_change: 1 },
+  counts: { total: 3, video: 1, carousel: 1, ad_change: 1, required_action: 2 },
+  required_actions: [
+    {
+      id: "7b0c2f1e-5a44-4c1b-9d7e-3f2b8a6c1d90",
+      kind: "indeterminate_outcome",
+      action: "content.post.send",
+      title: "We can't confirm the post went out",
+      detail: "Check video_post 3f2b9c4a before trying again. Nothing will retry on its own.",
+      target_type: "video_post",
+      target_id: "3f2b9c4a-1e77-4d0a-8b65-0c9d2e4f6a12",
+      principal: "system",
+      created_at: ago(2),
+      resolve_path: "/api/v1/workspace/required-actions/7b0c2f1e-5a44-4c1b-9d7e-3f2b8a6c1d90/resolve",
+      resolutions: ["confirmed_succeeded", "confirmed_failed"],
+    },
+    {
+      id: "c41d8e77-02ab-4f39-b6a1-9e5d3c7f2b08",
+      kind: "indeterminate_outcome",
+      action: "ads.budget.change",
+      title: "We can't confirm the budget change reached the ad platform",
+      detail: "Check ad_campaign 9a1e44d2 before trying again. Nothing will retry on its own.",
+      target_type: "ad_campaign",
+      target_id: "9a1e44d2-6b3c-4e58-a7f0-1d2c3b4a5e6f",
+      principal: "agent",
+      created_at: ago(7),
+      resolve_path: "/api/v1/workspace/required-actions/c41d8e77-02ab-4f39-b6a1-9e5d3c7f2b08/resolve",
+      resolutions: ["confirmed_succeeded", "confirmed_failed"],
+    },
+  ],
 };
 
 export const FIXTURE_ACTIVITY: Activity = {

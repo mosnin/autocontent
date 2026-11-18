@@ -1,12 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
-import { IconTile, PlanCard, StatusBadge, ToolIcon, type StatusTone, type ToolTone } from "@/design-system";
+import { IconTile, StatusBadge, type StatusTone } from "@/design-system";
 import type { AdAccount } from "@/lib/ads-client";
 import { departmentById } from "@/lib/departments";
-import { proxyFetch } from "@/lib/proxy-fetch";
-import type { InboxKind } from "@/lib/workspace";
 
 export const PLATFORM_LABEL: Record<string, string> = { google_ads: "Google Ads", meta_ads: "Meta Ads" };
 export const platformLabel = (p: string) => PLATFORM_LABEL[p] ?? p.replace(/_/g, " ");
@@ -69,74 +65,4 @@ export function describeAdAction(action: string): { title: string; denied: boole
   const denied = action.includes("denied");
   const title = map[action] ?? action.replace(/[._]/g, " ").replace(/^\w/, (c) => c.toUpperCase());
   return { title: denied && !map[action] ? `${title.replace(/ denied$/i, "")} denied` : title, denied };
-}
-
-/** Approve or reject one inbox item through the workspace decide endpoint (same path the inbox uses). */
-export async function decideInboxItem(item: { kind: InboxKind; ref_id: string }, decision: "approve" | "reject") {
-  try {
-    await proxyFetch(`/api/v1/workspace/inbox/${item.kind}/${encodeURIComponent(item.ref_id)}/decide`, "POST", { decision });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : "Failed";
-    throw new Error(/already|409/i.test(msg) ? "Already decided." : msg);
-  }
-}
-
-/** Time in the viewer's timezone, rendered after mount so server and client agree. */
-export function LocalTime({ iso, format }: { iso: string; format: Intl.DateTimeFormatOptions }) {
-  const [text, setText] = useState<string | null>(null);
-  useEffect(() => setText(new Date(iso).toLocaleString("en-US", format)), [iso, format]);
-  return <span suppressHydrationWarning>{text ?? " "}</span>;
-}
-
-/**
- * One approval (ad change, scheduled post) as a PlanCard, wired to the
- * workspace decide call. Dismiss rejects; Approve & Run approves.
- */
-export function ApprovalCard({ item, title, icon, steps, meta }: { item: { kind: InboxKind; ref_id: string }; title: string; icon?: ReactNode; steps: { label: ReactNode }[]; meta?: ReactNode }) {
-  const router = useRouter();
-  const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
-  const [done, setDone] = useState<"approve" | "reject" | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const decide = async (d: "approve" | "reject") => {
-    setBusy(d);
-    setError(null);
-    try {
-      await decideInboxItem(item, d);
-      setDone(d);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  return (
-    <div>
-      <PlanCard
-        title={title}
-        icon={icon}
-        meta={meta}
-        steps={steps}
-        approving={busy === "approve"}
-        decided={done ? (done === "approve" ? "Approved" : "Dismissed") : busy === "reject" ? "Dismissing…" : undefined}
-        onDismiss={() => void decide("reject")}
-        onApprove={() => void decide("approve")}
-      />
-      {error && <p className="mt-1.5 text-[12.5px] text-negative">{error}</p>}
-    </div>
-  );
-}
-
-/** Tool page title (README §5 Tool): the tool's coloured icon and its name. */
-export function ToolTitle({ icon, tone, children }: { icon: ReactNode; tone: ToolTone; children: ReactNode }) {
-  return (
-    <span className="flex items-center gap-2.5">
-      <ToolIcon tone={tone} size={22}>
-        {icon}
-      </ToolIcon>
-      {children}
-    </span>
-  );
 }
