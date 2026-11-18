@@ -9,5 +9,7 @@ export function themeClass(theme: AppTheme | undefined) {
 }
 
 export function setThemeCookie(theme: AppTheme) {
-  document.cookie = `${THEME_COOKIE}=${theme}; path=/; max-age=31536000; samesite=lax`;
+  // Secure on https; left off on http so local development still works.
+  const secure = location.protocol === "https:" ? "; secure" : "";
+  document.cookie = `${THEME_COOKIE}=${theme}; path=/; max-age=31536000; samesite=lax${secure}`;
 }

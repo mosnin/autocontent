@@ -44,6 +44,20 @@ def rails_store():
     set_store(previous)
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Start every test with empty rate-limit buckets.
+
+    The limiter's storage is process-wide and many tests share one fake user
+    id; per-user limits on expensive routes (backend.security.user_rate_limit)
+    would otherwise make a test's outcome depend on how many requests the
+    tests before it happened to send in the same minute."""
+    from backend.rate_limit import limiter
+
+    limiter._storage.reset()
+    yield
+
+
 @dataclass
 class FakeRecorder:
     entries: list[SpendEntry] = field(default_factory=list)
