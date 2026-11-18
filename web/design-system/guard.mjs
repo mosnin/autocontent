@@ -44,11 +44,16 @@ function walk(dir, out = []) {
 /* The wave (WAVE.md): the only sites allowed to use CommitWave, and required to keep it. */
 const WAVE_SITES = [
   "app/preview/wave/wave-demo.tsx",
+  "components/app/paid/campaign-detail-view.tsx", // launch: an ad campaign goes live
+  "components/app/distribution/campaign-detail-view.tsx", // launch: a distribution campaign starts
+  "design-system/components/agent.tsx", // approve: PlanCard, so every "Approve & Run" has it
+  "components/app/onboarding/flow.tsx", // arrive: onboarding hands over to the product
 ];
 const WAVE_WRAPPER = "design-system/components/wave.tsx";
 /* The goo (GOO.md): same contract, for AgentSplit. */
 const GOO_SITES = [
   "app/preview/wave/wave-demo.tsx",
+  "components/chat/conversation.tsx", // the team on a job, in chat
 ];
 const GOO_WRAPPER = "design-system/components/goo.tsx";
 

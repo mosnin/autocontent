@@ -69,7 +69,14 @@ export function AgentSplit({
   label?: string;
   className?: string;
 }) {
-  if (agents.length === 0) return null;
+  // Stay mounted just long enough for the chips to melt back, then leave: a finished job shows no team.
+  const [present, setPresent] = useState(working);
+  useEffect(() => {
+    if (working) return setPresent(true);
+    const id = setTimeout(() => setPresent(false), 700);
+    return () => clearTimeout(id);
+  }, [working]);
+  if (agents.length === 0 || !present) return null;
   return (
     <div className={className}>
       <div className="mb-2 text-[12px] text-fg-faint">{label}</div>

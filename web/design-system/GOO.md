@@ -33,9 +33,10 @@ The guard holds this list in `guard.mjs` (`GOO_SITES`). Keep the two in step.
 
 | Site | File |
 |---|---|
+| Chat, "Agent is working": the specialists on the current job | `components/chat/conversation.tsx` |
 | Preview and tuning page | `app/preview/wave/wave-demo.tsx` |
 
-Real screens are added to this table and to `GOO_SITES` as they are wired.
+In chat, a specialist's chip buds out when that department starts work on the current message, and all of them melt back when the reply finishes. After they have merged the row leaves the transcript: a finished job shows no team.
 
 ## Using it
 

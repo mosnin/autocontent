@@ -61,6 +61,19 @@ def build_qa_agent() -> Agent:
     )
 
 
+def _existing_file(path):
+    """``path`` as a Path when it names a readable file, else None."""
+    if not path:
+        return None
+    from pathlib import Path
+
+    try:
+        candidate = Path(path)
+        return candidate if candidate.is_file() else None
+    except (OSError, TypeError, ValueError):
+        return None
+
+
 async def verify_report(
     report: QAReport,
     *,
@@ -69,8 +82,14 @@ async def verify_report(
     niche_title: str,
     brand_rules: list[str],
     spend=None,
+    video_path=None,
 ) -> QAReport:
     """Decision point 9 (video): a verify pass after the LLM QA report.
+
+    ``video_path`` is the rendered file. When it exists it is handed on so the
+    point can also look at a few keyframes (still gated by the point's mode
+    and MARKETER_DECISIONS_KEYFRAMES). A path that is missing or not a file
+    is dropped here: the text checks run as before, without frames.
 
     Only runs when the report passed, since it can only tighten. In enforce a
     single failed check bounces the video as a script problem; scores are
@@ -86,6 +105,7 @@ async def verify_report(
         brand_rules=brand_rules,
         rule_passed=report.passed,
         spend=spend,
+        video_path=_existing_file(video_path),
     )
     if not failures:
         return report

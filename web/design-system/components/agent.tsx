@@ -12,6 +12,7 @@ import { decideInboxItem, type InboxKind } from "@/lib/workspace";
 import { cx } from "../cx";
 import { Notice, usePending } from "./kit";
 import { AgentGlyph, Button, NumberKey, StepMark, type ToolTone } from "./primitives";
+import { CommitWave } from "./wave";
 
 /* ------------------------------------------------------------ Composer */
 
@@ -244,6 +245,7 @@ export function PlanCard({
   approving,
   dismissing,
   decided,
+  approved,
   approveLabel = "Approve & Run",
   className,
 }: {
@@ -259,12 +261,24 @@ export function PlanCard({
   /** The dismiss request is in flight: its button spins, the others are disabled. */
   dismissing?: boolean;
   decided?: ReactNode;
+  /**
+   * Pass it (false while pending, true once the server accepted the approval) to give this card the
+   * approve wave. Leave it undefined for cards that are not an "Approve & Run" (WAVE.md).
+   */
+  approved?: boolean;
   approveLabel?: string;
   className?: string;
 }) {
   const [open, setOpen] = useState(true);
-  return (
-    <div className={cx("ds-enter rounded-ds-lg border border-hairline bg-surface", className)}>
+  // The approve wave (WAVE.md): only when the person pressed Approve on this card, here, and the server said yes.
+  const approveBtn = useRef<HTMLButtonElement>(null);
+  const pressed = useRef(false);
+  const waves = approved !== undefined;
+  const committed = waves && approved === true && pressed.current;
+  const settled = Boolean(decided) && !committed;
+
+  const head = (
+    <>
       <div className="flex items-center gap-2.5 px-3 py-2.5">
         <span className="flex size-7 items-center justify-center rounded-ds-sm text-[13px]" style={{ background: "var(--ds-tool-e)" }}>
           {icon}
@@ -289,30 +303,73 @@ export function PlanCard({
           </ol>
         )}
       </div>
-      <div className="flex items-center justify-end gap-1.5 border-t border-hairline px-3 py-2">
-        {decided ? (
-          <span className="text-[12.5px] text-fg-muted">{decided}</span>
-        ) : (
-          <>
-            {onDismiss && (
-              <Button variant="ghost" size="sm" onClick={onDismiss} loading={dismissing} disabled={approving}>
-                Dismiss
-              </Button>
-            )}
-            {onEdit && (
-              <Button variant="secondary" size="sm" onClick={onEdit} disabled={approving || dismissing}>
-                Edit
-              </Button>
-            )}
-            {onApprove && (
-              <Button variant="primary" size="sm" onClick={onApprove} loading={approving} disabled={dismissing}>
-                {approveLabel}
-              </Button>
-            )}
-          </>
-        )}
+    </>
+  );
+  const buttons = (
+    <>
+      {onDismiss && (
+        <Button variant="ghost" size="sm" onClick={onDismiss} loading={dismissing} disabled={approving}>
+          Dismiss
+        </Button>
+      )}
+      {onEdit && (
+        <Button variant="secondary" size="sm" onClick={onEdit} disabled={approving || dismissing}>
+          Edit
+        </Button>
+      )}
+      {onApprove && (
+        <Button
+          ref={approveBtn}
+          variant="primary"
+          size="sm"
+          onClick={() => {
+            pressed.current = true;
+            onApprove();
+          }}
+          loading={approving}
+          disabled={dismissing}
+        >
+          {approveLabel}
+        </Button>
+      )}
+    </>
+  );
+  const FOOT = "flex min-h-[45px] items-center justify-end gap-1.5 border-t border-hairline px-3 py-2";
+  const verdict = (
+    <span className="flex items-center gap-2 text-[12.5px] text-fg-muted">
+      {approved && <StepMark state="done" />}
+      {decided}
+    </span>
+  );
+
+  if (!waves) {
+    return (
+      <div className={cx("ds-enter rounded-ds-lg border border-hairline bg-surface", className)}>
+        {head}
+        <div className={FOOT}>{decided ? verdict : buttons}</div>
       </div>
-    </div>
+    );
+  }
+  // Both faces are the same card, so nothing moves: the wave passes and the buttons have become the verdict.
+  return (
+    <CommitWave
+      moment="approve"
+      committed={committed}
+      source={approveBtn}
+      className={cx("ds-enter border border-hairline", className)}
+      action={committed || settled ? undefined : <div className="pointer-events-none flex h-full items-end justify-end px-3 py-2"><div className="pointer-events-auto flex min-h-7 items-center gap-1.5">{buttons}</div></div>}
+      receipt={
+        <div>
+          {head}
+          <div className={FOOT}>{verdict}</div>
+        </div>
+      }
+    >
+      <div>
+        {head}
+        <div className={FOOT}>{settled ? verdict : null}</div>
+      </div>
+    </CommitWave>
   );
 }
 
@@ -379,6 +436,7 @@ export function ApprovalCard({
         approving={busy === "approve"}
         dismissing={busy === "reject"}
         decided={done ? (done === "approve" ? "Approved" : "Dismissed") : undefined}
+        approved={done === "approve"}
       />
       {error && (
         <div className="px-1 pt-1.5">

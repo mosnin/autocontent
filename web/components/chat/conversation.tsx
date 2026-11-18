@@ -5,7 +5,7 @@ import { ChevronRight, PanelRight, RotateCcw, ShieldCheck, Trash2, X } from "luc
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  AgentChips,
+  AgentSplit,
   AgentGlyph,
   AssistantHeader,
   Button,
@@ -273,16 +273,15 @@ export function ChatLayout({
                   <span className="ds-shimmer text-[13px]">Thinking</span>
                 </div>
               )}
-              {busy && (
-                <AgentChips
-                  agents={activeDepts.map((d) => ({ name: d.agentName, tone: toneOf(d) }))}
-                  activeName={showPanel ? shownDept?.agentName : undefined}
-                  onSelect={(name) => {
-                    const d = DEPARTMENTS.find((x) => x.agentName === name);
-                    if (d) (setFocusDept(d.id), setPanel(true));
-                  }}
-                />
-              )}
+              <AgentSplit
+                agents={activeDepts.map((d) => ({ name: d.agentName, tone: toneOf(d) }))}
+                working={Boolean(busy)}
+                activeName={showPanel ? shownDept?.agentName : undefined}
+                onSelect={(name) => {
+                  const d = DEPARTMENTS.find((x) => x.agentName === name);
+                  if (d) (setFocusDept(d.id), setPanel(true));
+                }}
+              />
             </div>
             <div ref={bottomRef} />
           </div>
@@ -463,6 +462,7 @@ function ApprovalBlock({ approval, decider, names }: { approval: ApprovalRequest
         approving={busy && inFlight !== "reject"}
         dismissing={busy && inFlight === "reject"}
         decided={pending ? undefined : approval.status === "APPROVED" ? "Approved" : approval.status === "REJECTED" ? "Dismissed" : "Expired"}
+        approved={approval.status === "APPROVED"}
       />
       {err && <Notice error={err.message} />}
     </div>

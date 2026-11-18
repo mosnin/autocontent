@@ -2,8 +2,9 @@
 
 import { Clapperboard, FileText, GalleryHorizontal, Megaphone, Pause, Play, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useState } from "react";
-import { AskPill, Button, Card, Column, ConfirmModal, EmptyLine, Facts, Field, IconButton, IconTile, Input, KpiCard, List, ListRow, Meter, Notice, PageHeader, Section, Select, Switch } from "@/design-system";
+import { type ReactNode, useRef, useState } from "react";
+import { AskPill, Button, Card, Column, CommitWave, ConfirmModal, EmptyLine, Facts, Field, IconButton, IconTile, Input, KpiCard, List, ListRow, Meter, Notice, PageHeader, Section, Select, StatusBadge, Switch } from "@/design-system";
+import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { PlaybookRef } from "@/lib/business";
 import { formatDate, formatUsd } from "@/lib/format";
 import { proxyFetch } from "@/lib/proxy-fetch";
@@ -25,12 +26,17 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<CampaignItem | null>(null);
+  // A draft starting for the first time is a launch (WAVE.md). Resuming a paused campaign is not.
+  const [launched, setLaunched] = useState(false);
+  const launchBtn = useRef<HTMLButtonElement>(null);
+  const isDraft = c.status === "draft";
 
   const act = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
     setError(null);
     try {
       await fn();
+      if (key === "launch") setLaunched(true);
       setRemoving(null);
       router.refresh();
     } catch (e) {
@@ -54,7 +60,7 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
         crumbs={[{ label: "Distribution", href: "/distribution" }, { label: c.name }]}
         actions={
           <>
-            {c.status !== "running" && c.status !== "completed" && (
+            {c.status !== "running" && c.status !== "completed" && !isDraft && !launched && (
               <Button variant="primary" loading={busy === "start"} disabled={busy !== null} onClick={() => void act("start", () => proxyFetch(`/api/v1/campaigns/${c.id}/start`, "POST"))}>
                 <Play /> Start
               </Button>
@@ -77,6 +83,50 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
         description={c.objective || "No objective yet"}
       >
         {error && <Notice error={error} />}
+
+        {(isDraft || launched) && (
+          <CommitWave
+            moment="launch"
+            tone={TOOL_ICON.distribution.tone}
+            committed={launched}
+            source={launchBtn}
+            className="border border-hairline"
+            action={
+              launched ? undefined : (
+                <div className="pointer-events-none flex h-full items-end justify-end p-4">
+                  <Button ref={launchBtn} variant="primary" loading={busy === "launch"} disabled={busy !== null || lanesOn === 0} onClick={() => void act("launch", () => proxyFetch(`/api/v1/campaigns/${c.id}/start`, "POST"))}>
+                    <Play /> Launch campaign
+                  </Button>
+                </div>
+              )
+            }
+            receipt={
+              <div className="min-h-[236px] p-5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-[15px] font-medium">{c.name} is running</h2>
+                  <StatusBadge tone="positive">Running</StatusBadge>
+                </div>
+                <p className="mt-2 max-w-[46ch] text-[13px] text-fg-muted">
+                  Marketer now works the {lanesOn === 1 ? "lane" : `${lanesOn} lanes`} below until it reaches {formatUsd(budget)} in credits{c.ends_at ? ` or ${formatDate(c.ends_at)}` : ""}. Pause it any time.
+                </p>
+              </div>
+            }
+          >
+            <div className="min-h-[236px] p-5 pb-16">
+              <h2 className="text-[15px] font-medium">Ready to launch</h2>
+              <p className="mt-1 max-w-[52ch] text-[13px] text-fg-muted">{lanesOn === 0 ? "Add a lane below first. A campaign needs at least one thing to make." : "Nothing has run yet. Launching starts every lane that is on."}</p>
+              <div className="mt-4">
+                <Facts
+                  items={[
+                    { label: "Lanes on", value: `${lanesOn} of ${overview.items.length}` },
+                    { label: "Credit budget", value: formatUsd(budget) },
+                    { label: "Runs", value: `${formatDate(c.starts_at)} to ${c.ends_at ? formatDate(c.ends_at) : "no end date"}` },
+                  ]}
+                />
+              </div>
+            </div>
+          </CommitWave>
+        )}
 
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">

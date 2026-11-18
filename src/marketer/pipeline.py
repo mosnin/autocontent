@@ -838,6 +838,9 @@ async def _run_job_inner(
             niche_title=niche.title,
             brand_rules=_brand_rules(niche),
             spend=spend,
+            # The file that will be posted (re-encoded when the original was
+            # over the upload budget), so the keyframe check sees real frames.
+            video_path=render_report.final_path,
         )
         if not report.passed:
             # One bounded in-run regenerate when QA says the *script* is

@@ -16,7 +16,7 @@ const percent = (lift: number): string => `${lift > 0 ? "+" : ""}${Math.round(li
 
 function evidenceNumbers(e: Evidence): string {
   const parts: string[] = [];
-  if (e.metric && e.value !== undefined) parts.push(`${e.metric} ${e.value}`);
+  if (e.metric && e.value !== undefined) parts.push(`${e.metric} ${e.value.toLocaleString("en-US")}`);
   if (e.lift !== undefined) parts.push(percent(e.lift));
   if (e.n !== undefined) parts.push(`n=${e.n}`);
   if (e.window) parts.push(e.window);

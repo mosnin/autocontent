@@ -59,6 +59,15 @@ Domain guards stay where they are and are passed in as `caps`:
 - A guard that raises (`AdSpendDenied`) propagates unchanged, so the existing audit rows (`budget.denied`) and 402
   responses are exactly what they were.
 
+### Limits: raising and lowering are different actions
+
+A route that changes a spending limit or the approval gate reads the stored value first and dispatches the action the
+change amounts to: `playbook.spend_cap.raise` or `.lower`, `playbook.approval.disable` or `.enable`,
+`account.spend_cap.raise` or `.lower`. Only the loosening half carries a kill-switch scope; the tightening half is
+`reduces_exposure`, so a person can always lower a cap or put the approval gate back while a switch is engaged. A
+request that leaves the value as it is dispatches nothing. Two loosenings are refused for the agent outright (403,
+before the rails): removing a playbook's approval gate, and raising or removing the account's global daily cap.
+
 ### Idempotency keys
 
 The agent sends `idempotency-key` on every write (derived from run, call, tool and arguments). Each route module that
@@ -87,8 +96,9 @@ CRITICAL tool, after the harness has validated the arguments and a person approv
 | 5 | Argument caps hold (`dailyBudgetUsd` ≤ 1,000) | `RAILS_CAP_EXCEEDED` |
 
 Why an agent-side check when the backend checks too: it stops a whole agent fleet from one Worker secret without
-touching the backend, it covers tools whose endpoints are outside the backend rails today (`set_playbook_spend_cap`,
-`update_brand_kit`), and it turns unknown outcomes into an instruction the model follows ("do not call it again").
+touching the backend, and it turns unknown outcomes into an instruction the model follows ("do not call it again").
+`set_playbook_spend_cap` and `update_brand_kit` now reach backend actions too (`playbook.spend_cap.raise` / `.lower`,
+`brand_kit.update`; see the dispatch table in [README.md](README.md)), so both sides check them.
 
 Approval on the agent side is the harness's: HIGH and CRITICAL always park; the approval record is bound to run, call
 id, tool and `approvalArgsHash(args)`; a call with other arguments needs a new approval. The rails log that same hash

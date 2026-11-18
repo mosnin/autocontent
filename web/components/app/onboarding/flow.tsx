@@ -11,8 +11,8 @@
 
 import { ArrowRight, Check, Clapperboard, FileText, Globe, Megaphone, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AgentGlyph, Button, Callout, Chip, cx, Field, GlassCard, IconTile, Input, Kbd, NumberKey, Shader, StatusBadge, StepMark, Textarea, WorkspaceLogo } from "@/design-system";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
+import { AgentGlyph, Button, Callout, Chip, CommitWave, cx, Field, GlassCard, IconTile, Input, Kbd, NumberKey, Shader, StatusBadge, StepMark, Textarea, WorkspaceLogo } from "@/design-system";
 import { decideWithin, type DecisionQuestion } from "../../../../.intent-onboarding/packages/core/src/decisions.ts";
 import { httpDecisions } from "../../../../.intent-onboarding/packages/decisions-jev/src/http.ts";
 
@@ -140,6 +140,15 @@ export function OnboardingFlow(props: OnboardingProps) {
   const [approvalMode, setApprovalMode] = useState<"approve" | "auto">("approve");
   const [cadence, setCadence] = useState<"daily" | "twice">("daily");
   const [finishing, setFinishing] = useState(false);
+  // The hand-off (WAVE.md "arrive"): the last button sends one wave from the brand mark, then the product opens.
+  const [arrived, setArrived] = useState(false);
+  const dest = useRef<string | null>(null);
+  const logo = useRef<HTMLSpanElement>(null);
+  const openProduct = useCallback(() => {
+    const to = dest.current;
+    dest.current = null;
+    if (to) router.push(to);
+  }, [router]);
   const started = useRef(false);
 
   const domain = website.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
@@ -269,9 +278,10 @@ export function OnboardingFlow(props: OnboardingProps) {
       } catch {
         /* ignore */
       }
-      if (intent === "ads") router.push(`/sessions/new?dept=paid&q=${encodeURIComponent("Review my ad accounts and tell me what to scale or pause")}`);
-      else if (pieceId) router.push(intent === "blog" ? `/seo/${pieceId}` : `/content/videos/${pieceId}`);
-      else router.push("/home");
+      dest.current = intent === "ads" ? `/sessions/new?dept=paid&q=${encodeURIComponent("Review my ad accounts and tell me what to scale or pause")}` : pieceId ? (intent === "blog" ? `/seo/${pieceId}` : `/content/videos/${pieceId}`) : "/home";
+      setArrived(true);
+      // The product opens when the wave settles; this is the guard if it never reports back.
+      window.setTimeout(openProduct, 3000);
     }
   };
 
@@ -418,7 +428,24 @@ export function OnboardingFlow(props: OnboardingProps) {
       <div className="ds-enter grid w-full max-w-[1080px] overflow-hidden bg-surface sm:rounded-ds-xl sm:border sm:border-hairline sm:shadow-ds-modal md:min-h-[640px] md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <div className="order-2 flex flex-col p-6 sm:p-10 md:order-1">{task}</div>
         <div className="order-1 p-2 md:order-2">
+          <CommitWave
+            moment="arrive"
+            committed={arrived}
+            source={logo}
+            className="h-full min-h-[220px] md:min-h-0"
+            onSettled={(done) => {
+              if (done) openProduct();
+            }}
+            receipt={
+              <div className="flex h-full min-h-[220px] flex-col items-center justify-center gap-3 p-6 text-center">
+                <WorkspaceLogo name={brand || "M"} size={44} />
+                <div className="text-[17px] font-medium">{brand || "Your workspace"} is set up</div>
+                <p className="max-w-[32ch] text-[13px] text-fg-muted">{intent === "ads" ? "Opening your first review with the Media buyer." : pieceId ? (intent === "blog" ? "Opening your first article." : "Opening your first video.") : "Opening Marketer."}</p>
+              </div>
+            }
+          >
           <Preview
+            logoRef={logo}
             brand={brand}
             domain={domain}
             draft={draft}
@@ -432,6 +459,7 @@ export function OnboardingFlow(props: OnboardingProps) {
             approvalMode={approvalMode}
             cadence={cadence}
           />
+          </CommitWave>
         </div>
       </div>
     </div>
@@ -571,6 +599,7 @@ function Bars({ widths }: { widths: number[] }) {
 
 /** The right panel: their workspace taking shape as they answer (R8.3). */
 function Preview(p: {
+  logoRef?: Ref<HTMLSpanElement>;
   brand: string;
   domain: string;
   draft: Draft | null;
@@ -594,7 +623,9 @@ function Preview(p: {
       <div className="relative flex h-full flex-col gap-2.5 p-4 sm:p-6">
         <GlassCard className="ds-enter">
           <div className="flex items-center gap-3">
-            <WorkspaceLogo name={p.brand || "M"} size={36} />
+            <span ref={p.logoRef} className="inline-flex">
+              <WorkspaceLogo name={p.brand || "M"} size={36} />
+            </span>
             <div className="min-w-0">
               <div className="truncate text-[15px] font-medium">{p.brand || "Your brand"}</div>
               {p.domain && (

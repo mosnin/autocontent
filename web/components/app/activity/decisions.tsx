@@ -55,14 +55,20 @@ function DecisionRow({ d }: { d: DecisionEntry }) {
         <ChevronRight aria-hidden className={cx("size-3.5 shrink-0 text-fg-muted transition-transform duration-200", open && "rotate-90")} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px]">{pointLabel(d.point)}</span>
-          <span className="block truncate text-[12px] text-fg-muted">
+          <span className="block text-[12px] text-fg-muted sm:truncate">
             {action(d.action_taken)}
             {d.subject_kind && ` · ${titleCase(d.subject_kind)}`}
+            {/* On a phone the badges don't fit beside the title, so the same facts read as words. */}
+            <span className="sm:hidden">
+              {` · ${mode.label}`}
+              {d.fallback_used && " · fallback used"}
+              {d.correction && " · corrected"}
+            </span>
           </span>
         </span>
-        {d.correction && <StatusBadge tone="accent">Corrected</StatusBadge>}
-        {d.fallback_used && <StatusBadge tone={d.mode === "enforce" ? "attention" : "neutral"}>Fallback used</StatusBadge>}
-        <span className="hidden sm:inline-flex">
+        <span className="hidden shrink-0 items-center gap-3 sm:flex">
+          {d.correction && <StatusBadge tone="accent">Corrected</StatusBadge>}
+          {d.fallback_used && <StatusBadge tone={d.mode === "enforce" ? "attention" : "neutral"}>Fallback used</StatusBadge>}
           <StatusBadge tone={d.mode === "enforce" ? "positive" : "neutral"}>{mode.label}</StatusBadge>
         </span>
         <Time iso={d.created_at} className="shrink-0 whitespace-nowrap text-[12px] text-fg-muted tabular" />

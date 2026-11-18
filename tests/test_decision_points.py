@@ -739,3 +739,71 @@ async def test_point9_article_grounding_only_with_research(model, fake_spend, lo
     failures = await points.verify_article(markdown="# x", focus_keyword="k", research=research,
                                            brand_rules=[], rule_passed=True, spend=spend)
     assert failures == ["grounded"]
+
+
+# --------------------------------------------------------------------------- point 9: rendered file forwarded
+
+
+async def _verify_with_path(monkeypatch, video_path):
+    """Run verify_report and return what reached decision point 9."""
+    from marketer.agents.qa import verify_report
+    from marketer.decisions import points as decision_points
+
+    seen: dict = {}
+
+    async def _verify_video(**kw):
+        seen.update(kw)
+        return None
+
+    monkeypatch.setattr(decision_points, "verify_video", _verify_video)
+    report = _report()
+    out = await verify_report(report, script=_script(), transcript="words", niche_title="n",
+                              brand_rules=[], spend=None, video_path=video_path)
+    assert out is report
+    return seen
+
+
+async def test_point9_gets_the_rendered_file(monkeypatch, tmp_path):
+    video = tmp_path / "final.mp4"
+    video.write_bytes(b"\x00" * 16)
+    seen = await _verify_with_path(monkeypatch, str(video))
+    assert seen["video_path"] == video
+
+
+@pytest.mark.parametrize("missing", ["gone.mp4", "", None, "a-directory"])
+async def test_point9_missing_file_falls_back_to_the_text_checks(monkeypatch, tmp_path, missing):
+    (tmp_path / "a-directory").mkdir()
+    path = str(tmp_path / missing) if missing else missing
+    seen = await _verify_with_path(monkeypatch, path)
+    assert seen["video_path"] is None
+    assert seen["transcript"] == "words"  # the rest of the check is unchanged
+
+
+async def test_point9_missing_file_end_to_end_still_decides(model, fake_spend, logged, tmp_path):
+    """Through the real decision point: no file, no frames, same verdict."""
+    from marketer.agents.qa import verify_report
+
+    model.set_mode(q.Point.QA_VIDEO, "enforce")
+    model.answer = _verify_answer({"rule_0"})
+    spend, _ = fake_spend
+    out = await verify_report(_report(), script=_script(), transcript="words", niche_title="n",
+                              brand_rules=["Never touch: crypto"], spend=spend,
+                              video_path=str(tmp_path / "missing.mp4"))
+    assert not out.passed and out.issues == ["verify failed: rule_0"]
+
+
+def test_the_pipeline_hands_the_rendered_path_to_point9():
+    """The QA stage passes the file that will be posted (the re-encoded one
+    when the original was over the upload budget)."""
+    import ast
+    import inspect
+
+    from marketer import pipeline
+
+    calls = [
+        n for n in ast.walk(ast.parse(inspect.getsource(pipeline)))
+        if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "verify_report"
+    ]
+    assert len(calls) == 1
+    kwargs = {k.arg: ast.unparse(k.value) for k in calls[0].keywords}
+    assert kwargs["video_path"] == "render_report.final_path"

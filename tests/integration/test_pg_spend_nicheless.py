@@ -206,13 +206,22 @@ async def test_migration_0028_rollback_and_reapply(pool, user):
             "where table_name = 'spend_ledger' and column_name = 'niche_id'"
         )
 
+    async def scale() -> int:
+        return await pool.fetchval(
+            "select numeric_scale from information_schema.columns "
+            "where table_name = 'spend_ledger' and column_name = 'cost_usd'"
+        )
+
     up = (MIGRATIONS / "0028_spend_ledger_nicheless.sql").read_text()
     down = (MIGRATIONS / "0028_spend_ledger_nicheless.rollback.sql").read_text()
     assert await has_column() and await nullable()
-    await spend_repo.record(_entry(user))
+    await spend_repo.record(_entry(user, cost_usd=Decimal("0.00002")))
     try:
         await pool.execute(down)
         assert not await has_column()
+        # Narrowed back: the sub-cent row is rounded, not rejected.
+        assert await scale() == 4
+        assert await pool.fetchval("select cost_usd from spend_ledger where user_id = $1", user) == Decimal("0.0000")
         assert await nullable(), "rollback must not restore NOT NULL over niche-less rows"
         assert await pool.fetchval("select count(*) from spend_ledger where user_id = $1", user) == 1
         await pool.execute(down)  # idempotent
@@ -220,5 +229,55 @@ async def test_migration_0028_rollback_and_reapply(pool, user):
         await pool.execute(up)
     await pool.execute(up)  # idempotent
     assert await has_column() and await nullable()
+    assert await scale() == 8
     for index in ("spend_ledger_ad_campaign_idx", "spend_user_day_idx"):
         assert await pool.fetchval("select to_regclass($1) is not null", f"public.{index}")
+
+
+async def test_a_sub_cent_cost_survives_the_round_trip(pool, user, ad_campaign):
+    """A decision call costs about $0.00002. At numeric(10,4) it was stored as
+    0.0000 and no cap ever saw it; at numeric(14,8) it is kept exactly, and
+    many of them add up."""
+    from backend.auth import AuthCtx
+    from backend.routes.spend import spend_history, today_spend
+    from marketer.repos import spend as spend_repo
+    from marketer.repos import workspace as workspace_repo
+    from datetime import datetime, timedelta, timezone
+
+    tiny = Decimal("0.00002")
+    for _ in range(500):
+        await spend_repo.record(_entry(user, ad_campaign_id=ad_campaign, cost_usd=tiny))
+    await spend_repo.record(_entry(user, cost_usd=Decimal("0.00000001")))  # the smallest unit
+
+    stored = await pool.fetch("select distinct cost_usd from spend_ledger where user_id = $1 order by 1", user)
+    assert [r["cost_usd"] for r in stored] == [Decimal("0.00000001"), tiny]
+
+    total = Decimal("0.01000001")  # 500 x 0.00002 + 0.00000001, exactly
+    assert await spend_repo.today_spend_total_usd(user_id=user) == total
+    assert (await spend_repo.today_spend_by_niche(user_id=user)) == {None: total}
+    rows = await spend_repo.history(user_id=user, days=1)
+    assert sum(r.cost_usd for r in rows) == total
+
+    ctx = AuthCtx(user_id=user, email="p@t.com")
+    assert (await today_spend(ctx)).total_usd == total
+    assert (await spend_history(ctx, days=1, niche_id=None)).total_usd == total
+    # Views that show cents still round for display, from the exact sum.
+    now = datetime.now(timezone.utc)
+    kpis = await workspace_repo.window_kpis(user, start=now - timedelta(days=1), end=now + timedelta(days=1))
+    assert Decimal(str(kpis["content_spend_usd"])) == total
+
+    # And the global cap now sees them: 0.01 of cap is used up by 500 calls.
+    from marketer.repos.spend import SpendCapExceeded
+    from marketer.services.spend_context import default_context
+
+    await pool.execute("update users set global_daily_cap_usd = 0.01 where id = $1", user)
+    spend = await default_context(user_id=user, niche_id=None, job_id=None, ad_campaign_id=ad_campaign)
+    with pytest.raises(SpendCapExceeded):
+        await spend.ensure_can_spend(tiny)
+
+
+async def test_large_costs_still_fit_after_the_widening(pool, user):
+    from marketer.repos import spend as spend_repo
+
+    await spend_repo.record(_entry(user, cost_usd=Decimal("999999.9999")))
+    assert await spend_repo.today_spend_total_usd(user_id=user) == Decimal("999999.9999")

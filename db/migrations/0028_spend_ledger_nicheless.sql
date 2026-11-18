@@ -14,6 +14,13 @@
 --    campaign, mirroring job_id / article_id / image_post_id. ON DELETE SET
 --    NULL: deleting a campaign must not delete the record of what it cost.
 --
+-- 3. spend_ledger.cost_usd goes from numeric(10,4) to numeric(14,8). A
+--    decision-model call costs around $0.00002; at four decimals it is stored
+--    as 0.0000, so thousands of them sum to nothing and no cap ever sees
+--    them. Eight decimals hold a hundredth of a micro-dollar, and six integer
+--    digits hold the same maximum as before (999,999.9999...). Widening a
+--    numeric never changes a stored value; sums and comparisons are exact.
+--
 -- What a null niche means for the caps:
 --   - per-niche daily cap: does not apply (there is no niche to cap);
 --   - user global daily cap and prepaid credit: apply as for any other row,
@@ -26,6 +33,8 @@ alter table spend_ledger
 create index if not exists spend_ledger_ad_campaign_idx
     on spend_ledger (ad_campaign_id)
     where ad_campaign_id is not null;
+
+alter table spend_ledger alter column cost_usd type numeric(14, 8);
 
 -- The global-cap read (sum by user for today) used to ride on
 -- spend_user_niche_day_idx (user_id, niche_id, day). With null niches in the

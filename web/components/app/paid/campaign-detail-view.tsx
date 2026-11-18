@@ -2,11 +2,12 @@
 
 import { Pause, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, useState } from "react";
-import { AskPill, Button, Callout, Card, ChartCard, Column, ConfirmModal, Facts, Field, KpiCard, LineChart, MoneyInput, Notice, PageHeader, Section, StatusBadge, Table } from "@/design-system";
+import { type FormEvent, useRef, useState } from "react";
+import { AskPill, Button, Callout, Card, ChartCard, Column, CommitWave, ConfirmModal, Facts, Field, KpiCard, LineChart, MoneyInput, Notice, PageHeader, Section, StatusBadge, Table } from "@/design-system";
 import { adsErrorMessage, changeBudget, changeCampaignStatus, isPendingApproval, type AdAccount, type AdCampaign, type AdMetricsDaily } from "@/lib/ads-client";
 import { formatCompact, formatDate, formatUsd } from "@/lib/format";
 import { useAutoRefresh } from "@/lib/proxy-fetch";
+import { TOOL_ICON } from "@/components/shell/sidebar";
 import { accountName, AdStatusBadge, capLabel, platformLabel } from "./shared";
 
 type Busy = "budget" | "active" | "paused" | "ended" | null;
@@ -21,6 +22,10 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
   const [busy, setBusy] = useState<Busy>(null);
   const [note, setNote] = useState<{ ok?: string; error?: string } | null>(null);
   const [confirm, setConfirm] = useState<"active" | "ended" | null>(null);
+  // A draft going live is a launch (WAVE.md): the review card is the confirmation, and the wave opens from its button.
+  const [launched, setLaunched] = useState(false);
+  const launchBtn = useRef<HTMLButtonElement>(null);
+  const isDraft = campaign.status === "draft";
 
   const sorted = [...metrics].sort((a, b) => a.date.localeCompare(b.date));
   const totals = metrics.reduce(
@@ -50,6 +55,7 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
     try {
       const res: unknown = await changeCampaignStatus(campaign.id, status);
       setConfirm(null);
+      if (status === "active" && isDraft && !isPendingApproval(res)) setLaunched(true);
       setNote(isPendingApproval(res) ? { ok: "Activation needs your approval. It's in your inbox; the campaign stays off until you approve." } : { ok: status === "active" ? "Campaign is live." : status === "paused" ? "Campaign paused." : "Campaign ended." });
       router.refresh();
     } catch (err) {
@@ -60,7 +66,9 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
     }
   }
 
-  const canActivate = campaign.status !== "active" && campaign.status !== "ended";
+  const canActivate = campaign.status !== "active" && campaign.status !== "ended" && !isDraft && !launched;
+  const budgetLine = campaign.daily_budget_usd ? `${formatUsd(campaign.daily_budget_usd)} a day` : "its daily budget";
+  const where = account ? platformLabel(account.platform) : "the platform";
   const recent = [...sorted].reverse().slice(0, 14);
   const ask = `How is the "${campaign.name}" campaign doing, and what should change?`;
 
@@ -102,6 +110,55 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
             {note && <Notice ok={note.ok} error={note.error} />}
             {campaign.last_error && <Callout tone="negative">{campaign.last_error}</Callout>}
           </div>
+        )}
+
+        {(isDraft || launched) && (
+          <CommitWave
+            moment="launch"
+            tone={TOOL_ICON.paid.tone}
+            committed={launched}
+            source={launchBtn}
+            className="border border-hairline"
+            action={
+              launched ? undefined : (
+                <div className="pointer-events-none flex h-full items-end justify-end p-4">
+                  <Button ref={launchBtn} variant="primary" onClick={() => void onStatus("active")} loading={busy === "active"} disabled={busy !== null || Boolean(account?.killswitch)}>
+                    <Play /> Launch campaign
+                  </Button>
+                </div>
+              )
+            }
+            receipt={
+              <div className="min-h-[236px] p-5">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-[15px] font-medium">{campaign.name} is live</h2>
+                  <StatusBadge tone="positive">Live</StatusBadge>
+                </div>
+                <p className="mt-2 max-w-[46ch] text-[13px] text-fg-muted">
+                  It can spend up to {budgetLine} on {where}, inside your account caps. Results show on this page as they come in.
+                </p>
+              </div>
+            }
+          >
+            <div className="min-h-[236px] p-5 pb-16">
+              <h2 className="text-[15px] font-medium">Ready to launch</h2>
+              <p className="mt-1 max-w-[52ch] text-[13px] text-fg-muted">Nothing has spent yet. Over your approval threshold, launching waits in your inbox and the campaign stays off until you approve.</p>
+              <div className="mt-4">
+                <Facts
+                  items={[
+                    { label: "Platform", value: where },
+                    { label: "Daily budget", value: campaign.daily_budget_usd ? formatUsd(campaign.daily_budget_usd) : "Not set" },
+                    ...(account ? [{ label: "Account cap", value: `${capLabel(account.daily_cap_usd)} a day` }] : []),
+                  ]}
+                />
+              </div>
+              {account?.killswitch && (
+                <div className="mt-3">
+                  <StatusBadge tone="negative">Kill switch is on: launching will be refused</StatusBadge>
+                </div>
+              )}
+            </div>
+          </CommitWave>
         )}
 
         <div className="space-y-3">

@@ -44,6 +44,7 @@ export function MemoryView({ facts: initial, learnings, loadFailed, preview, ini
     const next = open === fact.id ? null : fact.id;
     setOpen(next);
     if (!next || history[fact.id] !== undefined) return;
+    if (preview) return setHistory((h) => ({ ...h, [fact.id]: [fact] }));
     setHistory((h) => ({ ...h, [fact.id]: "loading" }));
     fetchHistory(fact.id)
       .then((items) => setHistory((h) => ({ ...h, [fact.id]: items })))
@@ -73,7 +74,8 @@ export function MemoryView({ facts: initial, learnings, loadFailed, preview, ini
       () => confirmFact(fact.id),
       (all) => {
         // In a single-valued slot the confirmed value replaces the one it challenged.
-        const rest = fact.challenges ? all.filter((f) => f.id !== fact.challenges) : all;
+        const holder = holderOf(fact, all);
+        const rest = holder ? all.filter((f) => f.id !== holder.id) : all;
         return rest.map((f) => (f.id === fact.id ? { ...f, trust: "trusted" as const, pending: false, challenges: null } : f));
       },
     );
@@ -170,7 +172,7 @@ export function MemoryView({ facts: initial, learnings, loadFailed, preview, ini
           ) : (
             <div className="space-y-3">
               {pending.map((fact) => {
-                const holder = fact.challenges ? current.find((f) => f.id === fact.challenges) : undefined;
+                const holder = holderOf(fact, current);
                 const ref = sourceRef(fact);
                 return (
                   <div key={fact.id}>
@@ -232,6 +234,12 @@ export function MemoryView({ facts: initial, learnings, loadFailed, preview, ini
       </Modal>
     </>
   );
+}
+
+/** The current value a pending fact disagrees with: same subject and predicate (its id may have changed since). */
+function holderOf(fact: MemoryFact, all: MemoryFact[]): MemoryFact | undefined {
+  if (!fact.challenges) return undefined;
+  return all.find((f) => f.id !== fact.id && !f.pending && !f.invalid_at && f.subject_type === fact.subject_type && f.subject_key === fact.subject_key && f.predicate === fact.predicate);
 }
 
 function bySubject(facts: MemoryFact[]): { key: string; name: string; facts: MemoryFact[] }[] {

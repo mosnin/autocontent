@@ -2,7 +2,7 @@
 
 import { Megaphone, ShieldCheck } from "lucide-react";
 import { useRef, useState } from "react";
-import { AgentSplit, Button, CommitWave, Facts, StatusBadge, StepMark, ToolIcon } from "@/design-system";
+import { AgentSplit, Button, CommitWave, Facts, PlanCard, StatusBadge, ToolIcon, WorkspaceLogo } from "@/design-system";
 
 function Launch() {
   const [live, setLive] = useState(false);
@@ -62,56 +62,54 @@ function Launch() {
   );
 }
 
+/** The real plan card: `approved` turns on its approve wave. */
 function Approve() {
   const [done, setDone] = useState(false);
-  const btn = useRef<HTMLButtonElement>(null);
   return (
-    <CommitWave
-      moment="approve"
-      committed={done}
-      source={btn}
-      className="w-full max-w-[520px] border border-hairline"
-      action={
-        <div className="flex h-full items-end justify-end gap-1.5 p-3">
-          {done ? (
-            <Button size="sm" variant="ghost" onClick={() => setDone(false)}>
-              Back
-            </Button>
-          ) : (
-            <>
-              <Button size="sm" variant="ghost">
-                Dismiss
-              </Button>
-              <Button ref={btn} size="sm" variant="primary" onClick={() => setDone(true)} data-testid="approve">
-                Approve & Run
-              </Button>
-            </>
-          )}
-        </div>
-      }
-      receipt={
-        <div className="min-h-[170px] p-4">
-          <div className="flex items-center gap-2.5 text-[13.5px] font-medium">
-            <StepMark state="done" /> Approved. Media buyer is moving the budget.
+    <div className="space-y-2">
+      <PlanCard
+        title="Change ad budget"
+        icon={<ShieldCheck className="size-4 text-on-fill" />}
+        meta={<StatusBadge>Media buyer · medium risk</StatusBadge>}
+        steps={[{ label: "Move $40 a day from the spring ad set" }, { label: "To the Spark ad on “3 pasta mistakes”" }]}
+        onDismiss={() => undefined}
+        onApprove={() => setDone(true)}
+        decided={done ? "Approved" : undefined}
+        approved={done}
+      />
+    </div>
+  );
+}
+
+function Arrive() {
+  const [there, setThere] = useState(false);
+  const mark = useRef<HTMLSpanElement>(null);
+  return (
+    <div className="space-y-2">
+      <CommitWave
+        moment="arrive"
+        committed={there}
+        source={mark}
+        className="border border-hairline"
+        receipt={
+          <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 p-6 text-center">
+            <WorkspaceLogo name="Fresh Pasta Co" size={44} />
+            <div className="text-[17px] font-medium">Fresh Pasta Co is set up</div>
+            <p className="text-[13px] text-fg-muted">Opening your first video.</p>
           </div>
-          <p className="mt-2 text-[12.5px] text-fg-muted">$40 a day from the spring ad set to the Spark ad.</p>
+        }
+      >
+        <div className="min-h-[220px] p-5">
+          <span ref={mark} className="inline-flex">
+            <WorkspaceLogo name="Fresh Pasta Co" size={36} />
+          </span>
+          <p className="mt-3 text-[13px] text-fg-muted">The workspace preview, taking shape during onboarding.</p>
         </div>
-      }
-    >
-      <div className="min-h-[170px] p-4">
-        <div className="flex items-center gap-2.5 text-[13.5px] font-medium">
-          <ShieldCheck className="size-4 text-attention" /> Change ad budget
-        </div>
-        <ol className="mt-3 space-y-2 text-[12.5px] text-fg-muted">
-          <li className="flex gap-2.5">
-            <StepMark state="todo" /> Move $40 a day from the spring ad set
-          </li>
-          <li className="flex gap-2.5">
-            <StepMark state="todo" /> To the Spark ad on “3 pasta mistakes”
-          </li>
-        </ol>
-      </div>
-    </CommitWave>
+      </CommitWave>
+      <Button size="sm" onClick={() => setThere((v) => !v)} data-testid="arrive">
+        {there ? "Back" : "Review my first video"}
+      </Button>
+    </div>
   );
 }
 
@@ -154,6 +152,10 @@ export function WaveDemo() {
       <section>
         <h1 className="mb-3 text-[13px] text-fg-muted">approve</h1>
         <Approve />
+      </section>
+      <section>
+        <h1 className="mb-3 text-[13px] text-fg-muted">arrive</h1>
+        <Arrive />
       </section>
       <section>
         <h1 className="mb-3 text-[13px] text-fg-muted">agent split (goo)</h1>

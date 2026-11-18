@@ -44,9 +44,17 @@ The guard holds this list in `guard.mjs` (`WAVE_SITES`). Keep the two in step.
 
 | Site | File | Moment |
 |---|---|---|
+| Ad campaign, "Ready to launch" card | `components/app/paid/campaign-detail-view.tsx` | `launch` (Paid media hue) |
+| Distribution campaign, "Ready to launch" card | `components/app/distribution/campaign-detail-view.tsx` | `launch` (Distribution hue) |
+| Every "Approve & Run": chat approvals, Inbox, Paid media and Distribution approval cards | `design-system/components/agent.tsx` (`PlanCard`) | `approve` |
+| Onboarding, the last button | `components/app/onboarding/flow.tsx` | `arrive` |
 | Preview and tuning page | `app/preview/wave/wave-demo.tsx` | all |
 
-Real screens are added to this table and to `WAVE_SITES` as they are wired.
+How each one is wired, so it stays honest:
+
+- **Launch.** A draft campaign shows a "Ready to launch" card. The card is the confirmation: it states the budget and caps, and its button launches. The wave is sent only when the server has made the campaign live. If the launch needs approval, is refused or fails, the card stays as it is and the usual notice appears. Resuming a paused campaign is not a launch and has no wave.
+- **Approve.** `PlanCard` takes `approved`. A caller passes `false` while the approval is pending and `true` once the server has accepted it. The wave is sent only if the person pressed Approve on that card in this view; an approval that was already decided, or decided somewhere else, renders plainly. Both faces of the card are the same layout, so nothing shifts: the wave passes and the buttons have become "Approved". Plan cards that are not an approval leave `approved` undefined and never mount the engine.
+- **Arrive.** The final onboarding button saves the person's choices, then sends one ring from their brand mark across the workspace preview. The product opens when the wave settles, with a three-second guard so navigation never depends on the animation.
 
 ## Using it
 
