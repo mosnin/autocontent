@@ -49,7 +49,7 @@ import { alertingNotifier, type OpsAlert, publishOpsAlert } from "./alerts.ts";
 import { createArtifactRoutes, signArtifactUrl } from "./artifacts.ts";
 import { createIntegrationRoutes, gatewayCacheTtlSeconds, isHarnessIdentity, mcpServersFromConfig } from "./integrations.ts";
 import { deliverWithOutbox, OutboxWebhookSink, type WebhookOutbox } from "./outbox.ts";
-import { applyPlatformPolicy, effectiveBudget, RATE_LIMIT_PREFIXES, type SigningSecretVars, signingSecret, stricterTier, workersAiModel } from "./policy.ts";
+import { applyPlatformPolicy, effectiveBudget, outOfBandApprovalNotifier, RATE_LIMIT_PREFIXES, type SigningSecretVars, signingSecret, stricterTier, workersAiModel } from "./policy.ts";
 import { createPusherAuthRoute } from "./pusher-auth.ts";
 import type { AgentRunRegistry } from "./registry.ts";
 import { userScopedMemorySource } from "./retrieval.ts";
@@ -307,10 +307,9 @@ export function approvals(options: { bindToRecipient?: boolean; approverId?: (te
   return {
     secret: () => bindings().APPROVAL_SIGNING_SECRET,
     baseUrl: () => bindings().PUBLIC_BASE_URL,
-    // Out-of-band mail ONLY for recipient-bound links. An unbound link is a bearer token: whoever holds it decides.
-    // In a chat the signed-in user decides in the in-app card; mailing the same links to the ops inbox would let
-    // that mailbox approve any account's publish. Bound links only work in the approver's own session.
-    notifier: options.bindToRecipient ? notifier : () => undefined,
+    // Out-of-band mail ONLY for recipient-bound links (src/lib/policy.ts): an unbound link is a bearer token and
+    // stays in the signed-in user's own stream.
+    notifier: outOfBandApprovalNotifier(options.bindToRecipient, notifier),
     // Route approvals to your tenant's admin (look it up from your SaaS) — defaults to the ops inbox.
     recipient: () => bindings().OPS_ALERT_EMAIL,
     ...(options.bindToRecipient ? { bindToRecipient: true } : {}),

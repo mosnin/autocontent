@@ -100,3 +100,13 @@ export function workersAiModel(spec: string | undefined): string | undefined {
   const id = (spec ?? "").trim().replace(/^cloudflare\//, "");
   return id.startsWith("@cf/") || id.startsWith("@hf/") ? id : undefined;
 }
+
+/**
+ * Who gets approval links out of band (email). Only recipient-bound links leave the conversation: a bound link works
+ * solely in the approver's own session, so the mailbox it lands in cannot use it. An UNBOUND link is a bearer token
+ * (whoever holds it decides), so it stays in the signed-in user's own stream and is never mailed: mailing it to the
+ * shared ops inbox would let that mailbox approve any account's publish.
+ */
+export function outOfBandApprovalNotifier<N>(boundToRecipient: boolean | undefined, notifier: () => N | undefined): () => N | undefined {
+  return boundToRecipient === true ? notifier : () => undefined;
+}

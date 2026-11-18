@@ -109,7 +109,7 @@ def _person_only(ctx: AuthCtx) -> None:
 
 
 def _rejected(e: MemoryRejected) -> HTTPException:
-    return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"{e.reason}: {e.detail}")
+    return HTTPException(422, f"{e.reason}: {e.detail}")
 
 
 @router.get("/facts", response_model=FactPage)
@@ -135,7 +135,7 @@ async def write_fact(body: FactIn, ctx: AuthCtx = CurrentUser) -> WriteOutcome:
     if actor == "person":
         source = SourceIn(kind="person", ref="memory-page")
     elif body.source is None or body.source.kind == "person":
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "invalid_source: the agent must name a non-person source")
+        raise HTTPException(422, "invalid_source: the agent must name a non-person source")
     else:
         source = body.source
     try:

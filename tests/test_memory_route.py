@@ -55,12 +55,6 @@ def calls(monkeypatch) -> list[tuple]:
     async def fact_counts(user_id):
         return {"current": 1, "pending": 0, "total": 1}
 
-    async def person_op(name):
-        async def op(user_id, fact_id, **kw):
-            seen.append((name, user_id, fact_id))
-            return None if name != "forget" else False
-        return op
-
     async def confirm_fact(user_id, fact_id):
         seen.append(("confirm", user_id, fact_id))
         return _fact(id=fact_id, trust="trusted")
