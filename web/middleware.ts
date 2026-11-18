@@ -5,7 +5,7 @@ import { appCspDirectives, cspReportOnly } from "@/lib/security/csp";
 import { previewEnabled } from "@/lib/security/urls";
 
 // Every app route. Keep in sync with the matcher below and CLERK_ROUTES in next.config.js.
-const APP = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|integrations|settings|onboarding|admin";
+const APP = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|memory|integrations|settings|onboarding|admin";
 
 // Signed-out requests to these are redirected to sign-in (pages) or refused (API).
 // /api/proxy answers 401 itself; /api/media keeps a public GET and checks admin in-route for writes.
@@ -41,7 +41,7 @@ export const config = {
   // never touch Clerk (no handshake redirects, no clerk-js in their bundles).
   // Legacy routes (/dashboard, /ads, …) redirect in next.config.js first.
   matcher: [
-    "/(home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|integrations|settings|onboarding|admin)(.*)",
+    "/(home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|memory|integrations|settings|onboarding|admin)(.*)",
     "/(sign-in|sign-up)(.*)",
     "/api/proxy(.*)",
     "/api/agent(.*)",

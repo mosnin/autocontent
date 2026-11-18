@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, CalendarDays, Clapperboard, Compass, FileText, FolderOpen, Megaphone, PanelLeft, Plug, Plus, Search, Send, Settings, Shield, Sparkles } from "lucide-react";
+import { BarChart3, Brain, CalendarDays, Clapperboard, Compass, FileText, FolderOpen, Megaphone, PanelLeft, Plug, Plus, Search, Send, Settings, Shield, Sparkles } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { CountBadge, IconButton, Segmented, SidebarAttention, SidebarRow, SidebarSection, SidebarTextRow, ToolIcon, WorkspaceRow, type ToolTone } from "@/design-system";
@@ -106,6 +106,7 @@ export function Sidebar({ data, onNavigate, onSearch, onCollapse }: { data: Side
 
       <div className="shrink-0 space-y-px border-t border-hairline px-2.5 py-2">
         <SidebarRow href="/brand" icon={<Sparkles />} label="Brand" current={at(pathname, "/brand")} onClick={onNavigate} />
+        <SidebarRow href="/memory" icon={<Brain />} label="Memory" current={at(pathname, "/memory")} onClick={onNavigate} />
         <SidebarRow href="/integrations" icon={<Plug />} label="Integrations" current={at(pathname, "/integrations")} onClick={onNavigate} />
         <SidebarRow href="/settings" icon={<Settings />} label="Settings" current={at(pathname, "/settings")} onClick={onNavigate} />
         {data.isAdmin && <SidebarRow href="/admin" icon={<Shield />} label="Admin" current={at(pathname, "/admin")} onClick={onNavigate} />}

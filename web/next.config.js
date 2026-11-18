@@ -38,7 +38,7 @@ const PROD = process.env.NODE_ENV === "production";
 
 // Routes the Clerk middleware handles (web/middleware.ts). They get a
 // nonce-based CSP there; everything else gets the static policy below.
-const CLERK_ROUTES = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|integrations|settings|onboarding|admin|sign-in|sign-up";
+const CLERK_ROUTES = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|memory|integrations|settings|onboarding|admin|sign-in|sign-up";
 
 // Always enforced, on every response: clickjacking, <base> hijack, plugins.
 const CSP_BASELINE = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'";
