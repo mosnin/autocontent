@@ -96,9 +96,18 @@ def test_garbled_text_bounces_alone_and_is_never_averaged():
     ok = tables.verify({**clean, "garbled_text": {"type": "yesno", "probability": 0.05}},
                        checks, grounded_asked=False)
     assert ok.passed
-    bad = tables.verify({**clean, "garbled_text": {"type": "yesno", "probability": 0.4}},
+    # Its own bar: more likely than not, until tuned on shadow data.
+    unsure = tables.verify({**clean, "garbled_text": {"type": "yesno", "probability": 0.4}},
+                           checks, grounded_asked=False)
+    assert unsure.passed
+    bad = tables.verify({**clean, "garbled_text": {"type": "yesno", "probability": 0.6}},
                         checks, grounded_asked=False)
     assert not bad.passed and bad.failures == ["garbled_text"]
+    # The text checks keep the strict bar.
+    weak = tables.verify({**clean, "on_niche": {"type": "yesno", "probability": 0.8},
+                          "garbled_text": {"type": "yesno", "probability": 0.05}},
+                         checks, grounded_asked=False)
+    assert weak.failures == ["on_niche"]
 
 
 def _script() -> Script:

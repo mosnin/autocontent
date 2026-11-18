@@ -240,6 +240,8 @@ class Check:
 
     question: YesNo
     pass_when: Literal["yes", "no"]
+    # Probability the passing answer must reach; None means VERIFY_CHECK_MIN.
+    min_pass: float | None = None
 
 
 VIDEO_CHECKS_V1: dict[str, Check] = {
@@ -267,13 +269,17 @@ def brand_rule_checks(rules: list[str], *, subject: str) -> dict[str, Check]:
     }
 
 
-# Only asked when the state carries frames from the rendered video.
+# Only asked when the state carries frames from the rendered video. It bounces
+# when garbled text is more likely than not: a looser bar than the text checks
+# until it has been tuned on shadow data, because a bounce costs a re-render.
+VIDEO_GARBLED_MIN = 0.5
 VIDEO_GARBLED_TEXT = Check(
     YesNo(
         "Does any image in `keyframes` show on-screen text that is garbled, "
         "misspelled or unreadable?"
     ),
     "no",
+    min_pass=1.0 - VIDEO_GARBLED_MIN,
 )
 
 

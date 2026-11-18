@@ -1,10 +1,11 @@
-import { createAgentOAuthProvider, createConsentHandler, createToolMcpHandler, requireScopes } from "@agent-starter/cloudflare";
-import { type AnyAgentTool, defineAgentTool, ToolFirewall } from "@agent-starter/core";
+import { createAgentOAuthProvider, createConsentHandler, createToolMcpHandler, KVStore, requireScopes } from "@agent-starter/cloudflare";
+import { TokenBucketRateLimiter, ToolFirewall } from "@agent-starter/core";
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { Hono } from "hono";
 import type { Env } from "../env.ts";
 import { bindings, tenantConfigs } from "../lib/platform.ts";
 import { appApiFirewall, appApiTools } from "./app-api.ts";
+import { guardMcpTool, MCP_WRITE_RATE, mcpExposedTools } from "./mcp-guard.ts";
 
 /**
  * OAuth 2.1 + MCP: external AI clients (Claude, ChatGPT, Cursor, other agents)
@@ -15,19 +16,15 @@ import { appApiFirewall, appApiTools } from "./app-api.ts";
 type OAuthEnv = Env & { OAUTH_PROVIDER: OAuthHelpers };
 
 /**
- * The MCP server's executor passes no host services: hand the Marketer tools the Worker env at call time (they read
- * PRIMARY_SAAS_API_URL / SAAS_SERVICE_TOKEN from `ctx.services.env`). HIGH/CRITICAL tools are not exposed over MCP:
- * MCP calls have no approval resume path, so a parked call could never complete (decide inbox items in the app).
+ * The MCP server's executor passes no host services: `guardMcpTool` (mcp-guard.ts) hands the Marketer tools the
+ * Worker env at call time (they read PRIMARY_SAAS_API_URL / SAAS_SERVICE_TOKEN from `ctx.services.env`) and meters
+ * writes per tenant in AGENT_CACHE. HIGH/CRITICAL tools are not exposed over MCP: MCP calls have no approval resume
+ * path, so a parked call could never complete (decide inbox items in the app).
  */
-const withEnv = (tool: AnyAgentTool): AnyAgentTool =>
-  defineAgentTool({ ...tool, execute: (args, ctx) => tool.execute(args, { ...ctx, services: { ...ctx.services, env: bindings() } }) }) as unknown as AnyAgentTool;
-
 const mcp = createToolMcpHandler({
   name: "marketer-copilot",
   version: "1.0.0",
-  tools: appApiTools()
-    .filter((t) => t.name !== "navigate_ui" && t.risk !== "HIGH" && t.risk !== "CRITICAL")
-    .map(withEnv),
+  tools: mcpExposedTools(appApiTools()).map((tool) => guardMcpTool(tool, { env: bindings, limiter: () => new TokenBucketRateLimiter(new KVStore(bindings().AGENT_CACHE), MCP_WRITE_RATE) })),
   // A fresh firewall per MCP request and caller: quotas (maxCallsPerTool) are never shared between clients or tenants.
   executor: () => ({ firewall: new ToolFirewall(appApiFirewall) }),
   resolveCaller: async (props) => {

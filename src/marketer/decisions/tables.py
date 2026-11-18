@@ -117,7 +117,8 @@ class Verdict:
 def verify(
     answers: Answers, checks: dict[str, q.Check], *, grounded_asked: bool
 ) -> Verdict:
-    """Every check must clear ``VERIFY_CHECK_MIN`` in its passing direction and,
+    """Every check must clear ``VERIFY_CHECK_MIN`` (or its own ``min_pass``) in
+    its passing direction and,
     when asked, grounded must be ``supported`` at ``VERIFY_GROUNDED_MIN`` or
     more. Each check is judged alone: one failure bounces, nothing is averaged."""
     failures: list[str] = []
@@ -131,6 +132,6 @@ def verify(
     for name, check in checks.items():
         p = _p(answers, name)
         passing = p if check.pass_when == "yes" else 1.0 - p
-        if passing < q.VERIFY_CHECK_MIN:
+        if passing < (q.VERIFY_CHECK_MIN if check.min_pass is None else check.min_pass):
             failures.append(name)
     return Verdict(passed=not failures, failures=failures)
