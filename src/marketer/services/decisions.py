@@ -151,6 +151,9 @@ class RawDecision:
 
 
 def _to_wire(questions: q.Questions) -> dict[str, dict[str, Any]]:
+    """Vendor-neutral questions to the Decisions API wire format. Choice
+    options and score levels both travel as ``criteria`` (a map and an
+    ordered list); see docs/decisions/openrouter-contract.md."""
     out: dict[str, dict[str, Any]] = {}
     for name, question in questions.items():
         if isinstance(question, q.YesNo):
@@ -159,30 +162,45 @@ def _to_wire(questions: q.Questions) -> dict[str, dict[str, Any]]:
             out[name] = {
                 "type": "choice",
                 "instructions": question.instructions,
-                "options": dict(question.options),
+                "criteria": dict(question.options),
             }
         else:
             out[name] = {
                 "type": "score",
                 "instructions": question.instructions,
-                "levels": list(question.levels),
+                "criteria": list(question.levels),
             }
     return out
 
 
+def _number(x: Any, what: str) -> float:
+    # JSON numbers only: a string or a boolean is an unrecognised shape.
+    if isinstance(x, bool) or not isinstance(x, (int, float)):
+        raise DecisionError("invalid", f"{what} is not a number")
+    v = float(x)
+    if v != v or v in (float("inf"), float("-inf")):
+        raise DecisionError("invalid", f"{what} is not finite")
+    return v
+
+
 def _unit(x: Any, what: str) -> float:
-    try:
-        v = float(x)
-    except (TypeError, ValueError) as e:
-        raise DecisionError("invalid", f"{what} is not a number") from e
+    v = _number(x, what)
     if not 0.0 <= v <= 1.0:
         raise DecisionError("invalid", f"{what} out of range")
     return v
 
 
+_WIRE_TYPE = {"yesno": "noul", "choice": "choice", "score": "score"}
+
+
 def _from_wire(questions: q.Questions, answers: Any) -> dict[str, dict[str, Any]]:
-    """Normalise the model's answers; a missing or malformed answer fails the
-    whole call (partial answers would let a table act on half a picture)."""
+    """Normalise the model's answers; a refused, missing or malformed answer
+    fails the whole call (partial answers would let a table act on half a
+    picture). Every answer must carry the ``type`` its question asked for.
+
+    A score comes back as the expected level, from 0 to ``len(levels) - 1``.
+    ``level`` keeps that value; ``score`` is the same position on a 0..1
+    scale, which is what the tables read."""
     if not isinstance(answers, dict):
         raise DecisionError("invalid", "answers missing")
     out: dict[str, dict[str, Any]] = {}
@@ -190,36 +208,57 @@ def _from_wire(questions: q.Questions, answers: Any) -> dict[str, dict[str, Any]
         a = answers.get(name)
         if not isinstance(a, dict):
             raise DecisionError("invalid", f"no answer for {name!r}")
+        if a.get("type") == "refusal":
+            raise DecisionError("refused", f"the provider refused {name!r}")
+        if a.get("type") != _WIRE_TYPE[question.type]:
+            raise DecisionError("invalid", f"{name!r} is not a {_WIRE_TYPE[question.type]} answer")
         if isinstance(question, q.YesNo):
-            raw = a.get("noul", a.get("probability"))
-            out[name] = {"type": "yesno", "probability": _unit(raw, name)}
+            out[name] = {"type": "yesno", "probability": _unit(a.get("noul"), name)}
         elif isinstance(question, q.Choice):
             choice = a.get("choice")
-            if choice not in question.options:
+            if not isinstance(choice, str) or choice not in question.options:
                 raise DecisionError("invalid", f"{name!r} chose an unknown option")
-            probs = a.get("probabilities") or {}
+            confidence = _unit(a.get("confidence"), name)
+            given = a.get("probabilities")
+            if given is not None and not isinstance(given, dict):
+                raise DecisionError("invalid", f"{name!r} has malformed probabilities")
+            # An option the response gives no probability for reads as 0; with
+            # no map at all the chosen option carries the confidence.
+            probabilities: dict[str, float] = {}
+            for option in question.options:
+                if given is not None and option in given:
+                    probabilities[option] = _unit(given[option], f"{name}.{option}")
+                else:
+                    probabilities[option] = confidence if given is None and option == choice else 0.0
             out[name] = {
                 "type": "choice",
                 "choice": choice,
-                "confidence": _unit(a.get("confidence"), name),
-                "probabilities": {
-                    k: _unit(v, f"{name}.{k}") for k, v in probs.items() if k in question.options
-                },
+                "confidence": confidence,
+                "probabilities": probabilities,
             }
         else:
-            try:
-                raw_score = float(a.get("score"))
-            except (TypeError, ValueError) as e:
-                raise DecisionError("invalid", f"{name!r} score is not a number") from e
             top = len(question.levels) - 1
-            # Accept either a 0..1 score or a level index; tables see 0..1.
-            score = raw_score / top if raw_score > 1.0 and top > 0 else raw_score
+            level = _number(a.get("score"), name)
+            if top < 1 or not 0.0 <= level <= top:
+                raise DecisionError("invalid", f"{name!r} score out of range")
             out[name] = {
                 "type": "score",
-                "score": _unit(score, name),
-                "confidence": _unit(a.get("confidence", 1.0), name),
+                "score": level / top,
+                "level": level,
+                "confidence": _unit(a.get("confidence"), name),
             }
     return out
+
+
+def _tokens(usage: Any) -> int:
+    if not isinstance(usage, dict):
+        return 0
+    total = 0
+    for key in ("input_tokens", "output_tokens"):
+        v = usage.get(key)
+        if isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0:
+            total += int(v)
+    return total
 
 
 def _cost(body: dict[str, Any]) -> Decimal:
@@ -228,11 +267,13 @@ def _cost(body: dict[str, Any]) -> Decimal:
     if raw is None:
         # An unpriced call can't be metered, so it isn't trusted either.
         raise DecisionError("no_cost", "response has no usage.cost")
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        raise DecisionError("no_cost", "usage.cost is not a number")
     try:
         cost = Decimal(str(raw))
     except InvalidOperation as e:
         raise DecisionError("no_cost", "usage.cost is not a number") from e
-    if cost < 0:
+    if not cost.is_finite() or cost < 0:
         raise DecisionError("no_cost", "usage.cost is negative")
     return cost
 
@@ -284,13 +325,12 @@ class DecisionClient:
             raise DecisionError("invalid", "body is not an object")
         answers = _from_wire(questions, body.get("answers"))
         cost = _cost(body)
-        usage = body.get("usage") or {}
-        tokens = int(usage.get("total_tokens") or 0) if isinstance(usage, dict) else 0
+        served = body.get("model")
         return RawDecision(
             answers=answers,
-            model=str(body.get("model") or model),
+            model=served if isinstance(served, str) and served else model,
             cost_usd=cost,
-            tokens=tokens,
+            tokens=_tokens(body.get("usage")),
             ms=int((time.monotonic() - t0) * 1000),
         )
 
