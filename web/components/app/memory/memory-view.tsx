@@ -124,6 +124,8 @@ export function MemoryView({ facts: initial, learnings, recall, loadFailed, prev
         control={
           <Segmented
             label="Memory views"
+            // Five views don't fit a phone: the control scrolls sideways instead of clipping.
+            className="max-w-full overflow-x-auto"
             value={tab}
             onChange={setTab}
             options={[
