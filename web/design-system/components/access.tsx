@@ -36,7 +36,7 @@ export function NotAllowed({ children, className }: { children: ReactNode; class
  */
 export function QrCode({ value, label, size = 168 }: { value: string; label: string; size?: number }) {
   return (
-    <div className="inline-flex rounded-ds-md border border-hairline p-2.5" style={{ background: "white", color: "black" }}>
+    <div className="inline-flex shrink-0 self-start rounded-ds-md border border-hairline p-2.5" style={{ background: "white", color: "black" }}>
       <ArkQr.Root value={value} encoding={{ ecc: "M" }} style={{ width: size, height: size }} aria-label={label} role="img">
         <ArkQr.Frame style={{ width: "100%", height: "100%" }}>
           <ArkQr.Pattern style={{ fill: "currentColor" }} />

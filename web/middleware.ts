@@ -1,4 +1,3 @@
-import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { decideRoute } from "@/lib/auth/route-policy";
@@ -27,7 +26,9 @@ export default function middleware(req: NextRequest) {
     return res;
   }
 
-  const hasSessionCookie = Boolean(getSessionCookie(req, { cookiePrefix: "marketer" }));
+  // Better Auth's session cookie (cookiePrefix "marketer"; "__Secure-" in production).
+  // Read by name here so the Edge bundle doesn't pull in Better Auth.
+  const hasSessionCookie = Boolean(req.cookies.get("__Secure-marketer.session_token")?.value || req.cookies.get("marketer.session_token")?.value);
   const decision = decideRoute({ pathname, search, hasSessionCookie });
 
   if (decision.action === "unauthorized") return NextResponse.json({ detail: "sign in to continue" }, { status: 401, headers: { "cache-control": "no-store" } });
