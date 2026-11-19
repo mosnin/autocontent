@@ -238,8 +238,8 @@ interface PasskeyRow {
   deviceType?: string;
 }
 
-export function PasskeysSection() {
-  const [rows, setRows] = useState<PasskeyRow[] | null>(null);
+export function PasskeysSection({ initial }: { initial?: PasskeyRow[] }) {
+  const [rows, setRows] = useState<PasskeyRow[] | null>(initial ?? null);
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
   const [note, setNote] = useState<{ ok?: string; error?: string } | null>(null);
@@ -251,7 +251,9 @@ export function PasskeysSection() {
     if (error) return setNote({ error: "Couldn't load your passkeys." });
     setRows((data ?? []) as PasskeyRow[]);
   }, []);
-  useEffect(() => void load(), [load]);
+  useEffect(() => {
+    if (!initial) void load();
+  }, [initial, load]);
 
   const add = async () => {
     if (adding) return;
