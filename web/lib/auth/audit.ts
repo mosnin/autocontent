@@ -67,13 +67,76 @@ export function auditRow(e: AuditEvent): AuditRow {
   };
 }
 
-/** The client address from the proxy headers (first hop of x-forwarded-for). */
-export function clientIp(headers: Headers | null | undefined): string | null {
-  const vercel = headers?.get("x-vercel-forwarded-for");
-  if (vercel) return vercel.split(",")[0]!.trim() || null;
-  const xff = headers?.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0]!.trim() || null;
-  return headers?.get("x-real-ip")?.trim() || null;
+type Env = Record<string, string | undefined>;
+
+/**
+ * Which headers carry the client address, and which proxies may have appended
+ * to them. One policy for the audit log and Better Auth's rate limits
+ * (config.ts passes the same values to advanced.ipAddress):
+ *
+ * - AUTH_IP_HEADER (+ AUTH_TRUSTED_PROXIES, comma-separated IPs or IPv4 CIDRs):
+ *   self-hosted behind a known proxy. With trusted proxies, the address is the
+ *   rightmost hop that is not one of them.
+ * - On Vercel: x-vercel-forwarded-for, then x-real-ip. The platform sets both
+ *   and overwrites anything the client sent. x-forwarded-for is not read.
+ * - Elsewhere in production with nothing configured: no header is trusted, so
+ *   there is no address (rate limits fall back to one shared bucket: stricter,
+ *   never bypassable).
+ * - Development: x-forwarded-for, single value only.
+ *
+ * A header with several hops and no trusted proxies is ignored: its first hop
+ * is whatever the client wrote.
+ */
+export function ipPolicy(env: Env = process.env): { headers: string[]; trustedProxies: string[] } {
+  const trustedProxies = (env.AUTH_TRUSTED_PROXIES ?? "").split(",").map((s) => s.trim()).filter((s) => /^[0-9a-fA-F:.]+(\/\d{1,3})?$/.test(s));
+  const configured = env.AUTH_IP_HEADER?.trim().toLowerCase();
+  if (configured && /^[a-z0-9-]+$/.test(configured)) return { headers: [configured], trustedProxies };
+  if (env.VERCEL) return { headers: ["x-vercel-forwarded-for", "x-real-ip"], trustedProxies };
+  if (env.NODE_ENV === "production") return { headers: [], trustedProxies };
+  return { headers: ["x-forwarded-for"], trustedProxies };
+}
+
+function ipv4ToInt(ip: string): number | null {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+  if (!m) return null;
+  const parts = m.slice(1).map(Number);
+  if (parts.some((n) => n > 255)) return null;
+  return ((parts[0]! << 24) >>> 0) + (parts[1]! << 16) + (parts[2]! << 8) + parts[3]!;
+}
+
+function isTrusted(ip: string, proxies: string[]): boolean {
+  return proxies.some((p) => {
+    const [base, bits] = p.split("/");
+    if (bits === undefined) return base!.toLowerCase() === ip.toLowerCase();
+    const a = ipv4ToInt(ip);
+    const b = ipv4ToInt(base!);
+    const n = Number(bits);
+    if (a === null || b === null || n > 32) return false;
+    const mask = n === 0 ? 0 : (~0 << (32 - n)) >>> 0;
+    return (a & mask) === (b & mask);
+  });
+}
+
+const looksLikeIp = (s: string) => ipv4ToInt(s) !== null || (/^[0-9a-fA-F:]+$/.test(s) && s.includes(":"));
+
+/** The client address under ipPolicy(env), or null when no header can be trusted. */
+export function clientIp(headers: Headers | null | undefined, env: Env = process.env): string | null {
+  if (!headers) return null;
+  const { headers: names, trustedProxies } = ipPolicy(env);
+  for (const name of names) {
+    const raw = headers.get(name);
+    if (!raw) continue;
+    const hops = raw.split(",").map((h) => h.trim()).filter(Boolean);
+    if (trustedProxies.length) {
+      for (let i = hops.length - 1; i >= 0; i--) {
+        if (!looksLikeIp(hops[i]!)) break;
+        if (!isTrusted(hops[i]!, trustedProxies)) return hops[i]!;
+      }
+      continue;
+    }
+    if (hops.length === 1 && looksLikeIp(hops[0]!)) return hops[0]!;
+  }
+  return null;
 }
 
 export async function writeAudit(pool: Pool, e: AuditEvent): Promise<void> {

@@ -5,8 +5,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
-import { buildStatements, roleStatements } from "../lib/auth/access.ts";
-import { auditRow, clientIp } from "../lib/auth/audit.ts";
+import { buildStatements, roles, roleStatements } from "../lib/auth/access.ts";
+import { auditRow, clientIp, ipPolicy } from "../lib/auth/audit.ts";
 import { ALL_PERMISSIONS, ASSIGNABLE_ROLES, CATALOG, can, isAssignableRole, parseMemberRole, permissionsFor, rankOf } from "../lib/auth/catalog.ts";
 import { agentSessionRefusal, agentTokenClaims, BACKEND_AUDIENCE, BACKEND_TOKEN_TTL_SECONDS, backendJwtPayload } from "../lib/auth/claims.ts";
 import { decideRoute, signInUrl } from "../lib/auth/route-policy.ts";
@@ -171,7 +171,7 @@ test("audit rows drop secrets, bound sizes and require a dotted action", () => {
   assert.deepEqual(r.metadata, { nested: { ok: 1 }, role: "admin" });
   assert.equal(r.actor_type, "user");
   assert.throws(() => auditRow({ action: "SignIn", outcome: "success" }));
-  assert.equal(clientIp(new Headers({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" })), "203.0.113.9");
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "203.0.113.9" }), { NODE_ENV: "development" }), "203.0.113.9");
   assert.equal(clientIp(new Headers()), null);
 });
 
@@ -224,4 +224,40 @@ test("/api/agent/session refuses roles without agent:chat (Billing) with 403 and
   assert.deepEqual(agentSessionRefusal(undefined), forbidden);
   assert.deepEqual(agentSessionRefusal("agent"), null, "the system role has agent:chat, but is never a membership role");
   for (const r of ["owner", "admin", "marketer", "analyst"]) assert.equal(agentSessionRefusal(r), null, r);
+});
+
+// ── client address ──────────────────────────────────────────────────────────
+
+test("the client address never comes from a header the client controls", () => {
+  const spoofed = new Headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.9", "x-vercel-forwarded-for": "198.51.100.4", "x-real-ip": "198.51.100.4" });
+  // Vercel: the platform's headers, never x-forwarded-for.
+  assert.deepEqual(ipPolicy({ VERCEL: "1", NODE_ENV: "production" }).headers, ["x-vercel-forwarded-for", "x-real-ip"]);
+  assert.equal(clientIp(spoofed, { VERCEL: "1", NODE_ENV: "production" }), "198.51.100.4");
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6" }), { VERCEL: "1", NODE_ENV: "production" }), null);
+  // Self-hosted production with nothing configured: no address (one shared rate-limit bucket).
+  assert.deepEqual(ipPolicy({ NODE_ENV: "production" }).headers, []);
+  assert.equal(clientIp(spoofed, { NODE_ENV: "production" }), null);
+  // Behind a known proxy: the rightmost hop that isn't the proxy.
+  const env = { NODE_ENV: "production", AUTH_IP_HEADER: "x-forwarded-for", AUTH_TRUSTED_PROXIES: "10.0.0.0/8, 192.0.2.1" };
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.9, 10.1.2.3" }), env), "203.0.113.9");
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.9, 192.0.2.1" }), env), "203.0.113.9");
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "203.0.113.9" }), env), "203.0.113.9");
+  // Several hops and no trusted proxy: ignored (the first hop is the client's word).
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.9" }), { NODE_ENV: "development" }), null);
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "203.0.113.9" }), { NODE_ENV: "development" }), "203.0.113.9");
+  assert.equal(clientIp(new Headers({ "x-forwarded-for": "not-an-ip" }), { NODE_ENV: "development" }), null);
+});
+
+// ── Better Auth's default "member" role is never assigned ──────────────────
+
+test("nothing assigns Better Auth's default member role", () => {
+  assert.deepEqual(Object.keys(roles).sort(), [...ASSIGNABLE_ROLES].sort(), "only catalog roles are Better Auth roles");
+  assert.equal(Object.hasOwn(roles, "member"), false);
+  assert.equal(Object.hasOwn(roles, "agent"), false);
+  const inv = checkInvite({ actorRole: "owner", role: "member" });
+  assert.equal(!inv.ok && inv.code, "unknown_role");
+  const chg = checkRoleChange({ actor: M("a", "owner"), target: M("b", "analyst"), newRole: "member", ownerCount: 1 });
+  assert.equal(!chg.ok && chg.code, "unknown_role");
+  for (const bad of ["member", "agent", "Owner", "admin,owner", "", "superuser"]) assert.equal(canGrant("owner", bad).ok, false, bad);
+  assert.equal(parseMemberRole("member"), null, "a stored member role grants nothing");
 });

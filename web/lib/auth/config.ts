@@ -19,7 +19,7 @@ import { PostgresDialect } from "kysely";
 import { Pool } from "pg";
 
 import { ac, roles } from "./access";
-import { clientIp, writeAudit, type AuditEvent } from "./audit";
+import { clientIp, ipPolicy, writeAudit, type AuditEvent } from "./audit";
 import { can, isAssignableRole, parseMemberRole, type Permission } from "./catalog";
 import { BACKEND_AUDIENCE, BACKEND_TOKEN_TTL_SECONDS } from "./claims";
 import { sendAuthEmail } from "./email";
@@ -31,14 +31,6 @@ export const AUTH_SCHEMA = "auth";
 /** Sensitive actions need a session this recent (README: 10 minutes). */
 export const FRESH_AGE_SECONDS = 10 * 60;
 export const INVITATION_TTL_SECONDS = 72 * 60 * 60;
-
-/** Which request header carries the client address (see advanced.ipAddress below). */
-export function clientIpHeaders(env: Env = process.env): string[] {
-  const configured = env.AUTH_IP_HEADER?.trim().toLowerCase();
-  if (configured && /^[a-z0-9-]+$/.test(configured)) return [configured];
-  if (env.VERCEL) return ["x-vercel-forwarded-for", "x-forwarded-for"];
-  return ["x-forwarded-for"];
-}
 
 export function authDatabaseUrl(env: Env = process.env): string | undefined {
   return env.AUTH_DATABASE_URL?.trim() || env.DATABASE_URL?.trim() || undefined;
@@ -291,10 +283,9 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
       useSecureCookies: production,
       cookiePrefix: "marketer",
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", secure: production },
-      // Rate limits and the audit log key on the client address. On Vercel only
-      // x-vercel-forwarded-for is set by the platform and can't be supplied by the
-      // client. Self-hosted, AUTH_IP_HEADER must name a header your proxy overwrites.
-      ipAddress: { ipAddressHeaders: clientIpHeaders(env) },
+      // Rate limits and the audit log key on the client address, under one
+      // policy (ipPolicy in audit.ts): never a header the client can write.
+      ipAddress: { ipAddressHeaders: ipPolicy(env).headers, ...(ipPolicy(env).trustedProxies.length ? { trustedProxies: ipPolicy(env).trustedProxies } : {}) },
     },
 
     databaseHooks: {
@@ -316,7 +307,7 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
 
         if (path === "/sign-out") {
           const s = await getSessionFromCtx(ctx).catch(() => null);
-          if (s) await audit({ action: "auth.sign_out", outcome: "success", actorId: s.user.id, actorEmail: s.user.email, orgId: s.session.activeOrganizationId ?? null, ip: clientIp(ctx.headers), userAgent: ctx.headers?.get("user-agent") });
+          if (s) await audit({ action: "auth.sign_out", outcome: "success", actorId: s.user.id, actorEmail: s.user.email, orgId: s.session.activeOrganizationId ?? null, ip: clientIp(ctx.headers, env), userAgent: ctx.headers?.get("user-agent") });
           return;
         }
 
@@ -407,7 +398,7 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
           orgId,
           targetType: str(b.memberId) || str(b.memberIdOrEmail) ? "member" : str(b.invitationId) ? "invitation" : str(b.providerId) ? "sso_provider" : str(b.userId) ? "user" : str(b.sessionToken) ? "session" : null,
           targetId: str(b.memberId) ?? str(b.memberIdOrEmail) ?? str(b.invitationId) ?? str(b.providerId) ?? str(b.userId) ?? null,
-          ip: clientIp(ctx.request?.headers ?? ctx.headers),
+          ip: clientIp(ctx.request?.headers ?? ctx.headers, env),
           userAgent: (ctx.request?.headers ?? ctx.headers)?.get("user-agent") ?? null,
           metadata: {
             ...(failed ? { status, error: (returned as APIError).body?.code ?? null } : {}),
