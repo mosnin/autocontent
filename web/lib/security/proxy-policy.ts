@@ -1,5 +1,5 @@
 // Pure policy for /api/proxy: where a request may go, which headers cross the
-// boundary, and which callers may mutate. No Next or Clerk imports, so the
+// boundary, and which callers may mutate. No Next or auth imports, so the
 // Node test runner can load this file directly (web/test/security.test.ts).
 
 /** Backend path prefixes the proxy will forward. Everything the app calls lives under /api/v1/. */

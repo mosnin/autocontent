@@ -3,7 +3,7 @@
 //
 // Two layers live here:
 //   • Server fetchers (fetchAdmin*) — call the backend directly through
-//     the `api` helper (attaches the Clerk JWT server-side). Used by RSC
+//     the `api` helper (attaches the backend JWT server-side). Used by RSC
 //     pages/layout for initial data. `api` throws `Error("<status> …")`,
 //     so callers detect 403 with isForbidden(err).
 //   • Client helpers (adminGet / admin* mutations) — run in the browser
@@ -12,7 +12,7 @@
 //     prefixes /api/proxy automatically.
 //
 // This module is client-safe: it imports NO server-only code. Server
-// fetchers (which pull in Clerk server auth) live in admin-server.ts and
+// fetchers (which pull in server-side auth) live in admin-server.ts and
 // must only be imported from RSC.
 
 import { clientFetch } from "@/lib/client-fetcher";

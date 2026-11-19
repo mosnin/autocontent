@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 
-// The root layout's <ClerkProvider> can't be statically prerendered with a
-// placeholder key, and /_not-found is otherwise prerendered at build time.
+// Rendered per request, like the (marketing) group.
 export const dynamic = "force-dynamic";
 
 import {
@@ -16,9 +15,7 @@ import {
  * app/(app)/not-found.tsx.
  */
 export default async function NotFound() {
-  // The root layout's <ClerkProvider> can't be statically prerendered with
-  // a placeholder key, and /_not-found is otherwise prerendered at build
-  // time — opt into dynamic rendering, matching the (marketing) group.
+  // Dynamic rendering, matching the (marketing) group.
   await connection();
 
   return (

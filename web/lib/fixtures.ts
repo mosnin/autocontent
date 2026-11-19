@@ -1,5 +1,5 @@
 // Realistic fixture data for /preview/* (design review screenshots without
-// Clerk or the API). Never imported by real pages.
+// sign-in or the API). Never imported by real pages.
 
 import type { Activity, Inbox, Overview } from "./workspace";
 

@@ -1,4 +1,4 @@
-// Design-review preview of onboarding (no Clerk, no API: activation falls back gracefully).
+// Design-review preview of onboarding (no sign-in, no API: activation falls back gracefully).
 import { OnboardingFlow } from "@/components/app/onboarding/flow";
 import { themeClass } from "@/components/shell/theme";
 

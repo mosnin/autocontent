@@ -1,5 +1,5 @@
 // Browser client for /api/v1/memory, through the same-origin proxy (the
-// Clerk token is attached server-side). The tenant is the signed-in user;
+// backend JWT is attached server-side). The tenant is the signed-in user;
 // nothing here names one.
 
 import { proxyFetch } from "@/lib/proxy-fetch";

@@ -15,7 +15,7 @@ const CONTROLS: Control[] = [
   { title: "Append-only audit trail", body: "Suspensions, role changes and credit adjustments are logged with actor, IP, user agent, target and metadata. Entries are never edited or deleted.", link: { href: "/admin/audit", label: "Audit log" } },
   { title: "Access revocation", body: "Suspending blocks access and halts new runs at once; demoting an admin revokes access on the next request. Both are audited.", link: { href: "/admin/users", label: "Users" } },
   { title: "Encryption at rest", body: "Data lives in managed Postgres with encryption at rest. Provider secrets come from environment config and a managed secret store, never source." },
-  { title: "Authentication and sessions", body: "Clerk handles sign-in and sessions. Every backend request carries a short-lived JWT verified server-side; the proxy attaches it so browser code never holds long-lived credentials." },
+  { title: "Authentication and sessions", body: "Better Auth runs in the web app: sessions, two-factor, passkeys, SSO and workspace roles. Every backend request carries a five-minute RS256 JWT minted on the server and verified against the web app's JWKS; the browser never holds one." },
   { title: "Data export and erasure", body: "Admins action per-account export and erasure requests against a user record; each action lands in the audit trail.", link: { href: "/admin/users", label: "Find a user" } },
 ];
 

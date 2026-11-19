@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "./signed-in";
 
 import { Reveal } from "@/components/marketing/reveal";
 import TextBurnNeon from "@/components/pixel-perfect/text-burn-neon";
