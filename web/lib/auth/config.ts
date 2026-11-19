@@ -230,8 +230,9 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
 
     // The plugin's HTTP token endpoint would hand a backend JWT to the browser:
     // it is off. Web mints backend tokens server-side (lib/auth/backend-token.ts).
-    // Impersonation is off for everyone.
-    disabledPaths: ["/token", "/admin/impersonate-user", "/admin/stop-impersonating"],
+    // Impersonation is off for everyone. list-sessions would return session
+    // tokens to the browser; the Security screen uses a server action instead.
+    disabledPaths: ["/token", "/admin/impersonate-user", "/admin/stop-impersonating", "/list-sessions"],
 
     emailAndPassword: {
       enabled: true,
