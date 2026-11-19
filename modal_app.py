@@ -46,7 +46,9 @@ secrets = [
     modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
     modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
     modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
-    modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
+    # MARKETER_AUTH_ISSUER (+ optional MARKETER_AUTH_JWKS_URL,
+    # MARKETER_AUTH_AUDIENCE, MARKETER_AUTH_DATABASE_URL); docs/auth/backend.md.
+    modal.Secret.from_name("marketer-auth"),
 ]
 
 app = modal.App(APP_NAME, image=image, secrets=secrets)

@@ -37,6 +37,10 @@ jobs:
 
     env:
       MARKETER_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      # The backend reads Better Auth's `auth` schema through its own pool
+      # (docs/auth/backend.md); point it at the same database so CI exercises
+      # that path. Production uses a role with SELECT on `auth` only.
+      MARKETER_AUTH_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
 
     steps:
       - uses: actions/checkout@v4

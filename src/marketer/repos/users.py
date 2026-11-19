@@ -16,14 +16,14 @@ _COLS = (
 
 
 async def upsert(user_id: str, email: str) -> User:
-    """Idempotent insert keyed on Clerk user_id. Called from auth middleware
-    on first request so the FK from niches/jobs always resolves."""
+    """Idempotent insert keyed on the tenant id, replacing the stored email
+    with a non-empty one. Auth uses ``ensure`` instead (a workspace has many
+    people, so the caller's address must not overwrite the tenant's)."""
     pool = await get_pool()
     row = await pool.fetchrow(
         f"""
         insert into users (id, email) values ($1, $2)
-        -- Never let a token without an email claim (default Clerk session
-        -- tokens) blank out a stored address on every request.
+        -- Never let an empty email blank out a stored address.
         on conflict (id) do update
             set email = case when excluded.email <> '' then excluded.email
                              else users.email end
