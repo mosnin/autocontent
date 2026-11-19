@@ -12,17 +12,23 @@ class Settings(BaseSettings):
     # Supabase Postgres (use the pooler URL for the runtime app).
     database_url: str = ""
 
-    # Clerk JWT verification.
-    clerk_jwks_url: str = ""
-    clerk_issuer: str = ""
-    # When set, JWT `aud` is verified against this value. Set it in
-    # production so tokens minted for another frontend on the same Clerk
-    # instance are rejected.
-    clerk_audience: str = ""
+    # Better Auth JWT verification (docs/auth/README.md). The web app mints a
+    # short-lived RS256 JWT per backend call; we verify it against web's JWKS.
+    # Issuer is the web origin (BETTER_AUTH_URL). Unset issuer = every JWT is
+    # refused (503), never accepted unverified.
+    auth_issuer: str = ""
+    # Defaults to f"{auth_issuer}/api/auth/jwks" (see auth_jwks_url_effective).
+    auth_jwks_url: str = ""
+    auth_audience: str = "marketer-api"
+    # Optional read-only connection for the `auth` schema. Empty = the main
+    # database_url.
+    auth_database_url: str = ""
 
     # Agent harness service token. When set, a request bearing exactly this
-    # token plus an ``x-tenant-id: <user_id>`` header acts as that user
-    # (never as an admin). Empty (the default) disables delegation entirely.
+    # token plus an ``x-tenant-id: <tenant_id>`` header acts for that
+    # workspace with the agent role (never as an admin), capped by the role of
+    # the person named in ``x-actor-id``. Empty (the default) disables
+    # delegation entirely.
     agent_service_token: str = ""
 
     aspect: str = "9:16"
@@ -227,6 +233,13 @@ class Settings(BaseSettings):
     # by itself — set True in environments where "fail loud at deploy" is
     # preferred to "fail loud in logs but keep serving."
     preflight_strict: bool = False
+
+    def auth_jwks_url_effective(self) -> str:
+        """The JWKS URL: explicit setting, else ``{issuer}/api/auth/jwks``."""
+        if self.auth_jwks_url.strip():
+            return self.auth_jwks_url.strip()
+        issuer = self.auth_issuer.strip().rstrip("/")
+        return f"{issuer}/api/auth/jwks" if issuer else ""
 
 
 settings = Settings()
