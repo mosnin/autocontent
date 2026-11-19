@@ -242,6 +242,15 @@ async function signIn(page, who) {
         return (await fetch("/api/auth/organization/update-member-role", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ memberId: me.id, role: "owner", organizationId: orgId }) })).status;
       }, orgId);
       assert.ok(self >= 400 && self < 500, `self promotion → ${self}`);
+      // Nothing can hand out Better Auth's default "member" role, or the agent role.
+      for (const role of ["member", "agent"]) {
+        const inv = await op.evaluate(async ([orgId, role]) => (await fetch("/api/auth/organization/invite-member", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: `nobody-${role}@acme-foods.test`, role, organizationId: orgId }) })).status, [orgId, role]);
+        assert.ok(inv >= 400 && inv < 500, `invite as ${role} → ${inv}`);
+        const analystMember = (await pool.query(`select m.id from auth.member m join auth."user" u on u.id = m."userId" where u.email = $1`, [ANALYST.email])).rows[0].id;
+        const chg = await op.evaluate(async ([orgId, role, memberId]) => (await fetch("/api/auth/organization/update-member-role", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ memberId, role, organizationId: orgId }) })).status, [orgId, role, analystMember]);
+        assert.ok(chg >= 400 && chg < 500, `change to ${role} → ${chg}`);
+      }
+      assert.equal((await pool.query(`select count(*)::int as n from auth.member where role not in ('owner','admin','marketer','analyst','billing')`)).rows[0].n, 0);
       // Their agent token would carry the analyst role (here the harness isn't configured, so: not forbidden).
       const agent = await ap.evaluate(async () => (await fetch("/api/agent/session")).status);
       assert.equal(agent, 200);
@@ -261,7 +270,7 @@ async function signIn(page, who) {
       const u = await pool.query(`select "twoFactorEnabled" from auth."user" where id = $1`, [ownerId]);
       assert.equal(u.rows[0].twoFactorEnabled, true);
 
-      await op.getByTestId("user-menu").click();
+      await op.locator('[data-testid="user-menu"]:visible').click();
       await op.getByRole("option", { name: "Sign out" }).click();
       await op.waitForURL(/\/sign-in/);
       await signIn(op, OWNER);
