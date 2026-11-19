@@ -20,11 +20,16 @@ def _reset_db_pool():
     keeps unit tests hermetic regardless of run order. We don't await close():
     the old loop is already gone, and the orphaned pool is garbage-collected.
     """
+    from backend import auth
     from marketer import db
 
     db._pool = None
+    db._auth_pool = None
+    auth.reset_caches()
     yield
     db._pool = None
+    db._auth_pool = None
+    auth.reset_caches()
 
 
 @pytest.fixture(autouse=True)
