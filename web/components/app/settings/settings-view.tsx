@@ -53,6 +53,13 @@ export function SettingsView({
     const hash = window.location.hash.slice(1);
     if (new URLSearchParams(window.location.search).has("purchase")) setTab("billing");
     else if (isTab(hash)) setTab(hash);
+    // The account menu links to #security while Settings may already be open.
+    const onHash = () => {
+      const h = window.location.hash.slice(1);
+      if (isTab(h)) setTab(h);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

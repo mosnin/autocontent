@@ -248,6 +248,7 @@ async function signIn(page, who) {
     });
 
     await step("4. the owner enrols TOTP, signs out, and signs back in with a computed code", async () => {
+      await op.goto(`${BASE}/home`);
       await op.goto(`${BASE}/settings#security`);
       await op.getByRole("button", { name: "Set up" }).click();
       await op.getByLabel("Confirm your password").fill(OWNER.password);
@@ -279,6 +280,7 @@ async function signIn(page, who) {
       await sp.goto(`${BASE}/sign-in`);
       await signIn(sp, ANALYST);
       await sp.waitForURL(/\/home/, { timeout: 60_000 });
+      await ap.goto(`${BASE}/home`);
       await ap.goto(`${BASE}/settings#security`);
       const revoke = ap.getByTestId("revoke-session");
       await revoke.first().waitFor();
