@@ -154,6 +154,14 @@ All of these live in `components/` and are exported from `index.ts`.
 | `Skeleton` | A flat loading block with one soft band passing over it |
 | `Facts` | Key/value rows for detail pages |
 
+### Access (`access.tsx`)
+
+| Component | Notes |
+|---|---|
+| `PermissionsProvider`, `useAllowed` | The role's permissions in the active workspace (the app shell provides them). `useAllowed("campaign:launch")` hides or disables a control. No provider means no. The server is the authority; this only shapes the UI |
+| `NotAllowed` | One quiet line saying which roles can do what a disabled control does |
+| `QrCode` | An authenticator QR code: dark modules on a fixed light tile in both themes, so scanners read it |
+
 ### Skeletons (`skeletons.tsx`)
 
 | Component | Notes |
@@ -178,8 +186,8 @@ All of these live in `components/` and are exported from `index.ts`.
 | `UserBubble`, `AssistantHeader`, `WorkedFor`, `SourceChips` | 02 | |
 | `AgentChips` | 02 | "Agent is working" |
 | `Trace` | 02 | Right panel steps |
-| `PlanCard` | 02 | Steps, with Dismiss / Edit / Approve & Run. Use it for **every** approval: chat plans, inbox items, scheduled posts, ad changes. `approving` / `dismissing` spin the pressed button and lock the others |
-| `ApprovalCard` | 02 | The one approval card for inbox items (video, carousel, ad change): a `PlanCard` wired to the workspace decide endpoint, with double-submit protection and the server's error underneath. Don't write another |
+| `PlanCard` | 02 | Steps, with Dismiss / Edit / Approve & Run. Use it for **every** approval: chat plans, inbox items, scheduled posts, ad changes. `approving` / `dismissing` spin the pressed button and lock the others. `blocked="…"` replaces the buttons with one line when the person's role can't decide it |
+| `ApprovalCard` | 02 | The one approval card for inbox items (video, carousel, ad change): a `PlanCard` wired to the workspace decide endpoint, with double-submit protection and the server's error underneath. Blocked unless the role has `content:approve` (ad changes: `spend:approve`). Don't write another |
 | `QuestionCard` | 06 | |
 | `AskPill` | 05 | |
 | `Markdown` | | Agent text |

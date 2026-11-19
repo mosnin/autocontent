@@ -41,6 +41,7 @@ const OWNER = { name: "Olive Owner", email: `owner-${run}@acme-foods.test`, pass
 const ANALYST = { name: "Andy Analyst", email: `analyst-${run}@acme-foods.test`, password: `Analyst-${crypto.randomBytes(12).toString("base64url")}` };
 
 const pool = new Pool({ connectionString: DB, max: 2 });
+const runStart = new Date();
 const results = [];
 const step = async (name, fn) => {
   const t0 = Date.now();
@@ -316,7 +317,8 @@ async function signIn(page, who) {
     });
 
     await step("security log has every event", async () => {
-    const audit = await pool.query(`select action, outcome from public.security_audit_log where org_id = $1 or actor_email in ($2, $3)`, [orgId, OWNER.email, ANALYST.email]);
+    // verify-email has no session yet, so its rows carry no actor: look at this run's window.
+    const audit = await pool.query(`select action, outcome from public.security_audit_log where at >= $1`, [runStart]);
     const actions = new Set(audit.rows.map((r) => `${r.action}:${r.outcome}`));
     for (const a of ["auth.sign_up:success", "auth.sign_in:success", "auth.sign_in:denied", "workspace.created:success", "member.invited:success", "invitation.accepted:success", "auth.two_factor_enabled:success", "auth.sign_out:success", "session.revoked:success"]) assert.ok(actions.has(a), `audit has ${a}`);
     for (const a of ["auth.email_verified:success"]) assert.ok(actions.has(a), `audit has ${a}`);
