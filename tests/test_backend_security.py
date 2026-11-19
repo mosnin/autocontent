@@ -210,7 +210,23 @@ def test_agent_delegation_cannot_mint_credentials_or_erase_the_account(monkeypat
     monkeypatch.setattr(privacy, "erase_user", _boom)
     monkeypatch.setattr(privacy, "export_user", _boom)
 
-    client = _client(monkeypatch, delegated=True, role="admin")
+    client = _client(monkeypatch, delegated=True)
+    r = client.request(method.upper(), path, json=body, headers=H)
+    # The agent role holds neither api_token:* nor workspace:delete, so the
+    # policy refuses first.
+    assert r.status_code == 403, r.text
+    assert r.json()["detail"] == "forbidden"
+    assert touched == []
+
+    # Defense in depth: even a delegated context that somehow held every
+    # permission is refused by the person-only guard on these routes.
+    from backend import permissions as perms
+    from backend.auth import require_user
+
+    app = client.app
+    app.dependency_overrides[require_user] = lambda: ctx_for(
+        "agent", user_id=USER, permissions=perms.ALL_PERMISSIONS
+    )
     r = client.request(method.upper(), path, json=body, headers=H)
     assert r.status_code == 403, r.text
     assert "person" in r.json()["detail"]
@@ -442,7 +458,9 @@ def test_removing_the_approval_gate_is_high_and_person_only(monkeypatch, rails_s
 
 
 def test_cap_change_with_a_replayed_idempotency_key_dispatches_once(monkeypatch, rails_store, niches):
-    client = _client(monkeypatch, delegated=True)
+    # Changing caps needs spend:set_limits, which the agent role never holds;
+    # a person's client (the CLI with a token, say) replays the same call.
+    client = _client(monkeypatch)
     headers = {**H, "idempotency-key": "run1:call7"}
     r = client.put(f"/api/v1/niches/{NICHE_ID}", json={"daily_spend_cap_usd": "9.00"}, headers=headers)
     assert r.status_code == 200
@@ -510,12 +528,17 @@ def test_brand_kit_update_is_recorded_and_stopped_by_the_kill_switch(monkeypatch
         return kit
 
     monkeypatch.setattr(repo, "upsert", _upsert)
-    client = _client(monkeypatch, delegated=True)
     body = {"brand_name": "Acme", "banned_words": ["cheap"], "preferred_hashtags": ["acme"]}
+    # The agent role reads the brand kit but never changes it (brand:update).
+    r = _client(monkeypatch, delegated=True).put("/api/v1/brand-kit", json=body, headers=H)
+    assert r.status_code == 403 and r.json()["permission"] == "brand:update"
+    assert saved == [] and rails_store.rows == {}
+
+    client = _client(monkeypatch)
     r = client.put("/api/v1/brand-kit", json=body, headers=H)
     assert r.status_code == 200 and saved[0][0] == USER
     [row] = rails_store.rows.values()
-    assert (row.action, row.outcome, row.principal, row.target_id) == ("brand_kit.update", "succeeded", "agent", USER)
+    assert (row.action, row.outcome, row.principal, row.target_id) == ("brand_kit.update", "succeeded", "user", USER)
 
     rails_store.kill_switches.add("all")
     r = client.put("/api/v1/brand-kit", json=body, headers=H)
@@ -580,8 +603,30 @@ def test_global_cap_raise_and_removal_go_through_the_rails(monkeypatch, rails_st
     assert [a for a, _ in _outcomes(rails_store)].count("account.spend_cap.lower") == 2
 
 
-def test_the_agent_can_lower_the_global_cap_but_never_raise_or_remove_it(monkeypatch, rails_store, account):
+def test_the_agent_cannot_change_account_settings(monkeypatch, rails_store, account):
+    """The agent role holds neither spend:set_limits nor workspace:update."""
     agent = _client(monkeypatch, delegated=True)
+    for body in ({"global_daily_cap_usd": "999.00"}, {"global_daily_cap_usd": None},
+                 {"global_daily_cap_usd": "1.00"}, {"email_notifications": False}):
+        r = agent.patch("/api/v1/users/me", json=body, headers=H)
+        assert r.status_code == 403, body
+        assert r.json()["detail"] == "forbidden"
+    assert account["writes"] == 0 and rails_store.rows == {}
+
+
+def test_a_delegated_ctx_with_set_limits_can_lower_but_never_raise_or_remove_the_cap(
+    monkeypatch, rails_store, account
+):
+    """Defense in depth (ADR 0002): were the agent ever granted
+    spend:set_limits, the route still refuses a raise or removal."""
+    from backend import permissions as perms
+    from backend.auth import require_user
+
+    agent = _client(monkeypatch, delegated=True)
+    agent.app.dependency_overrides[require_user] = lambda: ctx_for(
+        "agent", user_id=USER, email="p@t.com",
+        permissions=perms.ROLE_PERMISSIONS["agent"] | {"spend:set_limits", "workspace:update"},
+    )
     for body in ({"global_daily_cap_usd": "999.00"}, {"global_daily_cap_usd": None}):
         r = agent.patch("/api/v1/users/me", json=body, headers=H)
         assert r.status_code == 403, body
@@ -1243,7 +1288,7 @@ async def test_creating_an_ayrshare_profile_is_not_repeated_after_a_timeout(monk
     assert posts["n"] == 1
 
 
-def test_provider_clients_carry_explicit_timeouts(monkeypatch):
+async def test_provider_clients_carry_explicit_timeouts(monkeypatch):
     from backend import auth
     from marketer.articles import llm
     from marketer.config import settings
@@ -1259,10 +1304,31 @@ def test_provider_clients_carry_explicit_timeouts(monkeypatch):
     monkeypatch.setattr(llm, "_client", None)
     assert 0 < float(llm._oai().timeout) <= 300
 
-    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
-    monkeypatch.setattr(auth, "_jwks_client", None)
-    assert auth._jwks().timeout == auth.JWKS_TIMEOUT_SEC <= 10
-    monkeypatch.setattr(auth, "_jwks_client", None)
+    seen: dict = {}
+
+    class _Client:
+        def __init__(self, **kw):
+            seen.update(kw)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            return None
+
+        async def get(self, url, **kw):
+            class R:
+                def raise_for_status(self):
+                    return None
+
+                def json(self):
+                    return {"keys": []}
+            return R()
+
+    monkeypatch.setattr(auth.httpx, "AsyncClient", _Client)
+    await auth._fetch_jwks("https://web.test/api/auth/jwks")
+    assert 0 < seen["timeout"] == auth.JWKS_TIMEOUT_SEC <= 10
+    assert seen["follow_redirects"] is False
 
 
 async def test_a_silent_ad_connector_times_out_instead_of_hanging(monkeypatch):
