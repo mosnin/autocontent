@@ -81,11 +81,11 @@ export function WorkspaceSecurity({ organizationId, requireTwoFactor, providers,
             rows={audit}
             rowKey={(r) => r.id}
             columns={[
-              { key: "at", header: "When", cell: (r) => <Time iso={r.at} /> },
-              { key: "who", header: "Who", cell: (r) => <span className="truncate">{r.actorEmail || r.actorType}</span> },
-              { key: "what", header: "What", cell: (r) => <span className="font-mono text-[12px]">{r.action}</span> },
-              { key: "outcome", header: "Result", cell: (r) => <StatusBadge tone={OUTCOME_TONE[r.outcome]}>{r.outcome}</StatusBadge> },
-              { key: "ip", header: "IP", cell: (r) => <span className="text-fg-muted">{r.ip ?? ""}</span> },
+              { key: "at", label: "When", render: (r) => <Time iso={r.at} /> },
+              { key: "who", label: "Who", render: (r) => <span className="truncate">{r.actorEmail || r.actorType}</span> },
+              { key: "what", label: "What", render: (r) => <span className="font-mono text-[12px]">{r.action}</span> },
+              { key: "outcome", label: "Result", render: (r) => <StatusBadge tone={OUTCOME_TONE[r.outcome]}>{r.outcome}</StatusBadge> },
+              { key: "ip", label: "IP", render: (r) => <span className="text-fg-muted">{r.ip ?? ""}</span>, hideOnPhone: true },
             ]}
           />
         )}
@@ -101,7 +101,7 @@ function SsoSection({ organizationId, providers, canManage, baseUrl, preview }: 
   const [form, setForm] = useState({ providerId: "", domain: "", issuer: "", clientId: "", clientSecret: "", discovery: "", entryPoint: "", cert: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dns, setDns] = useState<{ providerId: string; token: string } | null>(null);
+  const [dns, setDns] = useState<{ providerId: string; domain: string; token: string } | null>(null);
   const [remove, setRemove] = useState<SsoProviderRow | null>(null);
   const ops = usePending<string>();
   const set = (k: keyof typeof form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -120,7 +120,7 @@ function SsoSection({ organizationId, providers, canManage, baseUrl, preview }: 
     setBusy(false);
     if (error) return setError(authErrorMessage(error, "The provider wasn't added."));
     const token = (data as { domainVerificationToken?: string } | null)?.domainVerificationToken;
-    if (token) setDns({ providerId, token });
+    if (token) setDns({ providerId, domain: body.domain, token });
     setAdding(false);
     setForm({ providerId: "", domain: "", issuer: "", clientId: "", clientSecret: "", discovery: "", entryPoint: "", cert: "" });
     router.refresh();
@@ -156,7 +156,7 @@ function SsoSection({ organizationId, providers, canManage, baseUrl, preview }: 
                         if (v.error) {
                           const r = await authClient.sso.requestDomainVerification({ providerId: p.providerId });
                           const token = (r.data as { domainVerificationToken?: string } | null)?.domainVerificationToken;
-                          if (token) setDns({ providerId: p.providerId, token });
+                          if (token) setDns({ providerId: p.providerId, domain: p.domain, token });
                           throw new Error("The DNS record isn't there yet. Add it, wait a few minutes, then verify again.");
                         }
                         router.refresh();
@@ -179,7 +179,7 @@ function SsoSection({ organizationId, providers, canManage, baseUrl, preview }: 
         {dns && (
           <div className="space-y-2 rounded-ds-lg border border-hairline bg-surface p-4 text-[12.5px] text-fg-muted">
             <p>Prove you own the domain: add this TXT record at your DNS host, then press Verify domain.</p>
-            <CodeBlock code={`_marketer-verification-${dns.providerId}  TXT  ${dns.token}`} />
+            <CodeBlock code={`_marketer-verification-${dns.providerId}.${dns.domain}  TXT  ${dns.token}`} />
           </div>
         )}
         {adding && (

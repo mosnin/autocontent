@@ -3,7 +3,7 @@ import type { DelegationDispatch } from "@agent-starter/flue";
 import { isHarnessIdentity } from "../lib/integrations.ts";
 import { AGENT_ROLE, effectiveAgentPermissions, PERMISSION_PHRASE, type Permission, personPermissions, primaryRole, rolePermissions, roleLabel, UNATTENDED_WITHHELD, whoCan } from "../lib/permissions.ts";
 import { departmentConversationKind } from "../multi-agent/roster.ts";
-import { type Actor, makeActor, servicesWithActor } from "./actor-context.ts";
+import { type Actor, BLOCKED_ACTOR, makeActor, servicesWithActor } from "./actor-context.ts";
 import { MARKETER_ERROR_TAG, MarketerPermissionError } from "./errors.ts";
 import { toolPermission } from "./tools/permissions.ts";
 
@@ -32,8 +32,9 @@ const list = (value: unknown): string[] => (Array.isArray(value) ? value.filter(
 
 /**
  * The person behind a conversation opened with their own session (assistant, copilot, orchestrator, MCP): its
- * `userId` is the token's `sub`. Null for harness identities (system, agent, room, service, cron), widget visitors,
- * eval runs and anything that does not look like a person id.
+ * `userId` is the token's `sub`. Null for harness identities (system, agent, room, service, cron), widget visitors and
+ * eval runs. A person whose id we would not send gets `BLOCKED_ACTOR` (every Marketer tool refused), never null:
+ * null means the broader unattended permissions.
  */
 export function personActor(identity: IdentityLike | null | undefined): Actor | null {
   if (!identity || typeof identity.userId !== "string") return null;
@@ -41,7 +42,7 @@ export function personActor(identity: IdentityLike | null | undefined): Actor | 
   const roles = list(identity.roles);
   if (isHarnessIdentity({ userId, roles })) return null;
   if (roles.includes("visitor") || userId.startsWith("visitor_") || userId.startsWith("eval:") || userId === "anonymous") return null;
-  return makeActor({ id: userId, roles, scopes: list(identity.scopes) });
+  return makeActor({ id: userId, roles, scopes: list(identity.scopes) }) ?? BLOCKED_ACTOR;
 }
 
 /**

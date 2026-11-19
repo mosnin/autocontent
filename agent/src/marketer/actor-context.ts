@@ -18,9 +18,16 @@ export interface Actor {
 
 /**
  * Ids we put in a header: what Better Auth (and the old Clerk ids carried over as person ids) produce, plus the email
- * shape the dev tooling uses. Anything else (control characters, spaces, commas, overlong) is no actor at all.
+ * shape the dev tooling uses, up to the 256 characters the web app mints. Anything else (control characters, spaces,
+ * commas, overlong) is not sent.
  */
-export const ACTOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:@+|-]{0,127}$/;
+export const ACTOR_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_.:@+|=~-]{0,255}$/;
+
+/**
+ * A person whose identity cannot be carried (an id we would not put in a header): every Marketer tool is refused and
+ * nothing is sent. Never "no actor", which would mean the broader unattended permissions.
+ */
+export const BLOCKED_ACTOR: Actor = Object.freeze({ id: "", roles: Object.freeze([]), scopes: Object.freeze([]) });
 
 const ACTOR = Symbol("marketer.actor");
 
