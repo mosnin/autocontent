@@ -11,6 +11,9 @@ Who may do what:
 - The agent (service token + ``x-tenant-id``, ``ctx.delegated``) may read, write
   facts from non-person sources, record learnings and merge exact duplicates.
   Its facts are never ``trusted``.
+- Route permissions (backend/policy.py): reads need memory:read; confirm and
+  correct memory:confirm; forget memory:forget; writes memory:confirm for a
+  person and agent:chat for the agent.
 - Only a signed-in person may confirm, correct or forget a fact. Those routes
   refuse the agent, so nothing a model reads can promote a fact to a brand rule
   or erase one.
@@ -28,6 +31,7 @@ from marketer.repos import memory as memory_repo
 from marketer.repos.memory import AuditEntry, Fact, Learning, MemoryRejected, WriteOutcome
 
 from ..auth import AuthCtx, CurrentUser
+from ..policy import require_permission
 
 router = APIRouter()
 
@@ -108,6 +112,16 @@ def _person_only(ctx: AuthCtx) -> None:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "only the account owner can change what memory holds")
 
 
+async def _require_write(ctx: AuthCtx) -> None:
+    """backend/policy.py: InRoute. A person adds to memory with memory:confirm
+    (what they write is trusted); the agent records what it learned as part
+    of working with the person (agent:chat, capped by the person's role), and
+    its facts are never trusted."""
+    await require_permission(
+        ctx, "agent:chat" if getattr(ctx, "delegated", False) else "memory:confirm"
+    )
+
+
 def _rejected(e: MemoryRejected) -> HTTPException:
     return HTTPException(422, f"{e.reason}: {e.detail}")
 
@@ -129,6 +143,7 @@ async def list_facts(
 
 @router.post("/facts", response_model=WriteOutcome)
 async def write_fact(body: FactIn, ctx: AuthCtx = CurrentUser) -> WriteOutcome:
+    await _require_write(ctx)
     actor = _actor(ctx)
     # A person writing in the app is the source; the agent must name one and
     # can never claim to be the person.
@@ -197,6 +212,7 @@ async def forget_fact(fact_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
 async def merge_facts(body: MergeIn, ctx: AuthCtx = CurrentUser) -> Merged:
     """Consolidation: fold exact duplicates into one. The repo only touches
     rows with the same slot and content as ``keep``."""
+    await _require_write(ctx)
     actor = "system" if getattr(ctx, "delegated", False) else "person"
     return Merged(merged=await memory_repo.merge_duplicates(ctx.user_id, body.keep, body.drop, actor=actor))
 
@@ -212,6 +228,7 @@ async def list_learnings(
 
 @router.post("/learnings", response_model=Learning, status_code=status.HTTP_201_CREATED)
 async def record_learning(body: LearningIn, ctx: AuthCtx = CurrentUser) -> Learning:
+    await _require_write(ctx)
     actor = _actor(ctx)
     try:
         claim, evidence = memory_repo.validate_learning(claim=body.claim, status=body.status, evidence=body.evidence)
@@ -228,6 +245,7 @@ async def record_learning(body: LearningIn, ctx: AuthCtx = CurrentUser) -> Learn
 
 @router.post("/learnings/{learning_id}/status", response_model=Learning)
 async def set_learning_status(learning_id: UUID, body: LearningStatusIn, ctx: AuthCtx = CurrentUser) -> Learning:
+    await _require_write(ctx)
     try:
         extra = memory_repo.validate_evidence(body.evidence) if body.evidence else []
         learning = await memory_repo.set_learning_status(

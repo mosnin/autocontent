@@ -1,7 +1,7 @@
 // Server-side proxy that forwards browser requests under /api/proxy/...
-// to the FastAPI backend, attaching the caller's Clerk JWT. We need
-// this because `web/lib/api.ts` calls `auth()` which is only valid in
-// server contexts, but our SWR hooks fetch from the browser.
+// to the FastAPI backend, attaching a backend JWT minted here for the
+// caller's session. Browser code (SWR hooks) can't mint one, and must never
+// hold one: the token exists only between this function and the backend.
 //
 // It is not an open proxy. The policy lives in lib/security/proxy-policy.ts
 // (tested in web/test/security.test.ts):
@@ -10,9 +10,9 @@
 //  - request headers are an allowlist; cookies and Set-Cookie never cross;
 //  - mutations must be same-origin (CSRF) and bodies are size-capped.
 
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { BodyTooLargeError, readBodyCapped } from "@/lib/security/body";
+import { mintBackendToken } from "@/lib/auth/backend-token";
 import { downstreamResponseHeaders, isSameOriginRequest, MAX_PROXY_BODY_BYTES, resolveUpstream, upstreamRequestHeaders } from "@/lib/security/proxy-policy";
 
 export const dynamic = "force-dynamic";
@@ -26,8 +26,13 @@ async function forward(req: NextRequest, path: string[]): Promise<NextResponse> 
   const target = resolveUpstream(process.env.NEXT_PUBLIC_API_BASE_URL, path, req.nextUrl.search, { production: process.env.NODE_ENV === "production" });
   if (!target.ok) return fail(target.status, target.error);
 
-  const { userId, getToken } = await auth();
-  const token = userId ? await getToken() : null;
+  let token: string | null;
+  try {
+    token = await mintBackendToken();
+  } catch {
+    // The session store or the signing key is unavailable: refuse, never forward unauthenticated.
+    return fail(503, "sign-in is unavailable, try again shortly");
+  }
   if (!token) return fail(401, "sign in to continue");
 
   const init: RequestInit = {

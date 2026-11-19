@@ -1,6 +1,7 @@
 import { isConversationOwner, type SessionClaims, verifySessionToken } from "@agent-starter/core";
 import { authorizePrivateChannel, PUSHER_CHANNEL_PATTERN, parseTenantChannel } from "@agent-starter/integrations";
 import { Hono } from "hono";
+import { OBSERVER_PERMISSION } from "./access.ts";
 import { hasScope } from "./permissions.ts";
 
 /**
@@ -28,7 +29,7 @@ export interface PusherAuthDecision {
 export function canWatchChannel(claims: Pick<SessionClaims, "tid" | "sub" | "roles" | "scopes" | "cid">, channel: { tenantId: string; roomId: string }): boolean {
   if (channel.tenantId !== claims.tid) return false;
   if (claims.cid !== undefined && claims.cid !== channel.roomId) return false;
-  return hasScope(claims, "audit:read") || isConversationOwner(channel.roomId, claims);
+  return hasScope(claims, OBSERVER_PERMISSION) || isConversationOwner(channel.roomId, claims);
 }
 
 export async function decidePusherAuth(input: { socketId?: string | null; channelName?: string | null; claims: SessionClaims | null; key: string; secret: string }): Promise<PusherAuthDecision> {

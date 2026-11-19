@@ -1,9 +1,9 @@
-import { auth } from "@clerk/nextjs/server";
 import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import { APIConnectionError, APIError, APITimeoutError, APIUserAbortError, type Questions, TypeSafeClient } from "@typesafe-ai/sdk";
 import { jevDecisions, type SystemOneClient } from "../../../../../.intent-onboarding/packages/decisions-jev/src/index.ts";
 import { handleDecisionsRequest } from "../../../../../.intent-onboarding/packages/decisions-jev/src/route.ts";
+import { getSession } from "@/lib/auth/session";
 import { BodyTooLargeError, readJsonCapped } from "@/lib/security/body";
 import { isSameOriginRequest } from "@/lib/security/proxy-policy";
 import { createRateLimiter } from "@/lib/security/rate-limit";
@@ -52,7 +52,12 @@ const limiter = createRateLimiter({ limit: 20, windowMs: 60_000 });
 
 export async function POST(req: Request) {
   if (!isSameOriginRequest(req.method, req.headers)) return NextResponse.json({ error: "cross-origin request refused" }, { status: 403, headers: NO_STORE });
-  const { userId } = await auth();
+  let userId: string | null;
+  try {
+    userId = (await getSession())?.user.id ?? null;
+  } catch {
+    userId = null;
+  }
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: NO_STORE });
   const m = mode();
   if (m === "off") return NextResponse.json({ error: "decisions are not configured" }, { status: 503, headers: NO_STORE });

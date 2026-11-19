@@ -1,10 +1,11 @@
 import { isConversationOwner, type SessionClaims, verifySessionToken } from "@agent-starter/core";
 import { Hono } from "hono";
 import type { Env } from "../env.ts";
+import { OBSERVER_PERMISSION } from "../lib/access.ts";
 import { hasScope, type Permission } from "../lib/permissions.ts";
 
 /** The permission that lets a person observe every room of their workspace (owner and admin in the catalog). */
-export const ROOM_OBSERVER_PERMISSION: Permission = "audit:read";
+export const ROOM_OBSERVER_PERMISSION: Permission = OBSERVER_PERMISSION;
 
 /** What `SwarmRoom.describe()` returns: the room's tenant and the conversation that opened it. */
 export interface RoomAccessInfo {

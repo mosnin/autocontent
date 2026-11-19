@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { promises as fs } from "fs";
 import path from "path";
 
 import { api } from "@/lib/api";
+import { getSession } from "@/lib/auth/session";
 import { mediaSlotById } from "@/lib/media-slots";
 import { BodyTooLargeError, readJsonCapped } from "@/lib/security/body";
 import { isSameOriginRequest } from "@/lib/security/proxy-policy";
@@ -78,7 +78,7 @@ async function requireAdmin(req: NextRequest): Promise<{ ok: true; userId: strin
   if (!isSameOriginRequest(req.method, req.headers)) return deny(403, "cross-origin request refused");
   let userId: string | null = null;
   try {
-    userId = (await auth()).userId;
+    userId = (await getSession())?.user.id ?? null;
   } catch {
     userId = null;
   }

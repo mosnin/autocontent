@@ -9,7 +9,7 @@ import type { Env } from "./env.ts";
 import { agentCors } from "./lib/cors.ts";
 import { evalHarness } from "./lib/evals.ts";
 import { artifactRoutes, chatRateLimiter, classifyDelivery, integrationRoutes, modelGateway, observerOptions, pusherAuthRoutes, seedInitialData, tenantConfigs } from "./lib/platform.ts";
-import { rolesGranting } from "./lib/permissions.ts";
+import { APPROVAL_DECIDER_ROLES, OPERATOR_ROLES } from "./lib/access.ts";
 import { signingSecret } from "./lib/policy.ts";
 import { Assistant } from "./agents/assistant.ts";
 import { Copilot } from "./agents/copilot.ts";
@@ -53,7 +53,7 @@ app.use("/agents/copilot/*", agentAuth({ secret: sessionSecrets, agentName: "cop
 app.route("/agents/copilot", createAgentRouter(Copilot));
 app.route("/api/copilot", createConversationRoute({ agentName: "copilot", secret: sessionSecrets }));
 
-app.use("/agents/background-worker/*", agentAuth({ secret: sessionSecrets, agentName: "background-worker", mount: "/agents/background-worker", adminRoles: rolesGranting("security:manage"), rateLimiter: chatRateLimiter, tenantConfig: tenantRateLimit, classify: classifyDelivery, trustedOrigins, extraInitialData: (_c, claims) => seedInitialData(claims) }));
+app.use("/agents/background-worker/*", agentAuth({ secret: sessionSecrets, agentName: "background-worker", mount: "/agents/background-worker", adminRoles: [...OPERATOR_ROLES], rateLimiter: chatRateLimiter, tenantConfig: tenantRateLimit, classify: classifyDelivery, trustedOrigins, extraInitialData: (_c, claims) => seedInitialData(claims) }));
 app.route("/agents/background-worker", createAgentRouter(BackgroundWorker));
 app.route("/api/background-worker", createConversationRoute({ agentName: "background-worker", secret: sessionSecrets }));
 
@@ -64,7 +64,7 @@ app.route("/api/orchestrator", createConversationRoute({ agentName: "orchestrato
 // Decisions are attributed to the signed-in user (session), never a header; recipient-bound links require that session.
 // Decide-by-id (POST /approvals/by-id/:conversationId/:approvalId) is open to the roles that grant agent:approve in the
 // catalog (owner, admin, marketer: docs/auth/permissions.json), in the conversation's own tenant.
-app.route("/", createApprovalRoutes({ operatorRoles: rolesGranting("agent:approve"), agents: [Assistant, Copilot, BackgroundWorker, Orchestrator, StrategistAgent, ContentProducerAgent, SeoEditorAgent, MediaBuyerAgent, DistributionManagerAgent, AnalystAgent, WriterAgent, SecurityAuditorAgent, PersistentAgent], secret: (c) => c.env.APPROVAL_SIGNING_SECRET, sessionSecret: sessionSecrets, appName: "Marketer" }));
+app.route("/", createApprovalRoutes({ operatorRoles: APPROVAL_DECIDER_ROLES, agents: [Assistant, Copilot, BackgroundWorker, Orchestrator, StrategistAgent, ContentProducerAgent, SeoEditorAgent, MediaBuyerAgent, DistributionManagerAgent, AnalystAgent, WriterAgent, SecurityAuditorAgent, PersistentAgent], secret: (c) => c.env.APPROVAL_SIGNING_SECRET, sessionSecret: sessionSecrets, appName: "Marketer" }));
 app.route("/", createTenantSyncRoutes<Env>({ kv: (env) => env.TENANT_CONFIG, secret: (env) => signingSecret(env, "tenantSync") ?? "" }));
 // Composio account connections (signed-in users; active when integrations.composio is on in agent-starter.config.ts).
 app.route("/", integrationRoutes);

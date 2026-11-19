@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { BackgroundWorker } from "../agents/background-worker.ts";
 import type { Env } from "../env.ts";
+import { OPERATOR_PERMISSION } from "../lib/access.ts";
 import { hasScope } from "../lib/permissions.ts";
 import { classifyDelivery, dispatchInitialData, registry, tenantBudget, TenantRateLimiter } from "../lib/platform.ts";
 import { signingSecret } from "../lib/policy.ts";
@@ -25,7 +26,7 @@ const TENANT = /^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/;
 async function operator(c: { env: Env; req: { header(name: string): string | undefined } }): Promise<SessionClaims | null> {
   try {
     const claims = await verifySessionToken([c.env.SESSION_SIGNING_SECRET, c.env.SESSION_SIGNING_SECRET_PREVIOUS ?? ""], c.req.header("authorization") ?? null);
-    return hasScope(claims, "security:manage") ? claims : null;
+    return hasScope(claims, OPERATOR_PERMISSION) ? claims : null;
   } catch {
     return null;
   }

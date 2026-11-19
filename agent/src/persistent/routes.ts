@@ -1,5 +1,5 @@
 import { createPersistentControlRoutes } from "@agent-starter/cloudflare";
-import { rolesGranting } from "../lib/permissions.ts";
+import { OBSERVER_ROLES, OPERATOR_ROLES } from "../lib/access.ts";
 import type { PersistentEnv } from "./env.ts";
 
 /**
@@ -22,7 +22,7 @@ export const persistentRoutes = createPersistentControlRoutes<PersistentEnv>({
   sessionSecrets: (c) => [c.env.SESSION_SIGNING_SECRET, c.env.SESSION_SIGNING_SECRET_PREVIOUS].filter(Boolean) as string[],
   // Roles from the catalog (docs/auth/agent.md): managing any autopilot and creating one (it spends on its own) are
   // operator controls, `security:manage`; the append-only audit log is `audit:read`. Owner or admin today.
-  adminRoles: rolesGranting("security:manage"),
-  securityRoles: rolesGranting("audit:read"),
-  creatorRoles: rolesGranting("security:manage"),
+  adminRoles: [...OPERATOR_ROLES],
+  securityRoles: [...OBSERVER_ROLES],
+  creatorRoles: [...OPERATOR_ROLES],
 });

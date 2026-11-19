@@ -1,16 +1,16 @@
-// Thin client around the Modal FastAPI backend. Each call attaches the
-// Clerk session JWT as a Bearer token; the backend's clerk middleware
-// verifies it and upserts the user row.
+// Thin client around the Modal FastAPI backend. Each call attaches a
+// backend JWT minted on the server for this session (lib/auth/backend-token.ts);
+// the backend verifies it against web's JWKS and reads the live session and
+// membership from the auth schema.
 
-import { auth } from "@clerk/nextjs/server";
+import { mintBackendToken } from "./auth/backend-token";
 
 import { publicApiError } from "./security/urls";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const { getToken } = await auth();
-  const token = await getToken();
+  const token = await mintBackendToken();
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {

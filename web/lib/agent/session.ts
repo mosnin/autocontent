@@ -1,11 +1,12 @@
 import "server-only";
 
-import { agentTokenTtl, mintAgentToken as mint } from "@/lib/security/agent-token";
+import { agentTokenTtl, mintAgentToken as mint, type AgentTokenSubject } from "@/lib/security/agent-token";
 
-// Mints agent-starter session tokens for the signed-in user. The format and
-// the claims live in lib/security/agent-token.ts. The tenant is the Marketer
-// user (Clerk `sub`), derived from OUR session, never from the request.
-// SESSION_SIGNING_SECRET must match the Worker's.
+// Mints agent-starter session tokens for the signed-in person. The format
+// lives in lib/security/agent-token.ts and the claims in lib/auth/claims.ts:
+// sub = the person, tid = the workspace's tenant id, roles = [their role],
+// scopes = its permissions, all derived from OUR session and the database,
+// never from the request. SESSION_SIGNING_SECRET must match the Worker's.
 
 export interface AgentConfig {
   origin: string;
@@ -31,6 +32,6 @@ export function agentConfig(): AgentConfig | null {
 }
 
 /** Short-lived (15 minutes by default, AGENT_SESSION_TTL_SECONDS to change): the browser refreshes before expiry. */
-export async function mintAgentToken(secret: string, userId: string): Promise<{ token: string; expiresAt: number }> {
-  return mint(secret, userId, { ttlSeconds: agentTokenTtl(process.env.AGENT_SESSION_TTL_SECONDS), production: process.env.NODE_ENV === "production" });
+export async function mintAgentToken(secret: string, subject: AgentTokenSubject): Promise<{ token: string; expiresAt: number }> {
+  return mint(secret, subject, { ttlSeconds: agentTokenTtl(process.env.AGENT_SESSION_TTL_SECONDS), production: process.env.NODE_ENV === "production" });
 }
