@@ -78,6 +78,9 @@ describe("actor in the Flue runtime", () => {
     await agent.read(await agent.dispatch({ message: "Launch the spring campaign", initialData: person("analyst", "usr_43") }));
     expect(calls).toHaveLength(0);
     expect(Number(sql.exec<{ n: number }>(`SELECT COUNT(*) AS n FROM as_approvals WHERE run_id = ?`, id)[0]?.n ?? 0)).toBe(0);
+    // Denied at the policy step (the analyst's role), not an argument error or a parked approval.
+    const audit = sql.exec<{ action: string; target: string }>(`SELECT action, target FROM as_audit_log WHERE run_id = ?`, id);
+    expect(audit).toContainEqual({ action: "tool.denied", target: "start_campaign" });
   });
 
   it("carries the stamped person in a delegated department task, and nobody in a bus conversation", async () => {
