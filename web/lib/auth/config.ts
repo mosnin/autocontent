@@ -186,9 +186,9 @@ function str(v: unknown): string | null {
 }
 
 /** Which workspace an organization endpoint acts on: the body's, else the session's active one. */
-function orgOf(ctx: AnyCtx, session: { session: { activeOrganizationId?: string | null } } | null): string | null {
+function orgOf(ctx: AnyCtx, session: { session: Record<string, unknown> } | null): string | null {
   const b = bodyOf(ctx);
-  return str(b.organizationId) ?? session?.session.activeOrganizationId ?? null;
+  return str(b.organizationId) ?? str(session?.session.activeOrganizationId) ?? null;
 }
 
 // ── the config ───────────────────────────────────────────────────────────────

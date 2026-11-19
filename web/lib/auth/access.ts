@@ -50,10 +50,10 @@ export function roleStatements(role: Role): Statements {
   return out;
 }
 
-export const ac = createAccessControl(buildStatements() as never);
+export const ac = createAccessControl(buildStatements() as Record<string, readonly string[]>);
 
 /**
  * One Better Auth role per assignable catalog role. `agent` is a system role
  * and is deliberately absent, so it can never be stored on a membership.
  */
-export const roles = Object.fromEntries(ROLES.filter((r) => CATALOG.roles[r].assignable).map((r) => [r, ac.newRole(roleStatements(r) as never)])) as Record<Exclude<Role, "agent">, ReturnType<typeof ac.newRole>>;
+export const roles = Object.fromEntries(ROLES.filter((r) => CATALOG.roles[r].assignable).map((r) => [r, ac.newRole(roleStatements(r))])) as unknown as Record<Exclude<Role, "agent">, ReturnType<typeof ac.newRole>>;

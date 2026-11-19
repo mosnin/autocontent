@@ -37,3 +37,11 @@ export function agentTokenClaims(input: AgentTokenInput): { sub: string; tid: st
   if (scopes.length === 0) throw new Error("the role grants nothing");
   return { sub: input.personId, tid: input.tenantId, roles: [input.role], scopes: [...scopes] };
 }
+
+/**
+ * Whether /api/agent/session may mint a token for this role. Roles without
+ * agent:chat (Billing today) get a 403 with this body and no token.
+ */
+export function agentSessionRefusal(role: unknown): { status: 403; body: { error: "forbidden"; permission: "agent:chat" } } | null {
+  return permissionsFor(role).includes("agent:chat") ? null : { status: 403, body: { error: "forbidden", permission: "agent:chat" } };
+}

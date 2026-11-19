@@ -46,7 +46,7 @@ export function WorkspaceSecurity({ organizationId, requireTwoFactor, providers,
   const setRequire = (v: boolean) =>
     void toggle.run("2fa", async () => {
       if (!preview) {
-        const { error } = await authClient.organization.update({ organizationId, data: { requireTwoFactor: v } });
+        const { error } = await authClient.organization.update({ organizationId, data: { requireTwoFactor: v } as Record<string, unknown> });
         if (error) throw new Error(authErrorMessage(error, "The setting wasn't saved."));
       }
       setRequired(v);
@@ -152,9 +152,9 @@ function SsoSection({ organizationId, providers, canManage, baseUrl, preview }: 
                     onClick={() =>
                       void ops.run(`verify:${p.providerId}`, async () => {
                         if (preview) return;
-                        const v = await authClient.sso.verifyDomain({ providerId: p.providerId });
+                        const v = await authClient.$fetch("/sso/verify-domain", { method: "POST", body: { providerId: p.providerId } });
                         if (v.error) {
-                          const r = await authClient.sso.requestDomainVerification({ providerId: p.providerId });
+                          const r = await authClient.$fetch("/sso/request-domain-verification", { method: "POST", body: { providerId: p.providerId } });
                           const token = (r.data as { domainVerificationToken?: string } | null)?.domainVerificationToken;
                           if (token) setDns({ providerId: p.providerId, domain: p.domain, token });
                           throw new Error("The DNS record isn't there yet. Add it, wait a few minutes, then verify again.");

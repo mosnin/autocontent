@@ -483,7 +483,22 @@ function TranscriptSkeleton() {
 }
 
 /** Shown when the agent harness isn't configured or reachable. Everything else keeps working. */
-export function AgentOffline({ reason }: { reason: "not-configured" | "error" }) {
+export function AgentOffline({ reason }: { reason: "not-configured" | "error" | "forbidden" }) {
+  if (reason === "forbidden")
+    return (
+      <div className="flex flex-1 items-center justify-center p-6">
+        <Card className="ds-enter w-full max-w-[440px] p-5">
+          <AgentGlyph size={22} />
+          <h2 className="mt-3 text-[15px] font-medium">Your role doesn&apos;t include working with the agents</h2>
+          <p className="mt-1.5 text-[13px] text-fg-muted">Ask an owner or admin if you need it. Billing and the rest of your workspace keep working.</p>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            <ButtonLink href="/settings#billing" variant="primary">
+              Open billing
+            </ButtonLink>
+          </div>
+        </Card>
+      </div>
+    );
   return (
     <div className="flex flex-1 items-center justify-center p-6">
       <Card className="ds-enter w-full max-w-[440px] p-5">

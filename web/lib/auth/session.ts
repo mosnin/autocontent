@@ -103,7 +103,8 @@ export function needsTwoFactor(ctx: AuthContext): boolean {
   return !enabled && ctx.membership?.requireTwoFactor === true;
 }
 
-async function deny(ctx: AuthContext | null, permission: string) {
+/** Write a permission.denied row to the security log for this request. */
+export async function recordDenial(ctx: AuthContext | null, permission: string) {
   const h = await headers();
   await writeAudit(authPool(), {
     action: "permission.denied",
@@ -135,7 +136,7 @@ export async function requirePermission(permission: Permission): Promise<AuthCon
   if (!ctx.membership) throw new AuthError(403, "no_workspace", permission);
   if (needsTwoFactor(ctx)) throw new AuthError(403, "mfa_required", permission);
   if (!can(ctx.membership.role, permission)) {
-    await deny(ctx, permission);
+    await recordDenial(ctx, permission);
     throw new AuthError(403, "forbidden", permission);
   }
   return ctx as AuthContext & { membership: Membership };

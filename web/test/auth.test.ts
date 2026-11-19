@@ -8,7 +8,7 @@ import { test } from "node:test";
 import { buildStatements, roleStatements } from "../lib/auth/access.ts";
 import { auditRow, clientIp } from "../lib/auth/audit.ts";
 import { ALL_PERMISSIONS, ASSIGNABLE_ROLES, CATALOG, can, isAssignableRole, parseMemberRole, permissionsFor, rankOf } from "../lib/auth/catalog.ts";
-import { agentTokenClaims, BACKEND_AUDIENCE, BACKEND_TOKEN_TTL_SECONDS, backendJwtPayload } from "../lib/auth/claims.ts";
+import { agentSessionRefusal, agentTokenClaims, BACKEND_AUDIENCE, BACKEND_TOKEN_TTL_SECONDS, backendJwtPayload } from "../lib/auth/claims.ts";
 import { decideRoute, signInUrl } from "../lib/auth/route-policy.ts";
 import { canGrant, checkInvite, checkRemoval, checkRoleChange, countOwners, grantableRoles } from "../lib/auth/rules.ts";
 import { mintAgentToken, verifyAgentToken } from "../lib/security/agent-token.ts";
@@ -216,4 +216,12 @@ test("signed-out pages redirect to sign-in with a safe next; APIs get 401", () =
   // Look-alike paths are not app paths.
   assert.deepEqual(decideRoute({ pathname: "/homepage", hasSessionCookie: false }), { action: "next", csp: false });
   assert.equal(signInUrl("//evil.test"), "/sign-in?next=%2Fhome");
+});
+
+test("/api/agent/session refuses roles without agent:chat (Billing) with 403 and no token", () => {
+  const forbidden = { status: 403, body: { error: "forbidden", permission: "agent:chat" } };
+  assert.deepEqual(agentSessionRefusal("billing"), forbidden);
+  assert.deepEqual(agentSessionRefusal(undefined), forbidden);
+  assert.deepEqual(agentSessionRefusal("agent"), null, "the system role has agent:chat, but is never a membership role");
+  for (const r of ["owner", "admin", "marketer", "analyst"]) assert.equal(agentSessionRefusal(r), null, r);
 });

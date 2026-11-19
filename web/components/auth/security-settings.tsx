@@ -74,7 +74,7 @@ export function TwoFactorSection({ enabled: initialEnabled, onEnabled, title = "
     setError(null);
     const { data, error } = await authClient.twoFactor.enable(password ? { password } : ({} as { password: string }));
     setBusy(false);
-    if (error || !data) return setError(error?.status === 400 || error?.status === 401 ? (error?.code === "SESSION_NOT_FRESH" ? NOT_FRESH : "That password isn't right.") : message(error));
+    if (error || !data || !("totpURI" in data)) return setError(error?.status === 400 || error?.status === 401 ? (error?.code === "SESSION_NOT_FRESH" ? NOT_FRESH : "That password isn't right.") : message(error));
     setSetup({ totpURI: data.totpURI, backupCodes: data.backupCodes });
     setPassword("");
     setStep("scan");
