@@ -35,6 +35,28 @@ async def upsert(user_id: str, email: str) -> User:
     return User(**dict(row))
 
 
+async def ensure(tenant_id: str, email: str) -> User:
+    """Make sure the tenant row exists (it is the FK target of every product
+    table). Called by auth the first time it sees a workspace.
+
+    A workspace has many people, so unlike ``upsert`` this never replaces a
+    stored address with whoever happens to call: the email is filled only
+    while the stored one is empty."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        f"""
+        insert into users (id, email) values ($1, $2)
+        on conflict (id) do update
+            set email = case when users.email = '' then excluded.email
+                             else users.email end
+        returning {_COLS}
+        """,
+        tenant_id,
+        email,
+    )
+    return User(**dict(row))
+
+
 async def get(user_id: str) -> User | None:
     pool = await get_pool()
     row = await pool.fetchrow(
