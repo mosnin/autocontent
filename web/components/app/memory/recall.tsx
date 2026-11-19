@@ -42,6 +42,7 @@ export function RecallView({ scope, settings, page, preview }: { scope: RecallSc
   const [deleteData, setDeleteData] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [removed, setRemoved] = useState(0);
   const copy = COPY[scope];
 
   async function find() {
@@ -68,6 +69,7 @@ export function RecallView({ scope, settings, page, preview }: { scope: RecallSc
     try {
       if (!preview) await forgetRecall(scope, ids);
       setItems((all) => all.filter((i) => !ids.includes(i.id)));
+      setRemoved((n) => n + ids.length);
       setMatches((m) => (m ? m.filter((i) => !ids.includes(i.id)) : m));
       setConfirming(null);
       if (!preview) router.refresh();
@@ -189,7 +191,7 @@ export function RecallView({ scope, settings, page, preview }: { scope: RecallSc
                 ))}
               </ul>
             )}
-            {page && page.total > items.length && items.length > 0 && <p className="mt-2 text-[12px] text-fg-faint">Showing the {items.length} most recent of {page.total}.</p>}
+            {page && page.total - removed > items.length && items.length > 0 && <p className="mt-2 text-[12px] text-fg-faint">Showing the {items.length} most recent of {page.total - removed}.</p>}
           </Section>
         </>
       )}
