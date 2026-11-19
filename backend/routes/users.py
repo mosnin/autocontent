@@ -40,6 +40,8 @@ async def export_my_data(ctx: AuthCtx = CurrentPerson) -> JSONResponse:
 
     data = await privacy.export_user(ctx.user_id)
     data["exported_at"] = datetime.now(timezone.utc).isoformat()
+    if data:
+        data["supermemory"] = await _recall_export(ctx)
     return JSONResponse(
         data,
         headers={"Content-Disposition": 'attachment; filename="marketer-export.json"'},
@@ -53,9 +55,41 @@ async def erase_my_account(ctx: AuthCtx = CurrentPerson) -> None:
     irreversible; the frontend must confirm before calling. Person-only: the
     agent's delegated auth is refused (403), so a compromised agent or a leaked
     service token cannot erase tenants."""
+    from marketer.recall import service as recall_service
     from marketer.repos import privacy
 
+    # Queue the Supermemory namespaces first (docs/memory/supermemory.md,
+    # Lifecycle). The queue has no FK to users, so the erase keeps it. If it
+    # can't be recorded on a deployment where recall is configured, refuse: an
+    # erasure must not leave recall data behind with no record of it. Without
+    # a key nothing was ever sent, so the erasure goes ahead.
+    try:
+        await recall_service.enqueue_workspace(ctx.user_id, "workspace.erased")
+    except Exception:  # noqa: BLE001
+        if recall_service.configured():
+            raise HTTPException(503, "erasure is temporarily unavailable; nothing was deleted") from None
     await privacy.erase_user(ctx.user_id)
+
+
+async def _recall_export(ctx: AuthCtx) -> dict:
+    """Team memory for the workspace, and the exporting person's own personal
+    memories (never anyone else's)."""
+    from marketer.recall import service as recall_service
+    from marketer.services.supermemory import SupermemoryError
+
+    from .memory import export_scope
+
+    if not recall_service.configured():
+        return {"configured": False, "team": [], "personal": []}
+    out: dict = {"configured": True}
+    try:
+        team = recall_service.team_scope(ctx.user_id)
+        out["team"] = await export_scope(team) if team else []
+        mine = recall_service.personal_scope(ctx)
+        out["personal"] = await export_scope(mine) if mine else []
+    except SupermemoryError:
+        out["status"] = "unavailable"
+    return out
 
 
 @router.patch("/me", response_model=User)

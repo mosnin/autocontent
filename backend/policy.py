@@ -247,6 +247,20 @@ POLICY: dict[tuple[str, str], Entry] = {
         ("memory:confirm", "agent:chat"), "person → memory:confirm; agent → agent:chat"
     ),
     ("GET", f"{V1}/memory/audit"): "memory:read",
+    # recall (Supermemory, docs/memory/supermemory.md)
+    ("GET", f"{V1}/memory/recall/settings"): AUTHENTICATED,  # every member sees whether recall is on
+    ("PUT", f"{V1}/memory/recall/settings"): "security:manage",  # a subprocessor that receives text; also person-only
+    ("GET", f"{V1}/memory/recall/session"): "agent:chat",  # the agent at session start; route refuses non-agents
+    # Personal memory is the caller's own, whatever their role: the namespace
+    # comes from the session's person, never from the request. Route refuses
+    # the agent and personal access tokens.
+    ("GET", f"{V1}/memory/personal"): AUTHENTICATED,
+    ("POST", f"{V1}/memory/personal/forget/preview"): AUTHENTICATED,
+    ("POST", f"{V1}/memory/personal/forget"): AUTHENTICATED,
+    ("GET", f"{V1}/memory/personal/export"): AUTHENTICATED,
+    ("GET", f"{V1}/memory/team"): "memory:read",
+    ("POST", f"{V1}/memory/team/forget/preview"): "memory:forget",  # also person-only
+    ("POST", f"{V1}/memory/team/forget"): "memory:forget",  # also person-only
     # security audit log
     ("GET", f"{V1}/audit-log"): "audit:read",
 }

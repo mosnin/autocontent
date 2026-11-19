@@ -6,6 +6,7 @@ import { useCustomSkills } from "../lib/custom-skills.ts";
 import { bindings, platform } from "../lib/platform.ts";
 import { actorPolicy, withActor } from "../marketer/actor.ts";
 import { usePersonActor } from "../marketer/actor-hooks.ts";
+import { useRecall } from "../marketer/recall/wiring.ts";
 import generativeUI from "../skills/generative-ui/SKILL.md";
 import untrustedContent from "../skills/untrusted-content/SKILL.md";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
@@ -23,6 +24,9 @@ export function Copilot({ id }: AgentProps) {
   // The signed-in person: every Marketer call carries x-actor-id and is checked against agent ∩ their role first.
   const actor = usePersonActor();
   const ctx = useAgentStarter({ ...platform("copilot", id), tools: [...withActor(appApiTools(), actor), askPerson], policy: actorPolicy(actor), firewall: appApiFirewall, planning: true, memory: true });
+  // Recall (Supermemory, off unless the workspace turned it on): personal + team into each turn; the person's own
+  // turns into their personal memory.
+  useRecall({ id, tenantId: ctx.tenant.tenantId, actor, write: true });
   useSkill(operatingProcedures);
   // Voice calls (initialData.scopes includes "channel:voice") speak plain sentences: no generative UI there.
   if (!ctx.voice) useSkill(generativeUI);

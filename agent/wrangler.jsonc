@@ -71,13 +71,16 @@
     "AGENT_BUS_NAME": "marketer-agents-bus",
     "AGENT_BUS_DLQ_NAME": "marketer-agents-bus-dlq",
     "PERSISTENT_EGRESS_ALLOW": "",
-    "PERSISTENT_EGRESS_DENY": "",
+    // The autopilot's own fetches can never reach Supermemory: only src/marketer/recall/client.ts talks to it.
+    "PERSISTENT_EGRESS_DENY": "api.supermemory.ai",
     "PERSISTENT_REVIEW_MODEL": "",
     // Execution-rails kill switch (not a secret): "" = off, "publish", "spend", "publish,spend" or "all".
     "MARKETER_RAILS_KILL_SWITCH": "",
     "OPENROUTER_DECISIONS_URL": "",
     "DECISION_MODEL": "",
-    "DECISION_MODES": ""
+    "DECISION_MODES": "",
+    // Recall (docs/memory/supermemory.md): "" = https://api.supermemory.ai. Secrets: SUPERMEMORY_API_KEY, MEMORY_NAMESPACE_SECRET.
+    "SUPERMEMORY_BASE_URL": ""
   },
   "queues": {
     "producers": [

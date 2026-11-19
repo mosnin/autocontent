@@ -12,6 +12,7 @@ import { usePersonActor } from "../marketer/actor-hooks.ts";
 import { observeTurns, turnHooks } from "../marketer/decisions/hooks.ts";
 import { createMarketerMemoryTools } from "../marketer/memory/tools.ts";
 import { memoryTurnHooks } from "../marketer/memory/wiring.ts";
+import { recallReaderFor, useRecall } from "../marketer/recall/wiring.ts";
 import { marketerReadTools } from "../marketer/tools/index.ts";
 import { DELEGATION_ROSTER, DEPARTMENT_GRANT, SPECIALISTS } from "../multi-agent/roster.ts";
 import generativeUI from "../skills/generative-ui/SKILL.md";
@@ -36,7 +37,7 @@ export function Assistant({ id }: AgentProps) {
   // delegated tasks carry them to the department (actorDispatch), so every call is capped at agent ∩ their role.
   const actor = usePersonActor();
   const dispatch = actorDispatch(delegationDispatch, actor);
-  const own = [...withActor(marketerReadTools(), actor), ...assistantTools(), askPerson];
+  const own = [...withActor(marketerReadTools(), actor), ...assistantTools(actor), askPerson];
   const delegation = createDelegationTools({ self: "assistant", roster: DELEGATION_ROSTER, dispatch, grant: () => [...own.map((tool) => tool.name), ...DEPARTMENT_GRANT] });
   const ctx = useAgentStarter({
     ...platform("assistant", id),
@@ -49,6 +50,9 @@ export function Assistant({ id }: AgentProps) {
     planning: true,
     memory: true,
   });
+  // Recall (Supermemory, off unless the workspace turned it on): personal + team memory into each turn, and the
+  // person's own turns into their personal memory (src/marketer/recall).
+  useRecall({ id, tenantId: ctx.tenant.tenantId, actor, write: true });
   // Department results come back as `delegation-result` signals; a turn parked on a person is never "no report".
   useDelegation({ id, self: "assistant", dispatch, awaitingHuman: () => ctx.awaitingHuman });
   useSkill(operatingProcedures);
@@ -80,7 +84,7 @@ Also:
 Assistant.agentName = "assistant";
 Assistant.durability = { maxAttempts: 5, timeoutMs: 900_000 };
 
-function assistantTools(): AnyAgentTool[] {
+function assistantTools(actor: ReturnType<typeof usePersonActor>): AnyAgentTool[] {
   const b = bindings();
   // Page reading and web_search follow agent-starter.config.ts `integrations.jina` / `integrations.firecrawl`
   // (keys: `wrangler secret put JINA_API_KEY` / `FIRECRAWL_API_KEY`; web_search needs a key).
@@ -97,6 +101,7 @@ function assistantTools(): AnyAgentTool[] {
   tools.push(...createVectorMemoryTools({ memory: (tenantId) => vectorMemory(tenantId) }));
   // Account memory (facts with provenance and history, learnings with evidence). Confirm / correct / forget stay
   // with the person on the Memory page: there is no tool for them.
-  tools.push(...createMarketerMemoryTools());
+  // recall_memory also reads Supermemory recall for this run's own verified person (and team), when recall is on.
+  tools.push(...createMarketerMemoryTools(undefined, { recall: recallReaderFor(actor) }));
   return tools;
 }

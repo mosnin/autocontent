@@ -29,6 +29,7 @@ import { getCarousel, getVideo } from "../marketer/tools/content.ts";
 import { getArticle } from "../marketer/tools/seo.ts";
 import { getWorkspaceInbox, getWorkspaceOverview } from "../marketer/tools/workspace.ts";
 import { withActor } from "../marketer/actor.ts";
+import { useRecall } from "../marketer/recall/wiring.ts";
 import { CLOSED_WORKFLOW_STATES } from "../lib/run-status.ts";
 import { trackedDispatch } from "../lib/submissions.ts";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
@@ -105,6 +106,8 @@ export function BackgroundWorker({ id }: AgentProps) {
   if (delegates.length) useDelegation({ id, self: "background-worker", dispatch: delegationDispatch });
   useClosedJobReroute(id, workflow);
   useShadowRecording(id, shadowTwin, ctx);
+  // Recall (Supermemory, off unless the workspace turned it on): a job has no person, so team memory only, read-only.
+  useRecall({ id, tenantId: ctx.tenant.tenantId, actor: null, write: false });
   useSkill(operatingProcedures);
   useSkill(jobExecution);
   // Webhook payloads, room messages and delegated reports are data: the same runtime skill every other agent loads.

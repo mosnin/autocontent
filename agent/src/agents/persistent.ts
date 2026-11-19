@@ -11,6 +11,7 @@ import { autopilotDecision, MARKETER_HEARTBEAT, readAutopilotState } from "../ma
 import type { MarketerCallContext } from "../marketer/api.ts";
 import { withActor } from "../marketer/actor.ts";
 import { persistentReadTools } from "../marketer/tools/index.ts";
+import { useRecall } from "../marketer/recall/wiring.ts";
 import { createProposeNextMovesTool } from "../marketer/tools/proposals.ts";
 import { agentEgress, credentialBroker, platformBrokeredFetch } from "../persistent/credentials.ts";
 import { persistentEnv } from "../persistent/env.ts";
@@ -96,6 +97,10 @@ export function PersistentAgent({ id }: AgentProps) {
       },
     },
   });
+  // Recall (Supermemory, off unless the workspace turned it on): the autopilot has no person behind its ticks, so team
+  // memory only, read-only. The backend check goes through the same brokered fetch as its other platform reads.
+  const pConfig = ctx.persistent?.config;
+  useRecall({ id, tenantId, actor: null, write: false, off: !pConfig, ...(pConfig ? { fetch: platformBrokeredFetch(env, pConfig) as unknown as typeof fetch } : {}) });
   useSkill(operatingProcedures);
   useSkill(untrustedContent);
   useSkill(persistentOperation);

@@ -17,6 +17,18 @@ Who may do what:
 - Only a signed-in person may confirm, correct or forget a fact. Those routes
   refuse the agent, so nothing a model reads can promote a fact to a brand rule
   or erase one.
+
+Recall (Supermemory, docs/memory/supermemory.md), at the end of this module:
+
+- ``/recall/settings``: read by any member; changed only with security:manage.
+- ``/recall/session``: the agent asks, at session start, whether recall is on
+  (and registers the person it acts for, so the purge job knows the namespace).
+- ``/personal*``: the caller's OWN personal memory. The namespace comes from
+  ``ctx.user_id`` + ``ctx.actor_id``; no route takes a namespace or a person id,
+  so nobody (owner, admin, the agent) can reach another person's memory.
+- ``/team*``: list with memory:read, forget with memory:forget (person only).
+- Confirming a fact mirrors it into team memory; correcting or forgetting it
+  removes the mirror (best effort; the scheduler tick reconciles).
 """
 from __future__ import annotations
 
@@ -24,14 +36,19 @@ from datetime import datetime
 from typing import Any, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+from marketer.recall import repo as recall_repo
+from marketer.recall import service as recall_service
 from marketer.repos import memory as memory_repo
+from marketer.services.supermemory import SupermemoryError
 from marketer.repos.memory import AuditEntry, Fact, Learning, MemoryRejected, WriteOutcome
 
+from .. import audit
 from ..auth import AuthCtx, CurrentUser
 from ..policy import require_permission
+from ..security import user_rate_limit
 
 router = APIRouter()
 
@@ -179,16 +196,17 @@ async def fact_history(fact_id: UUID, ctx: AuthCtx = CurrentUser) -> FactList:
 
 
 @router.post("/facts/{fact_id}/confirm", response_model=Fact)
-async def confirm_fact(fact_id: UUID, ctx: AuthCtx = CurrentUser) -> Fact:
+async def confirm_fact(fact_id: UUID, background: BackgroundTasks, ctx: AuthCtx = CurrentUser) -> Fact:
     _person_only(ctx)
     fact = await memory_repo.confirm_fact(ctx.user_id, fact_id)
     if fact is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "fact not found")
+    background.add_task(recall_service.mirror_fact, ctx.user_id, fact)
     return fact
 
 
 @router.post("/facts/{fact_id}/correct", response_model=WriteOutcome)
-async def correct_fact(fact_id: UUID, body: CorrectIn, ctx: AuthCtx = CurrentUser) -> WriteOutcome:
+async def correct_fact(fact_id: UUID, body: CorrectIn, background: BackgroundTasks, ctx: AuthCtx = CurrentUser) -> WriteOutcome:
     _person_only(ctx)
     try:
         outcome = await memory_repo.correct_fact(
@@ -198,14 +216,21 @@ async def correct_fact(fact_id: UUID, body: CorrectIn, ctx: AuthCtx = CurrentUse
         raise _rejected(e) from e
     if outcome is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "fact not found")
+    background.add_task(_remirror, ctx.user_id, fact_id, outcome.fact)
     return outcome
 
 
+async def _remirror(tenant_id: str, old_id: UUID, new_fact: Fact | None) -> None:
+    await recall_service.unmirror_fact(tenant_id, old_id)
+    await recall_service.mirror_fact(tenant_id, new_fact)
+
+
 @router.post("/facts/{fact_id}/forget", status_code=status.HTTP_204_NO_CONTENT)
-async def forget_fact(fact_id: UUID, ctx: AuthCtx = CurrentUser) -> None:
+async def forget_fact(fact_id: UUID, background: BackgroundTasks, ctx: AuthCtx = CurrentUser) -> None:
     _person_only(ctx)
     if not await memory_repo.forget_fact(ctx.user_id, fact_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "fact not found")
+    background.add_task(recall_service.unmirror_fact, ctx.user_id, fact_id)
 
 
 @router.post("/facts/merge", response_model=Merged)
@@ -261,3 +286,265 @@ async def set_learning_status(learning_id: UUID, body: LearningStatusIn, ctx: Au
 @router.get("/audit", response_model=AuditList)
 async def list_audit(ctx: AuthCtx = CurrentUser, limit: int = Query(default=50, ge=1, le=200)) -> AuditList:
     return AuditList(items=await memory_repo.list_audit(ctx.user_id, limit=limit))
+
+
+# --------------------------------------------------------------------------- recall (Supermemory)
+
+
+class RecallSettings(BaseModel):
+    configured: bool
+    enabled: bool
+    updated_at: datetime | None = None
+
+
+class RecallSettingsIn(BaseModel):
+    enabled: bool
+    # Turning recall off can also delete every namespace of the workspace.
+    delete_data: bool = False
+
+
+class RecallSettingsOut(RecallSettings):
+    queued_deletes: int = 0
+
+
+class RecallSession(BaseModel):
+    """What the agent learns at session start. No namespace: the agent derives
+    its own from its verified session token."""
+
+    enabled: bool
+    personal: bool
+
+
+class RecallItem(BaseModel):
+    id: str
+    memory: str
+    updated_at: str | None = None
+
+
+class RecallPage(BaseModel):
+    enabled: bool
+    items: list[RecallItem]
+    total: int
+    page: int
+
+
+class ForgetPreviewIn(BaseModel):
+    query: str = Field(min_length=2, max_length=500)
+
+
+class ForgetIn(BaseModel):
+    ids: list[str] = Field(min_length=1, max_length=100)
+
+
+class ForgetPreview(BaseModel):
+    matches: list[RecallItem]
+
+
+class Forgotten(BaseModel):
+    forgotten: int
+    failed: int
+
+
+_MEM_ID = r"^[A-Za-z0-9_:.\-]{1,128}$"
+
+
+def _clean_ids(ids: list[str]) -> list[str]:
+    import re
+
+    out = [i for i in dict.fromkeys(ids) if isinstance(i, str) and re.match(_MEM_ID, i)]
+    if len(out) != len(set(ids)):
+        raise HTTPException(422, "invalid memory id")
+    return out
+
+
+def _require_session_person(ctx: AuthCtx) -> None:
+    """Personal memory belongs to a signed-in person: never the agent (it reads
+    its own way, for the person it acts for), never a personal access token
+    (a credential that outlives the session must not open someone's memory)."""
+    if getattr(ctx, "delegated", False) or ctx.actor_type != "user" or not ctx.actor_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "personal memory is only available to the signed-in person")
+
+
+def _unavailable(e: Exception) -> HTTPException:
+    return HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "recall is temporarily unavailable")
+
+
+async def _setting(ctx: AuthCtx) -> RecallSettings:
+    try:
+        s = await recall_repo.get_setting(ctx.user_id)
+    except Exception as e:  # noqa: BLE001 — no answer means off, surfaced as 503
+        raise _unavailable(e) from None
+    return RecallSettings(configured=recall_service.configured(), enabled=s.enabled, updated_at=s.updated_at)
+
+
+def _items(items) -> list[RecallItem]:
+    return [RecallItem(id=m.id, memory=m.memory, updated_at=m.updated_at) for m in items]
+
+
+@router.get("/recall/settings", response_model=RecallSettings)
+async def recall_settings(ctx: AuthCtx = CurrentUser) -> RecallSettings:
+    return await _setting(ctx)
+
+
+@router.put("/recall/settings", response_model=RecallSettingsOut)
+async def update_recall_settings(body: RecallSettingsIn, background: BackgroundTasks, ctx: AuthCtx = CurrentUser) -> RecallSettingsOut:
+    """security:manage (policy), a person only. On: seed team memory. Off:
+    reads and writes stop; with ``delete_data`` every namespace of the
+    workspace is queued for deletion."""
+    _person_only(ctx)
+    if body.enabled and not recall_service.configured():
+        raise HTTPException(status.HTTP_409_CONFLICT, "recall is not configured on this deployment")
+    try:
+        s = await recall_repo.set_setting(ctx.user_id, body.enabled)
+        queued = 0
+        if not body.enabled and body.delete_data:
+            queued = await recall_service.enqueue_workspace(ctx.user_id, "recall.disabled")
+    except Exception as e:  # noqa: BLE001
+        raise _unavailable(e) from None
+    await audit.record(
+        ctx, "memory.recall_setting", outcome="success", target_type="workspace",
+        metadata={"enabled": body.enabled, "delete_data": bool(body.delete_data and not body.enabled), "queued": queued},
+    )
+    if body.enabled:
+        background.add_task(recall_service.sync_team, ctx.user_id)
+    return RecallSettingsOut(configured=recall_service.configured(), enabled=s.enabled, updated_at=s.updated_at, queued_deletes=queued)
+
+
+@router.get("/recall/session", response_model=RecallSession)
+async def recall_session(ctx: AuthCtx = CurrentUser) -> RecallSession:
+    """The agent only (agent:chat via policy). ``personal`` is true when the
+    backend verified the person in ``x-actor-id``; only then may the agent read
+    or write their personal memory. Off (or any doubt) means no recall."""
+    if not getattr(ctx, "delegated", False):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "agent only")
+    try:
+        on = await recall_service.enabled(ctx.user_id)
+        personal = bool(on and ctx.actor_id)
+        if personal:
+            await recall_repo.register_subject(ctx.user_id, ctx.actor_id, ctx.org_id or None)
+    except Exception as e:  # noqa: BLE001 — the agent treats any failure as off
+        raise _unavailable(e) from None
+    return RecallSession(enabled=on, personal=personal)
+
+
+@router.get("/personal", response_model=RecallPage)
+async def list_personal(ctx: AuthCtx = CurrentUser, page: int = Query(default=1, ge=1, le=1000), limit: int = Query(default=50, ge=1, le=100)) -> RecallPage:
+    _require_session_person(ctx)
+    setting = await _setting(ctx)
+    target = recall_service.personal_scope(ctx)
+    if not (setting.configured and setting.enabled) or target is None:
+        return RecallPage(enabled=False, items=[], total=0, page=page)
+    try:
+        items, total = await recall_service.client().list_memories(target, page=page, limit=limit)
+    except SupermemoryError as e:
+        raise _unavailable(e) from None
+    return RecallPage(enabled=True, items=_items(items), total=total, page=page)
+
+
+@router.post("/personal/forget/preview", response_model=ForgetPreview, dependencies=[user_rate_limit("memory.forget_preview", "20/minute")])
+async def preview_forget_personal(body: ForgetPreviewIn, ctx: AuthCtx = CurrentUser) -> ForgetPreview:
+    """Semantic dry run: which of MY memories match. Changes nothing."""
+    _require_session_person(ctx)
+    target = recall_service.personal_scope(ctx)
+    if not recall_service.configured() or target is None:
+        return ForgetPreview(matches=[])
+    try:
+        result = await recall_service.client().forget_preview(target, body.query)
+    except SupermemoryError as e:
+        if e.not_found:
+            return ForgetPreview(matches=[])
+        raise _unavailable(e) from None
+    return ForgetPreview(matches=_items(result.matches))
+
+
+@router.post("/personal/forget", response_model=Forgotten, dependencies=[user_rate_limit("memory.forget", "20/minute")])
+async def forget_personal(body: ForgetIn, ctx: AuthCtx = CurrentUser) -> Forgotten:
+    """Forget exact memories by id, in MY namespace only. Works while recall is
+    off too: forgetting is never blocked. An id from another namespace is not
+    found there, so it forgets nothing."""
+    _require_session_person(ctx)
+    ids = _clean_ids(body.ids)
+    target = recall_service.personal_scope(ctx)
+    if not recall_service.configured() or target is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "recall is not configured on this deployment")
+    try:
+        result = await recall_service.client().forget(target, ids)
+    except SupermemoryError as e:
+        if e.not_found:
+            return Forgotten(forgotten=0, failed=len(ids))
+        raise _unavailable(e) from None
+    await audit.record(ctx, "memory.forget", outcome="success", target_type="recall_personal", metadata={"kind": "personal", "count": result.count, "failed": result.errors})
+    return Forgotten(forgotten=result.count, failed=result.errors)
+
+
+@router.get("/personal/export", dependencies=[user_rate_limit("memory.export", "5/minute")])
+async def export_personal(ctx: AuthCtx = CurrentUser) -> dict[str, Any]:
+    """Privacy export of MY personal memories (every page)."""
+    _require_session_person(ctx)
+    target = recall_service.personal_scope(ctx)
+    if not recall_service.configured() or target is None:
+        return {"scope": "personal", "configured": False, "memories": []}
+    try:
+        memories = await export_scope(target)
+    except SupermemoryError as e:
+        raise _unavailable(e) from None
+    return {"scope": "personal", "configured": True, "memories": memories}
+
+
+async def export_scope(target, max_pages: int = 50) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    sm = recall_service.client()
+    for page in range(1, max_pages + 1):
+        items, total = await sm.list_memories(target, page=page, limit=100)
+        out.extend({"id": m.id, "memory": m.memory, "updated_at": m.updated_at} for m in items)
+        if not items or len(out) >= total:
+            break
+    return out
+
+
+@router.get("/team", response_model=RecallPage)
+async def list_team(ctx: AuthCtx = CurrentUser, page: int = Query(default=1, ge=1, le=1000), limit: int = Query(default=50, ge=1, le=100)) -> RecallPage:
+    """memory:read (policy)."""
+    setting = await _setting(ctx)
+    target = recall_service.team_scope(ctx.user_id)
+    if not (setting.configured and setting.enabled) or target is None:
+        return RecallPage(enabled=False, items=[], total=0, page=page)
+    try:
+        items, total = await recall_service.client().list_memories(target, page=page, limit=limit)
+    except SupermemoryError as e:
+        raise _unavailable(e) from None
+    return RecallPage(enabled=True, items=_items(items), total=total, page=page)
+
+
+@router.post("/team/forget/preview", response_model=ForgetPreview, dependencies=[user_rate_limit("memory.forget_preview", "20/minute")])
+async def preview_forget_team(body: ForgetPreviewIn, ctx: AuthCtx = CurrentUser) -> ForgetPreview:
+    """memory:forget (policy), a person only."""
+    _person_only(ctx)
+    target = recall_service.team_scope(ctx.user_id)
+    if not recall_service.configured() or target is None:
+        return ForgetPreview(matches=[])
+    try:
+        result = await recall_service.client().forget_preview(target, body.query)
+    except SupermemoryError as e:
+        if e.not_found:
+            return ForgetPreview(matches=[])
+        raise _unavailable(e) from None
+    return ForgetPreview(matches=_items(result.matches))
+
+
+@router.post("/team/forget", response_model=Forgotten, dependencies=[user_rate_limit("memory.forget", "20/minute")])
+async def forget_team(body: ForgetIn, ctx: AuthCtx = CurrentUser) -> Forgotten:
+    """memory:forget (policy), a person only."""
+    _person_only(ctx)
+    ids = _clean_ids(body.ids)
+    target = recall_service.team_scope(ctx.user_id)
+    if not recall_service.configured() or target is None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "recall is not configured on this deployment")
+    try:
+        result = await recall_service.client().forget(target, ids)
+    except SupermemoryError as e:
+        if e.not_found:
+            return Forgotten(forgotten=0, failed=len(ids))
+        raise _unavailable(e) from None
+    await audit.record(ctx, "memory.forget", outcome="success", target_type="recall_team", metadata={"kind": "team", "count": result.count, "failed": result.errors})
+    return Forgotten(forgotten=result.count, failed=result.errors)

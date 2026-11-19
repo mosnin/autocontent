@@ -84,6 +84,11 @@ export interface Env {
   DECISION_MODEL?: string;
   /** Per-point modes, e.g. "routing=shadow,approval_risk=enforce" (off | shadow | enforce). Unset = each point's default (shadow). */
   DECISION_MODES?: string;
+  /**
+   * Recall (src/marketer/recall, docs/memory/supermemory.md): Supermemory API origin. Empty = https://api.supermemory.ai;
+   * a self-hosted (`supermemory local`) or enterprise endpoint otherwise. https, or http on loopback only.
+   */
+  SUPERMEMORY_BASE_URL?: string;
 
   // --- Secrets (wrangler secret put / .dev.vars) ------------------------------
   OPENAI_API_KEY: string;
@@ -129,6 +134,13 @@ export interface Env {
    * the agents behave exactly as without decision models.
    */
   OPENROUTER_API_KEY?: string;
+  /**
+   * Recall: Supermemory API key (`wrangler secret put SUPERMEMORY_API_KEY`), separate per environment. Read only by
+   * src/marketer/recall/client.ts. Unset = no recall, exactly as before.
+   */
+  SUPERMEMORY_API_KEY?: string;
+  /** Recall: 32+ random bytes, the SAME value as the backend's. Namespaces are HMACs of identity under it. */
+  MEMORY_NAMESPACE_SECRET?: string;
 
   /** Voice module (LiveKit). */
   LIVEKIT_API_KEY?: string;

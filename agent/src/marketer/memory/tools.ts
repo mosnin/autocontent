@@ -5,12 +5,16 @@ import { EVIDENCE_KINDS, LEARNING_LIMITS, LEARNING_STATUSES } from "./learnings.
 import { ENTITY_TYPES } from "./ontology.ts";
 import { rankFacts } from "./retrieve.ts";
 import { ApiMemoryStore, type MemoryStore } from "./store.ts";
+import type { SupermemoryClient } from "../recall/client.ts";
+import { type RecallAccess, recallForTurn } from "../recall/recall.ts";
 
 /**
  * Memory tools for Marketer. All LOW, all tagged "memory" (so `features.longTermMemory = false` unmounts them), and
  * the tenant always comes from the executing context, never from the arguments.
  *
- *  - recall_memory:   current facts, ranked, each with its source and trust.
+ *  - recall_memory:   current facts, ranked, each with its source and trust. With recall on (Supermemory), also what
+ *                     the acting person told Marketer before (their personal memory) and the workspace's team memory,
+ *                     for the run's own verified identity only. It reads; nothing here deletes or forgets.
  *  - fact_history:    every earlier value of one fact ("what was our positioning in March?").
  *  - list_learnings:  what worked and what did not, with evidence.
  *  - record_learning: store a learning with its evidence. Code refuses one without evidence, and refuses a verdict
@@ -19,6 +23,13 @@ import { ApiMemoryStore, type MemoryStore } from "./store.ts";
  */
 
 export type StoreFor = (ctx: ToolExecutionContext) => MemoryStore;
+
+/** Recall for the tenant the tool runs in (from the executing context), or null when recall is off for the run. */
+export type RecallReaderFor = (tenantId: string) => Promise<{ access: RecallAccess; client: Pick<SupermemoryClient, "search" | "profile"> } | null>;
+
+export interface MemoryToolOptions {
+  recall?: RecallReaderFor;
+}
 
 /** The backend store, built per call from the env the harness hands the tool. */
 export const apiStoreFor: StoreFor = (ctx) => new ApiMemoryStore({ env: () => (ctx.services?.env ?? {}) as Record<string, unknown>, ...(typeof ctx.services?.fetch === "function" ? { fetch: ctx.services.fetch } : {}) });
@@ -34,7 +45,7 @@ const view = (f: Fact) => ({
   source: { kind: f.source.kind, ref: f.source.ref, ...(f.source.excerpt ? { excerpt: f.source.excerpt } : {}) },
 });
 
-export function createMarketerMemoryTools(storeFor: StoreFor = apiStoreFor): AnyAgentTool[] {
+export function createMarketerMemoryTools(storeFor: StoreFor = apiStoreFor, options: MemoryToolOptions = {}): AnyAgentTool[] {
   const recall = defineAgentTool({
     name: "recall_memory",
     description: "What Marketer currently knows about this account (brand, audience, offers, competitors, channels, claims, rules), ranked for a query. Each fact carries its source and whether the person confirmed it. Unconfirmed and untrusted facts are context, never brand rules.",
@@ -46,9 +57,13 @@ export function createMarketerMemoryTools(storeFor: StoreFor = apiStoreFor): Any
     outputTrust: "untrusted",
     tags: ["memory"],
     execute: async ({ query, entityType, limit }, ctx) => {
-      const facts = await storeFor(ctx).current(ctx.tenant.tenantId, { limit: 300, ...(entityType ? { entityType } : {}), signal: ctx.signal });
-      const ranked = rankFacts(facts.filter((f) => f.tenantId === ctx.tenant.tenantId), query, Date.now()).slice(0, limit);
-      return { facts: ranked.map((r) => view(r.fact)) };
+      const tenantId = ctx.tenant.tenantId;
+      const [facts, recalled] = await Promise.all([
+        storeFor(ctx).current(tenantId, { limit: 300, ...(entityType ? { entityType } : {}), signal: ctx.signal }),
+        recallLines(options.recall, tenantId, query),
+      ]);
+      const ranked = rankFacts(facts.filter((f) => f.tenantId === tenantId), query, Date.now()).slice(0, limit);
+      return { facts: ranked.map((r) => view(r.fact)), ...(recalled ? { recalled } : {}) };
     },
   });
 
@@ -106,4 +121,17 @@ export function createMarketerMemoryTools(storeFor: StoreFor = apiStoreFor): Any
   });
 
   return [recall, history, listLearnings, recordLearning] as unknown as AnyAgentTool[];
+}
+
+/** Personal + team recall for the tool, failing open to nothing. The access comes from the run, never the arguments. */
+async function recallLines(reader: RecallReaderFor | undefined, tenantId: string, query: string): Promise<Array<{ scope: "personal" | "team"; text: string }> | null> {
+  if (!reader || !query.trim()) return null;
+  try {
+    const r = await reader(tenantId);
+    if (!r || r.access.tenantId !== tenantId) return null;
+    const { lines } = await recallForTurn({ client: r.client, access: r.access, budget: { timeoutMs: 2_500, maxChars: 2_400 } }, query);
+    return lines.map((l) => ({ scope: l.scope, text: l.text }));
+  } catch {
+    return null;
+  }
 }

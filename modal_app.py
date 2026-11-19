@@ -363,6 +363,22 @@ async def campaign_tick() -> dict:
 
 
 @app.function(
+    schedule=modal.Cron("*/10 * * * *"),  # every 10 min
+    timeout=60 * 8,
+)
+async def recall_tick() -> dict:
+    """Supermemory lifecycle (docs/memory/supermemory.md): queue namespace
+    deletes from member.removed / member.left / account / workspace audit rows,
+    delete them until Supermemory confirms (idempotent, retried with backoff,
+    audited as memory.purge), and mirror governed sources into team memory.
+    Needs SUPERMEMORY_API_KEY and MEMORY_NAMESPACE_SECRET in the environment;
+    without them it only queues, and nothing is sent."""
+    from marketer.recall.purge import run_once
+
+    return await run_once()
+
+
+@app.function(
     schedule=modal.Cron("15 * * * *"),  # hourly, offset from other crons
     timeout=60 * 5,
 )
