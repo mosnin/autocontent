@@ -4,6 +4,8 @@ Scope: the Next.js 15 app in `web/`: route handlers, server actions, middleware,
 
 Each finding has a severity, a status and the file that holds the fix. "Open" findings say why they were left and who owns them.
 
+> **Auth moved from Clerk to Better Auth** (ADR 0011, [`docs/auth/web.md`](../auth/web.md)). The findings below were written against Clerk; where the mechanism changed, the text now describes Better Auth. The section "Auth after the move to Better Auth" at the end covers the new surface.
+
 ## Summary
 
 | # | Severity | Finding | Status |
@@ -112,35 +114,34 @@ There were none. `web/next.config.js` now sends, on every response:
 
 Two policies, because the app has two kinds of page.
 
-**Clerk-routed pages** (the app, onboarding, sign-in, sign-up) are rendered per request, so they get a nonce-based policy from the middleware, built by Clerk's own `contentSecurityPolicy` option in strict mode with our directives merged in (`web/lib/security/csp.ts`):
+**Middleware-routed pages** (the app, onboarding and the auth pages: sign-in, sign-up, verify-email, forgot/reset password, two-factor, accept-invitation) are rendered per request, so they get a nonce-based policy from the middleware, built by `buildCsp` in `web/lib/security/csp.ts` (tested in `web/test/auth.test.ts`):
 
 ```
 default-src 'self';
-script-src 'self' 'nonce-…' 'strict-dynamic' 'unsafe-inline' <stripe, maps hosts from Clerk's defaults>;
+script-src 'self' 'nonce-…' 'strict-dynamic';            ('unsafe-eval' in development only)
 style-src 'self' 'unsafe-inline';
-img-src 'self' data: blob: https: https://img.clerk.com;
+worker-src 'self' blob:; frame-src 'none'; form-action 'self'; manifest-src 'self';
+img-src 'self' data: blob: https:;
 font-src 'self' data:;
 media-src 'self' blob: https:;
-connect-src 'self' <Clerk frontend API host> <Clerk telemetry> <agent origin, https and wss> <CSP_CONNECT_SRC>;
-frame-src 'self' https://challenges.cloudflare.com <stripe>;
-worker-src 'self' blob:; form-action 'self';
+connect-src 'self' <agent origin, https and wss> <CSP_CONNECT_SRC>;
 frame-ancestors 'none'; base-uri 'self'; object-src 'none'
 ```
 
-With a nonce present, browsers ignore `'unsafe-inline'` in `script-src`; it is there only as a fallback for browsers without nonce support. Next puts the nonce on its own scripts (checked: every `<script>` on `/sign-in` carries it).
+No third-party auth hosts and no `'unsafe-inline'` script fallback: with the auth provider in-house there is no widget, challenge frame or provider API to allow. Next puts the nonce on its own scripts.
 
-**Static pages** (marketing, legal, the fixture preview) are prerendered. Their inline bootstrap scripts cannot carry a per-request nonce, so `script-src` is `'self' 'unsafe-inline'`. These pages render no user content. The alternative, running the middleware on every page to mint nonces, would make the whole marketing site dynamic and put Clerk in front of it, which the app deliberately avoids. Hashes are not practical: Next's inline payload changes per page and per build.
+**Static pages** (marketing, legal, the fixture preview) are prerendered. Their inline bootstrap scripts cannot carry a per-request nonce, so `script-src` is `'self' 'unsafe-inline'`. These pages render no user content. The alternative, running the middleware on every page to mint nonces, would make the whole marketing site dynamic, which the app deliberately avoids. Hashes are not practical: Next's inline payload changes per page and per build.
 
 Trade-offs taken:
 
-- `style-src 'unsafe-inline'`: React inline styles, Clerk's components and the chart library all set styles inline. Style injection is far weaker than script injection, and removing it would need a nonce on every style.
+- `style-src 'unsafe-inline'`: React inline styles and the chart library set styles inline. Style injection is far weaker than script injection, and removing it would need a nonce on every style.
 - `img-src https:` and `media-src https:`: media comes from presigned object-storage URLs and social CDNs whose hosts vary. Images and video cannot run script.
-- `connect-src` is tight: same origin, Clerk, the agent origin, and anything listed in `CSP_CONNECT_SRC` (for example a Pusher cluster, if live telemetry is switched to it).
+- `connect-src` is tight: same origin, the agent origin, and anything listed in `CSP_CONNECT_SRC` (for example a Pusher cluster, if live telemetry is switched to it).
 - No `'unsafe-eval'` in production. Development builds allow it, because Next's dev runtime needs it.
 
 **Page-transition shader** (`web/vendor/distortion-waves`, wrapped by `web/design-system/components/wave.tsx`). It pictures the DOM by serialising it into an SVG `<foreignObject>` loaded as an image, with stylesheets, fonts and images inlined as data URLs. Both policies therefore allow `img-src 'self' data: blob:`, `font-src 'self' data:` and same-origin `connect-src 'self'` fetches of the page's own CSS and images. It uses no workers, no eval and no third-party calls, so nothing else was opened for it. `web/test/security.test.ts` pins these directives. Checked in a browser against an enforce-mode build, on `/`, `/preview/app/home` and `/preview/onboarding`: an SVG `<foreignObject>` image loads from a `data:` URL and from a `blob:` URL, a `data:` font loads, the page's own stylesheet can be fetched, eval is blocked and a third-party fetch is blocked. The component's own demo page, `/preview/wave`, was then loaded in a production build with the policy in report-only mode and its buttons clicked to run transitions: no policy reports and no page errors.
 
-**Mode.** The full policy is sent as `Content-Security-Policy-Report-Only` until `CSP_MODE=enforce` is set, **at build time and at runtime** (`next.config.js` headers are fixed at build; the middleware reads the variable per request). The reason: sign-in could not be exercised end to end here. This container has only a placeholder Clerk key, and Clerk answers `/sign-in` with a 422 before its widget loads. The policy comes from Clerk's own generator, so the risk is low, but it is unproven against a live instance, the bot challenge and any social login in use.
+**Mode.** The full policy is sent as `Content-Security-Policy-Report-Only` until `CSP_MODE=enforce` is set, **at build time and at runtime** (`next.config.js` headers are fixed at build; the middleware reads the variable per request). Sign-in, two-factor, invitations and the settings screens now run end to end in development under the report-only policy (`web/test/e2e-auth.cjs`); switch to `enforce` once a production build has been watched for reports, including Google sign-in and an SSO round trip, which this container can't reach.
 
 What was verified in enforce mode: the build compiles; each route sends exactly one CSP header; the marketing pages and the preview app shell load with no page errors and no violations other than the one below.
 
@@ -170,7 +171,7 @@ Now the message is `"<status> <detail>"`: the backend's `detail` field for 4xx (
 
 | Check | Result |
 |---|---|
-| Tenant source | Correct. `sub` and `tid` are the Clerk user id from `auth()`. Nothing in the request is read. |
+| Claims | `sub` = the person, `tid` = the active workspace's tenant id, `roles` = [their role], `scopes` = the role's permissions, all from the session and the database (`web/lib/auth/claims.ts`). Nothing in the request is read. Roles without `agent:chat` get 403 and no token. |
 | Expiry | Was 1 hour. Now 15 minutes (`AGENT_SESSION_TTL_SECONDS`, clamped to 1–60 minutes). The browser already refreshes five minutes before expiry. |
 | Constant-time verify | Correct where tokens are verified: the Worker's `verifySessionToken` uses a constant-time compare over the full signature. The web app verifies these tokens nowhere. `web/lib/security/agent-token.ts` has a verifier with the same compare, used by the tests. |
 | Audience | **Open.** The token has no `aud`. In the agent's format, `aud` marks a *restricted* token (widget, voice) and full-user tokens are the ones without it, so adding one from the web side would get every token rejected. Binding the token to the agent needs a change in `agent/` (accept an explicit audience for host tokens). What limits misuse today: the secret is shared only with the Worker, the token carries an `env` claim, and it now expires in 15 minutes. |
@@ -186,7 +187,7 @@ A shorter lifetime means the chat client is rebuilt with the new token every ten
 - Ids from forms (`niche_id`, `job_id`, `article_id`, `token_id`) went into backend paths as-is, so `../users/me` reached a different endpoint. The user's own token was used, so this crossed no tenant boundary, but it let a form reach endpoints the action was not written for. Ids must now match `[A-Za-z0-9_-]{1,128}` (`idSegment` in `web/lib/security/urls.ts`).
 - `connectAyrshareAction` redirected to `login_url` from the backend, and `createCheckoutAction` returned a `url` the client navigates to. Both now require an absolute `https` URL.
 
-Next's server actions already refuse cross-origin posts. Every action calls the backend with the caller's own Clerk token, and the backend scopes by that token; none takes a tenant or user id from the form.
+Next's server actions already refuse cross-origin posts. Every action calls the backend with a JWT minted for the caller's own session, and the backend scopes by it; none takes a tenant or user id from the form.
 
 ### 10–13. XSS sinks and cookies
 
@@ -196,13 +197,13 @@ Next's server actions already refuse cross-origin posts. Every action calls the 
 - **Other links from data** (`postUrl` in `video-detail-view.tsx`, `targetUrl` in `article-detail-view.tsx`, `redirect_url` in `ad-accounts-view.tsx` and the onboarding flow): the same note. React blocks `javascript:`; an `https`-only check (`safeExternalUrl`) would close the rest.
 - **`marketer-theme` cookie** (`web/components/shell/theme.ts`): `path=/; max-age=1 year; samesite=lax`. It is written from the browser, so it cannot be `HttpOnly`. The server only compares it with `"light"`, so a forged value does nothing. It lacks `Secure`. Low; add `; secure` when the page is on https.
 - **Sidebar cookies** (`web/components/ui/sidebar.tsx`, `web/components/square/ui/sidebar.tsx`): no `SameSite`, no `Secure`. Preference only. Low.
-- Clerk sets its own session cookies with its own flags. The web app sets no other cookie, and the proxy now strips `Set-Cookie` from the backend.
+- Better Auth's cookies (`marketer.session_token` and friends): `HttpOnly`, `SameSite=Lax`, `Secure` with the `__Secure-` prefix in production. The proxy strips `Set-Cookie` from the backend.
 
 ### Middleware and public routes
 
-Public by design: the marketing site, `/sign-in`, `/sign-up`, `GET /api/media` and `GET /api/media/file/[id]` (public site images), `robots.txt`, `sitemap.xml`.
+Public by design: the marketing site, the auth pages, `/api/auth/**` (Better Auth's own checks), `GET /api/media` and `GET /api/media/file/[id]` (public site images), `robots.txt`, `sitemap.xml`.
 
-Signed-in only: every app route and `/onboarding` (middleware `auth.protect()`), `/api/agent/**`, `/api/onboarding/**` (middleware and in-route), `/api/proxy/**` (in-route 401), writes to `/api/media` (in-route, admin).
+Signed-in only: every app route and `/onboarding` (an optimistic cookie check in the middleware, then the layout validates the session against the database), `/api/agent/**`, `/api/onboarding/**` (middleware and in-route), `/api/proxy/**` (in-route 401), writes to `/api/media` (in-route, admin).
 
 `/admin` is guarded by its layout, which asks the backend; the backend also enforces admin on every admin endpoint.
 
@@ -210,13 +211,13 @@ Signed-in only: every app route and `/onboarding` (middleware `auth.protect()`),
 
 ### Open redirects
 
-None found. Sign-in and sign-up use fixed `fallbackRedirectUrl`s. Clerk validates its own `redirect_url` parameter against the instance's allowed origins; keep that list tight in the Clerk dashboard. No route or action reads a return URL from the query. `safeReturnPath` exists in `web/lib/security/urls.ts` for when one does. All `next.config.js` redirects go to fixed same-site paths.
+None found. The auth pages read a `next` parameter and accept only a same-site path (`nextPath` in `web/components/auth/next-path.ts`: one leading slash, no `//`, no backslash, no control characters). Better Auth checks every `callbackURL` against `trustedOrigins`, which is the web origin only. All `next.config.js` redirects go to fixed same-site paths.
 
 ### Client exposure
 
-`NEXT_PUBLIC_*` variables in use: `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_AGENT_ORIGIN`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`. All are URLs or a publishable key. Server-only: `CLERK_SECRET_KEY`, `SESSION_SIGNING_SECRET`, `OPENROUTER_API_KEY`, `DECISION_MODEL`.
+`NEXT_PUBLIC_*` variables in use: `NEXT_PUBLIC_API_BASE_URL`, `NEXT_PUBLIC_AGENT_ORIGIN`, `NEXT_PUBLIC_SITE_URL`. All are URLs. Server-only: `BETTER_AUTH_SECRET`, `AUTH_DATABASE_URL`, `RESEND_API_KEY`, `GOOGLE_CLIENT_SECRET`, `SESSION_SIGNING_SECRET`, `OPENROUTER_API_KEY`, `DECISION_MODEL`.
 
-The built client output (`.next/static`) was searched for the secret names, key prefixes, the decision model slug and the mint function. The only hits are two variable *names* in text (a setup hint in the chat's offline state, and Clerk's own env lookup). No values. `lib/agent/session.ts` and the server fetchers import `server-only`.
+The built client output (`.next/static`) was searched for the secret names, key prefixes, the decision model slug and the mint function. The only hit is a variable *name* in text (a setup hint in the chat's offline state). No values. `lib/agent/session.ts` and the server fetchers import `server-only`.
 
 ### Smaller notes
 
@@ -237,20 +238,47 @@ The built client output (`.next/static`) was searched for the secret names, key 
 
 `cd web && npm test` runs `web/test/security.test.ts` on Node's built-in runner (26 tests, no new dependency): the proxy's path allowlist, traversal and host-injection cases, request and response header policy, the same-origin check, body caps, token minting and verification (expired, forged tenant, wrong secret, truncated signature), TTL clamping, the rate limiter, id and URL validation, error shaping, the preview flag and the CSP directives.
 
-The route handlers themselves have no automated tests: the repo has no harness for Next route handlers with Clerk. They were exercised by hand against a production build (see below).
+The route handlers have no unit harness. The auth paths through them (proxy with a minted JWT, agent session, invitations, two-factor, revocation, rate limits) are covered by `web/test/e2e-auth.cjs` against a real Postgres and dev server.
 
 ## What was verified, and what was not
 
-Verified against a production build of this tree, run locally with a placeholder Clerk key:
+Verified (before the auth move) against a production build of this tree:
 
-- every response carries the headers in finding 5; Clerk-routed pages carry a per-request nonce;
+- every response carries the headers in finding 5; middleware-routed pages carry a per-request nonce;
 - `/preview/app/home` and `/preview/onboarding` are 404 by default and 200 with `ENABLE_PREVIEW=1`; in development they are 200;
 - `/api/proxy`: 401 signed out, 404 outside `/api/v1`, 404 on encoded traversal, 403 on a cross-origin post and on a post with no origin;
 - `/api/media`: 401 for a signed-out write, 403 cross-origin, public read still 200;
 - `/api/agent/session` and `/api/onboarding/decisions` refuse signed-out callers.
 
-Not verified, because it needs a real Clerk instance or a running backend:
+Not verified at the time; the signed-in paths are now covered by the e2e test (see the last section):
 
-- any signed-in path: the proxy forwarding with a token, the admin check on media writes, the rate limits returning 429, token minting through the route;
-- the CSP on the Clerk sign-in widget and on signed-in app pages (the reason it is report-only);
+- the admin check on media writes;
 - the agent Worker accepting the 15-minute token (the format and claims are unchanged, only `exp` moved).
+
+## Auth after the move to Better Auth
+
+Better Auth runs inside the web app (`web/lib/auth/config.ts`); details in [`docs/auth/web.md`](../auth/web.md), contract in [`docs/auth/README.md`](../auth/README.md).
+
+| Area | What is in place |
+|---|---|
+| Passwords | 12–128 characters, Have I Been Pwned check (fails closed if the service can't answer), scrypt. Email verified before first sign-in. Reset signs out every session; change signs out the others (forced server-side). |
+| Two-factor | TOTP with 10 backup codes, account lockout after 10 failed codes. Workspaces can require it: the (app) layout sends people to enrol, the backend refuses them meanwhile. |
+| Passkeys | WebAuthn, relying party = the web origin's host. |
+| SSO | OIDC and SAML per workspace with DNS domain verification; only `security:manage` in that workspace can configure it, and every provider belongs to a workspace. SSO-provisioned members get `analyst`. |
+| Sessions | 7 days, refreshed daily; sensitive actions need a session younger than 10 minutes. The session list comes from a server action, so other sessions' tokens never reach the browser (Better Auth's `list-sessions` HTTP endpoint is disabled). |
+| Backend JWT | RS256, 5 minutes, minted server-side per request. The jwt plugin's `/token` endpoint is disabled and `get-session` sets no JWT header. |
+| Roles | Catalog roles only on memberships and invitations; grant ceiling, last owner and self change enforced in hooks. Controls the role lacks are hidden or disabled (`useAllowed`). |
+| Rate limits | In Postgres (serverless-safe): sign-in 5/min, sign-up 3/min, reset 3/hour, two-factor verify 5/min, passkey sign-in 5/min, per client address. |
+| Client address | Never a header the client controls: on Vercel the platform's headers; self-hosted, a configured header and trusted proxies; otherwise none (one shared bucket). See finding A1. |
+| CSRF and redirects | Better Auth's origin and Fetch-Metadata checks on; `trustedOrigins` = the web origin; `next` parameters are same-site paths only. |
+| Impersonation | Disabled for everyone (endpoints off, permission absent). |
+| Audit | Sign-ins (success, failure, two-factor challenge), sign-out, sign-up, email verification, password and two-factor changes, passkeys, session revocation, invitations, role changes, removals, workspace changes, SSO changes, platform admin actions and permission denials go to `public.security_audit_log`, with secrets scrubbed from metadata. Owners and admins see their workspace's rows in Settings. |
+
+### A1. Client-supplied `x-forwarded-for` (Medium, fixed)
+
+The first draft keyed rate limits and the audit log on the first hop of `x-forwarded-for`. Self-hosted `next start` passes that header through from the client, so anyone could pick their own rate-limit bucket. Now one policy (`ipPolicy` in `web/lib/auth/audit.ts`) feeds both: `x-vercel-forwarded-for`/`x-real-ip` on Vercel, `AUTH_IP_HEADER` with `AUTH_TRUSTED_PROXIES` self-hosted (rightmost untrusted hop), and nothing otherwise in production. Tested in `web/test/auth.test.ts`.
+
+### A2. Open
+
+- **Single-instance assumptions in the old in-memory limiter** still apply to `/api/agent/session` and `/api/onboarding/decisions` (finding 14). Better Auth's own limits are in the database.
+- **Google and SSO round trips** were not exercised here (no client credentials or identity provider in this container).
