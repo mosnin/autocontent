@@ -2,7 +2,8 @@
 
 import { Download, Wallet } from "lucide-react";
 import { type FormEvent, type ReactNode, useEffect, useState, useTransition } from "react";
-import { AskPill, Button, Callout, ConfirmModal, EmptyLine, Input, KpiCard, List, ListRow, MoneyInput, Notice, PlanOption, Section, Segmented, Switch, Table, cx, type Palette } from "@/design-system";
+import { AskPill, Button, Callout, ConfirmModal, EmptyLine, Input, KpiCard, List, ListRow, MoneyInput, NotAllowed, Notice, PlanOption, Section, Segmented, Switch, Table, cx, useAllowed, type Palette } from "@/design-system";
+import { authClient } from "@/lib/auth/client";
 import { setThemeCookie, type AppTheme } from "@/components/shell/theme";
 import { createCheckoutAction, updateEmailNotificationsAction, updateUserSettingsAction } from "@/lib/actions";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
@@ -107,6 +108,7 @@ export function AppearanceSection() {
 const PER_VIDEO_USD = estimateVideoCostUsd({ scene_count: 6, image_quality: "medium", video_resolution: "720p", scene_max_duration_sec: 5, target_duration_sec: 60 }).total;
 
 export function SpendCapSection({ initialCap }: { initialCap: string | null }) {
+  const canSet = useAllowed("spend:set_limits");
   const has = initialCap != null && initialCap.trim() !== "";
   const [enabled, setEnabled] = useState(has);
   const [cap, setCap] = useState(has ? initialCap!.trim() : "");
@@ -160,7 +162,8 @@ export function SpendCapSection({ initialCap }: { initialCap: string | null }) {
         </List>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Notice ok={note?.ok} error={note?.error} />
-          <Button type="submit" variant="primary" loading={pending} className="ml-auto">
+          {!canSet && <NotAllowed>Owners and admins set spend caps.</NotAllowed>}
+          <Button type="submit" variant="primary" loading={pending} disabled={!canSet} className="ml-auto">
             Save cap
           </Button>
         </div>
@@ -180,6 +183,7 @@ const PACKS: { key: string; label: string; amount: number; blurb: string; palett
 type Tx = BillingBalance["transactions"][number];
 
 export function BillingSection({ billing }: { billing: BillingBalance | null }) {
+  const canBuy = useAllowed("billing:manage");
   const [buying, setBuying] = useState<string | null>(null);
   const [note, setNote] = useState<Note>(null);
   const [all, setAll] = useState(false);
@@ -227,6 +231,7 @@ export function BillingSection({ billing }: { billing: BillingBalance | null }) 
 
       <Section title="Add credit">
         <div className="space-y-3">
+          {!canBuy && <NotAllowed>Owners, admins and Billing buy credit.</NotAllowed>}
           <div className="grid gap-3 sm:grid-cols-3">
             {PACKS.map((p) => (
               <PlanOption
@@ -237,7 +242,7 @@ export function BillingSection({ billing }: { billing: BillingBalance | null }) 
                 description={p.blurb}
                 highlighted={p.key === "creator"}
                 features={[`About ${Math.floor(p.amount / PER_VIDEO_USD)} videos`, `Provider cost + ${margin}%`, "Prepaid, never owed"]}
-                cta={{ label: buying === p.key ? "Opening checkout…" : `Buy $${p.amount}`, onClick: () => buying === null && void buy(p.key), loading: buying !== null }}
+                cta={{ label: buying === p.key ? "Opening checkout…" : `Buy $${p.amount}`, onClick: () => canBuy && buying === null && void buy(p.key), loading: buying !== null, disabled: !canBuy }}
               />
             ))}
           </div>
@@ -291,6 +296,7 @@ const DATA_ITEMS = ["Your profile and account details", "Every playbook and its 
 const CONFIRM_WORD = "DELETE";
 
 export function PrivacySection({ email }: { email: string | null }) {
+  const canDelete = useAllowed("workspace:delete");
   const [exporting, setExporting] = useState(false);
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
@@ -333,13 +339,8 @@ export function PrivacySection({ email }: { email: string | null }) {
       const res = await fetch("/api/proxy/api/v1/users/me", { method: "DELETE" });
       if (res.status !== 204 && !res.ok) throw new Error(String(res.status));
       // Point of no return: end the session and land on the home page.
-      const clerk = (window as unknown as { Clerk?: { signOut: (o: { redirectUrl: string }) => Promise<void> } }).Clerk;
-      try {
-        if (clerk) await clerk.signOut({ redirectUrl: "/" });
-        else window.location.href = "/";
-      } catch {
-        window.location.href = "/";
-      }
+      await authClient.signOut().catch(() => undefined);
+      window.location.href = "/";
     } catch {
       setDeleting(false);
       setDelError("Couldn't delete your account. Please try again.");
@@ -368,7 +369,7 @@ export function PrivacySection({ email }: { email: string | null }) {
           title="Delete account"
           tone="negative"
           control={
-            <Button variant="danger" onClick={() => setOpen(true)}>
+            <Button variant="danger" onClick={() => setOpen(true)} disabled={!canDelete} title={canDelete ? undefined : "Only an owner can delete the workspace's data."}>
               Delete account
             </Button>
           }

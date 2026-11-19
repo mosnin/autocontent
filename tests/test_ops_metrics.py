@@ -142,33 +142,24 @@ def _reset_limiter():
 
 
 def _make_ops_client(monkeypatch, *, role: str = "admin", suspended: bool = False) -> TestClient:
+    """Platform admin via the session JWT (identity query stubbed); a
+    ``suspended`` admin is a banned person."""
     from marketer.config import settings
-    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    import marketer.repos.users as users_repo
-    from marketer.models import User
+    from marketer.repos import auth_identity
+    from tests.auth_helpers import JwtKit, session_identity
 
-    async def _get(uid):
-        return User(
-            id=_ADMIN_ID, email="admin@marketer.sh", role=role,
-            suspended_at=datetime.now(timezone.utc) if suspended else None,
-            created_at=datetime.now(timezone.utc),
+    kit = JwtKit.install(monkeypatch)
+
+    async def _session(sid, sub, org):
+        return session_identity(
+            person_id=sub, email="admin@marketer.sh", platform_role=role,
+            two_factor_enabled=True, banned=suspended,
         )
 
-    async def _upsert(uid, email):
-        return await _get(uid)
-
-    monkeypatch.setattr(users_repo, "get", _get)
-    monkeypatch.setattr(users_repo, "upsert", _upsert)
-
-    import marketer.repos.tokens as tokens_repo
-    from types import SimpleNamespace
-
-    async def _get_by_token(tok):
-        return SimpleNamespace(user_id=_ADMIN_ID)
-
-    monkeypatch.setattr(tokens_repo, "get_by_token", _get_by_token)
+    monkeypatch.setattr(auth_identity, "session_identity", _session)
+    _H["Authorization"] = f"Bearer {kit.mint(sub=_ADMIN_ID)}"
 
     # Standalone app mounting just the ops router — main.py wiring is done
     # by the orchestrator separately; this test only needs the router +
@@ -180,7 +171,7 @@ def _make_ops_client(monkeypatch, *, role: str = "admin", suspended: bool = Fals
     return TestClient(app, raise_server_exceptions=False)
 
 
-_H = {"Authorization": "Bearer mkt_adminbearertoken"}
+_H: dict[str, str] = {}  # set by _make_ops_client to a freshly minted JWT
 
 
 def test_ops_metrics_requires_admin_403(monkeypatch):

@@ -39,7 +39,7 @@ async def test_export_covers_dynamic_tables_and_scrubs(pool):
         """,
         uid,
     )
-    await tokens_repo.create(user_id=uid, name="cli", expires_at=None)
+    await tokens_repo.create(user_id=uid, name="cli", expires_at=None, role="admin", created_by=uid)
 
     export = await privacy.export_user(uid)
 

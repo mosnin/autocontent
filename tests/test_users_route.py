@@ -66,6 +66,7 @@ def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = N
     import marketer.repos.users as users_repo
     monkeypatch.setattr(users_repo, "get", _fake_get)
     monkeypatch.setattr(users_repo, "upsert", _fake_upsert)
+    monkeypatch.setattr(users_repo, "ensure", _fake_upsert)
     monkeypatch.setattr(users_repo, "update_settings", _fake_update_settings)
 
     from backend.main import create_app

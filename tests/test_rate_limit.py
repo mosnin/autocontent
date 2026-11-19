@@ -48,7 +48,7 @@ def _make_authed_app(monkeypatch, *, user_id: str = "user_test") -> TestClient:
     from datetime import datetime, timezone
     from uuid import uuid4
 
-    async def _fake_create(*, user_id, name, expires_at):
+    async def _fake_create(*, user_id, name, expires_at, **_kw):
         info = PersonalAccessToken(
             id=uuid4(),
             user_id=user_id,

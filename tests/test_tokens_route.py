@@ -62,7 +62,7 @@ def test_create_token_returns_201_with_plaintext(monkeypatch):
     _reset_limiter()
     import marketer.repos.tokens as tokens_repo
 
-    async def _create(*, user_id: str, name: str, expires_at) -> tuple:
+    async def _create(*, user_id: str, name: str, expires_at, **_kw) -> tuple:
         return _make_pat(), _PLAINTEXT
 
     monkeypatch.setattr(tokens_repo, "create", _create)
