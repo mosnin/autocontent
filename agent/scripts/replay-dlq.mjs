@@ -2,7 +2,7 @@
 // replay-dlq.mjs: inspect, replay or purge the events dead-letter queue of ONE tenant.
 //
 // Dead letters are parked in R2 by the DLQ consumer (src/background/dlq.ts). This script
-// calls the operator routes with a session token for that tenant (roles admin/operator):
+// calls the operator routes with a session token for that tenant (a role whose catalog permissions include security:manage: owner or admin; `pnpm seed:dev --token` mints an owner token):
 //
 //   AGENT_BASE_URL=https://agents.example.com AGENT_OPERATOR_TOKEN=... pnpm dlq:replay            # list
 //   ... pnpm dlq:replay --replay                  # re-enqueue every dead letter

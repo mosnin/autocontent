@@ -49,7 +49,8 @@ describe("dev tenant seed (R-APP-08)", () => {
     expect(() => seed.main(["--remote"])).toThrow(/LOCAL/);
     const token = seed.mintDevSessionToken("dev-session-secret-for-tests", { tenantId: "dev_tenant", userId: "dev_user" });
     const claims = await verifySessionToken("dev-session-secret-for-tests", token);
-    expect(claims).toMatchObject({ tid: "dev_tenant", sub: "dev_user", env: "development", roles: ["admin", "operator"] });
+    expect(claims).toMatchObject({ tid: "dev_tenant", sub: "dev_user", env: "development", roles: ["owner"] });
+    expect(claims.scopes).toContain("security:manage");
   });
 });
 
