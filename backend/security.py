@@ -165,9 +165,10 @@ class SecurityHeadersMiddleware:
 async def require_person(ctx: AuthCtx = Depends(require_user)) -> AuthCtx:
     """A signed-in person or their own personal token. Never the agent.
 
-    The agent service token plus ``x-tenant-id`` acts as any tenant, so
-    anything that outlives the call (a personal token carries the tenant's
-    stored role, admin included) or cannot be undone (erasure) is refused."""
+    The agent service token plus ``x-tenant-id`` acts for any workspace, so
+    anything that outlives the call (a personal token) or cannot be undone
+    (erasure) is refused here, on top of the route permission (the agent role
+    holds neither ``api_token:*`` nor ``workspace:delete``)."""
     if getattr(ctx, "delegated", False):
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
