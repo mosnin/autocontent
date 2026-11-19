@@ -3,7 +3,7 @@
 import { Clapperboard, FileText, GalleryHorizontal, Megaphone, Pause, Play, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useRef, useState } from "react";
-import { AskPill, Button, Card, Column, CommitWave, ConfirmModal, EmptyLine, Facts, Field, IconButton, IconTile, Input, KpiCard, List, ListRow, Meter, Notice, PageHeader, Section, Select, StatusBadge, Switch } from "@/design-system";
+import { AskPill, Button, Card, Column, CommitWave, ConfirmModal, EmptyLine, Facts, Field, IconButton, IconTile, Input, KpiCard, List, ListRow, Meter, Notice, PageHeader, Section, Select, StatusBadge, Switch, useAllowed } from "@/design-system";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { PlaybookRef } from "@/lib/business";
 import { formatDate, formatUsd } from "@/lib/format";
@@ -53,6 +53,8 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
   const adName = (id: string) => adCampaigns.find((a) => a.id === id)?.name ?? `Ad campaign ${id.slice(0, 8)}`;
   const lanesOn = overview.items.filter((i) => i.enabled).length;
   const ask = `How is the "${c.name}" campaign going, and what should it add next?`;
+  const canLaunch = useAllowed("campaign:launch");
+  const canPause = useAllowed("campaign:pause");
 
   return (
     <>
@@ -60,12 +62,12 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
         crumbs={[{ label: "Distribution", href: "/distribution" }, { label: c.name }]}
         actions={
           <>
-            {c.status !== "running" && c.status !== "completed" && !isDraft && !launched && (
+            {canLaunch && c.status !== "running" && c.status !== "completed" && !isDraft && !launched && (
               <Button variant="primary" loading={busy === "start"} disabled={busy !== null} onClick={() => void act("start", () => proxyFetch(`/api/v1/campaigns/${c.id}/start`, "POST"))}>
                 <Play /> Start
               </Button>
             )}
-            {c.status === "running" && (
+            {canPause && c.status === "running" && (
               <Button loading={busy === "pause"} disabled={busy !== null} onClick={() => void act("pause", () => proxyFetch(`/api/v1/campaigns/${c.id}/pause`, "POST"))}>
                 <Pause /> Pause
               </Button>
@@ -94,7 +96,7 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
             action={
               launched ? undefined : (
                 <div className="pointer-events-none flex h-full items-end justify-end p-4">
-                  <Button ref={launchBtn} variant="primary" loading={busy === "launch"} disabled={busy !== null || lanesOn === 0} onClick={() => void act("launch", () => proxyFetch(`/api/v1/campaigns/${c.id}/start`, "POST"))}>
+                  <Button ref={launchBtn} variant="primary" loading={busy === "launch"} disabled={!canLaunch || busy !== null || lanesOn === 0} title={canLaunch ? undefined : "Your role can't launch campaigns."} onClick={() => void act("launch", () => proxyFetch(`/api/v1/campaigns/${c.id}/start`, "POST"))}>
                     <Play /> Launch campaign
                   </Button>
                 </div>

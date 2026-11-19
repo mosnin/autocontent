@@ -3,7 +3,7 @@
 import { Brain, ChevronDown, FileQuestion } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { AskPill, Button, Callout, Column, ConfirmModal, CountBadge, EmptyLine, Modal, Notice, PageHeader, PlanCard, Section, Segmented, StatusBadge, Textarea } from "@/design-system";
+import { AskPill, Button, Callout, Column, ConfirmModal, CountBadge, EmptyLine, Modal, Notice, PageHeader, PlanCard, Section, Segmented, StatusBadge, Textarea, useAllowed } from "@/design-system";
 import { formatDate } from "@/lib/format";
 import { confirmFact, correctFact, fetchHistory, forgetFact } from "./client";
 import { Learnings } from "./learnings";
@@ -186,6 +186,7 @@ export function MemoryView({ facts: initial, learnings, loadFailed, preview, ini
                         { label: <>{sourceLabel(fact.source_kind)}{ref ? ` (${ref})` : ""}, {formatDate(fact.source_at)}</> },
                       ]}
                       approveLabel={holder ? "Use the new value" : "Confirm"}
+                      blocked={canConfirm ? undefined : "Your role can read memory but not confirm it."}
                       onApprove={() => confirm(fact)}
                       onDismiss={() => run(fact, () => forgetFact(fact.id), (all) => all.filter((f) => f.id !== fact.id))}
                       approving={busy === fact.id}

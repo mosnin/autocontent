@@ -17,7 +17,7 @@ import { Clapperboard, Download, FolderOpen, GalleryHorizontal, Play, RotateCcw,
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import { AskPill, Button, ButtonLink, Column, EmptyLine, FilterPill, IconTile, Input, List, ListRow, Modal, Notice, PageHeader, PlanCard, Section, Segmented, StatusBadge, LoadMore, usePaged } from "@/design-system";
+import { AskPill, Button, ButtonLink, Column, EmptyLine, FilterPill, IconTile, Input, List, ListRow, Modal, Notice, PageHeader, PlanCard, Section, Segmented, StatusBadge, LoadMore, usePaged, useAllowed } from "@/design-system";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatRelative, titleCase } from "@/lib/format";
 import { proxyFetch } from "@/lib/proxy-fetch";
@@ -320,12 +320,13 @@ function ImagePostRuns({ posts, nicheTitle, onChanged }: { posts: ImagePost[]; n
   const what = (p: ImagePost) => [p.kind === "carousel" ? `Carousel · ${p.payload?.slide_count ?? "?"} slides` : "Still", nicheTitle(p.niche_id)].filter(Boolean).join(" · ");
   const waiting = posts.filter((p) => p.status === "awaiting_approval");
   const rest = posts.filter((p) => p.status !== "awaiting_approval");
+  const canApprove = useAllowed("content:approve");
   return (
     <Section title="Image post runs">
       <div className="space-y-3">
         {waiting.map((p) => (
           <div key={p.id}>
-            <PlanCard title={name(p)} icon={<GalleryHorizontal className="size-3.5 text-on-fill" />} meta="Needs you" steps={[{ label: what(p) }, { label: "Post it once approved" }]} onApprove={() => void act(p, "approve")} approving={busy === p.id} approveLabel="Approve & post" />
+            <PlanCard title={name(p)} icon={<GalleryHorizontal className="size-3.5 text-on-fill" />} meta="Needs you" steps={[{ label: what(p) }, { label: "Post it once approved" }]} onApprove={() => void act(p, "approve")} approving={busy === p.id} approveLabel="Approve & post" blocked={canApprove ? undefined : "Your role can view this but not approve it."} />
             {error?.id === p.id && (
               <div className="px-1 pt-1.5">
                 <Notice error={error.text} />

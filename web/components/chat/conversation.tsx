@@ -25,8 +25,7 @@ import {
   Trace,
   type TraceNode,
   UserBubble,
-  WorkedFor,
-} from "@/design-system";
+  WorkedFor,, useAllowed } from "@/design-system";
 import { DEPARTMENTS, departmentById, type Department, type DepartmentId } from "@/lib/departments";
 import { splitOpenUISegments, type ToolPart } from "@/lib/agent/parts";
 import { departmentForTool, describeTool } from "@/lib/agent/tool-labels";
@@ -450,6 +449,7 @@ function ApprovalBlock({ approval, decider, names }: { approval: ApprovalRequest
     if (!busy) void decider.decide(approval, d);
   };
   const inFlight = decider.pending[approval.approvalId];
+  const canDecide = useAllowed("agent:approve");
   return (
     <div className="space-y-1.5">
       <PlanCard
@@ -463,6 +463,7 @@ function ApprovalBlock({ approval, decider, names }: { approval: ApprovalRequest
         dismissing={busy && inFlight === "reject"}
         decided={pending ? undefined : approval.status === "APPROVED" ? "Approved" : approval.status === "REJECTED" ? "Dismissed" : "Expired"}
         approved={approval.status === "APPROVED"}
+        blocked={canDecide ? undefined : "Your role can't approve agent actions. Someone who can will see this in Activity."}
       />
       {err && <Notice error={err.message} />}
     </div>

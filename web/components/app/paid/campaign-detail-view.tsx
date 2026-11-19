@@ -3,7 +3,7 @@
 import { Pause, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
-import { AskPill, Button, Callout, Card, ChartCard, Column, CommitWave, ConfirmModal, Facts, Field, KpiCard, LineChart, MoneyInput, Notice, PageHeader, Section, StatusBadge, Table } from "@/design-system";
+import { AskPill, Button, Callout, Card, ChartCard, Column, CommitWave, ConfirmModal, Facts, Field, KpiCard, LineChart, MoneyInput, Notice, PageHeader, Section, StatusBadge, Table, useAllowed } from "@/design-system";
 import { adsErrorMessage, changeBudget, changeCampaignStatus, isPendingApproval, type AdAccount, type AdCampaign, type AdMetricsDaily } from "@/lib/ads-client";
 import { formatCompact, formatDate, formatUsd } from "@/lib/format";
 import { useAutoRefresh } from "@/lib/proxy-fetch";
@@ -66,7 +66,8 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
     }
   }
 
-  const canActivate = campaign.status !== "active" && campaign.status !== "ended" && !isDraft && !launched;
+  const mayLaunch = useAllowed("campaign:launch");
+  const canActivate = mayLaunch && campaign.status !== "active" && campaign.status !== "ended" && !isDraft && !launched;
   const budgetLine = campaign.daily_budget_usd ? `${formatUsd(campaign.daily_budget_usd)} a day` : "its daily budget";
   const where = account ? platformLabel(account.platform) : "the platform";
   const recent = [...sorted].reverse().slice(0, 14);
@@ -122,7 +123,7 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
             action={
               launched ? undefined : (
                 <div className="pointer-events-none flex h-full items-end justify-end p-4">
-                  <Button ref={launchBtn} variant="primary" onClick={() => void onStatus("active")} loading={busy === "active"} disabled={busy !== null || Boolean(account?.killswitch)}>
+                  <Button ref={launchBtn} variant="primary" onClick={() => void onStatus("active")} loading={busy === "active"} disabled={!mayLaunch || busy !== null || Boolean(account?.killswitch)} title={mayLaunch ? undefined : "Your role can't launch campaigns."}>
                     <Play /> Launch campaign
                   </Button>
                 </div>

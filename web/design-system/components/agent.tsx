@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { decideInboxItem, type InboxKind } from "@/lib/workspace";
 import { cx } from "../cx";
+import { useAllowed } from "./access";
 import { Notice, usePending } from "./kit";
 import { AgentGlyph, Button, NumberKey, StepMark, type ToolTone } from "./primitives";
 import { CommitWave } from "./wave";
@@ -247,6 +248,7 @@ export function PlanCard({
   decided,
   approved,
   approveLabel = "Approve & Run",
+  blocked,
   className,
 }: {
   title: string;
@@ -267,6 +269,12 @@ export function PlanCard({
    */
   approved?: boolean;
   approveLabel?: string;
+  /**
+   * The person's role can't decide this (useAllowed said no): the buttons are
+   * replaced by this one line, e.g. "Marketers and admins approve this." The
+   * server refuses the decision anyway; this only keeps the UI honest.
+   */
+  blocked?: string;
   className?: string;
 }) {
   const [open, setOpen] = useState(true);
@@ -342,6 +350,19 @@ export function PlanCard({
     </span>
   );
 
+  if (blocked && !decided) {
+    return (
+      <div className={cx("ds-enter rounded-ds-lg border border-hairline bg-surface", className)}>
+        {head}
+        <div className={FOOT}>
+          <span className="mr-auto text-[12.5px] text-fg-muted" data-testid="approval-blocked">
+            {blocked}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   if (!waves) {
     return (
       <div className={cx("ds-enter rounded-ds-lg border border-hairline bg-surface", className)}>
@@ -407,6 +428,8 @@ export function ApprovalCard({
 }) {
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
+  // Ad changes move money (spend:approve); videos and carousels are content (content:approve).
+  const allowed = useAllowed(item.kind === "ad_change" ? "spend:approve" : "content:approve");
   const { busy, error, run } = usePending<"approve" | "reject">();
   const [done, setDone] = useState<"approve" | "reject" | null>(null);
 
@@ -437,6 +460,7 @@ export function ApprovalCard({
         dismissing={busy === "reject"}
         decided={done ? (done === "approve" ? "Approved" : "Dismissed") : undefined}
         approved={done === "approve"}
+        blocked={allowed ? undefined : "Your role can view this but not approve it."}
       />
       {error && (
         <div className="px-1 pt-1.5">
