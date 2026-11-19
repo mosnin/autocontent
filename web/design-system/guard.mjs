@@ -8,7 +8,7 @@ import { join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(fileURLToPath(import.meta.url), "..", "..");
-const SCOPES = ["app/(app)", "app/(onboarding)", "app/preview/app", "app/preview/onboarding", "components/shell", "components/chat", "components/home", "components/app", "components/onboarding", "design-system"];
+const SCOPES = ["app/(app)", "app/(onboarding)", "app/(auth)", "app/preview/auth", "components/auth", "app/preview/app", "app/preview/onboarding", "components/shell", "components/chat", "components/home", "components/app", "components/onboarding", "design-system"];
 const RAW_COLOUR_OK = new Set(["design-system/components/shader.tsx", "design-system/components/surfaces.tsx"]);
 
 const RULES = [

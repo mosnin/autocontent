@@ -55,11 +55,11 @@ export function PasswordSection() {
 }
 
 /** Two-factor enrolment: password → QR + backup codes → one code to confirm. Also used by /two-factor/setup. */
-export function TwoFactorSection({ enabled: initialEnabled, onEnabled, title = "Two-factor authentication" }: { enabled: boolean; onEnabled?: () => void; title?: string }) {
+export function TwoFactorSection({ enabled: initialEnabled, onEnabled, title = "Two-factor authentication", previewSetup }: { enabled: boolean; onEnabled?: () => void; title?: string; /** Fixture previews: open at the scan step with this made-up setup. */ previewSetup?: { totpURI: string; backupCodes: string[] } }) {
   const [enabled, setEnabled] = useState(initialEnabled);
-  const [step, setStep] = useState<"idle" | "password" | "scan">("idle");
+  const [step, setStep] = useState<"idle" | "password" | "scan">(previewSetup ? "scan" : "idle");
   const [password, setPassword] = useState("");
-  const [setup, setSetup] = useState<{ totpURI: string; backupCodes: string[] } | null>(null);
+  const [setup, setSetup] = useState<{ totpURI: string; backupCodes: string[] } | null>(previewSetup ?? null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

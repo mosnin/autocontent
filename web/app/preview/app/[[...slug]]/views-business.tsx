@@ -59,6 +59,9 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   // Auth settings. Add ?role=analyst (or admin, marketer, billing) to see what each role sees.
   "settings/security": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="security" />,
   "settings/team": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="team" />,
+  "settings/team/admin": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings("admin")} previewSessions={FX_SESSIONS} initialTab="team" />,
+  "settings/team/analyst": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings("analyst")} previewSessions={FX_SESSIONS} initialTab="team" />,
+  "settings/workspace/analyst": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings("analyst")} previewSessions={FX_SESSIONS} initialTab="workspace" />,
   "settings/workspace": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="workspace" />,
   admin: () => <AdminOverviewView overview={FX_ADMIN_OVERVIEW} />,
   "admin/users": () => <UsersClient initial={FX_ADMIN_USERS} />,
