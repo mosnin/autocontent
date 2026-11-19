@@ -4,7 +4,7 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -13,9 +13,10 @@ from slowapi.middleware import SlowAPIMiddleware
 from marketer.config import settings
 from marketer.logging import configure as _configure_logging
 
+from . import policy
 from .rate_limit import limiter
 from .security import BodySizeLimitMiddleware, SecurityHeadersMiddleware
-from .routes import admin, ads, articles, billing, brand_kit, calendar, campaigns, connect, decisions, failures, healthz, image_posts, jobs, kits, library, memory, metrics, niches, ops, performance, providers, spend, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, workspace, x402
+from .routes import admin, ads, articles, audit_log, billing, brand_kit, calendar, campaigns, connect, decisions, failures, healthz, image_posts, jobs, kits, library, memory, metrics, niches, ops, performance, providers, spend, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, workspace, x402
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,14 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     _configure_logging()
 
-    app = FastAPI(title="marketer api", version="0.1.0", lifespan=_lifespan)
+    # One enforcement point for route permissions (backend/policy.py): every
+    # route gets this dependency; the table decides what it requires.
+    app = FastAPI(
+        title="marketer api",
+        version="0.1.0",
+        lifespan=_lifespan,
+        dependencies=[Depends(policy.enforce_policy)],
+    )
 
     # ── Rate limiting (must be registered before CORS middleware) ─────────────
     app.state.limiter = limiter
@@ -139,6 +147,7 @@ def create_app() -> FastAPI:
     app.include_router(workspace.router, prefix="/api/v1/workspace", tags=["workspace"])
     app.include_router(decisions.router, prefix="/api/v1/decisions", tags=["decisions"])
     app.include_router(memory.router, prefix="/api/v1/memory", tags=["memory"])
+    app.include_router(audit_log.router, prefix="/api/v1/audit-log", tags=["audit"])
 
     # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
     # when enabled this serves the functions at /api/inngest.
@@ -148,6 +157,9 @@ def create_app() -> FastAPI:
         inngest_app.mount(app)
     except Exception:  # noqa: BLE001 — workflow wiring must never break boot
         logger.warning("inngest mount skipped", exc_info=True)
+
+    # After every route exists: index the permission table by route.
+    policy.install(app)
 
     # ── OpenTelemetry FastAPI per-app instrumentation ──────────────────────
     # Called AFTER routes are registered so the instrumentor captures the
