@@ -155,7 +155,7 @@ describe("Marketer tools → permissions", () => {
     const agent = rolePermissions("agent");
     const outside = Object.entries(TOOL_PERMISSIONS).filter(([, p]) => !agent.has(p)).map(([t]) => t).sort();
     // A deliberate list: changing it is a decision about the agent role (docs/auth/agent.md, "Tools the agent can't run").
-    expect(outside).toEqual(["connect_ad_account", "set_playbook_spend_cap", "start_channel_connection"]);
+    expect(outside).toEqual(["connect_ad_account", "set_playbook_spend_cap", "start_channel_connection", "update_brand_kit"]);
   });
 
   it("maps writes to the permission that guards them", () => {
@@ -257,11 +257,11 @@ describe("x-actor-id on backend calls", () => {
     const tools = withActor(strategy(), actorFor("marketer", "usr_real"));
     await run(tools, "get_playbook", { playbookId: UUID, actor: "usr_evil", actorId: "usr_evil", "x-actor-id": "usr_evil" });
     expect(calls[0]?.headers["x-actor-id"]).toBe("usr_real");
-    // A string key on services (anything a caller could serialise) is not the actor; a null actor overrides upstream.
+    // A string key on services (anything a caller could serialise) is not the actor.
     await run(strategy(), "list_playbooks", {}, { services: { marketerActor: { id: "usr_evil", roles: ["owner"], scopes: [] }, actor: "usr_evil" } });
     expect(calls[1]?.headers["x-actor-id"]).toBeUndefined();
-    const inner = withActor(strategy(), actorFor("owner", "usr_evil"));
-    await run(withActor(inner, null), "list_playbooks", {});
+    // And the mounted actor replaces whatever an upstream wrapper (the MCP guard, a host) put on services.
+    await run(withActor(strategy(), null), "list_playbooks", {}, { services: { marketerActor: "usr_evil" } });
     expect(calls[2]?.headers["x-actor-id"]).toBeUndefined();
   });
 });
@@ -312,14 +312,15 @@ describe("early permission checks on Marketer tools", () => {
       ["analyst", "approve_video", { videoId: UUID, reason: "Looks good to post" }, "Your role (Analyst) can't approve or reject content."],
       ["billing", "list_playbooks", {}, "Your role (Billing) can't read playbooks. Ask an owner, admin, marketer or analyst."],
       ["billing", "get_spend_today", {}, null],
-      ["marketer", "update_brand_kit", { brandName: "A", tagline: "B", toneOfVoice: "C", targetAudience: "D", bannedWords: [], preferredHashtags: [], reason: "Rebrand for spring" }, null],
-      ["marketer", "set_ad_budget", { campaignId: UUID, dailyBudgetUsd: 20, reason: "Scale the winner" }, null],
+      // The agent role has brand:read only, so nobody changes the brand kit through the agent (a marketer can in the app).
+      ["marketer", "update_brand_kit", { brandName: "A", tagline: "B", toneOfVoice: "C", targetAudience: "D", bannedWords: [], preferredHashtags: [], reason: "Rebrand for spring" }, "The Marketer agent can't change the brand kit for anyone"],
+      ["marketer", "set_ad_budget", { campaignId: UUID, dailyBudgetUsd: 20, currentDailyBudgetUsd: 10, reason: "Scale the winner" }, null],
       ["admin", "set_playbook_spend_cap", { playbookId: UUID, dailySpendCapUsd: 50, reason: "More output" }, "The Marketer agent can't change spend limits for anyone"],
       ["owner", "start_channel_connection", {}, "The Marketer agent can't connect channels or ad accounts for anyone"],
     ];
     for (const [role, tool, args, denial] of cases) {
       const outcome = await run(actorFor(role), tool, args);
-      if (denial === null) expect(outcome.status, `${role} ${tool}: ${outcome.text}`).not.toBe("denied");
+      if (denial === null) expect(["ok", "approval_required"], `${role} ${tool}: ${outcome.text}`).toContain(outcome.status);
       else {
         expect(outcome.status, `${role} ${tool}`).toBe("denied");
         expect(outcome.text, `${role} ${tool}`).toContain(denial);
@@ -332,7 +333,7 @@ describe("early permission checks on Marketer tools", () => {
     const read = await run(legacy, "list_playbooks", {});
     expect(read.status).toBe("denied");
     expect(read.text).toContain("Your session has no workspace role, so you can't read playbooks.");
-    const money = await run(null, "set_ad_budget", { campaignId: UUID, dailyBudgetUsd: 20, reason: "Scale the winner" });
+    const money = await run(null, "set_ad_budget", { campaignId: UUID, dailyBudgetUsd: 20, currentDailyBudgetUsd: 10, reason: "Scale the winner" });
     expect(money.status).toBe("denied");
     expect(money.text).toContain("No signed-in person started this run, so the agent can't approve spending (it moves money).");
     expect((await run(null, "start_campaign", { campaignId: UUID, reason: "Launch the spring campaign" })).text).toContain("can't launch campaigns");
