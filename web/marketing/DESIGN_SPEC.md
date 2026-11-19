@@ -113,7 +113,7 @@ images.
 /resources/guides/agent-driven-marketing
 /resources/changelog
 /resources/faq
-/sign-in, /sign-up      (existing Clerk routes — link, don't rebuild)
+/sign-in, /sign-up      (the auth pages — link, don't rebuild)
 
 ## Shared components (web/components/marketing/system/)
 

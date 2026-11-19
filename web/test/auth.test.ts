@@ -147,9 +147,9 @@ test("the backend JWT payload is exactly sub, sid, org, email with a 5 minute li
 });
 
 test("agent token claims: person, tenant, one role, that role's permissions", async () => {
-  const c = agentTokenClaims({ personId: "person_1", tenantId: "user_clerk_legacy", role: "analyst" });
+  const c = agentTokenClaims({ personId: "person_1", tenantId: "user_2legacyTenant", role: "analyst" });
   assert.equal(c.sub, "person_1");
-  assert.equal(c.tid, "user_clerk_legacy");
+  assert.equal(c.tid, "user_2legacyTenant");
   assert.deepEqual(c.roles, ["analyst"]);
   assert.deepEqual(c.scopes, permissionsFor("analyst"));
   assert.ok(!c.scopes.includes("campaign:launch") && !c.scopes.includes("agent:approve"));
