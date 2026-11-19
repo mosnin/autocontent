@@ -187,39 +187,47 @@ test("capped JSON: parsed, or undefined when it is not JSON", async () => {
 
 const SECRET = "test-signing-secret-0123456789";
 
-test("a minted token verifies and carries the user as subject and tenant", async () => {
+const SUBJECT = { sub: "person_abc", tid: "tenant_xyz", roles: ["analyst"], scopes: ["analytics:read", "agent:chat"] };
+
+test("a minted token verifies and carries the person, the tenant, the role and its scopes", async () => {
   const t0 = 1_700_000_000_000;
-  const { token, expiresAt } = await mintAgentToken(SECRET, "user_abc", { now: () => t0 });
+  const { token, expiresAt } = await mintAgentToken(SECRET, SUBJECT, { now: () => t0 });
   assert.equal(expiresAt, t0 + 900_000);
   const claims = await verifyAgentToken(SECRET, token, { now: () => t0 + 1000 });
   assert.ok(claims);
-  assert.equal(claims.sub, "user_abc");
-  assert.equal(claims.tid, "user_abc");
-  assert.deepEqual(claims.roles, ["owner"]);
+  assert.equal(claims.sub, "person_abc");
+  assert.equal(claims.tid, "tenant_xyz");
+  assert.deepEqual(claims.roles, ["analyst"]);
+  assert.deepEqual(claims.scopes, ["analytics:read", "agent:chat"]);
   assert.equal(claims.env, "development");
   assert.equal(claims.exp - claims.iat, 900);
-  assert.equal((await mintAgentToken(SECRET, "u", { production: true, now: () => t0 })).token.split(".").length, 2);
+  assert.equal((await mintAgentToken(SECRET, SUBJECT, { production: true, now: () => t0 })).token.split(".").length, 2);
 });
 
 test("expired, tampered and wrongly signed tokens are refused", async () => {
   const t0 = 1_700_000_000_000;
-  const { token } = await mintAgentToken(SECRET, "user_abc", { now: () => t0 });
+  const { token } = await mintAgentToken(SECRET, SUBJECT, { now: () => t0 });
   assert.equal(await verifyAgentToken(SECRET, token, { now: () => t0 + 901_000 }), null, "expired");
   assert.equal(await verifyAgentToken("another-signing-secret-000000", token, { now: () => t0 }), null, "wrong secret");
   const [body, sig] = token.split(".") as [string, string];
-  // Swap the tenant, keep the signature.
-  const forged = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(body, "base64url").toString()), sub: "user_victim", tid: "user_victim" })).toString("base64url");
-  assert.equal(await verifyAgentToken(SECRET, `${forged}.${sig}`, { now: () => t0 }), null, "forged tenant");
+  const tamper = (patch: Record<string, unknown>) => Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(body, "base64url").toString()), ...patch })).toString("base64url");
+  assert.equal(await verifyAgentToken(SECRET, `${tamper({ tid: "tenant_victim" })}.${sig}`, { now: () => t0 }), null, "forged tenant");
+  assert.equal(await verifyAgentToken(SECRET, `${tamper({ roles: ["owner"] })}.${sig}`, { now: () => t0 }), null, "forged role");
+  assert.equal(await verifyAgentToken(SECRET, `${tamper({ scopes: ["spend:approve"] })}.${sig}`, { now: () => t0 }), null, "forged scopes");
   assert.equal(await verifyAgentToken(SECRET, `${body}.${sig.slice(0, -2)}`, { now: () => t0 }), null, "truncated signature");
   assert.equal(await verifyAgentToken(SECRET, `${body}.${sig}.x`, { now: () => t0 }), null, "extra part");
   assert.equal(await verifyAgentToken(SECRET, body, { now: () => t0 }), null, "unsigned");
   assert.equal(await verifyAgentToken("", token, { now: () => t0 }), null, "no secret");
 });
 
-test("minting refuses a missing or short secret and an empty user", async () => {
-  await assert.rejects(mintAgentToken("", "user_abc"));
-  await assert.rejects(mintAgentToken("short", "user_abc"));
-  await assert.rejects(mintAgentToken(SECRET, ""));
+test("minting refuses a missing or short secret and an incomplete subject", async () => {
+  await assert.rejects(mintAgentToken("", SUBJECT));
+  await assert.rejects(mintAgentToken("short", SUBJECT));
+  await assert.rejects(mintAgentToken(SECRET, { ...SUBJECT, sub: "" }), "no person");
+  await assert.rejects(mintAgentToken(SECRET, { ...SUBJECT, tid: "" }), "no tenant");
+  await assert.rejects(mintAgentToken(SECRET, { ...SUBJECT, roles: [] }), "no role");
+  await assert.rejects(mintAgentToken(SECRET, { ...SUBJECT, roles: ["owner", "admin"] }), "two roles");
+  await assert.rejects(mintAgentToken(SECRET, { ...SUBJECT, scopes: ["not a scope"] }), "bad scope");
 });
 
 test("token lifetime is clamped to 1–60 minutes", async () => {
@@ -228,7 +236,7 @@ test("token lifetime is clamped to 1–60 minutes", async () => {
   assert.equal(agentTokenTtl("5"), 60);
   assert.equal(agentTokenTtl("600"), 600);
   assert.equal(agentTokenTtl("999999"), 3600);
-  const { expiresAt } = await mintAgentToken(SECRET, "u", { ttlSeconds: 10 ** 9, now: () => 0 });
+  const { expiresAt } = await mintAgentToken(SECRET, SUBJECT, { ttlSeconds: 10 ** 9, now: () => 0 });
   assert.equal(expiresAt, 3_600_000);
 });
 

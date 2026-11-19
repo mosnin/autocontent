@@ -54,17 +54,40 @@ export function agentTokenTtl(raw: string | undefined): number {
   return Math.min(MAX_TTL, Math.max(MIN_TTL, Math.floor(n)));
 }
 
+export interface AgentTokenSubject {
+  /** The person (Better Auth user id). Becomes `sub`; the agent passes it to the backend as x-actor-id. */
+  sub: string;
+  /** The workspace's tenant id. Becomes `tid`. */
+  tid: string;
+  /** Exactly one workspace role. */
+  roles: string[];
+  /** The role's permissions as "resource:action". */
+  scopes: string[];
+}
+
+const SCOPE_RE = /^[a-z_]+:[a-z_]+$/;
+
+function validSubject(s: Partial<AgentTokenSubject> | null | undefined): s is AgentTokenSubject {
+  return (
+    !!s &&
+    typeof s.sub === "string" && s.sub.length > 0 && s.sub.length <= 256 &&
+    typeof s.tid === "string" && s.tid.length > 0 && s.tid.length <= 256 &&
+    Array.isArray(s.roles) && s.roles.length === 1 && typeof s.roles[0] === "string" && s.roles[0].length > 0 &&
+    Array.isArray(s.scopes) && s.scopes.every((x) => typeof x === "string" && SCOPE_RE.test(x))
+  );
+}
+
 /**
- * Mint a token for one signed-in user. `userId` must come from the server's
- * own session (Clerk `auth()`), never from the request: it becomes both the
- * subject and the tenant.
+ * Mint a token for one signed-in person acting in one workspace. Every claim
+ * must come from the server's own session and membership lookup, never from
+ * the request (see app/api/agent/session/route.ts).
  */
-export async function mintAgentToken(secret: string, userId: string, opts: { ttlSeconds?: number; production?: boolean; now?: () => number } = {}): Promise<{ token: string; expiresAt: number }> {
+export async function mintAgentToken(secret: string, subject: AgentTokenSubject, opts: { ttlSeconds?: number; production?: boolean; now?: () => number } = {}): Promise<{ token: string; expiresAt: number }> {
   if (!secret || secret.length < 16) throw new Error("session signing secret is missing or too short");
-  if (!userId) throw new Error("a user id is required");
+  if (!validSubject(subject)) throw new Error("a person, a tenant, one role and its scopes are required");
   const ttl = Math.min(MAX_TTL, Math.max(MIN_TTL, Math.floor(opts.ttlSeconds ?? DEFAULT_AGENT_TOKEN_TTL_SECONDS)));
   const now = Math.floor((opts.now ?? Date.now)() / 1000);
-  const claims: AgentClaims = { sub: userId, tid: userId, roles: ["owner"], scopes: [], iat: now, exp: now + ttl, env: opts.production ? "production" : "development" };
+  const claims: AgentClaims = { sub: subject.sub, tid: subject.tid, roles: [...subject.roles], scopes: [...subject.scopes], iat: now, exp: now + ttl, env: opts.production ? "production" : "development" };
   const body = b64url(JSON.stringify(claims));
   return { token: `${body}.${b64url(await hmac(secret, body))}`, expiresAt: claims.exp * 1000 };
 }
@@ -85,7 +108,7 @@ export async function verifyAgentToken(secret: string, token: string, opts: { no
   } catch {
     return null;
   }
-  if (typeof claims.sub !== "string" || !claims.sub || claims.tid !== claims.sub || !Number.isInteger(claims.exp)) return null;
+  if (!validSubject(claims) || !Number.isInteger(claims.exp)) return null;
   if (claims.exp * 1000 < (opts.now ?? Date.now)()) return null;
   return claims;
 }
