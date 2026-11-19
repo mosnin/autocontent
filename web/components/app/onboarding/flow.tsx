@@ -15,6 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type
 import { AgentGlyph, Button, Callout, Chip, CommitWave, cx, Field, GlassCard, IconTile, Input, Kbd, NumberKey, Shader, StatusBadge, StepMark, Textarea, WorkspaceLogo } from "@/design-system";
 import { decideWithin, type DecisionQuestion } from "../../../../.intent-onboarding/packages/core/src/decisions.ts";
 import { httpDecisions } from "../../../../.intent-onboarding/packages/decisions-jev/src/http.ts";
+import { authClient } from "@/lib/auth/client";
 
 export interface OnboardingProps {
   email: string;
@@ -25,6 +26,8 @@ export interface OnboardingProps {
   /** Saved brand kit, if any (takes precedence over inference). */
   savedBrand: string | null;
   channelsConnected: boolean;
+  /** The workspace onboarding created; renamed to the brand when the person confirms it. Null in previews. */
+  workspaceId?: string | null;
 }
 
 type Intent = "short_video" | "blog" | "ads" | "nothing_yet";
@@ -249,6 +252,8 @@ export function OnboardingFlow(props: OnboardingProps) {
     if (screen === "confirm") {
       if (!brand.trim()) return setEditing(true);
       void call("/api/v1/brand-kit", { method: "PUT", body: JSON.stringify(await brandKitPayload(brand.trim())) }).catch(() => undefined);
+      // The workspace was named from the email domain; it takes the confirmed brand's name.
+      if (props.workspaceId) void authClient.organization.update({ organizationId: props.workspaceId, data: { name: brand.trim().slice(0, 64) } }).catch(() => undefined);
       if (!preselectStarted.current) {
         preselectStarted.current = true;
         void preselectIntent({ brand: brand.trim(), website: domain, emailDomain: props.email.split("@")[1]?.toLowerCase() ?? null })

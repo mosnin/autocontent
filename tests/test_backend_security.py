@@ -31,7 +31,7 @@ H = {"Authorization": "Bearer mkt_x"}
 NICHE_ID = UUID("22222222-2222-2222-2222-222222222222")
 
 
-def _app(monkeypatch, *, user_id: str = USER, delegated: bool = False, role: str = "user"):
+def _app(monkeypatch, *, user_id: str = USER, delegated: bool = False, role: str = "owner"):
     from marketer.config import settings
 
     monkeypatch.setattr(settings, "auth_jwks_url", "")
@@ -40,7 +40,10 @@ def _app(monkeypatch, *, user_id: str = USER, delegated: bool = False, role: str
     from backend.main import create_app
 
     async def _fake():
-        return ctx_for("owner", user_id=user_id, email="p@t.com", role=role, delegated=delegated)
+        return ctx_for(
+            "agent" if delegated else role, user_id=user_id, email="p@t.com",
+            actor_role="owner" if delegated else None,
+        )
 
     app = create_app()
     app.dependency_overrides[require_user] = _fake

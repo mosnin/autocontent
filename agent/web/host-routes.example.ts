@@ -33,7 +33,7 @@ export async function handleAgentWebhook(request: Request): Promise<Response> {
 
 // POST /api/pusher/auth (form: socket_id, channel_name) → private channel auth for `private-tenant-<id>-room-<run|room>`.
 // `user` is YOUR signed-in session (null when there is none). The tenant comes from the session, never the request;
-// the user must own the run (their own conversation id) or be an admin / operator of that tenant.
+// the user must own the run (their own conversation id) or hold a role granting audit:read in that tenant (owner or admin; docs/auth/permissions.json).
 export async function pusherAuth(request: Request, user: { id: string; tenantId: string; roles: string[] } | null): Promise<Response> {
   const form = await request.formData();
   const socketId = form.get("socket_id");
@@ -44,7 +44,7 @@ export async function pusherAuth(request: Request, user: { id: string; tenantId:
   if (!user) return Response.json({ error: "Unauthorized: session invalid or expired." }, { status: 401 });
   const channel = PUSHER_CHANNEL_PATTERN.test(channelName) ? parseTenantChannel(channelName) : null;
   if (!channel || !/^\d+\.\d+$/.test(socketId)) return Response.json({ error: "Malformed channel name." }, { status: 400 });
-  const operator = user.roles.some((role) => role === "admin" || role === "operator");
+  const operator = user.roles.some((role) => role === "owner" || role === "admin");
   if (channel.tenantId !== user.tenantId || !(operator || isConversationOwner(channel.roomId, { tid: user.tenantId, sub: user.id }))) {
     return Response.json({ error: "Access denied: context boundary violation." }, { status: 403 });
   }

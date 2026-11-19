@@ -1,27 +1,46 @@
-import { ClerkProvider, UserButton } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { UserMenu } from "@/components/auth/account-menu";
 import { AppShell } from "@/components/shell/app-shell";
 import { THEME_COOKIE, type AppTheme } from "@/components/shell/theme";
 import type { SetupStep } from "@/components/shell/getting-started";
+import { listMemberships, needsTwoFactor, requireSession } from "@/lib/auth/session";
+import { ensureWorkspace } from "@/lib/auth/workspace";
 import type { BrandKit } from "@/lib/brand-kit-client";
-import type { AyrshareConnectStatus, Job, Niche, User } from "@/lib/types";
+import type { AyrshareConnectStatus, Job, Niche } from "@/lib/types";
 import { shellInbox } from "@/lib/workspace";
 import { getInbox, safe } from "@/lib/workspace-server";
 
-// Every protected page renders Clerk's <UserButton /> in the sidebar, so
-// static prerender would need a real Clerk key. Keep the group dynamic.
+// Every page reads the session and the workspace on the server.
 export const dynamic = "force-dynamic";
 
 /**
  * One shell for the whole product (see PRODUCT_GOAL.md): a quiet sidebar and
- * the page, fed by real workspace state. Every fetch degrades to null so the
- * shell renders even when the API is down.
+ * the page, fed by real workspace state.
+ *
+ * Before anything renders, on the server: a valid session (else sign-in), a
+ * verified email, an active workspace the person belongs to (none yet:
+ * onboarding, or the pending invitation), and two-factor when the workspace
+ * requires it. Every backend fetch degrades to null so the shell renders even
+ * when the API is down.
  */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const h = await headers();
+  const here = h.get("x-pathname") || "/home";
+  const ctx = await requireSession(here);
+  if (!ctx.user.emailVerified) redirect(`/verify-email?email=${encodeURIComponent(ctx.user.email)}`);
+
+  const ws = await ensureWorkspace(ctx, { create: false });
+  if (ws.kind === "invited") redirect(`/accept-invitation/${encodeURIComponent(ws.invitationId)}`);
+  if (ws.kind === "none") redirect("/onboarding");
+  // The active workspace was just chosen: this request's session is stale, so load the page again.
+  if (!ctx.membership) redirect(here);
+  const membership = ws.membership;
+  if (needsTwoFactor({ ...ctx, membership })) redirect(`/two-factor/setup?next=${encodeURIComponent(here)}`);
+
   const theme = ((await cookies()).get(THEME_COOKIE)?.value === "light" ? "light" : "dark") as AppTheme;
-  const [user, inbox, niches, ayrshare, jobs, brand, adAccounts] = await Promise.all([
-    safe<User & { role?: string }>("/api/v1/users/me"),
+  const [all, inbox, niches, ayrshare, jobs, brand, adAccounts] = await Promise.all([
+    listMemberships(ctx.user.id),
     getInbox(),
     safe<Niche[]>("/api/v1/niches"),
     safe<AyrshareConnectStatus>("/api/v1/connect/ayrshare/status"),
@@ -42,11 +61,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { id: "ads", label: "Connect an ad account", detail: "Optional. Let the Media buyer run paid inside your caps.", href: "/paid/connect", done: (adAccounts?.length ?? 0) > 0 },
   ];
 
+  const workspaces = all.map((m) => ({ id: m.organizationId, name: m.organizationName, role: m.role }));
+  const current = workspaces.find((w) => w.id === membership.organizationId) ?? { id: membership.organizationId, name: membership.organizationName, role: membership.role };
+
   return (
-    <ClerkProvider signInUrl="/sign-in" signUpUrl="/sign-up">
-      <AppShell data={{ brandName: brand?.brand_name || "Marketer", inbox: shellInbox(inbox), steps, isAdmin: user?.role === "admin" }} theme={theme} account={<UserButton appearance={{ elements: { avatarBox: "size-6" } }} />}>
-        {children}
-      </AppShell>
-    </ClerkProvider>
+    <AppShell
+      data={{
+        brandName: brand?.brand_name || membership.organizationName,
+        inbox: shellInbox(inbox),
+        steps,
+        isAdmin: (ctx.user as { role?: string | null }).role === "admin",
+        workspace: { current, all: workspaces },
+      }}
+      permissions={membership.permissions}
+      theme={theme}
+      account={<UserMenu name={ctx.user.name} email={ctx.user.email} />}
+    >
+      {children}
+    </AppShell>
   );
 }

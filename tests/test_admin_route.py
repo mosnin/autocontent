@@ -18,35 +18,29 @@ def _reset_limiter():
     limiter._storage.reset()
 
 
-def _make_client(monkeypatch, *, role: str = "admin", suspended: bool = False) -> TestClient:
+def _make_client(
+    monkeypatch, *, role: str = "admin", suspended: bool = False, two_factor: bool = True
+) -> TestClient:
+    """A platform admin signs in with the session JWT; the identity query is
+    stubbed so require_admin's real checks (role, two-factor, ban) run.
+    ``suspended`` now means a banned person (tenant suspension is a
+    workspace matter and does not apply to platform routes)."""
     from marketer.config import settings
-    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    # Stub the auth path at the repo layer so require_admin's real role check runs.
-    import marketer.repos.users as users_repo
+    from marketer.repos import auth_identity
+    from tests.auth_helpers import JwtKit, session_identity
 
-    async def _get(uid):
-        return User(
-            id=_ADMIN_ID, email="admin@marketer.sh", role=role,
-            suspended_at=datetime.now(timezone.utc) if suspended else None,
-            created_at=datetime.now(timezone.utc),
+    kit = JwtKit.install(monkeypatch)
+
+    async def _session(sid, sub, org):
+        return session_identity(
+            person_id=sub, email="admin@marketer.sh", platform_role=role,
+            two_factor_enabled=two_factor, banned=suspended,
         )
 
-    async def _upsert(uid, email):
-        return await _get(uid)
-
-    monkeypatch.setattr(users_repo, "get", _get)
-    monkeypatch.setattr(users_repo, "upsert", _upsert)
-
-    # PAT lookup returns our admin so the bearer resolves.
-    import marketer.repos.tokens as tokens_repo
-    from types import SimpleNamespace
-
-    async def _get_by_token(tok):
-        return SimpleNamespace(user_id=_ADMIN_ID)
-
-    monkeypatch.setattr(tokens_repo, "get_by_token", _get_by_token)
+    monkeypatch.setattr(auth_identity, "session_identity", _session)
+    _H["Authorization"] = f"Bearer {kit.mint(sub=_ADMIN_ID)}"
 
     # Silence the audit writer (no DB).
     import marketer.repos.admin_audit as audit_repo
@@ -64,7 +58,7 @@ def _make_client(monkeypatch, *, role: str = "admin", suspended: bool = False) -
     return client
 
 
-_H = {"Authorization": "Bearer mkt_adminbearertoken"}
+_H: dict[str, str] = {}  # set by _make_client to a freshly minted JWT
 
 
 def test_non_admin_gets_403(monkeypatch):
@@ -78,6 +72,21 @@ def test_suspended_admin_blocked(monkeypatch):
     _reset_limiter()
     client = _make_client(monkeypatch, role="admin", suspended=True)
     resp = client.get("/api/v1/admin/overview", headers=_H)
+    assert resp.status_code == 403
+
+
+def test_admin_without_two_factor_gets_403(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch, role="admin", two_factor=False)
+    resp = client.get("/api/v1/admin/overview", headers=_H)
+    assert resp.status_code == 403
+    assert resp.json()["detail"] == "admin_requires_two_factor"
+
+
+def test_personal_token_never_reaches_admin(monkeypatch):
+    _reset_limiter()
+    client = _make_client(monkeypatch)
+    resp = client.get("/api/v1/admin/overview", headers={"Authorization": "Bearer mkt_x"})
     assert resp.status_code == 403
 
 

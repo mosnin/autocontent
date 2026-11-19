@@ -15,8 +15,8 @@ export function PersistentAgentConsole({ agentId, sessionToken, roles }: { agent
       agentId={agentId}
       token={sessionToken}
       credentials="omit"
-      // The audit route answers 403 for everyone else; this only avoids the request.
-      canReadAudit={roles.includes("security") || roles.includes("admin")}
+      // Roles granting audit:read (docs/auth/permissions.json). The audit route answers 403 for everyone else; this only avoids the request.
+      canReadAudit={roles.includes("owner") || roles.includes("admin")}
     />
   );
 }

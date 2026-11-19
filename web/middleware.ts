@@ -40,6 +40,8 @@ export default function middleware(req: NextRequest) {
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("content-security-policy", policy);
+  // Layouts use it to send people back to where they were (sign-in, two-factor setup).
+  requestHeaders.set("x-pathname", `${pathname}${search}`.slice(0, 2048));
   const res = NextResponse.next({ request: { headers: requestHeaders } });
   res.headers.set(cspReportOnly(process.env) ? "content-security-policy-report-only" : "content-security-policy", policy);
   return res;

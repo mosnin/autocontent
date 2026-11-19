@@ -3,7 +3,7 @@
 //  - Default: a WebSocket straight from the room Durable Object. History arrives on connect as TelemetryEvents,
 //    so a reopened page shows the whole room, not only what happened after it connected.
 //  - With `pusher` (your pusher-js client, channel authorization at the agent app's `POST /api/pusher/auth`, which
-//    lets admin / operator sessions of the tenant watch room channels): the room's Pusher channel
+//    lets sessions holding audit:read (owner, admin) watch the tenant's room channels): the room's Pusher channel
 //    `private-tenant-<tenant>-room-<roomId>` (event `agent-turn-executed`). Pusher carries live events only.
 "use client";
 import { AgentTranscript, type PusherLikeClient, pusherTelemetryChannel, RunGantt, SwarmTimeline, useAgentTelemetry } from "@agent-starter/react";

@@ -34,7 +34,10 @@ def _client(monkeypatch, *, delegated: bool = False) -> TestClient:
     limiter._storage.reset()
 
     async def _fake():
-        return ctx_for("owner", user_id=USER, email="p@t.com", delegated=delegated)
+        return ctx_for(
+            "agent" if delegated else "owner", user_id=USER, email="p@t.com",
+            actor_role="owner" if delegated else None,
+        )
 
     app = create_app()
     app.dependency_overrides[require_user] = _fake

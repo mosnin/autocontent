@@ -104,7 +104,7 @@ AGENT_STARTER_LOCAL_ONLY=1 pnpm dev          # http://localhost:5173, local bind
 $0.15 per conversation, every feature flag off), so an unseeded app stops answering after a few replies.
 `pnpm seed:dev` writes a generous development `TenantConfig` for `dev_tenant` into the **local**
 `TENANT_CONFIG` KV (`wrangler kv key put --local`) and, with `--token`, prints a session token for
-`dev_user` (roles `admin,operator`, 12 h) signed with your local `SESSION_SIGNING_SECRET`. Options:
+`dev_user` (role `owner` with its catalog permissions as scopes, 12 h) signed with your local `SESSION_SIGNING_SECRET`. Options:
 `--tenant <id>`, `--user <id>`, `--roles a,b`, `--email` (enables outbound email), `--print`.
 It refuses `--remote`: production keeps the secure defaults, and real tenants get their limits from your
 SaaS via the signed `PUT /internal/tenants/:tenantId/config`. The ceilings in `agent-starter.config.ts`
@@ -169,7 +169,7 @@ Per-tenant limits/flags: `PUT /internal/tenants/:tenantId/config` (HMAC-signed) 
   in a durable outbox (run registry Durable Object) and retried every minute by the cron, up to 12 times.
 - Live dashboards subscribe to `private-tenant-<tenantId>-room-<runId | roomId>` (event `agent-turn-executed`)
   through `POST /api/pusher/auth` on this Worker (session token required; the run must be the user's own
-  conversation, or the user an admin / operator of the tenant). `web/host-routes.example.ts` has the same route
+  conversation, or the user holds `audit:read`: owner or admin; see `../docs/auth/agent.md`). `web/host-routes.example.ts` has the same route
   for a host app.
 - **Langfuse** receives per-step traces when `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` are set
   (`LANGFUSE_BASE_URL` for EU/US/self-hosted): one trace per submission; model calls become generations with
@@ -212,7 +212,7 @@ console.log(res.status, await res.text());'
 ```
 
 Expect `202` with an event id (a replay of the same request answers `200 { duplicate: true }`). Then watch the job
-with an operator token (`pnpm seed:dev --token` prints one):
+with an operator token (a role granting `security:manage`; `pnpm seed:dev --token` prints an owner token):
 
 - `POST /api/jobs` `{ objective }` starts a job by hand; `GET /api/jobs/:jobId` returns its registry status,
   `budgetUsd` / `maxTurns` (config and tenant limits, the stricter wins) and `vmSeconds` when it used VMs;
@@ -221,7 +221,7 @@ with an operator token (`pnpm seed:dev --token` prints one):
 - Customer-facing calls wait for a person. The approver (OPS_ALERT_EMAIL by default, `tenantApprover` in
   `src/lib/platform.ts`) gets a recipient-bound signed link by email (SendRaven), and the signed telemetry
   webhook carries `approvalId` + `conversationId` (the job id): your SaaS (or `web/JobControlPanel.tsx`) decides
-  with an admin / operator session through `POST /approvals/by-id/:conversationId/:approvalId`
+  with the session of a role granting `agent:approve` (owner, admin or marketer) through `POST /approvals/by-id/:conversationId/:approvalId`
   `{ "decision": "approve" | "reject", "note"?: string }` (Bearer session of that tenant; a cookie only on same-origin
   JSON requests): `202` decided, `409 ALREADY_DECIDED`, `401` without a session, `403` wrong role or tenant.
 - `notify_saas` sends the job result (`job.result`) to `PRIMARY_SAAS_WEBHOOK_URL` with a signed, expiring
