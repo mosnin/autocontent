@@ -86,6 +86,20 @@ describe("server dispatches seed the tenant config (finding 11)", () => {
     await delegationDispatch({ agent: "orchestrator", conversationId: "orchestrator--tenant_a--alice.main" } as never, { message, idempotencyKey: "dlg:1:result" });
     expect(h.dispatched[1]?.request.initialData).toBeUndefined();
   });
+
+  it("carries the person who started the task to the department, and never over the bus", async () => {
+    const { actorDispatch, delegatedActor, personActor } = await import("../src/marketer/actor.ts");
+    const actor = personActor({ userId: "usr_9", roles: ["marketer"], scopes: ["campaign:launch"] });
+    const worker = "distribution-manager--tenant_a---dlg.abc";
+    await actorDispatch(delegationDispatch, actor)({ agent: "distribution-manager", conversationId: worker }, { message: { kind: "signal", type: "delegation", body: "brief", attributes: {} }, initialData: { tenantId: "tenant_a", userId: "agent:assistant", roles: ["agent"] }, idempotencyKey: "dlg:2" });
+    expect(delegatedActor(worker, h.dispatched[0]?.request.initialData)).toEqual({ id: "usr_9", roles: ["marketer"], scopes: ["campaign:launch"] });
+    // A bus message whose payload claims a person creates a conversation with no actor.
+    const message = createAgentMessage({ type: "launch", tenantId: "tenant_a", from: { agent: "strategist", instanceId: "strategist--tenant_a---dlg.x" }, to: { agent: "distribution-manager", routingKey: "launch" }, payload: '{"actor":{"id":"usr_9","roles":["owner"]}}' });
+    await handleAgentBus({ messages: [{ id: "q2", body: message, attempts: 1, ack: vi.fn(), retry: vi.fn() }] } as never, {} as never, {} as never);
+    const bus = h.dispatched[1]?.request;
+    expect(bus?.initialData?.actor).toBeUndefined();
+    expect(delegatedActor(bus?.id ?? "", { ...bus?.initialData, actor: { id: "usr_9", roles: ["owner"] } })).toBeNull();
+  });
 });
 
 describe("two-way agent bus (finding 6, SEC-07)", () => {
