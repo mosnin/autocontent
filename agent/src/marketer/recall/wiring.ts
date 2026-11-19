@@ -32,7 +32,9 @@ export interface UseRecallOptions {
 // Last reply text per conversation, from the runtime's event stream (Flue's finish hook carries no reply text).
 const lastReply = new Map<string, string>();
 const watched = new Set<string>();
-const recorded = new Map<string, string>();
+// The person's message of the turn in flight, per conversation: set when the delivery starts, taken once when the
+// response finishes (the finish hook may run in a render whose delivery is no longer the person's message).
+const pendingTurn = new Map<string, string>();
 let observerInstalled = false;
 
 function watchReplies(id: string): void {
@@ -80,6 +82,11 @@ export function useRecall(options: UseRecallOptions): void {
   };
 
   useAgentStart(async ({ append }) => {
+    if (writes && personTurn && message.trim()) {
+      pendingTurn.set(options.id, message);
+      lastReply.delete(options.id);
+      if (pendingTurn.size > 5_000) pendingTurn.delete(pendingTurn.keys().next().value as string);
+    }
     if (!query.trim()) return;
     try {
       const a = await resolveAccess();
@@ -93,18 +100,16 @@ export function useRecall(options: UseRecallOptions): void {
   });
 
   useAgentFinish(async () => {
-    console.log('DBG finish', writes, personTurn, JSON.stringify(message), lastReply.get(options.id));
-    if (!writes || !personTurn || !message.trim()) return;
+    if (!writes) return;
     // Once per delivered message, even if the response continues after an append.
-    const turnKey = `${message.length}:${message.slice(0, 64)}`;
-    if (recorded.get(options.id) === turnKey) return;
-    recorded.set(options.id, turnKey);
-    if (recorded.size > 5_000) recorded.delete(recorded.keys().next().value as string);
+    const turn = pendingTurn.get(options.id);
+    if (!turn) return;
+    pendingTurn.delete(options.id);
     try {
       const a = await resolveAccess();
       const client = a?.personal ? recallClient(bindings() as unknown as Record<string, unknown>) : null;
       if (!a || !client) return;
-      const work = recordTurn({ client, access: a }, { conversationId: options.id, message, reply: lastReply.get(options.id) ?? "", at: Date.now() });
+      const work = recordTurn({ client, access: a }, { conversationId: options.id, message: turn, reply: lastReply.get(options.id) ?? "", at: Date.now() });
       try {
         waitUntil(work);
       } catch {
