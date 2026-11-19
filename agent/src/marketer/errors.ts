@@ -182,9 +182,22 @@ export class MarketerNotSentError extends AgentError implements MarketerErrorInf
   }
 }
 
+/**
+ * The actor's role does not cover this tool's permission (src/marketer/actor.ts): refused before anything was sent
+ * (definite). The message names the role, what it can't do and who can.
+ */
+export class MarketerPermissionError extends AgentError implements MarketerErrorInfo {
+  readonly kind = "denied" as const;
+  readonly write: boolean;
+  constructor(message: string, write: boolean) {
+    super("TOOL_NOT_ALLOWED", message, { details: { kind: "denied" }, retryable: false });
+    this.write = write;
+  }
+}
+
 /** The typed kind of any error the client throws (undefined for anything else). */
 export function marketerErrorKind(error: unknown): MarketerErrorKind | undefined {
-  if (error instanceof MarketerApiError || error instanceof MarketerUnavailableError || error instanceof MarketerOutcomeUnknownError || error instanceof MarketerNotSentError) return error.kind;
+  if (error instanceof MarketerApiError || error instanceof MarketerUnavailableError || error instanceof MarketerOutcomeUnknownError || error instanceof MarketerNotSentError || error instanceof MarketerPermissionError) return error.kind;
   if (error instanceof AgentError && error.code === "CONFIG_INVALID") return "misconfigured";
   return undefined;
 }

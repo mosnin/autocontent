@@ -72,7 +72,7 @@ class JobStatus(str, Enum):
 
 
 class User(BaseModel):
-    id: str  # Clerk user_id
+    id: str  # tenant id: auth.organization."tenantId" (docs/auth/README.md)
     email: str
     ayrshare_profile_key: str | None = None
     global_daily_cap_usd: Decimal | None = None
@@ -221,6 +221,11 @@ class PersonalAccessToken(BaseModel):
     last_used_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: datetime | None = None
+    # Workspace role the token acts with (at most its creator's role when it
+    # was created) and the person who created it. Tokens from before 0031
+    # are 'admin' with the tenant as creator.
+    role: str = "admin"
+    created_by: str | None = None
 
 
 class NicheCreatePayload(BaseModel):

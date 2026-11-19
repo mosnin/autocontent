@@ -1,5 +1,6 @@
 import { AgentError } from "@agent-starter/core";
 import * as v from "valibot";
+import { actorFromServices } from "./actor-context.ts";
 import { errorDetail, MarketerApiError, MarketerOutcomeUnknownError, MarketerUnavailableError } from "./errors.ts";
 import { type BackendHealth, defaultBackendHealth, READ_RETRY, type ReadRetryPolicy, retryDelayMs } from "./resilience.ts";
 
@@ -12,10 +13,13 @@ export { errorDetail } from "./errors.ts";
  *    to `/api/v1`. It must be https; plain http is accepted only for loopback and private hosts (local dev, a
  *    service network), because the service token rides on every request.
  *  - Auth: `Authorization: Bearer ${SAAS_SERVICE_TOKEN}`. The backend accepts it only when it equals its own
- *    `MARKETER_AGENT_SERVICE_TOKEN` and then acts as the user named by `x-tenant-id` (backend/auth.py, agent
- *    delegation: always role "user", never admin).
+ *    `MARKETER_AGENT_SERVICE_TOKEN` and then acts on the workspace named by `x-tenant-id` with the `agent` role
+ *    (backend/auth.py), never a platform admin.
  *  - Tenant: `x-tenant-id` is ALWAYS `ctx.tenant.tenantId` (server-derived by agentAuth / the ingestion handler /
- *    the control plane). It is never read from tool arguments; Marketer's tenant id is the Clerk user id.
+ *    the control plane). It is never read from tool arguments. It is the workspace's tenant id (docs/auth/README.md).
+ *  - Actor: `x-actor-id` is the person the run acts for, sent only when `withActor` (actor.ts) put one on the call
+ *    from a verified session. The backend then caps the call at agent ∩ that person's role; without it, at the agent
+ *    role minus spend:approve and campaign:launch. Never read from arguments, bus messages or room turns.
  *  - Writes (anything but GET) carry `idempotency-key: ctx.idempotencyKey` (derived from run + call + tool + args).
  *    Write TOOLS refuse to send without one (tools/define.ts).
  *  - Persistent agents get `ctx.services.fetch` (brokered + egress-guarded): the client then sends the request
@@ -218,6 +222,8 @@ export async function marketerApi<T = unknown>(ctx: MarketerCallContext, request
   const write = request.method !== "GET";
   const headers: Record<string, string> = { accept: "application/json", "x-tenant-id": tenantId };
   if (ctx.tenant.userId) headers["x-acting-user"] = ctx.tenant.userId;
+  const actor = actorFromServices(ctx.services);
+  if (actor) headers["x-actor-id"] = actor.id;
   if (write && ctx.idempotencyKey) headers["idempotency-key"] = ctx.idempotencyKey;
   if (request.body !== undefined) headers["content-type"] = "application/json";
   // The broker injects the service token for the API host only; never set it ourselves on that path.

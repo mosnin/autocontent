@@ -1,10 +1,10 @@
-import { AgentError, type AnyAgentTool, defineAgentTool, type TenantSecurityContext, type ToolExecutionContext } from "@agent-starter/core";
+import { type AnyAgentTool, defineAgentTool, type TenantSecurityContext, type ToolExecutionContext } from "@agent-starter/core";
 import type { DelegationDispatch } from "@agent-starter/flue";
 import { isHarnessIdentity } from "../lib/integrations.ts";
 import { AGENT_ROLE, effectiveAgentPermissions, PERMISSION_PHRASE, type Permission, personPermissions, primaryRole, rolePermissions, roleLabel, UNATTENDED_WITHHELD, whoCan } from "../lib/permissions.ts";
 import { departmentConversationKind } from "../multi-agent/roster.ts";
 import { type Actor, makeActor, servicesWithActor } from "./actor-context.ts";
-import { MARKETER_ERROR_TAG } from "./errors.ts";
+import { MARKETER_ERROR_TAG, MarketerPermissionError } from "./errors.ts";
 import { toolPermission } from "./tools/permissions.ts";
 
 export { type Actor, actorFromServices } from "./actor-context.ts";
@@ -108,16 +108,6 @@ export function actorPolicy(actor: Actor | null, inner?: Policy): Policy {
     if (denial) return { allowed: false, reason: denial };
     return inner?.(toolName, args) ?? { allowed: true };
   };
-}
-
-/** Thrown by a wrapped tool whose permission the actor lacks (definite: nothing was sent). */
-export class MarketerPermissionError extends AgentError {
-  readonly kind = "denied" as const;
-  readonly write: boolean;
-  constructor(message: string, write: boolean) {
-    super("TOOL_NOT_ALLOWED", message, { details: { kind: "denied" }, retryable: false });
-    this.write = write;
-  }
 }
 
 type ActorSource = Actor | null | ((ctx: ToolExecutionContext) => Actor | null);
