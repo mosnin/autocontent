@@ -240,6 +240,17 @@ export function hasScope(claims: PermissionClaims | null | undefined, permission
   return personPermissions(claims).has(permission);
 }
 
+/**
+ * Roles and scopes for a caller whose grant carries only roles (an MCP OAuth grant): person roles from the catalog,
+ * and exactly the permissions those roles grant. Anything else in `roles` is dropped.
+ */
+export function personRolesAndScopes(roles: unknown): { roles: PersonRole[]; scopes: Permission[] } {
+  const held = (Array.isArray(roles) ? roles : []).filter(isPersonRole);
+  const scopes = new Set<Permission>();
+  for (const role of held) for (const permission of rolePermissions(role)) scopes.add(permission);
+  return { roles: held, scopes: [...scopes] };
+}
+
 /** The person's highest-ranked catalog role, or undefined when they hold none. */
 export function primaryRole(roles: readonly string[] | undefined): PersonRole | undefined {
   return (roles ?? []).filter(isPersonRole).sort((a, b) => PERMISSION_CATALOG.roles[b].rank - PERMISSION_CATALOG.roles[a].rank)[0];

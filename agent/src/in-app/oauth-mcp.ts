@@ -3,7 +3,9 @@ import { TokenBucketRateLimiter, ToolFirewall } from "@agent-starter/core";
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 import { Hono } from "hono";
 import type { Env } from "../env.ts";
+import { personRolesAndScopes } from "../lib/permissions.ts";
 import { bindings, tenantConfigs } from "../lib/platform.ts";
+import { actorPolicy, personActor, tenantActor, withActor } from "../marketer/actor.ts";
 import { appApiFirewall, appApiTools } from "./app-api.ts";
 import { guardMcpTool, MCP_WRITE_RATE, mcpExposedTools } from "./mcp-guard.ts";
 
@@ -24,15 +26,22 @@ type OAuthEnv = Env & { OAUTH_PROVIDER: OAuthHelpers };
 const mcp = createToolMcpHandler({
   name: "marketer-copilot",
   version: "1.0.0",
-  tools: mcpExposedTools(appApiTools()).map((tool) => guardMcpTool(tool, { env: bindings, limiter: () => new TokenBucketRateLimiter(new KVStore(bindings().AGENT_CACHE), MCP_WRITE_RATE) })),
+  // The OAuth caller is the actor: every call carries x-actor-id and is checked against agent ∩ their role first
+  // (before the write meter), at the policy step and again inside the tool.
+  tools: withActor(
+    mcpExposedTools(appApiTools()).map((tool) => guardMcpTool(tool, { env: bindings, limiter: () => new TokenBucketRateLimiter(new KVStore(bindings().AGENT_CACHE), MCP_WRITE_RATE) })),
+    tenantActor,
+  ),
   // A fresh firewall per MCP request and caller: quotas (maxCallsPerTool) are never shared between clients or tenants.
-  executor: () => ({ firewall: new ToolFirewall(appApiFirewall) }),
+  executor: (caller) => ({ firewall: new ToolFirewall(appApiFirewall), policy: actorPolicy(personActor(caller.tenant)) }),
   resolveCaller: async (props) => {
     const tenantId = String(props.tenantId ?? "");
     const userId = String(props.userId ?? "");
     if (!tenantId || !userId) throw new Error("Missing OAuth grant props");
     const tenantConfig = await tenantConfigs().get(tenantId);
-    return { tenant: { tenantId, userId, environment: "production", roles: [], scopes: [] }, tenantConfig };
+    // The grant carries the consenting session's roles (not its scopes): the permissions are those the catalog gives
+    // those roles. A role the catalog does not know gives nothing. The backend re-checks live membership per call.
+    return { tenant: { tenantId, userId, environment: "production", ...personRolesAndScopes(props.roles) }, tenantConfig };
   },
 });
 
