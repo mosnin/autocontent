@@ -33,6 +33,7 @@ from marketer.services.ad_spend_guard import AccountGovernance, evaluate_non_bud
 from marketer.services.composio_client import AdsDisabled
 
 from ..auth import AuthCtx, CurrentUser
+from ..policy import require_permission
 
 # Every HIGH/CRITICAL route here calls marketer.rails.enforce_dispatch; the
 # dependency hands it the request's idempotency-key (docs/rails/enforcement-point.md).
@@ -228,6 +229,11 @@ async def change_status(
     approval and does NOT activate until it is approved."""
     if body.status not in {"active", "paused", "ended"}:
         raise HTTPException(422, "status must be active, paused, or ended")
+    # backend/policy.py: InRoute. Going live moves money; stopping never needs
+    # more than the right to pause.
+    await require_permission(
+        ctx, "campaign:launch" if body.status == "active" else "campaign:pause"
+    )
     camp = await ads_repo.get_campaign(campaign_id, user_id=ctx.user_id)
     if camp is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "campaign not found")

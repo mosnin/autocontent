@@ -11,6 +11,7 @@ from marketer.models import User, UserSettingsUpdate
 from marketer.rails.http import rails_request_context, to_http
 
 from ..auth import AuthCtx, CurrentUser
+from ..policy import require_permission
 from ..security import CurrentPerson, user_rate_limit
 
 # update_me dispatches through marketer.rails when it changes the global daily
@@ -23,8 +24,11 @@ MAX_GLOBAL_DAILY_CAP_USD = Decimal("1000000")
 
 @router.get("/me", response_model=User)
 async def me(ctx: AuthCtx = CurrentUser) -> User:
+    """The workspace's tenant row (settings, credit, notifications). Never
+    overwrites the stored address with the caller's: a workspace has many
+    people."""
     from marketer.repos import users as users_repo
-    return await users_repo.upsert(ctx.user_id, ctx.email)
+    return await users_repo.ensure(ctx.user_id, ctx.email)
 
 
 @router.get("/me/export", dependencies=[user_rate_limit("users.export", "5/minute")])
@@ -93,6 +97,12 @@ async def update_me(
         kwargs["global_daily_cap_usd"] = body.global_daily_cap_usd
     if "email_notifications" in body.model_fields_set:
         kwargs["email_notifications"] = body.email_notifications
+
+    # backend/policy.py: InRoute. Each field needs its own permission.
+    if "global_daily_cap_usd" in kwargs:
+        await require_permission(ctx, "spend:set_limits")
+    if "email_notifications" in kwargs:
+        await require_permission(ctx, "workspace:update")
 
     if not kwargs:
         current = await users_repo.get(ctx.user_id)

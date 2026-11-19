@@ -33,6 +33,7 @@ from marketer.repos import ad_approvals
 from marketer.repos import workspace as workspace_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..policy import require_permission
 from . import ads as ads_routes
 from . import image_posts as image_posts_routes
 from . import jobs as jobs_routes
@@ -396,6 +397,15 @@ async def resolve_required_action(
         execution_id = UUID(action_id)
     except ValueError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "required action not found") from None
+    # backend/policy.py: InRoute. Saying what happened to a spend needs
+    # spend:approve; to a publish, content:publish.
+    existing = await rails_store().get(ctx.user_id, execution_id)
+    if existing is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "required action not found or already resolved")
+    action_name = str(getattr(existing, "action", "") or "")
+    await require_permission(
+        ctx, "spend:approve" if action_name.startswith("ads.") else "content:publish"
+    )
     row = await rails_store().resolve(
         ctx.user_id, execution_id, resolution=body.resolution,
         resolved_by=ctx.email or ctx.user_id,
@@ -419,6 +429,10 @@ async def decide_inbox_item(
         item_id = UUID(ref_id)
     except ValueError:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "item not found") from None
+
+    # backend/policy.py: InRoute. The department functions below are called
+    # directly, so the exact permission is checked here.
+    await require_permission(ctx, "spend:approve" if kind == "ad_change" else "content:approve")
 
     approve = body.decision == "approve"
     if kind == "video":

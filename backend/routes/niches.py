@@ -17,6 +17,7 @@ from marketer.repos import niches as niches_repo
 from marketer.services.character_sheet import sheet_path
 
 from ..auth import AuthCtx, CurrentUser
+from ..policy import require_permission
 from ..security import user_rate_limit
 
 # update_niche dispatches through marketer.rails when it changes the spend cap
@@ -295,6 +296,12 @@ async def update_niche(
         if current is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND)
         changes = _limit_changes(current, fields)
+        # backend/policy.py: InRoute. Caps need spend:set_limits; the approval
+        # gate needs content:approve (whoever waives approval must hold it).
+        if any(a.startswith("playbook.spend_cap.") for a, _ in changes):
+            await require_permission(ctx, "spend:set_limits")
+        if any(a.startswith("playbook.approval.") for a, _ in changes):
+            await require_permission(ctx, "content:approve")
         if ctx.delegated and any(a == "playbook.approval.disable" for a, _ in changes):
             # Content made by agents waits for a person. Only that person can
             # take the gate away (fail closed, ADR 0002: tighten, never loosen).
