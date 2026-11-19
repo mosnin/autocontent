@@ -426,6 +426,12 @@ def test_agent_without_actor_cannot_move_money(app):
 # --------------------------------------------------------------------------- tokens
 
 
+def _reset_rate_limits() -> None:
+    from backend.rate_limit import limiter
+
+    limiter._storage.reset()
+
+
 @pytest.fixture
 def tokens(monkeypatch):
     from marketer.models import PersonalAccessToken
@@ -464,6 +470,7 @@ def test_token_role_ceiling(app, tokens, audit_rows):
         r = c.post("/api/v1/tokens", json={"name": "ci", "role": role})
         assert r.status_code == 201, r.text
         assert r.json()["info"]["role"] == role
+    _reset_rate_limits()  # token creation is 5 a minute per client
     r = c.post("/api/v1/tokens", json={"name": "ci", "role": "agent"})
     assert r.status_code == 403  # never assignable
 
