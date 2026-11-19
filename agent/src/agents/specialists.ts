@@ -4,6 +4,8 @@ import { createDelegationTools, createRoomTools, delegationPolicy, useAgentStart
 import { type AgentProps, useSkill } from "@flue/runtime";
 import { approvals, autonomyPolicy, platform } from "../lib/platform.ts";
 import { useCustomSkills } from "../lib/custom-skills.ts";
+import { actorPolicy, withActor } from "../marketer/actor.ts";
+import { useDelegatedActor } from "../marketer/actor-hooks.ts";
 import { adsFirewall, DEPARTMENT_FIREWALL, DEPARTMENT_TOOLS } from "../marketer/tools/index.ts";
 import { busTools } from "../multi-agent/bus.ts";
 import { delegationDispatch } from "../multi-agent/delegation.ts";
@@ -36,16 +38,21 @@ interface SpecialistOptions {
  *  - per room (`<agent>--<tenant>---room.<key>`): summoned with a <signal type="room-turn">, it posts one message;
  *  - per bus routing key (`<agent>--<tenant>---bus.<key>`): a provenance-wrapped <signal type="agent-message">.
  * Only a delegated task carries authority to act without a person. In a room or a bus conversation the department
- * can read freely, but every mutating call (MEDIUM makers included) parks for the account owner's approval.
+ * can read freely, but every mutating call (MEDIUM makers included) parks for a person's approval.
  *
- * Every department holds ONLY its own Marketer tools (src/marketer/tools/*). Anything HIGH or CRITICAL (publishing,
- * approvals, starting campaigns, brand kit, spend caps, ad money) parks on an approval bound to the account owner:
- * the tenant id IS the owner's Clerk user id, so the signed links only work in that person's session and the agent
- * can never approve its own calls (decide-by-id from the web app's inbox works too, see AGENTS.md).
+ * Every department holds ONLY its own Marketer tools (src/marketer/tools/*), and acts for the person who started the
+ * delegated task (x-actor-id): a tool that person's role does not cover is refused before anything parks or is sent.
+ * Anything HIGH or CRITICAL (publishing, approvals, starting campaigns, brand kit, spend caps, ad money) parks on an
+ * approval bound to that person (or, with no person, to the tenant id, which no session holds). Any owner, admin or
+ * marketer of the workspace can also decide it by id from the web app (roles granting agent:approve). The agent can
+ * never approve its own calls.
  */
 function useSpecialist(selfId: SpecialistId, id: string, persona: string, options: SpecialistOptions = {}): string {
   const spec = SPECIALISTS.find((s) => s.id === selfId) ?? SPECIALISTS[0];
-  const department = DEPARTMENT_TOOLS[selfId]();
+  // The person behind a delegated task (stamped by the requester's dispatch from its verified session). Bus and room
+  // conversations have none: they act as the agent role minus money moves (docs/auth/agent.md).
+  const actor = useDelegatedActor(id);
+  const department = withActor(DEPARTMENT_TOOLS[selfId](), actor);
   const autonomyCap = departmentAutonomyCap(id, options.maxAutonomousTier);
   const own = [
     ...createRoomTools({ room: roomStub, participants: [...SPECIALISTS], tenantId: () => ctx.tenant.tenantId, selfId, selfRole: spec.role }).filter((t) => t.name === "post_to_room"),
@@ -57,11 +64,14 @@ function useSpecialist(selfId: SpecialistId, id: string, persona: string, option
   const delegation = createDelegationTools({ self: spec.agent, dispatch: delegationDispatch, grant: () => own.map((t) => t.name) });
   const ctx = useAgentStarter({
     ...platform(spec.agent, id),
-    approvals: approvals({ bindToRecipient: true, approverId: (tenant) => tenant.tenantId }),
+    // Bound to the person who started the task (their session can approve by link); with no person, to the tenant id,
+    // which no person holds, so only decide-by-id by a role granting agent:approve can decide it.
+    approvals: approvals({ bindToRecipient: true, approverId: (tenant) => actor?.id ?? tenant.tenantId }),
     tools: [...own, ...delegation],
     // Execution-time grant: inside a delegated task only the requester's granted tools run (built-ins included),
     // plus the department's own read-only tools.
-    policy: delegationPolicy({ id, tools: own, alwaysAllowed: [...readOnly(own), "plan_goals", "update_goal"] }),
+    // First the person's permissions (agent ∩ their role: refused before an approval parks), then the grant.
+    policy: actorPolicy(actor, delegationPolicy({ id, tools: own, alwaysAllowed: [...readOnly(own), "plan_goals", "update_goal"] })),
     // A bus message or a room turn is information, not authority: outside a delegated task every mutating call
     // waits for the account owner (departmentAutonomyCap). Inside one, the department's own ceiling applies.
     // Answering over the bus stays autonomous where it already was (never for the media buyer, whose own ceiling is LOW).

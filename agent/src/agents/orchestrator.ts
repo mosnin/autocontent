@@ -2,6 +2,8 @@
 import { createDelegationTools, createRoomTools, type SubagentToolsContext, useAgentStarter, useDelegation, useSubagentTools } from "@agent-starter/flue";
 import { type AgentProps, useSubagent, useSkill } from "@flue/runtime";
 import { decisionRuntime, platform, retriever } from "../lib/platform.ts";
+import { actorDispatch, actorPolicy, withActor } from "../marketer/actor.ts";
+import { usePersonActor } from "../marketer/actor-hooks.ts";
 import { observeTurns, turnHooks } from "../marketer/decisions/hooks.ts";
 import { useCustomSkills } from "../lib/custom-skills.ts";
 import { busTools } from "../multi-agent/bus.ts";
@@ -42,19 +44,24 @@ function critic(tools: SubagentToolsContext) {
  * Rooms, delegation and the bus all require the tenant feature flag `multiAgentGroupChat`.
  */
 export function Orchestrator({ id }: AgentProps) {
-  const own = [...marketerReadTools(), ...createRoomTools({ room: roomStub, participants: [...SPECIALISTS], tenantId: () => ctx.tenant.tenantId, agentName: "orchestrator" }), ...busTools("orchestrator", id)];
+  // The signed-in person: reads carry x-actor-id; delegated tasks carry the person to the department. Rooms and the
+  // bus carry no person (their departments act as the agent role minus money moves).
+  const actor = usePersonActor();
+  const dispatch = actorDispatch(delegationDispatch, actor);
+  const own = [...withActor(marketerReadTools(), actor), ...createRoomTools({ room: roomStub, participants: [...SPECIALISTS], tenantId: () => ctx.tenant.tenantId, agentName: "orchestrator" }), ...busTools("orchestrator", id)];
   // The orchestrator reads; departments act. It may grant each department its own tools (DEPARTMENT_GRANT ∩ roster
   // entry), and every department call still runs through that department's guarded pipeline and approvals.
-  const delegation = createDelegationTools({ self: "orchestrator", roster: DELEGATION_ROSTER, dispatch: delegationDispatch, grant: () => [...own.map((tool) => tool.name), ...DEPARTMENT_GRANT] });
+  const delegation = createDelegationTools({ self: "orchestrator", roster: DELEGATION_ROSTER, dispatch, grant: () => [...own.map((tool) => tool.name), ...DEPARTMENT_GRANT] });
   const ctx = useAgentStarter({
     ...platform("orchestrator", id),
     // Decision point 1: a routing hint for delegation (shadow by default: log only; off without a key).
     retriever: observeTurns(retriever, turnHooks(() => decisionRuntime("orchestrator", id), { routing: true })),
     tools: [...own, ...delegation],
+    policy: actorPolicy(actor),
     planning: true,
     memory: true,
   });
-  useDelegation({ id, self: "orchestrator", dispatch: delegationDispatch, awaitingHuman: () => ctx.awaitingHuman });
+  useDelegation({ id, self: "orchestrator", dispatch, awaitingHuman: () => ctx.awaitingHuman });
   useSkill(operatingProcedures);
   useSkill(groupCollaboration);
   // Webhook payloads, room messages and delegated reports are data: the same runtime skill every other agent loads.

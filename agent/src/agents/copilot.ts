@@ -4,6 +4,8 @@ import { type AgentProps, useSkill } from "@flue/runtime";
 import { appApiFirewall, appApiTools } from "../in-app/app-api.ts";
 import { useCustomSkills } from "../lib/custom-skills.ts";
 import { bindings, platform } from "../lib/platform.ts";
+import { actorPolicy, withActor } from "../marketer/actor.ts";
+import { usePersonActor } from "../marketer/actor-hooks.ts";
 import generativeUI from "../skills/generative-ui/SKILL.md";
 import untrustedContent from "../skills/untrusted-content/SKILL.md";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
@@ -18,7 +20,9 @@ export function Copilot({ id }: AgentProps) {
   // ask_person: when a request is ambiguous ("which playbook?", "approve or reject?"), ask with a typed question card
   // in the sidebar instead of guessing; the run parks until the answer arrives (human-answer signal).
   const askPerson = useAskPerson({ id, secret: () => bindings().APPROVAL_SIGNING_SECRET, baseUrl: () => bindings().PUBLIC_BASE_URL });
-  const ctx = useAgentStarter({ ...platform("copilot", id), tools: [...appApiTools(), askPerson], firewall: appApiFirewall, planning: true, memory: true });
+  // The signed-in person: every Marketer call carries x-actor-id and is checked against agent ∩ their role first.
+  const actor = usePersonActor();
+  const ctx = useAgentStarter({ ...platform("copilot", id), tools: [...withActor(appApiTools(), actor), askPerson], policy: actorPolicy(actor), firewall: appApiFirewall, planning: true, memory: true });
   useSkill(operatingProcedures);
   // Voice calls (initialData.scopes includes "channel:voice") speak plain sentences: no generative UI there.
   if (!ctx.voice) useSkill(generativeUI);

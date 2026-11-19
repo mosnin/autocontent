@@ -7,6 +7,8 @@ import { type AgentProps, useSkill } from "@flue/runtime";
 import { useCustomSkills } from "../lib/custom-skills.ts";
 import { delegationDispatch } from "../lib/delegation.ts";
 import { bindings, decisionRuntime, platform, retriever, vectorMemory, webReaders, webSearchProviders } from "../lib/platform.ts";
+import { actorDispatch, actorPolicy, withActor } from "../marketer/actor.ts";
+import { usePersonActor } from "../marketer/actor-hooks.ts";
 import { observeTurns, turnHooks } from "../marketer/decisions/hooks.ts";
 import { createMarketerMemoryTools } from "../marketer/memory/tools.ts";
 import { memoryTurnHooks } from "../marketer/memory/wiring.ts";
@@ -30,8 +32,12 @@ export function Assistant({ id }: AgentProps) {
   // ask_person: typed questions (choice / confirm / text) that park the run until the user answers in the chat card
   // (or via the signed /answers/:token link). Answers come back as a human-answer signal.
   const askPerson = useAskPerson({ id, secret: () => bindings().APPROVAL_SIGNING_SECRET, baseUrl: () => bindings().PUBLIC_BASE_URL });
-  const own = [...marketerReadTools(), ...assistantTools(), askPerson];
-  const delegation = createDelegationTools({ self: "assistant", roster: DELEGATION_ROSTER, dispatch: delegationDispatch, grant: () => [...own.map((tool) => tool.name), ...DEPARTMENT_GRANT] });
+  // The signed-in person (session token: sub, role, permissions). Their Marketer reads carry x-actor-id, and their
+  // delegated tasks carry them to the department (actorDispatch), so every call is capped at agent ∩ their role.
+  const actor = usePersonActor();
+  const dispatch = actorDispatch(delegationDispatch, actor);
+  const own = [...withActor(marketerReadTools(), actor), ...assistantTools(), askPerson];
+  const delegation = createDelegationTools({ self: "assistant", roster: DELEGATION_ROSTER, dispatch, grant: () => [...own.map((tool) => tool.name), ...DEPARTMENT_GRANT] });
   const ctx = useAgentStarter({
     ...platform("assistant", id),
     // Decision point 1 (routing hint) reads each turn's text; shadow by default, off without a key. Memory
@@ -39,11 +45,12 @@ export function Assistant({ id }: AgentProps) {
     // of fact extraction: MEMORY_EXTRACTION_MODE off | shadow (default) | write.
     retriever: observeTurns(retriever, [...turnHooks(() => decisionRuntime("assistant", id), { routing: true }), ...memoryTurnHooks("assistant", id)]),
     tools: [...own, ...delegation],
+    policy: actorPolicy(actor),
     planning: true,
     memory: true,
   });
   // Department results come back as `delegation-result` signals; a turn parked on a person is never "no report".
-  useDelegation({ id, self: "assistant", dispatch: delegationDispatch, awaitingHuman: () => ctx.awaitingHuman });
+  useDelegation({ id, self: "assistant", dispatch, awaitingHuman: () => ctx.awaitingHuman });
   useSkill(operatingProcedures);
   // Voice calls (initialData.scopes includes "channel:voice") speak plain sentences: no generative UI there.
   if (!ctx.voice) useSkill(generativeUI);

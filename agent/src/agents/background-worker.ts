@@ -28,6 +28,7 @@ import { listAdApprovals } from "../marketer/tools/ads.ts";
 import { getCarousel, getVideo } from "../marketer/tools/content.ts";
 import { getArticle } from "../marketer/tools/seo.ts";
 import { getWorkspaceInbox, getWorkspaceOverview } from "../marketer/tools/workspace.ts";
+import { withActor } from "../marketer/actor.ts";
 import { CLOSED_WORKFLOW_STATES } from "../lib/run-status.ts";
 import { trackedDispatch } from "../lib/submissions.ts";
 import operatingProcedures from "../skills/operating-procedures/SKILL.md";
@@ -77,8 +78,9 @@ export function BackgroundWorker({ id }: AgentProps) {
     // The cheap router (utility-model step routing, first-line vs frontier) is on by default. A shadow twin
     // can run a candidate model (SHADOW_MODEL) on the same turns.
     ...(shadowTwin && b.SHADOW_MODEL ? { model: { ...modelOptions(), primary: b.SHADOW_MODEL } } : {}),
-    // The tenant admin approves customer-facing calls by a recipient-bound signed link, never the job's own stream.
-    // Marketer's tenant id IS the account owner's Clerk user id, so the owner is the approver.
+    // Customer-facing calls park on a recipient-bound approval, never decided in the job's own stream. It is bound to
+    // the tenant id: a workspace migrated from Clerk keeps its owner's id as tenant id (their link works); otherwise
+    // an owner, admin or marketer decides it by id (roles granting agent:approve).
     approvals: approvals({ bindToRecipient: true, approverId: (tenant) => tenant.tenantId }),
     // Operator resume notes are screened like every other delivery (events / job / recovery are built in).
     deliveredSignalTypes: ["resume"],
@@ -225,12 +227,8 @@ function useShadowRecording(id: string, shadowTwin: boolean, ctx: { tenant: { te
 function jobTools(): AnyAgentTool[] {
   return [
     // Read-only Marketer tools (tenant from ctx, never args): the items the events are about and account context.
-    getVideo,
-    getArticle,
-    getCarousel,
-    listAdApprovals,
-    getWorkspaceInbox,
-    getWorkspaceOverview,
+    // A job has no signed-in person: no x-actor-id, so the backend caps it at the agent role minus money moves.
+    ...withActor([getVideo, getArticle, getCarousel, listAdApprovals, getWorkspaceInbox, getWorkspaceOverview], null),
     createArtifactTool({ blobs: workspaceBlobs, prefix: () => `artifacts/${new Date().toISOString().slice(0, 10)}` }),
     defineAgentTool({
       name: "notify_saas",

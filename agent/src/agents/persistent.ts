@@ -9,6 +9,7 @@ import { MarketerReviewer } from "../marketer/decisions/hooks.ts";
 import { workersAiModel } from "../lib/policy.ts";
 import { autopilotDecision, MARKETER_HEARTBEAT, readAutopilotState } from "../marketer/heartbeat.ts";
 import type { MarketerCallContext } from "../marketer/api.ts";
+import { withActor } from "../marketer/actor.ts";
 import { persistentReadTools } from "../marketer/tools/index.ts";
 import { createProposeNextMovesTool } from "../marketer/tools/proposals.ts";
 import { agentEgress, credentialBroker, platformBrokeredFetch } from "../persistent/credentials.ts";
@@ -69,7 +70,7 @@ export function PersistentAgent({ id }: AgentProps) {
     // Approvals go to the owner, bound to them: the agent can never approve its own calls.
     approvals: approvals({ bindToRecipient: true, approverId: () => ownerUserId }),
     // Read the account (brokered `saas` credential + egress allowlist), propose; never act on its own.
-    tools: [...createPersistentControlTools({ control: port, principal: identity.principal }), ...persistentReadTools(), createProposeNextMovesTool(sendToSaas)],
+    tools: [...createPersistentControlTools({ control: port, principal: identity.principal }), ...withActor([...persistentReadTools(), createProposeNextMovesTool(sendToSaas)], null)],
     persistent: {
       identity,
       // The control plane's config (read each delivery); without one, the secure defaults.
