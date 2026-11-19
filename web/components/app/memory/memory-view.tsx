@@ -7,9 +7,17 @@ import { AskPill, Button, Callout, Column, ConfirmModal, CountBadge, EmptyLine, 
 import { formatDate } from "@/lib/format";
 import { confirmFact, correctFact, fetchHistory, forgetFact } from "./client";
 import { Learnings } from "./learnings";
-import { ENTITY_GROUPS, factText, type MemoryFact, type MemoryLearning, predicateLabel, sourceLabel, sourceRef } from "./types";
+import { RecallView } from "./recall";
+import { ENTITY_GROUPS, factText, type MemoryFact, type MemoryLearning, predicateLabel, type RecallPage, type RecallSettings, sourceLabel, sourceRef } from "./types";
 
-type Tab = "facts" | "review" | "learnings";
+type Tab = "facts" | "review" | "learnings" | "personal" | "team";
+
+/** Recall (Supermemory) data for the Personal and Team tabs; null when it could not be loaded. */
+export interface RecallData {
+  settings: RecallSettings | null;
+  personal: RecallPage | null;
+  team: RecallPage | null;
+}
 
 const ASK = `/sessions/new?q=${encodeURIComponent("What do you know about my business, and what are you unsure about?")}`;
 
@@ -24,9 +32,10 @@ export interface MemoryPreview {
  * Memory (ref 07, column md): what Marketer knows, grouped by what it is about. Each fact opens to show where it
  * came from and what it said before; the person can confirm, correct or forget it. Learnings carry their evidence.
  */
-export function MemoryView({ facts: initial, learnings, loadFailed, preview, initialTab = "facts", initialOpen }: { facts: MemoryFact[]; learnings: MemoryLearning[]; loadFailed?: boolean; preview?: MemoryPreview; initialTab?: Tab; initialOpen?: string }) {
+export function MemoryView({ facts: initial, learnings, recall, loadFailed, preview, initialTab = "facts", initialOpen }: { facts: MemoryFact[]; learnings: MemoryLearning[]; recall?: RecallData; loadFailed?: boolean; preview?: MemoryPreview; initialTab?: Tab; initialOpen?: string }) {
   const router = useRouter();
   const canConfirm = useAllowed("memory:confirm");
+  const canReadTeam = useAllowed("memory:read");
   const [facts, setFacts] = useState(initial);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [open, setOpen] = useState<string | null>(initialOpen ?? null);
@@ -121,6 +130,7 @@ export function MemoryView({ facts: initial, learnings, loadFailed, preview, ini
               { value: "facts", label: "Facts" },
               { value: "review", label: <>Needs you <CountBadge count={pending.length} /></> },
               { value: "learnings", label: "Learnings" },
+              ...(recall ? [{ value: "personal" as const, label: "Personal" }, ...(canReadTeam ? [{ value: "team" as const, label: "Team" }] : [])] : []),
             ]}
           />
         }
@@ -200,6 +210,9 @@ export function MemoryView({ facts: initial, learnings, loadFailed, preview, ini
           ))}
 
         {tab === "learnings" && <Learnings learnings={learnings} />}
+
+        {recall && tab === "personal" && <RecallView scope="personal" settings={recall.settings} page={recall.personal} preview={Boolean(preview)} />}
+        {recall && tab === "team" && canReadTeam && <RecallView scope="team" settings={recall.settings} page={recall.team} preview={Boolean(preview)} />}
 
         <AskPill label="Ask what Marketer knows" href={ASK} />
       </Column>
