@@ -265,11 +265,11 @@ def test_migration_rolls_back_and_reapplies():
     status = run("status")
     if "0029_memory" not in (status.stdout + status.stderr) and status.returncode != 0:
         pytest.skip("migrate runner unavailable")
-    # Only safe when 0029 is the newest migration applied here.
-    latest = sorted(p.name for p in (REPO_ROOT / "db" / "migrations").glob("0*.sql") if "rollback" not in p.name)[-1]
-    if not latest.startswith("0029_"):
-        pytest.skip("a newer migration is applied on top of 0029")
-    down = run("down")
+    # Roll back 0029 and every migration applied on top of it, then reapply
+    # them all, so this keeps running as later migrations land.
+    names = sorted(p.name for p in (REPO_ROOT / "db" / "migrations").glob("0*.sql") if "rollback" not in p.name)
+    depth = len([n for n in names if n >= "0029_"])
+    down = run("down", str(depth))
     assert down.returncode == 0, down.stdout + down.stderr
     up = run("up")
     assert up.returncode == 0, up.stdout + up.stderr

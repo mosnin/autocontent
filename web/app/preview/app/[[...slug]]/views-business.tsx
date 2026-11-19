@@ -18,6 +18,7 @@ import { CampaignDetailView } from "@/components/app/paid/campaign-detail-view";
 import { NewCampaignView } from "@/components/app/paid/new-campaign-view";
 import { PaidView } from "@/components/app/paid/paid-view";
 import { SettingsView } from "@/components/app/settings/settings-view";
+import { FX_SESSIONS, fxAuthSettings } from "@/lib/fixtures-auth";
 import { FIXTURE_INBOX, FIXTURE_MONTH } from "@/lib/fixtures";
 import { FX_ADMIN_AUDIT, FX_ADMIN_CONFIG, FX_ADMIN_FLAGS, FX_ADMIN_HEALTH, FX_ADMIN_OPS, FX_ADMIN_OVERVIEW, FX_ADMIN_TEMPLATES, FX_ADMIN_USERS } from "@/lib/fixtures-admin";
 import {
@@ -53,8 +54,12 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   "distribution/campaigns/c1": () => <DistributionCampaignView overview={FX_CAMPAIGN_OVERVIEW} playbooks={FX_PLAYBOOKS} adCampaigns={FX_AD_CAMPAIGNS.map((a) => ({ id: a.id, name: a.name }))} />,
   brand: () => <BrandView kit={FX_BRAND_KIT} kits={FX_KITS} />,
   integrations: () => <IntegrationsView ayrshare={FX_AYRSHARE} adAccounts={FX_AD_ACCOUNTS} tokens={FX_TOKENS} webhooks={FX_WEBHOOKS} x402={FX_X402} apiBase="https://api.marketer.sh" />,
-  settings: () => <SettingsView user={FX_USER} billing={FX_BILLING} />,
-  "settings/billing": () => <SettingsView user={FX_USER} billing={FX_BILLING} initialTab="billing" />,
+  settings: () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} />,
+  "settings/billing": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="billing" />,
+  // Auth settings. Add ?role=analyst (or admin, marketer, billing) to see what each role sees.
+  "settings/security": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="security" />,
+  "settings/team": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="team" />,
+  "settings/workspace": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="workspace" />,
   admin: () => <AdminOverviewView overview={FX_ADMIN_OVERVIEW} />,
   "admin/users": () => <UsersClient initial={FX_ADMIN_USERS} />,
   "admin/users/u3": () => <UserDetailClient initialUser={FX_ADMIN_USERS[2]!} initialAudit={FX_ADMIN_AUDIT.filter((e) => e.target_id === "u3")} />,
