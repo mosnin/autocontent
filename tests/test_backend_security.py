@@ -464,13 +464,13 @@ def test_cap_change_with_a_replayed_idempotency_key_dispatches_once(monkeypatch,
     headers = {**H, "idempotency-key": "run1:call7"}
     r = client.put(f"/api/v1/niches/{NICHE_ID}", json={"daily_spend_cap_usd": "9.00"}, headers=headers)
     assert r.status_code == 200
-    # The harness replays the same call after the cap was changed back by hand.
+    # The client replays the same call after the cap was changed back by hand.
     niches["niche"] = niches["niche"].model_copy(update={"daily_spend_cap_usd": Decimal("5.00")})
     r = client.put(f"/api/v1/niches/{NICHE_ID}", json={"daily_spend_cap_usd": "9.00"}, headers=headers)
     assert r.status_code == 409 and r.json()["detail"].startswith("duplicate_dispatch")
     assert niches["niche"].daily_spend_cap_usd == Decimal("5.00")
     [row] = [r_ for r_ in rails_store.rows.values() if r_.outcome == "succeeded"]
-    assert row.principal == "agent"
+    assert row.principal == "user"
 
 
 def test_rails_store_outage_refuses_the_cap_change(monkeypatch, rails_store, niches):

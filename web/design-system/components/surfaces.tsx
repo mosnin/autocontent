@@ -97,7 +97,7 @@ export function AppRow({ logo, name, description, connected, onConnect, href }: 
 }
 
 /** Ref 04: textured image header, title + price badge, description, "What you get" checks, full-width CTA. */
-export function PlanOption({ palette, title, price, description, features, cta, highlighted }: { palette: Palette; title: string; price: ReactNode; description: ReactNode; features: string[]; cta: { label: string; href?: string; onClick?: () => void; loading?: boolean }; highlighted?: boolean }) {
+export function PlanOption({ palette, title, price, description, features, cta, highlighted }: { palette: Palette; title: string; price: ReactNode; description: ReactNode; features: string[]; cta: { label: string; href?: string; onClick?: () => void; loading?: boolean; disabled?: boolean }; highlighted?: boolean }) {
   const ctaCls = cx(buttonClass(highlighted ? "accent" : "secondary", "lg", "w-full rounded-full"));
   return (
     <div className="flex flex-col overflow-hidden rounded-ds-xl border border-hairline bg-surface">
@@ -124,7 +124,7 @@ export function PlanOption({ palette, title, price, description, features, cta, 
               {cta.label}
             </Link>
           ) : (
-            <button type="button" onClick={cta.onClick} disabled={cta.loading} className={ctaCls}>
+            <button type="button" onClick={cta.onClick} disabled={cta.loading || cta.disabled} className={ctaCls}>
               {cta.label}
             </button>
           )}
