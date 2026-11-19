@@ -62,21 +62,33 @@ export async function ensureWorkspace(ctx: AuthContext, opts: { create: boolean 
   if (invitationId) return { kind: "invited", invitationId };
   if (!opts.create) return { kind: "none" };
   // Two requests can land here at once (a prefetch and a navigation, two tabs).
-  // A per-person advisory lock makes the first one create and the others find it.
-  const client = await authPool().connect();
-  try {
-    await client.query(`select pg_advisory_lock(hashtextextended($1, 0))`, [`marketer:first-workspace:${ctx.user.id}`]);
+  // A per-person advisory lock makes the first one create and the others find
+  // it. Try-lock and poll, so a waiting request never holds a pooled connection.
+  const key = `marketer:first-workspace:${ctx.user.id}`;
+  const until = Date.now() + 15_000;
+  while (Date.now() < until) {
+    const client = await authPool().connect();
+    let locked = false;
     try {
-      const again = await listMemberships(ctx.user.id);
-      const orgId = again[0]?.organizationId ?? (await createWorkspace(workspaceNameFromEmail(ctx.user.email)));
-      await setActiveWorkspace(orgId);
-      const m = await membershipIn(ctx.user.id, orgId);
-      if (!m) throw new Error("workspace membership missing after creation");
-      return { kind: "ready", membership: m };
+      locked = (await client.query<{ ok: boolean }>(`select pg_try_advisory_lock(hashtextextended($1, 0)) as ok`, [key])).rows[0]?.ok === true;
+      if (locked) {
+        const again = await listMemberships(ctx.user.id);
+        const orgId = again[0]?.organizationId ?? (await createWorkspace(workspaceNameFromEmail(ctx.user.email)));
+        await setActiveWorkspace(orgId);
+        const m = await membershipIn(ctx.user.id, orgId);
+        if (!m) throw new Error("workspace membership missing after creation");
+        return { kind: "ready", membership: m };
+      }
     } finally {
-      await client.query(`select pg_advisory_unlock(hashtextextended($1, 0))`, [`marketer:first-workspace:${ctx.user.id}`]);
+      if (locked) await client.query(`select pg_advisory_unlock(hashtextextended($1, 0))`, [key]).catch(() => undefined);
+      client.release();
     }
-  } finally {
-    client.release();
+    await new Promise((r) => setTimeout(r, 200));
+    const found = await listMemberships(ctx.user.id);
+    if (found[0]) {
+      await setActiveWorkspace(found[0].organizationId);
+      return { kind: "ready", membership: found[0] };
+    }
   }
+  throw new Error("timed out creating the first workspace");
 }

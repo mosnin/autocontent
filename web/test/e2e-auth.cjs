@@ -50,6 +50,10 @@ const step = async (name, fn) => {
     console.log(`ok   ${name} (${Date.now() - t0} ms)`);
   } catch (e) {
     results.push({ name, ok: false });
+    for (const [i, pg] of (globalThis.__pages || []).entries()) {
+      console.log(`     page ${i}: ${pg.url()}`);
+      await pg.screenshot({ path: path.join(process.env.E2E_SHOTS || "/tmp", `e2e-fail-${i}.png`) }).catch(() => undefined);
+    }
     console.log(`FAIL ${name}\n     ${String(e && e.stack ? e.stack : e).split("\n").slice(0, 4).join("\n     ")}`);
     throw e;
   }
@@ -134,6 +138,7 @@ async function signIn(page, who) {
   const browser = await chromium.launch();
   const owner = await browser.newContext({ viewport: { width: 1280, height: 860 } });
   const op = await owner.newPage();
+  globalThis.__pages = [op];
   let orgId;
   let ownerId;
 
@@ -200,6 +205,7 @@ async function signIn(page, who) {
 
       analyst = await browser.newContext({ viewport: { width: 1280, height: 860 } });
       ap = await analyst.newPage();
+      globalThis.__pages.push(ap);
       await ap.goto(invite);
       await ap.getByRole("link", { name: "Create an account" }).click();
       await ap.waitForURL(/\/sign-up\?next=/);
