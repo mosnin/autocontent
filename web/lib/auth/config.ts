@@ -378,15 +378,21 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
         const action = AUDITED[ctx.path] ?? (ctx.path.startsWith("/callback/") ? "auth.sign_in" : ctx.path.startsWith("/sso/callback") || ctx.path.startsWith("/sso/saml2/sp/acs") ? "auth.sign_in" : null);
         if (!action) return;
         const returned = ctx.context.returned;
-        const failed = isAPIError(returned);
+        let failed = isAPIError(returned);
         const status = failed ? (returned as APIError).statusCode : 200;
+        // Redirect endpoints (verify-email, OAuth and SSO callbacks) answer with a 302 "error";
+        // they failed only when the redirect carries an error parameter.
+        if (failed && status >= 300 && status < 400) {
+          const loc = (returned as APIError).headers instanceof Headers ? ((returned as APIError).headers as Headers).get("location") ?? "" : "";
+          failed = /[?&]error=/.test(loc);
+        }
         const s = ctx.context.newSession ?? ctx.context.session ?? null;
         const b = bodyOf(ctx);
         const r = (returned && typeof returned === "object" ? returned : {}) as Record<string, unknown>;
         const twoFactorRedirect = !failed && r.twoFactorRedirect === true;
         let finalAction = action;
         // verify-totp with a session already present is enrolment; without, it is the second step of a sign-in.
-        if (ctx.path === "/two-factor/verify-totp" && ctx.context.session && !ctx.context.newSession) finalAction = "auth.two_factor_enabled";
+        if (ctx.path === "/two-factor/verify-totp" && ctx.context.session) finalAction = "auth.two_factor_enabled";
         else if (ctx.path.startsWith("/two-factor/verify-")) finalAction = "auth.sign_in";
         if (twoFactorRedirect) finalAction = "auth.two_factor_challenge";
         const orgId = str(b.organizationId) ?? str((r.member as Record<string, unknown> | undefined)?.organizationId) ?? str(r.organizationId) ?? (ctx.path === "/organization/create" ? str(r.id) : null) ?? s?.session.activeOrganizationId ?? null;
@@ -401,7 +407,7 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
           ip: clientIp(ctx.request?.headers ?? ctx.headers, env),
           userAgent: (ctx.request?.headers ?? ctx.headers)?.get("user-agent") ?? null,
           metadata: {
-            ...(failed ? { status, error: (returned as APIError).body?.code ?? null } : {}),
+            ...(failed ? { status, error: isAPIError(returned) ? ((returned as APIError).body?.code ?? null) : null } : {}),
             ...(typeof b.role === "string" ? { role: b.role } : {}),
             ...(ctx.path === "/organization/invite-member" && str(b.email) ? { invitee: str(b.email) } : {}),
             ...(ctx.path === "/organization/update" && b.data && typeof b.data === "object" ? { fields: Object.keys(b.data as object) } : {}),
