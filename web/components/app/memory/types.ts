@@ -97,3 +97,26 @@ export const sourceLabel = (kind: MemoryFact["source_kind"]): string => SOURCE_L
 
 /** Only http(s) references are shown as text a person may recognise as a link; nothing here is ever followed. */
 export const sourceRef = (f: Pick<MemoryFact, "source_kind" | "source_ref">): string | null => (/^https?:\/\//.test(f.source_ref) ? f.source_ref.replace(/^https?:\/\//, "").slice(0, 80) : null);
+
+// ── Recall (Supermemory): /api/v1/memory/recall/*, /personal*, /team* ─────────────────────────────────────────────
+
+export type RecallScope = "personal" | "team";
+
+export interface RecallSettings {
+  configured: boolean;
+  enabled: boolean;
+  updated_at?: string | null;
+}
+
+export interface RecallItem {
+  id: string;
+  memory: string;
+  updated_at?: string | null;
+}
+
+export interface RecallPage {
+  enabled: boolean;
+  items: RecallItem[];
+  total: number;
+  page: number;
+}
