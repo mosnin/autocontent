@@ -10,6 +10,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from marketer.models import Composition, MediaAsset
+from tests.auth_helpers import ctx_for
 
 _USER_ID = "user_test"
 
@@ -19,10 +20,10 @@ def _make_authed_client(monkeypatch) -> TestClient:
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake_require_user():
-        return AuthCtx(user_id=_USER_ID, email="t@t.com")
+        return ctx_for("owner", user_id=_USER_ID, email="t@t.com")
 
     from backend.main import create_app
     app = create_app()

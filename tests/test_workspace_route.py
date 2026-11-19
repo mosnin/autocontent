@@ -14,6 +14,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from marketer.models import Job, JobStatus, User
+from tests.auth_helpers import ctx_for
 
 H = {"Authorization": "Bearer mkt_x"}
 USER = "user_ws"
@@ -30,13 +31,13 @@ def _app(monkeypatch, *, override_auth: bool = True):
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from backend.main import create_app
 
     app = create_app()
     if override_auth:
         async def _fake():
-            return AuthCtx(user_id=USER, email="ws@t.com")
+            return ctx_for("owner", user_id=USER, email="ws@t.com")
 
         app.dependency_overrides[require_user] = _fake
     _reset_limiter()

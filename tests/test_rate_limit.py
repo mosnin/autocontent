@@ -10,6 +10,7 @@ fire requests at volume without a real DB or Clerk JWKS.
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from tests.auth_helpers import ctx_for
 
 
 # ---------------------------------------------------------------------------
@@ -36,10 +37,10 @@ def _make_authed_app(monkeypatch, *, user_id: str = "user_test") -> TestClient:
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake_require_user():
-        return AuthCtx(user_id=user_id, email="test@example.com")
+        return ctx_for("owner", user_id=user_id, email="test@example.com")
 
     # Stub token repo calls used by POST /api/v1/tokens.
     from marketer.repos import tokens as tokens_repo

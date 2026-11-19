@@ -16,6 +16,7 @@ from marketer.services.x402 import (
     X402Disabled,
     X402PaymentError,
 )
+from tests.auth_helpers import ctx_for
 
 
 def _enable(monkeypatch):
@@ -133,11 +134,11 @@ def _client(monkeypatch) -> TestClient:
     from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from backend.main import create_app
 
     async def _fake():
-        return AuthCtx(user_id="user_x402", email="a@t.com")
+        return ctx_for("owner", user_id="user_x402", email="a@t.com")
 
     app = create_app()
     app.dependency_overrides[require_user] = _fake

@@ -14,6 +14,7 @@ from uuid import uuid4
 
 import asyncpg
 import pytest
+from tests.auth_helpers import ctx_for
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("MARKETER_DATABASE_URL"),
@@ -85,7 +86,6 @@ async def test_niche_less_spend_is_recorded_and_attributed(pool, user, ad_campai
 
 async def test_readers_are_null_safe(pool, user, niche, ad_campaign):
     from backend.routes.spend import spend_history, today_spend
-    from backend.auth import AuthCtx
     from marketer.repos import spend as spend_repo
 
     await spend_repo.record(_entry(user, ad_campaign_id=ad_campaign, cost_usd=Decimal("0.0300")))
@@ -108,7 +108,7 @@ async def test_readers_are_null_safe(pool, user, niche, ad_campaign):
     assert [(r.niche_id, r.cost_usd) for r in only] == [(niche, Decimal("1.0000"))]
 
     # The API shapes: niche-less spend is bucketed, not a "None" key.
-    ctx = AuthCtx(user_id=user, email="p@t.com")
+    ctx = ctx_for("owner", user_id=user, email="p@t.com")
     today = await today_spend(ctx)
     assert today.by_niche == {str(niche): Decimal("1.0000"), "other": Decimal("0.0500")}
     assert today.total_usd == Decimal("1.0500")
@@ -238,7 +238,6 @@ async def test_a_sub_cent_cost_survives_the_round_trip(pool, user, ad_campaign):
     """A decision call costs about $0.00002. At numeric(10,4) it was stored as
     0.0000 and no cap ever saw it; at numeric(14,8) it is kept exactly, and
     many of them add up."""
-    from backend.auth import AuthCtx
     from backend.routes.spend import spend_history, today_spend
     from marketer.repos import spend as spend_repo
     from marketer.repos import workspace as workspace_repo
@@ -258,7 +257,7 @@ async def test_a_sub_cent_cost_survives_the_round_trip(pool, user, ad_campaign):
     rows = await spend_repo.history(user_id=user, days=1)
     assert sum(r.cost_usd for r in rows) == total
 
-    ctx = AuthCtx(user_id=user, email="p@t.com")
+    ctx = ctx_for("owner", user_id=user, email="p@t.com")
     assert (await today_spend(ctx)).total_usd == total
     assert (await spend_history(ctx, days=1, niche_id=None)).total_usd == total
     # Views that show cents still round for display, from the exact sum.

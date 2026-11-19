@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 
 from marketer.models import User
 from marketer.repos import memory as memory_repo
+from tests.auth_helpers import ctx_for
 
 SERVICE_TOKEN = "svc_" + "c" * 40
 AGENT = {"authorization": f"Bearer {SERVICE_TOKEN}", "x-tenant-id": "user_t"}
@@ -111,10 +112,10 @@ def agent(monkeypatch):
 
 @pytest.fixture
 def person():
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     app = _app()
-    app.dependency_overrides[require_user] = lambda: AuthCtx(user_id="user_p", email="p@x.io")
+    app.dependency_overrides[require_user] = lambda: ctx_for("owner", user_id="user_p", email="p@x.io")
     return TestClient(app)
 
 

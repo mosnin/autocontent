@@ -13,9 +13,9 @@ from uuid import UUID
 import pytest
 from fastapi import HTTPException
 
-from backend.auth import AuthCtx
 from backend.routes import spend as spend_route
 from marketer.models import SpendHistoryRow
+from tests.auth_helpers import ctx_for
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -23,7 +23,7 @@ from marketer.models import SpendHistoryRow
 NICHE_A = UUID("00000000-0000-0000-0000-000000000001")
 NICHE_B = UUID("00000000-0000-0000-0000-000000000002")
 
-_CTX = AuthCtx(user_id="user_test", email="test@example.com")
+_CTX = ctx_for("owner", user_id="user_test", email="test@example.com")
 
 
 def _make_row(day: date, niche_id: UUID, cost: str) -> SpendHistoryRow:

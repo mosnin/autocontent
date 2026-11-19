@@ -17,6 +17,7 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
+from tests.auth_helpers import ctx_for
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("MARKETER_DATABASE_URL"),
@@ -192,8 +193,7 @@ async def test_execute_approved_activation_reguard_denies_on_retry(pool):
 # worker-thread loop, and asyncpg pools are not safe to share across loops.
 
 def _ctx(uid: str):
-    from backend.auth import AuthCtx
-    return AuthCtx(user_id=uid, email="a@t.com")
+    return ctx_for("owner", user_id=uid, email="a@t.com")
 
 
 async def test_decide_approved_budget_change_executes_through_route(pool, monkeypatch):

@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 
 from marketer.services import webhook_delivery
+from tests.auth_helpers import ctx_for
 
 _USER = "user_wh_1"
 
@@ -101,10 +102,10 @@ def _client(monkeypatch) -> TestClient:
     from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake():
-        return AuthCtx(user_id=_USER, email="w@w.com")
+        return ctx_for("owner", user_id=_USER, email="w@w.com")
 
     from backend.main import create_app
     app = create_app()

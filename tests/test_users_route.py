@@ -8,6 +8,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
+from tests.auth_helpers import ctx_for
 
 
 # ---------------------------------------------------------------------------
@@ -25,7 +26,7 @@ def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = N
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from marketer.models import User
     from datetime import datetime, timezone
 
@@ -33,7 +34,7 @@ def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = N
     _emails: dict[str, bool] = {"value": True}
 
     async def _fake_require_user():
-        return AuthCtx(user_id="user_test", email="t@t.com")
+        return ctx_for("owner", user_id="user_test", email="t@t.com")
 
     async def _fake_get(user_id: str) -> User:
         return User(

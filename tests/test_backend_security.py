@@ -23,6 +23,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from marketer.models import Job, JobStatus, Niche, PostingWindow, User
+from tests.auth_helpers import ctx_for
 
 USER = "user_sec"
 OTHER = "user_other"
@@ -35,11 +36,11 @@ def _app(monkeypatch, *, user_id: str = USER, delegated: bool = False, role: str
 
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from backend.main import create_app
 
     async def _fake():
-        return AuthCtx(user_id=user_id, email="p@t.com", role=role, delegated=delegated)
+        return ctx_for("owner", user_id=user_id, email="p@t.com", role=role, delegated=delegated)
 
     app = create_app()
     app.dependency_overrides[require_user] = _fake
@@ -233,13 +234,13 @@ def test_a_person_can_still_erase_their_account(monkeypatch):
 def test_per_user_rate_limit_is_keyed_on_the_tenant(monkeypatch):
     from fastapi import FastAPI
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from backend.security import user_rate_limit
 
     who = {"id": USER}
 
     async def _fake():
-        return AuthCtx(user_id=who["id"], email="p@t.com")
+        return ctx_for("owner", user_id=who["id"], email="p@t.com")
 
     app = FastAPI()
 

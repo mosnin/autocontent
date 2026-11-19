@@ -31,7 +31,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
-from fastapi.routing import APIRoute, iter_route_contexts
+from fastapi.routing import iter_route_contexts
 
 from . import permissions as perms
 from .auth import AuthCtx, require_admin, require_user

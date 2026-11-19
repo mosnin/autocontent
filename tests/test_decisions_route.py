@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from marketer.models import User
 from marketer.repos import decision_log as decision_log_repo
 from marketer.repos.decision_log import DecisionLogEntry
+from tests.auth_helpers import ctx_for
 
 SERVICE_TOKEN = "svc_" + "b" * 40
 BODY = {
@@ -124,11 +125,11 @@ def _entry(i: int) -> DecisionLogEntry:
 
 @pytest.fixture
 def user_client():
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from backend.routes import decisions
 
     async def fake_user():
-        return AuthCtx(user_id="user_t", email="t@x.io")
+        return ctx_for("owner", user_id="user_t", email="t@x.io")
 
     app = FastAPI()
     app.include_router(decisions.router, prefix="/api/v1/decisions")

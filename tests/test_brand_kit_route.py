@@ -4,6 +4,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from marketer.repos.brand_kit import BrandKit, as_prompt_context
+from tests.auth_helpers import ctx_for
 
 _USER = "user_bk_1"
 
@@ -17,10 +18,10 @@ def _client(monkeypatch) -> TestClient:
     from marketer.config import settings
     monkeypatch.setattr(settings, "clerk_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake():
-        return AuthCtx(user_id=_USER, email="b@b.com")
+        return ctx_for("owner", user_id=_USER, email="b@b.com")
 
     from backend.main import create_app
     app = create_app()
