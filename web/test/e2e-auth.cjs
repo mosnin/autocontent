@@ -125,7 +125,7 @@ async function signUp(page, who, next) {
 
 async function signIn(page, who) {
   await page.getByLabel("Email").fill(who.email);
-  await page.getByLabel("Password", { exact: true }).fill(who.password);
+  await page.locator('input[name="password"]').fill(who.password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 

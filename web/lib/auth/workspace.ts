@@ -61,9 +61,22 @@ export async function ensureWorkspace(ctx: AuthContext, opts: { create: boolean 
   const invitationId = await pendingInvitationFor(ctx.user.email);
   if (invitationId) return { kind: "invited", invitationId };
   if (!opts.create) return { kind: "none" };
-  const orgId = await createWorkspace(workspaceNameFromEmail(ctx.user.email));
-  await setActiveWorkspace(orgId);
-  const m = await membershipIn(ctx.user.id, orgId);
-  if (!m) throw new Error("workspace membership missing after creation");
-  return { kind: "ready", membership: m };
+  // Two requests can land here at once (a prefetch and a navigation, two tabs).
+  // A per-person advisory lock makes the first one create and the others find it.
+  const client = await authPool().connect();
+  try {
+    await client.query(`select pg_advisory_lock(hashtextextended($1, 0))`, [`marketer:first-workspace:${ctx.user.id}`]);
+    try {
+      const again = await listMemberships(ctx.user.id);
+      const orgId = again[0]?.organizationId ?? (await createWorkspace(workspaceNameFromEmail(ctx.user.email)));
+      await setActiveWorkspace(orgId);
+      const m = await membershipIn(ctx.user.id, orgId);
+      if (!m) throw new Error("workspace membership missing after creation");
+      return { kind: "ready", membership: m };
+    } finally {
+      await client.query(`select pg_advisory_unlock(hashtextextended($1, 0))`, [`marketer:first-workspace:${ctx.user.id}`]);
+    }
+  } finally {
+    client.release();
+  }
 }
