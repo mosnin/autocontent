@@ -9,6 +9,7 @@ import type { AgentDispatchRequest } from "@flue/runtime";
 import { env as workerEnv } from "cloudflare:workers";
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { personRolesAndScopes } from "../src/lib/permissions.ts";
 
 const state = vi.hoisted(() => ({ dispatched: [] as Array<{ agent: unknown; request: AgentDispatchRequest }> }));
 
@@ -137,7 +138,7 @@ describe("signed event → queue → job dispatch (end to end)", () => {
   it("reports a job's status with its budget (config and tenant, the stricter wins) and VM seconds", async () => {
     const { env } = fakeEnv();
     const app = new Hono().route("/", backgroundRoutes);
-    const token = await createSessionToken(env.SESSION_SIGNING_SECRET, { sub: "ops@tenant", tid: "tenant_alpha", roles: ["operator"] }, 600);
+    const token = await createSessionToken(env.SESSION_SIGNING_SECRET, { sub: "ops@tenant", tid: "tenant_alpha", ...personRolesAndScopes(["admin"]) }, 600);
     const job = agentInstanceId("background-worker", "tenant_alpha", harnessSessionKey("job", "known.1"));
     const res = await app.request(`/api/jobs/${encodeURIComponent(job)}`, { headers: { authorization: `Bearer ${token}` } }, env, ctx);
     expect(res.status).toBe(200);
@@ -146,8 +147,15 @@ describe("signed event → queue → job dispatch (end to end)", () => {
     const pending = await (await app.request(`/api/jobs/${encodeURIComponent(fresh)}`, { headers: { authorization: `Bearer ${token}` } }, env, ctx)).json();
     expect(pending).toEqual({ runId: fresh, status: null, budgetUsd: 0.9, maxTurns: 12 });
     // Another tenant's operator never reads it.
-    const other = await createSessionToken(env.SESSION_SIGNING_SECRET, { sub: "ops@beta", tid: "tenant_beta", roles: ["operator"] }, 600);
+    const other = await createSessionToken(env.SESSION_SIGNING_SECRET, { sub: "ops@beta", tid: "tenant_beta", ...personRolesAndScopes(["admin"]) }, 600);
     expect((await app.request(`/api/jobs/${encodeURIComponent(job)}`, { headers: { authorization: `Bearer ${other}` } }, env, ctx)).status).toBe(403);
+    // Job control is security:manage (owner, admin): a marketer, an analyst, or the old "operator" role are refused.
+    for (const roles of [["marketer"], ["analyst"], ["billing"]]) {
+      const t = await createSessionToken(env.SESSION_SIGNING_SECRET, { sub: "someone", tid: "tenant_alpha", ...personRolesAndScopes(roles) }, 600);
+      expect((await app.request(`/api/jobs/${encodeURIComponent(job)}`, { headers: { authorization: `Bearer ${t}` } }, env, ctx)).status, roles[0]).toBe(403);
+    }
+    const legacy = await createSessionToken(env.SESSION_SIGNING_SECRET, { sub: "ops@tenant", tid: "tenant_alpha", roles: ["operator"], scopes: ["security:manage"] }, 600);
+    expect((await app.request(`/api/jobs/${encodeURIComponent(job)}`, { headers: { authorization: `Bearer ${legacy}` } }, env, ctx)).status).toBe(403);
   });
 
   it("drops a replayed request at the edge and a redelivered message in the consumer", async () => {

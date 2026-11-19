@@ -5,6 +5,7 @@
 import { conversationInstanceId, createSessionToken, isConversationOwner, parseConversationInstanceId } from "@agent-starter/core";
 import { describe, expect, it } from "vitest";
 import type { Env } from "../src/env.ts";
+import { personRolesAndScopes } from "../src/lib/permissions.ts";
 import { canObserveRoom, type RoomAccessInfo, roomRoutes } from "../src/multi-agent/routes.ts";
 import { BUS_TARGETS, busConversationId, roomConversationId, SPECIALISTS } from "../src/multi-agent/roster.ts";
 
@@ -19,12 +20,17 @@ describe("room observation (SEC-18)", () => {
   it("lets the user who opened the room and observers in, nobody else", () => {
     expect(canObserveRoom(room, claims("alice"))).toBe(true);
     expect(canObserveRoom(room, claims("bob"))).toBe(false);
-    expect(canObserveRoom(room, claims("bob", { roles: ["admin"] }))).toBe(true);
+    // Observers: a catalog role granting audit:read (owner, admin), held as role and scope.
+    expect(canObserveRoom(room, claims("bob", personRolesAndScopes(["admin"])))).toBe(true);
+    expect(canObserveRoom(room, claims("bob", personRolesAndScopes(["owner"])))).toBe(true);
+    for (const role of ["marketer", "analyst", "billing"]) expect(canObserveRoom(room, claims("bob", personRolesAndScopes([role]))), role).toBe(false);
+    expect(canObserveRoom(room, claims("bob", { roles: ["admin"] }))).toBe(false);
+    expect(canObserveRoom(room, claims("bob", { roles: ["operator"], scopes: ["audit:read"] }))).toBe(false);
     expect(canObserveRoom(room, { ...claims("alice"), tid: "tenant_b" })).toBe(false);
     expect(canObserveRoom(room, claims("alice", { roles: ["visitor"] }))).toBe(false);
     expect(canObserveRoom(room, claims("alice", { aud: "voice", cid: alicesChat }))).toBe(false);
     expect(canObserveRoom({ ...room, requester: null }, claims("alice"))).toBe(false);
-    expect(canObserveRoom(null, claims("alice", { roles: ["admin"] }))).toBe(false);
+    expect(canObserveRoom(null, claims("alice", personRolesAndScopes(["admin"])))).toBe(false);
   });
 
   it("serves state only after the owner check, through the room's describe()", async () => {

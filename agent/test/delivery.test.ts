@@ -12,6 +12,7 @@ import { createArtifactRoutes, parseArtifactKey, signArtifactUrl, verifyArtifact
 import { domainInstruction, PLACEHOLDER_TARGET_DOMAIN } from "../src/lib/custom-skills.ts";
 import { deliverWithOutbox, drainWebhookOutbox, insertOutboxRow, type OutboxEntry, OutboxWebhookSink, outboxBacklog } from "../src/lib/outbox.ts";
 import { effectiveBudget, signingSecret, stricterTier, workersAiModel } from "../src/lib/policy.ts";
+import { personRolesAndScopes } from "../src/lib/permissions.ts";
 import { canWatchChannel, createPusherAuthRoute, decidePusherAuth } from "../src/lib/pusher-auth.ts";
 import { CUSTOM_SKILLS } from "../src/skills/custom.generated.ts";
 
@@ -128,7 +129,8 @@ describe("Pusher channel auth (spec checklist item 6)", () => {
   const keys = { key: "app-key", secret: "pusher-secret" };
   const own = "assistant--tenant_a--user_1.main";
   const channel = (tenantId: string, room: string) => tenantChannelName(tenantId, room);
-  const claims = (roles: string[] = ["member"], sub = "user_1", tid = "tenant_a") => ({ sub, tid, roles, scopes: [], env: "production" as const, iat: 0, exp: 9_999_999_999 });
+  // Roles and scopes the way the web app mints them: one catalog role, its permissions as scopes.
+  const claims = (roles: string[] = ["analyst"], sub = "user_1", tid = "tenant_a") => ({ sub, tid, ...personRolesAndScopes(roles), roles, env: "production" as const, iat: 0, exp: 9_999_999_999 });
 
   it("answers 400 / 401 / 400 / 403 like the spec and authorizes owners and operators", async () => {
     expect((await decidePusherAuth({ socketId: "1.2", channelName: null, claims: claims(), ...keys })).status).toBe(400);
@@ -141,11 +143,16 @@ describe("Pusher channel auth (spec checklist item 6)", () => {
     const mine = await decidePusherAuth({ socketId: "1.2", channelName: channel("tenant_a", own), claims: claims(), ...keys });
     expect(mine.status).toBe(200);
     expect(mine.body).toMatchObject({ auth: expect.stringMatching(/^app-key:[0-9a-f]{64}$/) });
-    // Operators watch every run and room of their tenant (jobs, swarms), never another tenant's.
-    expect(canWatchChannel(claims(["operator"]), { tenantId: "tenant_a", roomId: "background-worker--tenant_a---job.x" })).toBe(true);
+    // Roles granting audit:read (owner, admin) watch every run and room of their tenant (jobs, swarms), never another tenant's.
+    expect(canWatchChannel(claims(["owner"]), { tenantId: "tenant_a", roomId: "background-worker--tenant_a---job.x" })).toBe(true);
+    expect(canWatchChannel(claims(["admin"]), { tenantId: "tenant_a", roomId: "background-worker--tenant_a---job.x" })).toBe(true);
     expect(canWatchChannel(claims(["admin"]), { tenantId: "tenant_b", roomId: "x" })).toBe(false);
+    // Marketer, analyst and billing watch only their own runs; a role outside the catalog (the old "operator"), or a
+    // catalog role without the scope, gets nothing extra.
+    for (const role of ["marketer", "analyst", "billing", "operator"]) expect(canWatchChannel(claims([role]), { tenantId: "tenant_a", roomId: "background-worker--tenant_a---job.x" }), role).toBe(false);
+    expect(canWatchChannel({ ...claims(["admin"]), scopes: [] }, { tenantId: "tenant_a", roomId: "background-worker--tenant_a---job.x" })).toBe(false);
     // A conversation-bound token (cid) watches only that conversation, whatever its roles.
-    expect(canWatchChannel({ ...claims(["operator"]), cid: own }, { tenantId: "tenant_a", roomId: "background-worker--tenant_a---job.x" })).toBe(false);
+    expect(canWatchChannel({ ...claims(["owner"]), cid: own }, { tenantId: "tenant_a", roomId: "background-worker--tenant_a---job.x" })).toBe(false);
     expect(canWatchChannel({ ...claims(), cid: own }, { tenantId: "tenant_a", roomId: own })).toBe(true);
   });
 
