@@ -1,6 +1,7 @@
-// Content-Security-Policy pieces shared by the middleware (nonce-based policy
-// on Clerk-routed pages) and documented in docs/security/web-audit.md. The
-// static policy for pages the middleware never sees is in next.config.js.
+// Content-Security-Policy for the pages the middleware serves (the app, the
+// auth pages, onboarding): a per-request nonce with 'strict-dynamic'. Built
+// here, applied in web/middleware.ts, documented in docs/security/web-audit.md.
+// The static policy for pages the middleware never sees is in next.config.js.
 
 type Env = Record<string, string | undefined>;
 
@@ -24,9 +25,8 @@ function extraConnect(raw: string | undefined): string[] {
 }
 
 /**
- * Directives merged into Clerk's strict policy (which supplies default-src,
- * the nonce + strict-dynamic script-src, style-src, frame-src for the
- * challenge widget and its own connect/img hosts).
+ * Directives that vary by deployment or feature, merged into the strict
+ * policy by buildCsp().
  *
  * - img-src: data: and blob: are needed by the page-transition shader, which
  *   rasterises the DOM through an SVG <foreignObject> image with inlined
@@ -48,7 +48,47 @@ export function appCspDirectives(env: Env): Record<string, string[]> {
   };
 }
 
-/** Report-only until CSP_MODE=enforce: the policy has not been exercised against a live Clerk instance. */
+/** Report-only until CSP_MODE=enforce, so a regression shows up as reports before it can break a page. */
 export function cspReportOnly(env: Env): boolean {
   return env.CSP_MODE?.trim() !== "enforce";
+}
+
+/** A fresh nonce: 16 random bytes, base64. Works in the Edge runtime and in Node. */
+export function createNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary);
+}
+
+/**
+ * The strict policy for one response.
+ *
+ * - script-src: the nonce and 'strict-dynamic'. Scripts Next loads from a
+ *   nonced script are trusted; nothing inline without the nonce runs, and
+ *   host allowlists are ignored by browsers that understand strict-dynamic.
+ *   'unsafe-eval' only in development (React Refresh needs it).
+ * - style-src: 'unsafe-inline' (React style attributes and next/font).
+ * - frame-src 'none': no third-party widgets since the auth provider moved in-house.
+ * - form-action 'self': forms post only to this origin.
+ */
+export function buildCsp(nonce: string, env: Env): string {
+  if (!/^[A-Za-z0-9+/=]{16,}$/.test(nonce)) throw new Error("invalid nonce");
+  const dev = env.NODE_ENV !== "production";
+  const extra = appCspDirectives(env);
+  const directives: Record<string, string[]> = {
+    "default-src": ["'self'"],
+    "script-src": ["'self'", `'nonce-${nonce}'`, "'strict-dynamic'", ...(dev ? ["'unsafe-eval'"] : [])],
+    "style-src": ["'self'", "'unsafe-inline'"],
+    "worker-src": ["'self'", "blob:"],
+    "frame-src": ["'none'"],
+    "form-action": ["'self'"],
+    "manifest-src": ["'self'"],
+    ...extra,
+  };
+  // HMR websocket in development.
+  if (dev) directives["connect-src"] = [...directives["connect-src"]!, "ws:", "wss:"];
+  return Object.entries(directives)
+    .map(([k, v]) => `${k} ${v.join(" ")}`)
+    .join("; ");
 }
