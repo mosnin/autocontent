@@ -26,6 +26,7 @@ export interface MemoryPreview {
  */
 export function MemoryView({ facts: initial, learnings, loadFailed, preview, initialTab = "facts", initialOpen }: { facts: MemoryFact[]; learnings: MemoryLearning[]; loadFailed?: boolean; preview?: MemoryPreview; initialTab?: Tab; initialOpen?: string }) {
   const router = useRouter();
+  const canConfirm = useAllowed("memory:confirm");
   const [facts, setFacts] = useState(initial);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [open, setOpen] = useState<string | null>(initialOpen ?? null);

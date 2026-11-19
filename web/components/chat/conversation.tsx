@@ -25,7 +25,9 @@ import {
   Trace,
   type TraceNode,
   UserBubble,
-  WorkedFor,, useAllowed } from "@/design-system";
+  WorkedFor,
+  useAllowed,
+} from "@/design-system";
 import { DEPARTMENTS, departmentById, type Department, type DepartmentId } from "@/lib/departments";
 import { splitOpenUISegments, type ToolPart } from "@/lib/agent/parts";
 import { departmentForTool, describeTool } from "@/lib/agent/tool-labels";
