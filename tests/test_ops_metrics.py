@@ -143,7 +143,7 @@ def _reset_limiter():
 
 def _make_ops_client(monkeypatch, *, role: str = "admin", suspended: bool = False) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     import marketer.repos.users as users_repo

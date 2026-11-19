@@ -118,7 +118,7 @@ def _make_authed_client(monkeypatch):
     from fastapi.testclient import TestClient
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.auth import require_user

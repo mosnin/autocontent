@@ -39,7 +39,7 @@ def _make_pat(token_id: UUID | None = None) -> PersonalAccessToken:
 
 def _make_authed_client(monkeypatch) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.auth import require_user
@@ -84,7 +84,7 @@ def test_create_token_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app
@@ -138,7 +138,7 @@ def test_list_tokens_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app
@@ -195,7 +195,7 @@ def test_revoke_token_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app

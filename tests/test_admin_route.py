@@ -20,7 +20,7 @@ def _reset_limiter():
 
 def _make_client(monkeypatch, *, role: str = "admin", suspended: bool = False) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     # Stub the auth path at the repo layer so require_admin's real role check runs.

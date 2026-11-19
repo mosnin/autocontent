@@ -132,7 +132,7 @@ async def test_verify_failure_returns_unsuccessful(monkeypatch):
 
 def _client(monkeypatch) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
     from backend.auth import require_user
     from backend.main import create_app

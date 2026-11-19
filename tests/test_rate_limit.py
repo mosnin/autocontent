@@ -5,7 +5,7 @@ Strategy
 Each test builds a fresh FastAPI app via ``create_app()`` and resets the
 shared in-process limiter storage between calls so tests don't leak state.
 Route-level auth is bypassed via FastAPI's ``dependency_overrides`` so we can
-fire requests at volume without a real DB or Clerk JWKS.
+fire requests at volume without a real DB or auth JWKS.
 """
 from __future__ import annotations
 
@@ -34,7 +34,7 @@ def _make_authed_app(monkeypatch, *, user_id: str = "user_test") -> TestClient:
     """
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.auth import require_user
@@ -164,7 +164,7 @@ def test_invalid_bearer_throttled_after_20_failures(monkeypatch):
     from marketer.config import settings
 
     # Use the real auth path (not stubbed) with a PAT prefix so _resolve_pat runs.
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
 
     # Stub token lookup to always return None (unknown token).
     from marketer.repos import tokens as tokens_repo

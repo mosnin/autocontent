@@ -71,7 +71,7 @@ def _reset_limiter():
 
 def _make_authed_client(monkeypatch, user_id: str = _USER_ID) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.auth import require_user

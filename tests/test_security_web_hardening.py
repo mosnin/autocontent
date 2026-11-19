@@ -29,7 +29,7 @@ def _reset_limiter():
 
 
 def _make_authed_client(monkeypatch) -> TestClient:
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.auth import require_user
@@ -455,7 +455,7 @@ def test_approve_image_post_is_scoped_to_caller(monkeypatch):
 def test_image_posts_and_providers_routes_require_auth(monkeypatch):
     """No Authorization header -> 401 on every route this team owns."""
     _reset_limiter()
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app

@@ -23,7 +23,7 @@ def _reset_limiter():
 def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = None) -> TestClient:
     """App with require_user overridden and users_repo stubs in place."""
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.auth import require_user
@@ -95,7 +95,7 @@ def test_me_without_auth_returns_401(monkeypatch):
     """No auth header → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app

@@ -34,7 +34,7 @@ NICHE_ID = UUID("22222222-2222-2222-2222-222222222222")
 def _app(monkeypatch, *, user_id: str = USER, delegated: bool = False, role: str = "user"):
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
     from backend.auth import require_user
     from backend.main import create_app
@@ -163,7 +163,7 @@ def test_decision_log_body_is_capped_at_64k(monkeypatch):
 def test_security_headers_on_json_errors_and_health(monkeypatch):
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     from backend.main import create_app
 
     client = TestClient(create_app(), raise_server_exceptions=False)
@@ -378,7 +378,7 @@ def test_outcome_route_rejects_empty_oversized_and_unknown_fields(monkeypatch):
 def test_outcome_route_requires_auth(monkeypatch):
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     from backend.main import create_app
 
     r = TestClient(create_app()).post(f"/api/v1/decisions/{uuid4()}/outcome", json={"outcome": {"a": 1}})
@@ -722,7 +722,7 @@ def test_deep_health_does_not_echo_driver_errors(monkeypatch):
     from backend.routes import healthz
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     secret = "postgres://admin:hunter2@10.1.2.3:5432/prod"
 
     async def _boom():
@@ -939,7 +939,7 @@ def ayrshare(monkeypatch):
     from marketer.repos import jobs as jobs_repo
 
     monkeypatch.setattr(settings, "ayrshare_webhook_secret", AYR_SECRET)
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     state = {"claimed": set(), "saved": [], "lookups": [], "fail_save": False, "fail_claim": False}
 
     async def _claim(key, *, ttl_seconds=0):
@@ -1020,7 +1020,7 @@ def test_stripe_webhook_rejection_does_not_say_why(monkeypatch):
     from marketer.config import settings
 
     monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     from backend.main import create_app
 
     r = TestClient(create_app()).post(
@@ -1037,7 +1037,7 @@ def test_stripe_webhook_never_credits_an_amount_outside_the_packs(monkeypatch):
     from marketer.repos import billing as billing_repo
 
     monkeypatch.setattr(settings, "stripe_webhook_secret", "whsec_x")
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     credited: list[dict] = []
 
     async def _credit(**kw):
@@ -1256,7 +1256,7 @@ def test_provider_clients_carry_explicit_timeouts(monkeypatch):
     monkeypatch.setattr(llm, "_client", None)
     assert 0 < float(llm._oai().timeout) <= 300
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(auth, "_jwks_client", None)
     assert auth._jwks().timeout == auth.JWKS_TIMEOUT_SEC <= 10
     monkeypatch.setattr(auth, "_jwks_client", None)
