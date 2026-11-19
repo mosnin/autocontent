@@ -1,9 +1,10 @@
 import { isConversationOwner, type SessionClaims, verifySessionToken } from "@agent-starter/core";
 import { Hono } from "hono";
 import type { Env } from "../env.ts";
+import { hasScope, type Permission } from "../lib/permissions.ts";
 
-/** Roles that may observe every room of their tenant (operators, support staff). */
-export const ROOM_OBSERVER_ROLES: readonly string[] = ["admin", "operator"];
+/** The permission that lets a person observe every room of their workspace (owner and admin in the catalog). */
+export const ROOM_OBSERVER_PERMISSION: Permission = "audit:read";
 
 /** What `SwarmRoom.describe()` returns: the room's tenant and the conversation that opened it. */
 export interface RoomAccessInfo {
@@ -23,14 +24,14 @@ async function claimsFrom(token: string | null | undefined, env: Env): Promise<S
 
 /**
  * Who may read a room's transcript and live feed (SEC-18): a full user token of the room's tenant that either owns
- * the conversation that opened the room (the orchestrator chat it was spawned from) or holds an observer role.
+ * the conversation that opened the room (the orchestrator chat it was spawned from) or holds `audit:read`.
  * Rooms opened by harness conversations (delegated workers, background jobs) are visible to observers only.
  * Restricted tokens (an `aud` such as widget/voice, or a conversation-bound `cid`) never observe rooms.
  */
-export function canObserveRoom(room: RoomAccessInfo | null, claims: SessionClaims | null, observerRoles: readonly string[] = ROOM_OBSERVER_ROLES): boolean {
+export function canObserveRoom(room: RoomAccessInfo | null, claims: SessionClaims | null, observer: Permission = ROOM_OBSERVER_PERMISSION): boolean {
   if (!room || !claims || room.tenantId !== claims.tid) return false;
   if (claims.aud !== undefined || claims.cid !== undefined || claims.roles.includes("visitor")) return false;
-  if (claims.roles.some((role) => observerRoles.includes(role))) return true;
+  if (hasScope(claims, observer)) return true;
   return room.requester !== null && isConversationOwner(room.requester.conversationId, claims);
 }
 

@@ -1,6 +1,7 @@
 import { isConversationOwner, type SessionClaims, verifySessionToken } from "@agent-starter/core";
 import { authorizePrivateChannel, PUSHER_CHANNEL_PATTERN, parseTenantChannel } from "@agent-starter/integrations";
 import { Hono } from "hono";
+import { hasScope } from "./permissions.ts";
 
 /**
  * POST /api/pusher/auth: private-channel authorization for live dashboards (pusher-js `authEndpoint`),
@@ -10,7 +11,7 @@ import { Hono } from "hono";
  *  - it has a valid session token (`authorization: Bearer`; widget visitor and voice tokens are refused), else 401;
  *  - the channel is a well-formed tenant room channel, else 400;
  *  - the channel's tenant is the session's tenant AND the run is the user's own conversation, or the user
- *    has an admin / operator role (job, room and team channels of their tenant), else 403.
+ *    holds `audit:read` (owner or admin: job, room and team channels of their tenant), else 403.
  * Answers 404 while Pusher is not configured (PUSHER_KEY / PUSHER_SECRET unset or `integrations.pusher` off).
  * Pure module: platform.ts supplies the keys and session secrets.
  */
@@ -19,16 +20,15 @@ export interface PusherAuthDecision {
   body: { auth: string } | { error: string };
 }
 
-const OPERATOR_ROLES = new Set(["admin", "operator"]);
-
 /**
  * May this signed-in user watch this tenant room channel? Run ownership is exact (conversation ids encode the owner);
- * admins / operators watch every run, job and room of their tenant; a conversation-bound token (`cid`) only its own.
+ * people holding `audit:read` watch every run, job and room of their tenant; a conversation-bound token (`cid`) only
+ * its own.
  */
-export function canWatchChannel(claims: Pick<SessionClaims, "tid" | "sub" | "roles" | "cid">, channel: { tenantId: string; roomId: string }): boolean {
+export function canWatchChannel(claims: Pick<SessionClaims, "tid" | "sub" | "roles" | "scopes" | "cid">, channel: { tenantId: string; roomId: string }): boolean {
   if (channel.tenantId !== claims.tid) return false;
   if (claims.cid !== undefined && claims.cid !== channel.roomId) return false;
-  return claims.roles.some((role) => OPERATOR_ROLES.has(role)) || isConversationOwner(channel.roomId, claims);
+  return hasScope(claims, "audit:read") || isConversationOwner(channel.roomId, claims);
 }
 
 export async function decidePusherAuth(input: { socketId?: string | null; channelName?: string | null; claims: SessionClaims | null; key: string; secret: string }): Promise<PusherAuthDecision> {
