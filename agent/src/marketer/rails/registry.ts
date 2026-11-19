@@ -7,8 +7,8 @@ import type { RiskTier } from "@agent-starter/core";
  * (`enforce.ts`) re-reads this entry at dispatch. Each entry names the backend action the tool reaches
  * (`src/marketer/rails/actions.py`, checked by `tests/test_rails_core.py`), the kill-switch scopes that stop it,
  * whether it only reduces exposure (pausing, rejecting: never blocked), and argument caps that hold even if a
- * schema is loosened later. `backendAction: "none"` marks a tool whose endpoint is outside the backend rails today
- * (playbook caps, brand kit); the agent side still enforces it.
+ * schema is loosened later. Every entry names a real backend action today; `backendAction: "none"` would mark an
+ * endpoint outside the backend rails (the agent side would still enforce it).
  *
  * Changing an entry is a risk decision: change `EXPECTED_RISK` in test/marketer-tools.test.ts and the backend
  * registry with it.
@@ -40,8 +40,10 @@ export const RAILS_TOOLS: Readonly<Record<string, RailsToolEntry>> = Object.free
   // workspace: approving publishes, rejecting discards (backend: content.{video,carousel}.{approve,reject})
   decide_inbox_item: { tier: "HIGH", backendAction: "content.video.approve", scopes: ["publish"], reducesExposure: (a) => a.decision === "reject" },
   // strategy
-  set_playbook_spend_cap: { tier: "HIGH", backendAction: "none", scopes: ["spend"] },
-  update_brand_kit: { tier: "HIGH", backendAction: "none", scopes: [] },
+  // backend: playbook.spend_cap.raise. The tool cannot tell a raise from a lower without the current cap, so it is
+  // reviewed as the raise (kill-switch scope "spend"); the backend classifies the actual change itself.
+  set_playbook_spend_cap: { tier: "HIGH", backendAction: "playbook.spend_cap.raise", scopes: ["spend"] },
+  update_brand_kit: { tier: "HIGH", backendAction: "brand_kit.update", scopes: [] },
   // distribution
   start_campaign: { tier: "HIGH", backendAction: "campaigns.start", scopes: ["publish", "spend"] },
   approve_video: { tier: "HIGH", backendAction: "content.video.approve", scopes: ["publish"] },

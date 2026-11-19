@@ -63,16 +63,41 @@ export function parseDevVars(text) {
 
 const b64url = (input) => Buffer.from(input).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
+/** The workspace roles a dev token gets by default: the web app mints one catalog role per token. */
+export const DEV_ROLES = ["owner"];
+
+/**
+ * The permissions the catalog (docs/auth/permissions.json) gives these roles, as `resource:action` scopes, the way
+ * the web app mints them. Unknown roles give nothing; a missing catalog file gives nothing (fail closed).
+ */
+export function catalogScopes(roles, catalogPath = new URL("../../docs/auth/permissions.json", import.meta.url)) {
+  let catalog;
+  try {
+    catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
+  } catch {
+    return [];
+  }
+  const all = Object.entries(catalog.resources ?? {}).flatMap(([resource, actions]) => actions.map((action) => `${resource}:${action}`));
+  const out = new Set();
+  for (const role of roles) {
+    const entry = Object.prototype.hasOwnProperty.call(catalog.roles ?? {}, role) ? catalog.roles[role] : undefined;
+    if (!entry || entry.assignable !== true) continue;
+    if (entry.grants === "*") all.forEach((p) => out.add(p));
+    else for (const [resource, actions] of Object.entries(entry.grants ?? {})) for (const action of actions) out.add(`${resource}:${action}`);
+  }
+  return all.filter((p) => out.has(p));
+}
+
 /** Same format as createSessionToken() in @agent-starter/core: base64url(claims).base64url(HMAC-SHA256). */
-export function mintDevSessionToken(secret, { tenantId = DEV_TENANT_ID, userId = DEV_USER_ID, roles = ["admin", "operator"], ttlSeconds = 12 * 3600, now = Date.now() } = {}) {
+export function mintDevSessionToken(secret, { tenantId = DEV_TENANT_ID, userId = DEV_USER_ID, roles = DEV_ROLES, scopes = catalogScopes(roles), ttlSeconds = 12 * 3600, now = Date.now() } = {}) {
   if (!secret) throw new Error("SESSION_SIGNING_SECRET is empty: set it in .dev.vars first.");
   const iat = Math.floor(now / 1000);
-  const body = b64url(JSON.stringify({ sub: userId, tid: tenantId, roles, scopes: [], iat, exp: iat + ttlSeconds, env: "development" }));
+  const body = b64url(JSON.stringify({ sub: userId, tid: tenantId, roles, scopes, iat, exp: iat + ttlSeconds, env: "development" }));
   return `${body}.${b64url(createHmac("sha256", secret).update(body).digest())}`;
 }
 
 export function parseArgs(argv) {
-  const args = { tenant: DEV_TENANT_ID, user: DEV_USER_ID, roles: ["admin", "operator"], token: false, print: false, email: false, remote: false };
+  const args = { tenant: DEV_TENANT_ID, user: DEV_USER_ID, roles: DEV_ROLES, token: false, print: false, email: false, remote: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const next = () => {
