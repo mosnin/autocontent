@@ -1,5 +1,5 @@
 // Fixture data for the Memory page preview (/preview/app/memory). No API.
-import type { MemoryFact, MemoryLearning } from "@/components/app/memory/types";
+import type { MemoryFact, MemoryLearning, RecallPage, RecallSettings } from "@/components/app/memory/types";
 
 const base: Omit<MemoryFact, "id" | "subject_type" | "subject_name" | "subject_key" | "predicate" | "value"> = {
   kind: "attribute",
@@ -113,3 +113,34 @@ export const FX_MEMORY_LEARNINGS: MemoryLearning[] = [
     evidence: [{ kind: "post", ref: "image_post:c41", label: "One carousel, 2.1x the usual saves" }],
   },
 ];
+
+// ── Recall (Supermemory) previews: /preview/app/memory/personal, /team, /recall-off ─────────────────────────────
+
+
+export const FX_RECALL_SETTINGS: RecallSettings = { configured: true, enabled: true, updated_at: "2026-11-02T10:00:00Z" };
+export const FX_RECALL_OFF: RecallSettings = { configured: true, enabled: false, updated_at: "2026-11-02T10:00:00Z" };
+
+export const FX_RECALL_PERSONAL: RecallPage = {
+  enabled: true,
+  page: 1,
+  total: 5,
+  items: [
+    { id: "mem_p1", memory: "Prefers captions under 80 characters, no emoji.", updated_at: "2026-11-17T09:12:00Z" },
+    { id: "mem_p2", memory: "Is preparing the spring launch of the fresh pasta kits for March.", updated_at: "2026-11-16T15:40:00Z" },
+    { id: "mem_p3", memory: "Reviews drafts on Monday mornings and wants them ready by Friday.", updated_at: "2026-11-12T08:05:00Z" },
+    { id: "mem_p4", memory: "Moved the newsletter from Thursday to Tuesday.", updated_at: "2026-11-04T11:20:00Z" },
+    { id: "mem_p5", memory: "Likes reports as a short table first, details after.", updated_at: "2026-10-29T17:55:00Z" },
+  ],
+};
+
+export const FX_RECALL_TEAM: RecallPage = {
+  enabled: true,
+  page: 1,
+  total: 4,
+  items: [
+    { id: "mem_t1", memory: "Brand voice is warm, practical, a little dry, never salesy.", updated_at: "2026-11-15T10:00:00Z" },
+    { id: "mem_t2", memory: "The tagline is “Dinner in ten.”", updated_at: "2026-11-10T10:00:00Z" },
+    { id: "mem_t3", memory: "The first box is $14.50, then $29 a box.", updated_at: "2026-11-01T12:00:00Z" },
+    { id: "mem_t4", memory: "Published article: Five weeknight pasta dinners under ten minutes.", updated_at: "2026-10-28T09:00:00Z" },
+  ],
+};
