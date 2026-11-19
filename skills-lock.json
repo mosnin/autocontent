@@ -36,6 +36,20 @@
       "skillPath": "better-auth/organization/SKILL.md",
       "computedHash": "e5b1238c3b62c789918fe397ed52787742e50944343de33f459629f29b0fe922"
     },
+    "supermemory": {
+      "source": "supermemoryai/skills",
+      "commit": "64e285d5a4a56c773e86c088af54524328b71c42",
+      "sourceType": "github",
+      "skillPath": "supermemory/SKILL.md",
+      "computedHash": "eb9e24ab17bd6948004b680706698a42e5d87184c8e6c88170f51a62cac37fd4"
+    },
+    "supermemory-cli": {
+      "source": "supermemoryai/skills",
+      "commit": "64e285d5a4a56c773e86c088af54524328b71c42",
+      "sourceType": "github",
+      "skillPath": "supermemory-cli/SKILL.md",
+      "computedHash": "6d755a2c2cb1fda29b1f841236d091a8a076ff82a3f1aecb8cb3bb5b5cab769b"
+    },
     "two-factor-authentication-best-practices": {
       "source": "better-auth/skills",
       "commit": "20c9e88a5c007461a703f1c213572b073196113e",

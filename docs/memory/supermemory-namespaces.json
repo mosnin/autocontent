@@ -1,0 +1,47 @@
+{
+  "$comment": "Conformance vectors for Supermemory namespace derivation. agent/ and backend/ each test against this file. The secret is a test value, never used anywhere else.",
+  "algorithm": "prefix + first 40 hex chars of HMAC-SHA256(MEMORY_NAMESPACE_SECRET, message); message = 'v1|team|<tenant_id>' or 'v1|person|<tenant_id>|<person_id>'; prefix 'mkt-t-' (team) or 'mkt-p-' (person)",
+  "secret": "test-only-namespace-secret-0123456789abcdef",
+  "cases": [
+    {
+      "kind": "team",
+      "tenant_id": "org_7Hk2",
+      "message": "v1|team|org_7Hk2",
+      "namespace": "mkt-t-8c4bd70db4d20c3cc9be9d43b93fc102535a7372"
+    },
+    {
+      "kind": "team",
+      "tenant_id": "user_2abcCLERKid",
+      "message": "v1|team|user_2abcCLERKid",
+      "namespace": "mkt-t-b14f5b33d533aefb8eba8d49aa0a1637580401da"
+    },
+    {
+      "kind": "person",
+      "tenant_id": "org_7Hk2",
+      "person_id": "usr_alice",
+      "message": "v1|person|org_7Hk2|usr_alice",
+      "namespace": "mkt-p-87d95edf95213881d703971170ba2ce0f197c5ba"
+    },
+    {
+      "kind": "person",
+      "tenant_id": "org_7Hk2",
+      "person_id": "usr_bob",
+      "message": "v1|person|org_7Hk2|usr_bob",
+      "namespace": "mkt-p-8efe623483cf72964e3c4d722207957d87aae946"
+    },
+    {
+      "kind": "person",
+      "tenant_id": "org_OTHER",
+      "person_id": "usr_alice",
+      "message": "v1|person|org_OTHER|usr_alice",
+      "namespace": "mkt-p-aba5b05762df6c03347bb9d89c84f17298f327f0"
+    },
+    {
+      "kind": "person",
+      "tenant_id": "user_2abcCLERKid",
+      "person_id": "user_2abcCLERKid",
+      "message": "v1|person|user_2abcCLERKid|user_2abcCLERKid",
+      "namespace": "mkt-p-559e66b28f2e167a935f097787ff371fd157b9d6"
+    }
+  ]
+}
