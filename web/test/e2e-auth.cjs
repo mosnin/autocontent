@@ -64,7 +64,7 @@ const logStart = fs.statSync(LOG).size;
 async function linkFor(email, subjectRe, timeoutMs = 20_000) {
   const until = Date.now() + timeoutMs;
   while (Date.now() < until) {
-    const text = fs.readFileSync(LOG, "utf8").slice(logStart);
+    const text = fs.readFileSync(LOG).subarray(logStart).toString("utf8");
     const lines = text.split("\n").filter((l) => l.includes(`[auth-email] to=${email} `) && subjectRe.test(l));
     if (lines.length) return lines[lines.length - 1].split(" link=")[1].trim();
     await new Promise((r) => setTimeout(r, 300));
