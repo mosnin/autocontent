@@ -55,7 +55,9 @@ export function delegatedActor(conversationId: string, initialData: (IdentityLik
   if (typeof initialData.userId !== "string" || !initialData.userId.startsWith("agent:") || !list(initialData.roles).includes(AGENT_ROLE)) return null;
   const stamped = initialData.actor;
   if (!stamped || typeof stamped !== "object") return null;
-  return personActor({ ...(stamped as { roles?: unknown; scopes?: unknown }), userId: (stamped as { id?: unknown }).id });
+  // A stamp that is not a person (malformed, a harness id) blocks every Marketer tool rather than falling back to the
+  // broader unattended permissions.
+  return personActor({ ...(stamped as { roles?: unknown; scopes?: unknown }), userId: (stamped as { id?: unknown }).id }) ?? BLOCKED_ACTOR;
 }
 
 /**

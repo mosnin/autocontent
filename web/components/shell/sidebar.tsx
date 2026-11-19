@@ -7,6 +7,7 @@ import { CountBadge, IconButton, Segmented, SidebarAttention, SidebarRow, Sideba
 import { DEPARTMENTS, type DepartmentId } from "@/lib/departments";
 import type { Inbox } from "@/lib/workspace";
 import { useAgent } from "@/components/chat/agent-provider";
+import { WorkspaceSwitcher, type WorkspaceOption } from "@/components/auth/account-menu";
 import { GettingStarted, type SetupStep } from "./getting-started";
 
 export interface SidebarData {
@@ -15,6 +16,10 @@ export interface SidebarData {
   steps: SetupStep[];
   isAdmin: boolean;
   account?: ReactNode;
+  /** The active workspace and the others the person belongs to (the switcher). */
+  workspace?: { current: WorkspaceOption; all: WorkspaceOption[] };
+  /** Fixture preview: controls render but don't call the API. */
+  preview?: boolean;
 }
 
 /** Each tool's icon and colour, the same everywhere (ref 02/05 "Tools"). */
@@ -42,7 +47,26 @@ export function Sidebar({ data, onNavigate, onSearch, onCollapse }: { data: Side
 
   return (
     <nav aria-label="Main" className="flex h-full flex-col">
-      <WorkspaceRow
+      {data.workspace ? (
+        <WorkspaceSwitcher
+          current={data.workspace.current}
+          workspaces={data.workspace.all}
+          preview={data.preview}
+          actions={
+          <>
+            <IconButton label="Search (⌘K)" onClick={onSearch}>
+              <Search />
+            </IconButton>
+            {onCollapse && (
+              <IconButton label="Hide sidebar" onClick={onCollapse}>
+                <PanelLeft />
+              </IconButton>
+            )}
+          </>
+          }
+        />
+      ) : (
+        <WorkspaceRow
         name={data.brandName}
         actions={
           <>
@@ -57,6 +81,7 @@ export function Sidebar({ data, onNavigate, onSearch, onCollapse }: { data: Side
           </>
         }
       />
+      )}
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2.5 pb-3">
         <Segmented

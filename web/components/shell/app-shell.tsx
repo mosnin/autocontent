@@ -3,7 +3,7 @@
 import { Menu as MenuIcon, Moon, PanelLeft, Sun } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { cx, IconButton } from "@/design-system";
+import { cx, IconButton, PermissionsProvider } from "@/design-system";
 import { AgentProvider } from "@/components/chat/agent-provider";
 import { CommandMenu } from "./command-menu";
 import { Sidebar, type SidebarData } from "./sidebar";
@@ -13,7 +13,7 @@ import { setThemeCookie, themeClass, type AppTheme } from "./theme";
  * The app window (refs 02, 05): sidebar and main divided by a hairline, dark
  * by default. On phones the sidebar becomes a drawer.
  */
-export function AppShell({ data, account, theme: initialTheme = "dark", children }: { data: Omit<SidebarData, "account">; account?: ReactNode; theme?: AppTheme; children: ReactNode }) {
+export function AppShell({ data, account, permissions, theme: initialTheme = "dark", children }: { data: Omit<SidebarData, "account">; account?: ReactNode; /** The role's permissions in the active workspace, for hiding controls (the server decides). */ permissions: readonly string[]; theme?: AppTheme; children: ReactNode }) {
   const pathname = usePathname();
   const [theme, setTheme] = useState<AppTheme>(initialTheme);
   const [hidden, setHidden] = useState(false);
@@ -49,6 +49,7 @@ export function AppShell({ data, account, theme: initialTheme = "dark", children
   const sidebarData: SidebarData = { ...data, account: accountRow };
 
   return (
+    <PermissionsProvider permissions={permissions}>
     <AgentProvider>
       <div className={cx(themeClass(theme), "flex h-dvh overflow-hidden")}>
         {!hidden && (
@@ -82,5 +83,6 @@ export function AppShell({ data, account, theme: initialTheme = "dark", children
         <CommandMenu open={search} onClose={() => setSearch(false)} theme={theme} />
       </div>
     </AgentProvider>
+    </PermissionsProvider>
   );
 }

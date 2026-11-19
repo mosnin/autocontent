@@ -23,6 +23,7 @@ import {
   whoCan,
 } from "../src/lib/permissions.ts";
 import { type Actor, actorDispatch, actorPolicy, delegatedActor, personActor, toolDenial, withActor } from "../src/marketer/actor.ts";
+import { BLOCKED_ACTOR } from "../src/marketer/actor-context.ts";
 import { DEPARTMENT_TOOLS, persistentReadTools } from "../src/marketer/tools/index.ts";
 import { TOOL_PERMISSIONS } from "../src/marketer/tools/permissions.ts";
 import { createProposeNextMovesTool } from "../src/marketer/tools/proposals.ts";
@@ -179,8 +180,11 @@ describe("the actor", () => {
     for (const userId of ["agent:assistant", "system:dispatch", "room:room--t--k", "visitor_abc", "eval:case-1", "anonymous"]) expect(personActor({ userId, roles: [] }), userId).toBeNull();
     expect(personActor({ userId: "usr_1", roles: ["agent"] })).toBeNull();
     expect(personActor({ userId: "usr_1", roles: ["visitor"] })).toBeNull();
-    // Not a safe header value: no actor at all.
-    expect(personActor({ userId: "usr 1\r\nx-evil: 1", roles: ["owner"] })).toBeNull();
+    // A person whose id is not a safe header value is blocked (no tool runs), never treated as "no person".
+    const blocked = personActor({ userId: "usr 1\r\nx-evil: 1", roles: ["owner"], scopes: [...ALL_PERMISSIONS] });
+    expect(blocked).toBe(BLOCKED_ACTOR);
+    expect(toolDenial("list_playbooks", blocked)).toContain("DENIED");
+    expect(personActor({ userId: `u${"x".repeat(255)}`, roles: ["owner"] })?.id).toHaveLength(256);
   });
 
   it("reaches a department only in a delegated task created by an agent's dispatch", () => {
@@ -193,8 +197,9 @@ describe("the actor", () => {
     // Only a conversation the harness created for an agent; never a person-owned id.
     expect(delegatedActor(delegated, { ...stamped, userId: "usr_evil", roles: ["owner"] })).toBeNull();
     expect(delegatedActor(conversationInstanceId("distribution-manager", "tenant_a", "usr_9", "main"), stamped)).toBeNull();
-    // A stamped actor still has to look like a person.
-    expect(delegatedActor(delegated, { ...stamped, actor: { id: "agent:assistant", roles: ["owner"] } })).toBeNull();
+    // A stamped actor still has to look like a person; one that doesn't blocks every tool.
+    expect(delegatedActor(delegated, { ...stamped, actor: { id: "agent:assistant", roles: ["owner"] } })).toBe(BLOCKED_ACTOR);
+    expect(delegatedActor(delegated, { ...stamped, actor: { id: "bad id", roles: ["owner"] } })).toBe(BLOCKED_ACTOR);
     expect(delegatedActor(delegated, { ...stamped, actor: undefined })).toBeNull();
   });
 
