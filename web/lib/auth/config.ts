@@ -32,6 +32,14 @@ export const AUTH_SCHEMA = "auth";
 export const FRESH_AGE_SECONDS = 10 * 60;
 export const INVITATION_TTL_SECONDS = 72 * 60 * 60;
 
+/** Which request header carries the client address (see advanced.ipAddress below). */
+export function clientIpHeaders(env: Env = process.env): string[] {
+  const configured = env.AUTH_IP_HEADER?.trim().toLowerCase();
+  if (configured && /^[a-z0-9-]+$/.test(configured)) return [configured];
+  if (env.VERCEL) return ["x-vercel-forwarded-for", "x-forwarded-for"];
+  return ["x-forwarded-for"];
+}
+
 export function authDatabaseUrl(env: Env = process.env): string | undefined {
   return env.AUTH_DATABASE_URL?.trim() || env.DATABASE_URL?.trim() || undefined;
 }
@@ -283,7 +291,10 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
       useSecureCookies: production,
       cookiePrefix: "marketer",
       defaultCookieAttributes: { httpOnly: true, sameSite: "lax", secure: production },
-      ipAddress: { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] },
+      // Rate limits and the audit log key on the client address. On Vercel only
+      // x-vercel-forwarded-for is set by the platform and can't be supplied by the
+      // client. Self-hosted, AUTH_IP_HEADER must name a header your proxy overwrites.
+      ipAddress: { ipAddressHeaders: clientIpHeaders(env) },
     },
 
     databaseHooks: {

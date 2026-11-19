@@ -69,6 +69,8 @@ export function auditRow(e: AuditEvent): AuditRow {
 
 /** The client address from the proxy headers (first hop of x-forwarded-for). */
 export function clientIp(headers: Headers | null | undefined): string | null {
+  const vercel = headers?.get("x-vercel-forwarded-for");
+  if (vercel) return vercel.split(",")[0]!.trim() || null;
   const xff = headers?.get("x-forwarded-for");
   if (xff) return xff.split(",")[0]!.trim() || null;
   return headers?.get("x-real-ip")?.trim() || null;
