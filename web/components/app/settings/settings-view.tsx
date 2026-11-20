@@ -10,6 +10,7 @@ import { Callout, Column, PageHeader, Segmented, useAllowed } from "@/design-sys
 import type { AuthSettingsData } from "@/lib/auth/settings-data";
 import type { SessionSummary } from "@/lib/auth/actions";
 import type { BillingBalance, User } from "@/lib/types";
+import { ObservabilitySection, type ObservabilitySettings } from "./observability";
 import { AppearanceSection, BillingSection, PrivacySection, ProfileSection, SpendCapSection } from "./sections";
 
 export type SettingsTab = "general" | "security" | "team" | "workspace" | "spend" | "billing" | "privacy";
@@ -28,12 +29,15 @@ export function SettingsView({
   user,
   billing,
   auth,
+  observability = null,
   initialTab = "general",
   previewSessions,
 }: {
   user: User | null;
   billing: BillingBalance | null;
   auth: AuthSettingsData | null;
+  /** The workspace's observability content setting; null when it couldn't be read. */
+  observability?: ObservabilitySettings | null;
   initialTab?: SettingsTab;
   /** Fixture previews only: sessions to show instead of asking the server. */
   previewSessions?: SessionSummary[];
@@ -103,6 +107,7 @@ export function SettingsView({
           ) : (
             <Callout tone="attention">Couldn&apos;t load your security settings. Refresh in a moment.</Callout>
           ))}
+        {tab === "security" && <ObservabilitySection initial={observability} preview={preview} />}
         {tab === "team" && allowed["member:read"] && auth && <TeamSettings organizationId={auth.organizationId} me={auth.me} members={auth.members} invitations={auth.invitations} preview={preview} />}
         {tab === "workspace" && allowed["security:read"] && auth && (
           <WorkspaceSecurity organizationId={auth.organizationId} requireTwoFactor={auth.requireTwoFactor} providers={auth.providers} audit={auth.audit} baseUrl={auth.baseUrl} preview={preview} />
