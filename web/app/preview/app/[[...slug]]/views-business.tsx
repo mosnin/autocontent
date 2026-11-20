@@ -57,7 +57,10 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   settings: () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} />,
   "settings/billing": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="billing" />,
   // Auth settings. Add ?role=analyst (or admin, marketer, billing) to see what each role sees.
-  "settings/security": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="security" />,
+  "settings/security": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} observability={{ content: "redacted" }} previewSessions={FX_SESSIONS} initialTab="security" />,
+  // AI observability switch: on (metadata only), and unreadable. ?role=analyst shows it read-only.
+  "settings/security/observability-off": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} observability={{ content: "metadata" }} previewSessions={FX_SESSIONS} initialTab="security" />,
+  "settings/security/observability-error": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} observability={null} previewSessions={FX_SESSIONS} initialTab="security" />,
   "settings/team": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="team" />,
   "settings/team/admin": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings("admin")} previewSessions={FX_SESSIONS} initialTab="team" />,
   "settings/team/analyst": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings("analyst")} previewSessions={FX_SESSIONS} initialTab="team" />,

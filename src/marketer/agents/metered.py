@@ -89,7 +89,7 @@ async def run_metered(
 def _model_name(agent: Agent) -> str:
     """The model id for pricing and spans: a string model, an SDK model
     object's ``model`` (OpenRouter), else the configured default."""
-    m = agent.model
+    m = getattr(agent, "model", None)
     if isinstance(m, str) and m:
         return m
     inner = getattr(m, "model", None)

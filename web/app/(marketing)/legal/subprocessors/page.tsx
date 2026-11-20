@@ -18,6 +18,12 @@ const ROWS: { name: string; purpose: string; region: string }[] = [
   { name: "Ad platforms & connectors", purpose: "Publishing and paid campaign management you authorize", region: "Global" },
   { name: "Transactional email", purpose: "Notifications and account email", region: "United States" },
   { name: "Error & performance monitoring", purpose: "Diagnostics and reliability", region: "United States" },
+  {
+    name: "AI observability (Braintrust)",
+    purpose:
+      "Traces and quality evaluation of AI model calls. Used only when enabled for the service. Prompts and outputs are masked first (emails, phone numbers, card numbers and secrets removed); a workspace can choose to send no AI text at all. Personal memory is never sent.",
+    region: "United States (EU data plane available)",
+  },
 ];
 
 export default function SubprocessorsPage() {
