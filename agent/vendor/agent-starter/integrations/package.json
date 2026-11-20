@@ -1,0 +1,17 @@
+{
+  "name": "@agent-starter/integrations",
+  "version": "0.1.0",
+  "description": "Third-party integrations for Agent Starter: Composio (+ agent firewall), SendRaven, boat.dev VMs, Pusher, Langfuse, Firecrawl/Jina, Qdrant, webhook schemas.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@agent-starter/core": "file:../core",
+    "@boatdev/sdk": "1.13.0",
+    "@composio/core": "0.29.0",
+    "zod": "^4.6.7"
+  }
+}

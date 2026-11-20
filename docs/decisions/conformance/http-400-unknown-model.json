@@ -1,0 +1,74 @@
+{
+  "name": "http-400-unknown-model",
+  "source": "live 2026-11-18",
+  "note": "An unknown model slug.",
+  "model": "typesafe/jev-1.13-20260917",
+  "state": {
+    "ticket": "I was charged twice."
+  },
+  "questions": {
+    "refund": {
+      "type": "yesno",
+      "instructions": "Is the customer asking for money back?"
+    },
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "options": {
+        "billing": "Charges and refunds",
+        "technical": "Bugs and outages"
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent is this?",
+      "levels": [
+        "can wait",
+        "this week",
+        "right now"
+      ]
+    }
+  },
+  "wire_request": {
+    "model": "typesafe/jev-1.13-20260917",
+    "state": {
+      "ticket": "I was charged twice."
+    },
+    "questions": {
+      "refund": {
+        "type": "noul",
+        "instructions": "Is the customer asking for money back?"
+      },
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": "Charges and refunds",
+          "technical": "Bugs and outages"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "How urgent is this?",
+        "criteria": [
+          "can wait",
+          "this week",
+          "right now"
+        ]
+      }
+    }
+  },
+  "response": {
+    "status": 400,
+    "body": {
+      "error": {
+        "message": "Model nobody/not-a-model does not exist",
+        "code": 400
+      }
+    }
+  },
+  "expect": {
+    "ok": false,
+    "kind": "http"
+  }
+}

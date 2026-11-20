@@ -1,0 +1,36 @@
+# Chat suite (agent: assistant). Mirrors TOOL_SELECTION_CASES / STRUCTURED_OUTPUT_CASES.
+- description: "Tool selection: a current-events question searches the web first (R-EVAL-06)"
+  vars:
+    agent: assistant
+    eventPayload: "Search the web: what is the latest stable Node.js LTS version?"
+  assert:
+    - type: javascript
+      value: (output.toolCalls.find(t => !["plan_goals", "update_goal", "transition_state", "remember_fact", "recall_entity"].includes(t.tool)) || {}).tool === "web_search"
+
+- description: "Structured output: a JSON-only request passes the JSON contract (R-EVAL-07)"
+  vars:
+    agent: assistant
+    eventPayload: 'Classify the sentiment of "I love this product". Reply ONLY with a JSON object: {"sentiment": "positive" | "negative" | "neutral", "confidence": number between 0 and 1}.'
+  assert:
+    - type: is-json
+      transform: "(() => { const t = String(output.finalText ?? ''); const m = t.match(/```(?:json)?\\s*([\\s\\S]*?)```/); return (m ? m[1] : t).trim(); })()"
+      value:
+        type: object
+        required: [sentiment, confidence]
+        properties:
+          sentiment: { type: string, enum: [positive, negative, neutral] }
+          confidence: { type: number, minimum: 0, maximum: 1 }
+
+- description: "Structured output: a comparison renders a valid OpenUI program (R-EVAL-07)"
+  vars:
+    agent: assistant
+    eventPayload: "Compare plan A ($10/month, 5 seats) and plan B ($25/month, 20 seats) in a table."
+  assert:
+    - type: javascript
+      value: |
+        (() => {
+          const allowed = ["Stack", "Card", "Row", "Text", "Stat", "Table", "List", "Button", "Callout", "ProgressBar", "KeyValue", "BarChart", "Action"];
+          const m = /```openui-lang\s*\n([\s\S]*?)```/.exec(output.finalText || "");
+          if (!m || !/^\s*root\s*=\s*Stack\(/.test(m[1])) return false;
+          return [...m[1].matchAll(/(?<![@\w])([A-Z][A-Za-z]*)\(/g)].every((x) => allowed.includes(x[1]));
+        })()

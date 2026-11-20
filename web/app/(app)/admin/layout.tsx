@@ -1,67 +1,40 @@
-import { Card, CardContent } from "@/components/square/ui/card";
+import { Shield } from "lucide-react";
+import { ButtonLink, Column, EmptyLine, PageHeader } from "@/design-system";
 import { fetchAdminOverview, isForbidden } from "@/lib/admin-server";
 
 export const dynamic = "force-dynamic";
+export const metadata = { title: "Admin · Marketer" };
 
 /**
- * Thin server-side guard for the whole /admin surface. We probe the
- * admin overview: a 403 means the caller is not an admin, so we render a
- * clean "not authorized" state and nothing else — no admin chrome, no hint
- * of what lives behind the wall. On success we wrap the page in a subtle
- * "Admin" band so the surface reads as visually distinct from the normal
- * dashboard while sharing the same shell.
+ * Thin server-side guard for the whole /admin surface. We probe the admin
+ * overview: a 403 means the caller is not an admin, so we render a clean
+ * "not authorized" state and nothing else. Any other failure (API down,
+ * timeout) fails closed too: we can't tell who is asking, so nothing under
+ * /admin renders, but it is one quiet line, not a thrown error. Each page
+ * renders its own header through AdminFrame.
  */
-export default async function AdminLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  let authorized = true;
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  let state: "ok" | "forbidden" | "unreachable" = "ok";
   try {
     await fetchAdminOverview();
   } catch (err) {
-    if (isForbidden(err)) {
-      authorized = false;
-    } else {
-      // Anything else (network, 5xx) surfaces to the nearest error
-      // boundary rather than masquerading as an auth failure.
-      throw err;
-    }
+    state = isForbidden(err) ? "forbidden" : "unreachable";
   }
 
-  if (!authorized) {
-    return <NotAuthorized />;
+  if (state !== "ok") {
+    return (
+      <>
+        <PageHeader icon={<Shield />} title="Admin" />
+        <Column width="sm" title={state === "forbidden" ? "Not authorized" : "Admin is out of reach"}>
+          {state === "forbidden" ? (
+            <EmptyLine>You don&apos;t have access to this area. Ask your workspace administrator if this is a mistake.</EmptyLine>
+          ) : (
+            <EmptyLine action={<ButtonLink href="/home">Go home</ButtonLink>}>Couldn&apos;t reach the admin API to check your access. Refresh in a moment.</EmptyLine>
+          )}
+        </Column>
+      </>
+    );
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-2.5">
-        <span className="inline-flex items-center rounded-full border border-brand/30 bg-brand/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-brand">
-          Admin
-        </span>
-        <span className="text-xs text-muted-foreground">
-          Platform administration · every action here is audited
-        </span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function NotAuthorized() {
-  // Rendered inside the app shell's <main>, so this is a plain section —
-  // a nested <main> would be invalid and confuse assistive tech.
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center p-6">
-      <Card className="w-full max-w-md">
-        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-          <h1 className="text-lg font-semibold">Not authorized</h1>
-          <p className="max-w-xs text-sm text-muted-foreground">
-            You don&apos;t have access to this area. If you believe this is a
-            mistake, contact your workspace administrator.
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  return <>{children}</>;
 }

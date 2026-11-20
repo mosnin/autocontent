@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { api } from "./api";
 import type { ActionState } from "./action-state";
+import { idSegment, safeExternalUrl } from "./security/urls";
 import type {
   Article,
   AyrshareConnectResponse,
@@ -221,7 +222,7 @@ export async function updateNicheAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const niche_id = String(formData.get("niche_id") || "").trim();
+  const niche_id = idSegment(formData.get("niche_id"));
   if (!niche_id) return { ok: false, error: "niche_id required" };
 
   const platforms = (formData.getAll("platforms") as string[]) as Platform[];
@@ -280,7 +281,7 @@ export async function enqueueJobAction(
   formData: FormData,
 ): Promise<ActionState> {
   const niche_id = String(formData.get("niche_id"));
-  const platform = String(formData.get("platform")) as Platform;
+  const platform = String(formData.get("platform") || "") as Platform;
   if (!niche_id || !platform) {
     return { ok: false, error: "niche_id and platform required" };
   }
@@ -304,7 +305,7 @@ export async function approveJobAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const job_id = String(formData.get("job_id"));
+  const job_id = idSegment(formData.get("job_id"));
   if (!job_id) return { ok: false, error: "job_id required" };
   try {
     await api<Job>(`/api/v1/jobs/${job_id}/approve`, { method: "POST" });
@@ -320,7 +321,7 @@ export async function rejectJobAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const job_id = String(formData.get("job_id"));
+  const job_id = idSegment(formData.get("job_id"));
   if (!job_id) return { ok: false, error: "job_id required" };
   try {
     await api<Job>(`/api/v1/jobs/${job_id}/reject`, { method: "POST" });
@@ -336,7 +337,7 @@ export async function retryJobAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const job_id = String(formData.get("job_id"));
+  const job_id = idSegment(formData.get("job_id"));
   if (!job_id) return { ok: false, error: "job_id required" };
   try {
     await api<Job>(`/api/v1/jobs/${job_id}/retry`, { method: "POST" });
@@ -352,7 +353,7 @@ export async function createArticleAction(
   _prev: ActionState & { article?: Article },
   formData: FormData,
 ): Promise<ActionState & { article?: Article }> {
-  const niche_id = String(formData.get("niche_id") || "").trim();
+  const niche_id = idSegment(formData.get("niche_id"));
   if (!niche_id) return { ok: false, error: "niche_id required" };
   // Topic is optional — the pipeline picks one from the niche when omitted.
   const topic = String(formData.get("topic") || "").trim();
@@ -373,7 +374,7 @@ export async function retryArticleAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const article_id = String(formData.get("article_id"));
+  const article_id = idSegment(formData.get("article_id"));
   if (!article_id) return { ok: false, error: "article_id required" };
   try {
     await api<Article>(`/api/v1/articles/${article_id}/retry`, {
@@ -390,7 +391,7 @@ export async function archiveNicheAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const niche_id = String(formData.get("niche_id"));
+  const niche_id = idSegment(formData.get("niche_id"));
   if (!niche_id) return { ok: false, error: "niche_id required" };
   try {
     await api<Niche>(`/api/v1/niches/${niche_id}`, { method: "DELETE" });
@@ -426,7 +427,7 @@ export async function createTokenAction(
   } catch (e) {
     return { ok: false, error: errorMessage(e) };
   }
-  revalidatePath("/settings/tokens");
+  revalidatePath("/integrations");
   // The plaintext is returned in the action state and rendered
   // client-side exactly once — it must never enter the URL, logs, or
   // browser history.
@@ -437,14 +438,14 @@ export async function revokeTokenAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const token_id = String(formData.get("token_id"));
+  const token_id = idSegment(formData.get("token_id"));
   if (!token_id) return { ok: false, error: "token_id required" };
   try {
     await api(`/api/v1/tokens/${token_id}`, { method: "DELETE" });
   } catch (e) {
     return { ok: false, error: errorMessage(e) };
   }
-  revalidatePath("/settings/tokens");
+  revalidatePath("/integrations");
   return { ok: true };
 }
 
@@ -459,7 +460,10 @@ export async function createCheckoutAction(
       method: "POST",
       body: JSON.stringify({ pack }),
     });
-    return { ok: true, url: res.url };
+    // The browser is sent here: https only, never a javascript: or data: URL.
+    const url = safeExternalUrl(res.url);
+    if (!url) return { ok: false, error: "Checkout is unavailable right now." };
+    return { ok: true, url };
   } catch (e) {
     return { ok: false, error: errorMessage(e) };
   }
@@ -471,8 +475,12 @@ export async function connectAyrshareAction(): Promise<void> {
   const res = await api<AyrshareConnectResponse>("/api/v1/connect/ayrshare", {
     method: "POST",
   });
-  revalidatePath("/connect");
-  redirect(res.login_url);
+  revalidatePath("/distribution");
+  revalidatePath("/integrations");
+  // Only ever redirect to an https URL (never a scheme the backend response could smuggle in).
+  const url = safeExternalUrl(res.login_url);
+  if (!url) throw new Error("502 Couldn't start the connection. Try again.");
+  redirect(url);
 }
 
 export async function updateUserSettingsAction(

@@ -446,7 +446,7 @@ export interface CampaignItem {
   id: string;
   campaign_id: string;
   user_id: string;
-  kind: "video" | "article" | "ad";
+  kind: "video" | "article" | "ad" | "image";
   ref_id: string;
   enabled: boolean;
   cadence_per_week: number;

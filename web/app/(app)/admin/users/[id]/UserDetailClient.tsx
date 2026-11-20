@@ -1,617 +1,273 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
+import * as React from "react";
 import useSWR from "swr";
-import { toast } from "sonner";
-
-import { AccountStatusBadge, RoleBadge } from "@/components/admin/badges";
-import {
-  actionToneClass,
-  formatDateTime,
-  humanizeAction,
-  relativeTime,
-} from "@/components/admin/format";
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
-// Dialogs (and everything inside them) stay on the app's own primitives —
-// dialog/label/textarea have no square/ui counterpart the template
-// prescribes for this context (established precedent, see
-// articles/ArticlesClient.tsx's NewArticleDialog) — including the app
-// Button (its `isLoading` prop is used on every dialog submit button).
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button as DialogButton } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  adminGrantCredits,
-  adminKeys,
-  adminSetRole,
-  adminSetSuspension,
-} from "@/lib/admin-api";
+import { AdminFrame } from "@/components/app/admin/admin-frame";
+import { AccountStatusBadge, RoleBadge } from "@/components/app/admin/badges";
+import { actionTone, formatDateTime, humanizeAction, relativeTime } from "@/components/app/admin/format";
+import { Button, Callout, ConfirmModal, EmptyLine, Facts, Field, Input, KpiCard, Modal, MoneyInput, Notice, Section, StatusBadge, Table, Textarea } from "@/design-system";
+import { adminGrantCredits, adminKeys, adminSetRole, adminSetSuspension } from "@/lib/admin-api";
+import type { AdminUserRow, AuditEntry } from "@/lib/admin-types";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatUsd } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import type { AdminUserRow, AuditEntry } from "@/lib/admin-types";
 
 const POLL_MS = 20_000;
+const AUDIT_NOTE = "Recorded in the audit log with your identity.";
+type Dialog = "suspend" | "unsuspend" | "role" | "credits" | null;
 
-export function UserDetailClient({
-  initialUser,
-  initialAudit,
-}: {
-  initialUser: AdminUserRow;
-  initialAudit: AuditEntry[];
-}) {
+const errText = (e: unknown, fallback: string) => (e instanceof Error ? e.message : fallback);
+
+export function UserDetailClient({ initialUser, initialAudit }: { initialUser: AdminUserRow; initialAudit: AuditEntry[] }) {
   const id = initialUser.user.id;
+  const { data: row, mutate: mutateUser } = useSWR<AdminUserRow>(adminKeys.user(id), clientFetch, { refreshInterval: POLL_MS, fallbackData: initialUser });
+  const { data: audit, mutate: mutateAudit } = useSWR<AuditEntry[]>(adminKeys.audit({ target_type: "user", target_id: id, limit: 20 }), clientFetch, { refreshInterval: POLL_MS, fallbackData: initialAudit });
 
-  const { data: row, mutate: mutateUser } = useSWR<AdminUserRow>(
-    adminKeys.user(id),
-    clientFetch,
-    { refreshInterval: POLL_MS, fallbackData: initialUser },
-  );
-  const { data: audit, mutate: mutateAudit } = useSWR<AuditEntry[]>(
-    adminKeys.audit({ target_type: "user", target_id: id, limit: 20 }),
-    clientFetch,
-    { refreshInterval: POLL_MS, fallbackData: initialAudit },
-  );
-
-  const [dialog, setDialog] = React.useState<
-    "suspend" | "unsuspend" | "role" | "credits" | null
-  >(null);
+  const [dialog, setDialog] = React.useState<Dialog>(null);
+  const [done, setDone] = React.useState<string | null>(null);
 
   const data = row ?? initialUser;
   const user = data.user;
   const suspended = Boolean(user.suspended_at);
-  const entries = audit ?? [];
 
-  function refresh() {
+  const finished = (msg: string) => {
+    setDialog(null);
+    setDone(msg);
     void mutateUser();
     void mutateAudit();
-  }
+  };
 
   return (
-    <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/admin/users">
-          Back to users
-        </Link>
-      </Button>
-
-      {/* header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-            User
-          </p>
-          <h1 className="mt-1 break-all text-2xl font-semibold tracking-tight">
-            {user.email}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <RoleBadge role={user.role} />
-            <AccountStatusBadge user={user} />
-            <span className="font-mono text-xs text-muted-foreground">
-              {user.id}
-            </span>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+    <AdminFrame
+      crumbs={[{ label: "Users", href: "/admin/users" }, { label: user.email }]}
+      actions={
+        <>
           {suspended ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setDialog("unsuspend")}
-            >
+            <Button size="sm" onClick={() => setDialog("unsuspend")}>
               Reinstate
             </Button>
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setDialog("suspend")}
-            >
+            <Button size="sm" variant="ghost" onClick={() => setDialog("suspend")}>
               Suspend
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setDialog("role")}>
-            Change role
-          </Button>
-          <Button size="sm" onClick={() => setDialog("credits")}>
+          <Button size="sm" variant="primary" onClick={() => setDialog("credits")}>
             Grant credits
           </Button>
-        </div>
-      </div>
-
-      {suspended && user.suspended_reason && (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="py-4">
-            <div className="text-sm">
-              <span className="font-medium">Suspended</span>{" "}
-              <span className="text-muted-foreground">
-                {formatDateTime(user.suspended_at as string)} —{" "}
-                {user.suspended_reason}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        </>
+      }
+    >
+      {done && <Notice ok={done} />}
+      {suspended && (
+        <Callout tone="negative" title="Suspended">
+          {formatDateTime(user.suspended_at as string)}
+          {user.suspended_reason ? ` · ${user.suspended_reason}` : ""}
+        </Callout>
       )}
-
-      {/* rollups */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-        <StatCard label="Niches" value={String(data.niche_count)} />
-        <StatCard label="Jobs" value={String(data.job_count)} />
-        <StatCard label="Articles" value={String(data.article_count)} />
-        <StatCard label="Total spend" value={formatUsd(data.spend_total_usd)} mono />
-        <StatCard
-          label="Credit balance"
-          value={formatUsd(user.credit_balance_usd)}
-          mono
-        />
-        <StatCard
-          label="Daily cap"
-          value={
-            user.global_daily_cap_usd
-              ? formatUsd(user.global_daily_cap_usd)
-              : "none"
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard label="Total spend" value={formatUsd(data.spend_total_usd)} />
+        <KpiCard label="Credit balance" value={formatUsd(user.credit_balance_usd)} />
+        <KpiCard label="Jobs" value={data.job_count} />
+        <KpiCard label="Articles" value={data.article_count} />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <Section title="Account">
+          <Facts
+            items={[
+              {
+                label: "Role",
+                value: (
+                  <span className="inline-flex items-center gap-1.5">
+                    <RoleBadge role={user.role} />
+                    <Button size="sm" variant="ghost" onClick={() => setDialog("role")}>
+                      Change
+                    </Button>
+                  </span>
+                ),
+              },
+              { label: "Status", value: <AccountStatusBadge user={user} /> },
+              { label: "Niches", value: data.niche_count },
+              { label: "Daily cap", value: user.global_daily_cap_usd ? formatUsd(user.global_daily_cap_usd) : "None" },
+              { label: "Joined", value: formatDateTime(user.created_at) },
+              { label: "ID", value: <code className="font-mono text-[12px] text-fg-muted">{user.id}</code> },
+            ]}
+          />
+        </Section>
+        <Section
+          title="Recent admin actions"
+          action={
+            <Link href={`/admin/audit?target_type=user&target_id=${id}`} className="text-[12.5px] text-ds-accent hover:underline">
+              View all
+            </Link>
           }
-          mono={Boolean(user.global_daily_cap_usd)}
-        />
-      </div>
-
-      {/* recent audit */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Recent admin actions</h2>
-          <Link
-            href={`/admin/audit?target_type=user&target_id=${id}`}
-            className="text-xs font-medium text-brand hover:underline"
-          >
-            View all →
-          </Link>
-        </div>
-        {entries.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No admin actions recorded for this user yet.
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="divide-y divide-border/60 p-0">
-              {entries.map((e) => (
-                <div
-                  key={e.id}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3"
-                >
-                  <Badge variant="outline" className={actionToneClass(e.action)}>
-                    {humanizeAction(e.action)}
-                  </Badge>
-                  <span className="text-sm text-muted-foreground">
-                    by <span className="text-foreground">{e.actor_email}</span>
-                  </span>
-                  <span
-                    className="ml-auto text-xs tabular-nums text-muted-foreground"
-                    title={formatDateTime(e.created_at)}
-                  >
-                    {relativeTime(e.created_at)}
-                  </span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      <SuspendDialog
-        open={dialog === "suspend"}
-        onOpenChange={(v) => setDialog(v ? "suspend" : null)}
-        email={user.email}
-        onDone={refresh}
-        userId={id}
-      />
-      <UnsuspendDialog
-        open={dialog === "unsuspend"}
-        onOpenChange={(v) => setDialog(v ? "unsuspend" : null)}
-        email={user.email}
-        onDone={refresh}
-        userId={id}
-      />
-      <RoleDialog
-        open={dialog === "role"}
-        onOpenChange={(v) => setDialog(v ? "role" : null)}
-        email={user.email}
-        currentRole={user.role}
-        onDone={refresh}
-        userId={id}
-      />
-      <CreditsDialog
-        open={dialog === "credits"}
-        onOpenChange={(v) => setDialog(v ? "credits" : null)}
-        email={user.email}
-        balance={user.credit_balance_usd}
-        onDone={refresh}
-        userId={id}
-      />
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
-  return (
-    <Card className="border-border/60">
-      <CardContent className="space-y-1 p-4">
-        <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
-          {label}
-        </p>
-        <p
-          className={cn(
-            "text-lg font-semibold tabular-nums",
-            mono && "font-mono",
-          )}
         >
-          {value}
-        </p>
-      </CardContent>
-    </Card>
+          <Table<AuditEntry>
+            rows={audit ?? []}
+            rowKey={(e) => String(e.id)}
+            empty={<EmptyLine>No admin actions recorded for this user.</EmptyLine>}
+            columns={[
+              { key: "action", label: "Action", render: (e) => <span className="whitespace-nowrap"><StatusBadge tone={actionTone(e.action)}>{humanizeAction(e.action)}</StatusBadge></span> },
+              { key: "actor", label: "By", hideOnPhone: true, render: (e) => <span className="block max-w-[200px] truncate text-fg-muted">{e.actor_email}</span> },
+              { key: "when", label: "When", align: "right", render: (e) => <span className="whitespace-nowrap text-fg-muted" title={formatDateTime(e.created_at)}>{relativeTime(e.created_at)}</span> },
+            ]}
+          />
+        </Section>
+      </div>
+
+      <SuspendModal open={dialog === "suspend"} onClose={() => setDialog(null)} email={user.email} userId={id} onDone={() => finished("Account suspended.")} />
+      <UnsuspendModal open={dialog === "unsuspend"} onClose={() => setDialog(null)} email={user.email} userId={id} onDone={() => finished("Account reinstated.")} />
+      <RoleModal open={dialog === "role"} onClose={() => setDialog(null)} email={user.email} currentRole={user.role} userId={id} onDone={(promoted) => finished(promoted ? "Granted admin access." : "Revoked admin access.")} />
+      <CreditsModal open={dialog === "credits"} onClose={() => setDialog(null)} email={user.email} balance={user.credit_balance_usd} userId={id} onDone={(bal) => finished(`New balance: ${formatUsd(bal)}.`)} />
+    </AdminFrame>
   );
 }
 
-// --- Dialogs ------------------------------------------------------------
+/* ------------------------------------------------------------- dialogs */
 
-const AUDIT_NOTE =
-  "This action is recorded in the append-only audit log with your identity.";
-
-function SuspendDialog({
-  open,
-  onOpenChange,
-  email,
-  userId,
-  onDone,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  email: string;
-  userId: string;
-  onDone: () => void;
-}) {
+function SuspendModal({ open, onClose, email, userId, onDone }: { open: boolean; onClose: () => void; email: string; userId: string; onDone: () => void }) {
   const [reason, setReason] = React.useState("");
-  const [submitting, setSubmitting] = React.useState(false);
-
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   React.useEffect(() => {
-    if (open) setReason("");
+    if (open) (setReason(""), setError(null));
   }, [open]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const submit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     const trimmed = reason.trim();
-    if (!trimmed) {
-      toast.error("A reason is required to suspend an account");
-      return;
-    }
-    setSubmitting(true);
+    if (!trimmed) return setError("A reason is required to suspend an account.");
+    setBusy(true);
+    setError(null);
     try {
       await adminSetSuspension(userId, true, trimmed);
-      toast.success("Account suspended");
-      onOpenChange(false);
       onDone();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Suspend failed");
+      setError(errText(err, "Suspend failed"));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={onSubmit} className="space-y-5">
-          <DialogHeader>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-              Suspend account
-            </p>
-            <DialogTitle>Suspend {email}?</DialogTitle>
-            <DialogDescription>
-              The user immediately loses access and no new pipeline runs will
-              start. You can reinstate them at any time. {AUDIT_NOTE}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="suspend-reason">Reason (required)</Label>
-            <Textarea
-              id="suspend-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Abuse report #1234 — pending review"
-              maxLength={500}
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <DialogButton
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </DialogButton>
-            <DialogButton
-              type="submit"
-              variant="destructive"
-              disabled={!reason.trim() || submitting}
-              isLoading={submitting}
-            >
-              Suspend account
-            </DialogButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <ConfirmModal open={open} onClose={onClose} title={`Suspend ${email}?`} confirmLabel="Suspend account" danger busy={busy} disabled={!reason.trim()} error={error} onConfirm={() => void submit()}>
+      <p>They lose access immediately and no new runs start. You can reinstate them any time. {AUDIT_NOTE}</p>
+      <form onSubmit={submit}>
+        <Field label="Reason">
+          <Textarea value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Abuse report #1234, pending review" maxLength={500} rows={3} autoFocus />
+        </Field>
+      </form>
+    </ConfirmModal>
   );
 }
 
-function UnsuspendDialog({
-  open,
-  onOpenChange,
-  email,
-  userId,
-  onDone,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  email: string;
-  userId: string;
-  onDone: () => void;
-}) {
-  const [submitting, setSubmitting] = React.useState(false);
-
-  async function onConfirm() {
-    setSubmitting(true);
+function UnsuspendModal({ open, onClose, email, userId, onDone }: { open: boolean; onClose: () => void; email: string; userId: string; onDone: () => void }) {
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
     try {
       await adminSetSuspension(userId, false, "");
-      toast.success("Account reinstated");
-      onOpenChange(false);
       onDone();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Reinstate failed");
+      setError(errText(err, "Reinstate failed"));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  }
-
+  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-            Reinstate account
-          </p>
-          <DialogTitle>Reinstate {email}?</DialogTitle>
-          <DialogDescription>
-            Access is restored immediately and the account can run pipelines
-            again. {AUDIT_NOTE}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <DialogButton variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </DialogButton>
-          <DialogButton onClick={onConfirm} disabled={submitting} isLoading={submitting}>
-            Reinstate
-          </DialogButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmModal open={open} onClose={onClose} title={`Reinstate ${email}?`} confirmLabel="Reinstate" busy={busy} error={error} onConfirm={() => void confirm()}>
+      <p>Access is restored immediately and the account can run pipelines again. {AUDIT_NOTE}</p>
+    </ConfirmModal>
   );
 }
 
-function RoleDialog({
-  open,
-  onOpenChange,
-  email,
-  currentRole,
-  userId,
-  onDone,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  email: string;
-  currentRole: "user" | "admin";
-  userId: string;
-  onDone: () => void;
-}) {
+function RoleModal({ open, onClose, email, currentRole, userId, onDone }: { open: boolean; onClose: () => void; email: string; currentRole: "user" | "admin"; userId: string; onDone: (promoted: boolean) => void }) {
   const nextRole = currentRole === "admin" ? "user" : "admin";
   const promoting = nextRole === "admin";
-  const [submitting, setSubmitting] = React.useState(false);
-
-  async function onConfirm() {
-    setSubmitting(true);
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const confirm = async () => {
+    setBusy(true);
+    setError(null);
     try {
       await adminSetRole(userId, nextRole);
-      toast.success(
-        promoting ? "Granted admin access" : "Revoked admin access",
-      );
-      onOpenChange(false);
-      onDone();
+      onDone(promoting);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Role change failed");
+      setError(errText(err, "Role change failed"));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  }
-
+  };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-            Change role
-          </p>
-          <DialogTitle>
-            {promoting ? "Make" : "Demote"} {email} {promoting ? "an admin" : "to user"}?
-          </DialogTitle>
-          <DialogDescription>
-            {promoting
-              ? "Admins can view and administer every account on the platform, including suspending users, changing roles, and granting credits."
-              : "This user will lose all administrative access and privileged routes will return 403 for them."}{" "}
-            {AUDIT_NOTE}
-          </DialogDescription>
-        </DialogHeader>
-        <div
-          className={cn(
-            "rounded-lg border px-3 py-2 text-sm",
-            promoting
-              ? "border-brand/40 bg-brand/5 text-brand"
-              : "border-border bg-muted/40 text-muted-foreground",
-          )}
-        >
-          Role will change from{" "}
-          <span className="font-mono">{currentRole}</span> to{" "}
-          <span className="font-mono">{nextRole}</span>.
-        </div>
-        <DialogFooter>
-          <DialogButton variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
-          </DialogButton>
-          <DialogButton
-            onClick={onConfirm}
-            disabled={submitting}
-            isLoading={submitting}
-            variant={promoting ? "default" : "destructive"}
-          >
-            {promoting ? "Grant admin" : "Revoke admin"}
-          </DialogButton>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <ConfirmModal open={open} onClose={onClose} title={promoting ? `Make ${email} an admin?` : `Demote ${email} to user?`} confirmLabel={promoting ? "Grant admin" : "Revoke admin"} danger={!promoting} busy={busy} error={error} onConfirm={() => void confirm()}>
+      <p>
+        {promoting ? "Admins can view and administer every account, including suspensions, roles and credits." : "They lose all admin access; privileged routes return 403 for them."} {AUDIT_NOTE}
+      </p>
+      <p>
+        Role changes from <code className="font-mono text-fg">{currentRole}</code> to <code className="font-mono text-fg">{nextRole}</code>.
+      </p>
+    </ConfirmModal>
   );
 }
 
-function CreditsDialog({
-  open,
-  onOpenChange,
-  email,
-  balance,
-  userId,
-  onDone,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  email: string;
-  balance: string;
-  userId: string;
-  onDone: () => void;
-}) {
+function CreditsModal({ open, onClose, email, balance, userId, onDone }: { open: boolean; onClose: () => void; email: string; balance: string; userId: string; onDone: (newBalance: string) => void }) {
   const [amount, setAmount] = React.useState("");
   const [note, setNote] = React.useState("");
-  const [submitting, setSubmitting] = React.useState(false);
-
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   React.useEffect(() => {
-    if (open) {
-      setAmount("");
-      setNote("");
-    }
+    if (open) (setAmount(""), setNote(""), setError(null));
   }, [open]);
 
   const parsed = Number(amount);
   const validAmount = amount.trim() !== "" && Number.isFinite(parsed) && parsed !== 0;
 
-  async function onSubmit(e: React.FormEvent) {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validAmount) {
-      toast.error("Enter a non-zero amount");
-      return;
-    }
-    if (!note.trim()) {
-      toast.error("A note is required");
-      return;
-    }
-    setSubmitting(true);
+    if (!validAmount) return setError("Enter a non-zero amount.");
+    if (!note.trim()) return setError("A note is required.");
+    setBusy(true);
+    setError(null);
     try {
       const res = await adminGrantCredits(userId, parsed, note.trim());
-      toast.success(`New balance: ${formatUsd(res.new_balance_usd)}`);
-      onOpenChange(false);
-      onDone();
+      onDone(res.new_balance_usd);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Credit grant failed");
+      setError(errText(err, "Credit grant failed"));
     } finally {
-      setSubmitting(false);
+      setBusy(false);
     }
-  }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={onSubmit} className="space-y-5">
-          <DialogHeader>
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-brand">
-              Adjust credits
-            </p>
-            <DialogTitle>Grant credits to {email}</DialogTitle>
-            <DialogDescription>
-              Current balance {formatUsd(balance)}. Enter a positive amount to
-              grant, or a negative amount to deduct. {AUDIT_NOTE}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="credit-amount">Amount (USD)</Label>
-              <Input
-                id="credit-amount"
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="e.g. 25.00"
-                autoFocus
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="credit-note">Note (required)</Label>
-              <Input
-                id="credit-note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. Goodwill credit — support ticket #987"
-                maxLength={200}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <DialogButton
-              type="button"
-              variant="ghost"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </DialogButton>
-            <DialogButton
-              type="submit"
-              disabled={!validAmount || !note.trim() || submitting}
-              isLoading={submitting}
-            >
-              {parsed < 0 ? "Deduct credits" : "Grant credits"}
-            </DialogButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <Modal
+      open={open}
+      onClose={() => !busy && onClose()}
+      title={`Adjust credits for ${email}`}
+      width="sm"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button type="submit" form="credits-form" variant="primary" loading={busy} disabled={!validAmount || !note.trim()}>
+            {parsed < 0 ? "Deduct credits" : "Grant credits"}
+          </Button>
+        </>
+      }
+    >
+      <form id="credits-form" onSubmit={submit} className="space-y-4">
+        <p className="text-[13px] text-fg-muted">
+          Current balance {formatUsd(balance)}. A negative amount deducts. {AUDIT_NOTE}
+        </p>
+        <Field label="Amount (USD)">
+          <MoneyInput min={undefined} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="25.00" autoFocus />
+        </Field>
+        <Field label="Note">
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Goodwill credit, ticket #987" maxLength={200} />
+        </Field>
+        <Notice error={error} />
+      </form>
+    </Modal>
   );
 }

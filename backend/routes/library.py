@@ -12,6 +12,7 @@ miss (or belong to someone else) 404.
 """
 from __future__ import annotations
 
+import logging
 from typing import Literal
 from uuid import UUID
 
@@ -24,6 +25,7 @@ from marketer.repos import media as media_repo
 from marketer.services import object_storage
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter()
 
@@ -51,7 +53,7 @@ async def list_assets(
 
 class CompositionCreate(BaseModel):
     clip_asset_ids: list[UUID] = Field(min_length=1, max_length=MAX_COMPOSITION_CLIPS)
-    title: str = ""
+    title: str = Field(default="", max_length=200)
     audio_mode: Literal["keep", "mute"] = "keep"
 
 
@@ -68,6 +70,7 @@ async def list_compositions(
     "/compositions",
     response_model=Composition,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[user_rate_limit("library.compose", "20/minute")],
 )
 async def create_composition(
     body: CompositionCreate, ctx: AuthCtx = CurrentUser
@@ -102,9 +105,12 @@ async def create_composition(
         fn = modal.Function.from_name("marketer-sh", "render_composition")
         fn.spawn(ctx.user_id, str(comp.id))
     except Exception as e:  # noqa: BLE001 — a row stuck 'queued' forever is worse
+        # The row's error is shown to the user: keep the infrastructure's
+        # message in the log, not on the record.
+        logging.getLogger(__name__).warning("composition spawn failed", exc_info=True)
         await media_repo.set_composition_status(
             comp.id, user_id=ctx.user_id, status="failed",
-            error=f"spawn failed: {e}",
+            error=f"could not start the render ({type(e).__name__})",
         )
         raise HTTPException(
             status.HTTP_502_BAD_GATEWAY, detail="failed to start render"

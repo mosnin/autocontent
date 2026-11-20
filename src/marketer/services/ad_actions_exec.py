@@ -9,6 +9,12 @@ action. Every such action funnels through here so it is uniformly:
   4. APPLIED   — only then is the platform call made, via an injectable
                  ``apply_fn`` (default: the Composio executor). Tests inject a
                  stub so no real spend happens.
+  5. RAILED    — every execution passes ``marketer.rails.enforce_dispatch``
+                 (global kill switch, caps via this module's guard, unknown
+                 outcomes on the campaign, args-bound approvals), and the
+                 platform call runs through ``Dispatch.run`` so a timeout is
+                 recorded ``indeterminate`` and never retried
+                 (docs/rails/enforcement-point.md).
 
 Nothing else in the codebase may call the Composio executor for a spend action
 directly. Reads and drafts are unrestricted; money is not.
@@ -20,6 +26,7 @@ from decimal import Decimal
 from typing import Awaitable, Callable
 from uuid import UUID
 
+from .. import rails
 from ..config import settings
 from ..repos import ad_actions, ad_approvals
 from ..repos import ads as ads_repo
@@ -33,11 +40,19 @@ ApplyFn = Callable[[AdCampaign, Decimal], Awaitable[dict]]
 
 class AdSpendDenied(RuntimeError):
     """A spend-affecting action was refused by governance. Surfaced as 402/409
-    to the caller — never silently swallowed."""
+    to the caller — never silently swallowed. ``status_code`` is 402 for a
+    guard denial; a rails refusal carries its own (409 when the approval no
+    longer matches or an earlier attempt has an unknown outcome, 503 when the
+    rails store is unreachable)."""
 
-    def __init__(self, reason: str) -> None:
+    def __init__(self, reason: str, status_code: int = 402) -> None:
         super().__init__(reason)
         self.reason = reason
+        self.status_code = status_code
+
+    @classmethod
+    def from_rails(cls, denied: rails.RailsDenied) -> AdSpendDenied:
+        return cls(f"{denied.code}: {denied.reason}", denied.status_code)
 
 
 async def _noop_apply(_campaign: AdCampaign, _budget: Decimal) -> dict:
@@ -68,6 +83,64 @@ async def _notify_approval_needed(
 
 def _threshold() -> Decimal:
     return Decimal(str(settings.ads_approval_threshold_usd))
+
+
+# --------------------------------------------------------------------------- rails binding
+# An approval is bound to the exact change a person saw (docs/rails/approvals.md):
+# the campaign, the budget it moves FROM and TO, and the account's governance.
+# The binding is stored in the approval's payload under "rails", written in the
+# same INSERT as the approval, and recomputed from current facts at execution.
+
+
+def budget_change_args(campaign: AdCampaign, new_daily_budget_usd: Decimal) -> dict:
+    return {
+        "campaign_id": campaign.id,
+        "ad_account_id": campaign.ad_account_id,
+        "prev_daily_budget_usd": campaign.daily_budget_usd or Decimal("0"),
+        "new_daily_budget_usd": new_daily_budget_usd,
+    }
+
+
+def activation_args(campaign: AdCampaign) -> dict:
+    return {
+        "campaign_id": campaign.id,
+        "ad_account_id": campaign.ad_account_id,
+        "daily_budget_usd": campaign.daily_budget_usd or Decimal("0"),
+    }
+
+
+async def current_governance(campaign: AdCampaign) -> AccountGovernance | None:
+    account = await ads_repo.get_account(campaign.ad_account_id, user_id=campaign.user_id)
+    if account is None:
+        return None
+    return AccountGovernance(
+        status=account.status, killswitch=account.killswitch,
+        daily_cap_usd=account.daily_cap_usd, monthly_cap_usd=account.monthly_cap_usd,
+    )
+
+
+def rails_binding(action: str, args: dict, governance: AccountGovernance | None) -> dict:
+    """The ``payload["rails"]`` entry stored with a new approval."""
+    return {
+        "action": action,
+        "args_hash": rails.args_hash(action, args),
+        "governance_hash": rails.governance_hash(governance),
+    }
+
+
+def _binding_check(approval, action: str, args: dict, governance: AccountGovernance | None) -> rails.ApprovalBinding:
+    stored = (approval.payload or {}).get("rails") or {}
+    return rails.ApprovalBinding(
+        status=approval.status,
+        stored_args_hash=stored.get("args_hash"),
+        current_args_hash=rails.args_hash(action, args),
+        stored_governance_hash=stored.get("governance_hash"),
+        current_governance_hash=rails.governance_hash(governance),
+    )
+
+
+def _principal(actor: str) -> str:
+    return actor if actor in ("user", "agent") else "system"
 
 
 async def _gather_and_guard(
@@ -149,28 +222,50 @@ async def propose_budget_change(
     if campaign is None:
         raise AdSpendDenied("campaign not found")
 
-    try:
-        delta, requires_approval, _ = await _gather_and_guard(
+    guarded: dict = {}
+
+    async def _caps() -> rails.CapsVerdict:
+        # The existing fail-closed guard, read now. A hard deny raises
+        # AdSpendDenied, which propagates out of enforce_dispatch unchanged.
+        guarded["delta"], guarded["requires_approval"], _ = await _gather_and_guard(
             campaign, new_daily_budget_usd
         )
-    except AdSpendDenied as denied:
+        return rails.CapsVerdict(True)
+
+    args = budget_change_args(campaign, new_daily_budget_usd)
+    try:
+        dispatch = await rails.enforce_dispatch(
+            "ads.budget.change", user_id=user_id, principal=_principal(actor),
+            actor_email=actor_email, args=args,
+            target_type="ad_campaign", target_id=str(campaign_id), caps=_caps,
+        )
+    except (AdSpendDenied, rails.RailsDenied) as raised:
+        denied = AdSpendDenied.from_rails(raised) if isinstance(raised, rails.RailsDenied) else raised
+        reason = denied.reason
         await ad_actions.record(
             user_id=user_id, actor=actor, actor_email=actor_email,
             action="budget.denied", target_type="ad_campaign",
             target_id=str(campaign_id), dollar_delta_usd=Decimal("0"),
-            after={"reason": denied.reason,
+            after={"reason": reason,
                    "requested_daily_budget": str(new_daily_budget_usd)},
             ip=ip, user_agent=user_agent,
         )
-        raise
+        if denied is raised:
+            raise
+        raise denied from raised
+    delta, requires_approval = guarded["delta"], guarded["requires_approval"]
 
     if requires_approval:
+        governance = await current_governance(campaign)
         approval = await ad_approvals.create(
             user_id=user_id, action="budget.change",
             summary=f"Set daily budget to ${new_daily_budget_usd}",
             dollar_delta_usd=delta, ad_account_id=campaign.ad_account_id,
             campaign_id=campaign.id,
-            payload={"new_daily_budget_usd": str(new_daily_budget_usd)},
+            payload={
+                "new_daily_budget_usd": str(new_daily_budget_usd),
+                "rails": rails_binding("ads.budget.change", args, governance),
+            },
             requested_by=actor,
         )
         await ad_actions.record(
@@ -179,12 +274,14 @@ async def propose_budget_change(
             target_id=str(campaign_id), dollar_delta_usd=delta,
             after={"approval_id": str(approval.id)}, ip=ip, user_agent=user_agent,
         )
+        # Nothing reached the platform: the dispatch's effect is the parked approval.
+        await dispatch.succeeded({"result": "pending_approval", "approval_id": str(approval.id)})
         await _notify_approval_needed(user_id, approval.summary, delta)
         return {"status": "pending_approval", "approval_id": str(approval.id)}
 
     updated = await _apply_budget(
         campaign, new_daily_budget_usd, delta, actor, actor_email,
-        apply_fn or _noop_apply, ip, user_agent,
+        apply_fn or _noop_apply, ip, user_agent, dispatch,
     )
     return {"status": "executed", "campaign": updated.model_dump(mode="json")}
 
@@ -209,13 +306,34 @@ async def execute_approved_budget_change(
         raise AdSpendDenied("campaign not found")
 
     new_budget = Decimal(str(approval.payload.get("new_daily_budget_usd", "0")))
-    # Re-guard at execution time; a hard deny aborts (kept as approved so it
-    # can be retried after the blocker clears — we do not silently execute).
-    delta, _requires, _ = await _gather_and_guard(campaign, new_budget)
+    guarded: dict = {}
+
+    async def _caps() -> rails.CapsVerdict:
+        # Re-guard at execution time; a hard deny aborts (kept as approved so it
+        # can be retried after the blocker clears — we do not silently execute).
+        guarded["delta"], _requires, _ = await _gather_and_guard(campaign, new_budget)
+        return rails.CapsVerdict(True)
+
+    # The approval must still describe this exact change: same campaign, same
+    # from/to budget, same account governance (args-bound, docs/rails/approvals.md).
+    binding = _binding_check(
+        approval, "ads.budget.change", budget_change_args(campaign, new_budget),
+        await current_governance(campaign),
+    )
+    try:
+        dispatch = await rails.enforce_dispatch(
+            "ads.approval.execute", user_id=user_id, principal="user",
+            actor_email=actor_email, args={"approval_id": approval_id},
+            target_type="ad_campaign", target_id=str(campaign.id), caps=_caps,
+            approval=binding, approval_id=approval_id, idempotency_key="",
+        )
+    except rails.RailsDenied as denied:
+        raise AdSpendDenied.from_rails(denied) from denied
+    delta = guarded["delta"]
 
     updated = await _apply_budget(
         campaign, new_budget, delta, "user", actor_email,
-        apply_fn or _noop_apply, None, None,
+        apply_fn or _noop_apply, None, None, dispatch,
     )
     await ad_approvals.mark_executed(approval_id, user_id=user_id)
     return {"status": "executed", "campaign": updated.model_dump(mode="json")}
@@ -257,13 +375,34 @@ async def execute_approved_activation(
     if campaign is None:
         raise AdSpendDenied("campaign not found")
 
-    # Re-guard at execution time; a hard deny aborts and leaves the approval
-    # 'approved' so it can be retried once the blocker clears.
-    delta, _requires = await guard_activation(campaign)
+    guarded: dict = {}
+
+    async def _caps() -> rails.CapsVerdict:
+        # Re-guard at execution time; a hard deny aborts and leaves the approval
+        # 'approved' so it can be retried once the blocker clears.
+        guarded["delta"], _requires = await guard_activation(campaign)
+        return rails.CapsVerdict(True)
+
+    # Bound to the budget the person saw: editing the draft's budget after the
+    # request invalidates the approval instead of activating a different spend.
+    binding = _binding_check(
+        approval, "ads.campaign.activate", activation_args(campaign),
+        await current_governance(campaign),
+    )
+    try:
+        dispatch = await rails.enforce_dispatch(
+            "ads.approval.execute", user_id=user_id, principal="user",
+            actor_email=actor_email, args={"approval_id": approval_id},
+            target_type="ad_campaign", target_id=str(campaign.id), caps=_caps,
+            approval=binding, approval_id=approval_id, idempotency_key="",
+        )
+    except rails.RailsDenied as denied:
+        raise AdSpendDenied.from_rails(denied) from denied
+    delta = guarded["delta"]
 
     budget = campaign.daily_budget_usd or Decimal("0")
     fn = apply_fn or _noop_apply
-    result = await fn(campaign, budget)
+    result = await dispatch.run(lambda: fn(campaign, budget), definite=(AdSpendDenied,))
     updated = await ads_repo.update_campaign(
         campaign.id, user_id=user_id, status="active"
     )
@@ -288,10 +427,13 @@ async def _apply_budget(
     apply_fn: ApplyFn,
     ip: str | None,
     user_agent: str | None,
+    dispatch: rails.Dispatch,
 ) -> AdCampaign:
     """Make the platform call, persist the new budget, and audit — in that
-    order. If the platform call raises, we never record a fake success."""
-    result = await apply_fn(campaign, new_budget)
+    order. If the platform call raises, we never record a fake success: a
+    definite failure re-raises, an ambiguous one (timeout after sending) is
+    recorded ``indeterminate`` and raised as ``rails.OutcomeUnknown``."""
+    result = await dispatch.run(lambda: apply_fn(campaign, new_budget), definite=(AdSpendDenied,))
     updated = await ads_repo.update_campaign(
         campaign.id, user_id=campaign.user_id, daily_budget_usd=new_budget
     )

@@ -1,0 +1,10 @@
+drop trigger if exists memory_audit_append_only on memory_audit;
+drop function if exists memory_audit_append_only();
+drop index if exists memory_audit_user_idx;
+drop table if exists memory_audit;
+drop index if exists memory_learnings_user_idx;
+drop table if exists memory_learnings;
+drop index if exists memory_facts_live_content_idx;
+drop index if exists memory_facts_current_idx;
+drop index if exists memory_facts_slot_idx;
+drop table if exists memory_facts;

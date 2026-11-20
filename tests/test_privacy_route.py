@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from tests.auth_helpers import ctx_for
 
 _USER = "user_privacy_1"
 
@@ -13,12 +14,12 @@ def _reset_limiter():
 
 def _client(monkeypatch) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake():
-        return AuthCtx(user_id=_USER, email="p@p.com")
+        return ctx_for("owner", user_id=_USER, email="p@p.com")
 
     from backend.main import create_app
     app = create_app()

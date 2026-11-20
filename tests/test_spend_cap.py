@@ -161,3 +161,59 @@ async def test_abort_event_short_circuits():
     with pytest.raises(SpendCapExceeded):
         await ctx.ensure_can_spend(Decimal("0.01"))
     assert call_count["n"] == 0
+
+
+# --------------------------------------------------------------------------- niche-less spend (0028)
+
+
+async def test_niche_less_context_meters_and_skips_only_the_niche_cap():
+    """Ad-campaign decision costs: no playbook. The row is recorded with the
+    campaign, the per-niche cap is ignored, the global cap still applies."""
+    from uuid import uuid4
+
+    from marketer.repos.spend import SpendCapExceeded
+
+    campaign = uuid4()
+    recorded = []
+    niche_reads = []
+
+    async def record(entry):
+        recorded.append(entry)
+
+    async def niche_spend(*, user_id, niche_id):
+        niche_reads.append(niche_id)
+        return Decimal("999")  # would trip any per-niche cap if it were consulted
+
+    total = {"usd": Decimal("0")}
+
+    async def total_spend(*, user_id):
+        return total["usd"]
+
+    ctx = SpendContext(
+        user_id="user_test", niche_id=None, job_id=None, ad_campaign_id=campaign,
+        record=record, cap_usd=Decimal("0.01"), today_spend=niche_spend,
+        global_cap_usd=Decimal("1.00"), today_total_spend=total_spend,
+    )
+    await ctx.ensure_can_spend(Decimal("0.05"))
+    await ctx.log(provider="openrouter", sku="decision:budget_shift", units=Decimal("1"), cost_usd=Decimal("0.05"))
+    assert niche_reads == []
+    assert recorded[0].niche_id is None and recorded[0].ad_campaign_id == campaign
+
+    total["usd"] = Decimal("1.00")
+    with pytest.raises(SpendCapExceeded) as exc:
+        await ctx.ensure_can_spend(Decimal("0.05"))
+    assert exc.value.scope == "global"
+    with pytest.raises(SpendCapExceeded) as aborted:
+        await ctx.ensure_can_spend(Decimal("0.05"))
+    assert f"ad campaign {campaign}" in str(aborted.value)
+
+
+async def test_today_spend_for_no_niche_is_zero_without_a_query(monkeypatch):
+    from marketer.repos import spend as spend_repo
+
+    async def _no_db():
+        raise AssertionError("no query expected for a null niche")
+
+    monkeypatch.setattr(spend_repo, "get_pool", _no_db)
+    assert await spend_repo.today_spend_usd(user_id="u", niche_id=None) == Decimal("0")
+    await spend_repo.assert_within_cap(user_id="u", niche_id=None, cap_usd=Decimal("0"))

@@ -1,24 +1,19 @@
-import { api } from "@/lib/api";
-import type { User } from "@/lib/types";
-import { SettingsShell } from "./SettingsShell";
+import type { ObservabilitySettings } from "@/components/app/settings/observability";
+import { SettingsView } from "@/components/app/settings/settings-view";
+import { getAuthContext } from "@/lib/auth/session";
+import { loadAuthSettings } from "@/lib/auth/settings-data";
+import type { BillingBalance, User } from "@/lib/types";
+import { safe } from "@/lib/workspace-server";
 
-export const dynamic = "force-dynamic";
+export const metadata = { title: "Settings · Marketer" };
 
-// Index page for the settings sub-tree. Contains a Spend Caps section
-// plus nav cards for Connect and Tokens.
 export default async function SettingsPage() {
-  // Best-effort: if the user fetch fails we still render the page.
-  let user: User | null = null;
-  try {
-    user = await api<User>("/api/v1/users/me");
-  } catch {
-    // ignore — form renders with empty default
-  }
-
-  return (
-    <SettingsShell
-      initialCap={user?.global_daily_cap_usd ?? null}
-      initialNotifications={user?.email_notifications ?? true}
-    />
-  );
+  const ctx = await getAuthContext();
+  const [user, billing, auth, observability] = await Promise.all([
+    safe<User>("/api/v1/users/me"),
+    safe<BillingBalance>("/api/v1/billing/balance"),
+    ctx?.membership ? loadAuthSettings({ ...ctx, membership: ctx.membership }).catch(() => null) : Promise.resolve(null),
+    safe<ObservabilitySettings>("/api/v1/observability/settings"),
+  ]);
+  return <SettingsView user={user} billing={billing} auth={auth} observability={observability} />;
 }

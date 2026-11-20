@@ -1,0 +1,99 @@
+{
+  "name": "missing-answer",
+  "source": "synthetic",
+  "note": "A question with no answer fails the whole call.",
+  "model": "typesafe/jev-1.13-20260917",
+  "state": {
+    "ticket": "I was charged twice."
+  },
+  "questions": {
+    "refund": {
+      "type": "yesno",
+      "instructions": "Is the customer asking for money back?"
+    },
+    "team": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "options": {
+        "billing": "Charges and refunds",
+        "technical": "Bugs and outages"
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent is this?",
+      "levels": [
+        "can wait",
+        "this week",
+        "right now"
+      ]
+    }
+  },
+  "wire_request": {
+    "model": "typesafe/jev-1.13-20260917",
+    "state": {
+      "ticket": "I was charged twice."
+    },
+    "questions": {
+      "refund": {
+        "type": "noul",
+        "instructions": "Is the customer asking for money back?"
+      },
+      "team": {
+        "type": "choice",
+        "instructions": "Which team should handle this?",
+        "criteria": {
+          "billing": "Charges and refunds",
+          "technical": "Bugs and outages"
+        }
+      },
+      "urgency": {
+        "type": "score",
+        "instructions": "How urgent is this?",
+        "criteria": [
+          "can wait",
+          "this week",
+          "right now"
+        ]
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "refund": {
+          "type": "noul",
+          "noul": 0.81
+        },
+        "team": {
+          "type": "choice",
+          "choice": "billing",
+          "probabilities": {
+            "billing": 1,
+            "technical": 0
+          },
+          "confidence": 1
+        }
+      },
+      "usage": {
+        "input_tokens": 378,
+        "output_tokens": 62,
+        "cost": 1.5876e-05,
+        "is_byok": false,
+        "cost_details": {
+          "upstream_inference_cost": 1.5876e-05,
+          "upstream_inference_prompt_cost": 1.5876e-05,
+          "upstream_inference_completions_cost": 0
+        }
+      },
+      "id": "gen-dec-0000000000-EXAMPLE",
+      "provider": "TypeSafe"
+    }
+  },
+  "expect": {
+    "ok": false,
+    "kind": "invalid"
+  }
+}

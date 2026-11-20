@@ -1,0 +1,23 @@
+# promptfoo.decisions.yaml: labelled evals for the decision points (docs/research/EVALUATION.md 2.3), separate from the
+# agent-harness suite in promptfoo.config.yaml (which globs evals/*.yaml only, not this folder).
+#   OPENROUTER_API_KEY=... pnpm evals:decisions        (never in CI without a key; costs a few cents per run)
+# Each case asks the live decision model the production questions and checks what the production truth table decides.
+# Promote a point from shadow to enforce only when its suite meets the precision bar.
+description: "Marketer decision points: routing (1) and approval risk (6)"
+
+prompts:
+  - "{{input}}"
+
+providers:
+  - id: file://evals/decisions/provider.ts
+    label: decision-model
+
+defaultTest:
+  assert:
+    # Every case must get a real, metered answer: a failed call is an error, never a pass.
+    - type: javascript
+      value: output && typeof output === "object" && output.answers !== undefined
+
+tests:
+  - file://evals/decisions/routing.yaml
+  - file://evals/decisions/approval-risk.yaml

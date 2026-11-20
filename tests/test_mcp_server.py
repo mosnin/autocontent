@@ -18,6 +18,8 @@ async def test_tools_registered(server):
         "list_niches", "get_niche", "create_niche", "archive_niche",
         "list_jobs", "get_job", "enqueue_job", "retry_job",
         "today_spend", "connect_ayrshare",
+        "workspace_overview", "workspace_inbox", "decide_inbox_item",
+        "workspace_activity",
     }
     assert expected.issubset(names), f"missing tools: {expected - names}"
 
@@ -47,3 +49,9 @@ def test_main_requires_env(monkeypatch, capsys):
     assert rc == 2
     err = capsys.readouterr().err
     assert "MARKETER_API_BASE_URL" in err
+
+
+async def test_decide_inbox_item_warns_human_decision(server):
+    tools = {t.name: t for t in await server.list_tools()}
+    desc = (tools["decide_inbox_item"].description or "").lower()
+    assert "explicitly" in desc and "spend" in desc

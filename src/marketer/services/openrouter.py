@@ -102,5 +102,11 @@ def agents_model(model_id: str):
     from agents import OpenAIChatCompletionsModel
     from openai import AsyncOpenAI
 
-    client = AsyncOpenAI(base_url=BASE_URL, api_key=settings.openrouter_api_key)
+    # Explicit timeout (the SDK default is 10 minutes) and a stated retry
+    # budget: a chat completion publishes nothing, so the SDK's own bounded
+    # retry of connection errors, 429 and 5xx is acceptable.
+    client = AsyncOpenAI(
+        base_url=BASE_URL, api_key=settings.openrouter_api_key,
+        timeout=120.0, max_retries=2,
+    )
     return OpenAIChatCompletionsModel(model=model_id, openai_client=client)

@@ -46,7 +46,9 @@ secrets = [
     modal.Secret.from_name("marketer-xai"),       # XAI_API_KEY
     modal.Secret.from_name("marketer-ayrshare"),  # AYRSHARE_API_KEY
     modal.Secret.from_name("marketer-supabase"),  # MARKETER_DATABASE_URL
-    modal.Secret.from_name("marketer-clerk"),     # MARKETER_CLERK_JWKS_URL + ISSUER
+    # MARKETER_AUTH_ISSUER (+ optional MARKETER_AUTH_JWKS_URL,
+    # MARKETER_AUTH_AUDIENCE, MARKETER_AUTH_DATABASE_URL); docs/auth/backend.md.
+    modal.Secret.from_name("marketer-auth"),
 ]
 
 app = modal.App(APP_NAME, image=image, secrets=secrets)
@@ -358,6 +360,22 @@ async def campaign_tick() -> dict:
     result = await tick_all()
     await idempotency.mark_done(guard_key)
     return result
+
+
+@app.function(
+    schedule=modal.Cron("*/10 * * * *"),  # every 10 min
+    timeout=60 * 8,
+)
+async def recall_tick() -> dict:
+    """Supermemory lifecycle (docs/memory/supermemory.md): queue namespace
+    deletes from member.removed / member.left / account / workspace audit rows,
+    delete them until Supermemory confirms (idempotent, retried with backoff,
+    audited as memory.purge), and mirror governed sources into team memory.
+    Needs SUPERMEMORY_API_KEY and MEMORY_NAMESPACE_SECRET in the environment;
+    without them it only queues, and nothing is sent."""
+    from marketer.recall.purge import run_once
+
+    return await run_once()
 
 
 @app.function(

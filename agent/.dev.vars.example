@@ -1,0 +1,39 @@
+# Copy to .dev.vars for local development (never commit .dev.vars).
+# Generate strong secrets with: openssl rand -base64 48
+OPENAI_API_KEY=""
+# Decision models (src/marketer/decisions) through OpenRouter. Empty = every decision point off (today's behaviour).
+OPENROUTER_API_KEY=""
+# Shared with the Next.js web app (../web SESSION_SIGNING_SECRET): it mints session tokens for the signed-in Clerk
+# user (sub = tid = Clerk user id).
+SESSION_SIGNING_SECRET=""
+APPROVAL_SIGNING_SECRET=""
+WEBHOOK_SIGNING_SECRET=""
+EVAL_HARNESS_SECRET=""
+# Marketer API service token: MUST equal the backend's MARKETER_AGENT_SERVICE_TOKEN. Tools send it as
+# `Authorization: Bearer` plus `x-tenant-id: <Clerk user id>` (from the session, never the model) to PRIMARY_SAAS_API_URL
+# (a var in wrangler.jsonc; for local dev override it here, e.g. PRIMARY_SAAS_API_URL="http://localhost:8000").
+SAAS_SERVICE_TOKEN=""
+# PRIMARY_SAAS_API_URL="http://localhost:8000"
+PERSISTENT_ASSERTION_SECRET=""
+
+# Optional integrations (leave unset to disable):
+# LANGFUSE_PUBLIC_KEY="" / LANGFUSE_SECRET_KEY="" / LANGFUSE_BASE_URL=""  -> traces to Langfuse
+# OTLP_TRACES_TOKEN=""  -> bearer token for the OpenTelemetry collector in the OTLP_TRACES_ENDPOINT var
+# BRAINTRUST_API_KEY=""  -> traces, feedback and evals to Braintrust (also set the BRAINTRUST_PROJECT_ID var; optional
+#   BRAINTRUST_API_URL, BRAINTRUST_CONTENT=redacted|metadata). See docs/observability/braintrust.md.
+# AI_GATEWAY_TOKEN=""  -> authenticated Cloudflare AI Gateway (set CF_ACCOUNT_ID + AI_GATEWAY_ID vars in wrangler.jsonc)
+# SENDRAVEN_API_KEY="" / PUSHER_APP_ID="" / PUSHER_KEY="" / PUSHER_SECRET=""
+# JINA_API_KEY="" / FIRECRAWL_API_KEY=""  -> web_search / page reading providers
+# COMPOSIO_API_KEY=""  -> Composio actions (also set integrations.composio: true in agent-starter.config.ts)
+# INBOUND_WEBHOOK_SECRET="" / OUTBOUND_WEBHOOK_SECRET="" / TENANT_SYNC_SECRET="" / ARTIFACT_SIGNING_SECRET=""  -> one secret
+#   per purpose (signed event ingestion / webhooks to your SaaS / tenant-config sync / artifact download links);
+#   each falls back to WEBHOOK_SIGNING_SECRET
+# QDRANT_URL="" / QDRANT_API_KEY="" / QDRANT_COLLECTION=""  -> Qdrant as the memory store (integrations.qdrant: true)
+# Every optional provider also needs its switch on in agent-starter.config.ts integrations.
+# GITHUB_TOKEN=""  -> coding module: import repos, push branches, open pull requests
+# <NAME>_MCP_TOKEN=""  -> bearer token of an MCP server listed in agent-starter.config.ts mcpServers (tokenSecret)
+# Alerts (DLQ, budget breach, stalled runs, VM halts) go to the OPS_ALERT_EMAIL var in wrangler.jsonc.
+
+# Fresh installs fall back to secure freemium tenant limits (5 turns, $0.15, features off).
+# Seed a generous LOCAL dev tenant and print a dev session token (never touches production):
+#   pnpm seed:dev --token

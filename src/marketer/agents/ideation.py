@@ -223,6 +223,24 @@ async def run_ideation(
     if len(candidates) == 1:
         return candidates[0]
 
+    # Decision point 3 (what to post next) scores every candidate alongside
+    # the judge. Off without a key; shadow logs only; enforce may replace the
+    # judge's pick with the table's. Never a new failure mode.
+    from ..decisions import points as decision_points
+
+    scored = decision_points.start(
+        decision_points.score_ideas(
+            candidates,
+            niche_title=niche_title,
+            niche_description=niche_description,
+            target_audience=target_audience,
+            platform=platform,
+            recent_topics=recent_topics,
+            performance_context=performance_context,
+            spend=spend,
+        )
+    )
+    judge_index = 0
     try:
         judge_payload = build_ideation_prompt(
             niche_title,
@@ -237,10 +255,11 @@ async def run_ideation(
         )
         verdict = verdict_result.final_output_as(IdeaVerdict)
         if 0 <= verdict.winner_index < len(candidates):
-            return candidates[verdict.winner_index]
+            judge_index = verdict.winner_index
     except Exception as exc:  # noqa: BLE001 — tournament never becomes a failure mode
         from ..repos.spend import SpendCapExceeded
 
         if isinstance(exc, SpendCapExceeded):
+            scored.cancel()
             raise  # cap breach must propagate; only judge failures fall back
-    return candidates[0]
+    return candidates[await decision_points.pick_idea(scored, judge_index)]

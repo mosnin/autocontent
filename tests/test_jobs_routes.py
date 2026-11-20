@@ -11,8 +11,8 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from backend.auth import AuthCtx
 from backend.routes import jobs as jobs_route
+from tests.auth_helpers import ctx_for
 
 
 async def test_get_job_video_404_when_no_rendered(monkeypatch):
@@ -28,7 +28,7 @@ async def test_get_job_video_404_when_no_rendered(monkeypatch):
 
     monkeypatch.setattr(jobs_route.jobs_repo, "get", _get)
 
-    ctx = AuthCtx(user_id="user_x", email="")
+    ctx = ctx_for("owner", user_id="user_x", email="")
     with pytest.raises(HTTPException) as ei:
         await jobs_route.get_job_video(job_id, ctx)
     assert ei.value.status_code == 404
@@ -43,7 +43,7 @@ async def test_get_job_video_404_when_job_missing(monkeypatch):
 
     monkeypatch.setattr(jobs_route.jobs_repo, "get", _get)
 
-    ctx = AuthCtx(user_id="user_x", email="")
+    ctx = ctx_for("owner", user_id="user_x", email="")
     with pytest.raises(HTTPException) as ei:
         await jobs_route.get_job_video(job_id, ctx)
     assert ei.value.status_code == 404

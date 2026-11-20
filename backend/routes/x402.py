@@ -15,14 +15,15 @@ from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
 
-from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi import APIRouter, HTTPException, Query, Request, Response, status
 
 from marketer.repos import billing
 from marketer.repos import x402 as x402_repo
 from marketer.services import x402
-from marketer.services.x402 import X402Disabled, X402PaymentError
+from marketer.services.x402 import X402Disabled, X402FacilitatorError, X402PaymentError
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter()
 
@@ -59,11 +60,11 @@ async def x402_config(ctx: AuthCtx = CurrentUser) -> dict:
     }
 
 
-@router.post("/credits")
+@router.post("/credits", dependencies=[user_rate_limit("x402.credits", "20/minute")])
 async def buy_credits(
     request: Request,
     response: Response,
-    amount_usd: str,
+    amount_usd: str = Query(max_length=32),
     ctx: AuthCtx = CurrentUser,
 ) -> dict:
     if not x402.is_enabled():
@@ -101,6 +102,21 @@ async def buy_credits(
         )
     except X402Disabled as e:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(e)) from e
+    except X402FacilitatorError as e:
+        if e.stage == "verify":
+            # Nothing was submitted on-chain: a plain upstream failure.
+            raise HTTPException(
+                status.HTTP_502_BAD_GATEWAY,
+                "payment facilitator unavailable; nothing was charged, try again",
+            ) from e
+        # Settlement was sent and the answer never came. Same contract as the
+        # rails' unknown outcome (docs/rails/failure-semantics.md): 502 with
+        # an `outcome_unknown:` detail, never retried here.
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY,
+            "outcome_unknown: the settlement was sent but not confirmed. Do not pay "
+            "again; check the wallet for the transaction and contact support with it.",
+        ) from e
 
     if not result.success or not result.settlement_id:
         # Payment didn't clear — 402 again with the reason.

@@ -1,0 +1,9 @@
+{
+  "name": "@intent-onboarding/spec",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Spec format, deterministic path derivation and RULES.md linter for intent-driven onboarding.",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "bin": { "intent-onboarding-lint": "src/cli.ts" }
+}

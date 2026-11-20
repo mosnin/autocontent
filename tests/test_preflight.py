@@ -334,7 +334,7 @@ def test_run_preflight_never_raises_even_if_a_check_blows_up(monkeypatch):
 # ---------------------------------------------------------------------------
 
 def _app_client(monkeypatch) -> TestClient:
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
 
     import sys
     import types

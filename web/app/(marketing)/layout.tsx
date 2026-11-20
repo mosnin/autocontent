@@ -2,10 +2,8 @@ import * as React from "react";
 
 import { MarketingFooter, MarketingNav } from "@/components/marketing/system";
 
-// The root layout wraps everything in <ClerkProvider>, which can't be
-// statically prerendered without a real Clerk key — opt the whole marketing
-// group out so CI builds ship with a placeholder key (same reason the old
-// app/page.tsx was force-dynamic).
+// Rendered per request (kept from when the auth provider needed it; the
+// nav's signed-in switch now runs in the browser).
 export const dynamic = "force-dynamic";
 
 /**

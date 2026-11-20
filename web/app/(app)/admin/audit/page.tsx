@@ -1,3 +1,4 @@
+import { AdminUnavailable } from "@/components/app/admin/admin-unavailable";
 import { fetchAdminAudit } from "@/lib/admin-server";
 import type { AuditQuery } from "@/lib/admin-types";
 import { AuditClient, AUDIT_PAGE_SIZE } from "./AuditClient";
@@ -23,7 +24,8 @@ export default async function AdminAuditPage({
   const initial = await fetchAdminAudit({
     ...initialFilters,
     limit: AUDIT_PAGE_SIZE,
-  });
+  }).catch(() => null);
+  if (!initial) return <AdminUnavailable title="Audit log" what="the audit log" />;
 
   return <AuditClient initial={initial} initialFilters={initialFilters} />;
 }

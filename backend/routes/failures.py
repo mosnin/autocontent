@@ -31,14 +31,20 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel
 
+from marketer import rails
 from marketer.articles.models import ArticleStatus
+from marketer.rails.http import to_http
 from marketer.repos import articles as articles_repo
 from marketer.repos import image_posts as image_posts_repo
 from marketer.repos import jobs as jobs_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter()
+
+# Same targets the per-surface retry routes guard (jobs.py, image_posts.py).
+_POST_TARGET = {"job": "video_post", "image_post": "carousel_post"}
 
 FailureKind = Literal["job", "image_post", "article"]
 
@@ -132,7 +138,11 @@ async def list_failures(
     return FailuresInboxResponse(failures=items, counts=counts, total=len(items))
 
 
-@router.post("/replay/{kind}/{item_id}", status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/replay/{kind}/{item_id}",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[user_rate_limit("failures.replay", "30/minute")],
+)
 async def replay_failure(
     kind: FailureKind, item_id: UUID, ctx: AuthCtx = CurrentUser
 ) -> dict:
@@ -142,6 +152,17 @@ async def replay_failure(
     just reachable from the consolidated inbox.
     """
     import modal
+
+    # A replay re-renders and posts again. The per-surface retry routes refuse
+    # while an earlier post of the same item has an unknown outcome nobody
+    # resolved; this route is the same retry by another address, so it must
+    # refuse too, or the inbox becomes the way to post twice.
+    target_type = _POST_TARGET.get(kind)
+    if target_type is not None:
+        try:
+            await rails.assert_no_unresolved(ctx.user_id, target_type, str(item_id))
+        except rails.RailsDenied as e:
+            raise to_http(e) from e
 
     if kind == "job":
         job = await jobs_repo.reset_for_retry(item_id, user_id=ctx.user_id)

@@ -1,0 +1,10 @@
+drop table if exists recall_mirror;
+drop table if exists recall_audit_cursor;
+drop index if exists recall_purge_due_idx;
+drop index if exists recall_purge_pending_uq;
+drop table if exists recall_purge_queue;
+drop index if exists recall_subjects_org_idx;
+drop index if exists recall_subjects_person_idx;
+drop table if exists recall_subjects;
+alter table users drop column if exists supermemory_updated_at;
+alter table users drop column if exists supermemory_enabled;

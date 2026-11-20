@@ -1,0 +1,32 @@
+# Decision point 1: route a request to a department. Label = the department (null when the frontier model should
+# plan: multi-department or ambiguous) and whether the paid-media-safety skill must be forced.
+- description: "Article request goes to the SEO editor"
+  vars: { point: routing, input: "Write a 1,500 word article on how to price a bakery menu, optimised for search." }
+  assert: [{ type: javascript, value: "output.department === 'seo-editor' && output.skill === null" }]
+- description: "Short video request goes to the content producer"
+  vars: { point: routing, input: "Make me a 30 second TikTok about our new oat latte." }
+  assert: [{ type: javascript, value: "output.department === 'content-producer' && output.skill === null" }]
+- description: "Budget increase goes to the media buyer with the paid-media skill"
+  vars: { point: routing, input: "Raise the Meta campaign budget to $80 a day." }
+  assert: [{ type: javascript, value: "output.department === 'media-buyer' && output.skill === 'paid-media-safety'" }]
+- description: "Performance question goes to the analyst"
+  vars: { point: routing, input: "Which of last week's videos got the most views, and why?" }
+  assert: [{ type: javascript, value: "output.department === 'analyst' && output.skill === null" }]
+- description: "Calendar change goes to distribution"
+  vars: { point: routing, input: "Move tomorrow's Instagram post to Friday at 9am." }
+  assert: [{ type: javascript, value: "output.department === 'distribution-manager' && output.skill === null" }]
+- description: "Positioning work goes to the strategist"
+  vars: { point: routing, input: "Rewrite our playbook's target audience and voice for Gen Z runners." }
+  assert: [{ type: javascript, value: "output.department === 'strategist' && output.skill === null" }]
+- description: "Launch across departments: the frontier model plans (no hint)"
+  vars: { point: routing, input: "Plan our product launch: positioning, five videos, a blog post and a posting schedule." }
+  assert: [{ type: javascript, value: "output.action === 'frontier' && output.department === null" }]
+- description: "Launch with an ad budget: frontier plans, paid-media skill still forced"
+  vars: { point: routing, input: "Launch the spring sale: new videos, a landing article, and $1,000 of Google Ads." }
+  assert: [{ type: javascript, value: "output.action === 'frontier' && output.skill === 'paid-media-safety'" }]
+- description: "Reading ad results does not force the paid-media skill"
+  vars: { point: routing, input: "What was our return on ad spend last month?" }
+  assert: [{ type: javascript, value: "output.skill === null" }]
+- description: "Pausing an ad set is a media-buyer money move"
+  vars: { point: routing, input: "Pause the ad set that is burning money without conversions." }
+  assert: [{ type: javascript, value: "output.department === 'media-buyer' && output.skill === 'paid-media-safety'" }]

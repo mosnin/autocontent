@@ -8,6 +8,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from fastapi.testclient import TestClient
+from tests.auth_helpers import ctx_for
 
 
 # ---------------------------------------------------------------------------
@@ -22,10 +23,10 @@ def _reset_limiter():
 def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = None) -> TestClient:
     """App with require_user overridden and users_repo stubs in place."""
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from marketer.models import User
     from datetime import datetime, timezone
 
@@ -33,7 +34,7 @@ def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = N
     _emails: dict[str, bool] = {"value": True}
 
     async def _fake_require_user():
-        return AuthCtx(user_id="user_test", email="t@t.com")
+        return ctx_for("owner", user_id="user_test", email="t@t.com")
 
     async def _fake_get(user_id: str) -> User:
         return User(
@@ -65,6 +66,7 @@ def _make_authed_client(monkeypatch, *, global_daily_cap_usd: Decimal | None = N
     import marketer.repos.users as users_repo
     monkeypatch.setattr(users_repo, "get", _fake_get)
     monkeypatch.setattr(users_repo, "upsert", _fake_upsert)
+    monkeypatch.setattr(users_repo, "ensure", _fake_upsert)
     monkeypatch.setattr(users_repo, "update_settings", _fake_update_settings)
 
     from backend.main import create_app
@@ -94,7 +96,7 @@ def test_me_without_auth_returns_401(monkeypatch):
     """No auth header → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app

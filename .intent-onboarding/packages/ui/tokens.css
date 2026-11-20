@@ -1,0 +1,139 @@
+/*
+ * Intent-onboarding design tokens.
+ * Source of truth for the visual system described in DESIGN.md.
+ * Re-theme by overriding these variables (e.g. map them to a host design system);
+ * do not add new colors to components.
+ *
+ * Usage: import once at the root of the onboarding surface. Theme follows
+ * prefers-color-scheme, unless [data-theme="light"|"dark"] is set on an ancestor.
+ */
+
+:root {
+  /* ── Type ─────────────────────────────────────────────── */
+  --io-font-sans: 'Inter', 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --io-font-serif: 'Newsreader', 'Tiempos Text', ui-serif, Georgia, serif; /* sparing: plan cards, editorial headings */
+  --io-text-xs: 12px;   /* meta, helper ("Max 3. You can add more later") */
+  --io-text-sm: 13px;   /* secondary rows, scope descriptions */
+  --io-text-md: 15px;   /* body, options, buttons */
+  --io-text-lg: 17px;   /* row titles (activity items) */
+  --io-text-xl: 22px;   /* screen title */
+  --io-text-2xl: 28px;  /* rare: success headline */
+  --io-leading-tight: 1.25;
+  --io-leading-body: 1.5;
+  --io-weight-regular: 400;
+  --io-weight-medium: 500;
+  --io-tracking-title: -0.01em;
+
+  /* ── Space (4px base) ─────────────────────────────────── */
+  --io-space-1: 4px;
+  --io-space-2: 8px;
+  --io-space-3: 12px;
+  --io-space-4: 16px;
+  --io-space-5: 20px;
+  --io-space-6: 24px;
+  --io-space-8: 32px;
+  --io-space-10: 40px;
+  --io-space-12: 48px;
+  --io-space-16: 64px;
+
+  /* ── Radius ───────────────────────────────────────────── */
+  --io-radius-sm: 8px;     /* checkbox, small badge */
+  --io-radius-md: 12px;    /* inputs, buttons, option rows */
+  --io-radius-lg: 16px;    /* cards, panels */
+  --io-radius-xl: 24px;    /* inset preview panel */
+  --io-radius-2xl: 28px;   /* outer onboarding frame */
+  --io-radius-pill: 999px; /* chips, plan-card CTA */
+
+  /* ── Motion ───────────────────────────────────────────── */
+  --io-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --io-duration-fast: 150ms;
+  --io-duration: 200ms;
+  --io-duration-slow: 250ms;
+
+  /* ── Layout ───────────────────────────────────────────── */
+  --io-frame-max: 1040px;
+  --io-task-max: 440px;    /* left column: one question, one CTA */
+  --io-control-h: 44px;    /* buttons, inputs, chips */
+
+  /* ── Accent + status (identical in both themes) ───────── */
+  --io-accent: #2f7cf6;          /* selection ring, checkbox, "Connected", links */
+  --io-accent-soft: rgb(47 124 246 / 0.14);
+  --io-warning: #f5a524;
+  --io-danger: #e5484d;
+  --io-success: #30a46c;
+  --io-info: #4c8df6;
+}
+
+/* ── Light (paper) ───────────────────────────────────────── */
+:root,
+[data-theme='light'] {
+  --io-bg: #f4f4f2;                 /* page */
+  --io-bg-gradient: linear-gradient(180deg, #f8f8f7 0%, #ececea 100%);
+  --io-surface: #ffffff;            /* card */
+  --io-surface-raised: #fafaf9;     /* nested list inside a card */
+  --io-surface-sunken: #f2f2f0;     /* secondary button, skeleton */
+  --io-border: rgb(0 0 0 / 0.07);
+  --io-border-strong: rgb(0 0 0 / 0.12);
+  --io-text: #1d1d1c;
+  --io-text-secondary: rgb(29 29 28 / 0.60);
+  --io-text-tertiary: rgb(29 29 28 / 0.40);
+  --io-primary: #262626;            /* the one solid button */
+  --io-primary-hover: #111111;
+  --io-on-primary: #ffffff;
+  --io-skeleton: #ededeb;
+  --io-shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 12px 40px -12px rgb(0 0 0 / 0.10);
+  --io-texture: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  --io-preview-wash: radial-gradient(120% 90% at 0% 0%, #f3ecf3 0%, transparent 60%),
+    radial-gradient(100% 80% at 100% 100%, #e9ecf6 0%, transparent 55%), #f6f4f2;
+  color-scheme: light;
+}
+
+/* ── Dark (ink) ──────────────────────────────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --io-bg: #141414;
+    --io-bg-gradient: #141414;
+    --io-surface: #1b1b1b;
+    --io-surface-raised: #202020;
+    --io-surface-sunken: #242424;
+    --io-border: rgb(255 255 255 / 0.07);
+    --io-border-strong: rgb(255 255 255 / 0.12);
+    --io-text: #ededed;
+    --io-text-secondary: rgb(237 237 237 / 0.58);
+    --io-text-tertiary: rgb(237 237 237 / 0.36);
+    --io-primary: #2a2a2a;
+    --io-primary-hover: #333333;
+    --io-on-primary: #ffffff;
+    --io-skeleton: #262626;
+    --io-shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 16px 48px -16px rgb(0 0 0 / 0.6);
+    --io-preview-wash: radial-gradient(120% 90% at 0% 0%, #f1efeb 0%, transparent 60%), radial-gradient(100% 80% at 100% 100%, #d9d7d2 0%, transparent 55%), #e7e5e0; /* light paper behind a dark sheet (ref 02) */
+    color-scheme: dark;
+  }
+}
+[data-theme='dark'] {
+  --io-bg: #141414;
+  --io-bg-gradient: #141414;
+  --io-surface: #1b1b1b;
+  --io-surface-raised: #202020;
+  --io-surface-sunken: #242424;
+  --io-border: rgb(255 255 255 / 0.07);
+  --io-border-strong: rgb(255 255 255 / 0.12);
+  --io-text: #ededed;
+  --io-text-secondary: rgb(237 237 237 / 0.58);
+  --io-text-tertiary: rgb(237 237 237 / 0.36);
+  --io-primary: #2a2a2a;
+  --io-primary-hover: #333333;
+  --io-on-primary: #ffffff;
+  --io-skeleton: #262626;
+  --io-shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 16px 48px -16px rgb(0 0 0 / 0.6);
+  --io-preview-wash: radial-gradient(120% 90% at 0% 0%, #f1efeb 0%, transparent 60%), radial-gradient(100% 80% at 100% 100%, #d9d7d2 0%, transparent 55%), #e7e5e0; /* light paper behind a dark sheet (ref 02) */
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --io-duration-fast: 0ms;
+    --io-duration: 0ms;
+    --io-duration-slow: 0ms;
+  }
+}

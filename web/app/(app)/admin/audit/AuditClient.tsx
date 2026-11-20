@@ -1,102 +1,61 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
-
-import {
-  actionToneClass,
-  formatDateTime,
-  humanizeAction,
-  relativeTime,
-} from "@/components/admin/format";
-import { Badge } from "@/components/square/ui/badge";
-import { Button } from "@/components/square/ui/button";
-import { Card, CardContent } from "@/components/square/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/square/ui/table";
+import { AdminFrame } from "@/components/app/admin/admin-frame";
+import { actionTone, formatDateTime, humanizeAction, relativeTime } from "@/components/app/admin/format";
+import { Button, CodeBlock, EmptyLine, Facts, Input, Modal, Notice, StatusBadge, Table } from "@/design-system";
 import { adminKeys } from "@/lib/admin-api";
-import { clientFetch } from "@/lib/client-fetcher";
-import { cn } from "@/lib/utils";
 import type { AuditEntry, AuditQuery } from "@/lib/admin-types";
+import { clientFetch } from "@/lib/client-fetcher";
 
 export const AUDIT_PAGE_SIZE = 50;
+// Page cap: past this many rows in the DOM, narrow with the filters instead of loading more.
+const AUDIT_MAX_ROWS = 500;
 
-type Filters = {
-  action: string;
-  target_type: string;
-  target_id: string;
-  actor_id: string;
-};
+type Filters = { action: string; target_type: string; target_id: string; actor_id: string };
+const EMPTY: Filters = { action: "", target_type: "", target_id: "", actor_id: "" };
 
-function toFilters(q: AuditQuery): Filters {
-  return {
-    action: q.action ?? "",
-    target_type: q.target_type ?? "",
-    target_id: q.target_id ?? "",
-    actor_id: q.actor_id ?? "",
-  };
-}
+const toFilters = (q: AuditQuery): Filters => ({ action: q.action ?? "", target_type: q.target_type ?? "", target_id: q.target_id ?? "", actor_id: q.actor_id ?? "" });
+const toQuery = (f: Filters): AuditQuery => ({
+  action: f.action.trim() || undefined,
+  target_type: f.target_type.trim() || undefined,
+  target_id: f.target_id.trim() || undefined,
+  actor_id: f.actor_id.trim() || undefined,
+});
 
-function toQuery(f: Filters): AuditQuery {
-  return {
-    action: f.action.trim() || undefined,
-    target_type: f.target_type.trim() || undefined,
-    target_id: f.target_id.trim() || undefined,
-    actor_id: f.actor_id.trim() || undefined,
-  };
-}
+const FIELDS: { key: keyof Filters; label: string; placeholder: string }[] = [
+  { key: "action", label: "Action", placeholder: "user.suspend" },
+  { key: "target_type", label: "Target type", placeholder: "user" },
+  { key: "target_id", label: "Target ID", placeholder: "Target ID" },
+  { key: "actor_id", label: "Actor ID", placeholder: "Actor ID" },
+];
 
-export function AuditClient({
-  initial,
-  initialFilters,
-}: {
-  initial: AuditEntry[];
-  initialFilters: AuditQuery;
-}) {
+export function AuditClient({ initial, initialFilters }: { initial: AuditEntry[]; initialFilters: AuditQuery }) {
   const [draft, setDraft] = React.useState<Filters>(toFilters(initialFilters));
-  const [applied, setApplied] = React.useState<Filters>(
-    toFilters(initialFilters),
-  );
+  const [applied, setApplied] = React.useState<Filters>(toFilters(initialFilters));
   const [entries, setEntries] = React.useState<AuditEntry[]>(initial);
   const [loading, setLoading] = React.useState(false);
   const [done, setDone] = React.useState(initial.length < AUDIT_PAGE_SIZE);
+  const [error, setError] = React.useState<string | null>(null);
+  const [open, setOpen] = React.useState<AuditEntry | null>(null);
   const mounted = React.useRef(false);
 
-  const load = React.useCallback(
-    async (reset: boolean, filters: Filters, cursorId?: number) => {
-      setLoading(true);
-      try {
-        const page = await clientFetch<AuditEntry[]>(
-          adminKeys.audit({
-            ...toQuery(filters),
-            before_id: reset ? undefined : cursorId,
-            limit: AUDIT_PAGE_SIZE,
-          }),
-        );
-        setEntries((prev) => (reset ? page : [...prev, ...page]));
-        setDone(page.length < AUDIT_PAGE_SIZE);
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to load audit log",
-        );
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const load = React.useCallback(async (reset: boolean, filters: Filters, cursorId?: number) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const page = await clientFetch<AuditEntry[]>(adminKeys.audit({ ...toQuery(filters), before_id: reset ? undefined : cursorId, limit: AUDIT_PAGE_SIZE }));
+      setEntries((prev) => (reset ? page : [...prev, ...page]));
+      setDone(page.length < AUDIT_PAGE_SIZE);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load audit log");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Reload from scratch whenever the applied filters change (but not on the
-  // initial mount — the server already provided that page).
+  // Reload from scratch whenever the applied filters change (not on mount:
+  // the server already provided that page).
   React.useEffect(() => {
     if (!mounted.current) {
       mounted.current = true;
@@ -105,263 +64,118 @@ export function AuditClient({
     void load(true, applied);
   }, [applied, load]);
 
-  const dirty =
-    JSON.stringify(draft) !== JSON.stringify(applied) ||
-    Object.values(applied).some(Boolean);
-
-  function apply() {
-    setApplied(draft);
-  }
-  function clearAll() {
-    const empty = { action: "", target_type: "", target_id: "", actor_id: "" };
-    setDraft(empty);
-    setApplied(empty);
-  }
+  const filtered = Object.values(applied).some(Boolean);
+  const dirty = JSON.stringify(draft) !== JSON.stringify(applied);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
-        <p className="text-sm text-muted-foreground">
-          Append-only record of every privileged action. Newest first.
-        </p>
-      </div>
-
-      {/* filters */}
-      <Card>
-        <CardContent className="space-y-4 py-5">
-          <div className="text-sm font-medium">Filters</div>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              apply();
-            }}
-            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            <Field
-              id="f-action"
-              label="Action"
-              value={draft.action}
-              onChange={(v) => setDraft((d) => ({ ...d, action: v }))}
-              placeholder="user.suspend"
-            />
-            <Field
-              id="f-target-type"
-              label="Target type"
-              value={draft.target_type}
-              onChange={(v) => setDraft((d) => ({ ...d, target_type: v }))}
-              placeholder="user"
-            />
-            <Field
-              id="f-target-id"
-              label="Target ID"
-              value={draft.target_id}
-              onChange={(v) => setDraft((d) => ({ ...d, target_id: v }))}
-              placeholder="usr_…"
-            />
-            <Field
-              id="f-actor-id"
-              label="Actor ID"
-              value={draft.actor_id}
-              onChange={(v) => setDraft((d) => ({ ...d, actor_id: v }))}
-              placeholder="usr_…"
-            />
-            <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
-              <Button type="submit" size="sm">
-                Apply filters
-              </Button>
-              {dirty && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  onClick={clearAll}
-                >
-                  Clear
-                </Button>
-              )}
+    <AdminFrame
+      crumbs={[{ label: "Audit log" }]}
+      toolbar={
+        <form
+          className="flex w-full flex-wrap items-center gap-1.5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setApplied(draft);
+          }}
+        >
+          {FIELDS.map((f) => (
+            <div key={f.key} className="w-[calc(50%-3px)] sm:w-36">
+              <Input aria-label={f.label} placeholder={f.placeholder} value={draft[f.key]} onChange={(e) => setDraft((d) => ({ ...d, [f.key]: e.target.value }))} className="h-7 font-mono text-[12px]" />
             </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {entries.length === 0 ? (
-        <EmptyState loading={loading} />
-      ) : (
-        <div className="overflow-x-auto">
-          <Card className="min-w-[820px]">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[180px]">Action</TableHead>
-                  <TableHead>Actor</TableHead>
-                  <TableHead className="w-[220px]">Target</TableHead>
-                  <TableHead className="w-[130px]">IP</TableHead>
-                  <TableHead className="w-[110px]">Time</TableHead>
-                  <TableHead className="w-[44px]" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entries.map((e) => (
-                  <AuditRow key={e.id} entry={e} />
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </div>
-      )}
-
+          ))}
+          <Button type="submit" size="md" variant={dirty ? "primary" : "secondary"}>
+            Apply
+          </Button>
+          {(filtered || dirty) && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setDraft(EMPTY);
+                setApplied(EMPTY);
+              }}
+            >
+              Clear
+            </Button>
+          )}
+        </form>
+      }
+    >
+      <Notice error={error} />
+      <Table<AuditEntry>
+        rows={entries}
+        // Paging is server-side here ("Load more" below), so the table shows every loaded row.
+        pageSize={AUDIT_MAX_ROWS + AUDIT_PAGE_SIZE}
+        rowKey={(e) => String(e.id)}
+        empty={<EmptyLine>{loading ? "Loading…" : "No audit entries match these filters."}</EmptyLine>}
+        columns={[
+          { key: "action", label: "Action", render: (e) => <span className="whitespace-nowrap"><StatusBadge tone={actionTone(e.action)}>{humanizeAction(e.action)}</StatusBadge></span> },
+          { key: "actor", label: "Actor", hideOnPhone: true, render: (e) => <span className="block max-w-[220px] truncate">{e.actor_email}</span> },
+          {
+            key: "target",
+            label: "Target",
+            hideOnPhone: true,
+            render: (e) => (
+              <span className="block max-w-[240px] truncate font-mono text-[12px] text-fg-muted">
+                <span className="text-fg">{e.target_type}</span>
+                {e.target_id ? ` · ${e.target_id}` : ""}
+              </span>
+            ),
+          },
+          { key: "ip", label: "IP", hideOnPhone: true, render: (e) => <span className="font-mono text-[12px] text-fg-muted">{e.ip ?? "—"}</span> },
+          { key: "when", label: "When", align: "right", render: (e) => <span className="whitespace-nowrap text-fg-muted" title={formatDateTime(e.created_at)}>{relativeTime(e.created_at)}</span> },
+          {
+            key: "more",
+            label: <span className="sr-only">Details</span>,
+            align: "right",
+            width: "72px",
+            render: (e) => (
+              <Button size="sm" variant="ghost" onClick={() => setOpen(e)} aria-label={`Details for ${humanizeAction(e.action)}`}>
+                Details
+              </Button>
+            ),
+          },
+        ]}
+      />
       {entries.length > 0 && (
         <div className="flex justify-center">
           {done ? (
-            <p className="text-xs text-muted-foreground">
-              End of log — {entries.length} entr
-              {entries.length === 1 ? "y" : "ies"} shown.
+            <p className="text-[12px] text-fg-muted">
+              End of log · {entries.length} entr{entries.length === 1 ? "y" : "ies"}
             </p>
+          ) : entries.length >= AUDIT_MAX_ROWS ? (
+            <p className="text-[12px] text-fg-muted">Showing the latest {entries.length} entries. Narrow the filters to see older ones.</p>
           ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={loading}
-              onClick={() =>
-                void load(false, applied, entries[entries.length - 1]?.id)
-              }
-            >
-              {loading ? "Loading…" : "Load more"}
+            <Button variant="secondary" loading={loading} onClick={() => void load(false, applied, entries[entries.length - 1]?.id)}>
+              Load more
             </Button>
           )}
         </div>
       )}
-    </div>
+      <AuditDetail entry={open} onClose={() => setOpen(null)} />
+    </AdminFrame>
   );
 }
 
-function Field({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-}) {
+function AuditDetail({ entry, onClose }: { entry: AuditEntry | null; onClose: () => void }) {
+  const meta = entry?.metadata && Object.keys(entry.metadata).length > 0 ? JSON.stringify(entry.metadata, null, 2) : null;
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
-        {label}
-      </Label>
-      <Input
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        size="sm"
-        className="font-mono"
-      />
-    </div>
-  );
-}
-
-function AuditRow({ entry }: { entry: AuditEntry }) {
-  const [open, setOpen] = React.useState(false);
-  const hasMeta =
-    (entry.metadata && Object.keys(entry.metadata).length > 0) ||
-    Boolean(entry.user_agent);
-  const detailId = `audit-detail-${entry.id}`;
-  const label = `${open ? "Collapse" : "Expand"} details for ${humanizeAction(
-    entry.action,
-  )}`;
-
-  return (
-    <>
-      <TableRow
-        className={cn(hasMeta && "cursor-pointer")}
-        onClick={hasMeta ? () => setOpen((v) => !v) : undefined}
-      >
-        <TableCell>
-          <Badge variant="outline" className={actionToneClass(entry.action)}>
-            {humanizeAction(entry.action)}
-          </Badge>
-        </TableCell>
-        <TableCell className="max-w-[220px] truncate">{entry.actor_email}</TableCell>
-        <TableCell className="font-mono text-xs text-muted-foreground">
-          <span className="text-foreground">{entry.target_type}</span>
-          {entry.target_id ? ` · ${entry.target_id}` : ""}
-        </TableCell>
-        <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">
-          {entry.ip ?? "—"}
-        </TableCell>
-        <TableCell
-          className="tabular-nums text-muted-foreground"
-          title={formatDateTime(entry.created_at)}
-        >
-          {relativeTime(entry.created_at)}
-        </TableCell>
-        <TableCell className="text-right">
-          {hasMeta && (
-            <button
-              type="button"
-              // Row already toggles on click; stop the bubble so this
-              // doesn't double-fire, and expose a real focusable control
-              // so keyboard + AT users can operate the disclosure.
-              onClick={(e) => {
-                e.stopPropagation();
-                setOpen((v) => !v);
-              }}
-              aria-expanded={open}
-              aria-controls={detailId}
-              aria-label={label}
-              className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ChevronDown
-                className={cn(
-                  "size-4 transition-transform",
-                  open && "rotate-180",
-                )}
-                aria-hidden
-              />
-            </button>
-          )}
-        </TableCell>
-      </TableRow>
-      {open && hasMeta && (
-        <TableRow className="hover:bg-transparent">
-          <TableCell colSpan={6} className="bg-muted/30">
-            <div id={detailId} className="space-y-2 py-1 text-xs">
-              <div className="text-muted-foreground">
-                {formatDateTime(entry.created_at)}
-                {entry.user_agent ? ` · ${entry.user_agent}` : ""}
-              </div>
-              {entry.metadata && Object.keys(entry.metadata).length > 0 && (
-                <pre className="overflow-x-auto rounded-md border border-border/60 bg-background p-3 font-mono text-[11px] leading-relaxed">
-                  {JSON.stringify(entry.metadata, null, 2)}
-                </pre>
-              )}
-            </div>
-          </TableCell>
-        </TableRow>
+    <Modal open={entry !== null} onClose={onClose} title={entry ? humanizeAction(entry.action) : "Audit entry"}>
+      {entry && (
+        <div className="space-y-3">
+          <Facts
+            items={[
+              { label: "Action", value: <code className="font-mono text-[12px]">{entry.action}</code> },
+              { label: "Actor", value: entry.actor_email },
+              { label: "Target", value: <code className="font-mono text-[12px]">{entry.target_type}{entry.target_id ? ` · ${entry.target_id}` : ""}</code> },
+              { label: "IP", value: entry.ip ?? "—" },
+              { label: "Time", value: formatDateTime(entry.created_at) },
+              ...(entry.user_agent ? [{ label: "User agent", value: <span title={entry.user_agent}>{entry.user_agent}</span> }] : []),
+            ]}
+          />
+          {meta && <CodeBlock code={meta} />}
+        </div>
       )}
-    </>
-  );
-}
-
-function EmptyState({ loading }: { loading: boolean }) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-        <h3 className="text-lg font-semibold">
-          {loading ? "Loading…" : "No entries"}
-        </h3>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          {loading
-            ? "Fetching the audit trail."
-            : "No audit entries match these filters."}
-        </p>
-      </CardContent>
-    </Card>
+    </Modal>
   );
 }

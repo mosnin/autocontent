@@ -31,6 +31,14 @@ Ayrshare sends a JSON body with at least:
 We use ``extra="allow"`` on the Pydantic model so unknown fields don't
 cause 422s as Ayrshare evolves their payload shape.
 
+Replay
+------
+Ayrshare's signature covers the body only (no timestamp), so a captured
+delivery stays valid forever. Each delivery is therefore claimed by the hash
+of its body in ``idempotency_keys`` (0024): the first one is applied, an
+identical one inside the window is answered 200 and ignored. If processing
+fails the claim is released so Ayrshare's retry is applied.
+
 Idempotency
 -----------
 We always return 200 ``{"ok": true}`` on a successful parse + process.
@@ -50,12 +58,14 @@ from pydantic import BaseModel
 
 from marketer.config import settings
 from marketer.models import JobStatus
+from marketer.repos import idempotency as idempotency_repo
 from marketer.repos import jobs as jobs_repo
 
 router = APIRouter()
 log = logging.getLogger(__name__)
 
 _OK = {"ok": True}
+REPLAY_WINDOW_SECONDS = 30 * 24 * 60 * 60
 
 
 class AyrshareWebhookPayload(BaseModel):
@@ -133,6 +143,38 @@ async def ayrshare_webhook(request: Request) -> dict:
 
     post_id = payload.id
     event_status = payload.status.lower()
+    if not post_id:
+        # Without a post id the lookup below would match any job whose stored
+        # provider_post_id is empty.
+        log.warning("ayrshare_webhook.missing_post_id")
+        return _OK
+
+    # --- 3b. Replay guard ---------------------------------------------------
+    claim_key = "webhook:ayrshare:" + hashlib.sha256(body).hexdigest()
+    try:
+        first = await idempotency_repo.claim(claim_key, ttl_seconds=REPLAY_WINDOW_SECONDS)
+    except Exception:  # noqa: BLE001 — store down: ask Ayrshare to send it again
+        log.error("ayrshare_webhook.replay_store_unavailable", exc_info=True)
+        return Response(
+            content='{"detail":"temporarily unavailable"}',
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            media_type="application/json",
+        )  # type: ignore[return-value]
+    if not first:
+        log.info("ayrshare_webhook.duplicate_ignored", extra={"provider": "ayrshare"})
+        return _OK
+    try:
+        return await _apply(post_id, event_status, payload)
+    except Exception:
+        # Not applied: free the claim so the provider's retry is not ignored.
+        try:
+            await idempotency_repo.release(claim_key)
+        except Exception:  # noqa: BLE001
+            log.warning("ayrshare_webhook.release_failed", exc_info=True)
+        raise
+
+
+async def _apply(post_id: str, event_status: str, payload: AyrshareWebhookPayload) -> dict:
 
     log.info(
         "ayrshare_webhook.received",

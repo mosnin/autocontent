@@ -7,8 +7,9 @@
 
 Critical checks (failures → 503):
   db         — asyncpg pool fetchval("select 1") with a 2 s timeout.
-  clerk_jwks — HTTP HEAD to the configured JWKS URL with a 2 s timeout
-               (skipped when MARKETER_CLERK_JWKS_URL is unset).
+  auth_jwks  — HTTP GET of web's JWKS (MARKETER_AUTH_JWKS_URL, default
+               {MARKETER_AUTH_ISSUER}/api/auth/jwks) with a 2 s timeout.
+               Unconfigured counts as a failure: no JWT can be verified.
   migrations — pending migration count via yoyo; pending > 0 means the
                deploy was not preceded by ``marketer-migrate up`` and
                is treated as a configuration error (503).
@@ -20,6 +21,7 @@ Informational checks (non-critical, never affect the HTTP status):
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 
 import httpx
@@ -30,6 +32,18 @@ from marketer.config import settings
 from marketer.db import get_pool
 
 router = APIRouter()
+log = logging.getLogger(__name__)
+
+
+def _public_error(exc: BaseException) -> str:
+    """What an unauthenticated probe may see about a failed check.
+
+    This route has no auth (monitors call it), so the exception text stays in
+    the server log: a driver error can carry the database host, user and
+    database name, and an HTTP error the JWKS URL. The client gets the
+    exception class only, which is enough to tell a timeout from a refusal."""
+    log.warning("healthz.check_failed", exc_info=exc)
+    return type(exc).__name__
 
 
 @router.get("/healthz")
@@ -40,7 +54,7 @@ async def healthz() -> dict:
 
 @router.get("/healthz/deep")
 async def healthz_deep() -> JSONResponse:
-    """Deep readiness probe — validates DB connectivity and Clerk JWKS."""
+    """Deep readiness probe — validates DB connectivity and the auth JWKS."""
     checks: dict = {}
     all_critical_ok = True
 
@@ -53,24 +67,25 @@ async def healthz_deep() -> JSONResponse:
         checks["db"] = {"ok": True, "latency_ms": latency_ms}
     except Exception as exc:  # noqa: BLE001
         latency_ms = round((time.monotonic() - t0) * 1000)
-        checks["db"] = {"ok": False, "latency_ms": latency_ms, "error": str(exc)}
+        checks["db"] = {"ok": False, "latency_ms": latency_ms, "error": _public_error(exc)}
         all_critical_ok = False
 
-    # ── Clerk JWKS probe ──────────────────────────────────────────────────────
-    if settings.clerk_jwks_url:
+    # ── Auth JWKS probe ───────────────────────────────────────────────────────
+    jwks_url = settings.auth_jwks_url_effective()
+    if jwks_url:
         t0 = time.monotonic()
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
-                resp = await client.head(settings.clerk_jwks_url)
+                resp = await client.get(jwks_url)
             resp.raise_for_status()
             latency_ms = round((time.monotonic() - t0) * 1000)
-            checks["clerk_jwks"] = {"ok": True, "latency_ms": latency_ms}
+            checks["auth_jwks"] = {"ok": True, "latency_ms": latency_ms}
         except Exception as exc:  # noqa: BLE001
             latency_ms = round((time.monotonic() - t0) * 1000)
-            checks["clerk_jwks"] = {"ok": False, "latency_ms": latency_ms, "error": str(exc)}
+            checks["auth_jwks"] = {"ok": False, "latency_ms": latency_ms, "error": _public_error(exc)}
             all_critical_ok = False
     else:
-        checks["clerk_jwks"] = {"ok": False, "error": "MARKETER_CLERK_JWKS_URL not set"}
+        checks["auth_jwks"] = {"ok": False, "error": "not configured"}
         all_critical_ok = False
 
     # ── Migration status check ────────────────────────────────────────────────
@@ -85,7 +100,7 @@ async def healthz_deep() -> JSONResponse:
         if mig["pending"] > 0:
             all_critical_ok = False
     except Exception as exc:  # noqa: BLE001
-        checks["migrations"] = {"ok": False, "error": str(exc)}
+        checks["migrations"] = {"ok": False, "error": _public_error(exc)}
         all_critical_ok = False
 
     # ── Optional API-key presence checks ─────────────────────────────────────

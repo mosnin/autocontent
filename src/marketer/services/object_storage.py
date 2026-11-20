@@ -47,9 +47,17 @@ def enabled() -> bool:
 @lru_cache(maxsize=1)
 def _client():
     import boto3
+    from botocore.config import Config
 
     return boto3.client(
         "s3",
+        # Explicit timeouts (botocore's default read timeout is 60s with
+        # "legacy" retries). Every call here is a PUT/GET/DELETE on a fixed
+        # key, so a retry repeats the same write and is safe.
+        config=Config(
+            connect_timeout=10, read_timeout=120,
+            retries={"max_attempts": 3, "mode": "standard"},
+        ),
         endpoint_url=settings.wasabi_endpoint_url,
         region_name=settings.wasabi_region,
         aws_access_key_id=settings.wasabi_access_key_id,

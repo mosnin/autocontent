@@ -24,6 +24,7 @@ import httpx
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
+from ..observability import model_span
 from .spend_context import SpendContext
 
 PROVIDER = "elevenlabs"
@@ -104,16 +105,26 @@ async def synthesize(
     if spend is not None:
         await spend.ensure_can_spend(cost)
 
-    pcm = await _call_api(text, voice)
-    if not pcm:
-        raise ElevenLabsError("elevenlabs returned an empty audio body")
-    _write_wav(pcm, out_path)
+    async with model_span(
+        "generate_content",
+        model=settings.elevenlabs_model_id,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        name=f"gen_ai.speech {settings.elevenlabs_model_id}",
+        attributes={"gen_ai.output.type": "speech", "marketer.tts.chars": len(text)},
+    ) as call:
+        call.prompt(text)
+        pcm = await _call_api(text, voice)
+        if not pcm:
+            raise ElevenLabsError("elevenlabs returned an empty audio body")
+        _write_wav(pcm, out_path)
 
-    if spend is not None:
-        await spend.log(
-            provider=PROVIDER,
-            sku=settings.elevenlabs_model_id,
-            units=Decimal(len(text)),
-            cost_usd=cost,
-        )
+        call.cost(cost)
+        if spend is not None:
+            await spend.log(
+                provider=PROVIDER,
+                sku=settings.elevenlabs_model_id,
+                units=Decimal(len(text)),
+                cost_usd=cost,
+            )
     return out_path

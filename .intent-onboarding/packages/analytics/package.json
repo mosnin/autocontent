@@ -1,0 +1,9 @@
+{
+  "name": "@intent-onboarding/analytics",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "PostHog adapter, vendor-neutral onboarding metrics, and the insights engine/CLI that turns data into ranked, approvable changes.",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "bin": { "intent-onboarding-insights": "src/cli.ts" }
+}

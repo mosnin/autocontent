@@ -1,0 +1,187 @@
+/*
+ * Marketer design system: tokens.
+ *
+ * Measured from the reference screens in ./references (dark first). Every
+ * colour, radius, size and duration in the app comes from here. Components
+ * use these through Tailwind utilities (bg-surface, text-fg-muted,
+ * rounded-ds-md…) and never hard-code values. See README.md.
+ *
+ * The app owns its theme: `.ds` is dark by default; `.ds.ds-light` is light.
+ * It does not follow the marketing site's theme or Tailwind's `dark:`.
+ */
+
+.ds {
+  /* Surfaces (ref 05: main #171717, sidebar #1a1a1a, cards a step up) */
+  --ds-bg: 0 0% 9%;            /* main area */
+  --ds-sidebar: 0 0% 10.2%;    /* sidebar, header strips */
+  --ds-surface: 0 0% 11%;      /* cards, composer, panels */
+  --ds-surface-2: 0 0% 13%;    /* inputs, filter pills, hovered rows, alternate rows */
+  --ds-surface-3: 0 0% 16%;    /* current sidebar row, segmented pill, chips */
+  --ds-overlay: 0 0% 12.5%;    /* menus, popovers, right agent panel */
+  --ds-border: 0 0% 16.5%;     /* hairlines */
+  --ds-border-strong: 0 0% 22%;
+
+  /* Text */
+  --ds-fg: 0 0% 93%;
+  /* Both pass WCAG AA (4.5:1) for text on every surface above, surface-3 included:
+     muted 6.5:1 and faint 4.65:1 at worst. Don't lower them without re-checking. */
+  --ds-fg-muted: 0 0% 68%;
+  --ds-fg-faint: 0 0% 57%;
+
+  /* Actions: primary is the white button ("Save as report", "Approve & Run") */
+  --ds-primary: 0 0% 96%;
+  --ds-primary-fg: 0 0% 8%;
+
+  /* Meaning (used only for what they mean) */
+  --ds-accent: 216 90% 64%;    /* links, chart line, selection, focus, "New" */
+  --ds-positive: 142 55% 52%;  /* +47%, connected, done, approve sparkline */
+  --ds-negative: 358 72% 62%;  /* −23%, failed, destructive */
+  --ds-attention: 24 82% 60%;  /* "Awaiting action" bullets, needs-you */
+  --ds-count: 358 80% 56%;     /* small count badge (Activity 3) */
+
+  /* Tool icon gradients (ref 02/05 "Tools": each tool owns one) */
+  --ds-tool-a: linear-gradient(140deg, #ffb26b, #ff6f61);   /* orange/coral */
+  --ds-tool-b: linear-gradient(140deg, #8fb7ff, #8a7dff);   /* blue/violet */
+  --ds-tool-c: linear-gradient(140deg, #8ee6b5, #39b98a);   /* green */
+  --ds-tool-d: linear-gradient(140deg, #d59bff, #8a5cff);   /* purple */
+  --ds-tool-e: linear-gradient(140deg, #ffd27a, #f59f3b);   /* amber */
+  --ds-tool-f: linear-gradient(140deg, #7fdcff, #3b8cff);   /* sky */
+
+  /* Wave colour per tool (CommitWave "launch"): the wave carries the hue of the tool that committed. See WAVE.md. */
+  --ds-wave-a: #ff8a66;
+  --ds-wave-b: #8c9aff;
+  --ds-wave-c: #55cf9f;
+  --ds-wave-d: #b07bff;
+  --ds-wave-e: #fab85a;
+  --ds-wave-f: #5db4ff;
+
+  --ds-shadow-float: 0 0 0 1px hsl(0 0% 100% / 0.06), 0 16px 40px -12px rgb(0 0 0 / 0.65);
+  --ds-shadow-modal: 0 0 0 1px hsl(0 0% 100% / 0.07), 0 32px 80px -16px rgb(0 0 0 / 0.75);
+  --ds-scrim: rgb(0 0 0 / 0.55);
+  --ds-glass: rgb(20 20 20 / 0.62);  /* bento cards over the home shader (ref 01) */
+
+  /* Motion (Podium tokens) */
+  --ds-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ds-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ds-dur-press: 120ms;
+  --ds-dur-quick: 150ms;
+  --ds-dur-fast: 220ms;
+  --ds-dur-slow: 420ms;
+
+  color-scheme: dark;
+  background: hsl(var(--ds-bg));
+  color: hsl(var(--ds-fg));
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.ds.ds-light {
+  --ds-bg: 0 0% 100%;
+  --ds-sidebar: 0 0% 98.5%;
+  --ds-surface: 0 0% 100%;
+  --ds-surface-2: 0 0% 97%;
+  --ds-surface-3: 0 0% 93.5%;
+  --ds-overlay: 0 0% 100%;
+  --ds-border: 0 0% 91.5%;
+  --ds-border-strong: 0 0% 85%;
+  --ds-fg: 0 0% 7%;
+  --ds-fg-muted: 0 0% 35%;   /* AA on every light surface: 6.0:1 at worst (surface-3) */
+  --ds-fg-faint: 0 0% 42%;   /* AA on every light surface: 4.6:1 at worst (surface-3) */
+  --ds-primary: 0 0% 9%;
+  --ds-primary-fg: 0 0% 100%;
+  --ds-accent: 217 85% 52%;
+  --ds-positive: 142 60% 36%;
+  --ds-negative: 358 70% 50%;
+  --ds-attention: 24 90% 52%;
+  --ds-shadow-float: 0 0 0 1px rgb(0 0 0 / 0.06), 0 12px 32px -10px rgb(0 0 0 / 0.18);
+  --ds-shadow-modal: 0 0 0 1px rgb(0 0 0 / 0.06), 0 32px 64px -16px rgb(0 0 0 / 0.25);
+  --ds-scrim: rgb(0 0 0 / 0.3);
+  --ds-glass: rgb(255 255 255 / 0.7);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-ds-bg: hsl(var(--ds-bg));
+  --color-ds-sidebar: hsl(var(--ds-sidebar));
+  --color-surface: hsl(var(--ds-surface));
+  --color-surface-2: hsl(var(--ds-surface-2));
+  --color-surface-3: hsl(var(--ds-surface-3));
+  --color-overlay: hsl(var(--ds-overlay));
+  --color-hairline: hsl(var(--ds-border));
+  --color-hairline-strong: hsl(var(--ds-border-strong));
+  --color-fg: hsl(var(--ds-fg));
+  --color-fg-muted: hsl(var(--ds-fg-muted));
+  --color-fg-faint: hsl(var(--ds-fg-faint));
+  --color-ds-primary: hsl(var(--ds-primary));
+  --color-ds-primary-fg: hsl(var(--ds-primary-fg));
+  --color-ds-accent: hsl(var(--ds-accent));
+  --color-positive: hsl(var(--ds-positive));
+  --color-negative: hsl(var(--ds-negative));
+  --color-attention: hsl(var(--ds-attention));
+  --color-count: hsl(var(--ds-count));
+  --color-on-fill: #ffffff;     /* text/icons on a gradient or photo fill */
+  --color-on-fill-ink: #141414; /* dark text on a light fill (logo tiles, banner pills) */
+  --radius-ds-2xs: 2px;  /* micro marks: mini bars, heatmap cells, source favicons */
+  --radius-ds-xs: 4px;   /* tool icon tiles, kbd, number badges */
+  --radius-ds-sm: 6px;   /* buttons, filter pills, sidebar rows, chips */
+  --radius-ds-md: 8px;   /* inputs, menus, inner cards */
+  --radius-ds-lg: 12px;  /* cards, panels */
+  --radius-ds-xl: 16px;  /* composer, dialogs, hero banners */
+  --radius-ds-bubble: 18px; /* user chat bubble (ref 02) */
+  --shadow-ds-float: var(--ds-shadow-float);
+  --shadow-ds-modal: var(--ds-shadow-modal);
+}
+
+/* Base behaviour inside the app (layered so utilities can override it) */
+@layer base {
+  .ds h1, .ds h2, .ds h3 { letter-spacing: -0.011em; text-wrap-style: balance; font-weight: 500; }
+  .ds p { text-wrap-style: pretty; }
+  .ds ::selection { background: hsl(var(--ds-accent) / 0.28); }
+  .ds input, .ds textarea { caret-color: hsl(var(--ds-accent)); }
+  /* Focus is always visible: a solid accent ring (4.7:1 or better against every surface, in both themes). */
+  .ds :focus-visible { outline: 2px solid hsl(var(--ds-accent)); outline-offset: 1px; }
+  .ds * { scrollbar-width: thin; scrollbar-color: hsl(var(--ds-border-strong)) transparent; }
+  .ds .tabular { font-variant-numeric: tabular-nums; }
+  .ds .font-mono { font-family: var(--font-geist-mono), ui-monospace, monospace; }
+}
+
+/* Press feedback: every pressable */
+.ds-press { transition: transform var(--ds-dur-press) var(--ds-ease-out), background-color var(--ds-dur-quick) ease, color var(--ds-dur-quick) ease, border-color var(--ds-dur-quick) ease, opacity var(--ds-dur-quick) ease; }
+.ds-press:active:not(:disabled) { transform: scale(0.98); }
+
+/* Motion classes */
+.ds-enter { animation: ds-enter var(--ds-dur-slow) var(--ds-ease-out) both; }
+@keyframes ds-enter { from { opacity: 0; transform: translateY(4px); } }
+.ds-pop { transform-origin: var(--origin, top left); animation: ds-pop var(--ds-dur-fast) var(--ds-ease-out) both; }
+@keyframes ds-pop { from { opacity: 0; transform: scale(0.97) translateY(-2px); } }
+.ds-shimmer {
+  background: linear-gradient(90deg, hsl(var(--ds-fg-muted)) 0%, hsl(var(--ds-fg-muted)) 40%, hsl(var(--ds-fg)) 50%, hsl(var(--ds-fg-muted)) 60%, hsl(var(--ds-fg-muted)) 100%);
+  background-size: 400% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: ds-shimmer 2.2s linear infinite;
+}
+@keyframes ds-shimmer { from { background-position: 100% 0; } to { background-position: 0% 0; } }
+/* Loading block: a flat surface with one soft band passing over it. (.ds-shimmer is for text only: it clips its gradient to glyphs.) */
+.ds-skeleton {
+  background-color: hsl(var(--ds-surface-3));
+  background-image: linear-gradient(90deg, transparent 0%, hsl(var(--ds-fg) / 0.07) 50%, transparent 100%);
+  background-size: 200% 100%; background-repeat: no-repeat;
+  animation: ds-skeleton 1.6s ease-in-out infinite;
+}
+@keyframes ds-skeleton { from { background-position: 200% 0; } to { background-position: -100% 0; } }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+.ds-spin { animation: ds-spin 0.9s linear infinite; }
+
+dialog.ds-modal { opacity: 0; transform: scale(0.97); transition: transform var(--ds-dur-fast) var(--ds-ease-out), opacity var(--ds-dur-fast) var(--ds-ease-out), overlay var(--ds-dur-fast) allow-discrete, display var(--ds-dur-fast) allow-discrete; }
+dialog.ds-modal[open] { opacity: 1; transform: scale(1); }
+@starting-style { dialog.ds-modal[open] { opacity: 0; transform: scale(0.97); } }
+dialog.ds-modal::backdrop { background: var(--ds-scrim); backdrop-filter: blur(2px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ds *, .ds *::before, .ds *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  .ds-shimmer { color: hsl(var(--ds-fg-muted)); background: none; }
+  .ds-skeleton { background-image: none; }
+}

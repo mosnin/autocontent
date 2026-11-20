@@ -5,9 +5,11 @@ Provides two public helpers that mirror the stdlib logging API:
     init_tracing()  — call once (e.g. from logging.configure()).
     get_tracer(name) — returns a Tracer (no-op if OTEL is disabled).
 
-When `otel_exporter_otlp_endpoint` is empty the module is fully inert:
-no TracerProvider is installed, all spans are no-ops, and none of the
-optional instrumentation packages are imported.
+When `otel_exporter_otlp_endpoint` is empty and Braintrust is not
+configured (BRAINTRUST_API_KEY + BRAINTRUST_PROJECT_ID) the module is fully
+inert: no TracerProvider is installed, all spans are no-ops, and none of the
+optional instrumentation packages are imported. Every exported span passes
+the masking processor first (observability/processor.py).
 
 Supported vendors (set endpoint + headers accordingly):
   Honeycomb:   endpoint=https://api.honeycomb.io/
@@ -49,14 +51,54 @@ def _parse_headers(raw: str) -> dict[str, str]:
     return headers
 
 
+def braintrust_configured() -> bool:
+    """Braintrust export is on only when both the key and the project id are
+    set (docs/observability/braintrust.md, rule 1)."""
+    from ..config import settings  # noqa: PLC0415
+
+    return bool(settings.braintrust_api_key.strip() and settings.braintrust_project_id.strip())
+
+
+def build_braintrust_processor(*, session=None):
+    """The Braintrust side: masking (AI spans only) over a batch processor over
+    the OTLP/HTTP exporter. ``session`` is for tests."""
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor  # noqa: PLC0415
+
+    from ..config import settings  # noqa: PLC0415
+    from ..observability.exporter import BraintrustSpanExporter  # noqa: PLC0415
+    from ..observability.processor import MaskingSpanProcessor  # noqa: PLC0415
+
+    timeout = max(1.0, float(settings.braintrust_export_timeout_sec))
+    exporter = BraintrustSpanExporter(
+        api_key=settings.braintrust_api_key.strip(),
+        project_id=settings.braintrust_project_id.strip(),
+        api_url=settings.braintrust_api_url,
+        timeout_sec=timeout,
+        session=session,
+    )
+    batch = BatchSpanProcessor(
+        exporter,
+        max_queue_size=2048,
+        schedule_delay_millis=5000,
+        max_export_batch_size=256,
+        export_timeout_millis=int(timeout * 1000) + 1000,
+    )
+    return MaskingSpanProcessor(batch, ai_only=True)
+
+
 def init_tracing() -> None:
     """Idempotent.
 
-    If ``MARKETER_OTEL_EXPORTER_OTLP_ENDPOINT`` is set, configure the
-    global ``TracerProvider`` with an ``OTLPSpanExporter`` pointed at it
-    and activate FastAPI / httpx / asyncpg auto-instrumentations.
+    Installs the global ``TracerProvider`` when at least one destination is
+    configured:
 
-    Safe to call multiple times — subsequent calls are no-ops.
+    - ``MARKETER_OTEL_EXPORTER_OTLP_ENDPOINT``: every span, through the
+      masking processor, to that OTLP endpoint (any vendor), plus FastAPI /
+      httpx / asyncpg auto-instrumentation;
+    - ``BRAINTRUST_API_KEY`` + ``BRAINTRUST_PROJECT_ID``: model and pipeline
+      spans, masked, to Braintrust (``observability/exporter.py``).
+
+    Neither set: fully inert. Safe to call multiple times.
     """
     global _otel_inited, _provider
 
@@ -69,8 +111,9 @@ def init_tracing() -> None:
     from ..config import settings  # noqa: PLC0415
 
     endpoint = settings.otel_exporter_otlp_endpoint.strip()
-    if not endpoint:
-        log.debug("otel.disabled (MARKETER_OTEL_EXPORTER_OTLP_ENDPOINT not set)")
+    braintrust = braintrust_configured()
+    if not endpoint and not braintrust:
+        log.debug("otel.disabled (no OTLP endpoint and no Braintrust key + project)")
         return
 
     # ── Build resource ────────────────────────────────────────────────────
@@ -85,19 +128,16 @@ def init_tracing() -> None:
         {
             "service.name": settings.otel_service_name,
             "service.version": version,
+            "deployment.environment.name": settings.sentry_environment,
         }
     )
 
-    # ── Exporter + processor ──────────────────────────────────────────────
-    from opentelemetry.exporter.otlp.proto.http.trace_exporter import (  # noqa: PLC0415
-        OTLPSpanExporter,
-    )
+    # ── Exporters + processors ────────────────────────────────────────────
     from opentelemetry.sdk.trace import TracerProvider  # noqa: PLC0415
     from opentelemetry.sdk.trace.export import BatchSpanProcessor  # noqa: PLC0415
     from opentelemetry.sdk.trace.sampling import TraceIdRatioBased  # noqa: PLC0415
 
-    headers = _parse_headers(settings.otel_exporter_otlp_headers)
-    exporter = OTLPSpanExporter(endpoint=endpoint, headers=headers)
+    from ..observability.processor import MaskingSpanProcessor  # noqa: PLC0415
 
     sample_rate = max(0.0, min(1.0, settings.otel_traces_sample_rate))
     sampler = TraceIdRatioBased(sample_rate) if sample_rate < 1.0 else None
@@ -107,21 +147,37 @@ def init_tracing() -> None:
         provider_kwargs["sampler"] = sampler
 
     provider = TracerProvider(**provider_kwargs)
-    # Default schedule_delay_millis=5000; export_timeout_millis=30000.
-    # Both are fine for pipeline workloads. We keep defaults and let
-    # force_flush() in the Modal exit hook drain the buffer.
-    provider.add_span_processor(BatchSpanProcessor(exporter))
+    if endpoint:
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import (  # noqa: PLC0415
+            OTLPSpanExporter,
+        )
+
+        headers = _parse_headers(settings.otel_exporter_otlp_headers)
+        exporter = OTLPSpanExporter(endpoint=endpoint, headers=headers)
+        # Default schedule_delay_millis=5000; export_timeout_millis=30000.
+        # Both are fine for pipeline workloads. We keep defaults and let
+        # force_flush() in the Modal exit hook drain the buffer. The masking
+        # processor runs first, so this endpoint gets the same masked spans.
+        provider.add_span_processor(MaskingSpanProcessor(BatchSpanProcessor(exporter)))
+    if braintrust:
+        try:
+            provider.add_span_processor(build_braintrust_processor())
+        except Exception as exc:  # noqa: BLE001 — never block startup on observability
+            log.warning("otel.braintrust_unavailable", extra={"error": type(exc).__name__})
     trace.set_tracer_provider(provider)
     _provider = provider
 
     # ── Auto-instrumentations (best-effort) ───────────────────────────────
-    _try_instrument_fastapi()
-    _try_instrument_httpx()
-    _try_instrument_asyncpg()
+    # Only for the generic endpoint: Braintrust keeps model and pipeline spans
+    # and would drop these anyway.
+    if endpoint:
+        _try_instrument_fastapi()
+        _try_instrument_httpx()
+        _try_instrument_asyncpg()
 
     log.info(
         "otel.initialised",
-        extra={"endpoint": endpoint, "service": settings.otel_service_name},
+        extra={"endpoint": endpoint or None, "braintrust": braintrust, "service": settings.otel_service_name},
     )
 
 

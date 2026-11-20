@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -12,13 +13,24 @@ class Settings(BaseSettings):
     # Supabase Postgres (use the pooler URL for the runtime app).
     database_url: str = ""
 
-    # Clerk JWT verification.
-    clerk_jwks_url: str = ""
-    clerk_issuer: str = ""
-    # When set, JWT `aud` is verified against this value. Set it in
-    # production so tokens minted for another frontend on the same Clerk
-    # instance are rejected.
-    clerk_audience: str = ""
+    # Better Auth JWT verification (docs/auth/README.md). The web app mints a
+    # short-lived RS256 JWT per backend call; we verify it against web's JWKS.
+    # Issuer is the web origin (BETTER_AUTH_URL). Unset issuer = every JWT is
+    # refused (503), never accepted unverified.
+    auth_issuer: str = ""
+    # Defaults to f"{auth_issuer}/api/auth/jwks" (see auth_jwks_url_effective).
+    auth_jwks_url: str = ""
+    auth_audience: str = "marketer-api"
+    # Optional read-only connection for the `auth` schema. Empty = the main
+    # database_url.
+    auth_database_url: str = ""
+
+    # Agent harness service token. When set, a request bearing exactly this
+    # token plus an ``x-tenant-id: <tenant_id>`` header acts for that
+    # workspace with the agent role (never as an admin), capped by the role of
+    # the person named in ``x-actor-id``. Empty (the default) disables
+    # delegation entirely.
+    agent_service_token: str = ""
 
     aspect: str = "9:16"
 
@@ -214,6 +226,29 @@ class Settings(BaseSettings):
     otel_exporter_otlp_headers: str = ""
     otel_traces_sample_rate: float = 1.0
 
+    # Braintrust (docs/observability/braintrust.md). Read without the
+    # MARKETER_ prefix so the Worker, the backend and CI share one name.
+    # Nothing is exported unless both the key and the project id are set.
+    braintrust_api_key: str = Field(
+        default="", validation_alias=AliasChoices("BRAINTRUST_API_KEY", "MARKETER_BRAINTRUST_API_KEY")
+    )
+    braintrust_project_id: str = Field(
+        default="", validation_alias=AliasChoices("BRAINTRUST_PROJECT_ID", "MARKETER_BRAINTRUST_PROJECT_ID")
+    )
+    # https://api.braintrust.dev (US), https://api-eu.braintrust.dev (EU), or a
+    # self-hosted data plane.
+    braintrust_api_url: str = Field(
+        default="https://api.braintrust.dev",
+        validation_alias=AliasChoices("BRAINTRUST_API_URL", "MARKETER_BRAINTRUST_API_URL"),
+    )
+    # "redacted" (default): prompts and outputs after masking. "metadata": no
+    # prompt or output text at all. Any other value is treated as "metadata".
+    braintrust_content: str = Field(
+        default="redacted", validation_alias=AliasChoices("BRAINTRUST_CONTENT", "MARKETER_BRAINTRUST_CONTENT")
+    )
+    # One export request's deadline, in seconds. No retries.
+    braintrust_export_timeout_sec: float = 10.0
+
     # --- Boot-time config health (preflight) ---------------------------
     # When True, a startup preflight check that finds any ERROR-level
     # misconfiguration (e.g. a spend-affecting feature flag on with a
@@ -222,6 +257,13 @@ class Settings(BaseSettings):
     # by itself — set True in environments where "fail loud at deploy" is
     # preferred to "fail loud in logs but keep serving."
     preflight_strict: bool = False
+
+    def auth_jwks_url_effective(self) -> str:
+        """The JWKS URL: explicit setting, else ``{issuer}/api/auth/jwks``."""
+        if self.auth_jwks_url.strip():
+            return self.auth_jwks_url.strip()
+        issuer = self.auth_issuer.strip().rstrip("/")
+        return f"{issuer}/api/auth/jwks" if issuer else ""
 
 
 settings = Settings()

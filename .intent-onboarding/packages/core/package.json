@@ -1,0 +1,8 @@
+{
+  "name": "@intent-onboarding/core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Headless engine for intent-driven onboarding: context graph, pre-selection, planning, activation, proof, outbound gate, analytics.",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" }
+}

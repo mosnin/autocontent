@@ -27,6 +27,8 @@ single-instance deployments.
 """
 from __future__ import annotations
 
+import hmac
+
 from fastapi import Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -54,7 +56,31 @@ def client_ip(request: Request) -> str:
     return get_remote_address(request)
 
 
+def _agent_tenant(request: Request) -> str | None:
+    """The tenant an agent call acts for, or None when this is not a verified
+    agent call. Only a bearer equal to the configured service token
+    (constant-time) may choose its bucket by ``x-tenant-id``; for anyone else
+    the header is ignored, so it cannot be used to mint fresh buckets."""
+    expected = getattr(settings, "agent_service_token", "")
+    if not expected:
+        return None
+    auth = request.headers.get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    token = auth.split(" ", 1)[1]
+    if not hmac.compare_digest(token.encode("utf-8"), expected.encode("utf-8")):
+        return None
+    tenant = (request.headers.get("x-tenant-id") or "").strip()
+    return tenant[:128] or None
+
+
 def _limit_key(request: Request) -> str:
+    # Every agent call leaves from the same Worker egress, so keying those on
+    # the IP would put all tenants in one bucket: one busy tenant would
+    # throttle the rest. Verified agent calls are bucketed per tenant instead.
+    tenant = _agent_tenant(request)
+    if tenant is not None:
+        return f"agent:{tenant}"
     return client_ip(request)
 
 

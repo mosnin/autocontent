@@ -26,8 +26,32 @@ async def get_pool() -> asyncpg.Pool:
     return _pool
 
 
+_auth_pool: asyncpg.Pool | None = None
+
+
+async def get_auth_pool() -> asyncpg.Pool:
+    """Pool for reading Better Auth's ``auth`` schema (read-only by contract).
+
+    ``MARKETER_AUTH_DATABASE_URL`` when set (a role with SELECT on ``auth``
+    only), else the main pool. The backend never writes ``auth``."""
+    global _auth_pool
+    if not settings.auth_database_url:
+        return await get_pool()
+    if _auth_pool is None:
+        _auth_pool = await asyncpg.create_pool(
+            settings.auth_database_url,
+            min_size=1,
+            max_size=5,
+            command_timeout=10,
+        )
+    return _auth_pool
+
+
 async def close_pool() -> None:
-    global _pool
+    global _pool, _auth_pool
     if _pool is not None:
         await _pool.close()
         _pool = None
+    if _auth_pool is not None:
+        await _auth_pool.close()
+        _auth_pool = None

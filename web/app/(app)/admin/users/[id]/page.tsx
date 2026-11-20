@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { AdminUnavailable } from "@/components/app/admin/admin-unavailable";
 import { fetchAdminAudit, fetchAdminUser } from "@/lib/admin-server";
 import type { AuditEntry } from "@/lib/admin-types";
 import { UserDetailClient } from "./UserDetailClient";
@@ -19,7 +20,7 @@ export default async function AdminUserDetailPage({
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg.startsWith("404")) notFound();
-    throw err;
+    return <AdminUnavailable title="Users" what="this user" />;
   }
 
   let audit: AuditEntry[] = [];

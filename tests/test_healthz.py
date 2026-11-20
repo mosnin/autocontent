@@ -28,7 +28,7 @@ def _make_client(monkeypatch) -> TestClient:
 
     # Ensure JWKS URL looks set by default so we can toggle it per-test.
     # (Each test that needs it missing can set it to "" locally.)
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
 
     _stub_migrations_ok(monkeypatch)
 
@@ -54,10 +54,10 @@ def test_healthz_always_200(monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_healthz_deep_all_healthy(monkeypatch):
-    """When DB and Clerk JWKS are reachable, deep probe returns 200."""
+    """When DB and auth JWKS are reachable, deep probe returns 200."""
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "openai_api_key", "sk-test")
     monkeypatch.setattr(settings, "xai_api_key", "")
     monkeypatch.setattr(settings, "ayrshare_api_key", "ay-test")
@@ -87,7 +87,7 @@ def test_healthz_deep_all_healthy(monkeypatch):
         async def __aexit__(self, *_):
             pass
 
-        async def head(self, url: str):
+        async def get(self, url: str, **_kw):
             return _FakeResponse()
 
     monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FakeHTTPClient())
@@ -104,7 +104,7 @@ def test_healthz_deep_all_healthy(monkeypatch):
     assert data["ok"] is True
     assert data["checks"]["db"]["ok"] is True
     assert "latency_ms" in data["checks"]["db"]
-    assert data["checks"]["clerk_jwks"]["ok"] is True
+    assert data["checks"]["auth_jwks"]["ok"] is True
     assert data["checks"]["migrations"]["ok"] is True
     assert data["checks"]["migrations"]["pending"] == 0
     assert data["checks"]["openai_api_key"] == {"configured": True}
@@ -120,7 +120,7 @@ def test_healthz_deep_db_failure(monkeypatch):
     """When get_pool raises, deep probe returns 503 with db.ok=False."""
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
 
     async def _failing_get_pool():
         raise ConnectionRefusedError("postgres is down")
@@ -142,7 +142,7 @@ def test_healthz_deep_db_failure(monkeypatch):
         async def __aexit__(self, *_):
             pass
 
-        async def head(self, url: str):
+        async def get(self, url: str, **_kw):
             return _FakeResponse()
 
     monkeypatch.setattr(healthz_mod.httpx, "AsyncClient", lambda **kw: _FakeHTTPClient())
@@ -162,7 +162,7 @@ def test_healthz_deep_db_failure(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# /healthz/deep — Clerk JWKS unreachable
+# /healthz/deep — auth JWKS unreachable
 # ---------------------------------------------------------------------------
 
 def test_healthz_deep_jwks_failure(monkeypatch):
@@ -170,7 +170,7 @@ def test_healthz_deep_jwks_failure(monkeypatch):
     import httpx as httpx_real
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
 
     # Patch DB to succeed.
     class _FakePool:
@@ -191,7 +191,7 @@ def test_healthz_deep_jwks_failure(monkeypatch):
         async def __aexit__(self, *_):
             pass
 
-        async def head(self, url: str):
+        async def get(self, url: str, **_kw):
             raise httpx_real.ConnectError("connection refused")
 
     import backend.routes.healthz as healthz_mod
@@ -207,8 +207,8 @@ def test_healthz_deep_jwks_failure(monkeypatch):
     assert resp.status_code == 503
     data = resp.json()
     assert data["ok"] is False
-    assert data["checks"]["clerk_jwks"]["ok"] is False
-    assert "error" in data["checks"]["clerk_jwks"]
+    assert data["checks"]["auth_jwks"]["ok"] is False
+    assert "error" in data["checks"]["auth_jwks"]
 
 
 # ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@ def test_healthz_deep_optional_key_missing_still_200(monkeypatch):
     """Missing optional API keys must not degrade the overall status."""
     from marketer.config import settings
 
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "openai_api_key", "")  # missing — should be "configured: false"
     monkeypatch.setattr(settings, "xai_api_key", "")
     monkeypatch.setattr(settings, "ayrshare_api_key", "")
@@ -247,7 +247,7 @@ def test_healthz_deep_optional_key_missing_still_200(monkeypatch):
         async def __aexit__(self, *_):
             pass
 
-        async def head(self, url: str):
+        async def get(self, url: str, **_kw):
             return _FakeResponse()
 
     import backend.routes.healthz as healthz_mod
