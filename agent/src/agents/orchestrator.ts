@@ -2,6 +2,7 @@
 import { createDelegationTools, createRoomTools, type SubagentToolsContext, useAgentStarter, useDelegation, useSubagentTools } from "@agent-starter/flue";
 import { type AgentProps, useSubagent, useSkill } from "@flue/runtime";
 import { decisionRuntime, platform, retriever } from "../lib/platform.ts";
+import { useTraceRun } from "../lib/braintrust/hooks.ts";
 import { actorDispatch, actorPolicy, withActor } from "../marketer/actor.ts";
 import { usePersonActor } from "../marketer/actor-hooks.ts";
 import { observeTurns, turnHooks } from "../marketer/decisions/hooks.ts";
@@ -62,6 +63,8 @@ export function Orchestrator({ id }: AgentProps) {
     memory: true,
   });
   useDelegation({ id, self: "orchestrator", dispatch, awaitingHuman: () => ctx.awaitingHuman });
+  // Braintrust: traceSpanId on delivered replies, the person on the trace, the approval score (src/lib/braintrust).
+  useTraceRun({ id, actor });
   useSkill(operatingProcedures);
   useSkill(groupCollaboration);
   // Webhook payloads, room messages and delegated reports are data: the same runtime skill every other agent loads.

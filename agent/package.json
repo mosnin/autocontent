@@ -14,6 +14,7 @@
     "evals": "promptfoo eval -c promptfoo.config.yaml",
     "evals:view": "promptfoo view",
     "evals:decisions": "promptfoo eval -c promptfoo.decisions.yaml",
+    "evals:braintrust": "node scripts/braintrust-evals.ts",
     "seed:dev": "node scripts/seed-dev-tenant.mjs",
     "infra:init": "bash scripts/init-cloudflare-infra.sh",
     "cf-typegen": "wrangler types",

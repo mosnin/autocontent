@@ -4,6 +4,7 @@ import { type AgentProps, useSkill } from "@flue/runtime";
 import { appApiFirewall, appApiTools } from "../in-app/app-api.ts";
 import { useCustomSkills } from "../lib/custom-skills.ts";
 import { bindings, platform } from "../lib/platform.ts";
+import { useTraceRun } from "../lib/braintrust/hooks.ts";
 import { actorPolicy, withActor } from "../marketer/actor.ts";
 import { usePersonActor } from "../marketer/actor-hooks.ts";
 import { useRecall } from "../marketer/recall/wiring.ts";
@@ -27,6 +28,8 @@ export function Copilot({ id }: AgentProps) {
   // Recall (Supermemory, off unless the workspace turned it on): personal + team into each turn; the person's own
   // turns into their personal memory.
   useRecall({ id, tenantId: ctx.tenant.tenantId, actor, write: true });
+  // Braintrust: traceSpanId on delivered replies, the person on the trace, the approval score (src/lib/braintrust).
+  useTraceRun({ id, actor });
   useSkill(operatingProcedures);
   // Voice calls (initialData.scopes includes "channel:voice") speak plain sentences: no generative UI there.
   if (!ctx.voice) useSkill(generativeUI);

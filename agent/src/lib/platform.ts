@@ -46,6 +46,11 @@ import type { Env } from "../env.ts";
 import { createDecisionLogger } from "../marketer/decisions/log.ts";
 import type { DecisionRuntime } from "../marketer/decisions/run.ts";
 import { alertingNotifier, type OpsAlert, publishOpsAlert } from "./alerts.ts";
+import { recordDecisionCall, takeRunAnnotations, trackObservation } from "./braintrust/annotations.ts";
+import { braintrustConfig } from "./braintrust/config.ts";
+import { BraintrustSpanExporter } from "./braintrust/exporter.ts";
+import { createFeedbackRoute, rememberRunSpan } from "./braintrust/feedback.ts";
+import { workspaceContentMode } from "./braintrust/settings.ts";
 import { createArtifactRoutes, signArtifactUrl } from "./artifacts.ts";
 import { createIntegrationRoutes, gatewayCacheTtlSeconds, isHarnessIdentity, mcpServersFromConfig } from "./integrations.ts";
 import { deliverWithOutbox, OutboxWebhookSink, type WebhookOutbox } from "./outbox.ts";
@@ -392,7 +397,7 @@ export function decisionRuntime(agent: string, runId?: string): DecisionRuntime 
   return {
     env: b as unknown as DecisionRuntime["env"],
     agent,
-    ...(runId ? { runId } : {}),
+    ...(runId ? { runId, onCall: (call) => recordDecisionCall(runId, call) } : {}),
     logger: createDecisionLogger({ telemetry: () => telemetrySinks(), backend: { apiUrl: b.PRIMARY_SAAS_API_URL, token: b.SAAS_SERVICE_TOKEN }, waitUntil }),
   };
 }
@@ -437,7 +442,59 @@ export function traceExporters(env: Env = bindings()): SpanExporter[] {
   if (b.OTLP_TRACES_ENDPOINT) {
     exporters.push(new OtlpHttpSpanExporter({ endpoint: b.OTLP_TRACES_ENDPOINT, serviceName: b.SERVICE_NAME, ...(b.OTLP_TRACES_TOKEN ? { headers: { authorization: `Bearer ${b.OTLP_TRACES_TOKEN}` } } : {}) }));
   }
+  const braintrust = braintrustExporter(b);
+  if (braintrust) exporters.push(braintrust);
   return exporters;
+}
+
+/**
+ * Braintrust (docs/observability/braintrust.md): on when BRAINTRUST_API_KEY + BRAINTRUST_PROJECT_ID are set. Masked
+ * spans (src/lib/braintrust/mask.ts) in the content mode of the run's workspace (BRAINTRUST_CONTENT, lowered to
+ * `metadata` by the workspace setting from the backend), identity and scores on the root, decision-model calls as
+ * GenAI spans. Exported from the trace recorder's flush, which runs under waitUntil (observerOptions).
+ */
+export function braintrustExporter(env: Env): BraintrustSpanExporter | undefined {
+  const config = braintrustConfig(env as unknown as Record<string, unknown>);
+  if (!config) return undefined;
+  return new BraintrustSpanExporter({
+    config,
+    serviceName: env.SERVICE_NAME,
+    release: env.CODE_VERSION,
+    workspaceContent: (tenantId) => workspaceContentMode(env, tenantId),
+    annotations: takeRunAnnotations,
+  });
+}
+
+/**
+ * POST /api/marketer/feedback (mounted in src/app.ts): thumbs on agent replies as `user_rating` on the run's trace.
+ * Session token with agent:chat, the caller's own conversation, a run span recorded for it; per-person token bucket.
+ */
+export const feedbackRoutes = createFeedbackRoute<Env>({
+  sessionSecrets: (env) => [env.SESSION_SIGNING_SECRET, env.SESSION_SIGNING_SECRET_PREVIOUS ?? ""].filter(Boolean),
+  config: (env) => braintrustConfig(env as unknown as Record<string, unknown>),
+  runs: (env) => new KVStore(env.AGENT_CACHE),
+  limiter: (env) => new TokenBucketRateLimiter(new KVStore(env.AGENT_CACHE), { ratePerMinute: 30, burst: 10, prefix: RATE_LIMIT_PREFIXES.feedback }),
+  waitUntil: (promise) => waitUntil(promise),
+});
+
+/**
+ * Per observation (observer `onEvent`): track the submission in flight per instance (its root span id is derived from
+ * it) and, for a person's conversation with Braintrust on, remember the run's span id so feedback can be checked
+ * against it. Never throws.
+ */
+function trackBraintrustRun(env: Env, instanceId: string, event: { type: string; submissionId?: unknown }): void {
+  try {
+    const started = trackObservation(event, instanceId);
+    if (!started || !braintrustConfig(env as unknown as Record<string, unknown>) || !env.AGENT_CACHE) return;
+    const write = rememberRunSpan(new KVStore(env.AGENT_CACHE), instanceId, started.traceSpanId).catch(() => undefined);
+    try {
+      waitUntil(write);
+    } catch {
+      // no execution context: the write still runs
+    }
+  } catch {
+    // tracing bookkeeping never breaks a run
+  }
 }
 
 /**
@@ -509,24 +566,38 @@ export function heartbeat(agentName: string): NonNullable<AgentStarterOptions["h
  * + the workflow state marker job routing reads (`wf:<instanceId>`).
  */
 export function observerOptions(): ObserverOptions {
+  const runStatus = createRunStatusObserver<Record<string, unknown>, RunCounters>({
+    registry: (env) => registry(env as unknown as Env),
+    counters: (instanceId) => {
+      const counters = latestCounters.get(instanceId);
+      latestCounters.delete(instanceId);
+      return counters;
+    },
+    onSubmission: (env, instanceId, event) => recordSubmissionEvent(env as unknown as Env, instanceId, event),
+    onWorkflowState: async (env, instanceId, state) => {
+      await (env as unknown as Env).AGENT_CACHE.put(workflowStateKey(instanceId), state, { expirationTtl: 30 * 86_400 });
+    },
+    onSettled: (instanceId) => {
+      for (const beat of heartbeats.values()) beat.forget(instanceId);
+    },
+  });
   return {
     sinks: () => telemetrySinks(),
-    onEvent: createRunStatusObserver<Record<string, unknown>, RunCounters>({
-      registry: (env) => registry(env as unknown as Env),
-      counters: (instanceId) => {
-        const counters = latestCounters.get(instanceId);
-        latestCounters.delete(instanceId);
-        return counters;
+    onEvent: (event, context) => {
+      trackBraintrustRun(context.env as unknown as Env, context.instanceId, event);
+      return runStatus(event, context);
+    },
+    // Trace export (Langfuse, OTLP, Braintrust) runs under waitUntil, never on the reply's path (rule 2).
+    tracing: {
+      exporters: (env) => traceExporters(env as unknown as Env),
+      waitUntil: (promise) => {
+        try {
+          waitUntil(promise);
+        } catch {
+          // outside a request context the flush still runs
+        }
       },
-      onSubmission: (env, instanceId, event) => recordSubmissionEvent(env as unknown as Env, instanceId, event),
-      onWorkflowState: async (env, instanceId, state) => {
-        await (env as unknown as Env).AGENT_CACHE.put(workflowStateKey(instanceId), state, { expirationTtl: 30 * 86_400 });
-      },
-      onSettled: (instanceId) => {
-        for (const beat of heartbeats.values()) beat.forget(instanceId);
-      },
-    }),
-    tracing: { exporters: (env) => traceExporters(env as unknown as Env) },
+    },
     onError: (error) => console.error("[observer]", error),
   };
 }

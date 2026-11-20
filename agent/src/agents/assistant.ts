@@ -7,6 +7,7 @@ import { type AgentProps, useSkill } from "@flue/runtime";
 import { useCustomSkills } from "../lib/custom-skills.ts";
 import { delegationDispatch } from "../lib/delegation.ts";
 import { bindings, decisionRuntime, platform, retriever, vectorMemory, webReaders, webSearchProviders } from "../lib/platform.ts";
+import { useTraceRun } from "../lib/braintrust/hooks.ts";
 import { actorDispatch, actorPolicy, withActor } from "../marketer/actor.ts";
 import { usePersonActor } from "../marketer/actor-hooks.ts";
 import { observeTurns, turnHooks } from "../marketer/decisions/hooks.ts";
@@ -53,6 +54,8 @@ export function Assistant({ id }: AgentProps) {
   // Recall (Supermemory, off unless the workspace turned it on): personal + team memory into each turn, and the
   // person's own turns into their personal memory (src/marketer/recall).
   useRecall({ id, tenantId: ctx.tenant.tenantId, actor, write: true });
+  // Braintrust: traceSpanId on delivered replies, the person on the trace, the approval score (src/lib/braintrust).
+  useTraceRun({ id, actor });
   // Department results come back as `delegation-result` signals; a turn parked on a person is never "no report".
   useDelegation({ id, self: "assistant", dispatch, awaitingHuman: () => ctx.awaitingHuman });
   useSkill(operatingProcedures);

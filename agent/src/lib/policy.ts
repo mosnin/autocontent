@@ -49,7 +49,7 @@ export function evalRunPolicy(input: EvalRunRequest, env: { EVAL_ALLOW_LIVE?: st
  * Token-bucket prefixes in AGENT_CACHE. Edge events and consumer turns use separate buckets, so one event
  * is never charged twice and a tenant gets its whole configured rate at each stage (R7).
  */
-export const RATE_LIMIT_PREFIXES = { events: "rl:tenant:", turns: "rl:tenant-turns:", chat: "rl:chat:" } as const;
+export const RATE_LIMIT_PREFIXES = { events: "rl:tenant:", turns: "rl:tenant-turns:", chat: "rl:chat:", feedback: "rl:feedback:" } as const;
 
 /** Signing-secret vars: one per purpose, each falling back to WEBHOOK_SIGNING_SECRET (SEC-24). */
 export interface SigningSecretVars {

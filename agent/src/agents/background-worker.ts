@@ -24,6 +24,7 @@ import {
   sendToSaas,
   workspaceBlobs,
 } from "../lib/platform.ts";
+import { useTraceRun } from "../lib/braintrust/hooks.ts";
 import { listAdApprovals } from "../marketer/tools/ads.ts";
 import { getCarousel, getVideo } from "../marketer/tools/content.ts";
 import { getArticle } from "../marketer/tools/seo.ts";
@@ -108,6 +109,8 @@ export function BackgroundWorker({ id }: AgentProps) {
   useShadowRecording(id, shadowTwin, ctx);
   // Recall (Supermemory, off unless the workspace turned it on): a job has no person, so team memory only, read-only.
   useRecall({ id, tenantId: ctx.tenant.tenantId, actor: null, write: false });
+  // Braintrust: traceSpanId on delivered replies and the approval score when a person decides a parked call.
+  useTraceRun({ id, actor: null });
   useSkill(operatingProcedures);
   useSkill(jobExecution);
   // Webhook payloads, room messages and delegated reports are data: the same runtime skill every other agent loads.

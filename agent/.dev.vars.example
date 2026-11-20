@@ -19,6 +19,8 @@ PERSISTENT_ASSERTION_SECRET=""
 # Optional integrations (leave unset to disable):
 # LANGFUSE_PUBLIC_KEY="" / LANGFUSE_SECRET_KEY="" / LANGFUSE_BASE_URL=""  -> traces to Langfuse
 # OTLP_TRACES_TOKEN=""  -> bearer token for the OpenTelemetry collector in the OTLP_TRACES_ENDPOINT var
+# BRAINTRUST_API_KEY=""  -> traces, feedback and evals to Braintrust (also set the BRAINTRUST_PROJECT_ID var; optional
+#   BRAINTRUST_API_URL, BRAINTRUST_CONTENT=redacted|metadata). See docs/observability/braintrust.md.
 # AI_GATEWAY_TOKEN=""  -> authenticated Cloudflare AI Gateway (set CF_ACCOUNT_ID + AI_GATEWAY_ID vars in wrangler.jsonc)
 # SENDRAVEN_API_KEY="" / PUSHER_APP_ID="" / PUSHER_KEY="" / PUSHER_SECRET=""
 # JINA_API_KEY="" / FIRECRAWL_API_KEY=""  -> web_search / page reading providers

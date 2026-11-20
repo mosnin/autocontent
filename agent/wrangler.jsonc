@@ -80,7 +80,12 @@
     "DECISION_MODEL": "",
     "DECISION_MODES": "",
     // Recall (docs/memory/supermemory.md): "" = https://api.supermemory.ai. Secrets: SUPERMEMORY_API_KEY, MEMORY_NAMESPACE_SECRET.
-    "SUPERMEMORY_BASE_URL": ""
+    "SUPERMEMORY_BASE_URL": "",
+    // Braintrust (docs/observability/braintrust.md): off unless the BRAINTRUST_API_KEY secret and the project id are set.
+    // API URL "" = https://api.braintrust.dev (EU: https://api-eu.braintrust.dev). Content: "redacted" (default) or "metadata".
+    "BRAINTRUST_PROJECT_ID": "",
+    "BRAINTRUST_API_URL": "",
+    "BRAINTRUST_CONTENT": "redacted"
   },
   "queues": {
     "producers": [

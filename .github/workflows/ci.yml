@@ -168,3 +168,60 @@ jobs:
 
       - name: Dependency audit (report only)
         run: pnpm audit --prod --audit-level high || echo "::warning::pnpm audit reported high or critical advisories in agent/"
+
+  agent-evals-braintrust:
+    # Agent evals as a Braintrust experiment compared with the main-branch baseline
+    # (docs/observability/braintrust.md). Runs only when the BRAINTRUST_API_KEY
+    # secret and the BRAINTRUST_PROJECT_ID variable (or secret) exist; otherwise
+    # every step after the gate is skipped and the job passes. Fork PRs get no
+    # secrets, so they skip too. No model key is needed: the offline suite replays
+    # the decision conformance cases with a stubbed fetch.
+    name: Agent evals (Braintrust experiment)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: agent
+    env:
+      BRAINTRUST_API_KEY: ${{ secrets.BRAINTRUST_API_KEY }}
+      BRAINTRUST_PROJECT_ID: ${{ vars.BRAINTRUST_PROJECT_ID || secrets.BRAINTRUST_PROJECT_ID }}
+      BRAINTRUST_API_URL: ${{ vars.BRAINTRUST_API_URL }}
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - name: Check for the Braintrust key
+        id: gate
+        working-directory: .
+        run: |
+          if [ -n "$BRAINTRUST_API_KEY" ] && [ -n "$BRAINTRUST_PROJECT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::BRAINTRUST_API_KEY or BRAINTRUST_PROJECT_ID is not set: skipping the Braintrust eval upload."
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          persist-credentials: false
+
+      - name: Set up pnpm
+        if: steps.gate.outputs.enabled == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Set up Node
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: agent/pnpm-lock.yaml
+
+      - name: Install dependencies
+        if: steps.gate.outputs.enabled == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Run evals and upload the experiment
+        if: steps.gate.outputs.enabled == 'true'
+        run: pnpm evals:braintrust

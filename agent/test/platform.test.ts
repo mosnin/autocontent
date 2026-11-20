@@ -468,7 +468,8 @@ describe("config-driven integrations (contract 16, R-STK-09/12, R-MOD-07)", () =
   });
 
   it("keeps edge events and consumer turns in separate rate-limit buckets (R7)", () => {
-    expect(new Set(Object.values(RATE_LIMIT_PREFIXES)).size).toBe(3);
+    // Every bucket (edge events, consumer turns, chat, feedback) has its own prefix.
+    expect(new Set(Object.values(RATE_LIMIT_PREFIXES)).size).toBe(Object.keys(RATE_LIMIT_PREFIXES).length);
     expect(RATE_LIMIT_PREFIXES.events).not.toBe(RATE_LIMIT_PREFIXES.turns);
   });
 });

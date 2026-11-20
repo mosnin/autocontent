@@ -8,7 +8,7 @@ import { type Context, Hono } from "hono";
 import type { Env } from "./env.ts";
 import { agentCors } from "./lib/cors.ts";
 import { evalHarness } from "./lib/evals.ts";
-import { artifactRoutes, chatRateLimiter, classifyDelivery, integrationRoutes, modelGateway, observerOptions, pusherAuthRoutes, seedInitialData, tenantConfigs } from "./lib/platform.ts";
+import { artifactRoutes, chatRateLimiter, classifyDelivery, feedbackRoutes, integrationRoutes, modelGateway, observerOptions, pusherAuthRoutes, seedInitialData, tenantConfigs } from "./lib/platform.ts";
 import { APPROVAL_DECIDER_ROLES, OPERATOR_ROLES } from "./lib/access.ts";
 import { signingSecret } from "./lib/policy.ts";
 import { Assistant } from "./agents/assistant.ts";
@@ -72,6 +72,8 @@ app.route("/", integrationRoutes);
 app.route("/", artifactRoutes);
 // Pusher private-channel auth for live dashboards (404 until PUSHER_* are set and integrations.pusher is on).
 app.route("/", pusherAuthRoutes);
+// Thumbs on agent replies -> Braintrust `user_rating` (404 until BRAINTRUST_API_KEY + BRAINTRUST_PROJECT_ID are set).
+app.route("/", feedbackRoutes);
 app.post("/api/test-eval-harness", (c) => evalHarness(c.req.raw, c.env));
 app.route("/", oauthMcpRoutes);
 app.route("/", backgroundRoutes);

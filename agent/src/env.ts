@@ -89,6 +89,15 @@ export interface Env {
    * a self-hosted (`supermemory local`) or enterprise endpoint otherwise. https, or http on loopback only.
    */
   SUPERMEMORY_BASE_URL?: string;
+  /**
+   * Braintrust (docs/observability/braintrust.md): the project traces, feedback and evals go to, one per environment.
+   * Nothing is sent unless BRAINTRUST_API_KEY (secret) and this are both set.
+   */
+  BRAINTRUST_PROJECT_ID?: string;
+  /** Braintrust data plane: empty = https://api.braintrust.dev; EU https://api-eu.braintrust.dev; or a self-hosted URL. */
+  BRAINTRUST_API_URL?: string;
+  /** How much text traces carry: "redacted" (default: masked prompts and outputs) or "metadata" (none). A workspace can lower it to "metadata". */
+  BRAINTRUST_CONTENT?: string;
 
   // --- Secrets (wrangler secret put / .dev.vars) ------------------------------
   OPENAI_API_KEY: string;
@@ -141,6 +150,8 @@ export interface Env {
   SUPERMEMORY_API_KEY?: string;
   /** Recall: 32+ random bytes, the SAME value as the backend's. Namespaces are HMACs of identity under it. */
   MEMORY_NAMESPACE_SECRET?: string;
+  /** Braintrust API key (`wrangler secret put BRAINTRUST_API_KEY`), one per environment. Never sent to the browser. */
+  BRAINTRUST_API_KEY?: string;
 
   /** Voice module (LiveKit). */
   LIVEKIT_API_KEY?: string;

@@ -49,6 +49,24 @@ export interface DecisionRuntime {
   /** Who is asking (for the log only). */
   agent?: string;
   runId?: string;
+  /**
+   * Observability: called once per decision-model call (never for an `off` point) with what may go on a trace: point,
+   * mode, model, latency, cost, tokens and whether the fallback answered. Never the state or the answers. A throwing
+   * callback is ignored.
+   */
+  onCall?: (call: DecisionCallRecord) => void;
+}
+
+export interface DecisionCallRecord {
+  point: DecisionPoint;
+  mode: DecisionMode;
+  model: string | null;
+  latencyMs: number;
+  cost: number;
+  tokens?: number;
+  fallbackUsed: boolean;
+  failure: string | null;
+  at: number;
 }
 
 interface PointIO {
@@ -133,6 +151,21 @@ export async function decide<P extends DecisionPoint>(runtime: DecisionRuntime, 
     outcome = { point, mode, action, fallbackUsed: true, failure: result.kind, latencyMs: result.ms, cost: 0 };
   }
   void logOutcome(runtime, input, modelState, outcome, result.ok ? result.model : decisionModel(runtime.env));
+  try {
+    runtime.onCall?.({
+      point,
+      mode,
+      model: result.ok ? result.model : decisionModel(runtime.env),
+      latencyMs: outcome.latencyMs,
+      cost: outcome.cost,
+      ...(result.ok ? { tokens: result.tokens } : {}),
+      fallbackUsed: outcome.fallbackUsed,
+      failure: outcome.failure ?? null,
+      at: (runtime.now ?? Date.now)(),
+    });
+  } catch {
+    // observability never changes a decision
+  }
   return outcome;
 }
 
