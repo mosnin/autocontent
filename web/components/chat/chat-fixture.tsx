@@ -22,17 +22,19 @@ const TOOLS_1 = [
 ];
 const TOOLS_2 = [tool("t5", "generate_video", { niche: "Pasta at home", count: 3 }, 0, "input-available"), tool("t6", "get_ad_campaign_metrics", { id: "spring" }, 6000)];
 
-const msg = (id: string, role: "user" | "assistant", parts: unknown[]): FlueConversationMessage => ({ id, role, parts, timestamp: new Date(Date.now() - 4 * 60_000).toISOString() }) as unknown as FlueConversationMessage;
+const msg = (id: string, role: "user" | "assistant", parts: unknown[], metadata?: Record<string, unknown>): FlueConversationMessage =>
+  ({ id, role, parts, metadata, timestamp: new Date(Date.now() - 4 * 60_000).toISOString() }) as unknown as FlueConversationMessage;
 const text = (t: string) => ({ type: "text", text: t, state: "done" });
 
 const MESSAGES: FlueConversationMessage[] = [
   msg("u1", "user", [text("What's working this month, and what should we push next week?")]),
+  // traceSpanId: the run's root span id, so the reply gets thumbs (docs/observability/braintrust.md).
   msg("a1", "assistant", [
     ...TOOLS_1,
     text(
       "Views are up **28%** on the month, almost all from short video. *3 pasta mistakes every home cook makes* did 48.2K on TikTok, twice anything else.\n\nPaid is the weak spot: the spring ad set's cost per conversion rose 48% over three days.\n\nHere's what I'd do next week:\n\n1. Make three more mistake-style hooks from the fresh pasta guide\n2. Pause the spring ad set and move its budget to the best video as a Spark ad\n3. Post the article as a five-part carousel on Instagram",
     ),
-  ]),
+  ], { traceSpanId: "4f2a9c1e7b3d5a60" }),
   msg("u2", "user", [text("Do it. Start with the ad change.")]),
   msg("a2", "assistant", [...TOOLS_2, text("I need your go-ahead before I touch spend.")]),
 ];
@@ -90,6 +92,7 @@ export function ChatFixture() {
       scope={scope}
       onScope={setScope}
       onSend={() => undefined}
+      onFeedback={() => new Promise((resolve) => setTimeout(resolve, 400))}
     />
   );
 }

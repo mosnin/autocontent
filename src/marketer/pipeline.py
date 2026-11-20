@@ -36,6 +36,7 @@ from .orchestrator import run_ideation, run_qa, run_scriptwriter, run_visual_dir
 from .repos import jobs as jobs_repo
 from .repos import niches as niches_repo
 from .repos import spend as spend_repo
+from .observability import scope as obs_scope
 from .services import email as email_svc
 from .services import media_archive
 from .services import (
@@ -387,7 +388,10 @@ async def run_job(
             )
 
             tracer = otel.get_tracer(__name__)
-            with tracer.start_as_current_span("pipeline.run_job") as span:
+            with obs_scope(tenant_id=user_id, agent="video_pipeline"), tracer.start_as_current_span(
+                "pipeline.run_job",
+                attributes={"tenant_id": user_id, "agent": "video_pipeline", "braintrust.span_attributes.type": "task"},
+            ) as span:
                 span.set_attribute("marketer.user_id", user_id)
                 span.set_attribute("marketer.niche_id", str(niche_id))
                 span.set_attribute("marketer.platform", platform)

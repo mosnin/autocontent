@@ -9,6 +9,7 @@ from opentelemetry import trace
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
+from ..observability import model_span
 from .openai_pricing import whisper_cost
 from .retry_policy import is_transient_openai_error
 from .spend_context import SpendContext
@@ -72,25 +73,36 @@ async def transcribe_word_level(
     """Returns a list of {"word", "start", "end"} dicts."""
     if spend is not None:
         await spend.ensure_can_spend(whisper_cost(_audio_duration_seconds(audio_path)))
-    result = await _call_api(audio_path)
+    async with model_span(
+        "generate_content",
+        model=SKU,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        name=f"gen_ai.transcription {SKU}",
+        attributes={"gen_ai.output.type": "text", "marketer.input.type": "audio"},
+    ) as call:
+        result = await _call_api(audio_path)
 
-    raw = getattr(result, "words", None) or []
-    words: list[dict] = []
-    for w in raw:
-        d = w if isinstance(w, dict) else w.model_dump()
-        words.append({"word": d["word"], "start": float(d["start"]), "end": float(d["end"])})
+        raw = getattr(result, "words", None) or []
+        words: list[dict] = []
+        for w in raw:
+            d = w if isinstance(w, dict) else w.model_dump()
+            words.append({"word": d["word"], "start": float(d["start"]), "end": float(d["end"])})
 
-    if spend is not None:
-        seconds = _audio_duration_seconds(audio_path)
-        cost = whisper_cost(seconds)
-        span = trace.get_current_span()
-        span.set_attribute("openai.sku", SKU)
-        span.set_attribute("openai.audio_seconds", round(seconds, 4))
-        span.set_attribute("marketer.cost_usd", str(cost))
-        await spend.log(
-            provider=PROVIDER,
-            sku=SKU,
-            units=Decimal(str(round(seconds, 4))),
-            cost_usd=cost,
-        )
+        if spend is not None:
+            seconds = _audio_duration_seconds(audio_path)
+            cost = whisper_cost(seconds)
+            span = trace.get_current_span()
+            span.set_attribute("openai.sku", SKU)
+            span.set_attribute("openai.audio_seconds", round(seconds, 4))
+            call.cost(cost)
+            await spend.log(
+                provider=PROVIDER,
+                sku=SKU,
+                units=Decimal(str(round(seconds, 4))),
+                cost_usd=cost,
+            )
+        call.set("marketer.transcript.words", len(words))
+        # The transcript is the voiceover we wrote; content, so masked or left out.
+        call.completion(" ".join(w["word"] for w in words))
     return words

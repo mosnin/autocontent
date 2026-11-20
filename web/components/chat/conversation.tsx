@@ -16,6 +16,7 @@ import {
   cx,
   IconButton,
   Markdown,
+  MessageFeedback,
   Notice,
   PageHeader,
   PlanCard,
@@ -31,6 +32,7 @@ import {
 import { DEPARTMENTS, departmentById, type Department, type DepartmentId } from "@/lib/departments";
 import { splitOpenUISegments, type ToolPart } from "@/lib/agent/parts";
 import { departmentForTool, describeTool } from "@/lib/agent/tool-labels";
+import { feedbackBody, sendFeedback, traceSpanIdOf, type FeedbackScore } from "@/lib/agent/feedback";
 import type { ApprovalRequest } from "@/lib/agent/types";
 import { readHumanQuestion, useApprovals, type UseApprovalsResult } from "@/lib/agent/use-approvals";
 import { useAgentChat } from "@/lib/agent/use-agent-chat";
@@ -159,10 +161,18 @@ export function Conversation({ conversationId, title, onDelete }: { conversation
       onScope={setScope}
       onSend={(text) => void chat.sendMessage(withScope(text, scope)).then(() => threads?.refresh())}
       onStop={() => void chat.stop()}
+      onFeedback={
+        ready
+          ? (traceSpanId, score, comment) => sendFeedback({ origin: ready.origin, token: ready.token, body: feedbackBody(conversationId, traceSpanId, score, comment) })
+          : undefined
+      }
       bottomRef={bottom}
     />
   );
 }
+
+/** Rate a reply: the run's root span id, 1 or 0, an optional comment. Resolves when saved. */
+export type FeedbackHandler = (traceSpanId: string, score: FeedbackScore, comment?: string) => Promise<void>;
 
 /** The session screen itself (ref 02), driven by props so it renders the same from live chat or fixtures. */
 export function ChatLayout({
@@ -183,6 +193,7 @@ export function ChatLayout({
   onScope,
   onSend,
   onStop,
+  onFeedback,
   bottomRef,
 }: {
   title: string;
@@ -203,6 +214,8 @@ export function ChatLayout({
   onScope: (d: DepartmentId | null) => void;
   onSend: (text: string) => void;
   onStop?: () => void;
+  /** Thumbs on replies that carry a run id. Absent: no thumbs. */
+  onFeedback?: FeedbackHandler;
   bottomRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const [panel, setPanel] = useState(true);
@@ -262,7 +275,7 @@ export function ChatLayout({
                     }
                   />
                 ) : (
-                  <AssistantMessage key={m.id} message={m} approvals={approvalsFor(m.id)} decider={decider} names={names} />
+                  <AssistantMessage key={m.id} message={m} approvals={approvalsFor(m.id)} decider={decider} names={names} onFeedback={streaming && m.id === messages[messages.length - 1]?.id ? undefined : onFeedback} />
                 ),
               )}
               {approvalsFor("_tail").map((a) => (
@@ -360,8 +373,9 @@ function UserMessage({ message }: { message: FlueConversationMessage }) {
   return <UserBubble to={scope ? `to ${scope.agentName}` : undefined}>{text}</UserBubble>;
 }
 
-function AssistantMessage({ message, approvals, decider, names }: { message: FlueConversationMessage; approvals: ApprovalRequest[]; decider: UseApprovalsResult; names: Record<string, string> }) {
+function AssistantMessage({ message, approvals, decider, names, onFeedback }: { message: FlueConversationMessage; approvals: ApprovalRequest[]; decider: UseApprovalsResult; names: Record<string, string>; onFeedback?: FeedbackHandler }) {
   const blocks = blocksOf(message);
+  const traceSpanId = traceSpanIdOf(message);
   return (
     <div className="ds-enter">
       <AssistantHeader name="Marketer" meta={message.timestamp ? formatRelative(message.timestamp) : undefined} />
@@ -385,6 +399,7 @@ function AssistantMessage({ message, approvals, decider, names }: { message: Flu
         {approvals.map((a) => (
           <ApprovalBlock key={a.approvalId} approval={a} decider={decider} names={names} />
         ))}
+        {onFeedback && traceSpanId && <MessageFeedback onRate={(score, comment) => onFeedback(traceSpanId, score, comment)} />}
       </div>
     </div>
   );

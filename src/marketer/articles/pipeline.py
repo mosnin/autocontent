@@ -31,6 +31,7 @@ from ..repos import articles as articles_repo
 from ..repos import brand_kit as brand_kit_repo
 from ..repos import niches as niches_repo
 from ..repos import spend as spend_repo
+from ..observability import scope as obs_scope
 from ..services import openai_images, otel
 from ..services.spend_context import SpendContext, default_context
 from . import exa, llm
@@ -200,7 +201,10 @@ async def run_article(
     )
 
     tracer = otel.get_tracer(__name__)
-    with tracer.start_as_current_span("article.run") as span:
+    with obs_scope(tenant_id=user_id, agent="article_pipeline"), tracer.start_as_current_span(
+        "article.run",
+        attributes={"tenant_id": user_id, "agent": "article_pipeline", "braintrust.span_attributes.type": "task"},
+    ) as span:
         span.set_attribute("marketer.user_id", user_id)
         span.set_attribute("marketer.niche_id", str(niche_id))
         span.set_attribute("marketer.article_id", str(article.id))

@@ -180,6 +180,50 @@ class SupermemoryClient:
         params: dict[str, Any] | None = None,
         timeout: float,
         retries: int = 0,
+        kind: str | None = None,
+    ) -> Any:
+        """One call, inside a recall span (docs/observability/braintrust.md,
+        rule 5): the operation, scope kind, status, a result count and timing.
+        Never the query, the content, the memories or the namespace; anything
+        started inside (httpx spans) is cut to the same allowlist."""
+        from opentelemetry import trace  # noqa: PLC0415
+
+        from marketer.observability import recall_guard  # noqa: PLC0415
+
+        op = _op_name(method, path)
+        t0 = time.monotonic()
+        with recall_guard(), trace.get_tracer("marketer.recall").start_as_current_span(
+            f"recall.{op}",
+            attributes={"marketer.recall": True, "marketer.recall.op": op, **({"marketer.recall.scope": kind} if kind else {})},
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as span:
+            try:
+                data = await self._send_raw(method, path, body=body, params=params, timeout=timeout, retries=retries)
+            except SupermemoryError as e:
+                span.set_attribute("marketer.recall.error", e.kind)
+                if e.status:
+                    span.set_attribute("marketer.recall.status", e.status)
+                span.set_status(trace.StatusCode.ERROR)
+                raise
+            finally:
+                span.set_attribute("marketer.recall.latency_ms", int((time.monotonic() - t0) * 1000))
+            if isinstance(data, dict):
+                for key in ("results", "memories"):
+                    if isinstance(data.get(key), list):
+                        span.set_attribute("marketer.recall.count", len(data[key]))
+                        break
+            return data
+
+    async def _send_raw(
+        self,
+        method: Literal["GET", "POST", "PATCH", "DELETE"],
+        path: str,
+        *,
+        body: Any = None,
+        params: dict[str, Any] | None = None,
+        timeout: float,
+        retries: int = 0,
     ) -> Any:
         if not self.configured:
             raise NotConfigured()
@@ -242,25 +286,25 @@ class SupermemoryClient:
         if not doc_id or len(doc_id) > _DOC_ID_MAX:
             raise ValueError("doc_id must be 1..255 chars")
         body = {"content": content[:MAX_CONTENT_CHARS], "id": doc_id, "metadata": metadata or {}, "dreaming": dreaming}
-        data = await self._send("POST", self._path(scope, "/document"), body=body, timeout=WRITE_TIMEOUT_SEC, retries=1)
+        data = await self._send("POST", self._path(scope, "/document"), kind=scope.kind, body=body, timeout=WRITE_TIMEOUT_SEC, retries=1)
         return str(data.get("status", ""))
 
     async def delete_documents(self, scope: Scope, ids: list[str]) -> int:
         """Delete documents by id. Never retried. Returns how many were deleted."""
         if not ids:
             return 0
-        data = await self._send("DELETE", self._path(scope, "/document"), body={"ids": ids[:100]}, timeout=WRITE_TIMEOUT_SEC)
+        data = await self._send("DELETE", self._path(scope, "/document"), kind=scope.kind, body={"ids": ids[:100]}, timeout=WRITE_TIMEOUT_SEC)
         return int(data.get("count", 0))
 
     async def forget(self, scope: Scope, ids: list[str]) -> ForgetResult:
         """Forget exact memories. Never retried."""
-        data = await self._send("DELETE", self._path(scope, "/memories"), body={"ids": ids[:500]}, timeout=WRITE_TIMEOUT_SEC)
+        data = await self._send("DELETE", self._path(scope, "/memories"), kind=scope.kind, body={"ids": ids[:500]}, timeout=WRITE_TIMEOUT_SEC)
         return _forget_result(data)
 
     async def forget_preview(self, scope: Scope, query: str) -> ForgetResult:
         """Semantic forget with ``dryRun: true``: what would be forgotten. Changes nothing."""
         data = await self._send(
-            "DELETE", self._path(scope, "/memories/semantic"), body={"query": query[:2000], "dryRun": True}, timeout=READ_TIMEOUT_SEC
+            "DELETE", self._path(scope, "/memories/semantic"), kind=scope.kind, body={"query": query[:2000], "dryRun": True}, timeout=READ_TIMEOUT_SEC
         )
         return _forget_result(data)
 
@@ -268,7 +312,7 @@ class SupermemoryClient:
         """Delete the whole namespace. A 404 means it never existed (or is already
         gone): success for an idempotent purge. Never retried here."""
         try:
-            data = await self._send("DELETE", self._path(scope, ""), timeout=NAMESPACE_DELETE_TIMEOUT_SEC)
+            data = await self._send("DELETE", self._path(scope, ""), kind=scope.kind, timeout=NAMESPACE_DELETE_TIMEOUT_SEC)
         except SupermemoryError as e:
             if e.not_found:
                 return NamespaceDeleted(0, 0, existed=False)
@@ -282,7 +326,7 @@ class SupermemoryClient:
     async def search(self, scope: Scope, query: str, *, limit: int = 6, threshold: float = 0.45) -> list[SearchHit]:
         body = {"query": query[:2000], "searchMode": "memories", "limit": max(1, min(limit, 100)), "threshold": threshold}
         try:
-            data = await self._send("POST", self._path(scope, "/search"), body=body, timeout=READ_TIMEOUT_SEC)
+            data = await self._send("POST", self._path(scope, "/search"), kind=scope.kind, body=body, timeout=READ_TIMEOUT_SEC)
         except SupermemoryError as e:
             if e.not_found:  # nothing written there yet
                 return []
@@ -298,7 +342,7 @@ class SupermemoryClient:
         """One page of the namespace's memories, newest first, and the total."""
         params = {"page": max(1, page), "limit": max(1, min(limit, 100)), "sort": "updatedAt", "order": "desc"}
         try:
-            data = await self._send("POST", self._path(scope, "/list/memories"), body={}, params=params, timeout=READ_TIMEOUT_SEC)
+            data = await self._send("POST", self._path(scope, "/list/memories"), kind=scope.kind, body={}, params=params, timeout=READ_TIMEOUT_SEC)
         except SupermemoryError as e:
             if e.not_found:  # a namespace nobody wrote yet
                 return [], 0
@@ -310,6 +354,14 @@ class SupermemoryClient:
         ]
         total = int((data.get("pagination") or {}).get("totalItems") or len(items))
         return items, total
+
+
+def _op_name(method: str, path: str) -> str:
+    """``search``, ``document``, ``namespace``: from the path after the
+    namespace segment, which never leaves this function."""
+    parts = path.split("/")
+    rest = "_".join(p for p in parts[3:] if p) if path.startswith("/ns/") else "_".join(p for p in parts if p)
+    return f"{method.lower()}_{rest or 'namespace'}"
 
 
 def _forget_result(data: dict[str, Any]) -> ForgetResult:

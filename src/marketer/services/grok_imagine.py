@@ -38,6 +38,7 @@ from opentelemetry import trace
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
+from ..observability import model_span
 from .retry_policy import is_transient_http_error, is_unsent_or_refused
 from .spend_context import SpendContext
 from .xai_pricing import imagine_video_cost
@@ -162,26 +163,36 @@ async def animate(
         "resolution": resolution,
     }
 
-    async with _client() as client:
-        request_id = await _submit(client, body)
-        result = await _poll(client, request_id)
-        video = result.get("video") or {}
-        video_url = video.get("url")
-        if not video_url:
-            raise GrokImagineError(f"job {request_id} done but no video.url: {result!r}")
-        await _download(client, video_url, out_path)
+    async with model_span(
+        "generate_content",
+        model=SKU,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        name=f"gen_ai.video {SKU}",
+        attributes={"gen_ai.output.type": "video", "marketer.video.duration_sec": duration, "marketer.video.resolution": resolution},
+    ) as call:
+        # The motion prompt only: the keyframe (a data URI) never goes on a span.
+        call.prompt(motion_prompt)
+        async with _client() as client:
+            request_id = await _submit(client, body)
+            result = await _poll(client, request_id)
+            video = result.get("video") or {}
+            video_url = video.get("url")
+            if not video_url:
+                raise GrokImagineError(f"job {request_id} done but no video.url: {result!r}")
+            await _download(client, video_url, out_path)
 
-    if spend is not None:
-        billed_seconds = float(video.get("duration", duration))
-        cost = imagine_video_cost(billed_seconds)
-        span = trace.get_current_span()
-        span.set_attribute("xai.sku", SKU)
-        span.set_attribute("xai.billed_seconds", billed_seconds)
-        span.set_attribute("marketer.cost_usd", str(cost))
-        await spend.log(
-            provider=PROVIDER,
-            sku=SKU,
-            units=Decimal(str(billed_seconds)),
-            cost_usd=cost,
-        )
+        if spend is not None:
+            billed_seconds = float(video.get("duration", duration))
+            cost = imagine_video_cost(billed_seconds)
+            span = trace.get_current_span()
+            span.set_attribute("xai.sku", SKU)
+            span.set_attribute("xai.billed_seconds", billed_seconds)
+            call.cost(cost)
+            await spend.log(
+                provider=PROVIDER,
+                sku=SKU,
+                units=Decimal(str(billed_seconds)),
+                cost_usd=cost,
+            )
     return out_path

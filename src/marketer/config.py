@@ -1,3 +1,4 @@
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -224,6 +225,29 @@ class Settings(BaseSettings):
     #   x-axiom-dataset=marketer,authorization=Bearer <token>
     otel_exporter_otlp_headers: str = ""
     otel_traces_sample_rate: float = 1.0
+
+    # Braintrust (docs/observability/braintrust.md). Read without the
+    # MARKETER_ prefix so the Worker, the backend and CI share one name.
+    # Nothing is exported unless both the key and the project id are set.
+    braintrust_api_key: str = Field(
+        default="", validation_alias=AliasChoices("BRAINTRUST_API_KEY", "MARKETER_BRAINTRUST_API_KEY")
+    )
+    braintrust_project_id: str = Field(
+        default="", validation_alias=AliasChoices("BRAINTRUST_PROJECT_ID", "MARKETER_BRAINTRUST_PROJECT_ID")
+    )
+    # https://api.braintrust.dev (US), https://api-eu.braintrust.dev (EU), or a
+    # self-hosted data plane.
+    braintrust_api_url: str = Field(
+        default="https://api.braintrust.dev",
+        validation_alias=AliasChoices("BRAINTRUST_API_URL", "MARKETER_BRAINTRUST_API_URL"),
+    )
+    # "redacted" (default): prompts and outputs after masking. "metadata": no
+    # prompt or output text at all. Any other value is treated as "metadata".
+    braintrust_content: str = Field(
+        default="redacted", validation_alias=AliasChoices("BRAINTRUST_CONTENT", "MARKETER_BRAINTRUST_CONTENT")
+    )
+    # One export request's deadline, in seconds. No retries.
+    braintrust_export_timeout_sec: float = 10.0
 
     # --- Boot-time config health (preflight) ---------------------------
     # When True, a startup preflight check that finds any ERROR-level

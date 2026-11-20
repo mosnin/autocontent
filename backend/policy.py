@@ -263,6 +263,9 @@ POLICY: dict[tuple[str, str], Entry] = {
     ("POST", f"{V1}/memory/team/forget"): "memory:forget",  # also person-only
     # security audit log
     ("GET", f"{V1}/audit-log"): "audit:read",
+    # observability (docs/observability/braintrust.md)
+    ("GET", f"{V1}/observability/settings"): AUTHENTICATED,  # every member and the agent
+    ("PUT", f"{V1}/observability/settings"): "security:manage",  # what leaves for a subprocessor; also person-only
 }
 
 # Routes that are not FastAPI APIRoutes (Starlette routes FastAPI adds itself).
@@ -418,6 +421,22 @@ def _entry_for_request(request: Request) -> Entry | None:
     return None
 
 
+def _bind_observability(ctx: AuthCtx) -> None:
+    """Opaque ids for every span this request starts (docs/observability/
+    braintrust.md, rule 6): tenant, person, role. Never email, name or IP."""
+    try:
+        from marketer.observability import bind
+
+        bind(
+            tenant_id=ctx.user_id or None,
+            actor_id=ctx.actor_id or None,
+            role=ctx.role or None,
+            agent="marketer-agent" if getattr(ctx, "delegated", False) else None,
+        )
+    except Exception:  # noqa: BLE001 — observability never changes an outcome
+        log.debug("policy.observability_bind_failed", exc_info=True)
+
+
 async def enforce_policy(request: Request) -> None:
     """The one enforcement point. Mounted app-wide in ``create_app``."""
     entry = _entry_for_request(request)
@@ -427,6 +446,7 @@ async def enforce_policy(request: Request) -> None:
         await _call(request, require_admin)
         return
     ctx: AuthCtx = await _call(request, require_user)
+    _bind_observability(ctx)
     path = request.url.path
     if entry is None:
         # Not in the table: refuse (fail closed). The coverage test keeps

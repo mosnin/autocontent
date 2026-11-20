@@ -214,6 +214,16 @@ See "Error taxonomy" below.
 **Secrets**
 - Nothing secret in `wrangler.jsonc` `vars`. `.dev.vars.example` has empty values. `.dev.vars` is gitignored.
 
+**Observability (Braintrust, `agent/src/lib/braintrust/`)**
+- Off unless `BRAINTRUST_API_KEY` (secret) and `BRAINTRUST_PROJECT_ID` are set; the key stays in the Worker and CI, never
+  in a response or a log line (failure logs carry our own HTTP status text only).
+- Every exported span goes through one masking function (`mask.ts`): secrets, emails, phones, cards, IPs; secret-named
+  attributes and JSON keys dropped; personal memory (recall, notes, private entity graph, retrieval) cut out and the
+  memory tools' input and output replaced. `metadata` mode is an allowlist. Pinned in `test/braintrust.test.ts`.
+- Export runs under `waitUntil` with a timeout and never throws into the run.
+- `POST /api/marketer/feedback`: session token, `agent:chat`, the caller's own conversation in their own tenant, a run
+  span recorded for that conversation, a per-person rate limit; the browser never holds the Braintrust key.
+
 **Budget**
 - Tenant limits are clamped by the platform ceilings (`applyPlatformPolicy`) for every agent.
 

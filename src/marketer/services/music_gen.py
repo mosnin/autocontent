@@ -24,6 +24,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from ..config import settings
 from ..logging import get_logger
+from ..observability import model_span
 from .spend_context import SpendContext
 
 log = get_logger(__name__)
@@ -108,25 +109,36 @@ async def compose(
     if spend is not None:
         await spend.ensure_can_spend(cost)
 
-    try:
-        audio = await _call_api(build_prompt(mood, niche_title=niche_title), length_ms)
-    except httpx.HTTPError as exc:
-        raise MusicGenError(f"music generation failed: {exc}") from exc
-    if not audio:
-        raise MusicGenError("music generation returned an empty body")
+    prompt = build_prompt(mood, niche_title=niche_title)
+    async with model_span(
+        "generate_content",
+        model=SKU,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        name="gen_ai.music elevenlabs",
+        attributes={"gen_ai.output.type": "audio", "marketer.music.length_ms": length_ms},
+    ) as call:
+        call.prompt(prompt)
+        try:
+            audio = await _call_api(prompt, length_ms)
+        except httpx.HTTPError as exc:
+            raise MusicGenError(f"music generation failed: {exc}") from exc
+        if not audio:
+            raise MusicGenError("music generation returned an empty body")
 
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = out_path.with_suffix(out_path.suffix + ".part")
-    tmp_path.write_bytes(audio)
-    tmp_path.replace(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = out_path.with_suffix(out_path.suffix + ".part")
+        tmp_path.write_bytes(audio)
+        tmp_path.replace(out_path)
+        call.cost(cost)
 
-    if spend is not None:
-        await spend.log(
-            provider=PROVIDER,
-            sku=SKU,
-            units=Decimal(str(round(billed_sec, 3))),
-            cost_usd=cost,
-        )
+        if spend is not None:
+            await spend.log(
+                provider=PROVIDER,
+                sku=SKU,
+                units=Decimal(str(round(billed_sec, 3))),
+                cost_usd=cost,
+            )
     log.info(
         "music.generated",
         extra={"mood": mood, "length_ms": length_ms, "dest": str(out_path)},

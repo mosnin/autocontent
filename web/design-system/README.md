@@ -184,6 +184,7 @@ All of these live in `components/` and are exported from `index.ts`.
 |---|---|---|
 | `Composer` | 01, 02 | Header strip: agent glyph, name and "Routes each request". Then the textarea, "+", and a round send button. `size="hero"` on Home |
 | `UserBubble`, `AssistantHeader`, `WorkedFor`, `SourceChips` | 02 | |
+| `MessageFeedback` | 02 | Thumbs up / down under an assistant reply, then an optional comment (max 1,000 characters). Faint icon buttons with `aria-pressed`; "Thanks." in a status line; the server's error in a `Notice`. Shown only on replies that carry a run id (`traceSpanId`) |
 | `AgentChips` | 02 | "Agent is working" |
 | `Trace` | 02 | Right panel steps |
 | `PlanCard` | 02 | Steps, with Dismiss / Edit / Approve & Run. Use it for **every** approval: chat plans, inbox items, scheduled posts, ad changes. `approving` / `dismissing` spin the pressed button and lock the others. `blocked="…"` replaces the buttons with one line when the person's role can't decide it |

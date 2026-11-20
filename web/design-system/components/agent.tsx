@@ -5,14 +5,14 @@
  * card) and ref 01 (home composer). These are the product: talking to
  * Marketer. Every agent UI uses them.
  */
-import { ArrowUp, ChevronDown, ChevronRight, ChevronUp, Plus, Square } from "lucide-react";
+import { ArrowUp, ChevronDown, ChevronRight, ChevronUp, Plus, Square, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { decideInboxItem, type InboxKind } from "@/lib/workspace";
 import { cx } from "../cx";
 import { useAllowed } from "./access";
 import { Notice, usePending } from "./kit";
-import { AgentGlyph, Button, NumberKey, StepMark, type ToolTone } from "./primitives";
+import { AgentGlyph, Button, IconButton, NumberKey, StepMark, Textarea, type ToolTone } from "./primitives";
 import { CommitWave } from "./wave";
 
 /* ------------------------------------------------------------ Composer */
@@ -173,6 +173,92 @@ export function AgentChips({ label = "Agent is working", agents, activeName, onS
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ Message feedback */
+
+/**
+ * Thumbs on an assistant reply, with an optional comment. A thumb sends the
+ * rating at once; "Add a comment" then sends it again with the text. The owner
+ * decides where it goes (`onRate` resolves when saved, throws with a message
+ * a person can read when not). Quiet by design: faint until hovered or used.
+ */
+export function MessageFeedback({ onRate, maxComment = 1000 }: { onRate: (score: 0 | 1, comment?: string) => Promise<void>; maxComment?: number }) {
+  const [score, setScore] = useState<0 | 1 | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [writing, setWriting] = useState(false);
+  const [comment, setComment] = useState("");
+  const [commented, setCommented] = useState(false);
+  const commentId = useId();
+
+  async function rate(next: 0 | 1, text?: string) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onRate(next, text);
+      setScore(next);
+      if (text) {
+        setCommented(true);
+        setWriting(false);
+        setComment("");
+      }
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "Your rating wasn't saved. Try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div role="group" aria-label="Rate this reply" className="flex items-center gap-0.5">
+        <IconButton label="Good reply" aria-pressed={score === 1} active={score === 1} disabled={busy} onClick={() => void rate(1)}>
+          <ThumbsUp />
+        </IconButton>
+        <IconButton label="Bad reply" aria-pressed={score === 0} active={score === 0} disabled={busy} onClick={() => void rate(0)}>
+          <ThumbsDown />
+        </IconButton>
+        {score !== null && !writing && (
+          <span role="status" className="ds-enter ml-1.5 flex items-center gap-2 text-[12px] text-fg-muted">
+            {commented ? "Thanks, your comment was sent." : "Thanks."}
+            {!commented && (
+              <button type="button" className="text-ds-accent hover:underline" onClick={() => setWriting(true)}>
+                Add a comment
+              </button>
+            )}
+          </span>
+        )}
+      </div>
+      {writing && score !== null && (
+        <form
+          className="ds-enter space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (comment.trim()) void rate(score, comment.trim());
+          }}
+        >
+          <label htmlFor={commentId} className="block text-[12px] text-fg-muted">
+            What should Marketer know about this reply? Don&apos;t include passwords or card numbers.
+          </label>
+          <Textarea id={commentId} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={maxComment} rows={3} className="w-full" autoFocus />
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button type="submit" size="sm" variant="primary" loading={busy} disabled={!comment.trim()}>
+              Send
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setWriting(false)} disabled={busy}>
+              Cancel
+            </Button>
+            <span className="ml-auto text-[11.5px] tabular text-fg-faint">
+              {comment.length}/{maxComment}
+            </span>
+          </div>
+        </form>
+      )}
+      {error && <Notice error={error} />}
     </div>
   );
 }

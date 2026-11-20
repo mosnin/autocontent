@@ -40,6 +40,7 @@ import httpx
 
 from ..decisions import questions as q
 from ..logging import get_logger
+from ..observability import model_span
 
 log = get_logger(__name__)
 
@@ -517,46 +518,67 @@ async def decide(
         models.append(model_for("D0"))
     decision.model = models[0]
     t0 = time.monotonic()
-    try:
-        if spend is not None:
-            await spend.ensure_can_spend(Decimal(q.CALL_ESTIMATE_USD))
-        http = client or DecisionClient()
-        for i, model in enumerate(models):
-            decision.model = model
-            try:
-                raw = await http.decide(state, questions, model=model, timeout_s=spec.timeout_s)
-                break
-            except DecisionError as e:
-                if i + 1 == len(models) or not _model_down(e):
-                    raise
-                log.info(
-                    "decision second tier",
-                    extra={"point": point.value, "failed_model": model, "reason": e.kind},
-                )
-    except DecisionError as e:
-        decision.error = str(e)
-    except Exception as e:  # noqa: BLE001 — includes a refused spend pre-flight
-        decision.error = f"error: {type(e).__name__}"
-    else:
-        decision.answers = raw.answers
-        decision.model = raw.model
-        decision.cost_usd = raw.cost_usd
-        if spend is not None:
-            try:
-                await _meter(spend, raw)
-            except Exception as e:  # noqa: BLE001
-                if _is_not_null_violation(e):
-                    # A niche-less row on a ledger that still requires a
-                    # niche. The call was made and is in decision_log with
-                    # its cost; only the ledger row is missing.
-                    log.warning(
-                        "decision metering skipped: spend_ledger needs a nullable niche_id",
-                        extra={"point": point.value, "cost_usd": str(raw.cost_usd)},
+    async with model_span(
+        "chat",
+        model=models[0],
+        provider=PROVIDER,
+        tenant_id=user_id,
+        name=f"decision.{point.value}",
+        attributes={"marketer.decision.point": point.value, "marketer.decision.mode": decision.mode, "marketer.decision.questions_version": spec.version},
+    ) as call:
+        if call.content_allowed:
+            # The state is what the decision is about (masked on export); the
+            # decision_log keeps only its hash.
+            call.prompt(json.dumps({"state": state, "questions": _to_wire(questions)}, default=str))
+        try:
+            if spend is not None:
+                await spend.ensure_can_spend(Decimal(q.CALL_ESTIMATE_USD))
+            http = client or DecisionClient()
+            for i, model in enumerate(models):
+                decision.model = model
+                try:
+                    raw = await http.decide(state, questions, model=model, timeout_s=spec.timeout_s)
+                    break
+                except DecisionError as e:
+                    if i + 1 == len(models) or not _model_down(e):
+                        raise
+                    log.info(
+                        "decision second tier",
+                        extra={"point": point.value, "failed_model": model, "reason": e.kind},
                     )
-                else:
-                    # The ledger row is written before any cap re-check raises;
-                    # a tripped cap sets the job's abort flag, so the next real
-                    # stage stops. The decision itself stays valid.
-                    log.warning("decision metering raised", extra={"error": type(e).__name__})
+        except DecisionError as e:
+            decision.error = str(e)
+        except Exception as e:  # noqa: BLE001 — includes a refused spend pre-flight
+            decision.error = f"error: {type(e).__name__}"
+        else:
+            decision.answers = raw.answers
+            decision.model = raw.model
+            decision.cost_usd = raw.cost_usd
+            if spend is not None:
+                try:
+                    await _meter(spend, raw)
+                except Exception as e:  # noqa: BLE001
+                    if _is_not_null_violation(e):
+                        # A niche-less row on a ledger that still requires a
+                        # niche. The call was made and is in decision_log with
+                        # its cost; only the ledger row is missing.
+                        log.warning(
+                            "decision metering skipped: spend_ledger needs a nullable niche_id",
+                            extra={"point": point.value, "cost_usd": str(raw.cost_usd)},
+                        )
+                    else:
+                        # The ledger row is written before any cap re-check raises;
+                        # a tripped cap sets the job's abort flag, so the next real
+                        # stage stops. The decision itself stays valid.
+                        log.warning("decision metering raised", extra={"error": type(e).__name__})
+        call.response_model(decision.model)
+        call.cost(decision.cost_usd)
+        if decision.ok:
+            call.usage(total_tokens=raw.tokens)
+            call.completion(json.dumps(decision.answers, default=str))
+        else:
+            call.set("marketer.decision.error", (decision.error or "").split(":", 1)[0])
+        # 1 when the rule-based fallback answered (docs/observability/braintrust.md, Scores).
+        call.score("decision_fallback", 0.0 if decision.ok else 1.0)
     decision.latency_ms = int((time.monotonic() - t0) * 1000)
     return decision
