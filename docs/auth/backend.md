@@ -277,6 +277,8 @@ Every route and why. "Also person-only" means the route additionally refuses the
 | POST | `/api/v1/memory/learnings/{learning_id}/status` | in route: `memory:confirm` or `agent:chat` | Same split as writing facts. |
 | GET | `/api/v1/memory/audit` | `memory:read` | Reads memory data. |
 | GET | `/api/v1/audit-log` | `audit:read` | The workspace's security audit log. |
+| GET | `/api/v1/observability/settings` | authenticated | Every member sees how much AI text the workspace sends to the observability provider; the agent reads it (unreadable means `metadata`). |
+| PUT | `/api/v1/observability/settings` | `security:manage` | Widens or narrows what a subprocessor receives. Also person-only (no agent, no personal access token). Audited as `observability.settings_changed`. |
 
 ## Tests
 
