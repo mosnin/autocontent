@@ -159,6 +159,70 @@ def test_create_niche_returns_201(monkeypatch):
     assert data["user_id"] == _USER_ID
 
 
+def test_create_niche_reaches_the_real_repo_insert(monkeypatch):
+    """Regression: the route passes body.model_dump(), so posting windows
+    arrive at niches_repo.create as dicts. The repo used to call
+    .model_dump() on each and POST /niches returned 500 ('dict' object has
+    no attribute 'model_dump'). Only the pool is faked here."""
+    _reset_limiter()
+    import json
+
+    import marketer.repos.niches as niches_repo
+
+    captured: list[tuple] = []
+
+    class _Pool:
+        async def fetchrow(self, sql, *args):
+            captured.append(args)
+            return {"stub": True}
+
+    async def _get_pool():
+        return _Pool()
+
+    monkeypatch.setattr(niches_repo, "get_pool", _get_pool)
+    monkeypatch.setattr(niches_repo, "_row_to_niche", lambda row: _make_niche())
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post("/api/v1/niches", json=_VALID_PAYLOAD, headers={"Authorization": "Bearer mkt_tok"})
+    assert resp.status_code == 201, resp.text
+    assert len(captured) == 1
+    windows = json.loads(captured[0][9])
+    assert windows == [PostingWindow(hour=9, minute=0, tz="UTC").model_dump()]
+
+
+def test_update_niche_posting_windows_reach_the_real_repo_update(monkeypatch):
+    """Same bug on PUT (partial update): body.model_dump(exclude_unset=True) hands the repo
+    dict posting windows."""
+    _reset_limiter()
+    import json
+
+    import marketer.repos.niches as niches_repo
+
+    captured: list[tuple] = []
+
+    class _Pool:
+        async def fetchrow(self, sql, *args):
+            captured.append((sql, args))
+            return {"stub": True}
+
+    async def _get_pool():
+        return _Pool()
+
+    monkeypatch.setattr(niches_repo, "get_pool", _get_pool)
+    monkeypatch.setattr(niches_repo, "_row_to_niche", lambda row: _make_niche())
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.put(
+        f"/api/v1/niches/{_NICHE_ID}",
+        json={"posting_windows": [{"hour": 18, "minute": 30, "tz": "UTC"}]},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200, resp.text
+    sql, args = captured[-1]
+    assert "posting_windows = $1::jsonb" in sql
+    assert json.loads(args[0]) == [PostingWindow(hour=18, minute=30, tz="UTC").model_dump()]
+
+
 def test_create_niche_missing_field_returns_422(monkeypatch):
     """Missing required field → 422 Unprocessable Entity."""
     _reset_limiter()
