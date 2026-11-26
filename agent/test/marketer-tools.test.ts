@@ -65,6 +65,9 @@ const EXPECTED_RISK: Record<string, "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"> = {
   list_library_assets: "LOW",
   list_templates: "LOW",
   remix_template: "MEDIUM",
+  list_short_videos: "LOW",
+  get_short_video: "LOW",
+  create_short_video: "MEDIUM",
   // seo
   list_articles: "LOW",
   get_article: "LOW",
@@ -205,6 +208,25 @@ describe("guarded execution", () => {
     expect(calls[0]?.headers["idempotency-key"]).toMatch(/.+/);
   });
 
+  it("starts a short-video batch as a MEDIUM maker with the backend's settings shape", async () => {
+    const topic = await run(contentTools(), "create_short_video", { topic: "coffee myths", variants: 3, settings: { aspect: "1:1", subtitles: "off", music: "none" } });
+    expect(topic.status).toBe("ok");
+    expect(calls[0]).toMatchObject({
+      method: "POST",
+      url: "https://api.marketer.test/api/v1/short-videos",
+      body: {
+        source: "topic",
+        topic: "coffee myths",
+        variants: 3,
+        settings: { look: { aspect: "1:1", duration_sec: 30 }, footage: { sources: ["pexels", "pixabay"], upload_ids: [] }, subtitles: { enabled: false }, music: { mode: "none" } },
+      },
+    });
+    expect(calls[0]?.headers["idempotency-key"]).toMatch(/.+/);
+    const script = await run(contentTools(), "create_short_video", { script: "Most people brew coffee the wrong way today.", settings: { footage: "both", uploadIds: [UUID] } });
+    expect(script.status).toBe("ok");
+    expect(calls[1]?.body).toMatchObject({ source: "script", settings: { footage: { sources: ["pexels", "pixabay", "uploads"], upload_ids: [UUID] } } });
+  });
+
   it("parks HIGH and CRITICAL tools for approval without calling the API", async () => {
     for (const [tools, name, args] of [
       [distributionTools(), "approve_video", { videoId: UUID, reason: "Looks on brand" }],
@@ -232,6 +254,9 @@ describe("input validation (no request on bad arguments)", () => {
     [contentTools(), "get_video", { videoId: "../../admin" }],
     [contentTools(), "create_video", { playbookId: UUID, platform: "myspace" }],
     [contentTools(), "create_carousel", { playbookId: UUID, slideCount: 50 }],
+    [contentTools(), "create_short_video", { topic: "x" }],
+    [contentTools(), "create_short_video", { topic: "coffee myths", variants: 11 }],
+    [contentTools(), "create_short_video", { topic: "coffee myths", settings: { aspect: "4:3" } }],
     [adsTools(), "set_ad_budget", { campaignId: UUID, dailyBudgetUsd: MAX_DAILY_BUDGET_USD + 1, currentDailyBudgetUsd: 10, reason: "scale up" }],
     [adsTools(), "set_ad_budget", { campaignId: UUID, dailyBudgetUsd: -5, currentDailyBudgetUsd: 10, reason: "scale down" }],
     [adsTools(), "pause_ad_campaign", { campaignId: UUID, status: "active", reason: "go live" }],
