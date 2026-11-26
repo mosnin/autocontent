@@ -15,7 +15,7 @@ cannot be rendered on the old approval.
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -231,13 +231,21 @@ async def decline_render(story: StoryVideo) -> StoryVideo:
     return updated
 
 
+STALE_AFTER = timedelta(minutes=45)
+
+
+def _stale(story: StoryVideo) -> bool:
+    """Busy with no progress for longer than any stage takes: its worker died."""
+    return story.status in BUSY and story.updated_at is not None and datetime.now(timezone.utc) - story.updated_at > STALE_AFTER
+
+
 async def retry(story: StoryVideo) -> StoryVideo:
-    if story.status != StoryStatus.failed:
+    if story.status != StoryStatus.failed and not _stale(story):
         raise StoryError(409, "only a stopped story can be resumed")
     stage, _, arg = (story.stage or "script").partition(":")
     if stage not in WORKING:
         stage, arg = "script", ""
-    claimed = await _claim(get_store(), story, {StoryStatus.failed}, stage)
+    claimed = await _claim(get_store(), story, {StoryStatus.failed, story.status}, stage)
     await _spawn(claimed, stage, arg or None)
     return claimed
 

@@ -211,3 +211,15 @@ async def test_frame_route_serves_the_checkpointed_file(env, tmp_path):
     r = _client(app).get(f"/api/v1/stories/{s.id}/shots/0/frame", headers=H)
     assert r.status_code == 200 and r.content == b"\x89PNG"
     assert _client(app).get(f"/api/v1/stories/{s.id}", headers=H).json()["shots"][0]["frame_ready"] is True
+
+
+async def test_retry_accepts_a_stale_busy_story_only(env):
+    from datetime import datetime, timedelta, timezone
+
+    app, store, spawned = env
+    s = await _boarded(store, status=StoryStatus.rendering)
+    await store.update(s.id, user_id=s.user_id, stage="render")
+    assert _client(app).post(f"/api/v1/stories/{s.id}/retry", headers=H).status_code == 409
+    store.rows[s.id] = store.rows[s.id].model_copy(update={"updated_at": datetime.now(timezone.utc) - timedelta(hours=2)})
+    r = _client(app).post(f"/api/v1/stories/{s.id}/retry", headers=H)
+    assert r.status_code == 202 and spawned[-1][2] == "render"
