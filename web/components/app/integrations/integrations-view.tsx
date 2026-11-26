@@ -9,6 +9,8 @@ import type { X402Config } from "@/lib/business";
 import type { AyrshareConnectStatus, PersonalAccessToken } from "@/lib/types";
 import type { WebhookEndpoint } from "@/lib/webhooks-client";
 import { AgentAccess } from "./agent-access";
+import { WordPressConnectModal } from "../seo/wordpress-connect";
+import type { WordPressConnection } from "@/lib/seo";
 import { Webhooks } from "./webhooks";
 
 export interface IntegrationsData {
@@ -18,6 +20,7 @@ export interface IntegrationsData {
   webhooks: WebhookEndpoint[] | null;
   x402: X402Config | null;
   apiBase: string;
+  wordpress?: WordPressConnection | null;
 }
 
 type Group = "Publishing" | "Ads" | "For agents";
@@ -29,14 +32,14 @@ interface App {
   description: string;
   logo: ReactNode;
   connected: boolean;
-  /** "ayrshare" opens Ayrshare's account chooser; a string is a link. */
-  connect: "ayrshare" | string;
+  /** "ayrshare" opens Ayrshare's account chooser, "wordpress" the connect sheet; a string is a link. */
+  connect: "ayrshare" | "wordpress" | string;
 }
 
 const letter = (l: string) => <span className="text-[15px] font-medium">{l}</span>;
 const s = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-function buildApps({ ayrshare, adAccounts, tokens, webhooks, x402 }: IntegrationsData): App[] {
+function buildApps({ ayrshare, adAccounts, tokens, webhooks, x402, wordpress }: IntegrationsData): App[] {
   const social = Boolean(ayrshare?.connected);
   const ads = (p: string) => (adAccounts ?? []).filter((a) => a.platform === p && a.status !== "disconnected");
   const adLine = (p: string, fallback: string) => {
@@ -49,6 +52,7 @@ function buildApps({ ayrshare, adAccounts, tokens, webhooks, x402 }: Integration
     { id: "tiktok", group: "Publishing", name: "TikTok", description: social ? "Posting through Ayrshare" : "Post videos on schedule", logo: letter("T"), connected: social, connect: "ayrshare" },
     { id: "instagram", group: "Publishing", name: "Instagram", description: social ? "Posting through Ayrshare" : "Reels and carousels on schedule", logo: letter("I"), connected: social, connect: "ayrshare" },
     { id: "youtube", group: "Publishing", name: "YouTube", description: social ? "Posting through Ayrshare" : "Shorts on schedule", logo: letter("Y"), connected: social, connect: "ayrshare" },
+    { id: "wordpress", group: "Publishing", name: "WordPress", description: wordpress?.connected ? (wordpress.status === "error" ? "Needs reconnecting" : (wordpress.site_url ?? "").replace(/^https:\/\//, "")) : "Publish articles as drafts or live posts", logo: letter("W"), connected: Boolean(wordpress?.connected), connect: "wordpress" },
     { id: "google_ads", group: "Ads", name: "Google Ads", description: adLine("google_ads", "Search, Performance Max and YouTube"), logo: letter("G"), connected: ads("google_ads").length > 0, connect: "/paid/connect" },
     { id: "meta_ads", group: "Ads", name: "Meta Ads", description: adLine("meta_ads", "Facebook and Instagram campaigns"), logo: letter("M"), connected: ads("meta_ads").length > 0, connect: "/paid/connect" },
     { id: "mcp", group: "For agents", name: "MCP server", description: tokenCount > 0 ? s(tokenCount, "access token") : "Claude, Cursor or your own agent", logo: <Bot />, connected: tokenCount > 0, connect: "#agents" },
@@ -76,6 +80,7 @@ export function IntegrationsView(data: IntegrationsData) {
   const term = q.trim().toLowerCase();
   const shown = term ? apps.filter((a) => `${a.name} ${a.description} ${a.group}`.toLowerCase().includes(term)) : apps;
   const ayrshare = () => start(() => connectAyrshareAction());
+  const [wpOpen, setWpOpen] = useState(false);
 
   return (
     <>
@@ -108,13 +113,21 @@ export function IntegrationsView(data: IntegrationsData) {
                 <Section key={g} title={g} action={action}>
                   <div className="grid gap-x-8 sm:grid-cols-2">
                     {rows.map((a) => (
-                      <AppRow key={a.id} logo={a.logo} name={a.name} description={a.description} connected={a.connected} {...(a.connect === "ayrshare" ? { onConnect: ayrshare } : { href: a.connect })} />
+                      <AppRow
+                        key={a.id}
+                        logo={a.logo}
+                        name={a.name}
+                        description={a.description}
+                        connected={a.connected}
+                        {...(a.connect === "ayrshare" ? { onConnect: ayrshare } : a.connect === "wordpress" ? { onConnect: () => setWpOpen(true), onManage: () => setWpOpen(true) } : { href: a.connect })}
+                      />
                     ))}
                   </div>
                 </Section>
               );
             })}
 
+            {wpOpen && <WordPressConnectModal open current={data.wordpress ?? null} onClose={() => setWpOpen(false)} />}
             <div id="agents" className="scroll-mt-4">
               <AgentAccess tokens={data.tokens} x402={data.x402} apiBase={data.apiBase} />
             </div>

@@ -16,7 +16,7 @@ from marketer.logging import configure as _configure_logging
 from . import policy
 from .rate_limit import limiter
 from .security import BodySizeLimitMiddleware, SecurityHeadersMiddleware
-from .routes import admin, ads, articles, audit_log, billing, brand_kit, calendar, campaigns, connect, decisions, failures, healthz, image_posts, jobs, kits, library, memory, metrics, niches, observability, ops, performance, providers, short_videos, spend, stories, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, workspace, x402
+from .routes import admin, ads, article_batches, articles, audit_log, billing, brand_kit, calendar, campaigns, connect, decisions, failures, healthz, image_posts, jobs, kits, library, memory, metrics, niches, observability, ops, performance, providers, seo_articles, short_videos, spend, stories, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, wordpress, workspace, x402
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +122,9 @@ def create_app() -> FastAPI:
     app.include_router(performance.router, prefix="/api/v1/niches", tags=["performance"])
     app.include_router(jobs.router, prefix="/api/v1/jobs", tags=["jobs"])
     app.include_router(articles.router, prefix="/api/v1/articles", tags=["articles"])
+    app.include_router(seo_articles.router, prefix="/api/v1/articles", tags=["articles"])
+    app.include_router(article_batches.router, prefix="/api/v1/article-batches", tags=["articles"])
+    app.include_router(wordpress.router, prefix="/api/v1/integrations", tags=["integrations"])
     app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
     app.include_router(ads.router, prefix="/api/v1/ads", tags=["ads"])
     app.include_router(calendar.router, prefix="/api/v1/calendar", tags=["calendar"])

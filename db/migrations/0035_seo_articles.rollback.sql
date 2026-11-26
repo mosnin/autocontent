@@ -1,0 +1,17 @@
+alter table articles drop constraint if exists articles_batch_id_fkey;
+drop table if exists article_batch_items;
+drop table if exists article_batches;
+drop table if exists wordpress_connections;
+drop index if exists articles_publish_due_idx;
+alter table articles drop column if exists batch_id;
+alter table articles drop column if exists published_at;
+alter table articles drop column if exists wp_post_url;
+alter table articles drop column if exists wp_post_id;
+alter table articles drop column if exists publish_error;
+alter table articles drop column if exists publish_args_hash;
+alter table articles drop column if exists publish_at;
+alter table articles drop column if exists publish_mode;
+alter table articles drop column if exists publish_status;
+alter table articles drop column if exists cover_image;
+alter table articles drop column if exists meta_title;
+alter table articles drop column if exists research;

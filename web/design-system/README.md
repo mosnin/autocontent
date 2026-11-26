@@ -201,7 +201,7 @@ All of these live in `components/` and are exported from `index.ts`.
 | `Backdrop` + `Shader` | 01 | Home only, plus first-run moments |
 | `GlassCard` | 01 | Bento cards over the shader |
 | `HeroBanner` | 03 | Gradient banner with prompt pills |
-| `AppRow` | 03 | |
+| `AppRow` | 03 | `onConnect` or `href` while not connected; `onManage` makes the connected check open the integration's settings |
 | `CollectionCard` | 07 | |
 | `PlanOption` | 04 | |
 

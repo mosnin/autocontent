@@ -11,6 +11,8 @@ import type { Article, Niche } from "@/lib/types";
 import { LiveRefresh, toolGlyph } from "../content/shared";
 import { articleStatusLabel, articleTone, ARTICLE_IN_PROGRESS, ARTICLE_STEPS } from "../content/status";
 import { ArticleBody } from "./article-body";
+import { seoParts } from "./article-seo-panel";
+import type { SeoArticle, UnsplashPhoto, WordPressConnection } from "@/lib/seo";
 import { qaTone } from "./seo-view";
 import { safeExternalUrl } from "@/lib/security/urls";
 
@@ -109,8 +111,9 @@ function Repurpose({ id }: { id: string }) {
 }
 
 /** Article detail (Detail template): facts, then the article as a clean reading column, then search data. */
-export function ArticleDetailView({ article, niche, preview }: { article: Article; niche: Niche | null; preview?: boolean }) {
+export function ArticleDetailView({ article, niche, preview, wordpress = null, coverFixture }: { article: Article; niche: Niche | null; preview?: boolean; wordpress?: WordPressConnection | null; coverFixture?: UnsplashPhoto[] }) {
   const router = useRouter();
+  const seo = seoParts({ article: article as SeoArticle, wordpress, coverFixture });
   const working = ARTICLE_IN_PROGRESS.has(article.status);
   const [retrying, setRetrying] = useState(false);
   const [retryMsg, setRetryMsg] = useState<string | null>(null);
@@ -186,7 +189,10 @@ export function ArticleDetailView({ article, niche, preview }: { article: Articl
           ]}
         />
 
+        {seo.publishing}
+
         <div className="space-y-6">
+          {seo.cover}
           <Hero article={article} preview={preview} />
           {article.article_markdown ? (
             <article>
@@ -225,30 +231,8 @@ export function ArticleDetailView({ article, niche, preview }: { article: Articl
           </Section>
         )}
 
-        <Section title="Search metadata">
-          <Card>
-            <div className="space-y-1 px-3.5 py-3">
-              <div className="flex items-baseline justify-between gap-2 text-[12px] text-fg-muted">
-                <span>Meta description</span>
-                {article.meta_description && <span className={cx("tabular", article.meta_description.length > 160 ? "text-attention" : "text-fg-faint")}>{article.meta_description.length}/160</span>}
-              </div>
-              <p className="text-[13px]">{article.meta_description || "—"}</p>
-            </div>
-            {article.title && (
-              <div className="space-y-1 border-t border-hairline px-3.5 py-3">
-                <div className="text-[12px] text-fg-muted">Title</div>
-                <p className="text-[13px]">{article.title}</p>
-              </div>
-            )}
-            {article.keywords.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 border-t border-hairline px-3.5 py-3">
-                {article.keywords.map((k) => (
-                  <StatusBadge key={k}>{k}</StatusBadge>
-                ))}
-              </div>
-            )}
-          </Card>
-        </Section>
+        {seo.metadata}
+        {seo.sources}
 
         {article.link_suggestions.length > 0 && (
           <Section title="Internal links">
