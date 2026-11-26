@@ -52,9 +52,12 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
         icon={toolGlyph("content")}
         title="Content"
         actions={
+          <>
+          <ButtonLink href="/content/short">Short video</ButtonLink>
           <Button variant="primary" onClick={() => setMake({ kind: tab === "carousels" ? "carousel" : "video" })}>
             Make something
           </Button>
+          </>
         }
       />
       <Column

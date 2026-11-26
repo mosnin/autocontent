@@ -49,7 +49,7 @@ Open the image before you build or change a screen that uses it.
 4. **Small and dense.** Base text is 13px, rows are 28px, buttons are 28px rounded rectangles (6px corners), and page headers are 48px. Titles are medium weight, never bold.
 5. **Conversation first.** Every page has a way to ask the agent about what you're looking at: a scoped composer, an `AskPill`, or "Ask about this". Data pages show the data. They don't explain the feature.
 6. **Nothing decorative moves.** The one exception is the wave, which marks a person committing something real; it has its own rules in [`WAVE.md`](./WAVE.md). The other is the goo, which shows Marketer splitting into its specialists ([`GOO.md`](./GOO.md)).
-   Apart from that, no pulsing dots, glowing borders, bouncing badges or gradient text. Motion is limited to press feedback (`ds-press`), enter (`ds-enter`), popovers (`ds-pop`), the chat shimmer on "Agent is working", and the home shader.
+   Apart from that, no pulsing dots, glowing borders, bouncing badges or gradient text. Motion is limited to press feedback (`ds-press`), enter (`ds-enter`), a flow's step change (`ds-step`), sheets (`ds-sheet`), popovers (`ds-pop`), the chat shimmer on "Agent is working", and the home shader.
 
 ## 3. Tokens (`tokens.css`)
 
@@ -133,6 +133,7 @@ All of these live in `components/` and are exported from `index.ts`.
 | `FieldGroup` | | A labelled group for controls that aren't one input (chips, tag inputs, a time list). `Field` is a `<label>`; this is a `role="group"` |
 | `SwitchRow` | | A switch with its label and one line of detail in a bordered row. With `name`, it posts `on` when checked |
 | `Modal` | | Native `<dialog>` with a footer slot. Modal: the page behind is inert (focus stays inside), focus starts on the first field, Esc asks the owner to close, and focus returns to what opened it |
+| `Sheet` | | Secondary settings beside the page: a side panel from the inline end on wide screens, a bottom sheet on phones. Same dialog contract as `Modal`; enters and leaves along the same edge. Use it for a flow's "Fine-tune" options, never for the main path |
 
 ### Kit (`kit.tsx`)
 

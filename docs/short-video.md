@@ -74,13 +74,38 @@ Agent tools (content producer): `create_short_video` (MEDIUM, same as `create_vi
 
 ## UI
 
-`/content/short` (entry: a "Short video" button on Content). One decision per step: topic or script → look and
-voice → footage → subtitles and music → variants → render, with defaults so the first step's button is enough.
-Everything else lives in one "Fine-tune" sheet. Batches show each variant's stages as they run.
-Previews: `/preview/app/content/short`, `…/short/fine-tune`, `…/short/batch`, `…/short/approval`.
+`/content/short` (entry: a "Short video" button in Content's header). One decision per step: topic or script →
+look and voice → footage → subtitles and music → variants → render. Every step has a default, so "Make it" on the
+first step is a complete request; "Customize" walks the rest. Everything else (clip length, speed, transition,
+framing, order, subtitle font/size/outline/colours/position/case/delivery, music volume and ducking, mood, tone) lives
+in one "Fine-tune" sheet, reachable from every step. Recent batches show each variant's stage and a progress bar,
+the full stage list on demand, the finished video with SRT/VTT links and footage credits, a retry on failure, and a
+`PlanCard` for batches waiting for approval.
+
+- Code: `web/components/app/content/short-video/` (view, create flow, fine-tune sheet, batch list),
+  `web/lib/short-video.ts` (types and pure helpers, tested in `web/test/short-video.test.ts`), route
+  `web/app/(app)/content/short/`.
+- Design system: `Sheet` (new primitive, README row) and the `ds-step` / `ds-sheet` motion in `tokens.css`. Steps
+  arrive from the side they were asked for; the sheet enters and leaves along the same edge (bottom on phones);
+  reduced motion turns both into cuts.
+- Previews: `/preview/app/content/short` (first step and recent batches: running, waiting for approval, partly
+  ready), `…/short/look`, `…/short/footage`, `…/short/render`, `…/short/fine-tune`, `…/short/empty`.
+
+## Tests
+
+`tests/test_short_video.py` (fakes only: footage parsing and attribution, provider search with a mock transport and
+cache, download host allowlist and size cap, keywords, upload declared type/size, magic bytes, ffprobe rules and the
+stored-object check, clip plan coverage/speed/order/looping/seeding, ffmpeg argv for slices/concat/mix, subtitle
+alignment/cues/SRT/VTT/ASS, micro-dollar metering and idempotency, estimates and the approval threshold, whole
+batches with fake providers including the batch cap, a spend cap, replays and cancel, spans, routes, approval rails
+and permissions, plus one real-ffmpeg render when ffmpeg is installed), `tests/integration/test_pg_short_video.py`
+(real Postgres), `agent/test/marketer-tools.test.ts` and `agent/test/permissions.test.ts` (the agent tools),
+`web/test/short-video.test.ts`.
 
 ## Open points
 
+- `MARKETER_PEXELS_API_KEY` is new (Pixabay video search reuses `MARKETER_PIXABAY_API_KEY`); add it to the backend's
+  Modal secret.
 - Uploads need CORS on the bucket for browser PUTs (`PUT` from the web origin, `Content-Type` header).
 - Uploads are validated structurally (magic bytes, `ffprobe`, limits) and re-encoded before use; there is no malware
   scanner in the stack.
