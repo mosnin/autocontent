@@ -8,12 +8,14 @@ import { ChatFixture } from "@/components/chat/chat-fixture";
 import { FX_MEMORY_FACTS, FX_MEMORY_HISTORY, FX_MEMORY_LEARNINGS, FX_RECALL_OFF, FX_RECALL_PERSONAL, FX_RECALL_SETTINGS, FX_RECALL_TEAM } from "@/lib/fixtures-memory";
 import { VIEWS as business } from "./views-business";
 import { VIEWS as insights } from "./views-insights";
+import { VIEWS as stories } from "./views-stories";
 import { VIEWS as work } from "./views-work";
 
 export const PREVIEW_VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   ...insights,
   ...work,
   ...business,
+  ...stories,
   // Memory: facts by entity type (one opened to show provenance and history), the review queue, learnings, empty.
   memory: () => <MemoryView facts={FX_MEMORY_FACTS} learnings={FX_MEMORY_LEARNINGS} preview={{ history: FX_MEMORY_HISTORY }} initialOpen="f-voice" />,
   "memory/review": () => <MemoryView facts={FX_MEMORY_FACTS} learnings={FX_MEMORY_LEARNINGS} preview={{ history: FX_MEMORY_HISTORY }} initialTab="review" />,
