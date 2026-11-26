@@ -453,8 +453,8 @@ export function TrackerTableView({
               filters={current.filters}
               filterType={current.filter_type}
               onChange={(filters: TrackerFilter[], filter_type) => setSettings({ filters, filter_type })}
-              trigger={(p) => (
-                <Button {...p} onClick={p.toggle} variant={activeFilters ? "secondary" : "ghost"} size="sm" className={cx(activeFilters > 0 && "text-ds-accent")}>
+              trigger={({ toggle, open: _open, ...p }) => (
+                <Button {...p} onClick={toggle} variant={activeFilters ? "secondary" : "ghost"} size="sm" className={cx(activeFilters > 0 && "text-ds-accent")}>
                   <Filter /> {activeFilters ? `${activeFilters} filter${activeFilters > 1 ? "s" : ""}` : <span className="hidden md:inline">Filter</span>}
                 </Button>
               )}
@@ -463,8 +463,8 @@ export function TrackerTableView({
               fields={table.fields}
               sorts={current.sorts}
               onChange={(sorts) => setSettings({ sorts })}
-              trigger={(p) => (
-                <Button {...p} onClick={p.toggle} variant={current.sorts.length ? "secondary" : "ghost"} size="sm" className={cx(current.sorts.length > 0 && "text-ds-accent")}>
+              trigger={({ toggle, open: _open, ...p }) => (
+                <Button {...p} onClick={toggle} variant={current.sorts.length ? "secondary" : "ghost"} size="sm" className={cx(current.sorts.length > 0 && "text-ds-accent")}>
                   <ArrowUpDown /> <span className="hidden md:inline">{current.sorts.length ? `Sorted` : "Sort"}</span>
                 </Button>
               )}
@@ -474,8 +474,8 @@ export function TrackerTableView({
                 fields={table.fields}
                 hidden={current.hidden_fields}
                 onChange={(hidden_fields) => setSettings({ hidden_fields })}
-                trigger={(p) => (
-                  <Button {...p} onClick={p.toggle} variant={current.hidden_fields.length ? "secondary" : "ghost"} size="sm">
+                trigger={({ toggle, open: _open, ...p }) => (
+                  <Button {...p} onClick={toggle} variant={current.hidden_fields.length ? "secondary" : "ghost"} size="sm">
                     <SlidersHorizontal /> <span className="hidden md:inline">{current.hidden_fields.length ? `${current.hidden_fields.length} hidden` : "Fields"}</span>
                   </Button>
                 )}
