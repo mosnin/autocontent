@@ -219,6 +219,10 @@ export function OnboardingFlow(props: OnboardingProps) {
         }
       } catch (e) {
         const status = (e as { status?: number }).status;
+        if (props.needsPlan) {
+          setActivationError("Your playbook is drafted but didn't save. You can make it again from Playbooks once you're in.");
+          return;
+        }
         setActivationError(status === 402 ? "Your playbook is ready. Add credits and Marketer makes the first piece." : "Your playbook is ready, but the first piece didn't start. You can start it from Content.");
       }
     },
@@ -350,7 +354,9 @@ export function OnboardingFlow(props: OnboardingProps) {
 
   const pieceDone = pieceStatus === "awaiting_approval" || pieceStatus === "done";
   const stepIndex = Math.max(0, ORDER.indexOf(pieceStatus ?? "queued"));
-  const waitingForPlan = Boolean(props.needsPlan && draft && intent !== "ads");
+  // No credit: the playbook is the proof; its first piece waits for the plan screen.
+  const waitingForPlan = Boolean(props.needsPlan && nicheId && intent !== "ads");
+  const playbookReady = Boolean(props.needsPlan && draft && intent !== "ads");
   const finalLabel = props.needsPlan ? "Choose how to start" : intent === "ads" ? "Review with the Media buyer" : intent === "blog" ? "Read my first article" : "Review my first video";
 
   // ---------------------------------------------------------------- render
@@ -447,7 +453,7 @@ export function OnboardingFlow(props: OnboardingProps) {
           </Step>
         ) : (
           <Step
-            title={waitingForPlan ? "Your playbook is ready" : intent === "blog" ? "Your first article is underway" : "Your first video is underway"}
+            title={playbookReady ? "Your playbook is ready" : intent === "blog" ? "Your first article is underway" : "Your first video is underway"}
             subtitle={hook ? `"${hook}"` : draft ? `From your new playbook, "${draft.title}".` : "Drafting your playbook…"}
             onSubmit={() => void finish()}
             primary={{ label: finalLabel, loading: finishing }}
@@ -471,7 +477,8 @@ export function OnboardingFlow(props: OnboardingProps) {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-ds-bg p-0 text-fg sm:p-6">
       <div className="ds-enter grid w-full max-w-[1080px] overflow-hidden bg-surface sm:rounded-ds-xl sm:border sm:border-hairline sm:shadow-ds-modal md:min-h-[660px] md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-        <div className="order-2 flex flex-col p-6 sm:p-10 md:order-1">
+        {/* Phones: the question comes first and the workspace preview follows it, so the one thing to answer is always on screen. */}
+        <div className="order-1 flex flex-col p-6 sm:p-10">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-[13px] text-fg-muted">
               <AgentGlyph size={18} />
@@ -479,7 +486,7 @@ export function OnboardingFlow(props: OnboardingProps) {
             </div>
             <StepProgress index={Math.max(0, order.indexOf(screen))} count={order.length} />
           </div>
-          <div className="flex flex-1 flex-col justify-center py-8 md:max-w-[420px]">
+          <div className="flex flex-1 flex-col justify-center pb-2 pt-6 md:max-w-[420px] md:py-8">
             <div className="mb-5 h-8">
               <StepBack flow={flow} />
             </div>
@@ -491,7 +498,7 @@ export function OnboardingFlow(props: OnboardingProps) {
             <Kbd>Enter</Kbd> to continue · <Kbd>Esc</Kbd> to go back
           </div>
         </div>
-        <div className="order-1 p-2 md:order-2">
+        <div className="order-2 p-2">
           <CommitWave
             moment="arrive"
             committed={arrived}
