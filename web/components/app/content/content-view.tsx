@@ -1,8 +1,8 @@
 "use client";
 
-import { Plug } from "lucide-react";
+import { BookOpenText, ChevronDown, Clapperboard, Plug } from "lucide-react";
 import { useState } from "react";
-import { Button, ButtonLink, Callout, Column, EmptyLine, PageHeader, Segmented, StatLine, ToolTitle } from "@/design-system";
+import { Button, ButtonLink, Callout, Column, EmptyLine, PageHeader, Popover, Segmented, StatLine, ToolTitle } from "@/design-system";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import { StartSession } from "@/components/chat/start-session";
 import { formatCompact, formatUsd } from "@/lib/format";
@@ -31,6 +31,37 @@ export interface ContentData {
   globalCap: string | null;
 }
 
+/**
+ * The other video makers, as links behind one quiet "Create" button so the
+ * header keeps one primary action and fits a phone: Story video (an idea or
+ * script as a multi-shot film) and Short video (stock footage, in variants).
+ */
+function CreateMenu() {
+  return (
+    <Popover
+      label="Create"
+      align="right"
+      className="w-[min(240px,calc(100vw-2rem))] p-1"
+      trigger={({ toggle, ...aria }) => (
+        <Button variant="secondary" onClick={toggle} aria-expanded={aria["aria-expanded"]} aria-haspopup={aria["aria-haspopup"]}>
+          Create <ChevronDown />
+        </Button>
+      )}
+    >
+      {() => (
+        <div className="flex flex-col">
+          <ButtonLink href="/content/stories" variant="ghost" className="justify-start">
+            <BookOpenText /> Story video
+          </ButtonLink>
+          <ButtonLink href="/content/short" variant="ghost" className="justify-start">
+            <Clapperboard /> Short video
+          </ButtonLink>
+        </div>
+      )}
+    </Popover>
+  );
+}
+
 /** Content (Tool template): scoped composer, today's numbers, then videos, carousels or templates. */
 export function ContentView({ data, tab: initialTab = "videos", filter, preview }: { data: ContentData; tab?: ContentTab; filter?: VideoFilter; preview?: boolean }) {
   const [tab, setTab] = useUrlTab<ContentTab>(initialTab);
@@ -53,8 +84,7 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
         title="Content"
         actions={
           <>
-          <ButtonLink href="/content/stories" variant="secondary">Story video</ButtonLink>
-          <ButtonLink href="/content/short" variant="secondary">Short video</ButtonLink>
+          <CreateMenu />
           <Button variant="primary" onClick={() => setMake({ kind: tab === "carousels" ? "carousel" : "video" })}>
             Make something
           </Button>
