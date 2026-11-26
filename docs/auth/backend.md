@@ -183,6 +183,9 @@ Every route and why. "Also person-only" means the route additionally refuses the
 | PUT | `/api/v1/admin/flags/{key}` | PLATFORM_ADMIN | Marketer staff (platform), not a workspace role. |
 | GET | `/api/v1/admin/health` | PLATFORM_ADMIN | Marketer staff (platform), not a workspace role. |
 | GET | `/api/v1/admin/audit-log` | PLATFORM_ADMIN | Marketer staff (platform), not a workspace role. |
+| GET | `/api/v1/admin/access-codes` | PLATFORM_ADMIN | Invite and pilot codes (no hashes). |
+| POST | `/api/v1/admin/access-codes` | PLATFORM_ADMIN | Creates a code; returns it once. |
+| POST | `/api/v1/admin/access-codes/{code_id}/disable` | PLATFORM_ADMIN | Stops a code working. |
 | GET | `/api/v1/ads/accounts` | `integration:read` | Ad accounts are connected integrations. |
 | POST | `/api/v1/ads/accounts/connect` | `integration:connect` | Starts the OAuth connection to an ad platform. |
 | POST | `/api/v1/ads/accounts/{account_id}/refresh` | `integration:connect` | Re-syncs a connection's state; part of keeping it connected. |
@@ -215,6 +218,8 @@ Every route and why. "Also person-only" means the route additionally refuses the
 | GET | `/api/v1/voices/{voice}/preview` | `playbook:read` | Choosing a playbook's voice. |
 | GET | `/api/v1/billing/balance` | `billing:read` | Credit balance. |
 | POST | `/api/v1/billing/checkout` | `billing:manage` | Buys credit. |
+| GET | `/api/v1/billing/access` | AUTHENTICATED | Whether the workspace needs the plan screen. Every member may ask; the balance in it is filled only for `billing:read` (docs/billing/access-codes.md). |
+| POST | `/api/v1/billing/redeem` | `billing:manage` | Redeems an invite or pilot code: adds credit. A person only (the route refuses the agent and tokens), rate limited, audited. |
 | GET | `/api/v1/metrics/summary` | `analytics:read` | Reads analytics data. |
 | GET | `/api/v1/x402/config` | `billing:read` | How to pay; billing information. |
 | POST | `/api/v1/x402/credits` | `billing:manage` | Buys credit over HTTP 402. |
