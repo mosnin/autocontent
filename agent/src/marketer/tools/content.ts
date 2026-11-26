@@ -2,6 +2,7 @@ import type { AnyAgentTool } from "@agent-starter/core";
 import * as v from "valibot";
 import { limit, seg, uuid } from "../api.ts";
 import { readTool, writeTool } from "./define.ts";
+import { shortVideoTools } from "./short-video.ts";
 import { getBrandKit, listKits, listPlaybooks } from "./strategy.ts";
 
 /**
@@ -181,5 +182,5 @@ export const renderStoryVideo = writeTool({
 
 /** The content producer's department tools (plus read access to playbooks and brand). */
 export function contentTools(): AnyAgentTool[] {
-  return [listVideos, getVideo, getVideoMetrics, createVideo, retryVideo, listCarousels, getCarousel, createCarousel, retryCarousel, listLibraryAssets, listTemplates, remixTemplate, listStoryVideos, getStoryVideo, startStoryVideo, reviseStoryVideo, storyboardStoryVideo, renderStoryVideo, listPlaybooks, getBrandKit, listKits];
+  return [listVideos, getVideo, getVideoMetrics, createVideo, retryVideo, listCarousels, getCarousel, createCarousel, retryCarousel, listLibraryAssets, listTemplates, remixTemplate, listStoryVideos, getStoryVideo, startStoryVideo, reviseStoryVideo, storyboardStoryVideo, renderStoryVideo, ...shortVideoTools, listPlaybooks, getBrandKit, listKits];
 }

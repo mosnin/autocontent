@@ -159,6 +159,27 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
 
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 60,
+)
+async def run_short_video(user_id: str, batch_id: str) -> dict:
+    """Render a short-video batch (docs/short-video.md). Spawned by
+    `POST /api/v1/short-videos`, its approve route and item retries. The
+    batch's queued -> running claim makes a duplicate spawn a no-op."""
+    from uuid import UUID
+    from marketer.short_video.pipeline import run_batch
+    from marketer.services.otel import force_flush
+
+    try:
+        result = await run_batch(user_id=user_id, batch_id=UUID(batch_id))
+        artifacts.commit()
+        assets.commit()
+        return {"status": result}
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 30,
 )
 async def run_image_post(user_id: str, image_post_id: str) -> dict:

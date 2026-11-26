@@ -96,8 +96,8 @@ Reads are checked the same way. For example, Billing can't read playbooks. The b
 | `playbook:update` | update_playbook |
 | `brand:read` | get_brand_kit, list_kits |
 | `brand:update` | update_brand_kit |
-| `content:read` | list_videos, get_video, list_carousels, get_carousel, list_library_assets, list_templates, list_articles, get_article, get_article_markdown, get_calendar |
-| `content:create` | create_video, create_carousel, remix_template, start_story_video, revise_story_video, storyboard_story_video, render_story_video, create_article, repurpose_article |
+| `content:read` | list_videos, get_video, list_short_videos, get_short_video, list_story_videos, get_story_video, list_carousels, get_carousel, list_library_assets, list_templates, list_articles, get_article, get_article_markdown, get_calendar |
+| `content:create` | create_video, create_short_video, create_carousel, remix_template, start_story_video, revise_story_video, storyboard_story_video, render_story_video, create_article, repurpose_article |
 | `content:update` | retry_video, retry_carousel, retry_article |
 | `content:approve` | decide_inbox_item, approve_video, reject_video, approve_carousel |
 | `campaign:read` | list_campaigns, get_campaign, list_ad_campaigns, get_ad_campaign, list_ad_actions |

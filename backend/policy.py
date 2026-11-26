@@ -100,6 +100,21 @@ POLICY: dict[tuple[str, str], Entry] = {
     ("POST", f"{V1}/jobs/{{job_id}}/approve"): "content:approve",
     ("POST", f"{V1}/jobs/{{job_id}}/reject"): "content:approve",
     ("POST", f"{V1}/jobs/{{job_id}}/retry"): "content:publish",
+    # short video (docs/short-video.md)
+    ("GET", f"{V1}/short-videos/options"): "content:read",
+    ("POST", f"{V1}/short-videos/estimate"): "content:read",
+    ("GET", f"{V1}/short-videos"): "content:read",
+    ("POST", f"{V1}/short-videos"): "content:create",
+    ("GET", f"{V1}/short-videos/{{batch_id}}"): "content:read",
+    ("POST", f"{V1}/short-videos/{{batch_id}}/approve"): "content:approve",  # a person only, checked in the route
+    ("POST", f"{V1}/short-videos/{{batch_id}}/cancel"): "content:create",
+    ("POST", f"{V1}/short-videos/items/{{item_id}}/retry"): "content:update",
+    ("GET", f"{V1}/short-videos/items/{{item_id}}/video"): "content:read",
+    ("GET", f"{V1}/short-videos/items/{{item_id}}/subtitles"): "content:read",
+    ("GET", f"{V1}/short-videos/uploads"): "content:read",
+    ("POST", f"{V1}/short-videos/uploads"): "content:create",
+    ("POST", f"{V1}/short-videos/uploads/{{upload_id}}/complete"): "content:create",
+    ("GET", f"{V1}/short-videos/footage/search"): "content:read",
     # articles
     ("GET", f"{V1}/articles"): "content:read",
     ("GET", f"{V1}/articles/{{article_id}}"): "content:read",

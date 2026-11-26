@@ -48,6 +48,9 @@ export const TOOL_PERMISSIONS: Readonly<Record<string, Permission>> = Object.fre
   revise_story_video: "content:create",
   storyboard_story_video: "content:create",
   render_story_video: "content:create",
+  list_short_videos: "content:read",
+  get_short_video: "content:read",
+  create_short_video: "content:create",
   // seo
   list_articles: "content:read",
   get_article: "content:read",

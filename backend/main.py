@@ -16,7 +16,7 @@ from marketer.logging import configure as _configure_logging
 from . import policy
 from .rate_limit import limiter
 from .security import BodySizeLimitMiddleware, SecurityHeadersMiddleware
-from .routes import admin, ads, articles, audit_log, billing, brand_kit, calendar, campaigns, connect, decisions, failures, healthz, image_posts, jobs, kits, library, memory, metrics, niches, observability, ops, performance, providers, spend, stories, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, workspace, x402
+from .routes import admin, ads, articles, audit_log, billing, brand_kit, calendar, campaigns, connect, decisions, failures, healthz, image_posts, jobs, kits, library, memory, metrics, niches, observability, ops, performance, providers, short_videos, spend, stories, style_presets, templates, tokens, users, voices, webhook_endpoints, webhooks, workspace, x402
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +150,7 @@ def create_app() -> FastAPI:
     app.include_router(audit_log.router, prefix="/api/v1/audit-log", tags=["audit"])
     app.include_router(observability.router, prefix="/api/v1/observability", tags=["observability"])
     app.include_router(stories.router, prefix="/api/v1/stories", tags=["stories"])
+    app.include_router(short_videos.router, prefix="/api/v1/short-videos", tags=["short-videos"])
 
     # Durable ad workflows (Inngest). No-op unless ads + Inngest are configured;
     # when enabled this serves the functions at /api/inngest.

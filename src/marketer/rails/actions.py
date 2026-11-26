@@ -64,6 +64,9 @@ ACTIONS: dict[str, RailsAction] = {
         # Story videos (src/marketer/story/service.py): executing a person's
         # approval of a render whose estimate is at or above the approval line.
         _a("content.story.render", "HIGH", ("spend",), summary="Render an approved, large story video"),
+        # Short video (backend/routes/short_videos.py): a large batch starts
+        # spending only when a person approves it (docs/short-video.md).
+        _a("content.short_video.batch.approve", "HIGH", ("spend",), summary="Approve a large short-video batch"),
         # Campaigns (backend/routes/campaigns.py)
         _a("campaigns.start", "HIGH", ("publish", "spend"), summary="Start or resume a campaign"),
         # Spending limits and the publishing gate (backend/routes/niches.py,

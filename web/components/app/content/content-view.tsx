@@ -54,6 +54,7 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
         actions={
           <>
           <ButtonLink href="/content/stories" variant="secondary">Story video</ButtonLink>
+          <ButtonLink href="/content/short" variant="secondary">Short video</ButtonLink>
           <Button variant="primary" onClick={() => setMake({ kind: tab === "carousels" ? "carousel" : "video" })}>
             Make something
           </Button>
