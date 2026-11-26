@@ -79,6 +79,7 @@ considered: [docs/adr/](../adr/README.md).
 | `content.video.approve` / `.reject` | HIGH | `backend/routes/jobs.py` |
 | `content.carousel.approve` / `.reject` | HIGH | `backend/routes/image_posts.py` |
 | `content.post.send` | HIGH | `src/marketer/pipeline.py::_schedule_stage`, `services/image_posts.py::schedule_image_post` |
+| `content.story.render` | HIGH | `src/marketer/story/service.py::approve_render` (route `POST /stories/{id}/render/approve`, renders at or above the approval line) |
 | `campaigns.start` | HIGH | `backend/routes/campaigns.py::start_campaign` |
 | `playbook.spend_cap.raise` / `.lower` | HIGH | `backend/routes/niches.py::update_niche` (when `daily_spend_cap_usd` changes) |
 | `playbook.approval.disable` / `.enable` | HIGH | `backend/routes/niches.py::update_niche` (when `approve_before_post` changes) |
