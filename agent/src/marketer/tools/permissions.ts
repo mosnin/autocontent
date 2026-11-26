@@ -42,6 +42,12 @@ export const TOOL_PERMISSIONS: Readonly<Record<string, Permission>> = Object.fre
   list_library_assets: "content:read",
   list_templates: "content:read",
   remix_template: "content:create",
+  list_story_videos: "content:read",
+  get_story_video: "content:read",
+  start_story_video: "content:create",
+  revise_story_video: "content:create",
+  storyboard_story_video: "content:create",
+  render_story_video: "content:create",
   // seo
   list_articles: "content:read",
   get_article: "content:read",

@@ -217,7 +217,7 @@ async def test_migration_0024_apply_rollback_reapply(pool):
     # undone. Robust to any later migrations (0025+) stacked on top of it,
     # rather than assuming 0024 is the current head.
     rolled_back = 0
-    for _ in range(10):
+    for _ in range(30):
         down = _run_migrate("down", "1")
         assert down.returncode == 0, down.stderr
         rolled_back += 1
