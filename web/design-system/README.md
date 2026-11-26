@@ -162,6 +162,14 @@ All of these live in `components/` and are exported from `index.ts`.
 | `NotAllowed` | One quiet line saying which roles can do what a disabled control does |
 | `QrCode` | An authenticator QR code: dark modules on a fixed light tile in both themes, so scanners read it |
 
+### Sheet and tags (`sheet.tsx`)
+
+| Component | Notes |
+|---|---|
+| `Sheet` | A panel that slides in from the right edge (Tracker row detail, add field). Native modal `<dialog>` with the same focus rules as `Modal`. In 220ms, out 150ms, 24px of travel; a fade only with reduced motion. Full width on phones |
+| `Popover` | A small panel anchored to a button for a little form (filters, sorts, visible fields). `Menu` picks one item; this holds controls. Esc and outside clicks close it and focus returns to the trigger |
+| `Tag`, `TagDot`, `TAG_TONES` | A select option in the colour a person picked (gray, blue, green, orange, red, purple, pink, teal, yellow). The colours are `--ds-tag-*` tokens: hue and saturation, with each theme setting fill and text lightness so the text stays readable. Use them only for options people colour themselves, never for status |
+
 ### Skeletons (`skeletons.tsx`)
 
 | Component | Notes |
@@ -215,6 +223,8 @@ work. They are not separate apps.
 | `/sessions/new`, `/sessions/[id]` | **Chat** (02, 06) | Breadcrumb header. A 720px chat column with the composer pinned to the bottom. Right agent panel, 320px and toggleable: agents, trace, sources. Approvals render as `PlanCard`, questions as `QuestionCard` |
 | `/analytics` | **Dashboard** (05) | Toolbar of `FilterPill`s (range, channel, compare). A KPI row. A line `ChartCard`. A breakdown and a bar list. "Ask about this data" `AskPill` |
 | `/activity`, `/inbox` | **Column** (07) | Segmented control: "Needs you n" / "Everything" / "Decisions". "Needs you" starts with required actions (an outcome we can't confirm: what was attempted, on what, when, and "It happened" / "It didn't happen"), then `ApprovalCard`s (approve, edit, dismiss). "Everything" is a day-grouped list of what agents did. "Decisions" is the decision log: the point, the action taken, whether the fallback was used, the mode and the time |
+| `/tracker` | **Column lg** (07) | The workspace's tables as `CollectionCard`s, then one-click templates. Empty: one line and the templates |
+| `/tracker/[id]` | **Tracker** | `PageHeader` crumbs (Tracker / Table) with New row; a view switcher (`Segmented`), search, filter, sort and fields; then the grid, board, calendar or gallery. Rows open in a `Sheet` |
 | `/plan` | **Dashboard** (05) | Toolbar: Week / Month segmented control, channel `FilterPill`. A calendar grid of scheduled items in a `Card`. "Ask to fill the gaps" `AskPill` |
 | `/library` (Deliverables) | **Column lg** (07) | Segmented control: All / Videos / Articles / Ads / Posts. A grid of `Thumb` cards |
 | `/playbooks`, `/content`, `/seo`, `/paid`, `/distribution` (Tools) | **Tool**: Column lg (07) | `ToolIcon` + 22px title + one line. A scoped `StartSession` ("Ask the Content agent…"). For Paid and Distribution, a KPI row (05). Then sections of the tool's work as `List`/`Table`/`CollectionCard` |

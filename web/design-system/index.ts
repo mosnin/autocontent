@@ -13,3 +13,4 @@ export { CommitWave, type WaveMoment } from "./components/wave";
 export { AgentSplit, type SplitAgent } from "./components/goo";
 export * from "./components/skeletons";
 export { PermissionsProvider, useAllowed, NotAllowed, QrCode } from "./components/access";
+export { Sheet, Popover, Tag, TagDot, TAG_TONES, type TagTone } from "./components/sheet";
