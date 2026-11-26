@@ -176,7 +176,7 @@ async def test_migration_0026_apply_rollback_reapply(pool):
     assert up1.returncode == 0, up1.stderr
     assert await exists()
 
-    for _ in range(10):
+    for _ in range(60):  # one step per later migration; leave room for more
         down = _run_migrate("down", "1")
         assert down.returncode == 0, down.stderr
         if not await exists():
