@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     xai_api_key: str = ""
     ayrshare_api_key: str = ""
     pixabay_api_key: str = ""
+    # Short video stock footage (docs/short-video.md). Pixabay video search
+    # reuses pixabay_api_key. Server-side only.
+    pexels_api_key: str = ""
 
     # Supabase Postgres (use the pooler URL for the runtime app).
     database_url: str = ""

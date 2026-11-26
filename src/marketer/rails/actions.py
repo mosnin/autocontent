@@ -61,6 +61,9 @@ ACTIONS: dict[str, RailsAction] = {
         _a("content.carousel.approve", "HIGH", ("publish",), summary="Approve a carousel for posting"),
         _a("content.carousel.reject", "HIGH", reduces=True, summary="Reject a carousel"),
         _a("content.post.send", "HIGH", ("publish",), summary="Send a post to the social scheduler"),
+        # Short video (backend/routes/short_videos.py): a large batch starts
+        # spending only when a person approves it (docs/short-video.md).
+        _a("content.short_video.batch.approve", "HIGH", ("spend",), summary="Approve a large short-video batch"),
         # Campaigns (backend/routes/campaigns.py)
         _a("campaigns.start", "HIGH", ("publish", "spend"), summary="Start or resume a campaign"),
         # Spending limits and the publishing gate (backend/routes/niches.py,
