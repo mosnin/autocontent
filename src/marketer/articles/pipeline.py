@@ -35,6 +35,8 @@ from ..observability import scope as obs_scope
 from ..services import openai_images, otel
 from ..services.spend_context import SpendContext, default_context
 from . import exa, llm
+from . import research as web_research
+from . import seo_meta
 from .models import Article, ArticleStatus, Outline, SectionContext, SerpAnalysis
 
 log = get_logger(__name__)
@@ -143,6 +145,32 @@ async def _fail_with(article: Article, error: str, exc: BaseException | None = N
     except Exception:  # sentry not installed/initialised — never block the pipeline
         pass
     return article
+
+
+async def _save_research(article: Article) -> None:
+    from ..repos import article_seo
+
+    try:
+        await article_seo.set_research(article.id, user_id=article.user_id, research=article.research)
+    except Exception as exc:  # noqa: BLE001 - research is shown to people, it never blocks a run
+        log.warning("article research not saved", extra={"article_id": str(article.id), "error": str(exc)})
+
+
+async def _auto_cover(article: Article) -> None:
+    from ..repos import article_seo
+    from ..services import unsplash
+
+    if article.cover_image or not (settings.article_unsplash_cover and unsplash.enabled()):
+        return
+    try:
+        photos = await unsplash.search(article.focus_keyword or article.topic, per_page=3)
+        if not photos:
+            return
+        await unsplash.track_download(photos[0])
+        article.cover_image = unsplash.cover_record(photos[0])
+        await article_seo.set_cover(article.id, user_id=article.user_id, cover=article.cover_image)
+    except Exception as exc:  # noqa: BLE001 - the cover is optional
+        log.warning("article cover skipped", extra={"article_id": str(article.id), "error": type(exc).__name__})
 
 
 async def _write_sections(
@@ -268,6 +296,18 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             # Degraded mode: no SERP provider configured/reachable. The
             # outline prompt still works from model knowledge.
             serp = SerpAnalysis()
+        # Web research with cited sources (OpenRouter). Untrusted content:
+        # sanitized, stored for the reader, and only ever shown to later
+        # prompts inside an <untrusted_content> block.
+        found = await web_research.for_article(
+            keyword=article.focus_keyword, topic=article.topic,
+            existing=article.research, spend=spend,
+        )
+        research_block = ""
+        if found is not None:
+            article.research = found.model_dump(mode="json")
+            await _save_research(article)
+            research_block = web_research.untrusted_block(found)
 
     # 2. Outline
     with _stage(ArticleStatus.outlining.value):
@@ -279,6 +319,8 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             tone,
             audience,
             spend=spend,
+            # Only when there is research, so older callers' signatures hold.
+            **({"web_research": research_block} if research_block else {}),
         )
 
     # 3. Write (parallel per-H2 fan-out)
@@ -292,6 +334,7 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             targetAudience=audience,
             outline=outline,
             research=serp if serp.topResults else None,
+            webResearch=research_block,
         )
         markdown = await _write_sections(outline, ctx, spend=spend)
 
@@ -351,10 +394,17 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         meta = await llm.generate_metadata(
             article.topic, article.focus_keyword, markdown, tone, spend=spend
         )
+        fitted = seo_meta.normalize(
+            meta_title=meta.title, meta_description=meta.metaDescription, slug=meta.slug,
+            focus_keyword=article.focus_keyword or meta.focusKeyword,
+            secondary_keywords=meta.keywords, fallback_title=article.topic,
+        )
         article.title = meta.title
-        article.slug = meta.slug
-        article.meta_description = meta.metaDescription
-        article.keywords = meta.keywords
+        article.meta_title = fitted.meta_title
+        article.slug = fitted.slug
+        article.meta_description = fitted.meta_description
+        article.focus_keyword = fitted.focus_keyword or article.focus_keyword
+        article.keywords = list(fitted.secondary_keywords)
         article.schema_jsonld = await llm.generate_schema_json(
             title=meta.title,
             slug=meta.slug,
@@ -409,6 +459,10 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
                     "article hero image degraded; publishing without one",
                     extra={"article_id": str(article.id), "error": str(exc)},
                 )
+
+    # 7. Unsplash cover (optional): a credited stock photo when no cover was
+    # chosen yet. Free, so nothing to meter; a failure only skips the cover.
+    await _auto_cover(article)
 
     article.status = ArticleStatus.done
     article.error = None

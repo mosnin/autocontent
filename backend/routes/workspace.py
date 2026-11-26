@@ -322,6 +322,7 @@ def _inbox_item(row: dict) -> InboxItem:
 
 _REQUIRED_ACTION_TITLES = {
     "content.post.send": "We can't confirm the post went out",
+    "content.article.publish": "We can't confirm the article reached WordPress",
     "content.video.approve": "We can't confirm the video was sent for posting",
     "content.carousel.approve": "We can't confirm the carousel was sent for posting",
     "ads.budget.change": "We can't confirm the budget change reached the ad platform",

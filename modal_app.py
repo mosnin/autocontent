@@ -363,6 +363,26 @@ async def campaign_tick() -> dict:
 
 
 @app.function(
+    schedule=modal.Cron("*/5 * * * *"),  # every 5 min
+    timeout=60 * 4,
+)
+async def seo_tick() -> dict:
+    """SEO articles (docs/seo-articles.md): send scheduled WordPress publishes
+    that are due (each through the rails), then move bulk batches forward
+    under the spend caps. Both are claim-guarded per item, so an overlapping
+    tick cannot send or start anything twice."""
+    from marketer.articles import bulk, publishing
+    from marketer.services.otel import force_flush
+
+    try:
+        published = await publishing.run_due()
+        batches = await bulk.tick_all(spawn=bulk.modal_spawn)
+        return {"publish": published, "bulk": batches}
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
     schedule=modal.Cron("*/10 * * * *"),  # every 10 min
     timeout=60 * 8,
 )

@@ -79,6 +79,7 @@ considered: [docs/adr/](../adr/README.md).
 | `content.video.approve` / `.reject` | HIGH | `backend/routes/jobs.py` |
 | `content.carousel.approve` / `.reject` | HIGH | `backend/routes/image_posts.py` |
 | `content.post.send` | HIGH | `src/marketer/pipeline.py::_schedule_stage`, `services/image_posts.py::schedule_image_post` |
+| `content.article.publish` | HIGH | `src/marketer/articles/publishing.py::publish` (route `POST /articles/{id}/publish`, the `seo_tick` cron for scheduled publishes; see [seo-articles.md](../seo-articles.md)) |
 | `campaigns.start` | HIGH | `backend/routes/campaigns.py::start_campaign` |
 | `playbook.spend_cap.raise` / `.lower` | HIGH | `backend/routes/niches.py::update_niche` (when `daily_spend_cap_usd` changes) |
 | `playbook.approval.disable` / `.enable` | HIGH | `backend/routes/niches.py::update_niche` (when `approve_before_post` changes) |

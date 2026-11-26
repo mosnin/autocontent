@@ -61,6 +61,8 @@ ACTIONS: dict[str, RailsAction] = {
         _a("content.carousel.approve", "HIGH", ("publish",), summary="Approve a carousel for posting"),
         _a("content.carousel.reject", "HIGH", reduces=True, summary="Reject a carousel"),
         _a("content.post.send", "HIGH", ("publish",), summary="Send a post to the social scheduler"),
+        # SEO articles (articles/publishing.py): a WordPress draft or live post.
+        _a("content.article.publish", "HIGH", ("publish",), summary="Send an article to the workspace's WordPress site"),
         # Campaigns (backend/routes/campaigns.py)
         _a("campaigns.start", "HIGH", ("publish", "spend"), summary="Start or resume a campaign"),
         # Spending limits and the publishing gate (backend/routes/niches.py,
