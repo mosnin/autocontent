@@ -33,7 +33,9 @@ _RANDOM_CHARS = 12
 
 def normalize(code: str) -> str:
     """Uppercase, without spaces or dashes, with confusable letters folded."""
-    return "".join(ch for ch in code.upper() if ch.isalnum()).translate(_CONFUSABLE)
+    s = "".join(ch for ch in code.upper() if ch.isalnum())
+    prefix = s[:3] if s[:3] in _PREFIX.values() else ""
+    return prefix + s[len(prefix):].translate(_CONFUSABLE)
 
 
 def code_hash(code: str) -> str:
