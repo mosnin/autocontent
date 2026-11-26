@@ -100,6 +100,21 @@ POLICY: dict[tuple[str, str], Entry] = {
     ("POST", f"{V1}/jobs/{{job_id}}/approve"): "content:approve",
     ("POST", f"{V1}/jobs/{{job_id}}/reject"): "content:approve",
     ("POST", f"{V1}/jobs/{{job_id}}/retry"): "content:publish",
+    # short video (docs/short-video.md)
+    ("GET", f"{V1}/short-videos/options"): "content:read",
+    ("POST", f"{V1}/short-videos/estimate"): "content:read",
+    ("GET", f"{V1}/short-videos"): "content:read",
+    ("POST", f"{V1}/short-videos"): "content:create",
+    ("GET", f"{V1}/short-videos/{{batch_id}}"): "content:read",
+    ("POST", f"{V1}/short-videos/{{batch_id}}/approve"): "content:approve",  # a person only, checked in the route
+    ("POST", f"{V1}/short-videos/{{batch_id}}/cancel"): "content:create",
+    ("POST", f"{V1}/short-videos/items/{{item_id}}/retry"): "content:update",
+    ("GET", f"{V1}/short-videos/items/{{item_id}}/video"): "content:read",
+    ("GET", f"{V1}/short-videos/items/{{item_id}}/subtitles"): "content:read",
+    ("GET", f"{V1}/short-videos/uploads"): "content:read",
+    ("POST", f"{V1}/short-videos/uploads"): "content:create",
+    ("POST", f"{V1}/short-videos/uploads/{{upload_id}}/complete"): "content:create",
+    ("GET", f"{V1}/short-videos/footage/search"): "content:read",
     # articles
     ("GET", f"{V1}/articles"): "content:read",
     ("GET", f"{V1}/articles/{{article_id}}"): "content:read",
@@ -108,6 +123,36 @@ POLICY: dict[tuple[str, str], Entry] = {
     ("POST", f"{V1}/articles/{{article_id}}/social"): "content:create",
     ("GET", f"{V1}/articles/{{article_id}}/hero-image"): "content:read",
     ("POST", f"{V1}/articles/{{article_id}}/retry"): "content:create",
+    # story videos (src/marketer/story; docs/story-video.md)
+    ("GET", f"{V1}/stories"): "content:read",
+    ("POST", f"{V1}/stories"): "content:create",
+    ("GET", f"{V1}/stories/{{story_id}}"): "content:read",
+    ("PUT", f"{V1}/stories/{{story_id}}/script"): "content:create",
+    ("POST", f"{V1}/stories/{{story_id}}/script/revise"): "content:create",
+    ("POST", f"{V1}/stories/{{story_id}}/storyboard"): "content:create",
+    ("POST", f"{V1}/stories/{{story_id}}/shots/{{idx}}/regenerate"): "content:create",
+    ("POST", f"{V1}/stories/{{story_id}}/render"): "content:create",
+    ("POST", f"{V1}/stories/{{story_id}}/render/approve"): "spend:approve",
+    ("POST", f"{V1}/stories/{{story_id}}/render/decline"): "content:create",
+    ("POST", f"{V1}/stories/{{story_id}}/retry"): "content:create",
+    ("GET", f"{V1}/stories/{{story_id}}/shots/{{idx}}/frame"): "content:read",
+    ("GET", f"{V1}/stories/{{story_id}}/characters/{{idx}}/portrait"): "content:read",
+    ("GET", f"{V1}/stories/{{story_id}}/video"): "content:read",
+    # SEO articles (docs/seo-articles.md)
+    ("PATCH", f"{V1}/articles/{{article_id}}/seo"): "content:update",
+    ("GET", f"{V1}/articles/{{article_id}}/cover/search"): "content:update",
+    ("PUT", f"{V1}/articles/{{article_id}}/cover"): "content:update",
+    ("DELETE", f"{V1}/articles/{{article_id}}/cover"): "content:update",
+    ("POST", f"{V1}/articles/{{article_id}}/publish"): "content:publish",
+    ("PATCH", f"{V1}/articles/{{article_id}}/schedule"): "content:publish",
+    ("DELETE", f"{V1}/articles/{{article_id}}/schedule"): "content:publish",
+    ("POST", f"{V1}/article-batches"): "content:create",
+    ("GET", f"{V1}/article-batches"): "content:read",
+    ("GET", f"{V1}/article-batches/{{batch_id}}"): "content:read",
+    ("POST", f"{V1}/article-batches/{{batch_id}}/cancel"): "content:update",
+    ("GET", f"{V1}/integrations/wordpress"): "integration:read",
+    ("PUT", f"{V1}/integrations/wordpress"): "integration:connect",
+    ("DELETE", f"{V1}/integrations/wordpress"): "integration:disconnect",
     # platform admin
     ("GET", f"{V1}/admin/overview"): PLATFORM_ADMIN,
     ("GET", f"{V1}/admin/users"): PLATFORM_ADMIN,
@@ -275,6 +320,33 @@ POLICY: dict[tuple[str, str], Entry] = {
     # observability (docs/observability/braintrust.md)
     ("GET", f"{V1}/observability/settings"): AUTHENTICATED,  # every member and the agent
     ("PUT", f"{V1}/observability/settings"): "security:manage",  # what leaves for a subprocessor; also person-only
+    # tracker (docs/tracker.md): reads are content, rows are content, the shape
+    # of a table (fields, views) is the team's playbook
+    ("GET", f"{V1}/tracker/templates"): "content:read",
+    ("GET", f"{V1}/tracker/members"): "content:read",
+    ("GET", f"{V1}/tracker/objects"): InRoute(("content:read",), "plus campaign:read for kind=campaign"),
+    ("GET", f"{V1}/tracker/tables"): "content:read",
+    ("POST", f"{V1}/tracker/tables"): "playbook:create",
+    ("POST", f"{V1}/tracker/tables/from-template"): "playbook:create",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}"): "content:read",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}"): "playbook:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}"): "playbook:delete",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/fields"): "playbook:update",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}/fields/{{field_id}}"): "playbook:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}/fields/{{field_id}}"): "playbook:update",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/views"): "playbook:update",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}/views/{{view_id}}"): "playbook:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}/views/{{view_id}}"): "playbook:update",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}/rows"): "content:read",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/rows"): "content:update",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}"): "content:read",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}"): "content:update",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}/move"): "content:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}"): "content:delete",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}/history"): "content:read",
+    ("POST", f"{V1}/tracker/ab-tests"): InRoute(
+        ("content:update",), "plus playbook:create when the workspace has no A/B test log yet"
+    ),
 }
 
 # Routes that are not FastAPI APIRoutes (Starlette routes FastAPI adds itself).

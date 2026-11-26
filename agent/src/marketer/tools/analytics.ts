@@ -5,6 +5,7 @@ import { getAdCampaign, getAdsOverview } from "./ads.ts";
 import { getVideoMetrics } from "./content.ts";
 import { readTool } from "./define.ts";
 import { getPlaybookPerformance } from "./strategy.ts";
+import { trackerReadTools } from "./tracker.ts";
 import { getWorkspaceActivity, getWorkspaceOverview } from "./workspace.ts";
 
 /**
@@ -34,7 +35,7 @@ export const getMetricsSummary = readTool({
   request: () => ({ method: "GET", path: "/metrics/summary" }),
 });
 
-/** The analyst's department tools (all read-only). */
+/** The analyst's department tools (all read-only), including the team's trackers (A/B results, campaign stages). */
 export function analyticsTools(): AnyAgentTool[] {
-  return [getWorkspaceOverview, getWorkspaceActivity, getSpendToday, getSpendHistory, getMetricsSummary, getPlaybookPerformance, getVideoMetrics, getAdsOverview, getAdCampaign];
+  return [getWorkspaceOverview, getWorkspaceActivity, getSpendToday, getSpendHistory, getMetricsSummary, getPlaybookPerformance, getVideoMetrics, getAdsOverview, getAdCampaign, ...trackerReadTools()];
 }

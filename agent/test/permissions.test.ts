@@ -314,6 +314,9 @@ describe("early permission checks on Marketer tools", () => {
     const cases: Array<[string, string, Record<string, unknown>, string | null]> = [
       ["analyst", "get_spend_today", {}, null],
       ["analyst", "create_video", { playbookId: UUID, platform: "tiktok" }, "Your role (Analyst) can't make content."],
+      ["analyst", "create_short_video", { topic: "coffee myths" }, "Your role (Analyst) can't make content."],
+      ["analyst", "list_short_videos", {}, null],
+      ["marketer", "create_short_video", { topic: "coffee myths", variants: 2 }, null],
       ["analyst", "approve_video", { videoId: UUID, reason: "Looks good to post" }, "Your role (Analyst) can't approve or reject content."],
       ["billing", "list_playbooks", {}, "Your role (Billing) can't read playbooks. Ask an owner, admin, marketer or analyst."],
       ["billing", "get_spend_today", {}, null],

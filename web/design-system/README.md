@@ -49,7 +49,7 @@ Open the image before you build or change a screen that uses it.
 4. **Small and dense.** Base text is 13px, rows are 28px, buttons are 28px rounded rectangles (6px corners), and page headers are 48px. Titles are medium weight, never bold.
 5. **Conversation first.** Every page has a way to ask the agent about what you're looking at: a scoped composer, an `AskPill`, or "Ask about this". Data pages show the data. They don't explain the feature.
 6. **Nothing decorative moves.** The one exception is the wave, which marks a person committing something real; it has its own rules in [`WAVE.md`](./WAVE.md). The other is the goo, which shows Marketer splitting into its specialists ([`GOO.md`](./GOO.md)).
-   Apart from that, no pulsing dots, glowing borders, bouncing badges or gradient text. Motion is limited to press feedback (`ds-press`), enter (`ds-enter`), popovers (`ds-pop`), a tab swap (`ds-swap`, 220ms fade and 3px rise when a page's tab changes), a disclosure opening (`ds-disclosure`), the Segmented pill sliding, dialogs scaling in, the chat shimmer on "Agent is working", and the home shader. All of them use the duration and easing tokens and collapse under `prefers-reduced-motion`.
+   Apart from that, no pulsing dots, glowing borders, bouncing badges or gradient text. Motion is limited to press feedback (`ds-press`), enter (`ds-enter`), a flow's step change (`ds-step`), sheets (`ds-sheet`), popovers (`ds-pop`), a tab swap (`ds-swap`, 220ms fade and 3px rise when a page's tab changes), a disclosure opening (`ds-disclosure`), the Segmented pill sliding, dialogs scaling in, the chat shimmer on "Agent is working", and the home shader. All of them use the duration and easing tokens and collapse under `prefers-reduced-motion`.
 7. **One job per surface.** One primary action per page. Summary before detail: a page opens with what needs you and the few numbers that matter, then one `Segmented` for the detail (Paid: Campaigns / Guardrails / Audit trail; Distribution: Upcoming / Campaigns / Channels), never three tables stacked. Focused tasks (invite, add a lane, new token, new endpoint) open in a `Modal`. Reference material folds into a collapsible `Section`. Never more than one level of hiding, and common actions stay visible.
 
 ## 3. Tokens (`tokens.css`)
@@ -177,6 +177,14 @@ One field or question per screen, for sign-up, sign-in, recovery, onboarding and
 | `NotAllowed` | One quiet line saying which roles can do what a disabled control does |
 | `QrCode` | An authenticator QR code: dark modules on a fixed light tile in both themes, so scanners read it |
 
+### Sheet and tags (`sheet.tsx`)
+
+| Component | Notes |
+|---|---|
+| `Sheet` | Secondary work beside the page: a flow's "Fine-tune" options, a Tracker row's detail, a small form (add a field). A side panel from the inline end on wide screens (`width` sm 380px, md 460px, lg 560px), a bottom sheet on phones. Native modal `<dialog>` with the same focus rules as `Modal`; `actions` puts icon buttons beside Close. Enters and leaves along the same edge (`ds-sheet`); a cut with reduced motion. Never the main path |
+| `Popover` | A small panel anchored to a button for a little form (filters, sorts, visible fields). `Menu` picks one item; this holds controls. Esc and outside clicks close it and focus returns to the trigger |
+| `Tag`, `TagDot`, `TAG_TONES` | A select option in the colour a person picked (gray, blue, green, orange, red, purple, pink, teal, yellow). The colours are `--ds-tag-*` tokens: hue and saturation, with each theme setting fill and text lightness so the text stays readable. Use them only for options people colour themselves, never for status |
+
 ### Skeletons (`skeletons.tsx`)
 
 | Component | Notes |
@@ -215,7 +223,7 @@ One field or question per screen, for sign-up, sign-in, recovery, onboarding and
 | `Backdrop` + `Shader` | 01 | Home only, plus first-run moments |
 | `GlassCard` | 01 | Bento cards over the shader |
 | `HeroBanner` | 03 | Gradient banner with prompt pills |
-| `AppRow` | 03 | |
+| `AppRow` | 03 | `onConnect` or `href` while not connected; `onManage` makes the connected check open the integration's settings |
 | `CollectionCard` | 07 | |
 | `PlanOption` | 04 | With `headline` (and `badge`), the price sits on the shader in ink: the plan screen ([`PLANS.md`](./PLANS.md)) |
 
@@ -230,6 +238,8 @@ work. They are not separate apps.
 | `/sessions/new`, `/sessions/[id]` | **Chat** (02, 06) | Breadcrumb header. A 720px chat column with the composer pinned to the bottom. Right agent panel, 320px and toggleable: agents, trace, sources. Approvals render as `PlanCard`, questions as `QuestionCard` |
 | `/analytics` | **Dashboard** (05) | Toolbar of `FilterPill`s (range, channel, compare). A KPI row. A line `ChartCard`. A breakdown and a bar list. "Ask about this data" `AskPill` |
 | `/activity`, `/inbox` | **Column** (07) | Segmented control: "Needs you n" / "Everything" / "Decisions". "Needs you" starts with required actions (an outcome we can't confirm: what was attempted, on what, when, and "It happened" / "It didn't happen"), then `ApprovalCard`s (approve, edit, dismiss). "Everything" is a day-grouped list of what agents did. "Decisions" is the decision log: the point, the action taken, whether the fallback was used, the mode and the time |
+| `/tracker` | **Column lg** (07) | The workspace's tables as `CollectionCard`s, then one-click templates. Empty: one line and the templates |
+| `/tracker/[id]` | **Tracker** | `PageHeader` crumbs (Tracker / Table) with New row; a view switcher (`Segmented`), search, filter, sort and fields; then the grid, board, calendar or gallery. Rows open in a `Sheet` |
 | `/plan` | **Dashboard** (05) | Toolbar: Week / Month segmented control, channel `FilterPill`. A calendar grid of scheduled items in a `Card`. "Ask to fill the gaps" `AskPill` |
 | `/library` (Deliverables) | **Column lg** (07) | Segmented control: All / Videos / Articles / Ads / Posts. A grid of `Thumb` cards |
 | `/playbooks`, `/content`, `/seo`, `/paid`, `/distribution` (Tools) | **Tool**: Column lg (07) | `ToolIcon` + 22px title + one line. A scoped `StartSession` ("Ask the Content agent…"). For Paid and Distribution, a KPI row (05). Then sections of the tool's work as `List`/`Table`/`CollectionCard` |

@@ -191,6 +191,12 @@ async def test_service_claim_spawn_fails_open_when_pool_broken(pool, monkeypatch
 # Migration 0024 apply / rollback / reapply
 # ---------------------------------------------------------------------------
 
+
+def _migration_count() -> int:
+    """Forward migrations on disk (rollback files excluded): an upper bound on down steps."""
+    return sum(1 for p in (REPO_ROOT / "db" / "migrations").glob("[0-9]*.sql") if not p.name.endswith(".rollback.sql"))
+
+
 def _run_migrate(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "scripts/migrate.py", *args],
@@ -217,7 +223,9 @@ async def test_migration_0024_apply_rollback_reapply(pool):
     # undone. Robust to any later migrations (0025+) stacked on top of it,
     # rather than assuming 0024 is the current head.
     rolled_back = 0
-    for _ in range(40):
+    # One step per applied migration at most: bounded by the migration files on
+    # disk, so later migrations never strand the database half rolled back.
+    for _ in range(_migration_count()):
         down = _run_migrate("down", "1")
         assert down.returncode == 0, down.stderr
         rolled_back += 1

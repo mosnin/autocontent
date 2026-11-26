@@ -1,7 +1,7 @@
 ---
 name: ad-test-plan
 description: "Pre-register an ad test before any spend: hypothesis, variants, budget cap, stop rules and the success metric. Use for /ad-test-plan, 'test this ad', 'should we try paid', before creating or activating any ad campaign."
-allowed-tools: list_ad_accounts get_ads_overview list_ad_campaigns get_ad_campaign list_ad_actions recall_entity remember_fact create_ad_campaign
+allowed-tools: list_ad_accounts get_ads_overview list_ad_campaigns get_ad_campaign list_ad_actions recall_entity remember_fact create_ad_campaign log_ab_test
 metadata:
   command: /ad-test-plan
   role: Media buyer
@@ -35,7 +35,7 @@ metadata:
 3. Fix the design before spend: variants (change one thing), the single success metric, the baseline from past campaigns with its window, and the minimum data before judging.
 4. Set the money: daily budget per variant and a total cap in USD, both inside the account's remaining daily and monthly headroom. Show the arithmetic.
 5. Set stop rules in numbers: stop a variant when spend reaches the amount with zero conversions, when the cap is reached, or after the stated number of days.
-6. Save the plan with `remember_fact` (entity "marketing-learnings", an attribute named for the test, value: hypothesis, metric, cap, date, "registered"). Only if the task asks for drafts, call `create_ad_campaign` per variant; drafts do not run or spend.
+6. Save the plan with `remember_fact` (entity "marketing-learnings", an attribute named for the test, value: hypothesis, metric, cap, date, "registered") and log it in the team's A/B test log with `log_ab_test` (status Planned; it waits for the person like every write here). Only if the task asks for drafts, call `create_ad_campaign` per variant; drafts do not run or spend.
 
 ## Output
 Hypothesis, variants, success metric and baseline (tool and window), budget per day and total in USD with headroom arithmetic, stop rules, decision rule, and the ids of any drafts or parked calls.

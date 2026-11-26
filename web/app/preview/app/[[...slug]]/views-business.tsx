@@ -13,6 +13,7 @@ import { BrandView } from "@/components/app/brand/brand-view";
 import { DistributionCampaignView } from "@/components/app/distribution/campaign-detail-view";
 import { DistributionView } from "@/components/app/distribution/distribution-view";
 import { IntegrationsView } from "@/components/app/integrations/integrations-view";
+import { FX_WORDPRESS } from "@/lib/fixtures-seo";
 import { AdAccountsView } from "@/components/app/paid/ad-accounts-view";
 import { CampaignDetailView } from "@/components/app/paid/campaign-detail-view";
 import { NewCampaignView } from "@/components/app/paid/new-campaign-view";
@@ -56,6 +57,7 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   "brand/kits": () => <BrandView kit={FX_BRAND_KIT} kits={FX_KITS} initialTab="kits" />,
   integrations: () => <IntegrationsView ayrshare={FX_AYRSHARE} adAccounts={FX_AD_ACCOUNTS} tokens={FX_TOKENS} webhooks={FX_WEBHOOKS} x402={FX_X402} apiBase="https://api.marketer.sh" />,
   "integrations/developers": () => <IntegrationsView initialView="developers" ayrshare={FX_AYRSHARE} adAccounts={FX_AD_ACCOUNTS} tokens={FX_TOKENS} webhooks={FX_WEBHOOKS} x402={FX_X402} apiBase="https://api.marketer.sh" />,
+  "integrations/wordpress": () => <IntegrationsView ayrshare={FX_AYRSHARE} adAccounts={FX_AD_ACCOUNTS} tokens={FX_TOKENS} webhooks={FX_WEBHOOKS} x402={FX_X402} apiBase="https://api.marketer.sh" wordpress={FX_WORDPRESS} />,
   settings: () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} />,
   "settings/billing": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="billing" />,
   // Auth settings. Add ?role=analyst (or admin, marketer, billing) to see what each role sees.

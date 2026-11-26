@@ -218,7 +218,7 @@ async def summarize_serp(
 
 async def generate_outline(
     topic: str, keyword: str, research: dict, tone: str, audience: str,
-    *, spend: SpendContext | None = None,
+    *, spend: SpendContext | None = None, web_research: str = "",
 ) -> Outline:
     """Produce a structured Outline (one H1, 5-10 H2s, 0-3 H3s per H2)."""
     system = (
@@ -237,7 +237,8 @@ async def generate_outline(
         f"Tone: {tone}\n"
         f"Target audience: {audience}\n\n"
         f"Research (JSON, may be truncated):\n{research_summary}\n\n"
-        "Return the outline as structured JSON matching the Outline schema."
+        + (f"{web_research}\n\n" if web_research else "")
+        + "Return the outline as structured JSON matching the Outline schema."
     )
     return await _parse_call(
         model=settings.agent_model, system=system, user=user,
@@ -288,7 +289,8 @@ async def write_section(
         f"{revision_block}\n"
         f"Section heading: {heading}\n"
         f"Section notes: {notes}\n\n"
-        f"Previously written sections (tail, for tonal continuity):\n{prev_tail}\n\n"
+        + (f"{context.webResearch}\n\n" if context.webResearch else "")
+        + f"Previously written sections (tail, for tonal continuity):\n{prev_tail}\n\n"
         f"Start the section with `{hashes} {heading}` on its own line, then "
         "write the body in well-structured paragraphs (and bullet lists where "
         "appropriate). Do not include any other headings. Remember: no "
@@ -338,7 +340,7 @@ async def generate_metadata(
         "You are an SEO metadata specialist. Generate concise, high-CTR "
         "metadata. Strict constraints: title 50-60 characters, slug in "
         "kebab-case (lowercase, hyphen-separated, no punctuation), meta "
-        "description 150-160 characters. Include the focus keyword naturally "
+        "description 140-155 characters. Include the focus keyword naturally "
         "in the title and meta description. Never use em-dashes or en-dashes."
     )
     excerpt = article_md[:6000]

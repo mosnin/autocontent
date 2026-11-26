@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     xai_api_key: str = ""
     ayrshare_api_key: str = ""
     pixabay_api_key: str = ""
+    # Short video stock footage (docs/short-video.md). Pixabay video search
+    # reuses pixabay_api_key. Server-side only.
+    pexels_api_key: str = ""
 
     # Supabase Postgres (use the pooler URL for the runtime app).
     database_url: str = ""
@@ -46,6 +49,23 @@ class Settings(BaseSettings):
     exa_api_key: str = ""
     # Skip the hero image stage entirely when False.
     article_hero_image: bool = True
+    # SEO articles (docs/seo-articles.md). Web research runs through
+    # OpenRouter (needs openrouter_api_key) with a search-capable model from
+    # articles/research.py's price registry; an unknown model is refused.
+    article_web_research: bool = True
+    article_research_model: str = "perplexity/sonar"
+    # Unsplash cover photos. The key stays server-side; empty = no cover
+    # search and no automatic cover.
+    unsplash_access_key: str = ""
+    article_unsplash_cover: bool = True
+    # Bulk generation: most keywords per batch, and how many items of one
+    # batch run at once.
+    article_bulk_max_keywords: int = 50
+    article_bulk_concurrency: int = 2
+    # 32 random bytes, base64, that seal integration secrets (WordPress
+    # application passwords). Empty = connecting such an integration is
+    # refused (503); secrets are never stored in the clear.
+    integration_secret_key: str = ""
 
     # Comma-separated list of origins allowed by the FastAPI CORS middleware.
     # If empty/unset we fall back to "*" with credentials disabled.

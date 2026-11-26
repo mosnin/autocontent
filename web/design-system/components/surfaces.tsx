@@ -70,8 +70,12 @@ export function HeroBanner({ palette = "dusk", prompts, className }: { palette?:
 }
 
 /** Ref 03 "Featured": logo tile, name, one-line purpose, + or ✓ on the right. */
-export function AppRow({ logo, name, description, connected, onConnect, href }: { logo: ReactNode; name: string; description: string; connected?: boolean; onConnect?: () => void; href?: string }) {
-  const action = connected ? (
+export function AppRow({ logo, name, description, connected, onConnect, onManage, href }: { logo: ReactNode; name: string; description: string; connected?: boolean; onConnect?: () => void; onManage?: () => void; href?: string }) {
+  const action = connected && onManage ? (
+    <button type="button" onClick={onManage} aria-label={`Manage ${name}`} title={`Manage ${name}`} className="ds-press flex size-7 items-center justify-center rounded-ds-sm text-fg-muted hover:bg-surface-2 hover:text-fg">
+      <Check className="size-4" />
+    </button>
+  ) : connected ? (
     <span className="flex size-7 items-center justify-center text-fg-muted" aria-label="Connected" title="Connected">
       <Check className="size-4" />
     </span>

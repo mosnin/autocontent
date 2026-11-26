@@ -2,6 +2,7 @@ import type { AnyAgentTool } from "@agent-starter/core";
 import * as v from "valibot";
 import { limit, seg, uuid } from "../api.ts";
 import { readTool, writeTool } from "./define.ts";
+import { shortVideoTools } from "./short-video.ts";
 import { getBrandKit, listKits, listPlaybooks } from "./strategy.ts";
 
 /**
@@ -116,7 +117,70 @@ export const remixTemplate = writeTool({
   request: ({ templateId, count, note }) => ({ method: "POST", path: `/templates/${seg(templateId)}/remix`, body: { count, note } }),
 });
 
+/**
+ * Story videos (backend /stories, docs/story-video.md): an idea or a script becomes a multi-shot video in reviewed
+ * steps: script → storyboard (one frame per shot, characters kept consistent) → render. Each step spends content
+ * credits (MEDIUM). A render whose estimate is at or above the workspace's approval line waits for a person with
+ * spend:approve in the app; no tool approves it.
+ */
+const STORY_STATUS = v.picklist(["draft", "writing", "script_ready", "boarding", "storyboard_ready", "awaiting_approval", "rendering", "done", "failed"]);
+
+export const listStoryVideos = readTool({
+  name: "list_story_videos",
+  description: "List story videos (multi-shot films made from an idea or a script), newest first: title, status, shots, spend.",
+  input: v.object({ limit: limit(200, 20) }),
+  request: ({ limit: n }) => ({ method: "GET", path: "/stories", query: { limit: n } }),
+});
+
+export const getStoryVideo = readTool({
+  name: "get_story_video",
+  description: `Read one story video: status (${STORY_STATUS.options.join(", ")}), script scenes, characters, shots with which frames and clips are ready, estimate, spend, error.`,
+  input: v.object({ storyId: uuid("storyId") }),
+  request: ({ storyId }) => ({ method: "GET", path: `/stories/${seg(storyId)}` }),
+});
+
+export const startStoryVideo = writeTool({
+  name: "start_story_video",
+  description: "Start a story video from an idea (Marketer writes the story) or a finished script. Writes the script only, for review (spends content credits).",
+  input: v.object({
+    mode: v.optional(v.picklist(["idea", "script"]), "idea"),
+    source: v.pipe(v.string(), v.minLength(3), v.maxLength(20_000)),
+    requirement: v.optional(v.pipe(v.string(), v.maxLength(1000)), ""),
+    style: v.optional(v.pipe(v.string(), v.maxLength(500)), ""),
+    aspect: v.optional(v.picklist(["9:16", "16:9", "1:1"]), "9:16"),
+    playbookId: v.optional(uuid("playbookId")),
+  }),
+  risk: "MEDIUM",
+  request: ({ mode, source, requirement, style, aspect, playbookId }) => ({ method: "POST", path: "/stories", body: { mode, source, requirement, style, aspect, niche_id: playbookId } }),
+});
+
+export const reviseStoryVideo = writeTool({
+  name: "revise_story_video",
+  description: "Rewrite a story video's script from a note (e.g. 'shorter, funnier ending'). Starts a new script revision; the storyboard is redrawn after (spends content credits).",
+  input: v.object({ storyId: uuid("storyId"), note: v.pipe(v.string(), v.minLength(2), v.maxLength(2000)) }),
+  risk: "MEDIUM",
+  request: ({ storyId, note }) => ({ method: "POST", path: `/stories/${seg(storyId)}/script/revise`, body: { note } }),
+});
+
+export const storyboardStoryVideo = writeTool({
+  name: "storyboard_story_video",
+  description: "Draw the storyboard for a story video whose script is ready: characters, reference portraits and one first frame per shot (spends content credits).",
+  input: v.object({ storyId: uuid("storyId") }),
+  risk: "MEDIUM",
+  idempotent: true,
+  request: ({ storyId }) => ({ method: "POST", path: `/stories/${seg(storyId)}/storyboard` }),
+});
+
+export const renderStoryVideo = writeTool({
+  name: "render_story_video",
+  description: "Render a story video whose storyboard is ready (spends content credits). Large renders come back awaiting_approval: tell the person to approve it in Content.",
+  input: v.object({ storyId: uuid("storyId") }),
+  risk: "MEDIUM",
+  idempotent: true,
+  request: ({ storyId }) => ({ method: "POST", path: `/stories/${seg(storyId)}/render` }),
+});
+
 /** The content producer's department tools (plus read access to playbooks and brand). */
 export function contentTools(): AnyAgentTool[] {
-  return [listVideos, getVideo, getVideoMetrics, createVideo, retryVideo, listCarousels, getCarousel, createCarousel, retryCarousel, listLibraryAssets, listTemplates, remixTemplate, listPlaybooks, getBrandKit, listKits];
+  return [listVideos, getVideo, getVideoMetrics, createVideo, retryVideo, listCarousels, getCarousel, createCarousel, retryCarousel, listLibraryAssets, listTemplates, remixTemplate, listStoryVideos, getStoryVideo, startStoryVideo, reviseStoryVideo, storyboardStoryVideo, renderStoryVideo, ...shortVideoTools, listPlaybooks, getBrandKit, listKits];
 }

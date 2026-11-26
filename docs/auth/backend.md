@@ -173,6 +173,20 @@ Every route and why. "Also person-only" means the route additionally refuses the
 | POST | `/api/v1/articles/{article_id}/social` | `content:create` | Makes new social snippets from an article. |
 | GET | `/api/v1/articles/{article_id}/hero-image` | `content:read` | Reads content data. |
 | POST | `/api/v1/articles/{article_id}/retry` | `content:create` | Re-runs article generation; articles are not posted by the backend. |
+| PATCH | `/api/v1/articles/{article_id}/seo` | `content:update` | Edits the meta title, description, slug and keywords. |
+| GET | `/api/v1/articles/{article_id}/cover/search` | `content:update` | Searches Unsplash for a cover; the key stays server-side. |
+| PUT | `/api/v1/articles/{article_id}/cover` | `content:update` | Sets an Unsplash cover (re-read by id). |
+| DELETE | `/api/v1/articles/{article_id}/cover` | `content:update` | Removes the cover. |
+| POST | `/api/v1/articles/{article_id}/publish` | `content:publish` | Sends to WordPress (rails `content.article.publish`); the agent may send drafts only. |
+| PATCH | `/api/v1/articles/{article_id}/schedule` | `content:publish` | Moves a scheduled publish (calendar drag). |
+| DELETE | `/api/v1/articles/{article_id}/schedule` | `content:publish` | Cancels a scheduled publish. |
+| POST | `/api/v1/article-batches` | `content:create` | Queues one paid article per keyword, under the spend caps. |
+| GET | `/api/v1/article-batches` | `content:read` | Reads content data. |
+| GET | `/api/v1/article-batches/{batch_id}` | `content:read` | Reads content data. |
+| POST | `/api/v1/article-batches/{batch_id}/cancel` | `content:update` | Stops the items that have not started. |
+| GET | `/api/v1/integrations/wordpress` | `integration:read` | The connection, never the password. |
+| PUT | `/api/v1/integrations/wordpress` | `integration:connect` | Verifies and saves a WordPress site; the password is sealed. |
+| DELETE | `/api/v1/integrations/wordpress` | `integration:disconnect` | Removes the connection. |
 | GET | `/api/v1/admin/overview` | PLATFORM_ADMIN | Marketer staff (platform), not a workspace role. |
 | GET | `/api/v1/admin/users` | PLATFORM_ADMIN | Marketer staff (platform), not a workspace role. |
 | GET | `/api/v1/admin/users/{user_id}` | PLATFORM_ADMIN | Marketer staff (platform), not a workspace role. |
@@ -305,3 +319,11 @@ Every route and why. "Also person-only" means the route additionally refuses the
 - Analysts and billing can no longer reach routes outside their role (for example billing cannot read content).
 - `POST /api/v1/admin/users/{id}/role` still writes `public.users.role`, which no longer grants anything; platform
   admin is `auth."user".role`.
+
+## Tracker routes
+
+`/api/v1/tracker/*` reuses catalog permissions instead of adding a resource: reads are `content:read`, row writes
+`content:update` (deleting a row `content:delete`), creating a table `playbook:create`, fields and views
+`playbook:update`, deleting a table `playbook:delete`. Two routes are `InRoute`: object search adds `campaign:read`
+for campaigns, and `POST /tracker/ab-tests` adds `playbook:create` when the workspace has no A/B test log yet. The
+reasoning and the full table are in [`docs/tracker.md`](../tracker.md#permissions).

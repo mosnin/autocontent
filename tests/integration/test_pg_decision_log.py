@@ -161,6 +161,11 @@ async def test_service_logs_through_the_repo(pool, user, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
+def _migration_count() -> int:
+    """Forward migrations on disk (rollback files excluded): an upper bound on down steps."""
+    return sum(1 for p in (REPO_ROOT / "db" / "migrations").glob("[0-9]*.sql") if not p.name.endswith(".rollback.sql"))
+
+
 def _run_migrate(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "scripts/migrate.py", *args],
@@ -176,7 +181,9 @@ async def test_migration_0026_apply_rollback_reapply(pool):
     assert up1.returncode == 0, up1.stderr
     assert await exists()
 
-    for _ in range(10):
+    # One step per applied migration at most: bounded by the migration files on
+    # disk, so later migrations never strand the database half rolled back.
+    for _ in range(_migration_count()):
         down = _run_migrate("down", "1")
         assert down.returncode == 0, down.stderr
         if not await exists():

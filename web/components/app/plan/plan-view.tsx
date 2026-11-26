@@ -4,11 +4,12 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { AskPill, Bullet, ButtonLink, Canvas, Card, cx, FilterPill, PageHeader, Segmented, Toolbar, ToolIcon } from "@/design-system";
+import { AskPill, Bullet, ButtonLink, Canvas, Card, cx, FilterPill, Notice, PageHeader, Segmented, Toolbar, ToolIcon } from "@/design-system";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { DepartmentId } from "@/lib/departments";
 import { addDays, dayKey, formatKey, formatTime, useLocalTime } from "../activity/days";
 import { KIND_LABEL, type PlanItem, type PlanKind, type PlanMode, planHref, platformLabel } from "./plan-data";
+import { type Reschedule, useReschedule } from "./reschedule";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DEPT: Record<PlanKind, DepartmentId> = { video: "content", carousel: "content", article: "seo", ad: "paid", campaign: "distribution" };
@@ -25,14 +26,21 @@ function Mark({ status }: { status: string }) {
 }
 
 /** One scheduled item: tool icon, time, title (12px). */
-function Item({ item, local, showTime = true }: { item: PlanItem; local: boolean; showTime?: boolean }) {
+function Item({ item, local, showTime = true, rs }: { item: PlanItem; local: boolean; showTime?: boolean; rs?: Reschedule }) {
   const tool = TOOL_ICON[DEPT[item.kind]];
   const meta = [platformLabel(item.platform), item.playbook].filter(Boolean).join(" · ");
+  const dragging = rs?.draggingId === item.id;
   return (
     <Link
       href={planHref(item)}
-      title={`${KIND_LABEL[item.kind]}: ${item.title}${meta ? ` · ${meta}` : ""}`}
-      className={cx("ds-press flex min-w-0 items-center gap-1.5 rounded-ds-xs px-1 py-[3px] text-[12px] hover:bg-surface-2", isDone(item.status) && "opacity-60")}
+      title={`${KIND_LABEL[item.kind]}: ${item.title}${meta ? ` · ${meta}` : ""}${item.movable ? " · drag to another day" : ""}`}
+      {...(rs?.dragProps(item) ?? {})}
+      className={cx(
+        "ds-press flex min-w-0 items-center gap-1.5 rounded-ds-xs px-1 py-[3px] text-[12px] hover:bg-surface-2",
+        isDone(item.status) && "opacity-60",
+        item.movable && "cursor-grab active:cursor-grabbing",
+        dragging && "opacity-40",
+      )}
     >
       <ToolIcon tone={tool.tone} size={14}>
         {tool.icon}
@@ -48,25 +56,28 @@ function Item({ item, local, showTime = true }: { item: PlanItem; local: boolean
   );
 }
 
+/** A day cell's drop highlight while an item is dragged over it. */
+const dropCls = (rs: Reschedule | undefined, k: string) => cx("transition-[background-color,box-shadow] duration-150", rs?.overDay === k && "bg-ds-accent/10 ring-1 ring-inset ring-ds-accent/50");
+
 function DayNumber({ k, today, faint }: { k: string; today: string; faint?: boolean }) {
   const isToday = k === today;
   return <span className={cx("inline-flex size-5 items-center justify-center rounded-full text-[12px] tabular", isToday ? "bg-ds-accent font-medium text-on-fill" : faint ? "text-fg-faint" : "text-fg-muted")}>{Number(k.slice(8))}</span>;
 }
 
 /** Desktop: 7 columns with hairline borders. Phones: one row per day. */
-function WeekGrid({ days, byDay, today, local }: { days: string[]; byDay: Map<string, PlanItem[]>; today: string; local: boolean }) {
+function WeekGrid({ days, byDay, today, local, rs }: { days: string[]; byDay: Map<string, PlanItem[]>; today: string; local: boolean; rs?: Reschedule }) {
   return (
     <div className="grid divide-y divide-hairline md:grid-cols-7 md:divide-x md:divide-y-0">
       {days.map((k, i) => {
         const items = byDay.get(k) ?? [];
         return (
-          <section key={k} aria-label={formatKey(k, { weekday: "long", month: "long", day: "numeric" })} className={cx("flex min-w-0 flex-col gap-0.5 p-1.5 md:min-h-[360px]", k < today && "bg-surface-2/40")}>
+          <section key={k} aria-label={formatKey(k, { weekday: "long", month: "long", day: "numeric" })} {...(rs?.dropProps(k) ?? {})} className={cx("flex min-w-0 flex-col gap-0.5 p-1.5 md:min-h-[360px]", k < today && "bg-surface-2/40", dropCls(rs, k))}>
             <div className="flex items-center gap-1.5 px-1 pb-1">
               <span className="text-[12px] text-fg-faint">{WEEKDAYS[i]}</span>
               <DayNumber k={k} today={today} />
             </div>
             {items.map((it) => (
-              <Item key={`${it.kind}-${it.id}`} item={it} local={local} />
+              <Item key={`${it.kind}-${it.id}`} item={it} local={local} rs={rs} />
             ))}
             {items.length === 0 && <span className="px-1 text-[12px] text-fg-faint md:hidden">Nothing scheduled</span>}
           </section>
@@ -76,7 +87,7 @@ function WeekGrid({ days, byDay, today, local }: { days: string[]; byDay: Map<st
   );
 }
 
-function MonthGrid({ days, anchor, byDay, today, local }: { days: string[]; anchor: string; byDay: Map<string, PlanItem[]>; today: string; local: boolean }) {
+function MonthGrid({ days, anchor, byDay, today, local, rs }: { days: string[]; anchor: string; byDay: Map<string, PlanItem[]>; today: string; local: boolean; rs?: Reschedule }) {
   const month = anchor.slice(0, 7);
   const withItems = days.filter((k) => k.startsWith(month) && (byDay.get(k)?.length ?? 0) > 0);
   return (
@@ -94,12 +105,12 @@ function MonthGrid({ days, anchor, byDay, today, local }: { days: string[]; anch
             const items = byDay.get(k) ?? [];
             const inMonth = k.startsWith(month);
             return (
-              <div key={k} className={cx("flex min-h-[104px] min-w-0 flex-col gap-0.5 p-1", i % 7 > 0 && "border-l border-hairline", i >= 7 && "border-t border-hairline", !inMonth && "bg-surface-2/40")}>
+              <div key={k} {...(rs?.dropProps(k) ?? {})} className={cx("flex min-h-[104px] min-w-0 flex-col gap-0.5 p-1", i % 7 > 0 && "border-l border-hairline", i >= 7 && "border-t border-hairline", !inMonth && "bg-surface-2/40", dropCls(rs, k))}>
                 <span className="px-0.5 pb-0.5">
                   <DayNumber k={k} today={today} faint={!inMonth} />
                 </span>
                 {items.slice(0, 3).map((it) => (
-                  <Item key={`${it.kind}-${it.id}`} item={it} local={local} showTime={false} />
+                  <Item key={`${it.kind}-${it.id}`} item={it} local={local} showTime={false} rs={rs} />
                 ))}
                 {items.length > 3 && <span className="px-1 text-[12px] text-fg-faint">+{items.length - 3} more</span>}
               </div>
@@ -153,11 +164,14 @@ export function PlanView({
   const pathname = usePathname();
   const local = useLocalTime();
   const [channel, setChannel] = useState("all");
+  const rs = useReschedule();
+  const apply = rs.apply;
+  const all = useMemo(() => apply(items), [apply, items]);
   const today = dayKey(new Date(), local);
   const days = useMemo(() => Array.from({ length: dayCount }, (_, i) => addDays(start, i)), [start, dayCount]);
 
-  const channels = useMemo(() => [...new Set(items.map((i) => i.platform).filter((p): p is string => Boolean(p)))], [items]);
-  const shown = useMemo(() => (channel === "all" ? items : items.filter((i) => i.platform === channel)), [items, channel]);
+  const channels = useMemo(() => [...new Set(all.map((i) => i.platform).filter((p): p is string => Boolean(p)))], [all]);
+  const shown = useMemo(() => (channel === "all" ? all : all.filter((i) => i.platform === channel)), [all, channel]);
 
   const byDay = useMemo(() => {
     const m = new Map<string, PlanItem[]>();
@@ -221,7 +235,12 @@ export function PlanView({
               {summary}
             </span>
           </div>
-          {mode === "week" ? <WeekGrid days={days} byDay={byDay} today={today} local={local} /> : <MonthGrid days={days} anchor={anchor} byDay={byDay} today={today} local={local} />}
+          {rs.error && (
+            <div className="border-b border-hairline px-3.5 py-2">
+              <Notice error={rs.error} />
+            </div>
+          )}
+          {mode === "week" ? <WeekGrid days={days} byDay={byDay} today={today} local={local} rs={rs} /> : <MonthGrid days={days} anchor={anchor} byDay={byDay} today={today} local={local} rs={rs} />}
         </Card>
         <AskPill label="Ask Marketer to fill the gaps" href={`/sessions/new?dept=distribution&q=${encodeURIComponent(askText)}`} />
       </Canvas>

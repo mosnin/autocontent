@@ -69,6 +69,21 @@
   --ds-dur-fast: 220ms;
   --ds-dur-slow: 420ms;
 
+  /* Tags: the colours a person picks for select options (Tracker). Hue and saturation only;
+     each theme sets the lightness of the fill and the text so both stay readable. */
+  --ds-tag-gray: 0 0%;
+  --ds-tag-blue: 214 85%;
+  --ds-tag-green: 145 55%;
+  --ds-tag-orange: 26 85%;
+  --ds-tag-red: 358 75%;
+  --ds-tag-purple: 266 70%;
+  --ds-tag-pink: 326 70%;
+  --ds-tag-teal: 176 60%;
+  --ds-tag-yellow: 46 85%;
+  --ds-tag-fill-l: 60%;
+  --ds-tag-fill-a: 0.17;
+  --ds-tag-fg-l: 76%;
+
   color-scheme: dark;
   background: hsl(var(--ds-bg));
   color: hsl(var(--ds-fg));
@@ -101,6 +116,9 @@
   --ds-shadow-modal: 0 0 0 1px rgb(0 0 0 / 0.06), 0 32px 64px -16px rgb(0 0 0 / 0.25);
   --ds-scrim: rgb(0 0 0 / 0.3);
   --ds-glass: rgb(255 255 255 / 0.7);
+  --ds-tag-fill-l: 52%;
+  --ds-tag-fill-a: 0.14;
+  --ds-tag-fg-l: 30%;
   color-scheme: light;
 }
 
@@ -201,6 +219,32 @@ dialog.ds-modal::backdrop { background: var(--ds-scrim); backdrop-filter: blur(2
 .ds-disclosure[data-open] { grid-template-rows: 1fr; opacity: 1; }
 /* Segmented thumb: slides between options instead of blinking. */
 .ds-seg-thumb { transition: transform var(--ds-dur-fast) var(--ds-ease-out), width var(--ds-dur-fast) var(--ds-ease-out); }
+/* Sheet: a side panel on wide screens, a bottom sheet on phones. Enters and leaves along the same edge. */
+dialog.ds-sheet { margin: 0; inset-block: 0; inset-inline: auto 0; height: 100dvh; max-height: 100dvh; opacity: 1; transform: translateX(0); transition: transform var(--ds-dur-slow) var(--ds-ease-drawer), opacity var(--ds-dur-fast) var(--ds-ease-out), overlay var(--ds-dur-slow) allow-discrete, display var(--ds-dur-slow) allow-discrete; }
+dialog.ds-sheet:not([open]) { transform: translateX(100%); opacity: 0.6; transition-duration: var(--ds-dur-fast); }
+@starting-style { dialog.ds-sheet[open] { transform: translateX(100%); opacity: 0.6; } }
+[dir="rtl"] dialog.ds-sheet:not([open]) { transform: translateX(-100%); }
+dialog.ds-sheet::backdrop { background: var(--ds-scrim); }
+@media (max-width: 640px) {
+  dialog.ds-sheet { inset-inline: 0; inset-block: auto 0; height: auto; max-height: 88dvh; width: 100%; max-width: 100%; }
+  dialog.ds-sheet:not([open]) { transform: translateY(100%); }
+  @starting-style { dialog.ds-sheet[open] { transform: translateY(100%); } }
+}
+/* A step of a flow arriving from the side it was asked for (--ds-step: 1 forward, -1 back). */
+.ds-step { animation: ds-step var(--ds-dur-fast) var(--ds-ease-out) both; }
+@keyframes ds-step { from { opacity: 0; transform: translateX(calc(var(--ds-step, 1) * 12px)); filter: blur(2px); } }
+
+/* Tag (select options): a soft fill of the picked colour with readable text in both themes. */
+.ds-tag { --tag: var(--ds-tag-gray); background: hsl(var(--tag) var(--ds-tag-fill-l) / var(--ds-tag-fill-a)); color: hsl(var(--tag) var(--ds-tag-fg-l)); }
+.ds-tag[data-tone="blue"] { --tag: var(--ds-tag-blue); }
+.ds-tag[data-tone="green"] { --tag: var(--ds-tag-green); }
+.ds-tag[data-tone="orange"] { --tag: var(--ds-tag-orange); }
+.ds-tag[data-tone="red"] { --tag: var(--ds-tag-red); }
+.ds-tag[data-tone="purple"] { --tag: var(--ds-tag-purple); }
+.ds-tag[data-tone="pink"] { --tag: var(--ds-tag-pink); }
+.ds-tag[data-tone="teal"] { --tag: var(--ds-tag-teal); }
+.ds-tag[data-tone="yellow"] { --tag: var(--ds-tag-yellow); }
+.ds-tag-dot { background: hsl(var(--tag) var(--ds-tag-fill-l)); }
 
 @media (prefers-reduced-motion: reduce) {
   .ds *, .ds *::before, .ds *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }

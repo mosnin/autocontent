@@ -29,7 +29,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
   const playbook = new Map((niches ?? []).map((n) => [n.id, n.title]));
 
   const items: PlanItem[] = [
-    ...(calendar ?? []).map((r) => ({ kind: r.kind, id: r.id, title: r.title, status: r.status, platform: r.platform, playbook: playbook.get(r.niche_id) ?? null, at: r.at })),
+    ...(calendar ?? []).map((r) => ({ kind: r.kind, id: r.id, title: r.title, status: r.status, platform: r.platform, playbook: playbook.get(r.niche_id) ?? null, at: r.at, movable: Boolean(r.movable) })),
     ...(imagePosts ?? [])
       .filter((p) => inWindow(p.created_at))
       .map((p) => ({ kind: "carousel" as const, id: p.id, title: p.topic || (p.kind === "carousel" ? "Carousel" : "Image post"), status: p.status, platform: null, playbook: playbook.get(p.niche_id) ?? null, at: p.created_at })),

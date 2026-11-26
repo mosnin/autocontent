@@ -1,6 +1,7 @@
 import { FileText } from "lucide-react";
 import { ArticleDetailView } from "@/components/app/seo/article-detail-view";
 import { ButtonLink, Column, EmptyLine, PageHeader } from "@/design-system";
+import type { WordPressConnection } from "@/lib/seo";
 import type { Article, Niche } from "@/lib/types";
 import { safe } from "@/lib/workspace-server";
 
@@ -19,6 +20,6 @@ export default async function ArticlePage({ params }: { params: Promise<{ id: st
       </>
     );
   }
-  const niche = await safe<Niche>(`/api/v1/niches/${article.niche_id}`);
-  return <ArticleDetailView article={article} niche={niche} />;
+  const [niche, wordpress] = await Promise.all([safe<Niche>(`/api/v1/niches/${article.niche_id}`), safe<WordPressConnection>("/api/v1/integrations/wordpress")]);
+  return <ArticleDetailView article={article} niche={niche} wordpress={wordpress} />;
 }

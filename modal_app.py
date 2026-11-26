@@ -159,6 +159,27 @@ async def render_composition(user_id: str, composition_id: str) -> dict:
 
 @app.function(
     volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 60,
+)
+async def run_short_video(user_id: str, batch_id: str) -> dict:
+    """Render a short-video batch (docs/short-video.md). Spawned by
+    `POST /api/v1/short-videos`, its approve route and item retries. The
+    batch's queued -> running claim makes a duplicate spawn a no-op."""
+    from uuid import UUID
+    from marketer.short_video.pipeline import run_batch
+    from marketer.services.otel import force_flush
+
+    try:
+        result = await run_batch(user_id=user_id, batch_id=UUID(batch_id))
+        artifacts.commit()
+        assets.commit()
+        return {"status": result}
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
     timeout=60 * 30,
 )
 async def run_image_post(user_id: str, image_post_id: str) -> dict:
@@ -363,6 +384,26 @@ async def campaign_tick() -> dict:
 
 
 @app.function(
+    schedule=modal.Cron("*/5 * * * *"),  # every 5 min
+    timeout=60 * 4,
+)
+async def seo_tick() -> dict:
+    """SEO articles (docs/seo-articles.md): send scheduled WordPress publishes
+    that are due (each through the rails), then move bulk batches forward
+    under the spend caps. Both are claim-guarded per item, so an overlapping
+    tick cannot send or start anything twice."""
+    from marketer.articles import bulk, publishing
+    from marketer.services.otel import force_flush
+
+    try:
+        published = await publishing.run_due()
+        batches = await bulk.tick_all(spawn=bulk.modal_spawn)
+        return {"publish": published, "bulk": batches}
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
     schedule=modal.Cron("*/10 * * * *"),  # every 10 min
     timeout=60 * 8,
 )
@@ -436,6 +477,28 @@ async def run_article_pipeline(
         )
         artifacts.commit()
         return article.model_dump(mode="json")
+    finally:
+        force_flush(timeout_ms=5000)
+
+
+@app.function(
+    volumes={"/artifacts": artifacts, "/assets": assets},
+    timeout=60 * 60,
+)
+async def run_story_stage(user_id: str, story_id: str, stage: str, arg: str | None = None) -> dict:
+    """One story-video stage (script, revise, storyboard, frame, render).
+    Spawned by backend/routes/stories.py after it wins the row's status
+    transition. Safe to run again: checkpoints skip finished units and the
+    meter never charges a unit twice (docs/story-video.md)."""
+    from uuid import UUID
+
+    from marketer.services.otel import force_flush
+    from marketer.story.pipeline import run_stage
+
+    try:
+        story = await run_stage(UUID(story_id), user_id=user_id, stage=stage, arg=arg)
+        artifacts.commit()
+        return {"id": story_id, "status": story.status.value}
     finally:
         force_flush(timeout_ms=5000)
 

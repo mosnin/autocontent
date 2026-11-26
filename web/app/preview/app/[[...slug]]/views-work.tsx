@@ -9,6 +9,7 @@ import { PlaybooksView } from "@/components/app/playbooks/playbooks-view";
 import { ArticleDetailView } from "@/components/app/seo/article-detail-view";
 import { SeoView } from "@/components/app/seo/seo-view";
 import { estimateVideoCostUsd } from "@/lib/cost-estimator";
+import { FX_BATCHES, FX_SEO_ARTICLE, FX_SEO_LIVE, FX_SEO_NO_COVER, FX_SEO_SCHEDULED, FX_SEO_UNKNOWN, FX_UNSPLASH, FX_WORDPRESS, FX_WORDPRESS_OFF } from "@/lib/fixtures-seo";
 import {
   FX_ARTICLES,
   FX_AUDIO,
@@ -49,6 +50,13 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   "content/videos/v9": () => <VideoDetailView preview job={FX_JOBS[2]} niche={FX_NICHES[1]} metrics={null} costUsd="0.4100" estimate={estimateVideoCostUsd(FX_NICHES[1])} />,
   seo: () => <SeoView preview articles={FX_ARTICLES} niches={FX_NICHES} />,
   "seo/empty": () => <SeoView preview articles={[]} niches={FX_NICHES} />,
+  // SEO articles: bulk batches (one paused at the spend cap), and an article's cover, publishing, metadata and sources.
+  "seo/bulk": () => <SeoView preview articles={FX_ARTICLES} niches={FX_NICHES} batches={FX_BATCHES} />,
+  "seo/a1/publish": () => <ArticleDetailView preview article={FX_SEO_ARTICLE} niche={FX_NICHES[0]} wordpress={FX_WORDPRESS} coverFixture={FX_UNSPLASH} />,
+  "seo/a1/connect": () => <ArticleDetailView preview article={FX_SEO_NO_COVER} niche={FX_NICHES[0]} wordpress={FX_WORDPRESS_OFF} coverFixture={FX_UNSPLASH} />,
+  "seo/a1/scheduled": () => <ArticleDetailView preview article={FX_SEO_SCHEDULED} niche={FX_NICHES[0]} wordpress={FX_WORDPRESS} coverFixture={FX_UNSPLASH} />,
+  "seo/a1/live": () => <ArticleDetailView preview article={FX_SEO_LIVE} niche={FX_NICHES[0]} wordpress={FX_WORDPRESS} coverFixture={FX_UNSPLASH} />,
+  "seo/a1/unknown": () => <ArticleDetailView preview article={FX_SEO_UNKNOWN} niche={FX_NICHES[0]} wordpress={FX_WORDPRESS} coverFixture={FX_UNSPLASH} />,
   "seo/a1": () => <ArticleDetailView preview article={FX_ARTICLES[0]} niche={FX_NICHES[0]} />,
   "seo/a2": () => <ArticleDetailView preview article={FX_ARTICLES[1]} niche={FX_NICHES[1]} />,
   "seo/a3": () => <ArticleDetailView preview article={FX_ARTICLES[2]} niche={FX_NICHES[0]} />,

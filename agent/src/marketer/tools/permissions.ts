@@ -42,6 +42,15 @@ export const TOOL_PERMISSIONS: Readonly<Record<string, Permission>> = Object.fre
   list_library_assets: "content:read",
   list_templates: "content:read",
   remix_template: "content:create",
+  list_story_videos: "content:read",
+  get_story_video: "content:read",
+  start_story_video: "content:create",
+  revise_story_video: "content:create",
+  storyboard_story_video: "content:create",
+  render_story_video: "content:create",
+  list_short_videos: "content:read",
+  get_short_video: "content:read",
+  create_short_video: "content:create",
   // seo
   list_articles: "content:read",
   get_article: "content:read",
@@ -78,6 +87,13 @@ export const TOOL_PERMISSIONS: Readonly<Record<string, Permission>> = Object.fre
   get_spend_today: "spend:read",
   get_spend_history: "spend:read",
   get_metrics_summary: "analytics:read",
+  // tracker (docs/tracker.md): rows are content; the agent never deletes rows or reshapes tables
+  list_trackers: "content:read",
+  get_tracker: "content:read",
+  list_tracker_rows: "content:read",
+  add_tracker_row: "content:update",
+  update_tracker_row: "content:update",
+  log_ab_test: "content:update",
   // proposals (the autopilot hands a plan to the web app for a person to approve; it does not reach a backend route)
   propose_next_moves: "agent:chat",
 });
