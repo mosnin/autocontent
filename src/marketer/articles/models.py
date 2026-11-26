@@ -92,6 +92,8 @@ class SectionContext(BaseModel):
     research: SerpAnalysis | None = None
     previousSections: list[str] = Field(default_factory=list)
     revisionNotes: list[str] = Field(default_factory=list)
+    # Web research as an <untrusted_content> block (articles/research.py).
+    webResearch: str = ""
 
 
 class InterlinkSuggestion(BaseModel):
@@ -189,3 +191,16 @@ class Article(BaseModel):
     error: str | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
+    # SEO articles (0035, docs/seo-articles.md). ``keywords`` above holds the
+    # secondary keywords; ``meta_title`` is the SEO title (title is the H1).
+    research: dict | None = None
+    meta_title: str | None = None
+    cover_image: dict | None = None
+    publish_status: str = "none"
+    publish_mode: str | None = None
+    publish_at: datetime | None = None
+    publish_error: str | None = None
+    wp_post_id: int | None = None
+    wp_post_url: str | None = None
+    published_at: datetime | None = None
+    batch_id: UUID | None = None

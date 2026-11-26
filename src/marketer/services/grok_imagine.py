@@ -35,9 +35,11 @@ from typing import Any
 
 import httpx
 from opentelemetry import trace
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
+from ..observability import model_span
+from .retry_policy import is_transient_http_error, is_unsent_or_refused
 from .spend_context import SpendContext
 from .xai_pricing import imagine_video_cost
 
@@ -71,11 +73,16 @@ def _image_to_data_uri(path: Path) -> str:
     return f"data:image/{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
 
 
+# Submitting queues a PAID render and the API takes no idempotency key, so a
+# second submit after a lost answer pays twice for one scene. Retried only
+# when the first attempt never left this machine or was refused with 429;
+# a timeout or 5xx after sending fails the scene instead (the pipeline's
+# provider fallback and stage resume handle that, with the spend visible).
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type((httpx.HTTPError,)),
+    retry=retry_if_exception(is_unsent_or_refused),
 )
 async def _submit(client: httpx.AsyncClient, body: dict[str, Any]) -> str:
     resp = await client.post("/videos/generations", json=body)
@@ -90,7 +97,7 @@ async def _submit(client: httpx.AsyncClient, body: dict[str, Any]) -> str:
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type((httpx.HTTPError,)),
+    retry=retry_if_exception(is_transient_http_error),
 )
 async def _poll_once(client: httpx.AsyncClient, request_id: str) -> dict[str, Any]:
     """One status GET, retried on transient transport/HTTP errors so a
@@ -118,7 +125,7 @@ async def _poll(client: httpx.AsyncClient, request_id: str) -> dict[str, Any]:
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type((httpx.HTTPError,)),
+    retry=retry_if_exception(is_transient_http_error),
 )
 async def _download(client: httpx.AsyncClient, url: str, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -156,26 +163,36 @@ async def animate(
         "resolution": resolution,
     }
 
-    async with _client() as client:
-        request_id = await _submit(client, body)
-        result = await _poll(client, request_id)
-        video = result.get("video") or {}
-        video_url = video.get("url")
-        if not video_url:
-            raise GrokImagineError(f"job {request_id} done but no video.url: {result!r}")
-        await _download(client, video_url, out_path)
+    async with model_span(
+        "generate_content",
+        model=SKU,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        name=f"gen_ai.video {SKU}",
+        attributes={"gen_ai.output.type": "video", "marketer.video.duration_sec": duration, "marketer.video.resolution": resolution},
+    ) as call:
+        # The motion prompt only: the keyframe (a data URI) never goes on a span.
+        call.prompt(motion_prompt)
+        async with _client() as client:
+            request_id = await _submit(client, body)
+            result = await _poll(client, request_id)
+            video = result.get("video") or {}
+            video_url = video.get("url")
+            if not video_url:
+                raise GrokImagineError(f"job {request_id} done but no video.url: {result!r}")
+            await _download(client, video_url, out_path)
 
-    if spend is not None:
-        billed_seconds = float(video.get("duration", duration))
-        cost = imagine_video_cost(billed_seconds)
-        span = trace.get_current_span()
-        span.set_attribute("xai.sku", SKU)
-        span.set_attribute("xai.billed_seconds", billed_seconds)
-        span.set_attribute("marketer.cost_usd", str(cost))
-        await spend.log(
-            provider=PROVIDER,
-            sku=SKU,
-            units=Decimal(str(billed_seconds)),
-            cost_usd=cost,
-        )
+        if spend is not None:
+            billed_seconds = float(video.get("duration", duration))
+            cost = imagine_video_cost(billed_seconds)
+            span = trace.get_current_span()
+            span.set_attribute("xai.sku", SKU)
+            span.set_attribute("xai.billed_seconds", billed_seconds)
+            call.cost(cost)
+            await spend.log(
+                provider=PROVIDER,
+                sku=SKU,
+                units=Decimal(str(billed_seconds)),
+                cost_usd=cost,
+            )
     return out_path

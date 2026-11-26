@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "./signed-in";
 
 import { Reveal } from "@/components/marketing/reveal";
 import TextBurnNeon from "@/components/pixel-perfect/text-burn-neon";
@@ -33,7 +33,7 @@ export function FinalCta() {
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <SignedIn>
               <Button asChild size="xl">
-                <Link href="/dashboard">Open your dashboard</Link>
+                <Link href="/home">Open Marketer</Link>
               </Button>
             </SignedIn>
             <SignedOut>

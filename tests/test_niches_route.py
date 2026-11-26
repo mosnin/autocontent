@@ -12,6 +12,7 @@ from uuid import UUID
 from fastapi.testclient import TestClient
 
 from marketer.models import Niche, PostingWindow
+from tests.auth_helpers import ctx_for
 
 # ---------------------------------------------------------------------------
 # Constants / helpers shared across tests
@@ -64,13 +65,13 @@ def _reset_limiter():
 
 def _make_authed_client(monkeypatch) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake_require_user():
-        return AuthCtx(user_id=_USER_ID, email="t@t.com")
+        return ctx_for("owner", user_id=_USER_ID, email="t@t.com")
 
     from backend.main import create_app
     app = create_app()
@@ -123,7 +124,7 @@ def test_list_niches_without_auth_returns_401(monkeypatch):
     """No auth header → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app
@@ -156,6 +157,70 @@ def test_create_niche_returns_201(monkeypatch):
     data = resp.json()
     assert data["title"] == "Cooking Tips"
     assert data["user_id"] == _USER_ID
+
+
+def test_create_niche_reaches_the_real_repo_insert(monkeypatch):
+    """Regression: the route passes body.model_dump(), so posting windows
+    arrive at niches_repo.create as dicts. The repo used to call
+    .model_dump() on each and POST /niches returned 500 ('dict' object has
+    no attribute 'model_dump'). Only the pool is faked here."""
+    _reset_limiter()
+    import json
+
+    import marketer.repos.niches as niches_repo
+
+    captured: list[tuple] = []
+
+    class _Pool:
+        async def fetchrow(self, sql, *args):
+            captured.append(args)
+            return {"stub": True}
+
+    async def _get_pool():
+        return _Pool()
+
+    monkeypatch.setattr(niches_repo, "get_pool", _get_pool)
+    monkeypatch.setattr(niches_repo, "_row_to_niche", lambda row: _make_niche())
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.post("/api/v1/niches", json=_VALID_PAYLOAD, headers={"Authorization": "Bearer mkt_tok"})
+    assert resp.status_code == 201, resp.text
+    assert len(captured) == 1
+    windows = json.loads(captured[0][9])
+    assert windows == [PostingWindow(hour=9, minute=0, tz="UTC").model_dump()]
+
+
+def test_update_niche_posting_windows_reach_the_real_repo_update(monkeypatch):
+    """Same bug on PUT (partial update): body.model_dump(exclude_unset=True) hands the repo
+    dict posting windows."""
+    _reset_limiter()
+    import json
+
+    import marketer.repos.niches as niches_repo
+
+    captured: list[tuple] = []
+
+    class _Pool:
+        async def fetchrow(self, sql, *args):
+            captured.append((sql, args))
+            return {"stub": True}
+
+    async def _get_pool():
+        return _Pool()
+
+    monkeypatch.setattr(niches_repo, "get_pool", _get_pool)
+    monkeypatch.setattr(niches_repo, "_row_to_niche", lambda row: _make_niche())
+
+    client = _make_authed_client(monkeypatch)
+    resp = client.put(
+        f"/api/v1/niches/{_NICHE_ID}",
+        json={"posting_windows": [{"hour": 18, "minute": 30, "tz": "UTC"}]},
+        headers={"Authorization": "Bearer mkt_tok"},
+    )
+    assert resp.status_code == 200, resp.text
+    sql, args = captured[-1]
+    assert "posting_windows = $1::jsonb" in sql
+    assert json.loads(args[0]) == [PostingWindow(hour=18, minute=30, tz="UTC").model_dump()]
 
 
 def test_create_niche_missing_field_returns_422(monkeypatch):
@@ -205,7 +270,7 @@ def test_create_niche_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app
@@ -264,7 +329,7 @@ def test_get_niche_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app
@@ -349,7 +414,7 @@ def test_delete_niche_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app

@@ -12,6 +12,12 @@ fan-out tasks within one job race past the pre-stage `_ensure_cap`
 check. An in-process `asyncio.Event` is also flipped so the rest of the
 job can short-circuit cheaply.
 
+Niche-less spend (``niche_id=None``: template remixes, ad-campaign decision
+costs) is metered like any other: the ledger row is written, prepaid credit is
+debited and the user's global daily cap applies. Only the per-niche cap is
+skipped, because there is no niche for it to cap; a ``cap_usd`` passed along
+with ``niche_id=None`` is ignored rather than compared against an empty sum.
+
 Both caps are optional:
 - ``cap_usd=None`` skips per-niche post-log checks.
 - ``global_cap_usd=None`` skips global post-log checks.
@@ -40,14 +46,14 @@ class SpendRecorder(Protocol):
 
 
 class TodaySpendReader(Protocol):
-    async def __call__(self, *, user_id: str, niche_id: UUID) -> Decimal: ...
+    async def __call__(self, *, user_id: str, niche_id: UUID | None) -> Decimal: ...
 
 
 class TotalSpendReader(Protocol):
     async def __call__(self, *, user_id: str) -> Decimal: ...
 
 
-async def _default_today_spend(*, user_id: str, niche_id: UUID) -> Decimal:
+async def _default_today_spend(*, user_id: str, niche_id: UUID | None) -> Decimal:
     from ..repos import spend as spend_repo
 
     return await spend_repo.today_spend_usd(user_id=user_id, niche_id=niche_id)
@@ -67,6 +73,7 @@ class SpendContext:
     record: SpendRecorder
     article_id: UUID | None = None
     image_post_id: UUID | None = None
+    ad_campaign_id: UUID | None = None
     cap_usd: Decimal | None = None
     today_spend: TodaySpendReader = field(default=_default_today_spend)
     global_cap_usd: Decimal | None = None
@@ -80,6 +87,20 @@ class SpendContext:
     def _trip(self, scope: str) -> None:
         self.abort_scope = scope
         self.abort_event.set()
+
+    @property
+    def _niche_cap(self) -> Decimal | None:
+        """The per-niche cap, or None when it cannot apply (no niche)."""
+        return self.cap_usd if self.niche_id is not None else None
+
+    @property
+    def _subject(self) -> str:
+        """Who the spend belongs to, for messages: never 'niche None'."""
+        if self.niche_id is not None:
+            return f"niche {self.niche_id}"
+        if self.ad_campaign_id is not None:
+            return f"ad campaign {self.ad_campaign_id}"
+        return f"user {self.user_id}"
 
     async def ensure_can_spend(self, estimated_usd: Decimal) -> None:
         """Refuse a provider call if it would exceed today's cap.
@@ -96,14 +117,15 @@ class SpendContext:
 
         if self.abort_event.is_set():
             raise SpendCapExceeded(
-                f"niche {self.niche_id} spend aborted: {self.abort_scope} "
+                f"{self._subject} spend aborted: {self.abort_scope} "
                 "limit already reached",
                 scope=self.abort_scope,
             )
 
-        if self.cap_usd is not None:
+        niche_cap = self._niche_cap
+        if niche_cap is not None:
             spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
-            if spent + estimated_usd > self.cap_usd:
+            if spent + estimated_usd > niche_cap:
                 self._trip("niche")
                 raise SpendCapExceeded(
                     f"niche {self.niche_id} pre-flight cap check: "
@@ -156,6 +178,7 @@ class SpendContext:
                 job_id=self.job_id,
                 article_id=self.article_id,
                 image_post_id=self.image_post_id,
+                ad_campaign_id=self.ad_campaign_id,
                 provider=provider,
                 sku=sku,
                 units=units,
@@ -207,9 +230,10 @@ class SpendContext:
                 after_spend=True,
             )
 
-        if self.cap_usd is not None:
+        niche_cap = self._niche_cap
+        if niche_cap is not None:
             spent = await self.today_spend(user_id=self.user_id, niche_id=self.niche_id)
-            if spent >= self.cap_usd:
+            if spent >= niche_cap:
                 self._trip("niche")
                 raise SpendCapExceeded(
                     f"niche {self.niche_id} hit daily cap during job: "
@@ -243,6 +267,7 @@ async def default_context(
     job_id: UUID | None,
     article_id: UUID | None = None,
     image_post_id: UUID | None = None,
+    ad_campaign_id: UUID | None = None,
     cap_usd: Decimal | None = None,
 ) -> SpendContext:
     """Build the canonical SpendContext for a pipeline job.
@@ -263,6 +288,7 @@ async def default_context(
         job_id=job_id,
         article_id=article_id,
         image_post_id=image_post_id,
+        ad_campaign_id=ad_campaign_id,
         record=_default_record,
         cap_usd=cap_usd,
         global_cap_usd=global_cap_usd,

@@ -7,6 +7,7 @@ cent once per voice per deployment.
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, status
@@ -16,6 +17,7 @@ from marketer.config import settings
 from marketer.services import openai_tts
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter()
 
@@ -34,7 +36,7 @@ def preview_path(voice: str) -> Path:
     return Path(settings.assets_dir) / "voice_previews" / f"{voice}.wav"
 
 
-@router.get("/{voice}/preview")
+@router.get("/{voice}/preview", dependencies=[user_rate_limit("voices.preview", "30/minute")])
 async def voice_preview(voice: str, ctx: AuthCtx = CurrentUser) -> FileResponse:
     if voice not in ALLOWED_VOICES:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="unknown voice")
@@ -46,9 +48,11 @@ async def voice_preview(voice: str, ctx: AuthCtx = CurrentUser) -> FileResponse:
             # No SpendContext: previews are an operator cost, not niche spend.
             await openai_tts.synthesize(PREVIEW_LINE, path, voice=voice)
         except Exception as e:  # noqa: BLE001 — surface as a clean 502
+            # Provider text stays in the log (it can name keys, orgs, models).
+            logging.getLogger(__name__).warning("voice preview synthesis failed", exc_info=True)
             raise HTTPException(
                 status.HTTP_502_BAD_GATEWAY,
-                detail=f"voice preview synthesis failed: {e}",
+                detail="voice preview synthesis failed",
             ) from e
 
     return FileResponse(path, media_type="audio/wav")

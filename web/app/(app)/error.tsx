@@ -1,9 +1,6 @@
 "use client";
 
-import Link from "next/link";
-
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button, ButtonLink, Card } from "@/design-system";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -12,29 +9,21 @@ interface ErrorProps {
 
 export default function AppError({ error, reset }: ErrorProps) {
   return (
-    <main className="flex min-h-[60vh] items-center justify-center p-6">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="flex flex-col items-center gap-3 text-center">
-          <CardTitle>Something went wrong</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          {/* Never render error.message here — it can leak internals. */}
-          <p className="text-sm text-muted-foreground">
-            An unexpected error occurred. Please try again.
-          </p>
-          {error.digest && (
-            <p className="mt-2 font-mono text-xs text-muted-foreground/70">
-              Error digest: {error.digest}
-            </p>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-center gap-3">
-          <Button onClick={reset}>Try again</Button>
-          <Button variant="outline" asChild>
-            <Link href="/dashboard">Go to dashboard</Link>
+    <div className="flex min-h-0 flex-1 items-center justify-center p-6">
+      <Card className="w-full max-w-[420px] p-5">
+        <h1 className="text-[15px] font-medium">Something went wrong</h1>
+        {/* Never render error.message here: it can leak internals. */}
+        <p className="mt-1.5 text-[13px] text-fg-muted">An unexpected error occurred. Try again, or go back home.</p>
+        {error.digest && <p className="mt-2 font-mono text-[11.5px] text-fg-faint">Error digest: {error.digest}</p>}
+        <div className="mt-4 flex gap-1.5">
+          <Button variant="primary" onClick={reset}>
+            Try again
           </Button>
-        </CardFooter>
+          <ButtonLink href="/home" variant="secondary">
+            Go home
+          </ButtonLink>
+        </div>
       </Card>
-    </main>
+    </div>
   );
 }

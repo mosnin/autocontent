@@ -114,8 +114,14 @@ user's payment method on the ad platform — so it is engineered around a strict
 
 ## Multi-tenant
 
-Every user is a Clerk identity. Per-user records (`niches`, `jobs`,
-`spend_ledger`) live in Supabase Postgres. Posting goes through one
+People sign in with Better Auth, which runs inside the web app and keeps
+its tables in the Postgres schema `auth`. A person belongs to one or more
+**workspaces** and holds one role in each (owner, admin, marketer, analyst,
+billing); roles map to permissions from one catalog,
+[`docs/auth/permissions.json`](docs/auth/permissions.json), enforced by the
+web app, the backend and the agent harness alike. Product records (`niches`,
+`jobs`, `spend_ledger`) are keyed by the workspace's tenant id and live in
+Supabase Postgres. See [`docs/auth/README.md`](docs/auth/README.md). Posting goes through one
 Ayrshare account using per-user profile keys. Artifacts on the Modal
 volume are partitioned by `user_id`. Each niche has its own daily spend
 cap that the pipeline checks before every credit-spending stage.
@@ -138,9 +144,10 @@ backend/               # FastAPI on Modal — REST surface for the web UI
   main.py
   auth.py              # Clerk JWT verification
   routes/              # users, niches, jobs
-web/                   # Next.js (App Router) + Clerk
-  app/                 # /, /onboarding, /dashboard, /queue
-  lib/api.ts           # JWT-attaching fetch client
+web/                   # Next.js (App Router) + Better Auth (docs/auth/web.md)
+  app/                 # (app) product, (auth) sign-in pages, (onboarding), api/auth
+  lib/auth/            # Better Auth config, session helpers, the permission catalog
+  lib/api.ts           # attaches a server-minted backend JWT
 db/migrations/         # plain SQL, applied in filename order
 modal_app.py           # Modal entry: run_pipeline, nightly_batch, api (ASGI)
 ```
@@ -160,7 +167,8 @@ modal deploy modal_app.py
 # 3. Pre-warm onboarding voice previews (one-time)
 modal run modal_app.py::prewarm_voice_previews
 
-# 4. Start the web UI
+# 4. Start the web UI (web/.env.example: BETTER_AUTH_SECRET, BETTER_AUTH_URL,
+#    AUTH_DATABASE_URL; migration 0030 creates the auth schema)
 cd web && npm install && npm run dev
 ```
 
@@ -180,6 +188,7 @@ falls back) and the rest of the platform is unaffected. Set them as
 | `MARKETER_PIXABAY_API_KEY` | Stock music fallback chain |
 | `MARKETER_WASABI_*` (`wasabi_enabled=true`, endpoint, region, bucket, keys) | Durable object storage for every produced artifact + template reference mirroring |
 | `MARKETER_FAL_PRICE_OVERRIDES` | JSON `{model_id: usd_per_second}` correcting pinned fal prices without a deploy |
+| `MARKETER_AGENT_SERVICE_TOKEN` | Agent harness delegation: a bearer equal to this token plus an `x-tenant-id: <user_id>` header acts as that user (role forced to `user`, never admin). Empty disables it |
 
 Deploy checklist when bumping to this version: `marketer-migrate up`
 (migrations through 0023), `modal deploy modal_app.py`, then set any new

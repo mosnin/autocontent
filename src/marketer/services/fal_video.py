@@ -39,6 +39,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from ..config import settings
 from ..logging import get_logger
+from .retry_policy import is_unsent_or_refused
 from .spend_context import SpendContext
 
 log = get_logger(__name__)
@@ -370,21 +371,17 @@ def _is_retryable(exc: BaseException) -> bool:
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception(_is_retryable),
+    retry=retry_if_exception(is_unsent_or_refused),
 )
 async def _submit(client: httpx.AsyncClient, model_id: str, body: dict) -> dict:
-    # NOTE on double-submit risk: _submit enqueues a *paid* render. A
-    # retry here only ever fires for transport errors (timeout/connection
-    # drop) or 429/5xx — never for a request fal actually rejected — but
-    # a transport error can still mean "the POST landed and was queued,
-    # only the response was lost," in which case this retry re-submits
-    # and pays twice. fal's queue API has no client-supplied idempotency
-    # key, so this residual risk can't be closed from here; it's judged
-    # acceptable because it requires both a network fault AND
-    # server-side success on the very request that faulted, whereas
-    # never retrying transport errors would fail every render that hits
-    # a blip. Reraise-on-exhaustion still surfaces the failure to the
-    # caller rather than silently swallowing spend.
+    # _submit enqueues a *paid* render and fal's queue API takes no
+    # client-supplied idempotency key. A read timeout, a dropped connection
+    # or a 5xx can all mean "the POST landed and was queued, only the answer
+    # was lost", and a retry then pays twice for one scene. So this retries
+    # only when the request provably never reached fal (connect failure,
+    # connect or pool timeout) or fal refused to queue it (429). Anything
+    # else fails the scene: the pipeline's provider fallback and stage
+    # resume take it from there, with the spend visible instead of doubled.
     resp = await client.post(f"{QUEUE_BASE}/{model_id}", json=body)
     resp.raise_for_status()
     out = resp.json()

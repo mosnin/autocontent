@@ -1,0 +1,21 @@
+{
+  "name": "@agent-starter/flue",
+  "version": "0.1.0",
+  "description": "Flue harness integration: useAgentStarter() hook, guarded tools, approvals, budgets, memory and telemetry for Flue agents on Cloudflare.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./cloudflare": "./src/cloudflare.ts"
+  },
+  "dependencies": {
+    "@agent-starter/core": "file:../core",
+    "@agent-starter/integrations": "file:../integrations",
+    "@flue/runtime": "2.3.0",
+    "@valibot/to-json-schema": "^1.8.0",
+    "hono": "^4.13.17",
+    "valibot": "^1.5.0",
+    "@earendil-works/pi-ai": "1.4.0"
+  }
+}

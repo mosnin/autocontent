@@ -2,7 +2,7 @@
 //
 // Reads go through SWR using BRAND_KIT_KEY + `clientFetch` (see
 // lib/client-fetcher.ts). The write goes through the same /api/proxy/... handler
-// so the Clerk JWT is attached server-side. NOTHING here may import server-only
+// so the backend JWT is attached server-side. NOTHING here may import server-only
 // modules — this file runs in the browser.
 
 import { ApiError, clientFetch } from "@/lib/client-fetcher";

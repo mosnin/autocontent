@@ -12,6 +12,7 @@ from uuid import UUID, uuid4
 from fastapi.testclient import TestClient
 
 from marketer.models import Job, JobStatus, PostMetrics
+from tests.auth_helpers import ctx_for
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -70,13 +71,13 @@ def _reset_limiter():
 
 def _make_authed_client(monkeypatch, user_id: str = _USER_ID) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake_require_user():
-        return AuthCtx(user_id=user_id, email="t@t.com")
+        return ctx_for("owner", user_id=user_id, email="t@t.com")
 
     from backend.main import create_app
     app = create_app()

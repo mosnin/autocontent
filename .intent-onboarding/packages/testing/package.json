@@ -1,0 +1,8 @@
+{
+  "name": "@intent-onboarding/testing",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Persona replay harness: run simulated users through the real engine on a virtual clock and assert the doctrine.",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" }
+}

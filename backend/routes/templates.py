@@ -30,6 +30,7 @@ from marketer.repos import admin_audit
 from marketer.repos import templates as templates_repo
 
 from ..auth import AuthCtx, CurrentUser, require_admin
+from ..security import user_rate_limit
 
 router = APIRouter()
 
@@ -133,15 +134,15 @@ def _decode_image(b64: str, dest: Path) -> Path:
 class TemplateCreate(BaseModel):
     kind: Literal["video", "image", "carousel"]
     name: str = Field(min_length=1, max_length=120)
-    description: str = ""
+    description: str = Field(default="", max_length=2000)
     prompt: str = Field(min_length=1, max_length=8000)
     reference_image_b64: str = ""
     is_published: bool = False
 
 
 class TemplateUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=2000)
     prompt: str | None = Field(default=None, max_length=8000)
     is_published: bool | None = None
 
@@ -183,7 +184,12 @@ async def template_reference(template_id: UUID, ctx: AuthCtx = CurrentUser):
     return FileResponse(path, media_type=_sniff_content_type(path))
 
 
-@router.post("/{template_id}/remix", status_code=status.HTTP_202_ACCEPTED)
+# Each remix writes an upload to the volume and spawns paid image generation.
+@router.post(
+    "/{template_id}/remix",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[user_rate_limit("templates.remix", "10/minute")],
+)
 async def remix_template(
     template_id: UUID, body: RemixRequest, ctx: AuthCtx = CurrentUser,
     _size_ok: None = Depends(_bounded_body),

@@ -14,6 +14,7 @@ from opentelemetry import trace
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from ..config import settings
+from ..observability import model_span
 from .openai_pricing import tts_cost, tts_cost_estimated
 from .retry_policy import is_transient_openai_error
 from .spend_context import SpendContext
@@ -28,7 +29,12 @@ _client: AsyncOpenAI | None = None
 def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=settings.openai_api_key)
+        # Explicit timeout (the SDK default is 10 minutes). max_retries=0: the
+        # tenacity policy on the call is the only retry, so attempts do not
+        # multiply (3 here x 3 in the SDK).
+        _client = AsyncOpenAI(
+            api_key=settings.openai_api_key, timeout=120.0, max_retries=0
+        )
     return _client
 
 
@@ -83,19 +89,30 @@ async def synthesize(
     if style_directions:
         kwargs["instructions"] = style_directions
 
-    await _call_api(out_path, kwargs)
+    async with model_span(
+        "generate_content",
+        model=SKU,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        name=f"gen_ai.speech {SKU}",
+        attributes={"gen_ai.output.type": "speech", "marketer.tts.voice": voice, "marketer.tts.chars": len(text)},
+    ) as call:
+        # The script is content (masked, or left out in metadata mode); the
+        # style directions are ours.
+        call.prompt(([{"role": "system", "content": style_directions}] if style_directions else []) + [{"role": "user", "content": text}])
+        await _call_api(out_path, kwargs)
 
-    if spend is not None:
-        seconds = _wav_duration_seconds(out_path)
-        cost = tts_cost(seconds)
-        span = trace.get_current_span()
-        span.set_attribute("openai.sku", SKU)
-        span.set_attribute("openai.tts_seconds", round(seconds, 4))
-        span.set_attribute("marketer.cost_usd", str(cost))
-        await spend.log(
-            provider=PROVIDER,
-            sku=SKU,
-            units=Decimal(str(round(seconds, 4))),
-            cost_usd=cost,
-        )
+        if spend is not None:
+            seconds = _wav_duration_seconds(out_path)
+            cost = tts_cost(seconds)
+            span = trace.get_current_span()
+            span.set_attribute("openai.sku", SKU)
+            span.set_attribute("openai.tts_seconds", round(seconds, 4))
+            call.cost(cost)
+            await spend.log(
+                provider=PROVIDER,
+                sku=SKU,
+                units=Decimal(str(round(seconds, 4))),
+                cost_usd=cost,
+            )
     return out_path

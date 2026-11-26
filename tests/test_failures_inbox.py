@@ -17,6 +17,7 @@ from fastapi.testclient import TestClient
 
 from marketer.articles.models import Article, ArticleStatus
 from marketer.repos import jobs as jobs_repo
+from tests.auth_helpers import ctx_for
 
 # ---------------------------------------------------------------------------
 # classify_failure — pure function, exhaustive over known prefixes
@@ -125,11 +126,11 @@ def _make_app(monkeypatch):
     """Mount only the failures router on a bare app, bypassing auth —
     mirrors tests/test_jobs_route.py's pattern but without booting the
     full backend.main app, since this router isn't registered there yet."""
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
     from backend.routes import failures
 
     async def _fake_require_user():
-        return AuthCtx(user_id=_USER_ID, email="t@t.com")
+        return ctx_for("owner", user_id=_USER_ID, email="t@t.com")
 
     app = FastAPI()
     app.include_router(failures.router, prefix="/api/v1/failures")

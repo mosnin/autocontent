@@ -22,7 +22,8 @@ async def send_email(*, to: str, subject: str, html: str) -> bool:
     if not settings.resend_api_key or not to:
         return False
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
+        # One attempt: a second send after a lost answer is a duplicate email.
+        async with httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=5.0)) as client:
             resp = await client.post(
                 _RESEND_URL,
                 headers={"Authorization": f"Bearer {settings.resend_api_key}"},
@@ -41,7 +42,7 @@ async def send_email(*, to: str, subject: str, html: str) -> bool:
             return False
         return True
     except Exception as e:  # noqa: BLE001 — fail open by design
-        log.warning("email send errored", extra={"error": str(e)})
+        log.warning("email send errored", extra={"error": type(e).__name__})
         return False
 
 

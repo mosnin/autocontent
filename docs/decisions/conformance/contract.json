@@ -1,0 +1,52 @@
+{
+  "endpoint": "https://openrouter.ai/api/alpha/decisions",
+  "models": {
+    "D1": "typesafe/jev-1.13-20260917",
+    "D0": "jaredpalmer/kev-4b-20260924"
+  },
+  "wire_types": {
+    "yesno": "noul",
+    "choice": "choice",
+    "score": "score"
+  },
+  "failure_kinds": [
+    "no_key",
+    "timeout",
+    "network",
+    "http",
+    "invalid",
+    "refused",
+    "no_cost"
+  ],
+  "cases": [
+    "ok-all-types-d1",
+    "ok-all-types-d0",
+    "ok-noul-string-state",
+    "ok-choice-without-probabilities",
+    "ok-choice-partial-probabilities",
+    "ok-zero-cost",
+    "ok-ignores-unknown-fields",
+    "refusal",
+    "missing-answer",
+    "answer-type-mismatch",
+    "answer-without-type",
+    "noul-out-of-range",
+    "noul-as-string",
+    "choice-unknown-option",
+    "choice-without-confidence",
+    "choice-probability-out-of-range",
+    "score-above-top-level",
+    "score-negative",
+    "usage-without-cost",
+    "usage-negative-cost",
+    "no-answers",
+    "body-is-an-array",
+    "body-is-not-json",
+    "http-400-invalid-question",
+    "http-400-unknown-model",
+    "http-401-bad-key",
+    "http-402-no-credits",
+    "http-429-rate-limited",
+    "http-502-provider-error"
+  ]
+}

@@ -15,9 +15,16 @@ provider OAuth tokens land on the profile identified by `profileKey`.
 from __future__ import annotations
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import (
+    retry,
+    retry_if_exception,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from ..config import settings
+from .retry_policy import is_unsent_or_refused
 
 BASE_URL = "https://api.ayrshare.com/api"
 HTTP_TIMEOUT_SEC = 30.0
@@ -37,11 +44,15 @@ def _headers() -> dict[str, str]:
     return {"Authorization": f"Bearer {_api_key()}"}
 
 
+# Creating a profile is not idempotent (each success is a new, billable
+# Ayrshare profile). Retried only when the request never reached Ayrshare; a
+# timeout after sending fails, and the connect route creates one on the next
+# click because no key was stored.
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=2, min=2, max=16),
-    retry=retry_if_exception_type(httpx.HTTPError),
+    retry=retry_if_exception(is_unsent_or_refused),
 )
 async def create_profile(*, title: str) -> tuple[str, str]:
     """Create a new Ayrshare User Profile. Returns (profile_key, ref_id)."""
@@ -65,6 +76,7 @@ async def create_profile(*, title: str) -> tuple[str, str]:
     return profile_key, ref_id
 
 
+# A read (GET): safe to retry on any transport failure.
 @retry(
     reraise=True,
     stop=stop_after_attempt(3),

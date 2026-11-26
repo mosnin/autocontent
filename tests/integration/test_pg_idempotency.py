@@ -15,6 +15,8 @@ from uuid import uuid4
 
 import pytest
 
+from tests.integration._migrations import migration_count
+
 pytestmark = pytest.mark.skipif(
     not os.environ.get("MARKETER_DATABASE_URL"),
     reason="no MARKETER_DATABASE_URL; integration tests need a real Postgres",
@@ -217,7 +219,9 @@ async def test_migration_0024_apply_rollback_reapply(pool):
     # undone. Robust to any later migrations (0025+) stacked on top of it,
     # rather than assuming 0024 is the current head.
     rolled_back = 0
-    for _ in range(10):
+    # One step per applied migration at most: bounded by the migration files on
+    # disk, so later migrations never strand the database half rolled back.
+    for _ in range(migration_count()):
         down = _run_migrate("down", "1")
         assert down.returncode == 0, down.stderr
         rolled_back += 1

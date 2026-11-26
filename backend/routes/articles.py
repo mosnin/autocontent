@@ -9,15 +9,17 @@ from __future__ import annotations
 from uuid import UUID
 
 import os
+import re
 
 from fastapi import APIRouter, HTTPException, Query, status
 from fastapi.responses import FileResponse, PlainTextResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from marketer.articles.models import Article, ArticleStatus
 from marketer.repos import articles as articles_repo
 
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 router = APIRouter()
 
@@ -58,7 +60,10 @@ async def get_article_markdown(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     if not article.article_markdown:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "article has no content yet")
-    filename = f"{article.slug or article.id}.md"
+    # The slug is model-written. Keep it to filename-safe characters so it
+    # cannot break out of the quoted header value.
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "-", article.slug or "")[:120].strip("-.")
+    filename = f"{stem or article.id}.md"
     return PlainTextResponse(
         article.article_markdown,
         media_type="text/markdown; charset=utf-8",
@@ -66,7 +71,10 @@ async def get_article_markdown(
     )
 
 
-@router.post("", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
+_SPAWN_LIMIT = user_rate_limit("articles.spawn", "30/minute")
+
+
+@router.post("", response_model=Article, status_code=status.HTTP_202_ACCEPTED, dependencies=[_SPAWN_LIMIT])
 async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> Article:
     """Create the article row and spawn the Modal pipeline against it.
     Poll GET /{article_id} for status."""
@@ -88,10 +96,17 @@ async def enqueue_article(body: ArticleEnqueue, ctx: AuthCtx = CurrentUser) -> A
 
 class SocialRepurposeBody(BaseModel):
     # Empty = all platforms. Validated against the known set below.
-    platforms: list[str] = Field(default_factory=list)
+    platforms: list[str] = Field(default_factory=list, max_length=12)
+
+    @field_validator("platforms")
+    @classmethod
+    def _short(cls, v: list[str]) -> list[str]:
+        if any(len(p) > 40 for p in v):
+            raise ValueError("a platform name is at most 40 characters")
+        return v
 
 
-@router.post("/{article_id}/social")
+@router.post("/{article_id}/social", dependencies=[user_rate_limit("articles.social", "20/minute")])
 async def repurpose_to_social(
     article_id: UUID, body: SocialRepurposeBody, ctx: AuthCtx = CurrentUser
 ) -> dict:
@@ -145,7 +160,7 @@ async def get_article_hero(article_id: UUID, ctx: AuthCtx = CurrentUser) -> File
     return FileResponse(path, media_type="image/png")
 
 
-@router.post("/{article_id}/retry", response_model=Article, status_code=status.HTTP_202_ACCEPTED)
+@router.post("/{article_id}/retry", response_model=Article, status_code=status.HTTP_202_ACCEPTED, dependencies=[_SPAWN_LIMIT])
 async def retry_article(article_id: UUID, ctx: AuthCtx = CurrentUser) -> Article:
     """Re-run a failed article from scratch (same row, same topic)."""
     import modal

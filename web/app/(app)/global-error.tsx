@@ -1,9 +1,9 @@
 "use client";
 
-// global-error.tsx replaces the root layout on segment-level crashes,
-// so it must render its own <html> + <body>. Tailwind works here;
-// the theme provider has NOT mounted, so we use raw CSS rather than
-// CSS custom properties that depend on it.
+// global-error.tsx replaces the root layout on crashes, so it renders its own
+// <html> and <body>. The design-system tokens come from globals.css; `.ds`
+// gives the dark default without the app shell.
+import "../globals.css";
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -11,31 +11,20 @@ interface GlobalErrorProps {
 }
 
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
-  const message = error.message ?? "An unexpected error occurred.";
-  const truncated = message.length > 800 ? message.slice(0, 800) + "…" : message;
-
   return (
     <html lang="en">
-      <body className="flex min-h-screen items-center justify-center bg-white p-6 font-sans text-gray-900">
-        <div className="w-full max-w-lg rounded-lg border border-red-200 bg-red-50 p-8 text-center shadow-sm">
-          <h1 className="mb-2 text-xl font-semibold text-gray-900">
-            Something went wrong
-          </h1>
-          <pre className="mb-6 overflow-x-auto rounded border border-red-200 bg-white p-3 text-left text-sm text-gray-600 whitespace-pre-wrap break-words">
-            {truncated}
-          </pre>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={reset}
-              className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
+      <body className="ds flex min-h-screen items-center justify-center p-6">
+        <div className="w-full max-w-[420px] rounded-ds-lg border border-hairline bg-surface p-5">
+          <h1 className="text-[15px] font-medium">Something went wrong</h1>
+          {/* Never render error.message here: it can leak internals. */}
+          <p className="mt-1.5 text-[13px] text-fg-muted">Marketer hit an unexpected error. Try again in a moment.</p>
+          {error.digest && <p className="mt-2 font-mono text-[11.5px] text-fg-faint">Error digest: {error.digest}</p>}
+          <div className="mt-4 flex gap-1.5">
+            <button type="button" onClick={reset} className="inline-flex h-7 items-center rounded-ds-sm bg-ds-primary px-2.5 text-[13px] font-medium text-ds-primary-fg">
               Try again
             </button>
-            <a
-              href="/dashboard"
-              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Go to dashboard
+            <a href="/home" className="inline-flex h-7 items-center rounded-ds-sm border border-hairline bg-surface-2 px-2.5 text-[13px] font-medium text-fg">
+              Go home
             </a>
           </div>
         </div>

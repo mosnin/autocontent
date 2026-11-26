@@ -2,7 +2,8 @@
 
 Prices are sourced from openai.com/api/pricing as of 2026-05. Update the
 table when OpenAI publishes new tiers. Cost helpers return Decimals so
-they round-trip cleanly into spend_ledger.cost_usd (numeric(10,4)).
+they round-trip cleanly into spend_ledger.cost_usd (numeric(14,8) since 0028;
+these helpers still price to four decimals).
 """
 from __future__ import annotations
 

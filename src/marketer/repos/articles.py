@@ -10,13 +10,15 @@ _COLS = (
     "id, user_id, niche_id, status, topic, focus_keyword, title, slug, "
     "meta_description, keywords, article_markdown, schema_json, "
     "hero_image_path, hero_image_alt, quality, link_suggestions, "
-    "word_count, error, created_at, updated_at"
+    "word_count, error, created_at, updated_at, "
+    "research, meta_title, cover_image, publish_status, publish_mode, publish_at, "
+    "publish_error, wp_post_id, wp_post_url, published_at, batch_id"
 )
 
 
 def _row_to_model(row) -> Article:
     d = dict(row)
-    for key in ("quality", "link_suggestions"):
+    for key in ("quality", "link_suggestions", "research", "cover_image"):
         if isinstance(d.get(key), str):
             d[key] = json.loads(d[key])
     if d.get("quality") is None:
@@ -28,16 +30,17 @@ def _row_to_model(row) -> Article:
 
 
 async def create(
-    *, user_id: str, niche_id: UUID, topic: str = "", campaign_id: UUID | None = None
+    *, user_id: str, niche_id: UUID, topic: str = "", campaign_id: UUID | None = None,
+    batch_id: UUID | None = None,
 ) -> Article:
     pool = await get_pool()
     row = await pool.fetchrow(
         f"""
-        insert into articles (user_id, niche_id, topic, campaign_id)
-        values ($1, $2, $3, $4)
+        insert into articles (user_id, niche_id, topic, campaign_id, batch_id)
+        values ($1, $2, $3, $4, $5)
         returning {_COLS}
         """,
-        user_id, niche_id, topic, campaign_id,
+        user_id, niche_id, topic, campaign_id, batch_id,
     )
     return _row_to_model(row)
 
@@ -62,7 +65,8 @@ async def save(article: Article) -> None:
                quality = $13::jsonb,
                link_suggestions = $14::jsonb,
                word_count = $15,
-               error = $16
+               error = $16,
+               meta_title = $17
          where id = $1
         """,
         article.id,
@@ -81,6 +85,7 @@ async def save(article: Article) -> None:
         json.dumps([s.model_dump() for s in article.link_suggestions]),
         article.word_count,
         article.error,
+        article.meta_title,
     )
 
 

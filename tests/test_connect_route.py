@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 
 from marketer.models import User
+from tests.auth_helpers import ctx_for
 
 _USER_ID = "user_test"
 
@@ -30,13 +31,13 @@ def _make_user(*, profile_key: str | None = None) -> User:
 
 def _make_authed_client(monkeypatch) -> TestClient:
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake_require_user():
-        return AuthCtx(user_id=_USER_ID, email="t@t.com")
+        return ctx_for("owner", user_id=_USER_ID, email="t@t.com")
 
     from backend.main import create_app
     app = create_app()
@@ -114,7 +115,7 @@ def test_status_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app
@@ -209,7 +210,7 @@ def test_connect_ayrshare_without_auth_returns_401(monkeypatch):
     """No auth → 401."""
     _reset_limiter()
     from marketer.config import settings
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app

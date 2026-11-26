@@ -67,7 +67,8 @@ async def create(
         """,
         user_id, title, description, target_audience, hashtags,
         visual_style, voice, target_duration_sec, scene_count,
-        json.dumps([w.model_dump() for w in posting_windows]),
+        # Route handlers pass model_dump() dicts; coerce + validate (as creative_brief below).
+        json.dumps([PostingWindow.model_validate(w).model_dump() for w in posting_windows]),
         platforms, daily_spend_cap_usd,
         image_quality, video_resolution, scene_max_duration_sec,
         tts_style_directions, approve_before_post, character_description,
@@ -142,7 +143,7 @@ async def update(
             continue
         if key == "posting_windows":
             sets.append(f"posting_windows = ${i}::jsonb")
-            values.append(json.dumps([w.model_dump() for w in val]))
+            values.append(json.dumps([PostingWindow.model_validate(w).model_dump() for w in val]))
         elif key == "creative_brief":
             brief = val if isinstance(val, CreativeBrief) else CreativeBrief.model_validate(val)
             sets.append(f"creative_brief = ${i}::jsonb")

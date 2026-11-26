@@ -54,6 +54,8 @@ def _row_to_pat(row) -> PersonalAccessToken:
         last_used_at=d.get("last_used_at"),
         created_at=d["created_at"],
         expires_at=d.get("expires_at"),
+        role=d.get("role") or "admin",
+        created_by=d.get("created_by") or d["user_id"],
     )
 
 
@@ -61,8 +63,16 @@ async def create(
     user_id: str,
     name: str,
     expires_at: datetime | None = None,
+    *,
+    role: str,
+    created_by: str,
 ) -> tuple[PersonalAccessToken, str]:
-    """Create a new PAT. Returns ``(pat_row, plaintext_token)``.
+    """Create a new PAT for tenant ``user_id``. Returns ``(pat_row, plaintext_token)``.
+
+    ``role`` is the workspace role the token acts with; the caller has already
+    checked it against the creator's role (grant ceiling). ``created_by`` is
+    the person who created it: the token stops working when that person is no
+    longer a member of the workspace (backend/auth.py).
 
     The plaintext is generated server-side and is the ONLY time the caller
     will ever see it — surface it to the user once, then forget it.
@@ -75,15 +85,18 @@ async def create(
     row = await pool.fetchrow(
         """
         insert into personal_access_tokens
-            (user_id, name, token_hash, prefix, expires_at)
-        values ($1, $2, $3, $4, $5)
-        returning id, user_id, name, prefix, last_used_at, created_at, expires_at
+            (user_id, name, token_hash, prefix, expires_at, role, created_by)
+        values ($1, $2, $3, $4, $5, $6, $7)
+        returning id, user_id, name, prefix, last_used_at, created_at, expires_at,
+                  role, created_by
         """,
         user_id,
         name,
         token_hash,
         prefix,
         expires_at,
+        role,
+        created_by,
     )
     return _row_to_pat(row), plaintext
 
@@ -92,7 +105,8 @@ async def list_for_user(user_id: str) -> list[PersonalAccessToken]:
     pool = await get_pool()
     rows = await pool.fetch(
         """
-        select id, user_id, name, prefix, last_used_at, created_at, expires_at
+        select id, user_id, name, prefix, last_used_at, created_at, expires_at,
+               role, created_by
           from personal_access_tokens
          where user_id = $1 and revoked_at is null
          order by created_at desc
@@ -114,7 +128,7 @@ async def get_by_token(plaintext: str) -> PersonalAccessToken | None:
     row = await pool.fetchrow(
         """
         select id, user_id, name, prefix, last_used_at, created_at,
-               expires_at, revoked_at
+               expires_at, revoked_at, role, created_by
           from personal_access_tokens
          where token_hash = $1
         """,

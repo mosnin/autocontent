@@ -20,11 +20,47 @@ def _reset_db_pool():
     keeps unit tests hermetic regardless of run order. We don't await close():
     the old loop is already gone, and the orphaned pool is garbage-collected.
     """
+    from backend import auth
     from marketer import db
 
     db._pool = None
+    db._auth_pool = None
+    auth.reset_caches()
     yield
     db._pool = None
+    db._auth_pool = None
+    auth.reset_caches()
+
+
+@pytest.fixture(autouse=True)
+def rails_store():
+    """Give every test an in-memory rails store (marketer.rails.store).
+
+    Route and service tests stub the database; without this, the enforcement
+    point would fail closed (503) on every HIGH/CRITICAL path. Tests that
+    exercise the rails take this fixture to engage kill switches, inspect
+    outcomes or simulate an unreachable store. Integration tests against a
+    real Postgres reinstall ``PostgresRailsStore`` themselves."""
+    from marketer.rails.store import InMemoryRailsStore, set_store
+
+    store = InMemoryRailsStore()
+    previous = set_store(store)
+    yield store
+    set_store(previous)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Start every test with empty rate-limit buckets.
+
+    The limiter's storage is process-wide and many tests share one fake user
+    id; per-user limits on expensive routes (backend.security.user_rate_limit)
+    would otherwise make a test's outcome depend on how many requests the
+    tests before it happened to send in the same minute."""
+    from backend.rate_limit import limiter
+
+    limiter._storage.reset()
+    yield
 
 
 @dataclass
@@ -46,6 +82,23 @@ def fake_spend() -> tuple[SpendContext, FakeRecorder]:
         cap_usd=None,
     )
     return ctx, rec
+
+
+@pytest.fixture(autouse=True)
+def _no_decision_key(monkeypatch):
+    """Decision points stay off in tests unless a test opts in: a developer's
+    shell OPENROUTER_API_KEY must never send test state to the network."""
+    import os
+
+    from marketer.services import decisions
+
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    for name in list(os.environ):
+        if name.startswith("MARKETER_DECISION"):
+            monkeypatch.delenv(name, raising=False)
+    decisions.reset_flag_cache()
+    yield
+    decisions.reset_flag_cache()
 
 
 @pytest.fixture(autouse=True)

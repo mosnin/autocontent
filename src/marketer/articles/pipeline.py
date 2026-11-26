@@ -25,14 +25,18 @@ from uuid import UUID
 from opentelemetry import trace
 
 from ..config import settings
+from ..decisions import points as decision_points
 from ..logging import get_logger
 from ..repos import articles as articles_repo
 from ..repos import brand_kit as brand_kit_repo
 from ..repos import niches as niches_repo
 from ..repos import spend as spend_repo
+from ..observability import scope as obs_scope
 from ..services import openai_images, otel
 from ..services.spend_context import SpendContext, default_context
 from . import exa, llm
+from . import research as web_research
+from . import seo_meta
 from .models import Article, ArticleStatus, Outline, SectionContext, SerpAnalysis
 
 log = get_logger(__name__)
@@ -143,6 +147,32 @@ async def _fail_with(article: Article, error: str, exc: BaseException | None = N
     return article
 
 
+async def _save_research(article: Article) -> None:
+    from ..repos import article_seo
+
+    try:
+        await article_seo.set_research(article.id, user_id=article.user_id, research=article.research)
+    except Exception as exc:  # noqa: BLE001 - research is shown to people, it never blocks a run
+        log.warning("article research not saved", extra={"article_id": str(article.id), "error": str(exc)})
+
+
+async def _auto_cover(article: Article) -> None:
+    from ..repos import article_seo
+    from ..services import unsplash
+
+    if article.cover_image or not (settings.article_unsplash_cover and unsplash.enabled()):
+        return
+    try:
+        photos = await unsplash.search(article.focus_keyword or article.topic, per_page=3)
+        if not photos:
+            return
+        await unsplash.track_download(photos[0])
+        article.cover_image = unsplash.cover_record(photos[0])
+        await article_seo.set_cover(article.id, user_id=article.user_id, cover=article.cover_image)
+    except Exception as exc:  # noqa: BLE001 - the cover is optional
+        log.warning("article cover skipped", extra={"article_id": str(article.id), "error": type(exc).__name__})
+
+
 async def _write_sections(
     outline: Outline,
     ctx: SectionContext,
@@ -199,7 +229,10 @@ async def run_article(
     )
 
     tracer = otel.get_tracer(__name__)
-    with tracer.start_as_current_span("article.run") as span:
+    with obs_scope(tenant_id=user_id, agent="article_pipeline"), tracer.start_as_current_span(
+        "article.run",
+        attributes={"tenant_id": user_id, "agent": "article_pipeline", "braintrust.span_attributes.type": "task"},
+    ) as span:
         span.set_attribute("marketer.user_id", user_id)
         span.set_attribute("marketer.niche_id", str(niche_id))
         span.set_attribute("marketer.article_id", str(article.id))
@@ -263,6 +296,18 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             # Degraded mode: no SERP provider configured/reachable. The
             # outline prompt still works from model knowledge.
             serp = SerpAnalysis()
+        # Web research with cited sources (OpenRouter). Untrusted content:
+        # sanitized, stored for the reader, and only ever shown to later
+        # prompts inside an <untrusted_content> block.
+        found = await web_research.for_article(
+            keyword=article.focus_keyword, topic=article.topic,
+            existing=article.research, spend=spend,
+        )
+        research_block = ""
+        if found is not None:
+            article.research = found.model_dump(mode="json")
+            await _save_research(article)
+            research_block = web_research.untrusted_block(found)
 
     # 2. Outline
     with _stage(ArticleStatus.outlining.value):
@@ -274,6 +319,8 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             tone,
             audience,
             spend=spend,
+            # Only when there is research, so older callers' signatures hold.
+            **({"web_research": research_block} if research_block else {}),
         )
 
     # 3. Write (parallel per-H2 fan-out)
@@ -287,6 +334,7 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
             targetAudience=audience,
             outline=outline,
             research=serp if serp.topResults else None,
+            webResearch=research_block,
         )
         markdown = await _write_sections(outline, ctx, spend=spend)
 
@@ -296,12 +344,43 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         quality = await llm.score_article(
             markdown, article.focus_keyword, spend=spend
         )
+        rewritten = False
         if quality.overall < QA_THRESHOLD:
             log.info(
                 "article qa below threshold; one corrective rewrite",
                 extra={"overall": quality.overall},
             )
             ctx = ctx.model_copy(update={"revisionNotes": quality.notes})
+            markdown = await _write_sections(outline, ctx, spend=spend)
+            quality = await llm.score_article(
+                markdown, article.focus_keyword, spend=spend
+            )
+            rewritten = True
+        # Decision point 9 (verify). Off without a key, shadow by default. In
+        # enforce one failed check bounces: the corrective rewrite if it is
+        # still unused, otherwise the article fails for a person to review.
+        brand_rules = [
+            f"Never touch: {t}"
+            for t in getattr(getattr(getattr(niche, "creative_brief", None), "narrative", None),
+                             "must_avoid", None) or []
+            if t
+        ]
+        failures = await decision_points.verify_article(
+            markdown=markdown,
+            focus_keyword=article.focus_keyword,
+            research=serp,
+            brand_rules=brand_rules,
+            rule_passed=quality.overall >= QA_THRESHOLD,
+            spend=spend,
+        )
+        if failures and rewritten:
+            return await _fail_with(
+                article, "content QA failed: verify failed: " + ", ".join(failures)
+            )
+        if failures:
+            ctx = ctx.model_copy(
+                update={"revisionNotes": [*quality.notes, *(f"verify: {f}" for f in failures)]}
+            )
             markdown = await _write_sections(outline, ctx, spend=spend)
             quality = await llm.score_article(
                 markdown, article.focus_keyword, spend=spend
@@ -315,10 +394,17 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
         meta = await llm.generate_metadata(
             article.topic, article.focus_keyword, markdown, tone, spend=spend
         )
+        fitted = seo_meta.normalize(
+            meta_title=meta.title, meta_description=meta.metaDescription, slug=meta.slug,
+            focus_keyword=article.focus_keyword or meta.focusKeyword,
+            secondary_keywords=meta.keywords, fallback_title=article.topic,
+        )
         article.title = meta.title
-        article.slug = meta.slug
-        article.meta_description = meta.metaDescription
-        article.keywords = meta.keywords
+        article.meta_title = fitted.meta_title
+        article.slug = fitted.slug
+        article.meta_description = fitted.meta_description
+        article.focus_keyword = fitted.focus_keyword or article.focus_keyword
+        article.keywords = list(fitted.secondary_keywords)
         article.schema_jsonld = await llm.generate_schema_json(
             title=meta.title,
             slug=meta.slug,
@@ -373,6 +459,10 @@ async def _run_inner(article: Article, niche, spend: SpendContext) -> Article:
                     "article hero image degraded; publishing without one",
                     extra={"article_id": str(article.id), "error": str(exc)},
                 )
+
+    # 7. Unsplash cover (optional): a credited stock photo when no cover was
+    # chosen yet. Free, so nothing to meter; a failure only skips the cover.
+    await _auto_cover(article)
 
     article.status = ArticleStatus.done
     article.error = None

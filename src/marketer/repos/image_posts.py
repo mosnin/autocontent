@@ -140,6 +140,28 @@ async def claim_for_scheduling(image_post_id: UUID, *, user_id: str) -> bool:
     return row is not None
 
 
+REJECTION_ERROR = "rejected by operator before posting"
+
+
+async def claim_for_rejection(image_post_id: UUID, *, user_id: str) -> dict | None:
+    """Atomic awaiting_approval -> failed (operator veto), mirroring
+    ``jobs.claim_for_rejection``. The status predicate is re-checked under the
+    row lock, so once an approve has claimed the post (-> scheduling) a
+    concurrent reject matches 0 rows and returns None instead of clobbering a
+    post that is already on its way out. Slides stay on the volume/library."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        update image_posts
+           set status = 'failed', error = $3, updated_at = now()
+         where id = $1 and user_id = $2 and status = 'awaiting_approval'
+        returning *
+        """,
+        image_post_id, user_id, REJECTION_ERROR,
+    )
+    return _row(row) if row else None
+
+
 _REAPABLE_STATUSES = ("queued", "planning", "generating", "scheduling")
 _REAP_ERROR = "reaped: no progress (container died or timed out mid-run)"
 

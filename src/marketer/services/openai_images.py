@@ -25,6 +25,7 @@ from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponen
 
 from ..config import settings
 from ..logging import get_logger
+from ..observability import model_span
 from .openai_pricing import image_cost
 from .retry_policy import is_content_policy_error, is_transient_openai_error
 from .spend_context import SpendContext
@@ -48,8 +49,31 @@ _client: AsyncOpenAI | None = None
 def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
-        _client = AsyncOpenAI(api_key=settings.openai_api_key)
+        # Explicit timeout (the SDK default is 10 minutes). max_retries=0: the
+        # tenacity policy on the call is the only retry, so attempts do not
+        # multiply (3 here x 3 in the SDK).
+        _client = AsyncOpenAI(
+            api_key=settings.openai_api_key, timeout=180.0, max_retries=0
+        )
     return _client
+
+
+def _image_span(quality: str, size: str, spend: SpendContext | None, *, reference: bool, operation: str = "generate"):
+    """The GenAI span for one image call (docs/observability/braintrust.md).
+    The prompt is content; the image never goes on a span."""
+    return model_span(
+        "generate_content",
+        model=SKU,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        name=f"gen_ai.image.{operation} {SKU}",
+        attributes={
+            "gen_ai.output.type": "image",
+            "marketer.image.quality": quality,
+            "marketer.image.size": size,
+            "marketer.image.reference": reference,
+        },
+    )
 
 
 def _decode_b64_to(path: Path, b64: str) -> Path:
@@ -104,39 +128,42 @@ async def generate_keyframe(
     it as an input so the model preserves the established look."""
     if spend is not None:
         await spend.ensure_can_spend(image_cost(quality, size=size))
-    try:
-        result = await _call_api(
-            prompt, quality=quality, size=size, reference_image_path=reference_image_path
-        )
-    except Exception as e:
-        if not is_content_policy_error(e):
-            raise
-        # Safety refusal: soften once instead of failing the whole job.
-        log.warning(
-            "image prompt refused by safety system; retrying softened",
-            extra={"error": str(e)},
-        )
-        result = await _call_api(
-            SAFE_PROMPT_PREFIX + prompt,
-            quality=quality,
-            size=size,
-            reference_image_path=reference_image_path,
-        )
+    async with _image_span(quality, size, spend, reference=reference_image_path is not None) as call:
+        call.prompt(prompt)
+        try:
+            result = await _call_api(
+                prompt, quality=quality, size=size, reference_image_path=reference_image_path
+            )
+        except Exception as e:
+            if not is_content_policy_error(e):
+                raise
+            # Safety refusal: soften once instead of failing the whole job.
+            log.warning(
+                "image prompt refused by safety system; retrying softened",
+                extra={"error": str(e)},
+            )
+            call.set("marketer.image.softened", True)
+            result = await _call_api(
+                SAFE_PROMPT_PREFIX + prompt,
+                quality=quality,
+                size=size,
+                reference_image_path=reference_image_path,
+            )
 
-    # The API charged us the moment the call above succeeded — record the
-    # spend before decoding so a local failure can't undercount the ledger.
-    cost = image_cost(quality, size=size)
-    span = trace.get_current_span()
-    span.set_attribute("openai.sku", SKU)
-    span.set_attribute("openai.image_quality", quality)
-    span.set_attribute("marketer.cost_usd", str(cost))
-    if spend is not None:
-        await spend.log(
-            provider=PROVIDER,
-            sku=SKU,
-            units=Decimal(1),
-            cost_usd=cost,
-        )
+        # The API charged us the moment the call above succeeded — record the
+        # spend before decoding so a local failure can't undercount the ledger.
+        cost = image_cost(quality, size=size)
+        span = trace.get_current_span()
+        span.set_attribute("openai.sku", SKU)
+        span.set_attribute("openai.image_quality", quality)
+        call.cost(cost)
+        if spend is not None:
+            await spend.log(
+                provider=PROVIDER,
+                sku=SKU,
+                units=Decimal(1),
+                cost_usd=cost,
+            )
     _decode_b64_to(out_path, result.data[0].b64_json)
     return out_path
 
@@ -156,21 +183,24 @@ async def generate_remix(
     if spend is not None:
         await spend.ensure_can_spend(image_cost(quality, size=size))
 
-    files = [p.open("rb") for p in reference_paths]
-    try:
-        result = await _call_remix_api(prompt, files=files, quality=quality, size=size)
-    finally:
-        for fp in files:
-            fp.close()
+    async with _image_span(quality, size, spend, reference=True, operation="remix") as call:
+        call.prompt(prompt)
+        files = [p.open("rb") for p in reference_paths]
+        try:
+            result = await _call_remix_api(prompt, files=files, quality=quality, size=size)
+        finally:
+            for fp in files:
+                fp.close()
 
-    cost = image_cost(quality, size=size)
-    if spend is not None:
-        await spend.log(
-            provider=PROVIDER,
-            sku=SKU,
-            units=Decimal(1),
-            cost_usd=cost,
-        )
+        cost = image_cost(quality, size=size)
+        call.cost(cost)
+        if spend is not None:
+            await spend.log(
+                provider=PROVIDER,
+                sku=SKU,
+                units=Decimal(1),
+                cost_usd=cost,
+            )
     _decode_b64_to(out_path, result.data[0].b64_json)
     return out_path
 

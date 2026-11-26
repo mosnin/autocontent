@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 
 from marketer.config import settings
 from marketer.models import Niche, PostingWindow, Template
+from tests.auth_helpers import ctx_for
 
 _USER_ID = "user_test"
 _OTHER_USER_ID = "other_user"
@@ -28,13 +29,13 @@ def _reset_limiter():
 
 
 def _make_authed_client(monkeypatch) -> TestClient:
-    monkeypatch.setattr(settings, "clerk_jwks_url", "")
+    monkeypatch.setattr(settings, "auth_jwks_url", "")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
-    from backend.auth import AuthCtx, require_user
+    from backend.auth import require_user
 
     async def _fake_require_user():
-        return AuthCtx(user_id=_USER_ID, email="t@t.com")
+        return ctx_for("owner", user_id=_USER_ID, email="t@t.com")
 
     from backend.main import create_app
     app = create_app()
@@ -454,7 +455,7 @@ def test_approve_image_post_is_scoped_to_caller(monkeypatch):
 def test_image_posts_and_providers_routes_require_auth(monkeypatch):
     """No Authorization header -> 401 on every route this team owns."""
     _reset_limiter()
-    monkeypatch.setattr(settings, "clerk_jwks_url", "https://clerk.test/.well-known/jwks.json")
+    monkeypatch.setattr(settings, "auth_issuer", "https://web.test")
     monkeypatch.setattr(settings, "database_url", "postgres://stub/stub")
 
     from backend.main import create_app

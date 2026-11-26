@@ -4,16 +4,17 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.auth import AuthCtx, require_user
+from backend.auth import require_user
 from backend.main import create_app
 from backend.rate_limit import limiter
+from tests.auth_helpers import ctx_for
 
 
 @pytest.fixture()
 def client():
     limiter.reset()
     app = create_app()
-    app.dependency_overrides[require_user] = lambda: AuthCtx(
+    app.dependency_overrides[require_user] = lambda: ctx_for("owner", 
         user_id="user_a", email="a@a"
     )
     return TestClient(app)
@@ -109,7 +110,7 @@ async def test_account_summary_shape(monkeypatch):
     monkeypatch.setattr(
         metrics_route.post_metrics_repo, "account_summary", fake_summary
     )
-    out = await metrics_route.metrics_summary(AuthCtx(user_id="user_a", email=""))
+    out = await metrics_route.metrics_summary(ctx_for("owner", user_id="user_a", email=""))
     assert out.total_views == 1234
     assert out.best_views == 900
     assert out.days == 30

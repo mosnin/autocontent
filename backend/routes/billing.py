@@ -7,17 +7,23 @@ session id makes retries no-ops).
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from marketer.config import settings
 from marketer.models import CreditTransaction
+from marketer.repos import access_codes as codes_repo
 from marketer.repos import billing as billing_repo
 
+from .. import audit
 from ..auth import AuthCtx, CurrentUser
+from ..security import user_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +38,9 @@ PACKS: dict[str, dict] = {
 }
 
 
+_MAX_PACK_CREDIT = max(p["credit_usd"] for p in PACKS.values())
+
+
 def _require_billing() -> None:
     if not settings.billing_enabled or not settings.stripe_secret_key:
         raise HTTPException(
@@ -41,7 +50,10 @@ def _require_billing() -> None:
 
 
 class CheckoutRequest(BaseModel):
-    pack: str
+    pack: str = Field(min_length=1, max_length=40)
+    # Where Stripe sends the person back: Settings (default) or the plan
+    # screen after onboarding. A fixed choice, never a URL from the client.
+    return_to: Literal["settings", "plans"] = "settings"
 
 
 class CheckoutResponse(BaseModel):
@@ -75,7 +87,126 @@ async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
     )
 
 
-@router.post("/checkout", response_model=CheckoutResponse)
+class PackOut(BaseModel):
+    id: str
+    amount_usd: Decimal
+    credit_usd: Decimal
+
+
+class RedemptionOut(BaseModel):
+    kind: Literal["invite", "pilot"]
+    credit_usd: Decimal
+    trial_days: int | None = None
+    access_until: datetime | None = None
+    redeemed_at: datetime
+
+
+class AccessResponse(BaseModel):
+    """What the plan screen needs to decide whether to show (docs/billing/access-codes.md)."""
+
+    billing_enabled: bool
+    # True when the workspace has nothing to run on: billing is on, the balance
+    # is empty, it never bought a pack and never redeemed a code.
+    needs_plan: bool
+    can_manage: bool
+    balance_usd: Decimal | None = None  # only with billing:read
+    has_purchased: bool = False
+    redemption: RedemptionOut | None = None
+    packs: list[PackOut]
+
+
+@router.get("/access", response_model=AccessResponse)
+async def get_access(ctx: AuthCtx = CurrentUser) -> AccessResponse:
+    packs = [PackOut(id=k, amount_usd=Decimal(p["amount_cents"]) / 100, credit_usd=p["credit_usd"]) for k, p in PACKS.items()]
+    can_manage = ctx.can("billing:manage")
+    if not settings.billing_enabled:
+        return AccessResponse(billing_enabled=False, needs_plan=False, can_manage=can_manage, packs=packs)
+    bal = await billing_repo.balance(ctx.user_id)
+    purchased = await codes_repo.has_purchased(ctx.user_id)
+    red = await codes_repo.redemption_for(ctx.user_id)
+    return AccessResponse(
+        billing_enabled=True,
+        needs_plan=bal <= 0 and not purchased and red is None,
+        can_manage=can_manage,
+        balance_usd=bal if ctx.can("billing:read") else None,
+        has_purchased=purchased,
+        redemption=RedemptionOut(**red.model_dump()) if red else None,
+        packs=packs,
+    )
+
+
+class RedeemRequest(BaseModel):
+    code: str = Field(min_length=4, max_length=64)
+
+
+# One plain sentence per failure, keyed by the stable code the client reads.
+_REDEEM_FAILURES: dict[str, int] = {
+    "code_unknown": status.HTTP_404_NOT_FOUND,
+    "code_expired": status.HTTP_410_GONE,
+    "code_used_up": status.HTTP_409_CONFLICT,
+    "code_already_redeemed": status.HTTP_409_CONFLICT,
+}
+
+
+@router.post(
+    "/redeem",
+    response_model=RedemptionOut,
+    dependencies=[
+        user_rate_limit("billing.redeem", "5/minute"),
+        user_rate_limit("billing.redeem.hour", "20/hour"),
+    ],
+)
+async def redeem_code(body: RedeemRequest, ctx: AuthCtx = CurrentUser) -> RedemptionOut:
+    """Redeem an invite or pilot code for this workspace. A person only: never
+    the agent or a personal access token."""
+    if ctx.delegated or ctx.actor_type != "user" or not ctx.actor_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="person_only")
+    _require_billing_on()
+    try:
+        r = await codes_repo.redeem(code=body.code, tenant_id=ctx.user_id, actor_id=ctx.actor_id)
+    except codes_repo.RedeemFailed as e:
+        # The attempted code is never logged: only why it failed.
+        await audit.record(ctx, "billing.code_redeemed", outcome="failure", metadata={"reason": e.reason, "kind": e.kind})
+        raise HTTPException(_REDEEM_FAILURES[e.reason], detail=e.reason) from None
+    await audit.record(
+        ctx,
+        "billing.code_redeemed",
+        outcome="success",
+        target_type="access_code",
+        metadata={"kind": r.kind, "credit_usd": str(r.credit_usd), "trial_days": r.trial_days},
+    )
+    return RedemptionOut(**r.model_dump())
+
+
+def _require_billing_on() -> None:
+    if not settings.billing_enabled:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="billing is not enabled on this deployment")
+
+
+# Seconds. Stripe's library default is 80, which is longer than any caller
+# waits; state it, and keep it short enough that a slow Stripe cannot hold a
+# worker thread for over a minute.
+STRIPE_TIMEOUT_SEC = 20.0
+
+
+def _stripe():
+    """The Stripe module with an explicit timeout on its HTTP client."""
+    import stripe
+
+    stripe.api_key = settings.stripe_secret_key
+    if getattr(stripe, "default_http_client", None) is None:
+        try:
+            stripe.default_http_client = stripe.RequestsClient(timeout=STRIPE_TIMEOUT_SEC)
+        except Exception:  # noqa: BLE001 — never fail checkout over client wiring
+            logger.warning("could not install the Stripe HTTP client with a timeout", exc_info=True)
+    return stripe
+
+
+@router.post(
+    "/checkout",
+    response_model=CheckoutResponse,
+    dependencies=[user_rate_limit("billing.checkout", "10/minute")],
+)
 async def create_checkout(
     body: CheckoutRequest, ctx: AuthCtx = CurrentUser
 ) -> CheckoutResponse:
@@ -84,11 +215,30 @@ async def create_checkout(
     if pack is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="unknown pack")
 
-    import stripe
-
-    stripe.api_key = settings.stripe_secret_key
+    stripe = _stripe()
     base = settings.app_url.rstrip("/") or "http://localhost:3000"
-    session = stripe.checkout.Session.create(
+    # The Stripe client is synchronous: run it off the event loop so one slow
+    # checkout does not stall every other request on this worker.
+    try:
+        session = await asyncio.to_thread(
+            _create_checkout_session, stripe, pack, ctx.user_id, base, body.return_to
+        )
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001 — Stripe errors carry request ids and key hints
+        logger.warning("stripe checkout failed", exc_info=True)
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, detail="could not start checkout; try again"
+        ) from e
+    return CheckoutResponse(url=session.url)
+
+
+_RETURN_PATHS = {"settings": "/settings", "plans": "/plans"}
+
+
+def _create_checkout_session(stripe, pack: dict, user_id: str, base: str, return_to: str = "settings"):
+    back = f"{base}{_RETURN_PATHS.get(return_to, '/settings')}"
+    return stripe.checkout.Session.create(
         mode="payment",
         line_items=[
             {
@@ -101,13 +251,12 @@ async def create_checkout(
             }
         ],
         metadata={
-            "user_id": ctx.user_id,
+            "user_id": user_id,
             "credit_usd": str(pack["credit_usd"]),
         },
-        success_url=f"{base}/settings/billing?purchase=success",
-        cancel_url=f"{base}/settings/billing?purchase=cancelled",
+        success_url=f"{back}?purchase=success",
+        cancel_url=f"{back}?purchase=cancelled",
     )
-    return CheckoutResponse(url=session.url)
 
 
 @router.post("/webhook")
@@ -128,8 +277,10 @@ async def stripe_webhook(request: Request) -> dict:
             payload, signature, settings.stripe_webhook_secret
         )
     except Exception as e:  # noqa: BLE001 — bad signature or malformed body
+        # Don't tell an unauthenticated caller why verification failed.
+        logger.warning("stripe webhook rejected: %s", type(e).__name__)
         raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, detail=f"invalid webhook: {e}"
+            status.HTTP_401_UNAUTHORIZED, detail="invalid webhook"
         ) from e
 
     if event["type"] in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
@@ -147,10 +298,24 @@ async def stripe_webhook(request: Request) -> dict:
         meta = session.get("metadata") or {}
         user_id = meta.get("user_id")
         credit = meta.get("credit_usd")
-        if user_id and credit:
+        try:
+            credit_amount = Decimal(credit) if credit else None
+        except Exception:  # noqa: BLE001 — metadata we wrote; never 500 the webhook on it
+            credit_amount = None
+        if credit_amount is not None and not (
+            credit_amount.is_finite() and Decimal(0) < credit_amount <= _MAX_PACK_CREDIT
+        ):
+            # We only ever write a pack's credit into the metadata. Anything
+            # else was not written by this code: refuse to turn it into balance.
+            logger.error(
+                "paid checkout session %s carries credit_usd outside the pack range; "
+                "credit NOT granted — reconcile manually", session.get("id"),
+            )
+            return {"ok": True}
+        if user_id and credit_amount is not None:
             await billing_repo.credit_purchase(
                 user_id=user_id,
-                amount_usd=Decimal(credit),
+                amount_usd=credit_amount,
                 checkout_session_id=session["id"],
                 description="credit pack purchase",
             )

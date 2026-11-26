@@ -10,16 +10,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 from marketer.models import Niche, PostingWindow
-from backend.auth import AuthCtx, require_user
+from backend.auth import require_user
 from backend.main import create_app
 from backend.rate_limit import limiter
+from tests.auth_helpers import ctx_for
 
 
 @pytest.fixture()
 def client():
     limiter.reset()
     app = create_app()
-    app.dependency_overrides[require_user] = lambda: AuthCtx(
+    app.dependency_overrides[require_user] = lambda: ctx_for("owner", 
         user_id="user_a", email="a@a"
     )
     return TestClient(app)

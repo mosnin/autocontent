@@ -1,5 +1,5 @@
 // SWR fetcher used by client components. Always routes through the
-// Next.js /api/proxy/[...path] handler so the Clerk JWT is attached
+// Next.js /api/proxy/[...path] handler so the backend JWT is attached
 // server-side (we can't call `auth()` from the browser).
 
 export class ApiError extends Error {

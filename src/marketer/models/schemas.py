@@ -72,7 +72,7 @@ class JobStatus(str, Enum):
 
 
 class User(BaseModel):
-    id: str  # Clerk user_id
+    id: str  # tenant id: auth.organization."tenantId" (docs/auth/README.md)
     email: str
     ayrshare_profile_key: str | None = None
     global_daily_cap_usd: Decimal | None = None
@@ -185,10 +185,14 @@ class Job(BaseModel):
 
 class SpendEntry(BaseModel):
     user_id: str
-    niche_id: UUID | None
-    job_id: UUID | None
+    # None = spend that belongs to no playbook (template remixes, ad-campaign
+    # decision costs). Per-niche caps do not apply to it; the user's global
+    # cap and prepaid credit do.
+    niche_id: UUID | None = None
+    job_id: UUID | None = None
     article_id: UUID | None = None  # set for article-pipeline spend (job_id null)
     image_post_id: UUID | None = None  # set for image-post spend
+    ad_campaign_id: UUID | None = None  # set for ad-campaign spend (0028)
     provider: str  # "openai" | "xai" | "ayrshare"
     sku: str       # "dalle3" | "grok-imagine" | "tts-1-hd" | "whisper-1" | ...
     units: Decimal
@@ -217,6 +221,11 @@ class PersonalAccessToken(BaseModel):
     last_used_at: datetime | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: datetime | None = None
+    # Workspace role the token acts with (at most its creator's role when it
+    # was created) and the person who created it. Tokens from before 0031
+    # are 'admin' with the tenant as creator.
+    role: str = "admin"
+    created_by: str | None = None
 
 
 class NicheCreatePayload(BaseModel):

@@ -1,0 +1,60 @@
+{
+  "name": "ok-noul-string-state",
+  "source": "live 2026-11-18, POST /api/v1/systemone",
+  "note": "A plain-string state and a single noul. The System One route returns the same envelope as the Decisions route, usage.cost included. A noul answer has no confidence.",
+  "model": "typesafe/jev-1.13-20260917",
+  "state": "I was charged twice.",
+  "questions": {
+    "refund": {
+      "type": "yesno",
+      "instructions": "Is the customer asking for money back?"
+    }
+  },
+  "wire_request": {
+    "model": "typesafe/jev-1.13-20260917",
+    "state": "I was charged twice.",
+    "questions": {
+      "refund": {
+        "type": "noul",
+        "instructions": "Is the customer asking for money back?"
+      }
+    }
+  },
+  "response": {
+    "status": 200,
+    "body": {
+      "model": "typesafe/jev-1.13-20260917",
+      "answers": {
+        "refund": {
+          "type": "noul",
+          "noul": 0.79
+        }
+      },
+      "usage": {
+        "input_tokens": 279,
+        "output_tokens": 20,
+        "cost": 1.1718e-05,
+        "is_byok": false,
+        "cost_details": {
+          "upstream_inference_cost": 1.1718e-05,
+          "upstream_inference_prompt_cost": 1.1718e-05,
+          "upstream_inference_completions_cost": 0
+        }
+      },
+      "id": "gen-dec-0000000000-EXAMPLE",
+      "provider": "TypeSafe"
+    }
+  },
+  "expect": {
+    "ok": true,
+    "answers": {
+      "refund": {
+        "type": "yesno",
+        "probability": 0.79
+      }
+    },
+    "cost": 1.1718e-05,
+    "tokens": 299,
+    "model": "typesafe/jev-1.13-20260917"
+  }
+}

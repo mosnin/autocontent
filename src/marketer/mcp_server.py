@@ -324,6 +324,54 @@ def build_server(*, base_url: str | None = None, token: str | None = None) -> Fa
         async with _client() as c:
             return json.dumps(await c.decide_ad_approval(approval_id, decision), indent=2)
 
+    # ------------------------------------------------------------- workspace
+
+    @mcp.tool(description=(
+        "One view across every department for the last `days` days (1-365, "
+        "default 30): total/content/ad spend, posts and articles published, "
+        "views, engagements, ad clicks/conversions, the same numbers for the "
+        "previous window, a daily series, pipeline counts (active/done/failed) "
+        "and top content. Cheap, read-only. Start here when asked how things "
+        "are going."
+    ))
+    async def workspace_overview(days: int = 30) -> str:
+        async with _client() as c:
+            return json.dumps(await c.workspace_overview(days=days), indent=2)
+
+    @mcp.tool(description=(
+        "List everything waiting on the user in one inbox: videos and "
+        "carousels awaiting approval before posting, and pending ad spend "
+        "changes. Cheap, read-only. Each item has kind + ref_id for "
+        "decide_inbox_item."
+    ))
+    async def workspace_inbox() -> str:
+        async with _client() as c:
+            return json.dumps(await c.workspace_inbox(), indent=2)
+
+    @mcp.tool(description=(
+        "Approve or reject one inbox item (kind = 'video'|'carousel'|"
+        "'ad_change', decision = 'approve'|'reject'). Approving a video or "
+        "carousel PUBLISHES it to social; approving an ad change EXECUTES a "
+        "spend change (re-checked by the spend guard, may 402). This is a "
+        "human decision: only call it when the user explicitly tells you to."
+    ))
+    async def decide_inbox_item(kind: str, ref_id: str, decision: str) -> str:
+        async with _client() as c:
+            return json.dumps(
+                await c.decide_inbox_item(kind, ref_id, decision), indent=2
+            )
+
+    @mcp.tool(description=(
+        "Recent activity across departments (videos, articles, carousels, ad "
+        "actions, approvals, campaigns), newest first. Cheap, read-only. Pass "
+        "the returned next_before as `before` to page back."
+    ))
+    async def workspace_activity(limit: int = 50, before: str | None = None) -> str:
+        async with _client() as c:
+            return json.dumps(
+                await c.workspace_activity(limit=limit, before=before), indent=2
+            )
+
     # ------------------------------------------------------------- x402
 
     @mcp.tool(description=(

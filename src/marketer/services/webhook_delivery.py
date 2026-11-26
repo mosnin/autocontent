@@ -22,7 +22,7 @@ from . import ssrf
 
 log = get_logger(__name__)
 
-_TIMEOUT = 10.0
+_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
 
 
 def sign(secret: str, timestamp: int, body: str) -> str:
@@ -36,24 +36,35 @@ async def deliver_one(url: str, secret: str, *, event: str, payload: dict, times
     # Re-check the destination at delivery time too: a URL that resolved to a
     # public IP at registration can be re-pointed at an internal address
     # afterwards (DNS rebinding). Never POST a signed payload to a private host.
-    ok, reason = await asyncio.to_thread(ssrf.check_public_url, url)
-    if not ok:
+    ok, reason, address = await asyncio.to_thread(ssrf.resolve_public_url, url)
+    if not ok or address is None:
         log.warning("webhook delivery blocked (ssrf)", extra={"url": url, "reason": reason})
         return None
+    # Connect to the address we just vetted. TLS still names (and verifies)
+    # the endpoint's hostname.
+    target, host_header, server_name = ssrf.pinned_target(url, address)
+
     body = json.dumps({"event": event, "data": payload}, separators=(",", ":"))
     signature = sign(secret, timestamp, body)
     headers = {
+        "host": host_header,
         "content-type": "application/json",
         "user-agent": "marketer.sh-webhooks/1",
         "x-marketer-event": event,
         "x-marketer-signature": f"t={timestamp},v1={signature}",
     }
     try:
-        async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-            resp = await client.post(url, content=body, headers=headers)
+        # One attempt, no redirects: a 3xx to an internal address would walk
+        # around the check above, and a webhook is a side-effecting send that
+        # the receiver may already have processed when we time out.
+        async with httpx.AsyncClient(timeout=_TIMEOUT, follow_redirects=False) as client:
+            resp = await client.post(
+                target, content=body, headers=headers,
+                extensions={"sni_hostname": server_name},
+            )
             return resp.status_code
     except httpx.HTTPError as exc:
-        log.warning("webhook delivery failed", extra={"url": url, "error": str(exc)})
+        log.warning("webhook delivery failed", extra={"url": url, "error": type(exc).__name__})
         return None
 
 

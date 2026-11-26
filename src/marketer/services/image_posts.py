@@ -204,13 +204,25 @@ async def schedule_image_post(
         when = datetime.now(timezone.utc)
 
         poster = apply_schedule or scheduler.schedule_image_post
-        provider_post_id = await poster(
-            image_paths=[Path(s["path"]) for s in slides],
-            caption=caption,
-            hashtags=hashtags,
-            platform=platform,
-            scheduled_for=when,
-            user_id=user_id,
+        # Execution rails (docs/rails/failure-semantics.md): checked now; a
+        # timeout after sending is indeterminate and never retried.
+        from .. import rails
+
+        dispatch = await rails.enforce_dispatch(
+            "content.post.send", user_id=user_id, principal="system",
+            args={"image_post_id": image_post_id, "platform": platform, "scheduled_for": when},
+            target_type="carousel_post", target_id=str(image_post_id), idempotency_key="",
+        )
+        provider_post_id = await dispatch.run(
+            lambda: poster(
+                image_paths=[Path(s["path"]) for s in slides],
+                caption=caption,
+                hashtags=hashtags,
+                platform=platform,
+                scheduled_for=when,
+                user_id=user_id,
+            ),
+            definite=(scheduler.AyrshareError,),
         )
         return await image_posts_repo.complete(
             image_post_id, user_id=user_id, provider_post_id=provider_post_id

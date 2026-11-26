@@ -1,6 +1,6 @@
 // Client-safe typed client for the Ads API (/api/v1/ads). SWR keys are plain
 // backend paths (clientFetch prefixes /api/proxy); mutations POST/PATCH/DELETE
-// through the proxy so the Clerk JWT is attached server-side. No server-only
+// through the proxy so the backend JWT is attached server-side. No server-only
 // imports — this runs in the browser.
 
 import { clientFetch } from "@/lib/client-fetcher";
@@ -163,4 +163,40 @@ export function changeCampaignStatus(
   status: "active" | "paused" | "ended",
 ): Promise<AdCampaign> {
   return proxy("POST", `${ADS}/campaigns/${id}/status`, { status });
+}
+
+/** One row of the append-only ads audit log (GET /api/v1/ads/actions).
+ *  `actor` is "agent" when the agent harness acted on the user's behalf
+ *  (service-token delegation), otherwise "user". */
+export interface AdActionEntry {
+  id: number;
+  actor: string;
+  actor_email: string;
+  action: string;
+  platform: string;
+  target_type: string;
+  target_id: string;
+  dollar_delta_usd: string;
+  created_at: string;
+}
+
+/** What /campaigns/{id}/status and /budget resolve to when the change is
+ *  parked for a human: nothing has been applied yet. */
+export function isPendingApproval(res: unknown): res is { status: "pending_approval"; approval_id?: string } {
+  return typeof res === "object" && res !== null && (res as { status?: unknown }).status === "pending_approval";
+}
+
+/** Strip the "402 " / "409 " status prefix the proxy helper puts on errors so
+ *  the guard's own reason reads as a sentence. */
+export function adsErrorMessage(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (msg.startsWith("409")) return "Ads isn't enabled on this workspace yet.";
+  const body = msg.replace(/^\d{3}\s*/, "");
+  try {
+    const parsed = JSON.parse(body) as { detail?: unknown };
+    if (typeof parsed.detail === "string") return parsed.detail;
+  } catch {
+    /* not JSON */
+  }
+  return body || "Something went wrong";
 }

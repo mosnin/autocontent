@@ -14,6 +14,7 @@ from decimal import Decimal
 import openai
 
 from ..config import settings
+from ..observability import ModelCall, model_span
 from ..services import provider_fallback
 from ..services.openai_pricing import LLM_CALL_ESTIMATE_USD, llm_cost
 from ..services.spend_context import SpendContext
@@ -37,7 +38,11 @@ PROVIDER = "openai"
 def _oai() -> openai.AsyncOpenAI:
     global _client
     if _client is None:
-        _client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
+        # Explicit timeout (the SDK default is 10 minutes; a long article
+        # section can take a few) and a stated retry budget.
+        _client = openai.AsyncOpenAI(
+            api_key=settings.openai_api_key, timeout=300.0, max_retries=2
+        )
     return _client
 
 
@@ -52,10 +57,23 @@ def strip_ai_dashes(text: str) -> str:
     return re.sub(r"[–—]", ", ", text)
 
 
-async def _log_usage(resp: object, model: str, spend: SpendContext | None) -> None:
-    """Record the response's token cost into the spend ledger."""
-    if spend is None:
-        return
+def _span(model: str, spend: SpendContext | None, *, temperature: float):
+    """The GenAI span for one article LLM call (docs/observability/braintrust.md)."""
+    return model_span(
+        "chat",
+        model=model,
+        provider=PROVIDER,
+        tenant_id=spend.user_id if spend is not None else None,
+        attributes={"gen_ai.request.temperature": temperature},
+    )
+
+
+def _prompt(call: ModelCall, system: str, user: str) -> None:
+    call.prompt([{"role": "system", "content": system}, {"role": "user", "content": user}])
+
+
+async def _log_usage(resp: object, model: str, spend: SpendContext | None, call: ModelCall | None = None) -> None:
+    """Record the response's token cost into the spend ledger (and the span)."""
     u = getattr(resp, "usage", None)
     if u is None:
         return
@@ -63,6 +81,12 @@ async def _log_usage(resp: object, model: str, spend: SpendContext | None) -> No
     out_tok = int(
         getattr(u, "completion_tokens", None) or getattr(u, "output_tokens", 0) or 0
     )
+    if call is not None:
+        call.usage(in_tok, out_tok)
+        call.response_model(getattr(resp, "model", None))
+        call.cost(llm_cost(model, in_tok, out_tok))
+    if spend is None:
+        return
     await spend.log(
         provider=PROVIDER,
         sku=f"llm:{model}",
@@ -77,19 +101,23 @@ async def _parse_call(
 ):
     if spend is not None:
         await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-    resp = await _oai().beta.chat.completions.parse(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        response_format=response_format,
-        temperature=temperature,
-    )
-    await _log_usage(resp, model, spend)
-    parsed = resp.choices[0].message.parsed
-    if parsed is None:
-        raise RuntimeError(f"{response_format.__name__}: model returned no parsed payload")
+    async with _span(model, spend, temperature=temperature) as call:
+        _prompt(call, system, user)
+        resp = await _oai().beta.chat.completions.parse(
+            model=model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            response_format=response_format,
+            temperature=temperature,
+        )
+        await _log_usage(resp, model, spend, call)
+        parsed = resp.choices[0].message.parsed
+        if parsed is None:
+            raise RuntimeError(f"{response_format.__name__}: model returned no parsed payload")
+        if call.content_allowed:
+            call.completion(parsed.model_dump_json() if hasattr(parsed, "model_dump_json") else str(parsed))
     return parsed
 
 
@@ -99,17 +127,20 @@ async def _json_call(
 ) -> dict:
     if spend is not None:
         await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-    resp = await _oai().chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        response_format={"type": "json_object"},
-        temperature=temperature,
-    )
-    await _log_usage(resp, model, spend)
-    raw = resp.choices[0].message.content or "{}"
+    async with _span(model, spend, temperature=temperature) as call:
+        _prompt(call, system, user)
+        resp = await _oai().chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            response_format={"type": "json_object"},
+            temperature=temperature,
+        )
+        await _log_usage(resp, model, spend, call)
+        raw = resp.choices[0].message.content or "{}"
+        call.completion(raw)
     try:
         return json.loads(raw)
     except json.JSONDecodeError:
@@ -187,7 +218,7 @@ async def summarize_serp(
 
 async def generate_outline(
     topic: str, keyword: str, research: dict, tone: str, audience: str,
-    *, spend: SpendContext | None = None,
+    *, spend: SpendContext | None = None, web_research: str = "",
 ) -> Outline:
     """Produce a structured Outline (one H1, 5-10 H2s, 0-3 H3s per H2)."""
     system = (
@@ -206,7 +237,8 @@ async def generate_outline(
         f"Tone: {tone}\n"
         f"Target audience: {audience}\n\n"
         f"Research (JSON, may be truncated):\n{research_summary}\n\n"
-        "Return the outline as structured JSON matching the Outline schema."
+        + (f"{web_research}\n\n" if web_research else "")
+        + "Return the outline as structured JSON matching the Outline schema."
     )
     return await _parse_call(
         model=settings.agent_model, system=system, user=user,
@@ -257,7 +289,8 @@ async def write_section(
         f"{revision_block}\n"
         f"Section heading: {heading}\n"
         f"Section notes: {notes}\n\n"
-        f"Previously written sections (tail, for tonal continuity):\n{prev_tail}\n\n"
+        + (f"{context.webResearch}\n\n" if context.webResearch else "")
+        + f"Previously written sections (tail, for tonal continuity):\n{prev_tail}\n\n"
         f"Start the section with `{hashes} {heading}` on its own line, then "
         "write the body in well-structured paragraphs (and bullet lists where "
         "appropriate). Do not include any other headings. Remember: no "
@@ -266,16 +299,20 @@ async def write_section(
     async def _call(model: str) -> str:
         if spend is not None:
             await spend.ensure_can_spend(LLM_CALL_ESTIMATE_USD)
-        resp = await _oai().chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            temperature=0.7,
-        )
-        await _log_usage(resp, model, spend)
-        return strip_ai_dashes((resp.choices[0].message.content or "").strip())
+        async with _span(model, spend, temperature=0.7) as call:
+            _prompt(call, system, user)
+            resp = await _oai().chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                temperature=0.7,
+            )
+            await _log_usage(resp, model, spend, call)
+            text = strip_ai_dashes((resp.choices[0].message.content or "").strip())
+            call.completion(text)
+            return text
 
     # A persistent failure of the configured writer model (rotated/expired
     # key, deprecated model id, extended outage — the model's own transient
@@ -303,7 +340,7 @@ async def generate_metadata(
         "You are an SEO metadata specialist. Generate concise, high-CTR "
         "metadata. Strict constraints: title 50-60 characters, slug in "
         "kebab-case (lowercase, hyphen-separated, no punctuation), meta "
-        "description 150-160 characters. Include the focus keyword naturally "
+        "description 140-155 characters. Include the focus keyword naturally "
         "in the title and meta description. Never use em-dashes or en-dashes."
     )
     excerpt = article_md[:6000]
