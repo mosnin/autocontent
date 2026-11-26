@@ -9,15 +9,19 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from marketer.config import settings
 from marketer.models import CreditTransaction
+from marketer.repos import access_codes as codes_repo
 from marketer.repos import billing as billing_repo
 
+from .. import audit
 from ..auth import AuthCtx, CurrentUser
 from ..security import user_rate_limit
 
@@ -47,6 +51,9 @@ def _require_billing() -> None:
 
 class CheckoutRequest(BaseModel):
     pack: str = Field(min_length=1, max_length=40)
+    # Where Stripe sends the person back: Settings (default) or the plan
+    # screen after onboarding. A fixed choice, never a URL from the client.
+    return_to: Literal["settings", "plans"] = "settings"
 
 
 class CheckoutResponse(BaseModel):
@@ -78,6 +85,102 @@ async def get_balance(ctx: AuthCtx = CurrentUser) -> BalanceResponse:
         margin=settings.billing_margin,
         transactions=txs,
     )
+
+
+class PackOut(BaseModel):
+    id: str
+    amount_usd: Decimal
+    credit_usd: Decimal
+
+
+class RedemptionOut(BaseModel):
+    kind: Literal["invite", "pilot"]
+    credit_usd: Decimal
+    trial_days: int | None = None
+    access_until: datetime | None = None
+    redeemed_at: datetime
+
+
+class AccessResponse(BaseModel):
+    """What the plan screen needs to decide whether to show (docs/billing/access-codes.md)."""
+
+    billing_enabled: bool
+    # True when the workspace has nothing to run on: billing is on, the balance
+    # is empty, it never bought a pack and never redeemed a code.
+    needs_plan: bool
+    can_manage: bool
+    balance_usd: Decimal | None = None  # only with billing:read
+    has_purchased: bool = False
+    redemption: RedemptionOut | None = None
+    packs: list[PackOut]
+
+
+@router.get("/access", response_model=AccessResponse)
+async def get_access(ctx: AuthCtx = CurrentUser) -> AccessResponse:
+    packs = [PackOut(id=k, amount_usd=Decimal(p["amount_cents"]) / 100, credit_usd=p["credit_usd"]) for k, p in PACKS.items()]
+    can_manage = ctx.can("billing:manage")
+    if not settings.billing_enabled:
+        return AccessResponse(billing_enabled=False, needs_plan=False, can_manage=can_manage, packs=packs)
+    bal = await billing_repo.balance(ctx.user_id)
+    purchased = await codes_repo.has_purchased(ctx.user_id)
+    red = await codes_repo.redemption_for(ctx.user_id)
+    return AccessResponse(
+        billing_enabled=True,
+        needs_plan=bal <= 0 and not purchased and red is None,
+        can_manage=can_manage,
+        balance_usd=bal if ctx.can("billing:read") else None,
+        has_purchased=purchased,
+        redemption=RedemptionOut(**red.model_dump()) if red else None,
+        packs=packs,
+    )
+
+
+class RedeemRequest(BaseModel):
+    code: str = Field(min_length=4, max_length=64)
+
+
+# One plain sentence per failure, keyed by the stable code the client reads.
+_REDEEM_FAILURES: dict[str, int] = {
+    "code_unknown": status.HTTP_404_NOT_FOUND,
+    "code_expired": status.HTTP_410_GONE,
+    "code_used_up": status.HTTP_409_CONFLICT,
+    "code_already_redeemed": status.HTTP_409_CONFLICT,
+}
+
+
+@router.post(
+    "/redeem",
+    response_model=RedemptionOut,
+    dependencies=[
+        user_rate_limit("billing.redeem", "5/minute"),
+        user_rate_limit("billing.redeem.hour", "20/hour"),
+    ],
+)
+async def redeem_code(body: RedeemRequest, ctx: AuthCtx = CurrentUser) -> RedemptionOut:
+    """Redeem an invite or pilot code for this workspace. A person only: never
+    the agent or a personal access token."""
+    if ctx.delegated or ctx.actor_type != "user" or not ctx.actor_id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="person_only")
+    _require_billing_on()
+    try:
+        r = await codes_repo.redeem(code=body.code, tenant_id=ctx.user_id, actor_id=ctx.actor_id)
+    except codes_repo.RedeemFailed as e:
+        # The attempted code is never logged: only why it failed.
+        await audit.record(ctx, "billing.code_redeemed", outcome="failure", metadata={"reason": e.reason, "kind": e.kind})
+        raise HTTPException(_REDEEM_FAILURES[e.reason], detail=e.reason) from None
+    await audit.record(
+        ctx,
+        "billing.code_redeemed",
+        outcome="success",
+        target_type="access_code",
+        metadata={"kind": r.kind, "credit_usd": str(r.credit_usd), "trial_days": r.trial_days},
+    )
+    return RedemptionOut(**r.model_dump())
+
+
+def _require_billing_on() -> None:
+    if not settings.billing_enabled:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="billing is not enabled on this deployment")
 
 
 # Seconds. Stripe's library default is 80, which is longer than any caller
@@ -118,7 +221,7 @@ async def create_checkout(
     # checkout does not stall every other request on this worker.
     try:
         session = await asyncio.to_thread(
-            _create_checkout_session, stripe, pack, ctx.user_id, base
+            _create_checkout_session, stripe, pack, ctx.user_id, base, body.return_to
         )
     except HTTPException:
         raise
@@ -130,7 +233,11 @@ async def create_checkout(
     return CheckoutResponse(url=session.url)
 
 
-def _create_checkout_session(stripe, pack: dict, user_id: str, base: str):
+_RETURN_PATHS = {"settings": "/settings", "plans": "/plans"}
+
+
+def _create_checkout_session(stripe, pack: dict, user_id: str, base: str, return_to: str = "settings"):
+    back = f"{base}{_RETURN_PATHS.get(return_to, '/settings')}"
     return stripe.checkout.Session.create(
         mode="payment",
         line_items=[
@@ -147,8 +254,8 @@ def _create_checkout_session(stripe, pack: dict, user_id: str, base: str):
             "user_id": user_id,
             "credit_usd": str(pack["credit_usd"]),
         },
-        success_url=f"{base}/settings?purchase=success",
-        cancel_url=f"{base}/settings?purchase=cancelled",
+        success_url=f"{back}?purchase=success",
+        cancel_url=f"{back}?purchase=cancelled",
     )
 
 

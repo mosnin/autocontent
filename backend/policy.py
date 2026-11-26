@@ -119,6 +119,9 @@ POLICY: dict[tuple[str, str], Entry] = {
     ("PUT", f"{V1}/admin/flags/{{key}}"): PLATFORM_ADMIN,
     ("GET", f"{V1}/admin/health"): PLATFORM_ADMIN,
     ("GET", f"{V1}/admin/audit-log"): PLATFORM_ADMIN,
+    ("GET", f"{V1}/admin/access-codes"): PLATFORM_ADMIN,
+    ("POST", f"{V1}/admin/access-codes"): PLATFORM_ADMIN,
+    ("POST", f"{V1}/admin/access-codes/{{code_id}}/disable"): PLATFORM_ADMIN,
     # ads
     ("GET", f"{V1}/ads/accounts"): "integration:read",
     ("POST", f"{V1}/ads/accounts/connect"): "integration:connect",
@@ -161,6 +164,12 @@ POLICY: dict[tuple[str, str], Entry] = {
     ("GET", f"{V1}/voices/{{voice}}/preview"): "playbook:read",
     ("GET", f"{V1}/billing/balance"): "billing:read",
     ("POST", f"{V1}/billing/checkout"): "billing:manage",
+    # The plan screen's own read: every member sees whether the workspace can
+    # run; the balance in it is filled only for billing:read.
+    ("GET", f"{V1}/billing/access"): AUTHENTICATED,
+    # Invite and pilot codes: a person only (the route refuses the agent and
+    # tokens), rate limited per workspace, audited as billing.code_redeemed.
+    ("POST", f"{V1}/billing/redeem"): "billing:manage",
     ("GET", f"{V1}/metrics/summary"): "analytics:read",
     ("GET", f"{V1}/x402/config"): "billing:read",
     ("POST", f"{V1}/x402/credits"): "billing:manage",
