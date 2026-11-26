@@ -266,6 +266,33 @@ POLICY: dict[tuple[str, str], Entry] = {
     # observability (docs/observability/braintrust.md)
     ("GET", f"{V1}/observability/settings"): AUTHENTICATED,  # every member and the agent
     ("PUT", f"{V1}/observability/settings"): "security:manage",  # what leaves for a subprocessor; also person-only
+    # tracker (docs/tracker.md): reads are content, rows are content, the shape
+    # of a table (fields, views) is the team's playbook
+    ("GET", f"{V1}/tracker/templates"): "content:read",
+    ("GET", f"{V1}/tracker/members"): "content:read",
+    ("GET", f"{V1}/tracker/objects"): InRoute(("content:read",), "plus campaign:read for kind=campaign"),
+    ("GET", f"{V1}/tracker/tables"): "content:read",
+    ("POST", f"{V1}/tracker/tables"): "playbook:create",
+    ("POST", f"{V1}/tracker/tables/from-template"): "playbook:create",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}"): "content:read",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}"): "playbook:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}"): "playbook:delete",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/fields"): "playbook:update",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}/fields/{{field_id}}"): "playbook:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}/fields/{{field_id}}"): "playbook:update",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/views"): "playbook:update",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}/views/{{view_id}}"): "playbook:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}/views/{{view_id}}"): "playbook:update",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}/rows"): "content:read",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/rows"): "content:update",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}"): "content:read",
+    ("PATCH", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}"): "content:update",
+    ("POST", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}/move"): "content:update",
+    ("DELETE", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}"): "content:delete",
+    ("GET", f"{V1}/tracker/tables/{{table_id}}/rows/{{row_id}}/history"): "content:read",
+    ("POST", f"{V1}/tracker/ab-tests"): InRoute(
+        ("content:update",), "plus playbook:create when the workspace has no A/B test log yet"
+    ),
 }
 
 # Routes that are not FastAPI APIRoutes (Starlette routes FastAPI adds itself).
