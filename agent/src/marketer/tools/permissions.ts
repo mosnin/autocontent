@@ -78,6 +78,13 @@ export const TOOL_PERMISSIONS: Readonly<Record<string, Permission>> = Object.fre
   get_spend_today: "spend:read",
   get_spend_history: "spend:read",
   get_metrics_summary: "analytics:read",
+  // tracker (docs/tracker.md): rows are content; the agent never deletes rows or reshapes tables
+  list_trackers: "content:read",
+  get_tracker: "content:read",
+  list_tracker_rows: "content:read",
+  add_tracker_row: "content:update",
+  update_tracker_row: "content:update",
+  log_ab_test: "content:update",
   // proposals (the autopilot hands a plan to the web app for a person to approve; it does not reach a backend route)
   propose_next_moves: "agent:chat",
 });
