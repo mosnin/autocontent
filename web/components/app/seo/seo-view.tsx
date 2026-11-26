@@ -11,6 +11,8 @@ import type { Article, Niche } from "@/lib/types";
 import { LiveRefresh, toolGlyph } from "../content/shared";
 import { articleStatusLabel, articleTone, ARTICLE_IN_PROGRESS } from "../content/status";
 import { WriteDialog } from "./write-dialog";
+import { Batches, BulkGenerateModal } from "./bulk-generate";
+import type { ArticleBatch } from "@/lib/seo";
 
 type Filter = "all" | "in_progress" | "done" | "failed";
 const FILTERS: { value: Filter; label: string; match: (a: Article) => boolean }[] = [
@@ -56,8 +58,9 @@ function RetryArticle({ id }: { id: string }) {
 }
 
 /** SEO (Tool template): scoped composer, the article pipeline's numbers, then every article in one table. */
-export function SeoView({ articles, niches, openNew, preview }: { articles: Article[] | null; niches: Niche[]; openNew?: boolean; preview?: boolean }) {
+export function SeoView({ articles, niches, openNew, preview, batches = null }: { articles: Article[] | null; niches: Niche[]; openNew?: boolean; preview?: boolean; batches?: ArticleBatch[] | null }) {
   const [write, setWrite] = useState(Boolean(openNew));
+  const [bulk, setBulk] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
   const titles = useMemo(() => new Map(niches.map((n) => [n.id, n.title])), [niches]);
@@ -75,14 +78,21 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
 
   return (
     <>
-      <LiveRefresh active={writing > 0 && !preview} ms={10_000} />
+      <LiveRefresh active={(writing > 0 || (batches ?? []).some((b) => b.status === "running")) && !preview} ms={10_000} />
       <PageHeader
         icon={toolGlyph("seo")}
         title="SEO"
         actions={
-          <Button variant="primary" onClick={() => setWrite(true)}>
-            Write an article
-          </Button>
+          <>
+            {niches.length > 0 && (
+              <Button variant="ghost" onClick={() => setBulk(true)}>
+                Bulk generate
+              </Button>
+            )}
+            <Button variant="primary" onClick={() => setWrite(true)}>
+              Write an article
+            </Button>
+          </>
         }
       />
       <Column
@@ -120,6 +130,8 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
             />
           )}
         </div>
+
+        <Batches batches={batches} niches={niches} preview={preview} />
 
         <Section title="Articles">
           {articles === null ? (
@@ -197,6 +209,7 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
         </Section>
       </Column>
       <WriteDialog open={write} onClose={() => setWrite(false)} niches={niches} />
+      {bulk && <BulkGenerateModal open onClose={() => setBulk(false)} niches={niches} />}
     </>
   );
 }

@@ -17,6 +17,8 @@ export interface PlanItem {
   playbook: string | null;
   /** ISO instant it goes out. */
   at: string;
+  /** Can be dragged to another day (an article's scheduled WordPress publish). */
+  movable?: boolean;
 }
 
 /** The raw /api/v1/calendar row (backend marketer.repos.calendar.CalendarItem). */
@@ -28,11 +30,12 @@ export interface CalendarRow {
   status: string;
   platform: string | null;
   at: string;
+  movable?: boolean;
 }
 
 export const KIND_LABEL: Record<PlanKind, string> = { video: "Video", carousel: "Carousel", article: "Article", ad: "Ad campaign", campaign: "Campaign" };
 
-const PLATFORM: Record<string, string> = { tiktok: "TikTok", reels: "Reels", shorts: "Shorts", meta_ads: "Meta", google_ads: "Google", meta: "Meta", google: "Google", instagram: "Instagram", youtube: "YouTube" };
+const PLATFORM: Record<string, string> = { tiktok: "TikTok", reels: "Reels", shorts: "Shorts", meta_ads: "Meta", google_ads: "Google", meta: "Meta", google: "Google", instagram: "Instagram", youtube: "YouTube", wordpress: "WordPress" };
 export const platformLabel = (p: string | null) => (p ? (PLATFORM[p] ?? p.replace(/_/g, " ")) : null);
 
 export function planHref(item: PlanItem): string {
