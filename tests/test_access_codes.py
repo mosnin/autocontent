@@ -85,15 +85,14 @@ def test_redeem_failures_have_clear_codes(monkeypatch, billing_on, audits, reaso
 
 @pytest.mark.parametrize("ctx", [ctx_for("agent", actor_role="owner"), ctx_for("owner", actor_type="token")])
 def test_redeem_is_for_a_person_only(monkeypatch, billing_on, ctx):
-    from backend import permissions as perms
-
     async def redeem(**_kw):
         raise AssertionError("must not redeem")
 
     monkeypatch.setattr(codes_repo, "redeem", redeem)
-    ctx.permissions = frozenset(perms.permissions_for("owner")) if hasattr(perms, "permissions_for") else ctx.permissions | {"billing:manage"}
+    ctx.permissions = ctx.permissions | {"billing:manage"}
     r = _client(ctx).post("/api/v1/billing/redeem", json={"code": "INV-0000-0000-0000"})
     assert r.status_code == 403
+    assert r.json()["detail"] == "person_only"
 
 
 def test_redeem_needs_billing_manage(billing_on):
