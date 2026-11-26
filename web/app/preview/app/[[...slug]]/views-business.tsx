@@ -53,7 +53,9 @@ export const VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
   "distribution/empty": () => <DistributionView ayrshare={{ connected: false, profile_key: null }} campaigns={[]} calendar={[]} playbooks={[]} />,
   "distribution/campaigns/c1": () => <DistributionCampaignView overview={FX_CAMPAIGN_OVERVIEW} playbooks={FX_PLAYBOOKS} adCampaigns={FX_AD_CAMPAIGNS.map((a) => ({ id: a.id, name: a.name }))} />,
   brand: () => <BrandView kit={FX_BRAND_KIT} kits={FX_KITS} />,
+  "brand/kits": () => <BrandView kit={FX_BRAND_KIT} kits={FX_KITS} initialTab="kits" />,
   integrations: () => <IntegrationsView ayrshare={FX_AYRSHARE} adAccounts={FX_AD_ACCOUNTS} tokens={FX_TOKENS} webhooks={FX_WEBHOOKS} x402={FX_X402} apiBase="https://api.marketer.sh" />,
+  "integrations/developers": () => <IntegrationsView initialView="developers" ayrshare={FX_AYRSHARE} adAccounts={FX_AD_ACCOUNTS} tokens={FX_TOKENS} webhooks={FX_WEBHOOKS} x402={FX_X402} apiBase="https://api.marketer.sh" />,
   settings: () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} />,
   "settings/billing": () => <SettingsView user={FX_USER} billing={FX_BILLING} auth={fxAuthSettings()} previewSessions={FX_SESSIONS} initialTab="billing" />,
   // Auth settings. Add ?role=analyst (or admin, marketer, billing) to see what each role sees.

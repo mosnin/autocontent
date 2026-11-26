@@ -77,9 +77,9 @@ const DEV_HASHES = new Set(["agents", "webhooks", "tokens", "x402"]);
  * agent connects, access tokens, webhooks and x402. The "For agents" rows and
  * the old #agents / #webhooks links open Developers at the right section.
  */
-export function IntegrationsView(data: IntegrationsData) {
+export function IntegrationsView({ initialView = "apps", ...data }: IntegrationsData & { initialView?: View }) {
   const apps = buildApps(data);
-  const [view, setView] = useState<View>("apps");
+  const [view, setView] = useState<View>(initialView);
   const [q, setQ] = useState("");
   const openDevelopers = (hash: string) => {
     setView("developers");

@@ -95,17 +95,8 @@ export function DistributionView({ ayrshare, campaigns, calendar, playbooks }: {
                 ...(unconnected ? [] : [{ value: "channels" as const, label: "Channels" }]),
               ]}
             />
-            {detail === "upcoming" ? (
-              <ButtonLink href="/plan" size="sm" variant="ghost">
-                Open plan
-              </ButtonLink>
-            ) : detail === "campaigns" ? (
-              campaigns && campaigns.length > 0 ? <NewCampaignButton hasPlaybooks={playbooks.length > 0} /> : null
-            ) : (
-              <ButtonLink href="/integrations" size="sm" variant="ghost">
-                All integrations
-              </ButtonLink>
-            )}
+            {/* The header's "Plan" already opens the calendar; only Campaigns needs its own action here. */}
+            {detail === "campaigns" && campaigns && campaigns.length > 0 && <NewCampaignButton hasPlaybooks={playbooks.length > 0} />}
           </div>
           <div key={detail} className="ds-swap">
             {detail === "upcoming" ? (
