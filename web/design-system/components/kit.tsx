@@ -15,15 +15,24 @@ import { Button, inputClass, Modal, StepMark, ToolIcon, type ToolTone } from "./
 /* -------------------------------------------------------------- Chip */
 
 /** Selectable pill (ref 03 prompt pills, ref 01 suggestion row). Not a status. */
-export function Chip({ selected, onClick, href, icon, children, className }: { selected?: boolean; onClick?: () => void; href?: string; icon?: ReactNode; children: ReactNode; className?: string }) {
+/**
+ * A selectable pill (ref 03 prompts). `quiet` drops the border and fill until
+ * selected: use it for a row of section links (Admin), where eight bordered
+ * pills read as eight buttons.
+ */
+export function Chip({ selected, onClick, href, icon, children, className, quiet }: { selected?: boolean; onClick?: () => void; href?: string; icon?: ReactNode; children: ReactNode; className?: string; quiet?: boolean }) {
   const cls = cx(
-    "ds-press inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[12.5px] [&_svg]:size-3.5",
-    selected ? "border-hairline-strong bg-surface-3 text-fg" : "border-hairline bg-surface-2 text-fg-muted hover:border-hairline-strong hover:text-fg",
+    "ds-press inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full px-3 text-[12.5px] [&_svg]:size-3.5",
+    quiet
+      ? selected
+        ? "bg-surface-3 font-medium text-fg"
+        : "text-fg-muted hover:bg-surface-2 hover:text-fg"
+      : cx("border", selected ? "border-hairline-strong bg-surface-3 text-fg" : "border-hairline bg-surface-2 text-fg-muted hover:border-hairline-strong hover:text-fg"),
     className,
   );
   if (href)
     return (
-      <Link href={href} className={cls}>
+      <Link href={href} aria-current={selected ? "page" : undefined} className={cls}>
         {icon}
         {children}
       </Link>

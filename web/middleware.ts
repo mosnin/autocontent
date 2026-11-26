@@ -53,7 +53,7 @@ export const config = {
   // person, and the preview gate. Marketing pages never run middleware.
   // Legacy routes (/dashboard, /ads, …) redirect in next.config.js first.
   matcher: [
-    "/(home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|memory|integrations|settings|onboarding|admin)(.*)",
+    "/(home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|memory|integrations|settings|onboarding|plans|admin)(.*)",
     "/(sign-in|sign-up|verify-email|forgot-password|reset-password|two-factor|accept-invitation)(.*)",
     "/api/proxy(.*)",
     "/api/agent(.*)",

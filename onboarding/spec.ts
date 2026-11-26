@@ -8,7 +8,16 @@
  *   in the preview) → connect only the channels that answer implies, while the first piece is already being
  *   made → rehearsal on that real first piece (ask before posting? cadence?) → the dashboard opens on it.
  *
- * Implemented in web/app/(app)/onboarding (components/mk/onboarding).
+ * Implemented in web/app/(onboarding)/onboarding (web/components/app/onboarding/flow.tsx), one question per
+ * screen with the design system's StepFlow. The intent screen is shown in two beats: the multiple-choice
+ * question, then the one-sentence offer in context (askInContext on 'intent'), so the person never sees two
+ * questions at once; both beats count as the one intent screen below (~7s + ~12s typing, still well inside
+ * the 120s budget on every path). Cadence rides on the rehearsal screen as a detail of the posting preview.
+ *
+ * After the rehearsal, a workspace with nothing to run on (billing on, no credit, no code) passes through the
+ * plan screen (/plans, docs/billing/access-codes.md) before the dashboard. It is not an onboarding screen: it
+ * asks no field and changes no setup, and the proof (the drafted playbook from their own sentence) is shown
+ * before it. The first piece starts from there once there is credit, and the dashboard opens on it (R5.3).
  */
 import { defineSpec } from '../.intent-onboarding/packages/spec/src/index.ts';
 
@@ -29,7 +38,7 @@ export default defineSpec({
     { id: 'brandName', label: 'Brand', tier: 'blocking', category: 'system', infer: ['email_domain', 'website'], askInContext: { on: 'confirm', surface: 'workspace card' } },
     { id: 'website', label: 'Website', tier: 'workflow', category: 'system', infer: ['email_domain'], askInContext: { on: 'confirm', surface: 'workspace card (personal email domains only)' } },
     { id: 'timezone', label: 'Timezone', tier: 'blocking', category: 'system', infer: ['browser'] },
-    { id: 'offer', label: 'What you are marketing', tier: 'workflow', category: 'workflow', infer: ['website'], askInContext: { on: 'intent', surface: 'one-sentence prompt under the intent question, drafting the playbook live in the preview' } },
+    { id: 'offer', label: 'What you are marketing', tier: 'workflow', category: 'workflow', infer: ['website'], askInContext: { on: 'intent', surface: 'the second beat of the intent screen: one sentence, drafting the playbook live in the preview' } },
     { id: 'platforms', label: 'Platforms', tier: 'workflow', category: 'workflow', infer: ['connector:ayrshare'], askInContext: { on: 'connect', surface: 'channel chips on the connect card' } },
     { id: 'approvalMode', label: 'Ask before posting', tier: 'workflow', category: 'workflow', infer: [], askInContext: { on: 'rehearsal', surface: 'the first video, before it posts' } },
     { id: 'cadence', label: 'Cadence', tier: 'workflow', category: 'workflow', infer: [], askInContext: { on: 'rehearsal', surface: 'posting calendar preview' } },

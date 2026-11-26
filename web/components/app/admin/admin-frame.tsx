@@ -28,7 +28,7 @@ export function AdminFrame({ crumbs = [], actions, toolbar, toolbarEnd, children
       <PageHeader icon={<Shield />} crumbs={[{ label: "Admin", href: crumbs.length ? "/admin" : undefined }, ...crumbs]} actions={actions} />
       <nav aria-label="Admin sections" className="flex shrink-0 gap-1.5 overflow-x-auto px-4 pt-3 [scrollbar-width:none]">
         {SECTIONS.map((s) => (
-          <Chip key={s.href} href={s.href} selected={current(s.href)}>
+          <Chip key={s.href} href={s.href} selected={current(s.href)} quiet>
             {s.label}
           </Chip>
         ))}

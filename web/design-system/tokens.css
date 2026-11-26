@@ -175,10 +175,32 @@
 @keyframes ds-spin { to { transform: rotate(360deg); } }
 .ds-spin { animation: ds-spin 0.9s linear infinite; }
 
+/* StepFlow (FLOW.md): a step's parts arrive a beat apart (title, line, control, action). */
+.ds-stagger > * { animation: ds-rise var(--ds-dur-slow) var(--ds-ease-out) both; }
+.ds-stagger > *:nth-child(2) { animation-delay: 40ms; }
+.ds-stagger > *:nth-child(3) { animation-delay: 80ms; }
+.ds-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.ds-stagger > *:nth-child(n + 5) { animation-delay: 160ms; }
+@keyframes ds-rise { from { opacity: 0; transform: translateY(6px); } }
+/* CodeInput: a digit settles into its box; the caret marks the next box. */
+.ds-digit { display: inline-block; animation: ds-digit 180ms var(--ds-ease-out) both; }
+@keyframes ds-digit { from { opacity: 0; transform: translateY(4px) scale(0.92); } }
+.ds-caret { animation: ds-caret 1.1s steps(1) infinite; }
+@keyframes ds-caret { 50% { opacity: 0; } }
+
 dialog.ds-modal { opacity: 0; transform: scale(0.97); transition: transform var(--ds-dur-fast) var(--ds-ease-out), opacity var(--ds-dur-fast) var(--ds-ease-out), overlay var(--ds-dur-fast) allow-discrete, display var(--ds-dur-fast) allow-discrete; }
 dialog.ds-modal[open] { opacity: 1; transform: scale(1); }
 @starting-style { dialog.ds-modal[open] { opacity: 0; transform: scale(0.97); } }
 dialog.ds-modal::backdrop { background: var(--ds-scrim); backdrop-filter: blur(2px); }
+
+/* Tab swap: a page's body changes tab (Column panelKey, in-page Segmented). Quick, no travel to speak of. */
+.ds-swap { animation: ds-swap var(--ds-dur-fast) var(--ds-ease-out) both; }
+@keyframes ds-swap { from { opacity: 0; transform: translateY(3px); } }
+/* Disclosure (Section collapsible): height follows the content through grid rows, so nothing is measured. */
+.ds-disclosure { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows var(--ds-dur-fast) var(--ds-ease-out), opacity var(--ds-dur-quick) ease; }
+.ds-disclosure[data-open] { grid-template-rows: 1fr; opacity: 1; }
+/* Segmented thumb: slides between options instead of blinking. */
+.ds-seg-thumb { transition: transform var(--ds-dur-fast) var(--ds-ease-out), width var(--ds-dur-fast) var(--ds-ease-out); }
 
 @media (prefers-reduced-motion: reduce) {
   .ds *, .ds *::before, .ds *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }

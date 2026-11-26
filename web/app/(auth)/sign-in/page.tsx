@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AuthFrame, TextLink } from "@/components/auth/frame";
+import { AuthShell, TextLink } from "@/components/auth/frame";
 import { nextPath, withNext } from "@/components/auth/next-path";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { getSession } from "@/lib/auth/session";
@@ -24,17 +24,16 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
   if (await getSession().catch(() => null)) redirect(nextPath(next));
   const error = q.error ? (ERRORS[q.error] ?? "Sign-in didn't finish. Try again.") : null;
   const notice = q.verified ? NOTICES.verified : q.reset ? NOTICES.reset : null;
+  const email = q.email && q.email.length <= 320 ? q.email : null;
   return (
-    <AuthFrame
-      title="Sign in"
-      description={error ?? "Welcome back to your marketing department."}
+    <AuthShell
       footer={
         <>
           New to Marketer? <TextLink href={withNext("/sign-up", next)}>Create an account</TextLink>
         </>
       }
     >
-      <SignInForm next={next} google={Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)} notice={notice} />
-    </AuthFrame>
+      <SignInForm next={next} google={Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)} notice={notice} error={error} email={email} />
+    </AuthShell>
   );
 }

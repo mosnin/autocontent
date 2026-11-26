@@ -29,7 +29,7 @@ browser ──httpOnly cookie──▶ /api/auth/*            Better Auth (app/a
 | `lib/auth/audit.ts` | Rows for `public.security_audit_log`, secret scrubbing, and the client-address policy. |
 | `lib/auth/email.ts` | Resend HTTP API; development without a key prints links to the server log. |
 | `lib/auth/route-policy.ts` | The middleware's decisions (redirect, 401, CSP), unit-tested. |
-| `components/auth/*` | Auth pages, Security, Team, Workspace security, workspace switcher and user menu. All built from `@/design-system`. |
+| `components/auth/*` | Auth pages (one-thing-at-a-time flows on the design system's StepFlow, `design-system/FLOW.md`; shared steps in `steps.tsx`), Security, Team, Workspace security, workspace switcher and user menu. All built from `@/design-system`. |
 | `scripts/migrate-from-clerk.ts` | One-time import of a Clerk user export (below). |
 | `scripts/auth-cli.ts` | Entry point for the Better Auth CLI (schema generation and checks). |
 
@@ -99,10 +99,11 @@ Then re-apply the two hand edits marked in the file. Apply with `scripts/migrate
 
 | Route | What |
 |---|---|
-| `/sign-in` | Password, passkey, Google (when configured), "Use SSO" by email domain |
-| `/sign-up`, `/verify-email` | Create account; check inbox and resend |
-| `/forgot-password`, `/reset-password` | Reset by email link |
-| `/two-factor`, `/two-factor/setup` | Code or backup code; enrolment when a workspace requires it |
+| `/sign-in` | One thing at a time: email, then password (or SSO when the email's domain has a verified provider), then the two-factor code on the same page when it's on; an unverified address gets its code step here. Passkey and Google sit under the email step |
+| `/sign-up` | Email, then password (live strength, breach check answers on this step), then the six-digit code; verifying signs them in and opens onboarding |
+| `/verify-email` | The code step on its own (the link in the email works too) |
+| `/forgot-password`, `/reset-password` | Email, then "check your email"; new password, then type it again |
+| `/two-factor`, `/two-factor/setup` | Code or backup code (when a sign-in started elsewhere); enrolment when a workspace requires it |
 | `/accept-invitation/[id]` | Join or decline (only the invited address) |
 | `/settings#security` | Password, two-factor (QR, backup codes), passkeys, sessions |
 | `/settings#team` | Members, roles and their descriptions, invite, change role, remove, pending invitations |
@@ -112,7 +113,7 @@ Fixture previews (no sign-in): `/preview/auth/<sign-in|sign-up|verify-email|forg
 
 ## The end-to-end test
 
-`web/test/e2e-auth.cjs` drives a real browser against your own Postgres and a dev server: sign-up with the verification link from the dev log, onboarding, an Analyst invitation, TOTP enrolment and sign-in with a computed code, session revocation, the JWT verified by a stub backend against `/api/auth/jwks`, and the rate limit. It also checks the security log.
+`web/test/e2e-auth.cjs` drives a real browser against your own Postgres and a dev server: sign-up one step at a time with the code from the dev log (a wrong code first), the link fallback for the second person, onboarding, an Analyst invitation, TOTP enrolment and sign-in with a computed code, session revocation, the JWT verified by a stub backend against `/api/auth/jwks`, and the rate limit. It also checks the security log.
 
 ```bash
 # 1. Postgres with the migrations applied (and 0031 for security_audit_log)

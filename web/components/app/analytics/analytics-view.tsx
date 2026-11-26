@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, BarChart3, CalendarRange, Plug, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, BarChart3, CalendarRange, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
@@ -8,7 +8,7 @@ import {
   AskPill,
   BarList,
   BreakdownList,
-  Button,
+  IconButton,
   ButtonLink,
   Canvas,
   ChartCard,
@@ -91,22 +91,18 @@ export function AnalyticsView(data: AnalyticsData) {
         icon={<BarChart3 />}
         title="Analytics"
         actions={
-          <>
-            <ButtonLink href="/integrations" variant="ghost" className="hidden sm:inline-flex">
-              <Plug />
-              Accounts
-            </ButtonLink>
-            <Button variant="ghost" onClick={() => start(() => router.refresh())} loading={pending} className="hidden sm:inline-flex">
-              {!pending && <RefreshCw />}
-              Refresh
-            </Button>
-            <ButtonLink href={askHref("Write me a one-page report on the last " + data.days + " days: what moved, why, and what to do next")} variant="primary">
-              Get a report
-            </ButtonLink>
-          </>
+          <ButtonLink href={askHref("Write me a one-page report on the last " + data.days + " days: what moved, why, and what to do next")} variant="primary">
+            Get a report
+          </ButtonLink>
         }
       />
-      <Toolbar>
+      <Toolbar
+        end={
+          <IconButton label="Refresh" onClick={() => start(() => router.refresh())} disabled={pending}>
+            <RefreshCw className={cx(pending && "ds-spin")} />
+          </IconButton>
+        }
+      >
         <FilterPill label="Date range" icon={<CalendarRange />} value={String(data.days)} options={PERIODS.map((p) => ({ value: String(p), label: `Last ${p} days` }))} onChange={(v) => set("days", v)} />
         <FilterPill label="Compare" icon={<ArrowLeftRight />} value={compare ? "on" : "off"} options={[{ value: "on", label: "Compare to previous" }, { value: "off", label: "No comparison" }]} onChange={(v) => set("compare", v)} />
       </Toolbar>
@@ -225,7 +221,6 @@ function SpendBreakdown({ overview: o, spend, ads, playbooks }: { overview: Over
           { label: "Content production", value: formatUsd(content), trend: bucket(o.series.map((r) => num(r.content_spend_usd))), href: "/content" },
           { label: "Paid media", value: formatUsd(adSpend), trend: bucket(o.series.map((r) => num(r.ad_spend_usd))), href: "/paid" },
           ...rows.map(([id, e]) => ({ label: titles.get(id) ?? (id === "other" ? "Other" : "Untitled playbook"), value: formatUsd(e.v), trend: bucket(o.series.map((r) => e.days.get(r.day.slice(0, 10)) ?? 0)), href: id === "other" ? undefined : `/playbooks/${id}` })),
-          ...(ads && ads.active_campaigns > 0 ? [{ label: `Today, ${ads.active_campaigns} live campaign${ads.active_campaigns === 1 ? "" : "s"}`, value: formatUsd(ads.spend_today_usd), href: "/paid" }] : []),
           { label: "Total", value: formatUsd(content + adSpend), total: true },
         ]}
       />
@@ -243,7 +238,7 @@ function Pipeline({ overview: o, ads }: { overview: Overview; ads: AdsOverview |
     row("seo", "Articles", "/seo", o.pipeline.seo, "Why did my last articles fail, and can you retry them?"),
   ];
   return (
-    <section>
+    <section className="pt-5">
       <div className="mb-2 px-0.5">
         <DataLabel icon={<RefreshCw />} action={<Link href="/activity" className="text-[12px] text-fg-muted hover:text-fg">Activity</Link>}>Pipeline</DataLabel>
       </div>
@@ -280,7 +275,7 @@ function PlaybookTable({ playbooks }: { playbooks: PlaybookPerformance[] }) {
   const rows = playbooks.filter((pb) => pb.summary && pb.summary.total_videos > 0).sort((a, b) => (b.summary!.total_views ?? 0) - (a.summary!.total_views ?? 0));
   if (rows.length === 0) return null;
   return (
-    <section>
+    <section className="pt-5">
       <div className="mb-2 px-0.5">
         <DataLabel icon={<BarChart3 />}>By playbook</DataLabel>
       </div>

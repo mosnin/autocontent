@@ -209,6 +209,14 @@ export function PlaybookDetailView({
               { label: "Cadence", value: <span suppressHydrationWarning>{cadence(niche.posting_windows)}</span> },
               { label: "Daily cap", value: <span className="inline-block w-[140px] text-left"><CapMeter spent={today} cap={cap} /></span> },
               { label: "Approval", value: niche.approve_before_post ? "Reviews each video" : "Posts on its own" },
+            ]}
+          />
+        </Section>
+
+        {/* How a video is made: settled once, rarely read again, so one click away. */}
+        <Section title="Production details" collapsible>
+          <Facts
+            items={[
               { label: "Format", value: `${niche.target_duration_sec}s · ${niche.scene_count} scenes · ${niche.video_resolution}` },
               { label: "Voice", value: <span className="capitalize">{niche.voice_provider === "elevenlabs" ? "ElevenLabs" : niche.voice}</span> },
               ...(s && hasViews ? [{ label: "Per 1k views", value: costPer1k(s.total_spend_usd, s.total_views) }] : []),

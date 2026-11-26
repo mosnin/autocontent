@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Button, ConfirmModal, EmptyLine, Field, Input, List, ListRow, Modal, Notice, Section, Segmented, StatusBadge, Textarea } from "@/design-system";
+import { Button, ConfirmModal, EmptyLine, Field, Input, List, ListRow, Modal, Notice, Segmented, StatusBadge, Textarea } from "@/design-system";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { Kit, KitKind } from "@/lib/types";
 
@@ -57,16 +57,14 @@ export function Kits({ kits }: { kits: Kit[] | null }) {
   const meta = KIND[kind];
 
   return (
-    <Section
-      title="Kits"
-      action={
-        <Button size="sm" onClick={() => setEditing({ mode: "new", kind })}>
-          <Plus /> New {meta.noun}
-        </Button>
-      }
-    >
+    <section id="kits" className="scroll-mt-4">
       <div className="space-y-3">
-        <Segmented label="Kit kind" value={kind} onChange={setKind} options={(Object.keys(KIND) as KitKind[]).map((k) => ({ value: k, label: KIND[k].tab }))} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Segmented label="Kit kind" value={kind} onChange={setKind} options={(Object.keys(KIND) as KitKind[]).map((k) => ({ value: k, label: KIND[k].tab }))} />
+          <Button size="sm" onClick={() => setEditing({ mode: "new", kind })}>
+            <Plus /> New {meta.noun}
+          </Button>
+        </div>
         <p className="text-[13px] text-fg-muted">{meta.blurb}</p>
         <Notice error={error} />
         {kits === null ? (
@@ -104,7 +102,7 @@ export function Kits({ kits }: { kits: Kit[] | null }) {
       <ConfirmModal open={deleting !== null} onClose={() => setDeleting(null)} title={`Delete ${deleting?.name ?? "kit"}?`} confirmLabel="Delete" danger busy={busy === "delete"} onConfirm={() => deleting && void run("delete", () => proxyFetch(`/api/v1/kits/${deleting.id}`, "DELETE"))}>
         <p>Playbooks using it fall back to your default {deleting ? KIND[deleting.kind].noun : "kit"}. This can't be undone.</p>
       </ConfirmModal>
-    </Section>
+    </section>
   );
 }
 

@@ -2,8 +2,8 @@
 
 import { Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { type FormEvent, type ReactNode, useState } from "react";
-import { AskPill, Button, Callout, Card, Column, Field, FieldGroup, Input, Notice, PageHeader, Section, TagInput, Textarea } from "@/design-system";
+import { type FormEvent, type ReactNode, useEffect, useState } from "react";
+import { AskPill, Button, Callout, Column, Field, FieldGroup, Input, Notice, PageHeader, Section, Segmented, TagInput, Textarea } from "@/design-system";
 import { EMPTY_BRAND_KIT, HEX_COLOR_RE, saveBrandKit, type BrandKit } from "@/lib/brand-kit-client";
 import { formatDateTime } from "@/lib/format";
 import type { Kit } from "@/lib/types";
@@ -19,16 +19,50 @@ const PICKER_DEFAULT = "#8a8a8a"; // ds-guard-ignore
 
 const ASK = `/sessions/new?dept=strategy&q=${encodeURIComponent("Read my website and draft our brand voice, audience and banned words")}`;
 
-/** Brand (ref 07, column md): voice, audience and visual kit in one form, then the kits agents carry. */
-export function BrandView({ kit, kits, loadFailed }: { kit: BrandKit | null; kits: Kit[] | null; loadFailed?: boolean }) {
+type BrandTab = "profile" | "kits";
+
+/**
+ * Brand (ref 07, column md), two views. Profile: voice, audience and colour in
+ * one form with its save bar. Kits: the design, writing and ad kits agents
+ * carry, each edited in a dialog. /brand#kits opens Kits.
+ */
+export function BrandView({ kit, kits, loadFailed, initialTab = "profile" }: { kit: BrandKit | null; kits: Kit[] | null; loadFailed?: boolean; initialTab?: BrandTab }) {
+  const [tab, setTab] = useState<BrandTab>(initialTab);
+  useEffect(() => {
+    if (window.location.hash === "#kits") setTab("kits");
+  }, []);
+  const pick = (t: BrandTab) => {
+    setTab(t);
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}${t === "kits" ? "#kits" : ""}`);
+  };
   return (
     <>
       <PageHeader icon={<Sparkles />} title="Brand" />
-      <Column title="Brand" description="How every agent sounds, who it writes for, and how it looks.">
-        {loadFailed && <Callout tone="attention">Couldn't load your saved brand, so this starts blank. Saving overwrites it.</Callout>}
-        <BrandForm initial={kit ?? EMPTY_BRAND_KIT} />
-        <Kits kits={kits} />
-        <AskPill label="Ask Marketer to draft your voice" href={ASK} />
+      <Column
+        title="Brand"
+        description="How every agent sounds, who it writes for, and how it looks."
+        panelKey={tab}
+        control={
+          <Segmented
+            label="Brand sections"
+            value={tab}
+            onChange={pick}
+            options={[
+              { value: "profile", label: "Profile" },
+              { value: "kits", label: <>Kits{kits && kits.length > 0 && <span className="font-normal text-fg-faint tabular">{kits.length}</span>}</> },
+            ]}
+          />
+        }
+      >
+        {tab === "profile" ? (
+          <>
+            {loadFailed && <Callout tone="attention">Couldn't load your saved brand, so this starts blank. Saving overwrites it.</Callout>}
+            <BrandForm initial={kit ?? EMPTY_BRAND_KIT} />
+            <AskPill label="Ask Marketer to draft your voice" href={ASK} />
+          </>
+        ) : (
+          <Kits kits={kits} />
+        )}
       </Column>
     </>
   );
@@ -91,7 +125,7 @@ function BrandForm({ initial }: { initial: BrandKit }) {
   return (
     <form onSubmit={onSubmit} className="space-y-10">
       <Section title="Voice">
-        <Card className="space-y-4 p-4">
+        <div className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Brand name">
               <Input value={brandName} onChange={(e) => setBrandName(e.target.value)} placeholder="Pasta Club" />
@@ -106,22 +140,22 @@ function BrandForm({ initial }: { initial: BrandKit }) {
           <FieldGroup label="Banned words" hint="Comma or Enter adds one.">
             <TagInput id="brand-banned" values={banned} onChange={setBanned} placeholder="disrupt, revolutionary, synergy" />
           </FieldGroup>
-        </Card>
+        </div>
       </Section>
 
       <Section title="Audience">
-        <Card className="space-y-4 p-4">
+        <div className="space-y-4">
           <Field label="Who it's for">
             <Input value={audience} onChange={(e) => setAudience(e.target.value)} placeholder="Solo founders and small marketing teams" />
           </Field>
           <FieldGroup label="Hashtags" hint="Seeded into new channels. The # is added for you.">
             <TagInput id="brand-hashtags" values={hashtags} onChange={setHashtags} placeholder="marketing, growth, saas" prefix="#" />
           </FieldGroup>
-        </Card>
+        </div>
       </Section>
 
       <Section title="Visual kit">
-        <Card className="p-4">
+        <div>
           <FieldGroup label="Brand colour" hint={hexValid ? "A 6-digit hex, or empty for none." : "Enter a 6-digit hex like #4f46e5, or clear it."}>
             <div className="flex flex-wrap items-center gap-2">
               <input type="color" aria-label="Pick brand colour" value={swatch ?? PICKER_DEFAULT} onChange={(e) => setColor(e.target.value)} className="h-8 w-10 shrink-0 cursor-pointer rounded-ds-md border border-hairline bg-surface-2 p-1" />
@@ -135,10 +169,10 @@ function BrandForm({ initial }: { initial: BrandKit }) {
               )}
             </div>
           </FieldGroup>
-        </Card>
+        </div>
       </Section>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-hairline bg-ds-bg py-3">
         <div className="min-w-0">
           <Notice ok={note?.ok} error={note?.error} />
           {!note && <p className="text-[12.5px] text-fg-muted">{savedAt ? `Last saved ${formatDateTime(savedAt)}` : "Not saved yet"}</p>}

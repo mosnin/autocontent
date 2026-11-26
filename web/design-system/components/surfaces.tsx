@@ -4,7 +4,7 @@
  * Surfaces: collection cards (ref 07), marketplace banner and app rows (ref 03),
  * plan options (ref 04), the home backdrop and glass bento cards (ref 01).
  */
-import { Check, CheckCircle2, Plus } from "lucide-react";
+import { Check, CheckCircle2, Loader2, Plus } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "../cx";
@@ -96,38 +96,90 @@ export function AppRow({ logo, name, description, connected, onConnect, href }: 
   );
 }
 
-/** Ref 04: textured image header, title + price badge, description, "What you get" checks, full-width CTA. */
-export function PlanOption({ palette, title, price, description, features, cta, highlighted }: { palette: Palette; title: string; price: ReactNode; description: ReactNode; features: string[]; cta: { label: string; href?: string; onClick?: () => void; loading?: boolean; disabled?: boolean }; highlighted?: boolean }) {
-  const ctaCls = cx(buttonClass(highlighted ? "accent" : "secondary", "lg", "w-full rounded-full"));
+/**
+ * Ref 04: textured image header, title + price badge, description, "What you get" checks, full-width CTA.
+ *
+ * With `headline`, the shader header carries the title and the price in ink
+ * (the plan screen, PLANS.md): the light is the card's identity and the price
+ * is the first thing read. `badge` sits on the shader too ("Recommended").
+ * `highlighted` lifts the card and gives it the solid action.
+ */
+export function PlanOption({
+  palette,
+  title,
+  price,
+  description,
+  features,
+  cta,
+  highlighted,
+  headline,
+  badge,
+  footnote,
+  className,
+}: {
+  palette: Palette;
+  title: string;
+  price?: ReactNode;
+  description: ReactNode;
+  features: string[];
+  cta: { label: string; href?: string; onClick?: () => void; loading?: boolean; disabled?: boolean };
+  highlighted?: boolean;
+  headline?: ReactNode;
+  badge?: ReactNode;
+  footnote?: ReactNode;
+  className?: string;
+}) {
+  const ctaCls = headline ? buttonClass(highlighted ? "primary" : "secondary", "xl", "w-full") : cx(buttonClass(highlighted ? "accent" : "secondary", "lg", "w-full rounded-full"));
   return (
-    <div className="flex flex-col overflow-hidden rounded-ds-xl border border-hairline bg-surface">
-      <div className="h-[120px]">
-        <Shader palette={palette} speed={0.4} />
+    <div
+      className={cx(
+        "group flex flex-col overflow-hidden rounded-ds-xl border bg-surface transition-[transform,box-shadow,border-color] duration-300 ease-[var(--ds-ease-out)] [@media(hover:hover)]:hover:-translate-y-0.5",
+        highlighted ? "border-hairline-strong shadow-ds-float" : "border-hairline [@media(hover:hover)]:hover:border-hairline-strong",
+        className,
+      )}
+    >
+      <div className={cx("relative overflow-hidden", headline ? "h-[116px] md:h-[148px]" : "h-[120px]")}>
+        <div className="absolute inset-0 transition-transform duration-700 ease-[var(--ds-ease-out)] [@media(hover:hover)]:group-hover:scale-[1.04]">
+          <Shader palette={palette} speed={0.4} />
+        </div>
+        {headline && (
+          <div className="relative flex h-full flex-col justify-between p-5 text-on-fill-ink">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[14px] font-medium">{title}</span>
+              {badge && <span className="rounded-full bg-on-fill/80 px-2.5 py-0.5 text-[12px] font-medium text-on-fill-ink backdrop-blur">{badge}</span>}
+            </div>
+            <div className="text-[34px] font-medium leading-none tracking-[-0.03em] tabular">{headline}</div>
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col p-5">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-[18px] font-medium">{title}</h3>
-          <span className={cx("rounded-full px-2.5 py-0.5 text-[12.5px] font-medium", highlighted ? "bg-ds-accent/15 text-ds-accent" : "bg-surface-3 text-fg-muted")}>{price}</span>
-        </div>
-        <p className="mt-2 text-[14px] leading-relaxed text-fg-muted">{description}</p>
-        <div className="mt-6 text-[13px] font-medium">What you get:</div>
-        <ul className="mt-2.5 flex-1 space-y-2">
+        {!headline && (
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-[18px] font-medium">{title}</h3>
+            {price && <span className={cx("rounded-full px-2.5 py-0.5 text-[12.5px] font-medium", highlighted ? "bg-ds-accent/15 text-ds-accent" : "bg-surface-3 text-fg-muted")}>{price}</span>}
+          </div>
+        )}
+        <p className={cx("leading-relaxed", headline ? "text-[15px] font-medium text-fg" : "mt-2 text-[14px] text-fg-muted")}>{description}</p>
+        {!headline && <div className="mt-6 text-[13px] font-medium">What you get:</div>}
+        <ul className={cx("flex-1 space-y-2", headline ? "mt-4" : "mt-2.5")}>
           {features.map((f) => (
-            <li key={f} className="flex items-center gap-2 text-[13.5px] text-fg-muted">
-              <CheckCircle2 className="size-4 shrink-0" strokeWidth={1.6} /> {f}
+            <li key={f} className="flex items-start gap-2 text-[13.5px] text-fg-muted">
+              <CheckCircle2 className="mt-px size-4 shrink-0" strokeWidth={1.6} /> {f}
             </li>
           ))}
         </ul>
-        <div className="mt-8">
+        <div className={headline ? "mt-6" : "mt-8"}>
           {cta.href ? (
             <Link href={cta.href} className={ctaCls}>
               {cta.label}
             </Link>
           ) : (
-            <button type="button" onClick={cta.onClick} disabled={cta.loading || cta.disabled} className={ctaCls}>
+            <button type="button" onClick={cta.onClick} disabled={cta.loading || cta.disabled} aria-busy={cta.loading || undefined} className={ctaCls}>
+              {cta.loading && <Loader2 className="ds-spin" />}
               {cta.label}
             </button>
           )}
+          {footnote && <div className="mt-2.5 text-center text-[12px] text-fg-faint">{footnote}</div>}
         </div>
       </div>
     </div>

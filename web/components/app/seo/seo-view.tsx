@@ -89,23 +89,6 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
         width="lg"
         title={<ToolTitle icon={TOOL_ICON.seo.icon} tone={TOOL_ICON.seo.tone}>SEO</ToolTitle>}
         description="Long-form articles researched against what ranks."
-        control={
-          list.length > 0 ? (
-            <Segmented
-              value={filter}
-              onChange={setFilter}
-              label="Article status"
-              options={FILTERS.map((x) => ({
-                value: x.value,
-                label: (
-                  <>
-                    {x.label} <span className="text-fg-faint tabular">{list.filter(x.match).length}</span>
-                  </>
-                ),
-              }))}
-            />
-          ) : undefined
-        }
       >
         <div className="space-y-4">
           <StartSession scope="seo" lockScope />
@@ -121,7 +104,7 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
           )}
         </div>
 
-        <Section title="Articles">
+        <Section title="Articles" count={list.length || undefined}>
           {articles === null ? (
             <EmptyLine>Couldn&apos;t load articles. Try again in a moment.</EmptyLine>
           ) : list.length === 0 ? (
@@ -148,10 +131,28 @@ export function SeoView({ articles, niches, openNew, preview }: { articles: Arti
             )
           ) : (
             <div className="space-y-2">
-              <label className="relative block">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
-                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search titles, keywords, playbooks" aria-label="Search articles" className="pl-8" />
-              </label>
+              {/* One toolbar next to the list it filters: search, then status. */}
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="relative min-w-0 flex-1 basis-[200px]">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
+                  <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search titles, keywords, playbooks" aria-label="Search articles" className="pl-8" />
+                </label>
+                <div className="max-w-full overflow-x-auto">
+                  <Segmented
+                    value={filter}
+                    onChange={setFilter}
+                    label="Article status"
+                    options={FILTERS.map((x) => ({
+                      value: x.value,
+                      label: (
+                        <>
+                          {x.label} <span className="font-normal text-fg-faint tabular">{list.filter(x.match).length}</span>
+                        </>
+                      ),
+                    }))}
+                  />
+                </div>
+              </div>
               <Table
                 rows={visible}
                 rowKey={(a) => a.id}

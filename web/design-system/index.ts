@@ -8,6 +8,7 @@ export * from "./components/agent";
 export * from "./components/surfaces";
 export { Shader, PALETTES, paletteFor, fieldGradient, cssFallback, type Palette } from "./components/shader";
 export * from "./components/kit";
+export * from "./components/flow";
 export { Markdown } from "./components/markdown";
 export { CommitWave, type WaveMoment } from "./components/wave";
 export { AgentSplit, type SplitAgent } from "./components/goo";

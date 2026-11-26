@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AuthFrame, TextLink } from "@/components/auth/frame";
+import { AuthShell, TextLink } from "@/components/auth/frame";
 import { nextPath, withNext } from "@/components/auth/next-path";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { getSession } from "@/lib/auth/session";
@@ -11,16 +11,14 @@ export default async function SignUpPage({ searchParams }: { searchParams: Promi
   const next = q.next ?? null;
   if (await getSession().catch(() => null)) redirect(nextPath(next));
   return (
-    <AuthFrame
-      title="Create your account"
-      description="Your AI marketing department, set up around your brand in a few minutes."
+    <AuthShell
       footer={
         <>
           Already have an account? <TextLink href={withNext("/sign-in", next)}>Sign in</TextLink>
         </>
       }
     >
-      <SignUpForm next={next} email={q.email ?? null} />
-    </AuthFrame>
+      <SignUpForm next={next} email={q.email && q.email.length <= 320 ? q.email : null} google={Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)} />
+    </AuthShell>
   );
 }

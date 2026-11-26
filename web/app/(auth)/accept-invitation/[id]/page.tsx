@@ -1,6 +1,7 @@
 import { AcceptInvitation } from "@/components/auth/accept-invitation";
-import { AuthFrame, TextLink } from "@/components/auth/frame";
+import { AuthFrame, AuthShell, TextLink } from "@/components/auth/frame";
 import { withNext } from "@/components/auth/next-path";
+import { ButtonLink } from "@/design-system";
 import { authPool } from "@/lib/auth/server";
 import { getSession } from "@/lib/auth/session";
 
@@ -24,8 +25,12 @@ export default async function AcceptInvitationPage({ params }: { params: Promise
     return (
       <AuthFrame title="You're invited" description="Sign in or create an account with the address the invitation was sent to." footer={<TextLink href="/">What is Marketer?</TextLink>}>
         <div className="flex flex-col gap-2">
-          <TextLink href={withNext("/sign-up", here)}>Create an account</TextLink>
-          <TextLink href={withNext("/sign-in", here)}>I already have an account</TextLink>
+          <ButtonLink href={withNext("/sign-up", here)} variant="primary" size="xl" className="w-full">
+            Create an account
+          </ButtonLink>
+          <ButtonLink href={withNext("/sign-in", here)} variant="ghost" size="lg" className="w-full">
+            I already have an account
+          </ButtonLink>
         </div>
       </AuthFrame>
     );
@@ -49,8 +54,8 @@ export default async function AcceptInvitationPage({ params }: { params: Promise
       </AuthFrame>
     );
   return (
-    <AuthFrame title={`Join ${inv.name}`} description={`${inv.inviterEmail} invited ${session.user.email} to this workspace.`}>
-      <AcceptInvitation invitation={{ id: inv.id, organizationName: inv.name, role: inv.role, inviterEmail: inv.inviterEmail }} />
-    </AuthFrame>
+    <AuthShell>
+      <AcceptInvitation email={session.user.email} invitation={{ id: inv.id, organizationName: inv.name, role: inv.role, inviterEmail: inv.inviterEmail }} />
+    </AuthShell>
   );
 }

@@ -7,7 +7,7 @@
 // round trip for people who are plainly signed out.
 
 /** Every app route. Keep in sync with AUTH_ROUTES in next.config.js and the matcher in middleware.ts. */
-export const APP_SEGMENTS = ["home", "activity", "inbox", "sessions", "analytics", "plan", "library", "content", "seo", "paid", "distribution", "playbooks", "brand", "memory", "integrations", "settings", "onboarding", "admin"] as const;
+export const APP_SEGMENTS = ["home", "activity", "inbox", "sessions", "analytics", "plan", "library", "content", "seo", "paid", "distribution", "playbooks", "brand", "memory", "integrations", "settings", "onboarding", "plans", "admin"] as const;
 
 /** Auth pages: public, but served with the strict CSP. */
 export const AUTH_SEGMENTS = ["sign-in", "sign-up", "verify-email", "forgot-password", "reset-password", "two-factor", "accept-invitation"] as const;

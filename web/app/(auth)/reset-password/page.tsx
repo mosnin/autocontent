@@ -1,4 +1,4 @@
-import { AuthFrame, TextLink } from "@/components/auth/frame";
+import { AuthFrame, AuthShell, TextLink } from "@/components/auth/frame";
 import { ResetPasswordForm } from "@/components/auth/recovery-forms";
 
 export const metadata = { title: "Choose a new password · Marketer" };
@@ -13,8 +13,8 @@ export default async function ResetPasswordPage({ searchParams }: { searchParams
       </AuthFrame>
     );
   return (
-    <AuthFrame title="Choose a new password" footer={<TextLink href="/sign-in">Back to sign in</TextLink>}>
+    <AuthShell footer={<TextLink href="/sign-in">Back to sign in</TextLink>}>
       <ResetPasswordForm token={token} />
-    </AuthFrame>
+    </AuthShell>
   );
 }

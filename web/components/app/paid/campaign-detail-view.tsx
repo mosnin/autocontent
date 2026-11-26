@@ -195,8 +195,6 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
         <Section title="Details">
           <Facts
             items={[
-              { label: "Status", value: <AdStatusBadge status={campaign.status} /> },
-              { label: "Daily budget", value: campaign.daily_budget_usd ? `${formatUsd(campaign.daily_budget_usd)}/day` : "Not set" },
               ...(account
                 ? [
                     { label: "Account", value: `${platformLabel(account.platform)} · ${accountName(account)}` },
@@ -211,7 +209,7 @@ export function CampaignDetailView({ campaign, metrics, account }: { campaign: A
         </Section>
 
         {recent.length > 0 && (
-          <Section title="Daily">
+          <Section title="Day by day" count={recent.length} collapsible>
             <Table
               rows={recent}
               rowKey={(m) => m.date}

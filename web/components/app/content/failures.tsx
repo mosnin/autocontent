@@ -60,7 +60,11 @@ function FailureRow({ f }: { f: FailureItem }) {
   );
 }
 
-/** Everything that failed across videos, carousels and articles, grouped by why, with retry in place. */
+/**
+ * Everything that failed across videos, carousels and articles, grouped by why,
+ * with retry in place. Folded by default: failed videos already show in the
+ * list with Retry, so this is the cross-tool view, one click away.
+ */
 export function FailuresPanel({ failures }: { failures: Failures | null }) {
   const [cat, setCat] = useState<FailureCategory | "all">("all");
   const [open, setOpen] = useState(false);
@@ -71,7 +75,9 @@ export function FailuresPanel({ failures }: { failures: Failures | null }) {
   const shown = open ? page.shown : visible.slice(0, 3);
   return (
     <Section
-      title={`Failed · ${failures.total}`}
+      title="Failed across videos, carousels and articles"
+      count={failures.total}
+      collapsible
       action={
         visible.length > 3 ? (
           <Button variant="ghost" size="sm" onClick={() => setOpen((v) => !v)}>

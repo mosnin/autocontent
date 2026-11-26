@@ -39,7 +39,7 @@ const PROD = process.env.NODE_ENV === "production";
 // Routes the auth middleware handles (web/middleware.ts; APP_SEGMENTS and
 // AUTH_SEGMENTS in lib/auth/route-policy.ts). They get a nonce-based CSP
 // there; everything else gets the static policy below.
-const AUTH_ROUTES = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|memory|integrations|settings|onboarding|admin|sign-in|sign-up|verify-email|forgot-password|reset-password|two-factor|accept-invitation";
+const AUTH_ROUTES = "home|activity|inbox|sessions|analytics|plan|library|content|seo|paid|distribution|playbooks|brand|memory|integrations|settings|onboarding|plans|admin|sign-in|sign-up|verify-email|forgot-password|reset-password|two-factor|accept-invitation";
 
 // Always enforced, on every response: clickjacking, <base> hijack, plugins.
 const CSP_BASELINE = "frame-ancestors 'none'; base-uri 'self'; object-src 'none'";

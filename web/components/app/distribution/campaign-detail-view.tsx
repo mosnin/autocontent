@@ -1,9 +1,9 @@
 "use client";
 
-import { Clapperboard, FileText, GalleryHorizontal, Megaphone, Pause, Play, Trash2 } from "lucide-react";
+import { Clapperboard, FileText, GalleryHorizontal, Megaphone, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useRef, useState } from "react";
-import { AskPill, Button, Card, Column, CommitWave, ConfirmModal, EmptyLine, Facts, Field, IconButton, IconTile, Input, KpiCard, List, ListRow, Meter, Notice, PageHeader, Section, Select, StatusBadge, Switch, useAllowed } from "@/design-system";
+import { AskPill, Button, Card, Column, CommitWave, ConfirmModal, EmptyLine, Facts, Field, IconButton, IconTile, Input, KpiCard, List, ListRow, Meter, Modal, Notice, PageHeader, Section, Select, StatusBadge, Switch, useAllowed } from "@/design-system";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { PlaybookRef } from "@/lib/business";
 import { formatDate, formatUsd } from "@/lib/format";
@@ -26,6 +26,7 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState<CampaignItem | null>(null);
+  const [adding, setAdding] = useState(false);
   // A draft starting for the first time is a launch (WAVE.md). Resuming a paused campaign is not.
   const [launched, setLaunched] = useState(false);
   const launchBtn = useRef<HTMLButtonElement>(null);
@@ -153,18 +154,23 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
         <Section title="Details">
           <Facts
             items={[
-              { label: "Status", value: <CampaignStatus status={c.status} /> },
               { label: "Starts", value: formatDate(c.starts_at) },
               { label: "Ends", value: c.ends_at ? formatDate(c.ends_at) : "No end date" },
-              { label: "Credit budget", value: formatUsd(budget) },
-              { label: "Lanes on", value: `${lanesOn} of ${overview.items.length}` },
             ]}
           />
         </Section>
 
-        <Section title="Lanes">
+        <Section
+          title="Lanes"
+          count={overview.items.length || undefined}
+          action={
+            <Button size="sm" onClick={() => setAdding(true)}>
+              <Plus /> Add lane
+            </Button>
+          }
+        >
           {overview.items.length === 0 ? (
-            <EmptyLine>No lanes yet. Add one below.</EmptyLine>
+            <EmptyLine>No lanes yet. Add one to start making work for this campaign.</EmptyLine>
           ) : (
             <List>
               {overview.items.map((item) => {
@@ -192,7 +198,7 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
           )}
         </Section>
 
-        <AddLane campaignId={c.id} playbooks={playbooks} adCampaigns={adCampaigns} onAdded={() => router.refresh()} />
+        <AddLane open={adding} onClose={() => setAdding(false)} campaignId={c.id} playbooks={playbooks} adCampaigns={adCampaigns} onAdded={() => (setAdding(false), router.refresh())} />
 
         <AskPill label="Ask about this campaign" href={`/sessions/new?dept=distribution&q=${encodeURIComponent(ask)}`} />
       </Column>
@@ -212,7 +218,8 @@ export function DistributionCampaignView({ overview, playbooks, adCampaigns }: {
   );
 }
 
-function AddLane({ campaignId, playbooks, adCampaigns, onAdded }: { campaignId: string; playbooks: PlaybookRef[]; adCampaigns: { id: string; name: string }[]; onAdded: () => void }) {
+/** Adding a lane is a focused task: a dialog from the Lanes header, not a form left open under the list. */
+function AddLane({ open, onClose, campaignId, playbooks, adCampaigns, onAdded }: { open: boolean; onClose: () => void; campaignId: string; playbooks: PlaybookRef[]; adCampaigns: { id: string; name: string }[]; onAdded: () => void }) {
   const [kind, setKind] = useState<LaneKind>("video");
   const [refId, setRefId] = useState("");
   const [cadence, setCadence] = useState(3);
@@ -238,8 +245,22 @@ function AddLane({ campaignId, playbooks, adCampaigns, onAdded }: { campaignId: 
   };
 
   return (
-    <Section title="Add a lane">
-      <Card className="p-4">
+    <Modal
+      open={open}
+      onClose={() => !busy && onClose()}
+      title="Add a lane"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={() => void add()} loading={busy}>
+            Add lane
+          </Button>
+        </>
+      }
+    >
+      <div>
         <div className="grid gap-4 sm:grid-cols-[10rem_1fr_6rem]">
           <Field label="Lane">
             <Select
@@ -284,14 +305,11 @@ function AddLane({ campaignId, playbooks, adCampaigns, onAdded }: { campaignId: 
             <Input type="number" min={1} max={56} value={cadence} disabled={kind === "ad"} onChange={(e) => setCadence(Number(e.target.value))} className="tabular" />
           </Field>
         </div>
-        <p className="mt-3 text-[12px] text-fg-muted">Ad lanes link a campaign from Paid media; its caps and approvals still apply.</p>
-        <div className="mt-4 flex items-center justify-end gap-3">
+        <p className="mt-3 text-[12.5px] text-fg-muted">Ad lanes link a campaign from Paid media; its caps and approvals still apply.</p>
+        <div className="mt-3">
           <Notice error={error} />
-          <Button variant="primary" onClick={() => void add()} loading={busy}>
-            Add lane
-          </Button>
         </div>
-      </Card>
-    </Section>
+      </div>
+    </Modal>
   );
 }

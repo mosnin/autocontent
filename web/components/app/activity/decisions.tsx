@@ -52,29 +52,30 @@ function DecisionRow({ d }: { d: DecisionEntry }) {
   return (
     <div>
       <button type="button" aria-expanded={open} aria-controls={panel} onClick={() => setOpen((v) => !v)} className="flex min-h-12 w-full items-center gap-3 px-3.5 py-2.5 text-left -outline-offset-2 hover:bg-surface-2">
-        <ChevronRight aria-hidden className={cx("size-3.5 shrink-0 text-fg-muted transition-transform duration-200", open && "rotate-90")} />
+        <ChevronRight aria-hidden className={cx("size-3.5 shrink-0 text-fg-muted transition-transform duration-[var(--ds-dur-fast)] ease-[var(--ds-ease-out)]", open && "rotate-90")} />
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[13px]">{pointLabel(d.point)}</span>
           <span className="block text-[12px] text-fg-muted sm:truncate">
             {action(d.action_taken)}
             {d.subject_kind && ` · ${titleCase(d.subject_kind)}`}
-            {/* On a phone the badges don't fit beside the title, so the same facts read as words. */}
-            <span className="sm:hidden">
-              {` · ${mode.label}`}
-              {d.fallback_used && " · fallback used"}
-              {d.correction && " · corrected"}
-            </span>
+            {` · ${mode.label}`}
+            {d.fallback_used && " · fallback used"}
           </span>
         </span>
-        <span className="hidden shrink-0 items-center gap-3 sm:flex">
-          {d.correction && <StatusBadge tone="accent">Corrected</StatusBadge>}
-          {d.fallback_used && <StatusBadge tone={d.mode === "enforce" ? "attention" : "neutral"}>Fallback used</StatusBadge>}
-          <StatusBadge tone={d.mode === "enforce" ? "positive" : "neutral"}>{mode.label}</StatusBadge>
-        </span>
+        {/* One badge at most, for what deserves a look: a correction, or an enforced model that fell back. */}
+        {d.correction ? (
+          <span className="shrink-0">
+            <StatusBadge tone="accent">Corrected</StatusBadge>
+          </span>
+        ) : d.fallback_used && d.mode === "enforce" ? (
+          <span className="shrink-0">
+            <StatusBadge tone="attention">Fell back</StatusBadge>
+          </span>
+        ) : null}
         <Time iso={d.created_at} className="shrink-0 whitespace-nowrap text-[12px] text-fg-muted tabular" />
       </button>
       {open && (
-        <div id={panel} className="space-y-3 border-t border-hairline bg-surface-2 px-3.5 py-3 text-[12.5px]">
+        <div id={panel} className="ds-swap space-y-3 border-t border-hairline bg-surface-2 px-3.5 py-3 text-[12.5px]">
           <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
             <div>
               <dt className="text-fg-muted">Action taken</dt>
@@ -155,7 +156,7 @@ export function DecisionsList({ decisions, basePath, cursor }: { decisions: Deci
   const fallbacks = items.filter((d) => d.fallback_used).length;
   return (
     <>
-      <Section title={`Decisions · ${items.length}`} action={<span className="text-[12px] text-fg-muted tabular">{fallbacks} used the fallback</span>}>
+      <Section title="Decisions" count={items.length} action={<span className="text-[12px] text-fg-muted tabular">{fallbacks} used the fallback</span>}>
         <div className="space-y-3">
           <List>
             {shown.map((d) => (

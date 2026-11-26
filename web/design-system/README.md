@@ -49,7 +49,8 @@ Open the image before you build or change a screen that uses it.
 4. **Small and dense.** Base text is 13px, rows are 28px, buttons are 28px rounded rectangles (6px corners), and page headers are 48px. Titles are medium weight, never bold.
 5. **Conversation first.** Every page has a way to ask the agent about what you're looking at: a scoped composer, an `AskPill`, or "Ask about this". Data pages show the data. They don't explain the feature.
 6. **Nothing decorative moves.** The one exception is the wave, which marks a person committing something real; it has its own rules in [`WAVE.md`](./WAVE.md). The other is the goo, which shows Marketer splitting into its specialists ([`GOO.md`](./GOO.md)).
-   Apart from that, no pulsing dots, glowing borders, bouncing badges or gradient text. Motion is limited to press feedback (`ds-press`), enter (`ds-enter`), popovers (`ds-pop`), the chat shimmer on "Agent is working", and the home shader.
+   Apart from that, no pulsing dots, glowing borders, bouncing badges or gradient text. Motion is limited to press feedback (`ds-press`), enter (`ds-enter`), popovers (`ds-pop`), a tab swap (`ds-swap`, 220ms fade and 3px rise when a page's tab changes), a disclosure opening (`ds-disclosure`), the Segmented pill sliding, dialogs scaling in, the chat shimmer on "Agent is working", and the home shader. All of them use the duration and easing tokens and collapse under `prefers-reduced-motion`.
+7. **One job per surface.** One primary action per page. Summary before detail: a page opens with what needs you and the few numbers that matter, then one `Segmented` for the detail (Paid: Campaigns / Guardrails / Audit trail; Distribution: Upcoming / Campaigns / Channels), never three tables stacked. Focused tasks (invite, add a lane, new token, new endpoint) open in a `Modal`. Reference material folds into a collapsible `Section`. Never more than one level of hiding, and common actions stay visible.
 
 ## 3. Tokens (`tokens.css`)
 
@@ -88,6 +89,7 @@ Type sizes in use:
 | 14px | header title, section titles |
 | 15px | hero composer |
 | 22px | Column title |
+| 26px | StepFlow step title (auth, onboarding, plan screen code flow) |
 | 26–28px | KPI values |
 | 30px | home brand |
 
@@ -108,15 +110,15 @@ All of these live in `components/` and are exported from `index.ts`.
 | `PageHeader` | 05, 02 | 48px; `title` or `crumbs`, plus `actions` |
 | `Toolbar` | 05 | Filter pills left, actions right |
 | `Canvas` | 05 | Dashboard body: 16px gutters, cards in grids |
-| `Column` | 07 | Centered column: title, description, control, then sections. `width` is sm 560, md 720 or lg 960 |
-| `Section` | 07 | Section title with an optional action |
+| `Column` | 07 | Centered column: title, description, control, then sections. `width` is sm 560, md 720 or lg 960. Pass `panelKey` (the current tab) and the body swaps with `ds-swap` when it changes |
+| `Section` | 07 | Section title with an optional action. `count` sits faint beside the title ("People 5"), never "People · 5". `collapsible` folds reference material people rarely need (role descriptions, signing code, a daily table under a chart) behind the title, with `defaultOpen`; one level of hiding only, never the page's main work |
 | `Card`, `List`/`ListRow`, `EmptyLine` | 05, 07 | Bordered surfaces. An empty state is one quiet line, never an illustration |
 
 ### Primitives (`primitives.tsx`)
 
 | Component | Reference | Notes |
 |---|---|---|
-| `Button`/`ButtonLink` | 02, 05 | Variants: primary (white), secondary, ghost, danger, accent. Sizes: sm 24, md 28, lg 36 |
+| `Button`/`ButtonLink` | 02, 05 | Variants: primary (white), secondary, ghost, danger, accent. Sizes: sm 24, md 28, lg 36, xl 44 (StepFlow) |
 | `IconButton` | | Always labelled |
 | `CountBadge` | 02 | Red count |
 | `NewBadge` | 03 | Blue "New" |
@@ -126,10 +128,10 @@ All of these live in `components/` and are exported from `index.ts`.
 | `ToolIcon` | 02, 05 | Tool gradients a–f. Use `TOOL_ICON` in `components/shell/sidebar.tsx`, the one mapping |
 | `IconTile`, `AgentGlyph`, `PersonAvatar`, `WorkspaceLogo` | | |
 | `ProgressRing`, `StepMark`, `Bullet` | | Bullets are static, never animated |
-| `Segmented` | 02, 07 | Home / Activity, tabs inside a page. One tab stop; ←/→ move and select, Home/End jump |
+| `Segmented` | 02, 07 | Home / Activity, tabs inside a page. One tab stop; ←/→ move and select, Home/End jump. The selected pill slides between options (`ds-seg-thumb`) |
 | `FilterPill` | 05 | "Last 30 days ▾" |
 | `Menu`, `MenuItem`, `MenuButton` | | Keyboard: ↓/↑ open from the trigger, ↑/↓ and Home/End move, a letter jumps to a match, Tab or Esc closes, and focus returns to the trigger |
-| `Input`, `Textarea`, `Select`, `Field`, `Switch` | | |
+| `Input`, `Textarea`, `Select`, `Field`, `Switch` | | `Input inputSize="lg"` is the 44px StepFlow field |
 | `FieldGroup` | | A labelled group for controls that aren't one input (chips, tag inputs, a time list). `Field` is a `<label>`; this is a `role="group"` |
 | `SwitchRow` | | A switch with its label and one line of detail in a bordered row. With `name`, it posts `on` when checked |
 | `Modal` | | Native `<dialog>` with a footer slot. Modal: the page behind is inert (focus stays inside), focus starts on the first field, Esc asks the owner to close, and focus returns to what opened it |
@@ -138,7 +140,7 @@ All of these live in `components/` and are exported from `index.ts`.
 
 | Component | Notes |
 |---|---|
-| `Chip` | Selectable pill (ref 03 prompts) |
+| `Chip` | Selectable pill (ref 03 prompts). `quiet` has no border or fill until selected: for a row of section links (Admin) |
 | `Notice` | One line: ok or error. Every server error from an approve, reject, publish or spend action shows in one. `inline` renders a span for use beside a button |
 | `usePending` | Double-submit protection for approve, reject, publish and spend buttons: a second call while the first is in flight is ignored; exposes `busy` and `error` |
 | `Callout` | One important sentence |
@@ -153,6 +155,19 @@ All of these live in `components/` and are exported from `index.ts`.
 | `Thumb` | Media thumbnail |
 | `Skeleton` | A flat loading block with one soft band passing over it |
 | `Facts` | Key/value rows for detail pages |
+
+### Flow (`flow.tsx`)
+
+One field or question per screen, for sign-up, sign-in, recovery, onboarding and the plan screen's code flow. Rules and motion in [`FLOW.md`](./FLOW.md).
+
+| Component | Notes |
+|---|---|
+| `useStepFlow` | Current step, direction, `go`/`back`; browser Back steps back; `lock` makes a step the floor |
+| `StepFlow` | Direction-aware slide and blur, gliding height, focus moves to the new step. Reduced motion: crossfade |
+| `Step`, `StepLink` | One screen: 26px title, one line, the control, one `xl` primary; a form, so Enter advances |
+| `StepBack`, `StepProgress` | Back arrow; quiet progress marks (never "Step 2 of 5") |
+| `CodeInput` | Six boxes over one real input (paste and one-time-code autofill), `onComplete` |
+| `OptionList` | Numbered single choice: ↑/↓, number keys, Enter submits |
 
 ### Access (`access.tsx`)
 
@@ -202,7 +217,7 @@ All of these live in `components/` and are exported from `index.ts`.
 | `HeroBanner` | 03 | Gradient banner with prompt pills |
 | `AppRow` | 03 | |
 | `CollectionCard` | 07 | |
-| `PlanOption` | 04 | |
+| `PlanOption` | 04 | With `headline` (and `badge`), the price sits on the shader in ink: the plan screen ([`PLANS.md`](./PLANS.md)) |
 
 ## 5. Page templates: every route, one template
 
@@ -219,11 +234,13 @@ work. They are not separate apps.
 | `/library` (Deliverables) | **Column lg** (07) | Segmented control: All / Videos / Articles / Ads / Posts. A grid of `Thumb` cards |
 | `/playbooks`, `/content`, `/seo`, `/paid`, `/distribution` (Tools) | **Tool**: Column lg (07) | `ToolIcon` + 22px title + one line. A scoped `StartSession` ("Ask the Content agent…"). For Paid and Distribution, a KPI row (05). Then sections of the tool's work as `List`/`Table`/`CollectionCard` |
 | Tool detail (`/seo/[id]`, `/paid/campaigns/[id]`, …) | **Detail** | `PageHeader` crumbs (Tool / Item) with actions, then a Column with `Facts`, the content and an `AskPill` |
-| `/integrations` | **Marketplace** (03) | `HeroBanner` ("Connect where you publish"), then grouped `AppRow`s. Agent access and webhooks are sections below |
-| `/brand` | **Column md** (07) | Sections: voice, audience, visual kit. Forms use `Field` |
-| `/settings` | **Column md** (07) | Segmented control: General / Billing / Team. Billing uses `PlanOption` (04) |
+| `/integrations` | **Marketplace** (03) | Segmented Apps / Developers. Apps: `HeroBanner` ("Connect where you publish"), search, grouped `AppRow`s. Developers: agent access, tokens, x402 and webhooks. `#agents` and `#webhooks` open Developers |
+| `/brand` | **Column md** (07) | Segmented Profile / Kits. Profile: voice, audience, colour as flat `Field`s (no boxes) and a sticky save bar. Kits: kind switch, list, each kit edited in a `Modal`. `#kits` opens Kits |
+| `/settings` | **Column lg** (07) with an index | A grouped index (You: General, Security, Privacy; Workspace: Team, Workspace, Spend, Billing) beside one section at a time; a scrolling row on a phone. Team: people first, inviting in a `Modal`, roles folded. Billing uses `PlanOption` (04) |
 | `/admin` | **Dashboard** (05) | `Table`s |
-| `/onboarding` | Intent-driven onboarding (`.intent-onboarding/DESIGN.md`) built from these tokens and components | |
+| `/onboarding` | Intent-driven onboarding (`.intent-onboarding/DESIGN.md`) built from these tokens and components, one question at a time (StepFlow) | |
+| `/plans` | The plan screen ([`PLANS.md`](./PLANS.md)): three `PlanOption`s under shader light, codes as a StepFlow | |
+| Auth pages | `AuthShell` (`components/auth/frame.tsx`): one narrow column, one StepFlow ([`FLOW.md`](./FLOW.md)) | |
 
 ## 6. Rules (enforced by `npm run ds:guard`)
 

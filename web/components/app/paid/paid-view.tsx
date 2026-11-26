@@ -1,7 +1,8 @@
 "use client";
 
 import { Megaphone, Plus } from "lucide-react";
-import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section, StatusBadge, Table, ApprovalCard, ToolTitle } from "@/design-system";
+import { useEffect, useState } from "react";
+import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section, Segmented, StatusBadge, Table, ApprovalCard, ToolTitle } from "@/design-system";
 import { StartSession } from "@/components/chat/start-session";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { AdAccount, AdActionEntry, AdCampaign, AdsOverview } from "@/lib/ads-client";
@@ -28,8 +29,20 @@ function pct(now: number, before: number | null | undefined) {
   return ((now - before) / before) * 100;
 }
 
-/** Paid media (README §5 Tool): ask, KPIs, what needs you, guardrails, campaigns, audit trail. */
+type Detail = "campaigns" | "guardrails" | "activity";
+
+/**
+ * Paid media (README §5 Tool). Summary first: ask, the 30-day numbers and,
+ * only when there is something, what needs you. The detail (campaigns,
+ * guardrails, the audit trail) is one segmented control below, so the page is
+ * never all three tables at once. /paid#activity opens the audit trail.
+ */
 export function PaidView({ overview, workspace, accounts, campaigns, approvals, actions }: PaidData) {
+  const [detail, setDetail] = useState<Detail>("campaigns");
+  useEffect(() => {
+    const h = window.location.hash.slice(1);
+    if (h === "activity" || h === "guardrails") setDetail(h);
+  }, []);
   const dept = departmentById("paid")!;
   const tool = TOOL_ICON.paid;
   const live = (accounts ?? []).filter((a) => a.status !== "disconnected");
@@ -91,8 +104,8 @@ export function PaidView({ overview, workspace, accounts, campaigns, approvals, 
               </div>
             </Section>
 
-            <Section title={approvals.length > 0 ? `Needs you · ${approvals.length}` : "Needs you"}>
-              {approvals.length > 0 ? (
+            {approvals.length > 0 && (
+              <Section title="Needs you" count={approvals.length}>
                 <div className="space-y-3">
                   {approvals.map((it) => (
                     <ApprovalCard
@@ -105,19 +118,29 @@ export function PaidView({ overview, workspace, accounts, campaigns, approvals, 
                     />
                   ))}
                 </div>
-              ) : (
-                <EmptyLine>Nothing to approve. Changes above your threshold wait here.</EmptyLine>
-              )}
-            </Section>
+              </Section>
+            )}
 
-            <Section
-              title="Guardrails"
-              action={
-                <ButtonLink href="/paid/connect" size="sm" variant="ghost">
-                  Edit
-                </ButtonLink>
-              }
-            >
+            <section className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Segmented
+                  label="Paid media detail"
+                  value={detail}
+                  onChange={setDetail}
+                  options={[
+                    { value: "campaigns", label: <>Campaigns <span className="font-normal text-fg-faint tabular">{liveCampaigns} live</span></> },
+                    { value: "guardrails", label: "Guardrails" },
+                    ...(actions && actions.length > 0 ? [{ value: "activity" as const, label: "Audit trail" }] : []),
+                  ]}
+                />
+                {detail === "guardrails" && (
+                  <ButtonLink href="/paid/connect" size="sm" variant="ghost">
+                    Edit guardrails
+                  </ButtonLink>
+                )}
+              </div>
+              <div key={detail} id={detail === "activity" ? "activity" : undefined} className="ds-swap">
+                {detail === "guardrails" ? (
               <Table
                 rows={live}
                 rowKey={(a) => a.id}
@@ -146,17 +169,9 @@ export function PaidView({ overview, workspace, accounts, campaigns, approvals, 
                   },
                 ]}
               />
-            </Section>
-
-            <Section
-              title={`Campaigns · ${liveCampaigns} live`}
-              action={
-                <ButtonLink href="/paid/campaigns/new" size="sm" variant="ghost">
-                  <Plus /> New
-                </ButtonLink>
-              }
-            >
-              {campaigns && campaigns.length > 0 ? (
+                ) : detail === "activity" && actions ? (
+                  <ActionLog actions={actions} />
+                ) : campaigns && campaigns.length > 0 ? (
                 <CampaignTable campaigns={campaigns} accounts={accounts ?? []} />
               ) : (
                 <EmptyLine
@@ -168,16 +183,15 @@ export function PaidView({ overview, workspace, accounts, campaigns, approvals, 
                 >
                   No campaigns yet. Drafts never spend.
                 </EmptyLine>
-              )}
-            </Section>
+                )}
+              </div>
+            </section>
           </>
         )}
 
-        {actions && actions.length > 0 && (
-          <Section title="Audit trail">
-            <div id="activity">
-              <ActionLog actions={actions} />
-            </div>
+        {(failed || !hasAccounts) && actions && actions.length > 0 && (
+          <Section title="Audit trail" id="activity">
+            <ActionLog actions={actions} />
           </Section>
         )}
       </Column>

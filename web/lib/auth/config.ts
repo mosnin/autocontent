@@ -9,6 +9,7 @@ import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { APIError, createAuthMiddleware, getSessionFromCtx, isAPIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins/admin";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import { defaultStatements as adminStatements } from "better-auth/plugins/admin/access";
 import { createAccessControl } from "better-auth/plugins/access";
 import { haveIBeenPwned } from "better-auth/plugins/haveibeenpwned";
@@ -31,6 +32,9 @@ export const AUTH_SCHEMA = "auth";
 /** Sensitive actions need a session this recent (README: 10 minutes). */
 export const FRESH_AGE_SECONDS = 10 * 60;
 export const INVITATION_TTL_SECONDS = 72 * 60 * 60;
+/** The six-digit email verification code: 10 minutes, 5 tries, stored hashed. */
+export const EMAIL_CODE_TTL_SECONDS = 10 * 60;
+export const EMAIL_CODE_ATTEMPTS = 5;
 
 export function authDatabaseUrl(env: Env = process.env): string | undefined {
   return env.AUTH_DATABASE_URL?.trim() || env.DATABASE_URL?.trim() || undefined;
@@ -136,6 +140,7 @@ const AUDITED: Record<string, string> = {
   "/sign-in/sso": "auth.sign_in_started",
   "/passkey/verify-authentication": "auth.sign_in",
   "/verify-email": "auth.email_verified",
+  "/email-otp/verify-email": "auth.email_verified",
   "/change-password": "auth.password_changed",
   "/request-password-reset": "auth.password_reset_requested",
   "/reset-password": "auth.password_reset",
@@ -201,6 +206,9 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
   const google = env.GOOGLE_CLIENT_ID?.trim() && env.GOOGLE_CLIENT_SECRET?.trim() ? { clientId: env.GOOGLE_CLIENT_ID.trim(), clientSecret: env.GOOGLE_CLIENT_SECRET.trim() } : null;
 
   const audit = (e: AuditEvent) => writeAudit(pool, e);
+  // Set below, once built: sendVerificationEmail asks it for a code.
+  // eslint-disable-next-line prefer-const
+  let instance: { api: { createVerificationOTP: (a: { body: { email: string; type: "email-verification" } }) => Promise<string> } } | null = null;
 
   /** The actor's role in a workspace, or null. Database errors propagate: no answer means no. */
   const roleIn = async (organizationId: string | null, userId: string) => (organizationId ? parseMemberRole((await findMember(pool, organizationId, userId))?.role) : null);
@@ -232,7 +240,24 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
     // it is off. Web mints backend tokens server-side (lib/auth/backend-token.ts).
     // Impersonation is off for everyone. list-sessions would return session
     // tokens to the browser; the Security screen uses a server action instead.
-    disabledPaths: ["/token", "/admin/impersonate-user", "/admin/stop-impersonating", "/list-sessions"],
+    // The email-OTP plugin is used for one thing only: verifying a new address
+    // with the code in the verification email. Its other endpoints (sign in by
+    // code, reset by code, change email by code, send a bare code) are off, so
+    // a code can never stand in for a password or skip two-factor.
+    disabledPaths: [
+      "/token",
+      "/admin/impersonate-user",
+      "/admin/stop-impersonating",
+      "/list-sessions",
+      "/sign-in/email-otp",
+      "/email-otp/send-verification-otp",
+      "/email-otp/check-verification-otp",
+      "/email-otp/request-password-reset",
+      "/forget-password/email-otp",
+      "/email-otp/reset-password",
+      "/email-otp/request-email-change",
+      "/email-otp/change-email",
+    ],
 
     emailAndPassword: {
       enabled: true,
@@ -251,8 +276,24 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
       sendOnSignIn: true,
       autoSignInAfterVerification: false,
       expiresIn: 24 * 60 * 60,
+      // One email carries both: a six-digit code to type on the page the person
+      // is already on, and the link as a fallback. A new email (resend, or a
+      // sign-in before verifying) replaces the code.
       sendVerificationEmail: async ({ user, url }) => {
-        await sendAuthEmail({ to: user.email, subject: "Verify your email for Marketer", link: url, action: "Verify your email", lines: ["Confirm this is your address to finish creating your Marketer account.", "The link works for 24 hours."] }, env);
+        const code = instance ? await instance.api.createVerificationOTP({ body: { email: user.email, type: "email-verification" } }).catch(() => null) : null;
+        await sendAuthEmail(
+          {
+            to: user.email,
+            subject: "Verify your email for Marketer",
+            link: url,
+            action: "Verify your email",
+            code: code ?? undefined,
+            lines: code
+              ? ["Enter this code to finish creating your Marketer account. It works for 10 minutes.", "Or open the link below. It works for 24 hours."]
+              : ["Confirm this is your address to finish creating your Marketer account.", "The link works for 24 hours."],
+          },
+          env,
+        );
       },
     },
     socialProviders: google ? { google: { ...google, prompt: "select_account" } } : {},
@@ -276,6 +317,8 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
         "/reset-password": { window: 60 * 60, max: 3 },
         "/two-factor/verify-*": { window: 60, max: 5 },
         "/passkey/verify-authentication": { window: 60, max: 5 },
+        "/email-otp/verify-email": { window: 60, max: 5 },
+        "/send-verification-email": { window: 60, max: 3 },
       },
     },
 
@@ -504,11 +547,25 @@ export function createAuth(options: { pool?: Pool; env?: Env } = {}) {
         disableSettingJwtHeader: true,
       }),
       admin({ ac: platformAc, roles: platformRoles, defaultRole: "user", adminRoles: ["admin"], allowImpersonatingAdmins: false }),
+      emailOTP({
+        otpLength: 6,
+        expiresIn: EMAIL_CODE_TTL_SECONDS,
+        allowedAttempts: EMAIL_CODE_ATTEMPTS,
+        storeOTP: "hashed",
+        disableSignUp: true,
+        sendVerificationOnSignUp: false,
+        overrideDefaultEmailVerification: false,
+        // Codes are created by sendVerificationEmail above and sent with the link; this
+        // plugin never sends a bare code (its send endpoint is disabled).
+        sendVerificationOTP: async () => undefined,
+      }),
       nextCookies(), // last
     ],
   } satisfies BetterAuthOptions;
 
-  return { auth: betterAuth(config), pool };
+  const built = betterAuth(config);
+  instance = built as unknown as typeof instance;
+  return { auth: built, pool };
 }
 
 export type AuthInstance = ReturnType<typeof createAuth>["auth"];

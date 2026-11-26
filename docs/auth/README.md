@@ -103,11 +103,12 @@ The rails stay where they are. A permission says who may ask; the rails still de
 ## Security baseline
 
 - **Passwords:** 12 to 128 characters, checked against Have I Been Pwned, hashed with scrypt (Better Auth default). Email must be verified before first sign-in. A password reset revokes every other session.
+- **Email verification:** one email carries a six-digit code (Better Auth's `emailOTP` plugin: 10 minutes, 5 tries, stored hashed) and the link (24 hours) as a fallback. A new email replaces the code. The plugin is used for verification only: its sign-in, password reset, email change and bare-code endpoints are disabled, so a code never stands in for a password or skips two-factor.
 - **Two-factor:** TOTP with backup codes. A workspace can require it (`requireTwoFactor`). Platform admins must have it.
 - **Passkeys:** WebAuthn, as a second factor or a password replacement.
 - **Enterprise SSO:** OIDC and SAML per workspace (`@better-auth/sso`), with verified email domains. Only `security:manage` can configure it.
 - **Sessions:** httpOnly, Secure, SameSite=Lax cookies with the `__Secure-` prefix. 7-day expiry, refreshed daily; sensitive actions need a session from the last 10 minutes. People can see and revoke their sessions.
-- **Rate limits:** stored in the database (serverless-safe). Sign-in 5 a minute, sign-up 3 a minute, password reset 3 an hour, two-factor verify 5 a minute, per IP.
+- **Rate limits:** stored in the database (serverless-safe). Sign-in 5 a minute, sign-up 3 a minute, password reset 3 an hour, two-factor verify 5 a minute, email code verify 5 a minute, verification email resend 3 a minute, per IP.
 - **CSRF and redirects:** Better Auth's origin and Fetch-Metadata checks stay on; `trustedOrigins` is the web origin only. Every callback URL is checked against it.
 - **Invitations:** expire after 72 hours; only the invited address can accept; the grant ceiling and last-owner rules in `permissions.json` are enforced in organization hooks, not only in the UI.
 - **No impersonation.** The admin plugin is used for platform roles and bans only; nobody holds the impersonate permission.

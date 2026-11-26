@@ -4,7 +4,7 @@ import { Clapperboard, Search } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Button, Chip, ConfirmModal, EmptyLine, Input, List, ListRow, Section, Select, StatusBadge, Thumb, Time, Notice } from "@/design-system";
+import { Button, ConfirmModal, EmptyLine, FilterPill, Input, List, ListRow, Section, StatusBadge, Thumb, Time, Notice } from "@/design-system";
 import { retryJobAction } from "@/lib/actions";
 import { proxyFetch } from "@/lib/proxy-fetch";
 import type { Job, Niche } from "@/lib/types";
@@ -90,7 +90,8 @@ export function VideoRow({ job, playbook }: { job: Job; playbook?: string }) {
         {job.status === "failed" && job.error && <div className="mt-0.5 line-clamp-1 text-[12px] text-negative">{job.error}</div>}
       </Link>
       <div className="ml-auto flex shrink-0 items-center gap-2.5">
-        <StatusBadge tone={jobTone(job.status)}>{jobStatusLabel(job.status)}</StatusBadge>
+        {/* Approve/Reject already say "needs approval", a failure shows its reason in red, and a finished video needs no badge. */}
+        {job.status !== "awaiting_approval" && job.status !== "done" && !(job.status === "failed" && job.error) && <StatusBadge tone={jobTone(job.status)}>{jobStatusLabel(job.status)}</StatusBadge>}
         <VideoActions job={job} />
       </div>
     </ListRow>
@@ -118,7 +119,7 @@ function Rows({ jobs, titles, limit }: { jobs: Job[]; titles: Map<string, string
 }
 
 /**
- * Videos: status chips, search and a playbook filter. With "All", the work is
+ * Videos: one toolbar (search, a status filter, a playbook filter). With "All", the work is
  * grouped into Needs approval, In progress and Recent.
  */
 export function VideosList({ jobs, niches, initialFilter = "all" }: { jobs: Job[]; niches: Niche[]; initialFilter?: VideoFilter }) {
@@ -146,33 +147,13 @@ export function VideosList({ jobs, niches, initialFilter = "all" }: { jobs: Job[
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-1.5">
-          {VIDEO_FILTERS.map((f) => (
-            <Chip key={f.value} selected={filter === f.value} onClick={() => setFilter(f.value)}>
-              {f.label}
-              <span className="text-fg-faint tabular">{counts[f.value]}</span>
-            </Chip>
-          ))}
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search hooks, topics, playbooks" aria-label="Search videos" className="pl-8" />
-          </label>
-          {niches.length > 1 && (
-            <div className="sm:w-52">
-              <Select value={nicheId} onChange={(e) => setNicheId(e.target.value)} aria-label="Playbook">
-                <option value="">All playbooks</option>
-                {niches.map((n) => (
-                  <option key={n.id} value={n.id}>
-                    {n.title}
-                  </option>
-                ))}
-              </Select>
-            </div>
-          )}
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative min-w-0 flex-1 basis-[200px]">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search hooks, topics, playbooks" aria-label="Search videos" className="pl-8" />
+        </label>
+        <FilterPill label="Status" value={filter} onChange={setFilter} options={VIDEO_FILTERS.map((f) => ({ value: f.value, label: f.value === "all" ? `All statuses · ${counts[f.value]}` : `${f.label} · ${counts[f.value]}` }))} />
+        {niches.length > 1 && <FilterPill label="Playbook" value={nicheId} onChange={setNicheId} options={[{ value: "", label: "All playbooks" }, ...niches.map((n) => ({ value: n.id, label: n.title }))]} />}
       </div>
 
       {visible.length === 0 ? (
@@ -182,12 +163,12 @@ export function VideosList({ jobs, niches, initialFilter = "all" }: { jobs: Job[
       ) : (
         <>
           {waiting.length > 0 && (
-            <Section title={`Needs approval · ${waiting.length}`}>
+            <Section title="Needs approval" count={waiting.length}>
               <Rows jobs={waiting} titles={titles} />
             </Section>
           )}
           {working.length > 0 && (
-            <Section title={`In progress · ${working.length}`}>
+            <Section title="In progress" count={working.length}>
               <Rows jobs={working} titles={titles} />
             </Section>
           )}

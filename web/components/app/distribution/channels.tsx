@@ -1,7 +1,7 @@
 "use client";
 
 import { Check } from "lucide-react";
-import { Button, EmptyLine, IconTile, List, ListRow, StatusBadge } from "@/design-system";
+import { Button, EmptyLine, IconTile, List, ListRow } from "@/design-system";
 import { connectAyrshareAction } from "@/lib/actions";
 import type { AyrshareConnectStatus } from "@/lib/types";
 
@@ -19,7 +19,8 @@ export function maskKey(key: string): string {
 /**
  * Channel status. The backend knows whether an Ayrshare posting profile
  * exists, not which socials are linked inside it (that lives in Ayrshare's
- * hosted chooser), so this speaks about the profile, never per-platform "ready".
+ * hosted chooser), so this speaks about the profile, never per-platform "ready":
+ * one row that names the platforms the profile posts to.
  */
 export function Channels({ status }: { status: AyrshareConnectStatus | null }) {
   if (status === null) return <EmptyLine>The distribution service is out of reach. Refresh in a moment.</EmptyLine>;
@@ -33,10 +34,10 @@ export function Channels({ status }: { status: AyrshareConnectStatus | null }) {
           <div className="truncate text-[12px] text-fg-muted">
             {ready && status.profile_key ? (
               <>
-                Ayrshare · <span className="font-mono">{maskKey(status.profile_key)}</span>
+                {SOCIALS.map((p) => p.label).join(", ")} · Ayrshare <span className="font-mono">{maskKey(status.profile_key)}</span>
               </>
             ) : (
-              "Opens Ayrshare to create a posting profile and authorize each platform"
+              `Opens Ayrshare to authorize ${SOCIALS.map((p) => p.label).join(", ")}`
             )}
           </div>
         </div>
@@ -46,15 +47,6 @@ export function Channels({ status }: { status: AyrshareConnectStatus | null }) {
           </Button>
         </form>
       </ListRow>
-      {SOCIALS.map((p) => (
-        <ListRow key={p.key} className="min-h-11 py-2">
-          <IconTile size={24}>
-            <span className="text-[11px] font-medium text-fg">{p.initial}</span>
-          </IconTile>
-          <span className="min-w-0 flex-1 truncate text-[13px]">{p.label}</span>
-          <StatusBadge tone={ready ? "neutral" : "attention"}>{ready ? "In Ayrshare" : "Needs a profile"}</StatusBadge>
-        </ListRow>
-      ))}
     </List>
   );
 }

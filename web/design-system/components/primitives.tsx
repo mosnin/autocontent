@@ -16,6 +16,7 @@ import {
   type TextareaHTMLAttributes,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -225,17 +226,42 @@ export function Bullet({ tone = "neutral" }: { tone?: "neutral" | "attention" | 
 
 export function Segmented<T extends string>({ value, onChange, options, label, size = "md", className }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode }[]; label: string; size?: "sm" | "md"; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
+  // The selected pill is one element that slides to the chosen option (measured after mount).
+  // Until it's measured (server render, first paint) the selected button draws its own pill.
+  const [thumb, setThumb] = useState<{ x: number; w: number; animate: boolean } | null>(null);
+  const index = options.findIndex((o) => o.value === value);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const place = (animate: boolean) => {
+      const btn = el.querySelectorAll<HTMLElement>('[role="tab"]')[index];
+      if (!btn) return setThumb(null);
+      setThumb((prev) => ({ x: btn.offsetLeft, w: btn.offsetWidth, animate: animate && prev !== null }));
+    };
+    place(true);
+    const ro = new ResizeObserver(() => place(false));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [index, options.length]);
   // Tabs pattern: one tab stop, arrows move and select, Home/End jump.
   const onKeyDown = (e: React.KeyboardEvent) => {
-    const i = options.findIndex((o) => o.value === value);
+    const i = index;
     const next = e.key === "ArrowRight" || e.key === "ArrowDown" ? (i + 1) % options.length : e.key === "ArrowLeft" || e.key === "ArrowUp" ? (i - 1 + options.length) % options.length : e.key === "Home" ? 0 : e.key === "End" ? options.length - 1 : -1;
     if (next < 0 || next === i) return;
     e.preventDefault();
     onChange(options[next]!.value);
     ref.current?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   };
+  const pill = "bg-surface-3 shadow-[inset_0_0_0_1px_hsl(var(--ds-border))]";
   return (
-    <div ref={ref} role="tablist" aria-label={label} onKeyDown={onKeyDown} className={cx("inline-flex rounded-ds-md bg-surface-2 p-[3px]", className)}>
+    <div ref={ref} role="tablist" aria-label={label} onKeyDown={onKeyDown} className={cx("relative inline-flex rounded-ds-md bg-surface-2 p-[3px]", className)}>
+      {thumb && (
+        <span
+          aria-hidden
+          className={cx("pointer-events-none absolute bottom-[3px] left-0 top-[3px] rounded-ds-sm", pill, thumb.animate && "ds-seg-thumb")}
+          style={{ width: thumb.w, transform: `translateX(${thumb.x}px)` }}
+        />
+      )}
       {options.map((o) => (
         <button
           key={o.value}
@@ -245,9 +271,9 @@ export function Segmented<T extends string>({ value, onChange, options, label, s
           tabIndex={o.value === value ? 0 : -1}
           onClick={() => onChange(o.value)}
           className={cx(
-            "ds-press flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-ds-sm px-3 font-medium",
+            "ds-press relative flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-ds-sm px-3 font-medium",
             size === "sm" ? "h-6 text-[12.5px]" : "h-7 text-[13px]",
-            o.value === value ? "bg-surface-3 text-fg shadow-[inset_0_0_0_1px_hsl(var(--ds-border))]" : "text-fg-muted hover:text-fg",
+            o.value === value ? cx("text-fg", !thumb && pill) : "text-fg-muted hover:text-fg",
           )}
         >
           {o.label}

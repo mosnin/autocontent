@@ -241,6 +241,7 @@ export function ActivityView({
       <Column
         title="Activity"
         description={description}
+        panelKey={tab}
         control={
           <div className="flex flex-wrap items-center gap-2">
             <Segmented
@@ -298,7 +299,8 @@ export function ActivityView({
             <>
               {required.length > 0 && (
                 <Section
-                  title={`Check what happened · ${required.length}`}
+                  title="Check what happened"
+                  count={required.length}
                   action={<span className="text-[12px] text-fg-muted">Nothing retries until you say</span>}
                 >
                   <div className="space-y-3">
@@ -316,7 +318,7 @@ export function ActivityView({
                 const items = inbox.items.filter((i) => i.kind === g.kind);
                 if (items.length === 0) return null;
                 return (
-                  <Section key={g.kind} title={`${g.label} · ${items.length}`}>
+                  <Section key={g.kind} title={g.label} count={items.length}>
                     <div className="space-y-3">
                       {items.map((it) => (
                         <InboxCard
@@ -356,11 +358,7 @@ export function ActivityView({
                 <Section
                   key={g.key}
                   title={relativeDayLabel(g.key, today)}
-                  action={
-                    <span className="text-[12px] text-fg-faint tabular">
-                      {g.events.length}
-                    </span>
-                  }
+                  count={g.events.length}
                 >
                   <List>
                     {g.events.map((e) => (

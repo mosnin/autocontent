@@ -2,7 +2,7 @@
 
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { EmptyLine, IconButton, Input, Segmented, Table } from "@/design-system";
+import { EmptyLine, FilterPill, IconButton, Input, Table } from "@/design-system";
 import type { AdAccount, AdCampaign } from "@/lib/ads-client";
 import { formatUsd } from "@/lib/format";
 import { useAutoRefresh } from "@/lib/proxy-fetch";
@@ -37,21 +37,18 @@ export function CampaignTable({ campaigns, accounts }: { campaigns: AdCampaign[]
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
           <Input value={q} onChange={(e) => (setQ(e.target.value), setPage(0))} placeholder="Search campaigns" aria-label="Search campaigns" className="pl-8" />
         </div>
-        <div className="max-w-full overflow-x-auto">
-          <Segmented
-            label="Filter by status"
-            size="sm"
-            value={filter}
-            onChange={(v) => (setFilter(v), setPage(0))}
-            options={[
-              { value: "all", label: "All" },
-              { value: "active", label: "Live" },
-              { value: "paused", label: "Paused" },
-              { value: "draft", label: "Drafts" },
-              { value: "other", label: "Ended" },
-            ]}
-          />
-        </div>
+        <FilterPill
+          label="Filter by status"
+          value={filter}
+          onChange={(v) => (setFilter(v), setPage(0))}
+          options={[
+            { value: "all", label: "All statuses" },
+            { value: "active", label: "Live" },
+            { value: "paused", label: "Paused" },
+            { value: "draft", label: "Drafts" },
+            { value: "other", label: "Ended" },
+          ]}
+        />
       </div>
       <Table
         rows={shown}

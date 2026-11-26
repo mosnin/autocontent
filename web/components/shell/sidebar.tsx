@@ -117,16 +117,15 @@ export function Sidebar({ data, onNavigate, onSearch, onCollapse }: { data: Side
 
         <SidebarAttention title="Awaiting action" onNavigate={onNavigate} items={(data.inbox?.items ?? []).map((it) => ({ id: it.id, label: it.title, href: `/inbox?focus=${encodeURIComponent(it.id)}` }))} />
 
-        <SidebarSection title="Chat">
-          {state.status === "ready" && recents.length > 0 ? (
-            recents.map((t) => {
+        {/* Recents only once there are some: an empty "No chat" heading was a line of noise on every page. */}
+        {state.status === "ready" && recents.length > 0 && (
+          <SidebarSection title="Chat">
+            {recents.map((t) => {
               const href = `/sessions/${encodeURIComponent(t.conversationId)}`;
               return <SidebarTextRow key={t.conversationId} href={href} label={t.title || "Untitled session"} current={pathname === href} onClick={onNavigate} />;
-            })
-          ) : (
-            <div className="px-2 py-1 text-[13px] text-fg-faint">No chat</div>
-          )}
-        </SidebarSection>
+            })}
+          </SidebarSection>
+        )}
       </div>
 
       <div className="shrink-0 space-y-px border-t border-hairline px-2.5 py-2">

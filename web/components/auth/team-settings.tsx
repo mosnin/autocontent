@@ -3,7 +3,7 @@
 import { MailPlus, RotateCw, UserMinus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Button, ConfirmModal, EmptyLine, Field, Input, List, ListRow, NotAllowed, Notice, PersonAvatar, Section, Select, StatusBadge, Time, useAllowed, usePending } from "@/design-system";
+import { Button, ConfirmModal, Field, Input, List, ListRow, Modal, NotAllowed, Notice, PersonAvatar, Section, Select, StatusBadge, Time, useAllowed, usePending } from "@/design-system";
 import { ASSIGNABLE_ROLES, roleDescription, roleLabel, type AssignableRole } from "@/lib/auth/catalog";
 import { authClient, authErrorMessage } from "@/lib/auth/client";
 import { checkRemoval, checkRoleChange, countOwners, grantableRoles } from "@/lib/auth/rules";
@@ -33,7 +33,11 @@ export interface TeamProps {
   preview?: boolean;
 }
 
-/** Settings → Team: members and their roles, invitations, and what each role means. */
+/**
+ * Settings → Team: the people and their roles first. Inviting is a focused
+ * task in a dialog; pending invitations show only when there are some; what
+ * each role means is reference, folded under one disclosure.
+ */
 export function TeamSettings({ organizationId, me, members, invitations, preview }: TeamProps) {
   const router = useRouter();
   const canInvite = useAllowed("member:invite");
@@ -46,6 +50,7 @@ export function TeamSettings({ organizationId, me, members, invitations, preview
   const [role, setRole] = useState<AssignableRole>(grantable.includes("analyst") ? "analyst" : (grantable[grantable.length - 1] ?? "analyst"));
   const [inviteNote, setInviteNote] = useState<{ ok?: string; error?: string } | null>(null);
   const [inviting, setInviting] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [removing, setRemoving] = useState<TeamMember | null>(null);
   const rowOps = usePending<string>();
   const removeOp = usePending<"remove">();
@@ -62,6 +67,7 @@ export function TeamSettings({ organizationId, me, members, invitations, preview
     if (error) return setInviteNote({ error: authErrorMessage(error, "The invitation wasn't sent.") });
     setInviteNote({ ok: `Invitation sent to ${email.trim()}.` });
     setEmail("");
+    setInviteOpen(false);
     refresh();
   };
 
@@ -75,7 +81,17 @@ export function TeamSettings({ organizationId, me, members, invitations, preview
 
   return (
     <>
-      <Section title="People">
+      <Section
+        title="People"
+        count={members.length}
+        action={
+          canInvite ? (
+            <Button size="sm" variant="primary" onClick={() => (setInviteNote(null), setInviteOpen(true))}>
+              <MailPlus /> Invite people
+            </Button>
+          ) : undefined
+        }
+      >
         <List>
           {members.map((m) => {
             const self = m.id === me.memberId;
@@ -122,11 +138,35 @@ export function TeamSettings({ organizationId, me, members, invitations, preview
           })}
         </List>
         <Notice error={rowOps.error} />
+        {inviteNote?.ok && (
+          <div className="mt-3">
+            <Notice ok={inviteNote.ok} />
+          </div>
+        )}
+        {!canInvite && (
+          <div className="mt-3">
+            <NotAllowed>Owners and admins invite people.</NotAllowed>
+          </div>
+        )}
       </Section>
 
-      <Section title="Invite someone">
-        {canInvite ? (
-          <form onSubmit={invite} className="space-y-3 rounded-ds-lg border border-hairline bg-surface p-4">
+      {canInvite && (
+        <Modal
+          open={inviteOpen}
+          onClose={() => !inviting && setInviteOpen(false)}
+          title="Invite people"
+          footer={
+            <>
+              <Button variant="ghost" onClick={() => setInviteOpen(false)} disabled={inviting}>
+                Cancel
+              </Button>
+              <Button type="submit" form="invite-member" variant="primary" loading={inviting}>
+                <MailPlus /> Send invitation
+              </Button>
+            </>
+          }
+        >
+          <form id="invite-member" onSubmit={invite} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-[1fr_160px]">
               <Field label="Email">
                 <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@company.com" />
@@ -141,25 +181,15 @@ export function TeamSettings({ organizationId, me, members, invitations, preview
                 </Select>
               </Field>
             </div>
-            <p className="text-[12px] text-fg-muted">{roleDescription(role)} The invitation works for 72 hours, only for that address.</p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Button type="submit" variant="primary" loading={inviting}>
-                <MailPlus /> Send invitation
-              </Button>
-              <Notice inline ok={inviteNote?.ok} error={inviteNote?.error} />
-            </div>
+            <p className="text-[12.5px] text-fg-muted">{roleDescription(role)} The invitation works for 72 hours, only for that address.</p>
+            <Notice error={inviteNote?.error} />
           </form>
-        ) : (
-          <NotAllowed>Owners and admins invite people.</NotAllowed>
-        )}
-      </Section>
+        </Modal>
+      )}
 
-      {canInvite && (
-        <Section title="Pending invitations">
-          {invitations.length === 0 ? (
-            <EmptyLine>No pending invitations.</EmptyLine>
-          ) : (
-            <List>
+      {canInvite && invitations.length > 0 && (
+        <Section title="Pending invitations" count={invitations.length}>
+          <List>
               {invitations.map((inv) => (
                 <ListRow key={inv.id}>
                   <div className="min-w-0 flex-1">
@@ -182,7 +212,7 @@ export function TeamSettings({ organizationId, me, members, invitations, preview
                       })
                     }
                   >
-                    <RotateCw /> Resend
+                    <RotateCw /> <span className="sr-only sm:not-sr-only">Resend</span>
                   </Button>
                   <Button
                     size="sm"
@@ -199,16 +229,15 @@ export function TeamSettings({ organizationId, me, members, invitations, preview
                       })
                     }
                   >
-                    <X /> Cancel
+                    <X /> <span className="sr-only sm:not-sr-only">Cancel</span>
                   </Button>
                 </ListRow>
               ))}
-            </List>
-          )}
+          </List>
         </Section>
       )}
 
-      <Section title="Roles">
+      <Section title="What each role can do" collapsible>
         <List>
           {ASSIGNABLE_ROLES.map((r) => (
             <ListRow key={r}>

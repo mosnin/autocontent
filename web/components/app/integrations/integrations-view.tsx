@@ -1,8 +1,8 @@
 "use client";
 
 import { Bot, Code2, Plug, Search, Wallet, Webhook } from "lucide-react";
-import { type ReactNode, useState, useTransition } from "react";
-import { AppRow, Button, ButtonLink, EmptyLine, HeroBanner, Input, PageHeader, Section } from "@/design-system";
+import { type ReactNode, useEffect, useState, useTransition } from "react";
+import { AppRow, Button, ButtonLink, EmptyLine, HeroBanner, Input, PageHeader, Section, Segmented } from "@/design-system";
 import type { AdAccount } from "@/lib/ads-client";
 import { connectAyrshareAction } from "@/lib/actions";
 import type { X402Config } from "@/lib/business";
@@ -68,10 +68,40 @@ const PROMPTS = [
 
 const GROUPS: Group[] = ["Publishing", "Ads", "For agents"];
 
-/** Integrations (ref 03): banner with example asks, grouped app rows, then agent access and webhooks. */
+type View = "apps" | "developers";
+const DEV_HASHES = new Set(["agents", "webhooks", "tokens", "x402"]);
+
+/**
+ * Integrations (ref 03), in two views. Apps: the banner with example asks and
+ * the grouped app rows, which is what most people come for. Developers: how an
+ * agent connects, access tokens, webhooks and x402. The "For agents" rows and
+ * the old #agents / #webhooks links open Developers at the right section.
+ */
 export function IntegrationsView(data: IntegrationsData) {
   const apps = buildApps(data);
+  const [view, setView] = useState<View>("apps");
   const [q, setQ] = useState("");
+  const openDevelopers = (hash: string) => {
+    setView("developers");
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}#${hash}`);
+    requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView({ block: "start" }));
+  };
+  useEffect(() => {
+    const sync = () => {
+      const h = window.location.hash.slice(1);
+      if (DEV_HASHES.has(h)) {
+        setView("developers");
+        requestAnimationFrame(() => document.getElementById(h)?.scrollIntoView({ block: "start" }));
+      }
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const pick = (v: View) => {
+    setView(v);
+    window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}${v === "developers" ? "#agents" : ""}`);
+  };
   const [pending, start] = useTransition();
   const term = q.trim().toLowerCase();
   const shown = term ? apps.filter((a) => `${a.name} ${a.description} ${a.group}`.toLowerCase().includes(term)) : apps;
@@ -82,46 +112,74 @@ export function IntegrationsView(data: IntegrationsData) {
       <PageHeader icon={<Plug />} title="Integrations" />
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="mx-auto max-w-[960px] px-5 pb-20 pt-12 sm:px-6">
-          <h2 className="text-center text-[22px] font-medium leading-tight">Connect where you publish</h2>
-          <div className="relative mt-5">
-            <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search integrations…" aria-label="Search integrations" className="h-9 rounded-full pl-8" />
+          <h2 className="text-center text-[22px] font-medium leading-tight">{view === "apps" ? "Connect where you publish" : "Connect your own agents"}</h2>
+          <div className="mt-5 flex justify-center">
+            <Segmented
+              label="Integrations view"
+              value={view}
+              onChange={pick}
+              options={[
+                { value: "apps", label: "Apps" },
+                { value: "developers", label: "Developers" },
+              ]}
+            />
           </div>
-          <HeroBanner palette="dusk" prompts={PROMPTS} className="mt-6" />
 
-          <div className="mt-10 space-y-10">
-            {shown.length === 0 && <EmptyLine>Nothing matches “{q}”.</EmptyLine>}
-            {GROUPS.map((g) => {
-              const rows = shown.filter((a) => a.group === g);
-              if (rows.length === 0) return null;
-              const action =
-                g === "Publishing" && data.ayrshare?.connected ? (
-                  <Button size="sm" variant="ghost" onClick={ayrshare} loading={pending}>
-                    Manage accounts
-                  </Button>
-                ) : g === "Ads" && rows.some((r) => r.connected) ? (
-                  <ButtonLink href="/paid/connect" size="sm" variant="ghost">
-                    Manage accounts
-                  </ButtonLink>
-                ) : undefined;
-              return (
-                <Section key={g} title={g} action={action}>
-                  <div className="grid gap-x-8 sm:grid-cols-2">
-                    {rows.map((a) => (
-                      <AppRow key={a.id} logo={a.logo} name={a.name} description={a.description} connected={a.connected} {...(a.connect === "ayrshare" ? { onConnect: ayrshare } : { href: a.connect })} />
-                    ))}
-                  </div>
-                </Section>
-              );
-            })}
-
-            <div id="agents" className="scroll-mt-4">
-              <AgentAccess tokens={data.tokens} x402={data.x402} apiBase={data.apiBase} />
+          {view === "apps" ? (
+            <div key="apps" className="ds-swap">
+              <HeroBanner palette="dusk" prompts={PROMPTS} className="mt-8" />
+              <div className="relative mt-6">
+                <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-fg-faint" />
+                <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search integrations…" aria-label="Search integrations" className="h-9 rounded-full pl-8" />
+              </div>
+              <div className="mt-10 space-y-10">
+                {shown.length === 0 && <EmptyLine>Nothing matches “{q}”.</EmptyLine>}
+                {GROUPS.map((g) => {
+                  const rows = shown.filter((a) => a.group === g);
+                  if (rows.length === 0) return null;
+                  const action =
+                    g === "Publishing" && data.ayrshare?.connected ? (
+                      <Button size="sm" variant="ghost" onClick={ayrshare} loading={pending}>
+                        Manage accounts
+                      </Button>
+                    ) : g === "Ads" && rows.some((r) => r.connected) ? (
+                      <ButtonLink href="/paid/connect" size="sm" variant="ghost">
+                        Manage accounts
+                      </ButtonLink>
+                    ) : g === "For agents" ? (
+                      <Button size="sm" variant="ghost" onClick={() => openDevelopers("agents")}>
+                        Developer settings
+                      </Button>
+                    ) : undefined;
+                  return (
+                    <Section key={g} title={g} action={action}>
+                      <div className="grid gap-x-8 sm:grid-cols-2">
+                        {rows.map((a) => (
+                          <AppRow
+                            key={a.id}
+                            logo={a.logo}
+                            name={a.name}
+                            description={a.description}
+                            connected={a.connected}
+                            {...(a.connect === "ayrshare" ? { onConnect: ayrshare } : a.connect.startsWith("#") ? { onConnect: () => openDevelopers(a.connect.slice(1)) } : { href: a.connect })}
+                          />
+                        ))}
+                      </div>
+                    </Section>
+                  );
+                })}
+              </div>
             </div>
-            <div id="webhooks" className="scroll-mt-4">
-              <Webhooks endpoints={data.webhooks} />
+          ) : (
+            <div key="developers" className="ds-swap mt-10 space-y-10">
+              <div id="agents" className="scroll-mt-4">
+                <AgentAccess tokens={data.tokens} x402={data.x402} apiBase={data.apiBase} />
+              </div>
+              <div id="webhooks" className="scroll-mt-4">
+                <Webhooks endpoints={data.webhooks} />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </>

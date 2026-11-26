@@ -4,9 +4,9 @@
  * Layout: the window, sidebar parts, page header, toolbar and page bodies.
  * One dark window: sidebar and main divided by a hairline (refs 02, 05).
  */
-import { ChevronsDown, ChevronsUpDown, MoreHorizontal } from "lucide-react";
+import { ChevronRight, ChevronsDown, ChevronsUpDown, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import { cx } from "../cx";
 import { Bullet, ProgressRing, WorkspaceLogo } from "./primitives";
 
@@ -172,7 +172,7 @@ export function Canvas({ children, className }: { children: ReactNode; className
  * Collection body (ref 07): one centered column. Title 22px, one muted line,
  * an optional segmented control, then sections.
  */
-export function Column({ title, description, control, actions, children, width = "md" }: { title?: ReactNode; description?: ReactNode; control?: ReactNode; actions?: ReactNode; children: ReactNode; width?: "sm" | "md" | "lg" }) {
+export function Column({ title, description, control, actions, children, width = "md", panelKey }: { title?: ReactNode; description?: ReactNode; control?: ReactNode; actions?: ReactNode; children: ReactNode; width?: "sm" | "md" | "lg"; /** The current tab. When it changes, the body swaps with a short fade (`ds-swap`) instead of jumping. */ panelKey?: string }) {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className={cx("mx-auto px-5 pb-20 pt-12 sm:px-6", width === "sm" && "max-w-[560px]", width === "md" && "max-w-[720px]", width === "lg" && "max-w-[960px]")}>
@@ -186,21 +186,51 @@ export function Column({ title, description, control, actions, children, width =
           </div>
         )}
         {control && <div className="mt-5">{control}</div>}
-        <div className="mt-8 space-y-10">{children}</div>
+        <div key={panelKey} className={cx("mt-8 space-y-10", panelKey !== undefined && "ds-swap")}>
+          {children}
+        </div>
       </div>
     </div>
   );
 }
 
-/** Section inside a Column (ref 07 "Recommended", "New skills"). */
-export function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
+/**
+ * Section inside a Column (ref 07 "Recommended", "New skills"). `count` sits
+ * faint beside the title. `collapsible` turns the title into a disclosure for
+ * reference material people rarely need (role descriptions, signing code):
+ * one level of hiding, never for the page's main work.
+ */
+export function Section({ title, action, children, count, collapsible, defaultOpen = false, id }: { title: string; action?: ReactNode; children: ReactNode; count?: number; collapsible?: boolean; defaultOpen?: boolean; id?: string }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
+  const label = (
+    <>
+      {title}
+      {count !== undefined && <span className="ml-1.5 font-normal text-fg-faint tabular">{count}</span>}
+    </>
+  );
   return (
-    <section>
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h3 className="text-[14px] font-medium text-fg-muted">{title}</h3>
+    <section id={id} className={id ? "scroll-mt-4" : undefined}>
+      <div className={cx("flex items-center justify-between gap-3", (!collapsible || open) && "mb-3")}>
+        {collapsible ? (
+          <h3 className="text-[14px] font-medium text-fg-muted">
+            <button type="button" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((v) => !v)} className="ds-press -ml-1 flex items-center gap-1 rounded-ds-sm px-1 hover:text-fg">
+              <ChevronRight aria-hidden className={cx("size-3.5 transition-transform duration-[var(--ds-dur-fast)] ease-[var(--ds-ease-out)]", open && "rotate-90")} />
+              {label}
+            </button>
+          </h3>
+        ) : (
+          <h3 className="text-[14px] font-medium text-fg-muted">{label}</h3>
+        )}
         {action}
       </div>
-      {children}
+      {collapsible ? (
+        <div id={bodyId} className="ds-disclosure" data-open={open || undefined} inert={!open}>
+          <div className="min-h-0 overflow-hidden">{children}</div>
+        </div>
+      ) : (
+        children
+      )}
     </section>
   );
 }

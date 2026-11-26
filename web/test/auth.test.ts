@@ -202,6 +202,7 @@ test("signed-out pages redirect to sign-in with a safe next; APIs get 401", () =
   assert.deepEqual(decideRoute({ pathname: "/home", hasSessionCookie: false }), { action: "redirect", location: "/sign-in?next=%2Fhome" });
   assert.deepEqual(decideRoute({ pathname: "/paid/campaigns/42", search: "?tab=x", hasSessionCookie: false }), { action: "redirect", location: "/sign-in?next=%2Fpaid%2Fcampaigns%2F42%3Ftab%3Dx" });
   assert.deepEqual(decideRoute({ pathname: "/onboarding", hasSessionCookie: false }).action, "redirect");
+  assert.deepEqual(decideRoute({ pathname: "/plans", search: "?start=n1&kind=video", hasSessionCookie: false }), { action: "redirect", location: "/sign-in?next=%2Fplans%3Fstart%3Dn1%26kind%3Dvideo" });
   assert.deepEqual(decideRoute({ pathname: "/home", hasSessionCookie: true }), { action: "next", csp: true });
   assert.deepEqual(decideRoute({ pathname: "/api/proxy/api/v1/niches", hasSessionCookie: false }), { action: "unauthorized" });
   assert.deepEqual(decideRoute({ pathname: "/api/agent/session", hasSessionCookie: false }), { action: "unauthorized" });

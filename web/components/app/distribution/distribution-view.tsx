@@ -1,7 +1,8 @@
 "use client";
 
 import { CalendarDays, Send } from "lucide-react";
-import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section, ApprovalCard, Time, ToolTitle } from "@/design-system";
+import { useState } from "react";
+import { ButtonLink, Column, EmptyLine, KpiCard, PageHeader, Section, Segmented, ApprovalCard, Time, ToolTitle } from "@/design-system";
 import { StartSession } from "@/components/chat/start-session";
 import { TOOL_ICON } from "@/components/shell/sidebar";
 import type { CalendarItem, PlaybookRef } from "@/lib/business";
@@ -13,7 +14,14 @@ import { channelLabel, Upcoming } from "./upcoming";
 
 const WHEN: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" };
 
-/** Distribution (README §5 Tool): ask, KPIs, posts waiting on you, what goes out next, channels, campaigns. */
+type Detail = "upcoming" | "campaigns" | "channels";
+
+/**
+ * Distribution (README §5 Tool): ask, the next 7 days, posts waiting on you,
+ * then one segmented control for what goes out next, campaigns and channels.
+ * When no posting profile exists, the channel row sits above it instead, since
+ * nothing posts until it's connected.
+ */
 export function DistributionView({ ayrshare, campaigns, calendar, playbooks }: { ayrshare: AyrshareConnectStatus | null; campaigns: Campaign[] | null; calendar: CalendarItem[] | null; playbooks: PlaybookRef[] }) {
   const dept = departmentById("distribution")!;
   const tool = TOOL_ICON.distribution;
@@ -22,6 +30,8 @@ export function DistributionView({ ayrshare, campaigns, calendar, playbooks }: {
   const waiting = items.filter((i) => i.status === "awaiting_approval" && i.kind === "video");
   const running = (campaigns ?? []).filter((c) => c.status === "running");
   const runningBudget = running.reduce((s, c) => s + Number(c.budget_usd), 0);
+  const unconnected = ayrshare === null || !ayrshare.connected;
+  const [detail, setDetail] = useState<Detail>("upcoming");
 
   return (
     <>
@@ -47,7 +57,7 @@ export function DistributionView({ ayrshare, campaigns, calendar, playbooks }: {
         </Section>
 
         {waiting.length > 0 && (
-          <Section title={`Needs you · ${waiting.length}`}>
+          <Section title="Needs you" count={waiting.length}>
             <div className="space-y-3">
               {waiting.map((it) => (
                 <ApprovalCard
@@ -67,31 +77,46 @@ export function DistributionView({ ayrshare, campaigns, calendar, playbooks }: {
           </Section>
         )}
 
-        <Section
-          title="Upcoming"
-          action={
-            <ButtonLink href="/plan" size="sm" variant="ghost">
-              Open plan
-            </ButtonLink>
-          }
-        >
-          <Upcoming items={calendar} playbooks={playbooks} />
-        </Section>
+        {unconnected && (
+          <Section title="Channels">
+            <Channels status={ayrshare} />
+          </Section>
+        )}
 
-        <Section
-          title="Channels"
-          action={
-            <ButtonLink href="/integrations" size="sm" variant="ghost">
-              All integrations
-            </ButtonLink>
-          }
-        >
-          <Channels status={ayrshare} />
-        </Section>
-
-        <Section title="Campaigns" action={campaigns && campaigns.length > 0 ? <NewCampaignButton hasPlaybooks={playbooks.length > 0} /> : undefined}>
-          {campaigns === null ? <EmptyLine>Campaigns are out of reach right now. Refresh in a moment.</EmptyLine> : <CampaignsTable campaigns={campaigns} hasPlaybooks={playbooks.length > 0} />}
-        </Section>
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Segmented
+              label="Distribution detail"
+              value={detail}
+              onChange={setDetail}
+              options={[
+                { value: "upcoming", label: "Upcoming" },
+                { value: "campaigns", label: <>Campaigns{running.length > 0 && <span className="font-normal text-fg-faint tabular">{running.length} running</span>}</> },
+                ...(unconnected ? [] : [{ value: "channels" as const, label: "Channels" }]),
+              ]}
+            />
+            {detail === "upcoming" ? (
+              <ButtonLink href="/plan" size="sm" variant="ghost">
+                Open plan
+              </ButtonLink>
+            ) : detail === "campaigns" ? (
+              campaigns && campaigns.length > 0 ? <NewCampaignButton hasPlaybooks={playbooks.length > 0} /> : null
+            ) : (
+              <ButtonLink href="/integrations" size="sm" variant="ghost">
+                All integrations
+              </ButtonLink>
+            )}
+          </div>
+          <div key={detail} className="ds-swap">
+            {detail === "upcoming" ? (
+              <Upcoming items={calendar} playbooks={playbooks} />
+            ) : detail === "campaigns" ? (
+              campaigns === null ? <EmptyLine>Campaigns are out of reach right now. Refresh in a moment.</EmptyLine> : <CampaignsTable campaigns={campaigns} hasPlaybooks={playbooks.length > 0} />
+            ) : (
+              <Channels status={ayrshare} />
+            )}
+          </div>
+        </section>
       </Column>
     </>
   );

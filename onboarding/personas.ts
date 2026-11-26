@@ -56,5 +56,17 @@ export default definePersonas({
       answers: { attention: ['nothing_yet'] },
       provide: { website: 'https://theocandles.com', brandName: 'Theo Candles', offer: 'Hand-poured soy candles' },
     },
+    {
+      // No credit yet: proof (the drafted playbook) arrives before the plan screen, which sits after the
+      // rehearsal and outside the onboarding budget (it asks nothing and sets nothing up).
+      name: 'Coffee roaster on a pilot code, no credit yet, posts short videos',
+      email: 'ana@northroast.coffee',
+      fullName: 'Ana Silva',
+      provider: 'email',
+      timezone: 'America/Chicago',
+      website: { businessName: 'North Roast', currency: 'USD', detects: ['instagram_link'], fields: { offer: 'Single-origin coffee subscriptions' } },
+      answers: { attention: ['short_video'] },
+      decisions: { short_form: { approvalMode: 'approve', cadence: 'daily' } },
+    },
   ],
 });

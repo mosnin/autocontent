@@ -59,6 +59,7 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
       />
       <Column
         width="lg"
+        panelKey={tab}
         title={<ToolTitle icon={TOOL_ICON.content.icon} tone={TOOL_ICON.content.tone}>Content</ToolTitle>}
         description="Short-form video and carousels, made from your playbooks."
         control={
@@ -83,7 +84,6 @@ export function ContentView({ data, tab: initialTab = "videos", filter, preview 
                 { label: "need approval", value: waiting, tone: waiting ? "attention" : undefined },
                 { label: "in progress", value: inProgress },
                 { label: "views in 30 days", value: m ? formatCompact(m.total_views) : "—" },
-                ...(m && m.sampled_videos > 0 ? [{ label: "per video", value: formatCompact(Math.round(m.total_views / m.sampled_videos)) }] : []),
               ]}
             />
           )}

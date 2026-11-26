@@ -1,9 +1,9 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { Loader2, MoreHorizontal, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
-import { Button, Chip, CodeBlock, ConfirmModal, EmptyLine, Field, Input, List, ListRow, Modal, Notice, SecretOnce, Section, StatusBadge, Switch, Textarea, cx } from "@/design-system";
+import { Button, Chip, CodeBlock, ConfirmModal, EmptyLine, Field, IconButton, Input, List, ListRow, MenuButton, MenuItem, Modal, Notice, SecretOnce, Section, StatusBadge, Switch, Textarea, cx } from "@/design-system";
 import { formatRelative } from "@/lib/format";
 import { createWebhook, deleteWebhook, setWebhookEnabled, testWebhook, WEBHOOK_EVENT_LABELS, WEBHOOK_EVENTS, type WebhookEndpoint, type WebhookEvent } from "@/lib/webhooks-client";
 
@@ -28,7 +28,6 @@ export function Webhooks({ endpoints }: { endpoints: WebhookEndpoint[] | null })
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<{ id: string; ok: boolean; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [help, setHelp] = useState(false);
 
   const run = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
@@ -62,18 +61,12 @@ export function Webhooks({ endpoints }: { endpoints: WebhookEndpoint[] | null })
     <Section
       title="Webhooks"
       action={
-        <div className="flex items-center gap-1">
-          <Button size="sm" variant="ghost" onClick={() => setHelp((v) => !v)}>
-            {help ? "Hide" : "Verify signatures"}
-          </Button>
-          <Button size="sm" onClick={() => setOpen(true)}>
-            <Plus /> Add endpoint
-          </Button>
-        </div>
+        <Button size="sm" onClick={() => setOpen(true)}>
+          <Plus /> Add endpoint
+        </Button>
       }
     >
       <div className="space-y-3">
-        {help && <CodeBlock code={SIGNING} />}
         {created?.secret && (
           <SecretOnce label="Signing secret, shown once" value={created.secret} onDismiss={() => setCreated(null)}>
             For <code className="break-all font-mono">{created.url}</code>. Verify the <code className="font-mono">X-Marketer-Signature</code> header with it. We can't show it again.
@@ -103,19 +96,38 @@ export function Webhooks({ endpoints }: { endpoints: WebhookEndpoint[] | null })
                   </div>
                   <div className="ml-auto flex shrink-0 items-center gap-1.5">
                     {ep.last_status != null && <StatusBadge tone={ok ? "positive" : "negative"}>HTTP {ep.last_status}</StatusBadge>}
-                    <Button size="sm" variant="ghost" loading={busy === `test-${ep.id}`} disabled={busy !== null || !ep.enabled} onClick={() => void onTest(ep)}>
-                      Test
-                    </Button>
                     <Switch checked={ep.enabled} label={ep.enabled ? "Pause delivery" : "Resume delivery"} onChange={(v) => void run(`toggle-${ep.id}`, () => setWebhookEnabled(ep.id, v))} />
-                    <Button size="sm" variant="ghost" onClick={() => setDeleting(ep)}>
-                      Delete
-                    </Button>
+                    {/* Test and Delete are occasional: one "more" menu instead of two more buttons per row. */}
+                    <MenuButton
+                      align="right"
+                      label={`Actions for ${ep.url}`}
+                      trigger={() => (
+                        <IconButton label={`More for ${ep.url}`} disabled={busy === `test-${ep.id}`}>
+                          {busy === `test-${ep.id}` ? <Loader2 className="ds-spin" /> : <MoreHorizontal />}
+                        </IconButton>
+                      )}
+                    >
+                      {(close) => (
+                        <>
+                          <MenuItem disabled={busy !== null || !ep.enabled} onClick={() => (close(), void onTest(ep))}>
+                            Send a test event
+                          </MenuItem>
+                          <MenuItem onClick={() => (close(), setDeleting(ep))}>Delete endpoint</MenuItem>
+                        </>
+                      )}
+                    </MenuButton>
                   </div>
                 </ListRow>
               );
             })}
           </List>
         )}
+      </div>
+
+      <div className="mt-6">
+        <Section title="Verify signatures" collapsible>
+          <CodeBlock code={SIGNING} />
+        </Section>
       </div>
 
       <AddEndpointModal open={open} onClose={() => setOpen(false)} onCreated={(ep) => (setCreated(ep), setOpen(false), router.refresh())} />

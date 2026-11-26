@@ -1,7 +1,8 @@
 // End-to-end check of sign-in, workspaces, roles and tokens against a real
 // Postgres and a running dev server. Not part of `npm test` (it needs both).
 //
-//   1. sign up, open the verification link from the dev log, sign in
+//   1. sign up one step at a time (email, password, the six-digit code from
+//      the dev log) and land signed in; the same email still carries the link
 //   2. onboarding creates a workspace (named from the email domain)
 //   3. invite a second person as Analyst; they accept, get no extra workspace,
 //      and can't approve or invite
@@ -62,6 +63,17 @@ const step = async (name, fn) => {
 
 // ── email links from the dev log ────────────────────────────────────────────
 const logStart = fs.statSync(LOG).size;
+async function codeFor(email, timeoutMs = 20_000) {
+  const until = Date.now() + timeoutMs;
+  while (Date.now() < until) {
+    const text = fs.readFileSync(LOG).subarray(logStart).toString("utf8");
+    const lines = text.split("\n").filter((l) => l.includes(`[auth-email] to=${email} `) && / code=\d{6} /.test(l));
+    if (lines.length) return lines[lines.length - 1].match(/ code=(\d{6}) /)[1];
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  throw new Error(`no verification code for ${email}`);
+}
+
 async function linkFor(email, subjectRe, timeoutMs = 20_000) {
   const until = Date.now() + timeoutMs;
   while (Date.now() < until) {
@@ -119,17 +131,19 @@ async function startStub() {
   return server;
 }
 
+// Sign-up is one thing at a time: email, then password, then the code step.
 async function signUp(page, who, next) {
   await page.goto(`${BASE}/sign-up${next ? `?next=${encodeURIComponent(next)}` : ""}`);
-  await page.getByLabel("Your name").fill(who.name);
   await page.getByLabel("Work email").fill(who.email);
-  await page.getByLabel("Password").fill(who.password);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.getByLabel("Password", { exact: true }).fill(who.password);
   await page.getByRole("button", { name: "Create account" }).click();
-  await page.waitForURL(/\/verify-email/);
+  await page.getByLabel("Verification code").waitFor();
 }
 
 async function signIn(page, who) {
-  await page.getByLabel("Email").fill(who.email);
+  await page.getByLabel("Email", { exact: true }).fill(who.email);
+  await page.getByRole("button", { name: "Continue" }).click();
   await page.locator('input[name="password"]').fill(who.password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
@@ -144,13 +158,15 @@ async function signIn(page, who) {
   let ownerId;
 
   try {
-    await step("1. sign up, verify from the dev log, sign in", async () => {
+    await step("1. sign up step by step, verify with the emailed code, land signed in", async () => {
       await signUp(op, OWNER);
+      // One email carries both: the code for this page and the link as a fallback.
       const link = await linkFor(OWNER.email, /Verify your email/);
       assert.ok(link.startsWith(`${BASE}/api/auth/verify-email?token=`), "verification link");
-      await op.goto(link);
-      await op.waitForURL(/\/sign-in\?verified=1/);
-      await signIn(op, OWNER);
+      // A wrong code is refused on the page, without leaving the step.
+      await op.getByLabel("Verification code").fill("000000");
+      await op.getByText("That code didn't work").or(op.getByText("Too many attempts")).first().waitFor();
+      await op.getByLabel("Verification code").fill(await codeFor(OWNER.email));
       await op.waitForURL(/\/onboarding|\/home/, { timeout: 60_000 });
       const u = await pool.query(`select id, "emailVerified" from auth."user" where email = $1`, [OWNER.email]);
       assert.equal(u.rows[0].emailVerified, true);
@@ -197,6 +213,7 @@ async function signIn(page, who) {
     await step("3. invite an Analyst, who accepts and can't approve or invite", async () => {
       await op.goto(`${BASE}/settings#team`);
       await op.getByRole("radio", { name: "Team" }).or(op.getByRole("tab", { name: "Team" })).first().click().catch(() => undefined);
+      await op.getByRole("button", { name: "Invite people" }).click();
       await op.getByPlaceholder("name@company.com").fill(ANALYST.email);
       await op.getByLabel("Role for the invitation").selectOption("analyst");
       await op.getByRole("button", { name: "Send invitation" }).click();
@@ -210,11 +227,12 @@ async function signIn(page, who) {
       await ap.goto(invite);
       await ap.getByRole("link", { name: "Create an account" }).click();
       await ap.waitForURL(/\/sign-up\?next=/);
-      await ap.getByLabel("Your name").fill(ANALYST.name);
       await ap.getByLabel("Work email").fill(ANALYST.email);
-      await ap.getByLabel("Password").fill(ANALYST.password);
+      await ap.getByRole("button", { name: "Continue" }).click();
+      await ap.getByLabel("Password", { exact: true }).fill(ANALYST.password);
       await ap.getByRole("button", { name: "Create account" }).click();
-      await ap.waitForURL(/\/verify-email/);
+      await ap.getByLabel("Verification code").waitFor();
+      // The analyst uses the link fallback instead of the code.
       await ap.goto(await linkFor(ANALYST.email, /Verify your email/));
       await ap.waitForURL(/\/sign-in\?verified=1/);
       await signIn(ap, ANALYST);
@@ -275,12 +293,14 @@ async function signIn(page, who) {
       await op.getByRole("option", { name: "Sign out" }).click();
       await op.waitForURL(/\/sign-in/);
       await signIn(op, OWNER);
-      await op.waitForURL(/\/two-factor/);
+      // The second factor is the next step on the same page.
+      await op.getByLabel("Code from your authenticator app").waitFor();
+      assert.match(op.url(), /\/sign-in/);
       // A fresh code in a fresh 30 s window, so it can't be the enrolment code.
       const wait = 30_000 - (Date.now() % 30_000) + 500;
       await new Promise((r) => setTimeout(r, wait));
+      // Six digits submit by themselves.
       await op.getByLabel("Code from your authenticator app").fill(totp(secret));
-      await op.getByRole("button", { name: "Verify" }).click();
       await op.waitForURL(/\/home/, { timeout: 60_000 });
     });
 

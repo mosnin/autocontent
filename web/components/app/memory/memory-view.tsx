@@ -119,6 +119,7 @@ export function MemoryView({ facts: initial, learnings, recall, loadFailed, prev
     <>
       <PageHeader icon={<Brain />} title="Memory" />
       <Column
+        panelKey={tab}
         title="Memory"
         description="What Marketer knows about your business, where it learned it, and what worked."
         control={
@@ -144,7 +145,7 @@ export function MemoryView({ facts: initial, learnings, recall, loadFailed, prev
             <EmptyLine>Nothing remembered yet. Facts appear here as you tell Marketer about your brand, audience and offers.</EmptyLine>
           ) : (
             groups.map((group) => (
-              <Section key={group.type} title={group.title}>
+              <Section key={group.type} title={group.title} count={group.subjects.reduce((n, sub) => n + sub.facts.length, 0)}>
                 <div className="space-y-3">
                   {group.subjects.map((subject) => (
                     <div key={subject.key} className="overflow-hidden rounded-ds-lg border border-hairline bg-surface">
@@ -271,7 +272,8 @@ function bySubject(facts: MemoryFact[]): { key: string; name: string; facts: Mem
 
 function TrustBadge({ fact }: { fact: MemoryFact }) {
   if (fact.trust === "trusted") return null;
-  return <StatusBadge>{fact.trust === "untrusted" ? "Outside source" : "Unconfirmed"}</StatusBadge>;
+  // Quiet words, not a badge on every row: most early facts are unconfirmed, and a column of pills drowns the values.
+  return <span className="shrink-0 whitespace-nowrap pt-px text-[12px] text-fg-faint">{fact.trust === "untrusted" ? "Outside source" : "Unconfirmed"}</span>;
 }
 
 const REASON: Record<string, string> = { superseded: "Replaced", corrected: "Corrected by you", merged: "Merged with a duplicate", forgotten: "Forgotten", dismissed: "Dismissed" };
@@ -308,10 +310,10 @@ function FactRow({
           <span className="block min-w-0 flex-1 break-words text-[13px] text-fg">{factText(fact)}</span>
         </span>
         <TrustBadge fact={fact} />
-        <ChevronDown aria-hidden className={`mt-0.5 size-3.5 shrink-0 text-fg-faint ${open ? "rotate-180" : ""}`} />
+        <ChevronDown aria-hidden className={`mt-0.5 size-3.5 shrink-0 text-fg-faint transition-transform duration-[var(--ds-dur-fast)] ease-[var(--ds-ease-out)] ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div id={panel} className="space-y-3 border-t border-hairline bg-surface-2 px-3.5 py-3 text-[12.5px]">
+        <div id={panel} className="ds-swap space-y-3 border-t border-hairline bg-surface-2 px-3.5 py-3 text-[12.5px]">
           <div>
             <div className="text-fg-faint">Where this came from</div>
             <div className="mt-1 text-fg-muted">

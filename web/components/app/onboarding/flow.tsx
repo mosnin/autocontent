@@ -2,17 +2,20 @@
 
 /**
  * Marketer's onboarding (intent-driven; spec in /onboarding/spec.ts, doctrine
- * in .intent-onboarding/RULES.md and DESIGN.md). Split frame: one task on the
- * left, their workspace taking shape on the right. Activation starts as soon
- * as we know enough and keeps running while they answer; outbound posting
- * waits for the rehearsal decision (R4.4). The dashboard opens on the same
- * object the last screen showed (R5.3).
+ * in .intent-onboarding/RULES.md and DESIGN.md). Split frame: one question at a
+ * time on the left (the design system's StepFlow: direction-aware travel,
+ * focus moves with it, Enter continues, Esc and browser Back go back), their
+ * workspace taking shape on the right. Activation starts as soon as we know
+ * enough and keeps running while they answer; outbound posting waits for the
+ * rehearsal decision (R4.4). The dashboard opens on the same object the last
+ * screen showed (R5.3); a workspace with nothing to run on passes through the
+ * plan screen first, which starts that object.
  */
 
-import { ArrowRight, Check, Clapperboard, FileText, Globe, Megaphone, Sparkles } from "lucide-react";
+import { Check, Clapperboard, FileText, Globe, Megaphone, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
-import { AgentGlyph, Button, Callout, Chip, CommitWave, cx, Field, GlassCard, IconTile, Input, Kbd, NumberKey, Shader, StatusBadge, StepMark, Textarea, WorkspaceLogo } from "@/design-system";
+import { AgentGlyph, Button, Callout, CommitWave, Field, GlassCard, IconTile, Input, Kbd, OptionList, Segmented, Shader, StatusBadge, Step, StepBack, StepFlow, StepLink, StepMark, StepProgress, Textarea, useStepFlow, WorkspaceLogo } from "@/design-system";
 import { decideWithin, type DecisionQuestion } from "../../../../.intent-onboarding/packages/core/src/decisions.ts";
 import { httpDecisions } from "../../../../.intent-onboarding/packages/decisions-jev/src/http.ts";
 import { authClient } from "@/lib/auth/client";
@@ -28,10 +31,15 @@ export interface OnboardingProps {
   channelsConnected: boolean;
   /** The workspace onboarding created; renamed to the brand when the person confirms it. Null in previews. */
   workspaceId?: string | null;
+  /**
+   * The workspace has nothing to run on yet (billing on, no credit, no code).
+   * The playbook is still drafted and saved; the last step goes to the plan
+   * screen (/plans), which starts the first piece once there's credit.
+   */
+  needsPlan?: boolean;
 }
 
 type Intent = "short_video" | "blog" | "ads" | "nothing_yet";
-type Screen = "confirm" | "intent" | "connect" | "rehearsal";
 
 interface Draft {
   title: string;
@@ -116,9 +124,15 @@ function tz() {
   }
 }
 
+
+type Screen = "confirm" | "intent" | "offer" | "connect" | "rehearsal";
+const SCREENS: readonly Screen[] = ["confirm", "intent", "offer", "connect", "rehearsal"];
+const needsConnect = (i: Intent) => i === "short_video" || i === "ads";
+
 export function OnboardingFlow(props: OnboardingProps) {
   const router = useRouter();
-  const [screen, setScreen] = useState<Screen>("confirm");
+  const flow = useStepFlow(SCREENS);
+  const screen = flow.step;
   const [brand, setBrand] = useState(props.savedBrand ?? props.inferredBrand ?? "");
   const [website, setWebsite] = useState(props.inferredWebsite ?? "");
   const [editing, setEditing] = useState(!(props.savedBrand ?? props.inferredBrand));
@@ -144,6 +158,7 @@ export function OnboardingFlow(props: OnboardingProps) {
   const [cadence, setCadence] = useState<"daily" | "twice">("daily");
   const [finishing, setFinishing] = useState(false);
   // The hand-off (WAVE.md "arrive"): the last button sends one wave from the brand mark, then the product opens.
+  // A workspace with nothing to run on goes to the plan screen instead, without the wave (nothing is ready yet).
   const [arrived, setArrived] = useState(false);
   const dest = useRef<string | null>(null);
   const logo = useRef<HTMLSpanElement>(null);
@@ -155,10 +170,13 @@ export function OnboardingFlow(props: OnboardingProps) {
   const started = useRef(false);
 
   const domain = website.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const order: Screen[] = needsConnect(intent) ? ["confirm", "intent", "offer", "connect", "rehearsal"] : ["confirm", "intent", "offer", "rehearsal"];
 
   // ---------------------------------------------------------------- activation
-  // Starts once brand + offer are known (end of the intent screen) and runs in
-  // the background while the person connects channels (R4.2, R6.3).
+  // Starts once brand + offer are known (end of the offer step) and runs in
+  // the background while the person connects channels (R4.2, R6.3). Without
+  // credits, the playbook is still drafted and saved (the proof); the first
+  // piece starts from the plan screen once there's something to run on.
   const activate = useCallback(
     async (chosen: Intent, sentence: string) => {
       if (started.current) return;
@@ -189,6 +207,7 @@ export function OnboardingFlow(props: OnboardingProps) {
           }),
         });
         setNicheId(niche.id);
+        if (props.needsPlan) return;
         if (chosen === "blog") {
           const article = await call<{ id: string; status: string }>("/api/v1/articles", { method: "POST", body: JSON.stringify({ niche_id: niche.id, topic: "" }) });
           setPieceId(article.id);
@@ -203,7 +222,7 @@ export function OnboardingFlow(props: OnboardingProps) {
         setActivationError(status === 402 ? "Your playbook is ready. Add credits and Marketer makes the first piece." : "Your playbook is ready, but the first piece didn't start. You can start it from Content.");
       }
     },
-    [brand],
+    [brand, props.needsPlan],
   );
 
   // Poll the first piece so the preview shows real progress.
@@ -248,72 +267,67 @@ export function OnboardingFlow(props: OnboardingProps) {
   }, [connecting, connected]);
 
   // ---------------------------------------------------------------- screens
-  const next = async () => {
-    if (screen === "confirm") {
-      if (!brand.trim()) return setEditing(true);
-      void call("/api/v1/brand-kit", { method: "PUT", body: JSON.stringify(await brandKitPayload(brand.trim())) }).catch(() => undefined);
-      // The workspace was named from the email domain; it takes the confirmed brand's name.
-      if (props.workspaceId) void authClient.organization.update({ organizationId: props.workspaceId, data: { name: brand.trim().slice(0, 64) } }).catch(() => undefined);
-      if (!preselectStarted.current) {
-        preselectStarted.current = true;
-        void preselectIntent({ brand: brand.trim(), website: domain, emailDomain: props.email.split("@")[1]?.toLowerCase() ?? null })
-          .then((picked) => {
-            // A person's own pick always wins over the model.
-            if (picked && !intentTouched.current) setIntentState(picked);
-          })
-          .catch(() => undefined);
-      }
-      setScreen("intent");
-    } else if (screen === "intent") {
-      if (offer.trim().length < 8) return;
-      void activate(intent, offer.trim());
-      setScreen(intent === "short_video" || intent === "ads" ? "connect" : "rehearsal");
-    } else if (screen === "connect") {
-      setScreen("rehearsal");
-    } else {
-      setFinishing(true);
-      if (nicheId) {
-        await call(`/api/v1/niches/${nicheId}`, {
-          method: "PUT",
-          body: JSON.stringify({ approve_before_post: approvalMode === "approve", posting_windows: cadence === "twice" ? [{ hour: 9, minute: 0, tz: tz() }, { hour: 18, minute: 0, tz: tz() }] : [{ hour: 9, minute: 0, tz: tz() }] }),
-        }).catch(() => undefined);
-      }
-      try {
-        localStorage.setItem("marketer.onboarded", "1");
-      } catch {
-        /* ignore */
-      }
-      dest.current = intent === "ads" ? `/sessions/new?dept=paid&q=${encodeURIComponent("Review my ad accounts and tell me what to scale or pause")}` : pieceId ? (intent === "blog" ? `/seo/${pieceId}` : `/content/videos/${pieceId}`) : "/home";
-      setArrived(true);
-      // The product opens when the wave settles; this is the guard if it never reports back.
-      window.setTimeout(openProduct, 3000);
+  const confirmBrand = async () => {
+    if (!brand.trim()) return setEditing(true);
+    void call("/api/v1/brand-kit", { method: "PUT", body: JSON.stringify(await brandKitPayload(brand.trim())) }).catch(() => undefined);
+    // The workspace was named from the email domain; it takes the confirmed brand's name.
+    if (props.workspaceId) void authClient.organization.update({ organizationId: props.workspaceId, data: { name: brand.trim().slice(0, 64) } }).catch(() => undefined);
+    if (!preselectStarted.current) {
+      preselectStarted.current = true;
+      void preselectIntent({ brand: brand.trim(), website: domain, emailDomain: props.email.split("@")[1]?.toLowerCase() ?? null })
+        .then((picked) => {
+          // A person's own pick always wins over the model.
+          if (picked && !intentTouched.current) setIntentState(picked);
+        })
+        .catch(() => undefined);
     }
+    flow.go("intent");
   };
 
-  const back = () => setScreen((s) => (s === "rehearsal" ? (intent === "short_video" || intent === "ads" ? "connect" : "intent") : s === "connect" ? "intent" : "confirm"));
+  const submitOffer = () => {
+    if (offer.trim().length < 8) return;
+    void activate(intent, offer.trim());
+    flow.go(needsConnect(intent) ? "connect" : "rehearsal");
+  };
 
-  // Keyboard-first (D15): numbers pick, Enter continues, Esc goes back.
+  const finish = async () => {
+    setFinishing(true);
+    if (nicheId) {
+      await call(`/api/v1/niches/${nicheId}`, {
+        method: "PUT",
+        body: JSON.stringify({ approve_before_post: approvalMode === "approve", posting_windows: cadence === "twice" ? [{ hour: 9, minute: 0, tz: tz() }, { hour: 18, minute: 0, tz: tz() }] : [{ hour: 9, minute: 0, tz: tz() }] }),
+      }).catch(() => undefined);
+    }
+    try {
+      localStorage.setItem("marketer.onboarded", "1");
+    } catch {
+      /* ignore */
+    }
+    const product = intent === "ads" ? `/sessions/new?dept=paid&q=${encodeURIComponent("Review my ad accounts and tell me what to scale or pause")}` : pieceId ? (intent === "blog" ? `/seo/${pieceId}` : `/content/videos/${pieceId}`) : "/home";
+    if (props.needsPlan) {
+      // The plan screen starts the first piece itself once there's credit, then opens it.
+      const q = new URLSearchParams();
+      if (nicheId && intent !== "ads") {
+        q.set("start", nicheId);
+        q.set("kind", intent === "blog" ? "article" : "video");
+      } else q.set("next", product);
+      router.push(`/plans?${q.toString()}`);
+      return;
+    }
+    dest.current = product;
+    setArrived(true);
+    // The product opens when the wave settles; this is the guard if it never reports back.
+    window.setTimeout(openProduct, 3000);
+  };
+
+  // Esc goes back (D15). Enter is each step's own form; number keys are the option list's.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      const typing = tag === "INPUT" || tag === "TEXTAREA";
-      if (e.key === "Escape" && screen !== "confirm") back();
-      if (!typing && screen === "intent") {
-        const n = Number(e.key);
-        if (n >= 1 && n <= INTENTS.length) setIntent(INTENTS[n - 1]!.id);
-      }
-      if (!typing && screen === "rehearsal") {
-        if (e.key === "1") setApprovalMode("approve");
-        if (e.key === "2") setApprovalMode("auto");
-      }
-      if (e.key === "Enter" && !e.shiftKey && !(tag === "TEXTAREA") && !(tag === "BUTTON")) {
-        e.preventDefault();
-        void next();
-      }
+      if (e.key === "Escape" && flow.canBack && !finishing) flow.back();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  });
+  }, [flow, finishing]);
 
   const connectChannels = async () => {
     try {
@@ -336,102 +350,147 @@ export function OnboardingFlow(props: OnboardingProps) {
 
   const pieceDone = pieceStatus === "awaiting_approval" || pieceStatus === "done";
   const stepIndex = Math.max(0, ORDER.indexOf(pieceStatus ?? "queued"));
+  const waitingForPlan = Boolean(props.needsPlan && draft && intent !== "ads");
+  const finalLabel = props.needsPlan ? "Choose how to start" : intent === "ads" ? "Review with the Media buyer" : intent === "blog" ? "Read my first article" : "Review my first video";
 
   // ---------------------------------------------------------------- render
   const task = (() => {
     switch (screen) {
       case "confirm":
         return (
-          <Task title="Is this you?" subtitle={props.inferredBrand ? `We found this from your email, ${props.email}. Marketer works from your brand.` : "Tell Marketer whose marketing it's running."} primary={{ label: "Looks right", onClick: next, disabled: !brand.trim() }}>
+          <Step
+            title="Is this you?"
+            subtitle={props.inferredBrand ? `We found this from your email, ${props.email}. Marketer works from your brand.` : "Tell Marketer whose marketing it's running."}
+            onSubmit={() => void confirmBrand()}
+            primary={{ label: "Looks right", disabled: !brand.trim() }}
+          >
             {editing ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Field label="Brand">
-                  <Input autoFocus value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Pasta Club" className="!h-9" />
+                  <Input inputSize="lg" data-autofocus value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Pasta Club" />
                 </Field>
                 <Field label="Website">
-                  <Input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="pastaclub.co" className="!h-9" />
+                  <Input inputSize="lg" value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="pastaclub.co" />
                 </Field>
               </div>
             ) : (
-              <button type="button" onClick={() => setEditing(true)} className="ds-press flex w-full items-center gap-3 rounded-ds-lg border border-hairline bg-surface-2 px-3.5 py-3 text-left hover:border-hairline-strong">
-                <WorkspaceLogo name={brand} size={36} />
+              <button type="button" onClick={() => setEditing(true)} className="ds-press flex w-full items-center gap-3 rounded-ds-lg border border-hairline bg-surface-2 px-4 py-3.5 text-left hover:border-hairline-strong">
+                <WorkspaceLogo name={brand} size={40} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-medium">{brand}</span>
+                  <span className="block truncate text-[16px] font-medium">{brand}</span>
                   {domain && (
-                    <span className="flex items-center gap-1 text-[12px] text-fg-muted">
+                    <span className="flex items-center gap-1 text-[12.5px] text-fg-muted">
                       <Globe className="size-3" /> {domain}
                     </span>
                   )}
                 </span>
-                <span className="text-[12px] text-fg-muted">Edit</span>
+                <span className="text-[12.5px] text-fg-muted">Edit</span>
               </button>
             )}
-          </Task>
+          </Step>
         );
       case "intent":
         return (
-          <Task title="How do you get attention today?" subtitle="Pick what you do now. Marketer sets itself up around it." primary={{ label: "Continue", onClick: next, disabled: offer.trim().length < 8 }} secondary={{ label: "Back", onClick: back }}>
-            <Options label="How do you get attention today?" value={intent} onChange={setIntent} options={INTENTS.map((o) => ({ id: o.id, label: o.label, detail: o.detail }))} />
-            <div className="mt-6">
-              <Field label="What are you marketing, in a sentence?" hint="Marketer drafts your first playbook from this. You can change everything later.">
-                <Textarea value={offer} onChange={(e) => setOffer(e.target.value)} rows={2} placeholder="Fresh pasta kits and 15-minute recipes for busy home cooks" className="resize-none" onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), void next())} />
-              </Field>
-            </div>
-          </Task>
+          <Step title="How do you get attention today?" subtitle="Pick what you do now. Marketer sets itself up around it." onSubmit={() => flow.go("offer")} primary={{ label: "Continue" }}>
+            <OptionList label="How do you get attention today?" value={intent} onChange={setIntent} options={INTENTS.map((o) => ({ id: o.id, label: o.label, detail: o.detail, icon: o.icon }))} />
+          </Step>
+        );
+      case "offer":
+        return (
+          <Step
+            title="What are you marketing?"
+            subtitle="One sentence is enough. Marketer drafts your first playbook from it, and you can change everything later."
+            onSubmit={submitOffer}
+            primary={{ label: "Continue", disabled: offer.trim().length < 8 }}
+          >
+            <label className="sr-only" htmlFor="ob-offer">
+              What are you marketing, in a sentence?
+            </label>
+            <Textarea
+              id="ob-offer"
+              value={offer}
+              onChange={(e) => setOffer(e.target.value)}
+              rows={3}
+              placeholder={intent === "blog" ? "Bookkeeping for freelancers who hate spreadsheets" : "Fresh pasta kits and 15-minute recipes for busy home cooks"}
+              className="resize-none px-3.5 py-3 text-[15px] leading-relaxed"
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), submitOffer())}
+            />
+          </Step>
         );
       case "connect":
         return intent === "ads" ? (
-          <Task title="Connect your ad account" subtitle="The Media buyer reads your campaigns first and changes nothing until you say so." primary={{ label: connected ? "Continue" : "Continue without connecting", onClick: next }} secondary={{ label: "Back", onClick: back }}>
+          <Step title="Connect your ad account" subtitle="The Media buyer reads your campaigns first and changes nothing until you say so." onSubmit={() => flow.go("rehearsal")} primary={{ label: connected ? "Continue" : "Continue without connecting" }}>
             <div className="space-y-2">
               <ConnectRow name="Google Ads" purpose="Read campaigns, spend and search terms" state={connecting ? "verifying" : "idle"} onConnect={() => void connectAds("google_ads")} />
               <ConnectRow name="Meta Ads" purpose="Read campaigns, spend and creatives" state={connecting ? "verifying" : "idle"} onConnect={() => void connectAds("meta_ads")} />
             </div>
             <Scopes items={["Read campaigns, spend and results", "Change budgets only inside caps you set, after you approve"]} />
             {activationError && <p className="mt-3 text-[13px] text-fg-muted">{activationError}</p>}
-          </Task>
+          </Step>
         ) : (
-          <Task title="Where should videos go?" subtitle="Connect once. Marketer posts only what you approve, on your schedule." primary={{ label: "Continue", onClick: next }} secondary={{ label: connected ? "Back" : "Skip for now", onClick: connected ? back : next }}>
+          <Step
+            title="Where should videos go?"
+            subtitle="Connect once. Marketer posts only what you approve, on your schedule."
+            onSubmit={() => flow.go("rehearsal")}
+            primary={{ label: "Continue" }}
+            secondary={!connected ? <StepLink onClick={() => flow.go("rehearsal")}>Skip for now</StepLink> : undefined}
+          >
             <ConnectRow name="TikTok, Instagram and YouTube" purpose="Post videos and carousels you approve" state={connected ? "connected" : connecting ? "verifying" : "idle"} onConnect={() => void connectChannels()} />
             <Scopes items={["See which accounts are linked", "Post only what you approved, on your schedule"]} />
-            <ActivationLine drafting={drafting} draft={draft} status={pieceStatus} error={activationError} />
-          </Task>
+            <ActivationLine drafting={drafting} draft={draft} status={pieceStatus} error={activationError} waitingForPlan={waitingForPlan} />
+          </Step>
         );
       case "rehearsal":
         return intent === "ads" ? (
-          <Task title="How should changes happen?" subtitle="Real money moves only inside caps you set. You can change this per account." primary={{ label: "Review with the Media buyer", onClick: next, loading: finishing }} secondary={{ label: "Back", onClick: back }}>
-            <Options label="How should changes happen?" value={approvalMode} onChange={setApprovalMode} options={[{ id: "approve", label: "Ask me before any change" }, { id: "auto", label: "Small changes inside my caps" }]} />
-          </Task>
+          <Step title="How should changes happen?" subtitle="Real money moves only inside caps you set. You can change this per account." onSubmit={() => void finish()} primary={{ label: finalLabel, loading: finishing }}>
+            <OptionList label="How should changes happen?" value={approvalMode} onChange={setApprovalMode} options={[{ id: "approve", label: "Ask me before any change" }, { id: "auto", label: "Small changes inside my caps" }]} />
+          </Step>
         ) : (
-          <Task
-            title={intent === "blog" ? "Your first article is underway" : "Your first video is underway"}
+          <Step
+            title={waitingForPlan ? "Your playbook is ready" : intent === "blog" ? "Your first article is underway" : "Your first video is underway"}
             subtitle={hook ? `"${hook}"` : draft ? `From your new playbook, "${draft.title}".` : "Drafting your playbook…"}
-            primary={{ label: intent === "blog" ? "Read my first article" : "Review my first video", onClick: next, loading: finishing }}
-            secondary={{ label: "Back", onClick: back }}
+            onSubmit={() => void finish()}
+            primary={{ label: finalLabel, loading: finishing }}
           >
             {intent !== "blog" && (
               <>
-                <div className="mb-2 text-[13px] font-medium">When a video is ready…</div>
-                <Options label="When a video is ready" value={approvalMode} onChange={setApprovalMode} options={[{ id: "approve", label: "Ask me before posting" }, { id: "auto", label: connected ? "Post on schedule" : "Post on schedule once channels are connected" }]} />
-                <div className="mb-2 mt-5 text-[13px] font-medium">How often?</div>
-                <div className="flex gap-1.5">
-                  {(["daily", "twice"] as const).map((c) => (
-                    <Chip key={c} selected={cadence === c} onClick={() => setCadence(c)} className={cx(cadence === c && "ring-1 ring-ds-accent")}>
-                      {c === "daily" ? "Once a day" : "Twice a day"}
-                    </Chip>
-                  ))}
+                <div className="mb-2.5 text-[13px] font-medium text-fg-muted">When a video is ready…</div>
+                <OptionList label="When a video is ready" value={approvalMode} onChange={setApprovalMode} options={[{ id: "approve", label: "Ask me before posting" }, { id: "auto", label: connected ? "Post on schedule" : "Post on schedule once channels are connected" }]} />
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <span className="text-[13px] text-fg-muted">How often</span>
+                  <Segmented size="sm" label="How often" value={cadence} onChange={setCadence} options={[{ value: "daily", label: "Once a day" }, { value: "twice", label: "Twice a day" }]} />
                 </div>
               </>
             )}
-            <ActivationLine drafting={drafting} draft={draft} status={pieceStatus} error={activationError} />
-          </Task>
+            <ActivationLine drafting={drafting} draft={draft} status={pieceStatus} error={activationError} waitingForPlan={waitingForPlan} />
+          </Step>
         );
     }
   })();
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-ds-bg p-0 text-fg sm:p-6">
-      <div className="ds-enter grid w-full max-w-[1080px] overflow-hidden bg-surface sm:rounded-ds-xl sm:border sm:border-hairline sm:shadow-ds-modal md:min-h-[640px] md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
-        <div className="order-2 flex flex-col p-6 sm:p-10 md:order-1">{task}</div>
+      <div className="ds-enter grid w-full max-w-[1080px] overflow-hidden bg-surface sm:rounded-ds-xl sm:border sm:border-hairline sm:shadow-ds-modal md:min-h-[660px] md:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+        <div className="order-2 flex flex-col p-6 sm:p-10 md:order-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-[13px] text-fg-muted">
+              <AgentGlyph size={18} />
+              Marketer
+            </div>
+            <StepProgress index={Math.max(0, order.indexOf(screen))} count={order.length} />
+          </div>
+          <div className="flex flex-1 flex-col justify-center py-8 md:max-w-[420px]">
+            <div className="mb-5 h-8">
+              <StepBack flow={flow} />
+            </div>
+            <StepFlow step={screen} direction={flow.direction}>
+              {task}
+            </StepFlow>
+          </div>
+          <div className="hidden items-center gap-1.5 text-[12px] text-fg-faint md:flex">
+            <Kbd>Enter</Kbd> to continue · <Kbd>Esc</Kbd> to go back
+          </div>
+        </div>
         <div className="order-1 p-2 md:order-2">
           <CommitWave
             moment="arrive"
@@ -449,21 +508,22 @@ export function OnboardingFlow(props: OnboardingProps) {
               </div>
             }
           >
-          <Preview
-            logoRef={logo}
-            brand={brand}
-            domain={domain}
-            draft={draft}
-            drafting={drafting}
-            intent={screen === "confirm" ? null : intent}
-            connected={connected}
-            pieceStatus={pieceStatus}
-            stepIndex={stepIndex}
-            pieceDone={pieceDone}
-            hook={hook}
-            approvalMode={approvalMode}
-            cadence={cadence}
-          />
+            <Preview
+              logoRef={logo}
+              brand={brand}
+              domain={domain}
+              draft={draft}
+              drafting={drafting}
+              intent={screen === "confirm" ? null : intent}
+              connected={connected}
+              pieceStatus={pieceStatus}
+              stepIndex={stepIndex}
+              pieceDone={pieceDone}
+              hook={hook}
+              approvalMode={approvalMode}
+              cadence={cadence}
+              waitingForPlan={waitingForPlan}
+            />
           </CommitWave>
         </div>
       </div>
@@ -481,57 +541,6 @@ async function brandKitPayload(name: string) {
 }
 
 /* ------------------------------------------------------------------ pieces */
-
-/** The task column (D4, D5): one question, one primary action, one quiet secondary. */
-function Task({ title, subtitle, children, primary, secondary }: { title: string; subtitle: string; children: ReactNode; primary: { label: string; onClick: () => void; disabled?: boolean; loading?: boolean }; secondary?: { label: string; onClick: () => void } }) {
-  return (
-    <div key={title} className="ds-enter flex flex-1 flex-col md:max-w-[440px]">
-      <div className="flex items-center gap-2 text-[13px] text-fg-muted">
-        <AgentGlyph size={18} />
-        Marketer
-      </div>
-      <h1 className="mt-8 text-[22px] font-medium leading-tight tracking-[-0.015em]">{title}</h1>
-      <p className="mt-2 text-[14px] leading-relaxed text-fg-muted">{subtitle}</p>
-      <div className="mt-6 flex-1">{children}</div>
-      <div className="mt-8 space-y-1.5">
-        <Button variant="primary" size="lg" className="w-full" onClick={primary.onClick} disabled={primary.disabled} loading={primary.loading}>
-          {primary.label}
-          {!primary.loading && <ArrowRight />}
-        </Button>
-        {secondary && (
-          <Button variant="ghost" size="lg" className="w-full" onClick={secondary.onClick}>
-            {secondary.label}
-          </Button>
-        )}
-        <div className="hidden items-center justify-center gap-1.5 pt-1 text-[12px] text-fg-faint md:flex">
-          <Kbd>Enter</Kbd> to continue · <Kbd>Esc</Kbd> to go back
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** Numbered option list (DESIGN OptionList, ref 08): number keys pick, selected row gets the accent ring. */
-function Options<T extends string>({ label, value, onChange, options }: { label: string; value: T; onChange: (v: T) => void; options: { id: T; label: string; detail?: string }[] }) {
-  return (
-    <div role="radiogroup" aria-label={label} className="space-y-1">
-      {options.map((o, i) => (
-        <button
-          key={o.id}
-          type="button"
-          role="radio"
-          aria-checked={value === o.id}
-          onClick={() => onChange(o.id)}
-          className={cx("ds-press flex h-10 w-full items-center gap-3 rounded-ds-md px-2.5 text-left", value === o.id ? "bg-surface-3 ring-1 ring-ds-accent" : "hover:bg-surface-2")}
-        >
-          <NumberKey n={i + 1} />
-          <span className="text-[13.5px] font-medium">{o.label}</span>
-          {o.detail && <span className="ml-auto hidden text-[12px] text-fg-faint sm:inline">{o.detail}</span>}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 /** Connect card (DESIGN ConnectCard): Connect → Verifying… → Connected. */
 function ConnectRow({ name, purpose, state, onConnect }: { name: string; purpose: string; state: "idle" | "verifying" | "connected"; onConnect: () => void }) {
@@ -570,18 +579,24 @@ function Scopes({ items }: { items: string[] }) {
 }
 
 /** The live activation line under the control (R4.2): what's running right now. */
-function ActivationLine({ drafting, draft, status, error }: { drafting: boolean; draft: Draft | null; status: string | null; error: string | null }) {
+function ActivationLine({ drafting, draft, status, error, waitingForPlan }: { drafting: boolean; draft: Draft | null; status: string | null; error: string | null; waitingForPlan?: boolean }) {
   if (error)
     return (
       <div className="mt-4">
         <Callout tone="attention">{error}</Callout>
       </div>
     );
+  if (waitingForPlan)
+    return (
+      <p className="mt-5 flex items-center gap-2 text-[13px] text-fg-muted">
+        <StepMark state="done" /> Playbook saved. Your first piece starts as soon as you choose how to start.
+      </p>
+    );
   const text = drafting ? "Drafting your playbook…" : status ? `${STEPS[status] ?? status}…` : draft ? "Playbook ready. Starting your first piece…" : null;
   if (!text) return null;
   const done = status === "awaiting_approval" || status === "done";
   return (
-    <p className="mt-4 flex items-center gap-2 text-[13px]">
+    <p className="mt-5 flex items-center gap-2 text-[13px]">
       <StepMark state={done ? "done" : "active"} />
       <span className={done ? "text-fg" : "ds-shimmer"}>{text}</span>
     </p>
@@ -617,6 +632,7 @@ function Preview(p: {
   hook: string | null;
   approvalMode: "approve" | "auto";
   cadence: "daily" | "twice";
+  waitingForPlan?: boolean;
 }) {
   const steps = useMemo(() => ORDER.slice(1, ORDER.length), []);
   return (
@@ -676,7 +692,7 @@ function Preview(p: {
           )}
         </GlassCard>
 
-        <GlassCard className="hidden flex-1 sm:flex" title={<span className="flex w-full items-center justify-between gap-3"><span>Today</span>{p.pieceStatus && <span className="text-fg-faint">{p.approvalMode === "approve" ? "Waits for your yes" : p.cadence === "twice" ? "Posts 9am and 6pm" : "Posts at 9am"}</span>}</span>}>
+        <GlassCard className="hidden flex-1 sm:flex" title={<span className="flex w-full items-center justify-between gap-3"><span>Today</span>{(p.pieceStatus || p.waitingForPlan) && <span className="text-fg-faint">{p.approvalMode === "approve" ? "Waits for your yes" : p.cadence === "twice" ? "Posts 9am and 6pm" : "Posts at 9am"}</span>}</span>}>
           {p.pieceStatus && p.intent !== "blog" ? (
             <div className="ds-enter">
               {p.hook && <div className="mb-2 text-[13.5px] font-medium">“{p.hook}”</div>}
@@ -696,6 +712,11 @@ function Preview(p: {
           ) : p.pieceStatus ? (
             <div className="ds-enter flex items-center gap-2 text-[13px]">
               <StepMark state={p.pieceDone ? "done" : "active"} /> {STEPS[p.pieceStatus] ?? `Article: ${p.pieceStatus}`}
+            </div>
+          ) : p.waitingForPlan ? (
+            <div className="ds-enter space-y-1.5 text-[12.5px] text-fg-muted">
+              <div className="text-[13.5px] font-medium text-fg">First {p.intent === "blog" ? "article" : "video"}, ready to start</div>
+              <p>Marketer starts it the moment there&apos;s credit, then opens it for you.</p>
             </div>
           ) : (
             <Bars widths={[58, 72, 40, 66]} />

@@ -1,47 +1,78 @@
 "use client";
 
-import { Building2, Fingerprint, KeyRound } from "lucide-react";
+/**
+ * Sign-in, one thing at a time: email, then the password (or single sign-on
+ * when the email's domain uses it), then the two-factor code when it's on.
+ * An address that was never verified gets its code step right here. Passkey
+ * and Google sit quietly under the email step.
+ */
+import { Building2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
-import { Button, Field, Input, Notice } from "@/design-system";
-import { authClient, authErrorMessage } from "@/lib/auth/client";
-import { OrRule, TextLink } from "./frame";
+import { useEffect, useRef, useState } from "react";
+import { Notice, Step, StepFlow, StepLink, useStepFlow } from "@/design-system";
+import { authClient, authErrorMessage, TWO_FACTOR_EVENT } from "@/lib/auth/client";
 import { nextPath, withNext } from "./next-path";
+import { ssoForEmail } from "./sso-hint";
+import { EmailCodeStep, EmailField, FlowHead, isEmail, OtherWaysIn, PasswordField, TwoFactorStep } from "./steps";
 
-type Mode = "password" | "sso";
+const ORDER = ["email", "password", "sso", "verify", "two-factor"] as const;
+type Busy = "email" | "password" | "passkey" | "google" | "sso" | null;
 
-export function SignInForm({ next, google, notice }: { next?: string | null; google: boolean; notice?: string | null }) {
+export function SignInForm({ next, google, notice, error: pageError, email: presetEmail }: { next?: string | null; google: boolean; notice?: string | null; error?: string | null; email?: string | null }) {
   const router = useRouter();
   const dest = nextPath(next);
-  const [mode, setMode] = useState<Mode>("password");
-  const [email, setEmail] = useState("");
+  const flow = useStepFlow(ORDER);
+  const [email, setEmail] = useState(presetEmail ?? "");
   const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState<"password" | "passkey" | "google" | "sso" | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [ok, setOk] = useState<string | null>(notice ?? null);
+  const [busy, setBusy] = useState<Busy>(null);
+  const [error, setError] = useState<string | null>(pageError ?? null);
+  const stepRef = useRef(flow.step);
+  stepRef.current = flow.step;
+
+  // A sign-in that needs the second factor stays on this page and asks for it.
+  useEffect(() => {
+    const onTwoFactor = (e: Event) => {
+      if (stepRef.current !== "password" && stepRef.current !== "verify") return;
+      e.preventDefault();
+      setBusy(null);
+      flow.go("two-factor", { replace: true, lock: true });
+    };
+    window.addEventListener(TWO_FACTOR_EVENT, onTwoFactor);
+    return () => window.removeEventListener(TWO_FACTOR_EVENT, onTwoFactor);
+  }, [flow]);
 
   const done = () => {
     router.replace(dest);
     router.refresh();
   };
 
-  const onPassword = async (e: FormEvent) => {
-    e.preventDefault();
+  const toNext = async () => {
     if (busy) return;
+    if (!isEmail(email)) return setError("Enter your email address, like name@company.com.");
+    setError(null);
+    setBusy("email");
+    // Don't hold the person up if the lookup is slow: a password is always an option.
+    const sso = await Promise.race([ssoForEmail(email).catch(() => false), new Promise<boolean>((r) => setTimeout(() => r(false), 1500))]);
+    setBusy(null);
+    flow.go(sso ? "sso" : "password");
+  };
+
+  const onPassword = async () => {
+    if (busy) return;
+    if (!password) return setError("Enter your password.");
     setBusy("password");
     setError(null);
-    setOk(null);
-    const { data, error } = await authClient.signIn.email({ email: email.trim(), password });
-    setBusy(null);
-    if (error) {
-      if (error.status === 403 && /verif/i.test(error.message ?? "")) {
-        setOk("Verify your email first. We sent you a new link.");
+    const { data, error: err } = await authClient.signIn.email({ email: email.trim(), password });
+    if (err) {
+      setBusy(null);
+      if (err.status === 403 && /verif/i.test(err.message ?? "")) {
+        // Better Auth just sent a fresh verification email (code and link).
+        flow.go("verify");
         return;
       }
-      setError(error.status === 401 ? "That email and password don't match." : authErrorMessage(error));
-      return;
+      return setError(err.status === 401 ? "That email and password don't match." : authErrorMessage(err));
     }
-    // With two-factor on, the client plugin redirects to /two-factor itself.
+    // With two-factor on, the event above has already moved to the code step.
     if ((data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) return;
     done();
   };
@@ -60,69 +91,95 @@ export function SignInForm({ next, google, notice }: { next?: string | null; goo
     if (busy) return;
     setBusy("google");
     setError(null);
-    const { error } = await authClient.signIn.social({ provider: "google", callbackURL: dest, errorCallbackURL: "/sign-in?error=google" });
-    if (error) {
+    const { error: err } = await authClient.signIn.social({ provider: "google", callbackURL: dest, errorCallbackURL: "/sign-in?error=google" });
+    if (err) {
       setBusy(null);
-      setError(authErrorMessage(error));
+      setError(authErrorMessage(err));
     }
   };
 
-  const onSso = async (e: FormEvent) => {
-    e.preventDefault();
+  const onSso = async () => {
     if (busy) return;
     setBusy("sso");
     setError(null);
-    const { error } = await authClient.signIn.sso({ email: email.trim(), callbackURL: dest, errorCallbackURL: "/sign-in?error=sso" });
-    if (error) {
+    const { error: err } = await authClient.signIn.sso({ email: email.trim(), callbackURL: dest, errorCallbackURL: "/sign-in?error=sso" });
+    if (err) {
       setBusy(null);
-      setError(error.status === 404 || /not found/i.test(error.message ?? "") ? "Your company doesn't use single sign-on with Marketer. Sign in another way." : authErrorMessage(error));
+      setError(err.status === 404 || /not found/i.test(err.message ?? "") ? "Your company doesn't use single sign-on with Marketer. Use your password." : authErrorMessage(err));
     }
   };
 
-  if (mode === "sso")
-    return (
-      <form onSubmit={onSso} className="space-y-4">
-        <Field label="Work email" hint="We find your company's sign-in from the domain.">
-          <Input type="email" name="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
-        </Field>
-        <Notice error={error} />
-        <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy === "sso"}>
-          <Building2 /> Continue with SSO
-        </Button>
-        <Button type="button" variant="ghost" className="w-full" onClick={() => (setMode("password"), setError(null))}>
-          Back to other ways
-        </Button>
-      </form>
-    );
+  const view = (() => {
+    switch (flow.step) {
+      case "email":
+        return (
+          <>
+            <Step title="Sign in" subtitle={notice ?? "Welcome back to your marketing department."} onSubmit={() => void toNext()} primary={{ label: "Continue", loading: busy === "email" }}>
+              <EmailField value={email} onChange={(v) => (setEmail(v), setError(null))} autoComplete="username webauthn" invalid={Boolean(error)} />
+              <div className="mt-3 min-h-5">
+                <Notice error={error} />
+              </div>
+            </Step>
+            <OtherWaysIn google={google} busy={busy} onPasskey={() => void onPasskey()} onGoogle={() => void onGoogle()} />
+          </>
+        );
+      case "password":
+        return (
+          <Step
+            eyebrow={email}
+            title="Enter your password"
+            onSubmit={() => void onPassword()}
+            primary={{ label: "Sign in", loading: busy === "password" }}
+            secondary={<StepLink onClick={() => void onPasskey()} disabled={busy !== null}>Use a passkey instead</StepLink>}
+          >
+            <PasswordField
+              value={password}
+              onChange={(v) => (setPassword(v), setError(null))}
+              autoComplete="current-password"
+              hint={
+                <a href={withNext("/forgot-password", next)} className="text-[13px] text-fg-muted underline-offset-4 hover:text-fg hover:underline">
+                  Forgot it?
+                </a>
+              }
+            />
+            <div className="mt-3 min-h-5">
+              <Notice error={error} />
+            </div>
+          </Step>
+        );
+      case "sso":
+        return (
+          <Step
+            eyebrow={email}
+            title="Your company signs you in"
+            subtitle="This email's domain uses single sign-on. You'll continue with your company's sign-in page."
+            onSubmit={() => void onSso()}
+            primary={{
+              label: (
+                <>
+                  <Building2 /> Continue with SSO
+                </>
+              ),
+              loading: busy === "sso",
+            }}
+            secondary={<StepLink onClick={() => (setError(null), flow.go("password", { replace: true }))}>Use a password instead</StepLink>}
+          >
+            <Notice error={error} />
+          </Step>
+        );
+      case "verify":
+        return <EmailCodeStep email={email} title="Verify your email first" onVerified={() => onPassword()} />;
+      case "two-factor":
+        return <TwoFactorStep onDone={done} />;
+    }
+  })();
 
   return (
-    <div className="space-y-4">
-      <form onSubmit={onPassword} className="space-y-4">
-        <Field label="Email">
-          <Input type="email" name="email" autoComplete="username webauthn" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </Field>
-        <Field label="Password" hint={<TextLink href={withNext("/forgot-password", next)}>Forgot your password?</TextLink>}>
-          <Input type="password" name="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-        </Field>
-        <Notice ok={ok} error={error} />
-        <Button type="submit" variant="primary" size="lg" className="w-full" loading={busy === "password"} disabled={busy !== null && busy !== "password"}>
-          Sign in
-        </Button>
-      </form>
-      <OrRule />
-      <div className="space-y-2">
-        <Button type="button" size="lg" className="w-full" onClick={() => void onPasskey()} loading={busy === "passkey"} disabled={busy !== null && busy !== "passkey"}>
-          <Fingerprint /> Sign in with a passkey
-        </Button>
-        {google && (
-          <Button type="button" size="lg" className="w-full" onClick={() => void onGoogle()} loading={busy === "google"} disabled={busy !== null && busy !== "google"}>
-            <KeyRound /> Continue with Google
-          </Button>
-        )}
-        <Button type="button" size="lg" className="w-full" onClick={() => (setMode("sso"), setError(null))} disabled={busy !== null}>
-          <Building2 /> Use SSO
-        </Button>
-      </div>
+    <div>
+      <FlowHead flow={flow} progress={false} />
+      <StepFlow step={flow.step} direction={flow.direction}>
+        {view}
+      </StepFlow>
     </div>
   );
 }

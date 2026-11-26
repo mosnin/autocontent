@@ -6,6 +6,7 @@ import { THEME_COOKIE, type AppTheme } from "@/components/shell/theme";
 import type { SetupStep } from "@/components/shell/getting-started";
 import { listMemberships, needsTwoFactor, requireSession } from "@/lib/auth/session";
 import { ensureWorkspace } from "@/lib/auth/workspace";
+import type { BillingAccess } from "@/lib/billing-access";
 import type { BrandKit } from "@/lib/brand-kit-client";
 import type { AyrshareConnectStatus, Job, Niche } from "@/lib/types";
 import { shellInbox } from "@/lib/workspace";
@@ -39,7 +40,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (needsTwoFactor({ ...ctx, membership })) redirect(`/two-factor/setup?next=${encodeURIComponent(here)}`);
 
   const theme = ((await cookies()).get(THEME_COOKIE)?.value === "light" ? "light" : "dark") as AppTheme;
-  const [all, inbox, niches, ayrshare, jobs, brand, adAccounts] = await Promise.all([
+  const [all, inbox, niches, ayrshare, jobs, brand, adAccounts, access] = await Promise.all([
     listMemberships(ctx.user.id),
     getInbox(),
     safe<Niche[]>("/api/v1/niches"),
@@ -47,11 +48,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     safe<Job[]>("/api/v1/jobs?limit=1"),
     safe<BrandKit>("/api/v1/brand-kit"),
     safe<unknown[]>("/api/v1/ads/accounts"),
+    safe<BillingAccess>("/api/v1/billing/access"),
   ]);
 
   // A brand-new workspace starts in onboarding. Only when the API positively
   // reports nothing (empty arrays, no brand), never when it's unreachable.
   if (niches && jobs && brand && niches.length === 0 && jobs.length === 0 && !brand.brand_name) redirect("/onboarding");
+  // Nothing to run on (billing on, no credit, never bought, no code): the plan
+  // screen comes before the dashboard (docs/billing/access-codes.md). Only when
+  // the API positively says so; an unreachable API never blocks the app.
+  if (access?.needs_plan) redirect(`/plans?next=${encodeURIComponent(here)}`);
 
   const steps: SetupStep[] = [
     { id: "brand", label: "Tell Marketer about your brand", detail: "Name, voice and audience steer everything it makes.", href: "/brand", done: Boolean(brand?.brand_name) },

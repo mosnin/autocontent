@@ -5,10 +5,13 @@
 
 import { passkeyClient } from "@better-auth/passkey/client";
 import { ssoClient } from "@better-auth/sso/client";
-import { inferOrgAdditionalFields, organizationClient, twoFactorClient } from "better-auth/client/plugins";
+import { emailOTPClient, inferOrgAdditionalFields, organizationClient, twoFactorClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
 import { ac, roles } from "./access";
+
+/** Fired when a sign-in needs the second factor. preventDefault() keeps the person on the page. */
+export const TWO_FACTOR_EVENT = "marketer:two-factor";
 
 export const authClient = createAuthClient({
   basePath: "/api/auth",
@@ -21,12 +24,17 @@ export const authClient = createAuthClient({
     }),
     twoFactorClient({
       onTwoFactorRedirect() {
+        // A sign-in screen that asks for the code itself (the StepFlow) takes the
+        // event and stays put; anywhere else goes to the /two-factor page.
+        const evt = new CustomEvent(TWO_FACTOR_EVENT, { cancelable: true });
+        if (!window.dispatchEvent(evt)) return;
         const next = new URLSearchParams(window.location.search).get("next");
         window.location.href = `/two-factor${next ? `?next=${encodeURIComponent(next)}` : ""}`;
       },
     }),
     passkeyClient(),
     ssoClient(),
+    emailOTPClient(),
   ],
 });
 

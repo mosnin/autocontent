@@ -17,6 +17,7 @@ import { Clapperboard, Download, FolderOpen, GalleryHorizontal, Play, RotateCcw,
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
+import { addDays, dayKey, useLocalTime } from "@/components/app/activity/days";
 import { AskPill, Button, ButtonLink, Column, EmptyLine, FilterPill, IconTile, Input, List, ListRow, Modal, Notice, PageHeader, PlanCard, Section, Segmented, StatusBadge, LoadMore, usePaged, useAllowed } from "@/design-system";
 import { clientFetch } from "@/lib/client-fetcher";
 import { formatRelative, titleCase } from "@/lib/format";
@@ -41,8 +42,27 @@ export interface LibraryData {
   loadError?: boolean;
 }
 
-/** Deliverables (ref 07, Column lg): a segmented control, then a grid of thumbs. */
+/** Today, Yesterday, Earlier this week, Older: coarse buckets (newest first) for the deliverables grid. */
+function periods<T extends { created_at: string }>(items: T[], local: boolean): { label: string; items: T[] }[] {
+  const today = dayKey(new Date(), local);
+  const yesterday = addDays(today, -1);
+  const weekAgo = addDays(today, -6);
+  const out: { label: string; items: T[] }[] = [
+    { label: "Today", items: [] },
+    { label: "Yesterday", items: [] },
+    { label: "Earlier this week", items: [] },
+    { label: "Older", items: [] },
+  ];
+  for (const a of items) {
+    const k = dayKey(a.created_at, local);
+    out[k >= today ? 0 : k >= yesterday ? 1 : k >= weekAgo ? 2 : 3]!.items.push(a);
+  }
+  return out.filter((g) => g.items.length > 0);
+}
+
+/** Deliverables (ref 07, Column lg): a segmented control, then thumbs grouped by when they were made. */
 export function LibraryView({ initialFinals, initialClips, initialImages, initialCompositions, initialImagePosts, niches, offline, loadError }: LibraryData) {
+  const local = useLocalTime();
   const [tab, setTab] = useState<Tab>("all");
   const [niche, setNiche] = useState("all");
   const q = niche === "all" ? "" : `&niche_id=${encodeURIComponent(niche)}`;
@@ -194,20 +214,25 @@ export function LibraryView({ initialFinals, initialClips, initialImages, initia
             {gridAssets.length === 0 ? (
               <EmptyLine>{gridEmpty}</EmptyLine>
             ) : (
-              <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {grid.shown.map((a) => (
-                  <MediaCard
-                    key={a.id}
-                    asset={a}
-                    playbook={nicheTitle(a.niche_id)}
-                    selecting={selecting && canSelect && !isImage(a)}
-                    order={selected.indexOf(a.id)}
-                    onToggle={() => toggle(a.id)}
-                    onOpen={() => (isImage(a) ? window.open(mediaUrl(a.id), "_blank", "noopener") : setOpen(a))}
-                  />
+              <div className="space-y-10">
+                {/* A long grid reads as one wall; titled by when it was made, it reads as a timeline. */}
+                {periods(grid.shown, local).map((g) => (
+                  <Section key={g.label} title={g.label} count={g.items.length}>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                      {g.items.map((a) => (
+                        <MediaCard
+                          key={a.id}
+                          asset={a}
+                          playbook={nicheTitle(a.niche_id)}
+                          selecting={selecting && canSelect && !isImage(a)}
+                          order={selected.indexOf(a.id)}
+                          onToggle={() => toggle(a.id)}
+                          onOpen={() => (isImage(a) ? window.open(mediaUrl(a.id), "_blank", "noopener") : setOpen(a))}
+                        />
+                      ))}
+                    </div>
+                  </Section>
                 ))}
-              </div>
               <LoadMore shown={grid.shown.length} total={grid.total} onMore={grid.more} noun={tab === "all" ? "deliverables" : tab} />
               </div>
             )}
