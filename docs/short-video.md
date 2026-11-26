@@ -74,7 +74,7 @@ Agent tools (content producer): `create_short_video` (MEDIUM, same as `create_vi
 
 ## UI
 
-`/content/short` (entry: a "Short video" button in Content's header). One decision per step: topic or script →
+`/content/short` (entry: "Short video" in the Create menu of Content's header). One decision per step: topic or script →
 look and voice → footage → subtitles and music → variants → render. Every step has a default, so "Make it" on the
 first step is a complete request; "Customize" walks the rest. Everything else (clip length, speed, transition,
 framing, order, subtitle font/size/outline/colours/position/case/delivery, music volume and ducking, mood, tone) lives
