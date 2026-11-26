@@ -10,6 +10,7 @@ import { VIEWS as business } from "./views-business";
 import { VIEWS as insights } from "./views-insights";
 import { VIEWS as stories } from "./views-stories";
 import { VIEWS as shortVideo } from "./views-short-video";
+import { VIEWS as tracker } from "./views-tracker";
 import { VIEWS as work } from "./views-work";
 
 export const PREVIEW_VIEWS: Record<string, () => Promise<ReactNode> | ReactNode> = {
@@ -18,6 +19,7 @@ export const PREVIEW_VIEWS: Record<string, () => Promise<ReactNode> | ReactNode>
   ...business,
   ...stories,
   ...shortVideo,
+  ...tracker,
   // Memory: facts by entity type (one opened to show provenance and history), the review queue, learnings, empty.
   memory: () => <MemoryView facts={FX_MEMORY_FACTS} learnings={FX_MEMORY_LEARNINGS} preview={{ history: FX_MEMORY_HISTORY }} initialOpen="f-voice" />,
   "memory/review": () => <MemoryView facts={FX_MEMORY_FACTS} learnings={FX_MEMORY_LEARNINGS} preview={{ history: FX_MEMORY_HISTORY }} initialTab="review" />,

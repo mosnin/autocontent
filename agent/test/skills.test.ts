@@ -329,7 +329,8 @@ describe("the marketing skills pack", () => {
       expect(acting(name), name).toEqual([]);
     }
     // Pre-registration may create DRAFT campaigns, never activate or change a budget.
-    expect(acting("ad-test-plan")).toEqual(["create_ad_campaign"]);
+    // Drafts, and the test written into the A/B test log: nothing runs, spends or posts.
+    expect(acting("ad-test-plan")).toEqual(["create_ad_campaign", "log_ab_test"]);
     expect(acting("scale-winner")).toEqual(["set_ad_budget"]);
     expect(acting("repurpose")).toEqual(["repurpose_article"]);
     expect(acting("brand-voice")).toEqual(["update_brand_kit"]);

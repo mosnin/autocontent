@@ -314,3 +314,11 @@ Every route and why. "Also person-only" means the route additionally refuses the
 - Analysts and billing can no longer reach routes outside their role (for example billing cannot read content).
 - `POST /api/v1/admin/users/{id}/role` still writes `public.users.role`, which no longer grants anything; platform
   admin is `auth."user".role`.
+
+## Tracker routes
+
+`/api/v1/tracker/*` reuses catalog permissions instead of adding a resource: reads are `content:read`, row writes
+`content:update` (deleting a row `content:delete`), creating a table `playbook:create`, fields and views
+`playbook:update`, deleting a table `playbook:delete`. Two routes are `InRoute`: object search adds `campaign:read`
+for campaigns, and `POST /tracker/ab-tests` adds `playbook:create` when the workspace has no A/B test log yet. The
+reasoning and the full table are in [`docs/tracker.md`](../tracker.md#permissions).

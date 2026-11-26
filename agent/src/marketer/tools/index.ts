@@ -5,6 +5,7 @@ import { contentTools } from "./content.ts";
 import { distributionTools, getCalendar, getChannelStatus } from "./distribution.ts";
 import { seoTools } from "./seo.ts";
 import { listPlaybooks, strategyTools } from "./strategy.ts";
+import { listTrackers, logAbTest, trackerReadTools, trackerTools } from "./tracker.ts";
 import { getWorkspaceActivity, getWorkspaceInbox, getWorkspaceOverview } from "./workspace.ts";
 
 export { adsFirewall, MAX_DAILY_BUDGET_USD, MONEY_TOOLS } from "./ads.ts";
@@ -15,11 +16,13 @@ export type Department = "strategist" | "content-producer" | "seo-editor" | "med
 
 /** Each specialist gets ONLY its department's tools (never everything). */
 export const DEPARTMENT_TOOLS: Record<Department, () => AnyAgentTool[]> = {
-  strategist: strategyTools,
-  "content-producer": contentTools,
-  "seo-editor": seoTools,
-  "media-buyer": adsTools,
-  "distribution-manager": distributionTools,
+  strategist: () => [...strategyTools(), ...trackerTools()],
+  "content-producer": () => [...contentTools(), ...trackerTools()],
+  "seo-editor": () => [...seoTools(), ...trackerTools()],
+  // The media buyer logs its tests (MEDIUM, so it waits for a person like everything above LOW there).
+  "media-buyer": () => [...adsTools(), ...trackerReadTools(), logAbTest],
+  "distribution-manager": () => [...distributionTools(), ...trackerTools()],
+  // The analyst reads trackers through analyticsTools (A/B results, campaign stages) and changes nothing.
   analyst: analyticsTools,
 };
 
@@ -46,7 +49,7 @@ export function departmentToolNames(department: Department): string[] {
  * or spends happens in a department through delegation.
  */
 export function marketerReadTools(): AnyAgentTool[] {
-  return [getWorkspaceOverview, getWorkspaceInbox, getWorkspaceActivity, getSpendToday, listPlaybooks, getCalendar, getChannelStatus];
+  return [getWorkspaceOverview, getWorkspaceInbox, getWorkspaceActivity, getSpendToday, listPlaybooks, getCalendar, getChannelStatus, listTrackers];
 }
 
 /** The always-on loop's tools: read the overview, inbox, activity and today's spend. Nothing that acts. */

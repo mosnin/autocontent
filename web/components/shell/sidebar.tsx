@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Brain, CalendarDays, Clapperboard, Compass, FileText, FolderOpen, Megaphone, PanelLeft, Plug, Plus, Search, Send, Settings, Shield, Sparkles } from "lucide-react";
+import { BarChart3, Brain, CalendarDays, Clapperboard, Compass, FileText, FolderOpen, Megaphone, PanelLeft, Plug, Plus, Search, Send, Settings, Shield, Sparkles, Table2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { CountBadge, IconButton, Segmented, SidebarAttention, SidebarRow, SidebarSection, SidebarTextRow, ToolIcon, WorkspaceRow, type ToolTone } from "@/design-system";
@@ -99,6 +99,7 @@ export function Sidebar({ data, onNavigate, onSearch, onCollapse }: { data: Side
           <SidebarRow href="/sessions/new" icon={<Plus />} label="New session" current={pathname === "/sessions/new"} onClick={onNavigate} />
           <SidebarRow href="/analytics" icon={<BarChart3 />} label="Analytics" current={at(pathname, "/analytics")} onClick={onNavigate} />
           <SidebarRow href="/plan" icon={<CalendarDays />} label="Plan" current={at(pathname, "/plan")} onClick={onNavigate} />
+          <SidebarRow href="/tracker" icon={<Table2 />} label="Tracker" current={at(pathname, "/tracker")} onClick={onNavigate} />
           <SidebarRow href="/library" icon={<FolderOpen />} label="Deliverables" current={at(pathname, "/library")} onClick={onNavigate} />
         </SidebarSection>
 

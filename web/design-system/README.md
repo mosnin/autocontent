@@ -133,7 +133,6 @@ All of these live in `components/` and are exported from `index.ts`.
 | `FieldGroup` | | A labelled group for controls that aren't one input (chips, tag inputs, a time list). `Field` is a `<label>`; this is a `role="group"` |
 | `SwitchRow` | | A switch with its label and one line of detail in a bordered row. With `name`, it posts `on` when checked |
 | `Modal` | | Native `<dialog>` with a footer slot. Modal: the page behind is inert (focus stays inside), focus starts on the first field, Esc asks the owner to close, and focus returns to what opened it |
-| `Sheet` | | Secondary settings beside the page: a side panel from the inline end on wide screens, a bottom sheet on phones. Same dialog contract as `Modal`; enters and leaves along the same edge. Use it for a flow's "Fine-tune" options, never for the main path |
 
 ### Kit (`kit.tsx`)
 
@@ -162,6 +161,14 @@ All of these live in `components/` and are exported from `index.ts`.
 | `PermissionsProvider`, `useAllowed` | The role's permissions in the active workspace (the app shell provides them). `useAllowed("campaign:launch")` hides or disables a control. No provider means no. The server is the authority; this only shapes the UI |
 | `NotAllowed` | One quiet line saying which roles can do what a disabled control does |
 | `QrCode` | An authenticator QR code: dark modules on a fixed light tile in both themes, so scanners read it |
+
+### Sheet and tags (`sheet.tsx`)
+
+| Component | Notes |
+|---|---|
+| `Sheet` | Secondary work beside the page: a flow's "Fine-tune" options, a Tracker row's detail, a small form (add a field). A side panel from the inline end on wide screens (`width` sm 380px, md 460px, lg 560px), a bottom sheet on phones. Native modal `<dialog>` with the same focus rules as `Modal`; `actions` puts icon buttons beside Close. Enters and leaves along the same edge (`ds-sheet`); a cut with reduced motion. Never the main path |
+| `Popover` | A small panel anchored to a button for a little form (filters, sorts, visible fields). `Menu` picks one item; this holds controls. Esc and outside clicks close it and focus returns to the trigger |
+| `Tag`, `TagDot`, `TAG_TONES` | A select option in the colour a person picked (gray, blue, green, orange, red, purple, pink, teal, yellow). The colours are `--ds-tag-*` tokens: hue and saturation, with each theme setting fill and text lightness so the text stays readable. Use them only for options people colour themselves, never for status |
 
 ### Skeletons (`skeletons.tsx`)
 
@@ -216,6 +223,8 @@ work. They are not separate apps.
 | `/sessions/new`, `/sessions/[id]` | **Chat** (02, 06) | Breadcrumb header. A 720px chat column with the composer pinned to the bottom. Right agent panel, 320px and toggleable: agents, trace, sources. Approvals render as `PlanCard`, questions as `QuestionCard` |
 | `/analytics` | **Dashboard** (05) | Toolbar of `FilterPill`s (range, channel, compare). A KPI row. A line `ChartCard`. A breakdown and a bar list. "Ask about this data" `AskPill` |
 | `/activity`, `/inbox` | **Column** (07) | Segmented control: "Needs you n" / "Everything" / "Decisions". "Needs you" starts with required actions (an outcome we can't confirm: what was attempted, on what, when, and "It happened" / "It didn't happen"), then `ApprovalCard`s (approve, edit, dismiss). "Everything" is a day-grouped list of what agents did. "Decisions" is the decision log: the point, the action taken, whether the fallback was used, the mode and the time |
+| `/tracker` | **Column lg** (07) | The workspace's tables as `CollectionCard`s, then one-click templates. Empty: one line and the templates |
+| `/tracker/[id]` | **Tracker** | `PageHeader` crumbs (Tracker / Table) with New row; a view switcher (`Segmented`), search, filter, sort and fields; then the grid, board, calendar or gallery. Rows open in a `Sheet` |
 | `/plan` | **Dashboard** (05) | Toolbar: Week / Month segmented control, channel `FilterPill`. A calendar grid of scheduled items in a `Card`. "Ask to fill the gaps" `AskPill` |
 | `/library` (Deliverables) | **Column lg** (07) | Segmented control: All / Videos / Articles / Ads / Posts. A grid of `Thumb` cards |
 | `/playbooks`, `/content`, `/seo`, `/paid`, `/distribution` (Tools) | **Tool**: Column lg (07) | `ToolIcon` + 22px title + one line. A scoped `StartSession` ("Ask the Content agent…"). For Paid and Distribution, a KPI row (05). Then sections of the tool's work as `List`/`Table`/`CollectionCard` |

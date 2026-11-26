@@ -110,6 +110,13 @@ const EXPECTED_RISK: Record<string, "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"> = {
   get_spend_today: "LOW",
   get_spend_history: "LOW",
   get_metrics_summary: "LOW",
+  // tracker
+  list_trackers: "LOW",
+  get_tracker: "LOW",
+  list_tracker_rows: "LOW",
+  add_tracker_row: "MEDIUM",
+  update_tracker_row: "MEDIUM",
+  log_ab_test: "MEDIUM",
 };
 
 const allTools = (): AnyAgentTool[] => {
