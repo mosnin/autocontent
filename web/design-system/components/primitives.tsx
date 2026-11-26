@@ -26,14 +26,17 @@ import { cx } from "../cx";
    Rounded rectangles (6px), 28px tall by default. Primary is the white button. */
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "accent";
-export type ButtonSize = "sm" | "md" | "lg";
+export type ButtonSize = "sm" | "md" | "lg" | "xl";
 
 export function buttonClass(variant: ButtonVariant = "secondary", size: ButtonSize = "md", className?: string) {
   return cx(
-    "ds-press inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-ds-sm font-medium disabled:pointer-events-none disabled:opacity-45 [&_svg]:shrink-0",
+    "ds-press inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap font-medium disabled:pointer-events-none disabled:opacity-45 [&_svg]:shrink-0",
+    size === "xl" ? "rounded-ds-md" : "rounded-ds-sm",
     size === "sm" && "h-6 px-2 text-[12px] [&_svg]:size-3.5",
     size === "md" && "h-7 px-2.5 text-[13px] [&_svg]:size-3.5",
     size === "lg" && "h-9 px-4 text-[14px] [&_svg]:size-4",
+    // The StepFlow action: as tall as the step's field, same corners.
+    size === "xl" && "h-11 px-5 text-[15px] [&_svg]:size-4",
     variant === "primary" && "bg-ds-primary text-ds-primary-fg hover:opacity-90",
     variant === "secondary" && "border border-hairline bg-surface-2 text-fg hover:border-hairline-strong hover:bg-surface-3",
     variant === "ghost" && "text-fg-muted hover:bg-surface-2 hover:text-fg",
@@ -421,7 +424,10 @@ export function useOutside(ref: React.RefObject<HTMLElement | null>, active: boo
 export const inputClass =
   "w-full rounded-ds-md border border-hairline bg-surface-2 px-2.5 py-1.5 text-[13px] text-fg outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-fg-faint hover:border-hairline-strong focus:border-ds-accent focus:ring-2 focus:ring-ds-accent/20 disabled:opacity-50";
 
-export const Input = (p: InputHTMLAttributes<HTMLInputElement>) => <input {...p} className={cx(inputClass, "h-8", p.className)} />;
+/** `inputSize="lg"` is the one-question-at-a-time field (StepFlow): 44px, 15px text. */
+export const Input = ({ inputSize, ...p }: InputHTMLAttributes<HTMLInputElement> & { inputSize?: "md" | "lg" }) => (
+  <input {...p} className={cx(inputClass, inputSize === "lg" ? "h-11 px-3.5 text-[15px]" : "h-8", p.className)} />
+);
 export const Textarea = (p: TextareaHTMLAttributes<HTMLTextAreaElement>) => <textarea {...p} className={cx(inputClass, "resize-y", p.className)} />;
 export function Select({ className, ...p }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
